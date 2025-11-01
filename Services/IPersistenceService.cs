@@ -1,0 +1,17 @@
+﻿namespace TestCaseEditorApp.Services
+{
+    using System;
+    using System.Threading.Tasks;
+
+    public interface IPersistenceService
+    {
+        /// <summary>Save an object as JSON identified by key.</summary>
+        void Save<T>(string key, T obj);
+
+        /// <summary>Load an object by key. Returns default(T) if missing or on error.</summary>
+        T? Load<T>(string key);
+
+        /// <summary>Return true if a persisted entry exists for key.</summary>
+        bool Exists(string key);
+    }
+}

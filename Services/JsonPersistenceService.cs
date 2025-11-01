@@ -1,0 +1,64 @@
+﻿namespace TestCaseEditorApp.Services
+{
+    using System;
+    using System.IO;
+    using System.Text.Json;
+
+    public class JsonPersistenceService : IPersistenceService
+    {
+        private readonly string _folder;
+
+        public JsonPersistenceService()
+        {
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            _folder = Path.Combine(appData, "TestCaseEditorApp");
+            Directory.CreateDirectory(_folder);
+        }
+
+        private string PathFor(string key) =>
+            Path.Combine(_folder, SanitizeFileName(key) + ".json");
+
+        private static string SanitizeFileName(string name)
+        {
+            foreach (var c in Path.GetInvalidFileNameChars())
+                name = name.Replace(c, '_');
+            return name;
+        }
+
+        public void Save<T>(string key, T obj)
+        {
+            try
+            {
+                var path = PathFor(key);
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                var json = JsonSerializer.Serialize(obj, options);
+                File.WriteAllText(path, json);
+            }
+            catch
+            {
+                // swallow; persistence is best-effort. Consider logging in real app.
+            }
+        }
+
+        public T? Load<T>(string key)
+        {
+            try
+            {
+                var path = PathFor(key);
+                if (!File.Exists(path)) return default;
+                var json = File.ReadAllText(path);
+                return JsonSerializer.Deserialize<T>(json);
+            }
+            catch
+            {
+                return default;
+            }
+        }
+
+        public bool Exists(string key)
+        {
+            var path = PathFor(key);
+            return File.Exists(path);
+        }
+    }
+}

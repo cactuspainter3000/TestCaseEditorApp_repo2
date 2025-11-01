@@ -1,0 +1,15 @@
+﻿<Application x:Class="TestCaseEditorApp.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+
+                <!-- Make the control's styles available application-wide -->
+                <ResourceDictionary Source="/EditableDataControl;component/Themes/Generic.xaml" />
+                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/MainWindowResources.xaml" />
+                <!-- Add other merged dictionaries here -->
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
