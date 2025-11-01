@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows;
 using System.Windows.Input;
-using TestCaseEditorApp.ViewModels;
+using TestCaseEditorApp.MVVM.ViewModels;
 
 namespace TestCaseEditorApp
 {

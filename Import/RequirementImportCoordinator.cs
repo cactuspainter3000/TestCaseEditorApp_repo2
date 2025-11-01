@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using TestCaseEditorApp.Models;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Services;
 

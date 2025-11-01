@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using TestCaseEditorApp.Models;
+using TestCaseEditorApp.MVVM.Models;
 
 namespace TestCaseEditorApp.Services
 {

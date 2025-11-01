@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Import;
-using TestCaseEditorApp.Models; // for JamaAllDataDocxParser
+using TestCaseEditorApp.MVVM.Models; // for JamaAllDataDocxParser
 
 namespace TestCaseEditorApp.Import
 {

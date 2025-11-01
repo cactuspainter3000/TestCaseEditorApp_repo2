@@ -7,7 +7,6 @@ using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using TestCaseEditorApp.Models;
 using TestCaseEditorApp.MVVM.Models;
 
 namespace TestCaseEditorApp.Import

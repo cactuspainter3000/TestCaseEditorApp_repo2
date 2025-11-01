@@ -8,12 +8,11 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using System.Text;
 using System.Windows;
 using ClosedXML.Excel;
-using VMVerMethod = TestCaseEditorApp.Models.VerificationMethod;
+using VMVerMethod = TestCaseEditorApp.MVVM.Models.VerificationMethod;
 
 // Alias Word table to avoid confusion with Spreadsheet types
 using WTable = DocumentFormat.OpenXml.Wordprocessing.Table;
 using TestCaseEditorApp.Import;
-using TestCaseEditorApp.Models;
 using TestCaseEditorApp.MVVM.Models;
 
 

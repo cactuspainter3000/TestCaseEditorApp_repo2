@@ -7,13 +7,13 @@
     </ApplicationDefinition>
   </ItemGroup>
   <ItemGroup>
-    <Compile Update="Views\ClarifyingQuestionsView.xaml.cs">
+    <Compile Update="MVVM\Views\ClarifyingQuestionsView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Update="Views\RequirementsView.xaml.cs">
+    <Compile Update="MVVM\Views\RequirementsView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Update="Views\TestCaseCreationView.xaml.cs">
+    <Compile Update="MVVM\Views\TestCaseCreationView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
@@ -27,16 +27,16 @@
     <Page Update="Styles\SharedStyles.xaml">
       <SubType>Designer</SubType>
     </Page>
-    <Page Update="Views\ClarifyingQuestionsView.xaml">
+    <Page Update="MVVM\Views\ClarifyingQuestionsView.xaml">
       <SubType>Designer</SubType>
     </Page>
-    <Page Update="Views\EditableTableEditorWindow.xaml">
+    <Page Update="MVVM\Views\EditableTableEditorWindow.xaml">
       <SubType>Designer</SubType>
     </Page>
-    <Page Update="Views\RequirementsView.xaml">
+    <Page Update="MVVM\Views\RequirementsView.xaml">
       <SubType>Designer</SubType>
     </Page>
-    <Page Update="Views\TestCaseCreationView.xaml">
+    <Page Update="MVVM\Views\TestCaseCreationView.xaml">
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>
