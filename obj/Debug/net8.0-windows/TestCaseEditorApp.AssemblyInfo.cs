@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TestCaseEditorApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3f373471683615b4ef5dfa7c1bf7e934923f8bc2")]
 [assembly: System.Reflection.AssemblyProductAttribute("TestCaseEditorApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TestCaseEditorApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
