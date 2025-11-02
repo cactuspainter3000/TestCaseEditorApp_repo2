@@ -1,6 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
-using System;
 using System.Collections.ObjectModel;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Services;

@@ -1,10 +1,10 @@
 ﻿// TestCase.cs
 //namespace TestCaseEditorApp.MVVM.Models
 //{
-    // Row-shaped model that matches your Excel importer/exporter.
-    // Columns you already read in ParseTestCaseWorkbook:
-    // ApiId, Name, TestCaseText, Assigned, StepNumber, StepAction,
-    // StepExpectedResult, StepNotes, Status, Tags
+// Row-shaped model that matches your Excel importer/exporter.
+// Columns you already read in ParseTestCaseWorkbook:
+// ApiId, Name, TestCaseText, Assigned, StepNumber, StepAction,
+// StepExpectedResult, StepNotes, Status, Tags
 //    public class TestCase
 //    {
 //        public string? ApiId { get; set; }

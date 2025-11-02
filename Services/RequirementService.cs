@@ -1,19 +1,18 @@
 ﻿// RequirementService.cs
-using System.IO;
-using System.Text.RegularExpressions;
+using ClosedXML.Excel;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows;
-using ClosedXML.Excel;
-using VMVerMethod = TestCaseEditorApp.MVVM.Models.VerificationMethod;
-
-// Alias Word table to avoid confusion with Spreadsheet types
-using WTable = DocumentFormat.OpenXml.Wordprocessing.Table;
 using TestCaseEditorApp.Import;
 using TestCaseEditorApp.MVVM.Models;
+using VMVerMethod = TestCaseEditorApp.MVVM.Models.VerificationMethod;
+// Alias Word table to avoid confusion with Spreadsheet types
+using WTable = DocumentFormat.OpenXml.Wordprocessing.Table;
 
 
 namespace TestCaseEditorApp.Services
@@ -1101,46 +1100,46 @@ namespace TestCaseEditorApp.Services
         }
 
         public void ExportAllGeneratedTestCasesToExcel(IEnumerable<Requirement> requirements, string outputPath)
+        {
+            if (requirements == null) throw new ArgumentNullException(nameof(requirements));
+            var reqList = requirements.ToList();
+
+            // Partition by “set” (we infer via reflection so we don't add model fields)
+            // Try: SetName → Set → FolderPath → Folder → else "All Requirements"
+            var bySet = reqList
+                .GroupBy(r => GetGroupName(r))
+                .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            using var wb = new XLWorkbook();
+
+            // Create each worksheet
+            var usedSheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var setGroup in bySet)
             {
-                if (requirements == null) throw new ArgumentNullException(nameof(requirements));
-                var reqList = requirements.ToList();
+                var sheetName = MakeWorksheetNameUnique(SanitizeSheetName(setGroup.Key), usedSheetNames);
+                usedSheetNames.Add(sheetName);
 
-                // Partition by “set” (we infer via reflection so we don't add model fields)
-                // Try: SetName → Set → FolderPath → Folder → else "All Requirements"
-                var bySet = reqList
-                    .GroupBy(r => GetGroupName(r))
-                    .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
-                    .ToList();
+                var ws = wb.Worksheets.Add(sheetName);
 
-                using var wb = new XLWorkbook();
+                // Row 1: banner (merged across all columns), like Jama’s round-trip
+                ws.Cell(1, 1).Value = $"Excel Export from Jama\t\t\t\t{DateTime.Now:MM/dd/yyyy}";
+                ws.Range(1, 1, 1, _roundtripColumns.Length).Merge();
+                ws.Row(1).Height = 22;
 
-                // Create each worksheet
-                var usedSheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                foreach (var setGroup in bySet)
+                // Row 2: round-trip headers (exact names / order)
+                for (int i = 0; i < _roundtripColumns.Length; i++)
+                    ws.Cell(2, i + 1).Value = _roundtripColumns[i];
+
+                // Hide columns A–E (1..5), as the round-trip template does
+                for (int col = 1; col <= 5; col++)
+                    ws.Column(col).Hide();
+
+                int row = 3;
+
+                // Emit rows in requirement order. Each requirement can host multiple named cases.
+                foreach (var req in setGroup)
                 {
-                    var sheetName = MakeWorksheetNameUnique(SanitizeSheetName(setGroup.Key), usedSheetNames);
-                    usedSheetNames.Add(sheetName);
-
-                    var ws = wb.Worksheets.Add(sheetName);
-
-                    // Row 1: banner (merged across all columns), like Jama’s round-trip
-                    ws.Cell(1, 1).Value = $"Excel Export from Jama\t\t\t\t{DateTime.Now:MM/dd/yyyy}";
-                    ws.Range(1, 1, 1, _roundtripColumns.Length).Merge();
-                    ws.Row(1).Height = 22;
-
-                    // Row 2: round-trip headers (exact names / order)
-                    for (int i = 0; i < _roundtripColumns.Length; i++)
-                        ws.Cell(2, i + 1).Value = _roundtripColumns[i];
-
-                    // Hide columns A–E (1..5), as the round-trip template does
-                    for (int col = 1; col <= 5; col++)
-                        ws.Column(col).Hide();
-
-                    int row = 3;
-
-                    // Emit rows in requirement order. Each requirement can host multiple named cases.
-                    foreach (var req in setGroup)
-                    {
                     var steps = GetSteps(req).ToList();           // IEnumerable<object> → List<object>
                     var hasSteps = steps.Count > 0;
 
@@ -1196,40 +1195,40 @@ namespace TestCaseEditorApp.Services
                     }
                 }
 
-                    // A little readability (purely cosmetic)
-                    ws.Columns().AdjustToContents(6, _roundtripColumns.Length); // adjust visible cols (F..O)
-                                                                                // Set some practical widths (optional)
-                    SafeSetWidth(ws, 6, 18);  // Heading
-                    SafeSetWidth(ws, 7, 18);  // ID
-                    SafeSetWidth(ws, 8, 45);  // Name
-                    SafeSetWidth(ws, 9, 22);  // Assigned
-                    SafeSetWidth(ws, 10, 16); // Test Case Status
-                    SafeSetWidth(ws, 11, 10); // Step #
-                    SafeSetWidth(ws, 12, 40); // Step Action
-                    SafeSetWidth(ws, 13, 40); // Step Expected Result
-                    SafeSetWidth(ws, 14, 24); // Step Notes
-                    SafeSetWidth(ws, 15, 18); // Test Run Results
-                }
-
-                // If no requirements, still create a single empty sheet to avoid a corrupt file
-                if (!bySet.Any())
-                {
-                    var ws = wb.Worksheets.Add("All Requirements");
-                    ws.Cell(1, 1).Value = $"Excel Export from Jama\t\t\t\t{DateTime.Now:MM/dd/yyyy}";
-                    ws.Range(1, 1, 1, _roundtripColumns.Length).Merge();
-                    for (int i = 0; i < _roundtripColumns.Length; i++)
-                        ws.Cell(2, i + 1).Value = _roundtripColumns[i];
-                    for (int col = 1; col <= 5; col++) ws.Column(col).Hide();
-                }
-
-                wb.SaveAs(outputPath);
+                // A little readability (purely cosmetic)
+                ws.Columns().AdjustToContents(6, _roundtripColumns.Length); // adjust visible cols (F..O)
+                                                                            // Set some practical widths (optional)
+                SafeSetWidth(ws, 6, 18);  // Heading
+                SafeSetWidth(ws, 7, 18);  // ID
+                SafeSetWidth(ws, 8, 45);  // Name
+                SafeSetWidth(ws, 9, 22);  // Assigned
+                SafeSetWidth(ws, 10, 16); // Test Case Status
+                SafeSetWidth(ws, 11, 10); // Step #
+                SafeSetWidth(ws, 12, 40); // Step Action
+                SafeSetWidth(ws, 13, 40); // Step Expected Result
+                SafeSetWidth(ws, 14, 24); // Step Notes
+                SafeSetWidth(ws, 15, 18); // Test Run Results
             }
 
-            // ======== helpers (private, no new public API) ========
-
-            // Exact round-trip column order you validated in Jama
-            private static readonly string[] _roundtripColumns = new[]
+            // If no requirements, still create a single empty sheet to avoid a corrupt file
+            if (!bySet.Any())
             {
+                var ws = wb.Worksheets.Add("All Requirements");
+                ws.Cell(1, 1).Value = $"Excel Export from Jama\t\t\t\t{DateTime.Now:MM/dd/yyyy}";
+                ws.Range(1, 1, 1, _roundtripColumns.Length).Merge();
+                for (int i = 0; i < _roundtripColumns.Length; i++)
+                    ws.Cell(2, i + 1).Value = _roundtripColumns[i];
+                for (int col = 1; col <= 5; col++) ws.Column(col).Hide();
+            }
+
+            wb.SaveAs(outputPath);
+        }
+
+        // ======== helpers (private, no new public API) ========
+
+        // Exact round-trip column order you validated in Jama
+        private static readonly string[] _roundtripColumns = new[]
+        {
             "API-ID",
             "Version #",
             "Has Children",
@@ -1247,127 +1246,127 @@ namespace TestCaseEditorApp.Services
             "Test Run Results"
         };
 
-    private static void WriteRoundtripRow(IXLWorksheet ws, int row,
-        string apiId, string version, string hasChildren, int indent,
-        string heading, string jamaId,
-        string name, string assigned, string testCaseHtml, string testCaseStatus,
-        int stepNumber, string stepAction, string stepExpected, string stepNotes, string testRunResults)
-    {
-        // A..O = 15 columns
-        ws.Cell(row, 1).Value = apiId;
-        ws.Cell(row, 2).Value = version;
-        ws.Cell(row, 3).Value = hasChildren;
-        ws.Cell(row, 4).Value = indent;
-        ws.Cell(row, 5).Value = heading;
-        ws.Cell(row, 6).Value = jamaId;
-        ws.Cell(row, 7).Value = name;
-        ws.Cell(row, 8).Value = assigned;
-        ws.Cell(row, 9).Value = testCaseHtml;       // Jama tolerates HTML here
-        ws.Cell(row, 10).Value = testCaseStatus;    // cannot update via round-trip
-        ws.Cell(row, 11).Value = stepNumber;
-        ws.Cell(row, 12).Value = stepAction;
-        ws.Cell(row, 13).Value = stepExpected;
-        ws.Cell(row, 14).Value = stepNotes;
-        ws.Cell(row, 15).Value = testRunResults;
-    }
-
-    private static string SafeCell(string? s)
-    {
-        if (string.IsNullOrWhiteSpace(s)) return string.Empty;
-        var t = s.Replace("\r", " ").Replace("\n", " ").Replace("\t", " ").Trim();
-        // Excel formula guard: prefix if starts with =, +, -, @ to avoid formula injection
-        if (t.Length > 0 && ("=+-@".IndexOf(t[0]) >= 0)) t = "'" + t;
-        return t;
-    }
-
-    private static int TryParseIntSafe(string? s) => int.TryParse(s, out var n) ? n : int.MaxValue;
-
-    private static string BestCaseName(string? testCaseNameFromRow, Requirement req)
-    {
-        string pick(params string?[] opts) => opts.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x)) ?? "Untitled Test";
-        var composed = !string.IsNullOrWhiteSpace(req?.Item) && !string.IsNullOrWhiteSpace(req?.Name)
-            ? $"{req!.Item}: {req!.Name}" : null;
-        return SafeCell(pick(testCaseNameFromRow, composed, req?.Item, req?.Name));
-    }
-
-    private static string WrapPlainTextAsHtml(string? text)
-    {
-        // Round-trip allows HTML in "Test Case" field. If plain, wrap in <p>.
-        var t = (text ?? string.Empty).Trim();
-        if (t.StartsWith("<", StringComparison.Ordinal)) return t; // already HTML
-                                                                   // Collapse whitespace and wrap
-        t = Regex.Replace(t, @"[\r\n\t]+", " ").Trim();
-        if (string.IsNullOrEmpty(t)) return string.Empty;
-        var sb = new StringBuilder();
-        sb.Append("<p>").Append(System.Net.WebUtility.HtmlEncode(t)).Append("</p>");
-        return sb.ToString();
-    }
-
-    private static string GetHeading(Requirement r)
-    {
-        // Best-effort: try common properties for a heading/section (reflection so we don't add to the model)
-        return TryGetStringProp(r, "Heading")
-            ?? TryGetStringProp(r, "Section")
-            ?? TryGetStringProp(r, "Path")
-            ?? string.Empty;
-    }
-
-    private static string GetGroupName(Requirement r)
-    {
-        // Infer a “set” name without changing your model:
-        // SetName → Set → FolderPath (last segment) → Folder → else fallback
-        var setName = TryGetStringProp(r, "SetName")
-                   ?? TryGetStringProp(r, "Set")
-                   ?? LastSegment(TryGetStringProp(r, "FolderPath"))
-                   ?? TryGetStringProp(r, "Folder")
-                   ?? "All Requirements";
-        return string.IsNullOrWhiteSpace(setName) ? "All Requirements" : setName.Trim();
-    }
-
-    private static string? TryGetStringProp(object obj, string prop)
-    {
-        var pi = obj.GetType().GetProperty(prop);
-        if (pi == null) return null;
-        var val = pi.GetValue(obj);
-        return val?.ToString();
-    }
-
-    private static string? LastSegment(string? pathLike)
-    {
-        if (string.IsNullOrWhiteSpace(pathLike)) return null;
-        var parts = pathLike.Replace('\\', '/').Split('/');
-        return parts.Length == 0 ? pathLike : parts[^1];
-    }
-
-    private static string SanitizeSheetName(string name)
-    {
-        var t = string.IsNullOrWhiteSpace(name) ? "Sheet" : name.Trim();
-
-        // Replace illegal chars: \ / ? * [ ]
-        t = Regex.Replace(t, @"[\\/\?\*\[\]:]", "-");
-        // Collapse whitespace
-        t = Regex.Replace(t, @"\s+", " ");
-        // Excel max 31 chars
-        if (t.Length > 31) t = t.Substring(0, 31);
-        if (t.Length == 0) t = "Sheet";
-        return t;
-    }
-
-    private static string MakeWorksheetNameUnique(string baseName, HashSet<string> used)
-    {
-        if (!used.Contains(baseName)) return baseName;
-        for (int i = 2; i < 1000; i++)
+        private static void WriteRoundtripRow(IXLWorksheet ws, int row,
+            string apiId, string version, string hasChildren, int indent,
+            string heading, string jamaId,
+            string name, string assigned, string testCaseHtml, string testCaseStatus,
+            int stepNumber, string stepAction, string stepExpected, string stepNotes, string testRunResults)
         {
-            var candidate = SanitizeSheetName($"{baseName} ({i})");
-            if (!used.Contains(candidate)) return candidate;
+            // A..O = 15 columns
+            ws.Cell(row, 1).Value = apiId;
+            ws.Cell(row, 2).Value = version;
+            ws.Cell(row, 3).Value = hasChildren;
+            ws.Cell(row, 4).Value = indent;
+            ws.Cell(row, 5).Value = heading;
+            ws.Cell(row, 6).Value = jamaId;
+            ws.Cell(row, 7).Value = name;
+            ws.Cell(row, 8).Value = assigned;
+            ws.Cell(row, 9).Value = testCaseHtml;       // Jama tolerates HTML here
+            ws.Cell(row, 10).Value = testCaseStatus;    // cannot update via round-trip
+            ws.Cell(row, 11).Value = stepNumber;
+            ws.Cell(row, 12).Value = stepAction;
+            ws.Cell(row, 13).Value = stepExpected;
+            ws.Cell(row, 14).Value = stepNotes;
+            ws.Cell(row, 15).Value = testRunResults;
         }
-        return Guid.NewGuid().ToString("n").Substring(0, 8);
-    }
 
-    private static void SafeSetWidth(IXLWorksheet ws, int columnIndex, double width)
-    {
-        try { ws.Column(columnIndex).Width = width; } catch { /* ignore */ }
-    }
+        private static string SafeCell(string? s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return string.Empty;
+            var t = s.Replace("\r", " ").Replace("\n", " ").Replace("\t", " ").Trim();
+            // Excel formula guard: prefix if starts with =, +, -, @ to avoid formula injection
+            if (t.Length > 0 && ("=+-@".IndexOf(t[0]) >= 0)) t = "'" + t;
+            return t;
+        }
+
+        private static int TryParseIntSafe(string? s) => int.TryParse(s, out var n) ? n : int.MaxValue;
+
+        private static string BestCaseName(string? testCaseNameFromRow, Requirement req)
+        {
+            string pick(params string?[] opts) => opts.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x)) ?? "Untitled Test";
+            var composed = !string.IsNullOrWhiteSpace(req?.Item) && !string.IsNullOrWhiteSpace(req?.Name)
+                ? $"{req!.Item}: {req!.Name}" : null;
+            return SafeCell(pick(testCaseNameFromRow, composed, req?.Item, req?.Name));
+        }
+
+        private static string WrapPlainTextAsHtml(string? text)
+        {
+            // Round-trip allows HTML in "Test Case" field. If plain, wrap in <p>.
+            var t = (text ?? string.Empty).Trim();
+            if (t.StartsWith("<", StringComparison.Ordinal)) return t; // already HTML
+                                                                       // Collapse whitespace and wrap
+            t = Regex.Replace(t, @"[\r\n\t]+", " ").Trim();
+            if (string.IsNullOrEmpty(t)) return string.Empty;
+            var sb = new StringBuilder();
+            sb.Append("<p>").Append(System.Net.WebUtility.HtmlEncode(t)).Append("</p>");
+            return sb.ToString();
+        }
+
+        private static string GetHeading(Requirement r)
+        {
+            // Best-effort: try common properties for a heading/section (reflection so we don't add to the model)
+            return TryGetStringProp(r, "Heading")
+                ?? TryGetStringProp(r, "Section")
+                ?? TryGetStringProp(r, "Path")
+                ?? string.Empty;
+        }
+
+        private static string GetGroupName(Requirement r)
+        {
+            // Infer a “set” name without changing your model:
+            // SetName → Set → FolderPath (last segment) → Folder → else fallback
+            var setName = TryGetStringProp(r, "SetName")
+                       ?? TryGetStringProp(r, "Set")
+                       ?? LastSegment(TryGetStringProp(r, "FolderPath"))
+                       ?? TryGetStringProp(r, "Folder")
+                       ?? "All Requirements";
+            return string.IsNullOrWhiteSpace(setName) ? "All Requirements" : setName.Trim();
+        }
+
+        private static string? TryGetStringProp(object obj, string prop)
+        {
+            var pi = obj.GetType().GetProperty(prop);
+            if (pi == null) return null;
+            var val = pi.GetValue(obj);
+            return val?.ToString();
+        }
+
+        private static string? LastSegment(string? pathLike)
+        {
+            if (string.IsNullOrWhiteSpace(pathLike)) return null;
+            var parts = pathLike.Replace('\\', '/').Split('/');
+            return parts.Length == 0 ? pathLike : parts[^1];
+        }
+
+        private static string SanitizeSheetName(string name)
+        {
+            var t = string.IsNullOrWhiteSpace(name) ? "Sheet" : name.Trim();
+
+            // Replace illegal chars: \ / ? * [ ]
+            t = Regex.Replace(t, @"[\\/\?\*\[\]:]", "-");
+            // Collapse whitespace
+            t = Regex.Replace(t, @"\s+", " ");
+            // Excel max 31 chars
+            if (t.Length > 31) t = t.Substring(0, 31);
+            if (t.Length == 0) t = "Sheet";
+            return t;
+        }
+
+        private static string MakeWorksheetNameUnique(string baseName, HashSet<string> used)
+        {
+            if (!used.Contains(baseName)) return baseName;
+            for (int i = 2; i < 1000; i++)
+            {
+                var candidate = SanitizeSheetName($"{baseName} ({i})");
+                if (!used.Contains(candidate)) return candidate;
+            }
+            return Guid.NewGuid().ToString("n").Substring(0, 8);
+        }
+
+        private static void SafeSetWidth(IXLWorksheet ws, int columnIndex, double width)
+        {
+            try { ws.Column(columnIndex).Width = width; } catch { /* ignore */ }
+        }
 
 
         // ------------ local helpers (keep private inside the class) ------------

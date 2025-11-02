@@ -1,12 +1,8 @@
 ﻿// TestCaseEditorApp/Import/JamaAllDataDocxEnricher.cs
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Text.RegularExpressions;
 using TestCaseEditorApp.MVVM.Models;
 
 namespace TestCaseEditorApp.Import

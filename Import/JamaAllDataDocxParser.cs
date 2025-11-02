@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using DocumentFormat.OpenXml;
+﻿using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Text;
+using System.Text.RegularExpressions;
 using TestCaseEditorApp.MVVM.Models;
 
 namespace TestCaseEditorApp.Import
@@ -96,7 +92,7 @@ namespace TestCaseEditorApp.Import
         /// <summary>Enable minimal debug captures for the first parsed requirement.</summary>
         public static bool DebugDump { get; set; } = false;
 
-        
+
 
         // Debug buffers (first requirement only)
         private static bool _debugCaptured = false;

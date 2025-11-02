@@ -1,6 +1,4 @@
 ﻿// TestStep.cs
-using System.Collections.Generic;
-
 namespace TestCaseEditorApp.MVVM.Models
 {
     public class TestStep

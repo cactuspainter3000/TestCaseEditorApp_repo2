@@ -3,8 +3,6 @@
 
 namespace TestCaseEditorApp.MVVM.Models
 {
-    using TestCaseEditorApp.MVVM.Models;
-
     // ---- Simple JSON-persisted workspace ----
     public class Workspace
     {

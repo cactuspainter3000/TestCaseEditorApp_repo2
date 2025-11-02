@@ -1,5 +1,4 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using System.Collections.Generic;
 
 namespace TestCaseEditorApp.MVVM.Models
 {

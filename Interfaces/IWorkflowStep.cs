@@ -1,6 +1,4 @@
-﻿using System.Threading.Tasks;
-
-namespace TestCaseEditorApp.Interfaces
+﻿namespace TestCaseEditorApp.Interfaces
 {
     public interface IWorkflowStep
     {

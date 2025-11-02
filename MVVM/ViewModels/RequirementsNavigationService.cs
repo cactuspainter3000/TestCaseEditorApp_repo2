@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Specialized;
-using System.Linq;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.Collections.Specialized;
 using TestCaseEditorApp.MVVM.Models;
 
 namespace TestCaseEditorApp.MVVM.ViewModels

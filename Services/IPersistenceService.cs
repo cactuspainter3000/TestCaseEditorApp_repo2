@@ -1,8 +1,5 @@
 ﻿namespace TestCaseEditorApp.Services
 {
-    using System;
-    using System.Threading.Tasks;
-
     public interface IPersistenceService
     {
         /// <summary>Save an object as JSON identified by key.</summary>

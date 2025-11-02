@@ -1,14 +1,10 @@
 ﻿using System.Collections.ObjectModel;
-using System.Windows;
 using System.Diagnostics;
-using System;
-using System.Linq;
-
+using System.Windows;
+using AppColumn = EditableDataControl.ViewModels.ColumnDefinitionModel;
 // app-side types:
 using AppProvider = TestCaseEditorApp.MVVM.ViewModels.ITableViewProvider;
-using AppColumn = EditableDataControl.ViewModels.ColumnDefinitionModel;
 using AppRow = EditableDataControl.ViewModels.TableRowModel;
-
 // Use the canonical viewmodel type via an alias so references are unambiguous
 using EditorVm = EditableDataControl.ViewModels.EditableTableEditorViewModel;
 

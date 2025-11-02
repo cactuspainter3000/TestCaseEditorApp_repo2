@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System.Globalization;
-using System.Linq;
-using CommunityToolkit.Mvvm.ComponentModel;
 
 #nullable enable
 

@@ -1,7 +1,6 @@
 ﻿namespace TestCaseEditorApp.MVVM.Models
 {
     using CommunityToolkit.Mvvm.ComponentModel;
-    using System.Text.Json.Serialization;
 
     public sealed class DefaultItem : ObservableObject
     {

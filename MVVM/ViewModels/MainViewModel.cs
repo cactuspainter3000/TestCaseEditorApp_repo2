@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.ObjectModel;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Threading;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Windows;
+using System.Windows.Threading;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Services;
 
