@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.Services;           // for RequirementService, IFileDialogService, etc.
 using TestCaseEditorApp.MVVM.Views;
+using TestCaseEditorApp.MVVM;
 
 namespace TestCaseEditorApp
 {

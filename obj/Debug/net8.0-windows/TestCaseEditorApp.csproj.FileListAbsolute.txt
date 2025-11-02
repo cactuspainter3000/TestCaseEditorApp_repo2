@@ -7,9 +7,9 @@ C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Deb
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\App.baml
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\ClarifyingQuestionsView.g.cs
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\EditableTableEditorWindow.g.cs
-C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\MainWindow.g.cs
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\RequirementsView.g.cs
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\TestCaseCreationView.g.cs
+C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\WorkspaceHeaderView.g.cs
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\App.g.cs
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\GeneratedInternalTypeHelper.g.cs
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\TestCaseEditorApp_MarkupCompile.cache
@@ -53,7 +53,9 @@ C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Deb
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\zh-Hans\Xceed.Wpf.AvalonDock.resources.dll
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\EditableDataControl.dll
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\EditableDataControl.pdb
+C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\MainWindow.g.cs
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\MainWindow.baml
+C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\WorkspaceHeaderView.baml
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\Resources\MainWindowResources.baml
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\TestCaseEditorApp.g.resources
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\TestCaseEditorApp.GeneratedMSBuildEditorConfig.editorconfig

@@ -2,23 +2,58 @@
 using System.Windows;
 using System.Windows.Input;
 using TestCaseEditorApp.MVVM.ViewModels;
-using System.ComponentModel;
 
 namespace TestCaseEditorApp.MVVM.Views
 {
     public partial class MainWindow : Window, IDisposable
     {
         private readonly AppViewModel? _vm;
+        private bool _disposed;
 
         // Parameterless ctor keeps the XAML designer happy. DataContext will be set at runtime via DI ctor.
         public MainWindow()
         {
             InitializeComponent();
+            // Designer can render; don't set DataContext here for runtime.
+        }
 
-            if (DesignerProperties.GetIsInDesignMode(this))
+        // Main DI constructor
+        public MainWindow(AppViewModel vm) : this()
+        {
+            _vm = vm ?? throw new ArgumentNullException(nameof(vm));
+            DataContext = _vm;
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
             {
-                // Use a lightweight design-time stub so the designer doesn't need runtime services.
-                DataContext = new MainViewModelDesignStub();
+                if (_vm is IDisposable disposableVm)
+                {
+                    disposableVm.Dispose();
+                }
+            }
+
+            _disposed = true;
+        }
+
+        ~MainWindow() => Dispose(disposing: false);
+
+        // Allow window dragging by clicking the outer border
+        public void Border_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                try
+                {
+                    DragMove();
+                }
+                catch
+                {
+                    // ignore drag exceptions (e.g., during startup)
+                }
             }
         }
 
@@ -49,31 +84,6 @@ namespace TestCaseEditorApp.MVVM.Views
                     info += $" (value={(val == null ? "null" : val.GetType().FullName)})";
                 }
                 System.Diagnostics.Debug.WriteLine(info);
-            }
-        }
-
-        // Main DI constructor
-        public MainWindow(AppViewModel vm)
-        {
-            InitializeComponent();
-
-            _vm = vm ?? throw new ArgumentNullException(nameof(vm));
-            DataContext = _vm;
-        }
-
-        // Allow window dragging by clicking the outer border
-        public void Border_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.LeftButton == MouseButtonState.Pressed)
-            {
-                try
-                {
-                    DragMove();
-                }
-                catch
-                {
-                    // ignore drag exceptions (e.g., during startup)
-                }
             }
         }
 

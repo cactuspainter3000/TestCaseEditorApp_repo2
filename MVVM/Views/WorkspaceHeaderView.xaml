@@ -1,0 +1,141 @@
+﻿<UserControl x:Class="TestCaseEditorApp.MVVM.Views.WorkspaceHeaderView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
+             mc:Ignorable="d"
+             d:DesignHeight="75" d:DesignWidth="800">
+    <!-- Local resources so this control builds even if App.xaml isn't wired yet -->
+    <UserControl.Resources>
+        <!-- converter instances (ensure the classes exist & are public in TestCaseEditorApp.Converters) -->
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <conv:NullOrEmptyToVisibilityConverter x:Key="NullOrEmptyToVisibilityConverter" />
+        <conv:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+        <conv:BadgeToVisibilityConverter x:Key="BadgeToVisibilityConverter" />
+
+        <!-- Lightweight IconButtonStyle in case a global style is not present -->
+        <Style x:Key="IconButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="2"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Width" Value="26"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#30FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#40FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <!-- Root uses the same 4-column proportional layout as the main content area so things align -->
+    <Grid Background="Transparent" Margin="0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="141*"/>
+            <ColumnDefinition Width="639*"/>
+            <ColumnDefinition Width="122*"/>
+            <ColumnDefinition Width="65*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Column 0: Workspace name / file and small unsaved indicator -->
+        <StackPanel Grid.Column="0" Orientation="Vertical" VerticalAlignment="Center" Margin="4,0">
+            <TextBlock Text="{Binding WorkspaceName}"
+                       FontSize="12"
+                       Foreground="#FFCCCCCC"
+                       VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis"
+                       TextWrapping="NoWrap"
+                       ToolTip="{Binding WorkspaceName}"
+                       AutomationProperties.Name="Workspace name" />
+            <TextBlock Text="{Binding SourceInfo}"
+                       FontSize="10"
+                       Foreground="#FF9A9A9A"
+                       VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis"
+                       TextWrapping="NoWrap"
+                       Visibility="{Binding SourceInfo, Converter={StaticResource NullOrEmptyToVisibilityConverter}}"
+                       ToolTip="{Binding SourceInfo}" />
+        </StackPanel>
+
+        <!-- Column 1: Primary requirement title and optional short summary -->
+        <StackPanel Grid.Column="1" Orientation="Vertical" VerticalAlignment="Center" Margin="4,0">
+            <TextBlock Text="{Binding CurrentRequirementTitle}"
+                       FontSize="16"
+                       FontWeight="Bold"
+                       Foreground="White"
+                       TextTrimming="CharacterEllipsis"
+                       TextWrapping="NoWrap"
+                       ToolTip="{Binding CurrentRequirementTitle}"
+                       AutomationProperties.Name="Requirement title" />
+            <TextBlock Text="{Binding CurrentRequirementSummary}"
+                       FontSize="12"
+                       Foreground="#FFBFBFBF"
+                       TextTrimming="CharacterEllipsis"
+                       TextWrapping="NoWrap"
+                       Margin="0,2,0,0"
+                       Visibility="{Binding CurrentRequirementSummary, Converter={StaticResource NullOrEmptyToVisibilityConverter}}"
+                       ToolTip="{Binding CurrentRequirementSummary}" />
+        </StackPanel>
+
+        <!-- Column 2: reserved for smaller metadata (kept minimal in this view) -->
+        <StackPanel Grid.Column="2" Orientation="Vertical" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="4,0">
+            <TextBlock Text="{Binding CurrentRequirementId}"
+                       FontSize="12"
+                       Foreground="#FFBFBFBF"
+                       TextTrimming="CharacterEllipsis"
+                       TextWrapping="NoWrap"
+                       Visibility="{Binding CurrentRequirementId, Converter={StaticResource NullOrEmptyToVisibilityConverter}}"
+                       ToolTip="{Binding CurrentRequirementId}"
+                       HorizontalAlignment="Center"
+                       AutomationProperties.Name="Requirement identifier" />
+            <TextBlock Text="{Binding CurrentRequirementStatus}"
+                       FontSize="11"
+                       Foreground="#FF9A9A9A"
+                       Margin="0,2,0,0"
+                       Visibility="{Binding CurrentRequirementStatus, Converter={StaticResource NullOrEmptyToVisibilityConverter}}"
+                       HorizontalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- Column 3: small action area - unsaved indicator and optional quick actions placeholder -->
+        <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,6,0" >
+            <!-- Unsaved indicator -->
+            <Ellipse Width="10" Height="10" Fill="DarkOrange" VerticalAlignment="Center" Margin="0,0,6,0"
+                     Visibility="{Binding HasUnsavedChanges, Converter={StaticResource BoolToVisibilityConverter}}"
+                     ToolTip="Unsaved changes" AutomationProperties.Name="Unsaved changes indicator"/>
+
+            <!-- Placeholder for future compact quick-action icons (Edit / Open) -->
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Content="✎"
+                        ToolTip="Edit requirement"
+                        Command="{Binding EditRequirementCommand}"
+                        Visibility="{Binding EditRequirementCommand, Converter={StaticResource NullToVisibilityConverter}}"
+                        Style="{StaticResource IconButtonStyle}"
+                        AutomationProperties.Name="Edit requirement"/>
+                <Button Content="🔗"
+                        ToolTip="Open requirement details"
+                        Command="{Binding OpenRequirementCommand}"
+                        Visibility="{Binding OpenRequirementCommand, Converter={StaticResource NullToVisibilityConverter}}"
+                        Style="{StaticResource IconButtonStyle}"
+                        AutomationProperties.Name="Open requirement details"/>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</UserControl>

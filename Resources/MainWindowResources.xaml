@@ -1,12 +1,47 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
+                    xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
                     xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
                     xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models">
 
+    <DataTemplate DataType="{x:Type vm:WorkspaceHeaderViewModel}">
+        <views:WorkspaceHeaderView />
+    </DataTemplate>
+
+    <Style x:Key="IconButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="2"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}"
+                  CornerRadius="4">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#30FFFFFF"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="#40FFFFFF"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    
     <!-- Palette (tweak these brushes to change look) -->
     <!-- Backwards-compatibility aliases for code that still uses the old keys -->
-    <SolidColorBrush x:Key="MenuListBackground" Color="{Binding Color, Source={StaticResource MenuBackground}}"/>
     <SolidColorBrush x:Key="MenuListForeground" Color="{Binding Color, Source={StaticResource MenuForeground}}"/>
+    <SolidColorBrush x:Key="MenuListBackground" Color="{Binding Color, Source={StaticResource MenuBackground}}"/>
     <SolidColorBrush x:Key="MenuBackground" Color="#252525"/>
     <SolidColorBrush x:Key="MenuForeground" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="MenuHover" Color="#2E2E2E"/>
@@ -299,20 +334,20 @@
     </DataTemplate>
 
     <!-- StepDescriptorTemplate -->
-    <DataTemplate x:Key="StepDescriptorTemplate" DataType="{x:Type models:StepDescriptor}">
+    <!--<DataTemplate x:Key="StepDescriptorTemplate" DataType="{x:Type models:StepDescriptor}">
         <RadioButton Style="{StaticResource MenuButtonTheme}"
                  IsChecked="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected, Mode=TwoWay}"
                  Margin="0,2,0,2">
             <DockPanel LastChildFill="True">
                 <TextBlock Text="{Binding DisplayName}" Foreground="{StaticResource MenuForeground}" VerticalAlignment="Center" DockPanel.Dock="Left"/>
 
-                <!-- Badge chip -->
+                --><!-- Badge chip --><!--
                 <Border Background="{StaticResource Accent}" CornerRadius="10" Padding="6,2" Margin="8,0,0,0" VerticalAlignment="Center" DockPanel.Dock="Right"
                 Visibility="{Binding Badge, Converter={StaticResource BadgeToVisibilityConverter}}">
                     <TextBlock Text="{Binding Badge}" Foreground="White" FontSize="12" VerticalAlignment="Center"/>
                 </Border>
             </DockPanel>
         </RadioButton>
-    </DataTemplate>
+    </DataTemplate>-->
 
 </ResourceDictionary>

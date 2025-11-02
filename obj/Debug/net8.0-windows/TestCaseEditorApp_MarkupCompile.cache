@@ -10,11 +10,11 @@ none
 false
 TRACE;DEBUG;NET;NET8_0;NETCOREAPP
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\App.xaml
-71922254588
+82107488078
 
-44-209399816
+46-1557653071
 215-155618349
-MVVM\Views\ClarifyingQuestionsView.xaml;MVVM\Views\EditableTableEditorWindow.xaml;MVVM\Views\MainWindow.xaml;MVVM\Views\RequirementsView.xaml;MVVM\Views\TestCaseCreationView.xaml;Resources\MainWindowResources.xaml;Styles\SharedStyles.xaml;
+MVVM\Views\ClarifyingQuestionsView.xaml;MVVM\Views\EditableTableEditorWindow.xaml;MVVM\Views\MainWindow.xaml;MVVM\Views\RequirementsView.xaml;MVVM\Views\TestCaseCreationView.xaml;MVVM\Views\WorkspaceHeaderView.xaml;Resources\MainWindowResources.xaml;Styles\SharedStyles.xaml;
 
 False
 

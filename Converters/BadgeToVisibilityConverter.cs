@@ -5,6 +5,10 @@ using System.Windows.Data;
 
 namespace TestCaseEditorApp.Converters
 {
+    /// <summary>
+    /// Converts a badge value (string or numeric) to Visibility.
+    /// Collapses when null/empty or equal to "0" or numeric zero.
+    /// </summary>
     public class BadgeToVisibilityConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

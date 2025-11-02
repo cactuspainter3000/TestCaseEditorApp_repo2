@@ -19,7 +19,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     /// </summary>
     public partial class MainViewModel : ObservableObject, IDisposable
     {
-        // Core state
+        // Core state (CommunityToolkit source generators will produce backing fields)
         [ObservableProperty] private ObservableCollection<Requirement> requirements = new();
         [ObservableProperty] private Requirement? currentRequirement;
         [ObservableProperty] private string? workspacePath;
@@ -30,49 +30,144 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty] private string? wordFilePath;
         [ObservableProperty] private string? currentSourcePath;
 
+        // Services and helpers (single declarations)
+        private readonly IRequirementService _requirementService;
+        private readonly IFileDialogService _fileDialog;
+        private readonly IPersistenceService _persistence;
+        private readonly IServiceProvider _services;
+
+        // UI helpers
+        private DispatcherTimer? _statusTimer;
+
+        // Persistence key for selected step
+        private const string SelectedStepKey = "Main.SelectedStep";
+
+        // Content area viewmodel (bound from XAML ContentControl)
+        private object? _currentStepViewModel;
+        public object? CurrentStepViewModel
+        {
+            get => _currentStepViewModel;
+            set => SetProperty(ref _currentStepViewModel, value);
+        }
+
+        // Header viewmodel (persistent header)
+        private readonly WorkspaceHeaderViewModel _headerViewModel;
+        public WorkspaceHeaderViewModel HeaderViewModel => _headerViewModel;
+
         // Left‑menu step list expected by MainWindow.xaml bindings
-        // These were missing and caused the runtime binding errors.
         public ObservableCollection<StepDescriptor> TestCaseCreationSteps { get; } = new ObservableCollection<StepDescriptor>();
 
+        // Selected step (factory invoked here to produce the content VM)
         private StepDescriptor? _selectedStep;
         public StepDescriptor? SelectedStep
         {
             get => _selectedStep;
-            set => SetProperty(ref _selectedStep, value);
+            set
+            {
+                if (!SetProperty(ref _selectedStep, value)) return;
+
+                System.Diagnostics.Debug.WriteLine($"[SelectedStep] invoked. DisplayName='{value?.DisplayName}', Id='{value?.Id}'");
+
+                if (value?.CreateViewModel == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("[SelectedStep] CreateViewModel is null — nothing to create.");
+                    CurrentStepViewModel = null;
+                    return;
+                }
+
+                try
+                {
+                    // Invoke factory. If your factories don't use IServiceProvider, it's okay to ignore it.
+                    var created = value.CreateViewModel(_services);
+                    System.Diagnostics.Debug.WriteLine($"[SelectedStep] factory returned: {(created == null ? "null" : created.GetType().FullName)}");
+
+                    CurrentStepViewModel = created;
+                    System.Diagnostics.Debug.WriteLine($"[SelectedStep] CurrentStepViewModel assigned: {(CurrentStepViewModel == null ? "null" : CurrentStepViewModel.GetType().FullName)}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[SelectedStep] Exception invoking CreateViewModel: {ex}");
+                    CurrentStepViewModel = null;
+                }
+
+                // persist selection if applicable
+                try
+                {
+                    if (value != null)
+                    {
+                        _persistence?.Save(SelectedStepKey, value.Id);
+                        System.Diagnostics.Debug.WriteLine($"[SelectedStep] Persisted SelectedStep.Id='{value.Id}'");
+                    }
+                }
+                catch (Exception exPersist)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[SelectedStep] Persistence save failed: {exPersist}");
+                }
+            }
         }
 
-        private readonly IRequirementService _requirementService;
-        private readonly IFileDialogService _fileDialog;
-        private DispatcherTimer? _statusTimer;
-
-        public MainViewModel(IRequirementService requirementService, IFileDialogService? fileDialog = null)
+        // Constructor - accept services required by factories and viewmodels
+        public MainViewModel(
+            IRequirementService requirementService,
+            IPersistenceService persistence,
+            IServiceProvider services,
+            IFileDialogService? fileDialog = null)
         {
             _requirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
+            _persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
+            _services = services ?? throw new ArgumentNullException(nameof(services));
             _fileDialog = fileDialog ?? new FileDialogService();
 
+            // create header VM after main viewmodel instance is initialized
+            _headerViewModel = new WorkspaceHeaderViewModel(this);
+
             // Keep counts up-to-date
-            Requirements.CollectionChanged += (_, __) =>
+            Requirements.CollectionChanged += RequirementsOnCollectionChanged;
+
+            // Populate the steps with factories that produce viewmodels.
+            // Use services or captured concrete services as needed.
+            TestCaseCreationSteps.Add(new StepDescriptor
             {
-                OnPropertyChanged(nameof(TotalRequirementsCount));
-                OnPropertyChanged(nameof(RequirementPositionDisplay));
-            };
+                Id = "requirements",
+                DisplayName = "Requirements",
+                Badge = "",
+                CreateViewModel = svc => new RequirementsViewModel(_persistence)
+            });
 
-            // Provide some initial menu items so the UI shows the menu immediately.
-            // Replace or populate these from your app wiring if you have a central menu definition.
-            TestCaseCreationSteps.Add(new StepDescriptor { DisplayName = "Requirements", Badge = "" });
-            TestCaseCreationSteps.Add(new StepDescriptor { DisplayName = "Clarifying Questions", Badge = "" });
-            TestCaseCreationSteps.Add(new StepDescriptor { DisplayName = "Test Case Creation", Badge = "" });
+            TestCaseCreationSteps.Add(new StepDescriptor
+            {
+                Id = "clarifying-questions",
+                DisplayName = "Clarifying Questions",
+                Badge = "",
+                CreateViewModel = svc => new ClarifyingQuestionsViewModel(_persistence)
+            });
 
-            // Optionally set a default selected step:
-            SelectedStep = TestCaseCreationSteps.FirstOrDefault();
+            TestCaseCreationSteps.Add(new StepDescriptor
+            {
+                Id = "testcase-creation",
+                DisplayName = "Test Case Creation",
+                Badge = "",
+                CreateViewModel = svc => new TestCaseCreationViewModel()
+            });
+
+            // Select a step that actually has a factory
+            SelectedStep = TestCaseCreationSteps.FirstOrDefault(s => s.CreateViewModel != null);
         }
 
+        private void RequirementsOnCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            OnPropertyChanged(nameof(TotalRequirementsCount));
+            OnPropertyChanged(nameof(RequirementPositionDisplay));
+        }
+
+        // Convenience properties
         public int TotalRequirementsCount => Requirements?.Count ?? 0;
         public string RequirementPositionDisplay =>
-            Requirements.Count == 0 || CurrentRequirement == null
+            Requirements == null || Requirements.Count == 0 || CurrentRequirement == null
                 ? string.Empty
                 : $"{Requirements.IndexOf(CurrentRequirement) + 1} of {Requirements.Count}";
 
+        // Commands (existing logic left unchanged)
         [RelayCommand]
         private async Task ImportWordAsync()
         {
@@ -274,7 +369,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         public void Dispose()
         {
-            // Nothing to dispose currently.
+            // Unsubscribe events to avoid leaks
+            if (Requirements != null)
+                Requirements.CollectionChanged -= RequirementsOnCollectionChanged;
+
+            _statusTimer?.Stop();
         }
     }
 }
