@@ -12,9 +12,9 @@ TRACE;DEBUG;NET;NET8_0;NETCOREAPP
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\App.xaml
 82107488078
 
-481588991919
-215-155618349
+501206285449
+219-97103234
 MVVM\Views\ClarifyingQuestionsView.xaml;MVVM\Views\EditableTableEditorWindow.xaml;MVVM\Views\MainWindow.xaml;MVVM\Views\RequirementsView.xaml;MVVM\Views\TestCaseCreationView.xaml;MVVM\Views\WorkspaceHeaderView.xaml;Resources\MainWindowResources.xaml;Styles\SharedStyles.xaml;
 
-True
+False
 

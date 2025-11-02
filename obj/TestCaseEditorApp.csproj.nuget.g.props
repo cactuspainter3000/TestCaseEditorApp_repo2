@@ -13,7 +13,11 @@
     <SourceRoot Include="C:\Users\e10653214\.nuget\packages\" />
     <SourceRoot Include="C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages\" />
   </ItemGroup>
+  <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <Import Project="$(NuGetPackageRoot)xunit.core\2.9.3\build\xunit.core.props" Condition="Exists('$(NuGetPackageRoot)xunit.core\2.9.3\build\xunit.core.props')" />
+  </ImportGroup>
   <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <Pkgxunit_analyzers Condition=" '$(Pkgxunit_analyzers)' == '' ">C:\Users\e10653214\.nuget\packages\xunit.analyzers\1.18.0</Pkgxunit_analyzers>
     <PkgMicrosoft_Xaml_Behaviors_Wpf Condition=" '$(PkgMicrosoft_Xaml_Behaviors_Wpf)' == '' ">C:\Users\e10653214\.nuget\packages\microsoft.xaml.behaviors.wpf\1.1.135</PkgMicrosoft_Xaml_Behaviors_Wpf>
     <PkgExtended_Wpf_Toolkit Condition=" '$(PkgExtended_Wpf_Toolkit)' == '' ">C:\Users\e10653214\.nuget\packages\extended.wpf.toolkit\5.0.0</PkgExtended_Wpf_Toolkit>
   </PropertyGroup>
