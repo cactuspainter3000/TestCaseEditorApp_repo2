@@ -19,6 +19,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     /// </summary>
     public partial class MainViewModel : ObservableObject, IDisposable
     {
+        private readonly WorkspaceHeaderViewModel _headerViewModel;
+        private readonly IRequirementService _requirementService;
+        private readonly IPersistenceService _persistence;
+        private readonly IFileDialogService _fileDialog;
+
         // Core state (CommunityToolkit source generators will produce backing fields)
         [ObservableProperty] private ObservableCollection<Requirement> requirements = new();
         [ObservableProperty] private Requirement? currentRequirement;
@@ -31,10 +36,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty] private string? currentSourcePath;
 
         // Services and helpers (single declarations)
-        private readonly IRequirementService _requirementService;
-        private readonly IFileDialogService _fileDialog;
-        private readonly IPersistenceService _persistence;
         private readonly IServiceProvider _services;
+        private RequirementsIndexViewModel? _requirementsNavigator;
 
         // UI helpers
         private DispatcherTimer? _statusTimer;
@@ -44,15 +47,16 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         // Content area viewmodel (bound from XAML ContentControl)
         private object? _currentStepViewModel;
+
         public object? CurrentStepViewModel
         {
             get => _currentStepViewModel;
             set => SetProperty(ref _currentStepViewModel, value);
         }
 
-        // Header viewmodel (persistent header)
-        private readonly WorkspaceHeaderViewModel _headerViewModel;
         public WorkspaceHeaderViewModel HeaderViewModel => _headerViewModel;
+        public NavigationViewModel Navigation { get; }
+        public RequirementsIndexViewModel RequirementsNavigator => _requirementsNavigator!;
 
         // Left‑menu step list expected by MainWindow.xaml bindings
         public ObservableCollection<StepDescriptor> TestCaseCreationSteps { get; } = new ObservableCollection<StepDescriptor>();
@@ -110,19 +114,24 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public MainViewModel(
             IRequirementService requirementService,
             IPersistenceService persistence,
-            IServiceProvider services,
-            IFileDialogService? fileDialog = null)
+            WorkspaceHeaderViewModel headerViewModel,
+            NavigationViewModel navigationViewModel,
+            IFileDialogService fileDialog)
         {
             _requirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
             _persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
-            _services = services ?? throw new ArgumentNullException(nameof(services));
-            _fileDialog = fileDialog ?? new FileDialogService();
+            _fileDialog = fileDialog ?? throw new ArgumentNullException(nameof(fileDialog));
 
-            // create header VM after main viewmodel instance is initialized
-            _headerViewModel = new WorkspaceHeaderViewModel(this);
+            _headerViewModel = headerViewModel ?? throw new ArgumentNullException(nameof(headerViewModel));
+
+            Navigation = navigationViewModel ?? throw new ArgumentNullException(nameof(navigationViewModel));
 
             // Keep counts up-to-date
             Requirements.CollectionChanged += RequirementsOnCollectionChanged;
+
+            _requirementsNavigator = new RequirementsIndexViewModel(Requirements,
+                () => CurrentRequirement,
+                r => CurrentRequirement = r);
 
             // Populate the steps with factories that produce viewmodels.
             // Use services or captured concrete services as needed.
@@ -278,6 +287,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 MessageBox.Show($"Failed to load workspace: {ex.Message}", "Load error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        partial void OnCurrentRequirementChanged(Requirement? oldValue, Requirement? newValue)
+        {
+            _requirementsNavigator?.NotifyCurrentRequirementChanged();
         }
 
         // central import path used by Import/Reload

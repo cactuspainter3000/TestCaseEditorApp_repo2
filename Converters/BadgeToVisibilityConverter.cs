@@ -7,8 +7,6 @@ namespace TestCaseEditorApp.Converters
 {
     public class BadgeToVisibilityConverter : IValueConverter
     {
-        // If true, show Collapsed when badge is null/empty/zero; otherwise Visible.
-        // Keep this simple and robust to different input types (string, int, long).
         public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             // Null -> Collapsed
@@ -19,7 +17,7 @@ namespace TestCaseEditorApp.Converters
             {
                 if (string.IsNullOrWhiteSpace(s)) return Visibility.Collapsed;
 
-                // If string contains a number, treat "0" or "0.0" as empty
+                // Try parse numeric strings (trim first)
                 if (decimal.TryParse(s.Trim(), NumberStyles.Number, culture, out var num))
                 {
                     return num == 0m ? Visibility.Collapsed : Visibility.Visible;
@@ -29,7 +27,7 @@ namespace TestCaseEditorApp.Converters
                 return Visibility.Visible;
             }
 
-            // If numeric types: 0 -> Collapsed, otherwise Visible
+            // Numeric types: 0 -> Collapsed, otherwise Visible
             if (value is int i) return i == 0 ? Visibility.Collapsed : Visibility.Visible;
             if (value is long l) return l == 0L ? Visibility.Collapsed : Visibility.Visible;
             if (value is short sh) return sh == 0 ? Visibility.Collapsed : Visibility.Visible;

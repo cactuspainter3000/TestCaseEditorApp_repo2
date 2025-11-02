@@ -58,6 +58,80 @@
     <!-- Converters -->
     <conv:BadgeToVisibilityConverter x:Key="BadgeToVisibilityConverter"/>
 
+    <Style x:Key="MenuPopupTextBoxStyle" TargetType="TextBox">
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Background" Value="#333333"/>
+        <Setter Property="BorderBrush" Value="#444444"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="6,3"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="3"
+                  SnapsToDevicePixels="True">
+                        <ScrollViewer x:Name="PART_ContentHost"
+                          Margin="{TemplateBinding Padding}"
+                          Focusable="False"/>
+                    </Border>
+                    <!-- Visual states (optional) -->
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="BorderBrush" Value="#666666"/>
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter Property="BorderBrush" Value="DarkOrange"/>
+                <Setter Property="Background" Value="#2b2b2b"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="#999999"/>
+                <Setter Property="Background" Value="#2b2b2b"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Example fallbacks for other keys if they're missing -->
+    <Style x:Key="MenuPopupComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Background" Value="#333333"/>
+        <Setter Property="BorderBrush" Value="#444444"/>
+        <Setter Property="Padding" Value="6,3"/>
+    </Style>
+
+    <Style x:Key="MenuSectionBorderStyle" TargetType="Border">
+        <Setter Property="CornerRadius" Value="5"/>
+        <Setter Property="BorderBrush" Value="DarkOrange"/>
+        <Setter Property="BorderThickness" Value="2"/>
+        <Setter Property="Background" Value="#252525"/>
+        <Setter Property="Padding" Value="5"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <!-- Content area border variant (more pronounced) -->
+    <Style x:Key="ContentBorderStyle" TargetType="Border" BasedOn="{StaticResource MenuSectionBorderStyle}">
+        <Setter Property="CornerRadius" Value="5"/>
+        <Setter Property="BorderBrush" Value="DarkOrange"/>
+        <Setter Property="BorderThickness" Value="2"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Padding" Value="6"/>
+    </Style>
+
+    <!-- Optional: a smaller inset border for workspace header -->
+    <Style x:Key="HeaderBorderStyle" TargetType="Border" BasedOn="{StaticResource MenuSectionBorderStyle}">
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="BorderThickness" Value="1.5"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Padding" Value="4"/>
+    </Style>
     <!-- Window chrome small buttons -->
     <!-- Updated MainWindowButtonControls: larger square hit area -->
     <Style x:Key="MainWindowButtonControls" TargetType="Button">
@@ -334,20 +408,20 @@
     </DataTemplate>
 
     <!-- StepDescriptorTemplate -->
-    <!--<DataTemplate x:Key="StepDescriptorTemplate" DataType="{x:Type models:StepDescriptor}">
+    <DataTemplate x:Key="StepDescriptorTemplate" DataType="{x:Type models:StepDescriptor}">
         <RadioButton Style="{StaticResource MenuButtonTheme}"
                  IsChecked="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected, Mode=TwoWay}"
                  Margin="0,2,0,2">
             <DockPanel LastChildFill="True">
                 <TextBlock Text="{Binding DisplayName}" Foreground="{StaticResource MenuForeground}" VerticalAlignment="Center" DockPanel.Dock="Left"/>
 
-                --><!-- Badge chip --><!--
+                 <!--Badge chip--> 
                 <Border Background="{StaticResource Accent}" CornerRadius="10" Padding="6,2" Margin="8,0,0,0" VerticalAlignment="Center" DockPanel.Dock="Right"
                 Visibility="{Binding Badge, Converter={StaticResource BadgeToVisibilityConverter}}">
                     <TextBlock Text="{Binding Badge}" Foreground="White" FontSize="12" VerticalAlignment="Center"/>
                 </Border>
             </DockPanel>
         </RadioButton>
-    </DataTemplate>-->
+    </DataTemplate>
 
 </ResourceDictionary>

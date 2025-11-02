@@ -30,13 +30,18 @@ namespace TestCaseEditorApp
 
             // ViewModels
             services.AddTransient<RequirementsViewModel>();
+
+            // Register the WorkspaceHeaderViewModel so DI can construct it and inject its dependencies
+            services.AddTransient<WorkspaceHeaderViewModel>();
+
+            // MainViewModel remains transient (or change lifetime as needed)
             services.AddTransient<MainViewModel>();
 
-            // App viewmodel (singleton since it represents app state) - if you have one, register it here
-            // services.AddSingleton<AppViewModel>(sp =>
-            //     new AppViewModel(sp, sp.GetRequiredService<IPersistenceService>()));
+            services.AddTransient<NavigationViewModel>();
 
-            // MainWindow resolved by DI
+            // Register the window and expose it via IWindow if WorkspaceHeaderViewModel (or others) need it.
+            // This registers MainWindow as the implementation for IWindow and also registers MainWindow itself for direct resolution.
+            services.AddSingleton<IWindow, MainWindow>();
             services.AddTransient<MainWindow>();
 
             _serviceProvider = services.BuildServiceProvider();

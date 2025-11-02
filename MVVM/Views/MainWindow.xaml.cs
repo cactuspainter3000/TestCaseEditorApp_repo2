@@ -5,7 +5,7 @@ using TestCaseEditorApp.MVVM.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.Views
 {
-    public partial class MainWindow : Window, IDisposable
+    public partial class MainWindow : Window, IWindow
     {
         private readonly AppViewModel? _vm;
         private bool _disposed;
@@ -84,6 +84,38 @@ namespace TestCaseEditorApp.MVVM.Views
                     info += $" (value={(val == null ? "null" : val.GetType().FullName)})";
                 }
                 System.Diagnostics.Debug.WriteLine(info);
+            }
+
+            try
+            {
+                var headerVm = new WorkspaceHeaderViewModel(new WindowWrapper(this));
+
+                // If DataContext (AppViewModel) exposes a property named "WorkspaceHeaderViewModel", set it.
+                if (DataContext != null)
+                {
+                    var prop = DataContext.GetType().GetProperty("WorkspaceHeaderViewModel",
+                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+                    if (prop != null && prop.CanWrite && prop.PropertyType.IsAssignableFrom(headerVm.GetType()))
+                    {
+                        prop.SetValue(DataContext, headerVm);
+                        System.Diagnostics.Debug.WriteLine("Assigned WorkspaceHeaderViewModel into AppViewModel.");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("AppViewModel has no writable WorkspaceHeaderViewModel property; will try view lookup.");
+                        // fallthrough to view lookup below
+                        var headerElement = this.FindName("WorkspaceHeaderView") as System.Windows.FrameworkElement;
+                        if (headerElement != null)
+                        {
+                            headerElement.DataContext = headerVm;
+                            System.Diagnostics.Debug.WriteLine("Set DataContext on named WorkspaceHeaderView element.");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to create/set WorkspaceHeaderViewModel: {ex}");
             }
         }
 

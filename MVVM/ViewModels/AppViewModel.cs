@@ -165,5 +165,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         public System.Windows.DataTemplate? CommandsTemplate
             => System.Windows.Application.Current?.TryFindResource("CommandsTemplate") as System.Windows.DataTemplate;
+
+        // NEW: WorkspaceHeaderViewModel property so MainWindow can inject a header VM that wraps the real window.
+        private WorkspaceHeaderViewModel? _workspaceHeaderViewModel;
+        public WorkspaceHeaderViewModel? WorkspaceHeaderViewModel
+        {
+            get => _workspaceHeaderViewModel;
+            set => SetProperty(ref _workspaceHeaderViewModel, value);
+        }
     }
 }
