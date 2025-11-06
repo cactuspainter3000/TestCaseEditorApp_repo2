@@ -32,7 +32,9 @@ namespace TestCaseEditorApp.Services
             try
             {
                 EnsureDocx(path);
-                return JamaAllDataDocxParser.Parse(path);
+
+                // Use the overload to enable debug dumps for this import only
+                return JamaAllDataDocxParser.Parse(path, debugDump: true);
             }
             catch (NotSupportedException nse)
             {

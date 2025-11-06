@@ -7,6 +7,9 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<RootNamespace>TestCaseEditorApp</RootNamespace>
 	</PropertyGroup>
+	<ItemGroup>
+	  <Compile Remove="Helpers\TableConversionHelper.cs" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<!-- Add package references here -->

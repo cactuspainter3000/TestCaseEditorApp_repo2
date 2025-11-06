@@ -1,146 +1,146 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+﻿using System;
+using System.Linq;
+using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Windows.Input;
+using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.ComponentModel;
 using TestCaseEditorApp.MVVM.Models;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
     /// <summary>
-    /// Lightweight helper to provide requirement-browsing commands and index for the UI.
-    /// Designed to be instantiated from MainViewModel (passes 'this' in constructor).
-    /// Subscribes to Requirements.CollectionChanged and MainViewModel property changes.
-    /// Exposes commands and read-only properties that should be bound from XAML.
+    /// Concrete IRequirementsNavigator that forwards to MainViewModel (single source of truth).
+    /// Robust to MainViewModel.Requirements being reassigned: re-subscribes to the active collection.
     /// </summary>
-    public class RequirementsNavigationService : ObservableObject, IDisposable
+    public class RequirementsNavigationService : ObservableObject, IRequirementsNavigator, IDisposable
     {
         private readonly MainViewModel _main;
+
+        // track the collection we are subscribed to so we can rehook if it changes
+        private ObservableCollection<Requirement>? _subscribedCollection;
 
         public RequirementsNavigationService(MainViewModel main)
         {
             _main = main ?? throw new ArgumentNullException(nameof(main));
 
-            // wire collection and selection changes
-            if (_main.Requirements != null)
-                _main.Requirements.CollectionChanged += Requirements_CollectionChanged;
-
+            // listen for MainViewModel property changes (notably the Requirements property)
             _main.PropertyChanged += Main_PropertyChanged;
 
-            // create commands
-            PrevRequirementCommand = new RelayCommand(PrevRequirement, CanPrevRequirement);
-            NextRequirementCommand = new RelayCommand(NextRequirement, CanNextRequirement);
-            SelectRequirementCommand = new RelayCommand<object?>(SelectRequirement);
-            SearchRequirementCommand = new RelayCommand(SearchRequirement);
-
-            // initial state
-            UpdateIndex();
+            // hook the current collection instance (may be null initially)
+            HookCollection(_main.Requirements);
         }
 
-        // Commands exposed for binding from XAML (bind to the service instance)
-        public IRelayCommand PrevRequirementCommand { get; }
-        public IRelayCommand NextRequirementCommand { get; }
-        public IRelayCommand SelectRequirementCommand { get; }
-        public IRelayCommand SearchRequirementCommand { get; }
-
-        // Read-only properties for binding (service raises change notifications)
-        public int SelectedRequirementIndex
+        private void HookCollection(ObservableCollection<Requirement>? coll)
         {
-            get => _selectedRequirementIndex;
-            private set => SetProperty(ref _selectedRequirementIndex, value);
-        }
-        private int _selectedRequirementIndex;
+            if (ReferenceEquals(coll, _subscribedCollection)) return;
 
-        public int TotalRequirementsCount => _main.Requirements?.Count ?? 0;
-
-        public string RequirementPositionDisplay =>
-            _main.Requirements == null || _main.Requirements.Count == 0 || _main.CurrentRequirement == null
-                ? string.Empty
-                : $"{_main.Requirements.IndexOf(_main.CurrentRequirement) + 1} of {_main.Requirements.Count}";
-
-        private void Requirements_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        {
-            UpdateIndex();
-        }
-
-        private void Main_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(MainViewModel.CurrentRequirement))
-                UpdateIndex();
-        }
-
-        private void UpdateIndex()
-        {
-            if (_main.Requirements == null || _main.Requirements.Count == 0 || _main.CurrentRequirement == null)
-                SelectedRequirementIndex = 0;
-            else
+            // detach old
+            if (_subscribedCollection != null)
             {
-                var idx = _main.Requirements.IndexOf(_main.CurrentRequirement);
-                SelectedRequirementIndex = (idx >= 0) ? idx + 1 : 0;
+                try { _subscribedCollection.CollectionChanged -= SubscribedCollection_CollectionChanged; } catch { }
             }
 
-            // Notify listeners that derived properties changed on the service
-            OnPropertyChanged(nameof(TotalRequirementsCount));
+            _subscribedCollection = coll;
+
+            if (_subscribedCollection != null)
+            {
+                _subscribedCollection.CollectionChanged += SubscribedCollection_CollectionChanged;
+            }
+
+            // Notify bindings that the Requirements reference changed
+            OnPropertyChanged(nameof(Requirements));
             OnPropertyChanged(nameof(RequirementPositionDisplay));
 
-            PrevRequirementCommand.NotifyCanExecuteChanged();
-            NextRequirementCommand.NotifyCanExecuteChanged();
+            // Ensure buttons enable state is updated
+            TryNotifyHostCommands();
         }
 
-        private bool CanPrevRequirement() =>
-            _main.CurrentRequirement != null && _main.Requirements.IndexOf(_main.CurrentRequirement) > 0;
-
-        private bool CanNextRequirement() =>
-            _main.CurrentRequirement != null && _main.Requirements.IndexOf(_main.CurrentRequirement) < (_main.Requirements.Count - 1);
-
-        private void PrevRequirement()
+        private void SubscribedCollection_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            if (!CanPrevRequirement()) return;
-            var i = _main.Requirements.IndexOf(_main.CurrentRequirement);
-            _main.CurrentRequirement = _main.Requirements[i - 1];
+            // Forward change notification
+            OnPropertyChanged(nameof(Requirements));
+            OnPropertyChanged(nameof(RequirementPositionDisplay));
+
+            // Update host commands' CanExecute
+            TryNotifyHostCommands();
         }
 
-        private void NextRequirement()
+        private void Main_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (!CanNextRequirement()) return;
-            var i = _main.Requirements.IndexOf(_main.CurrentRequirement);
-            _main.CurrentRequirement = _main.Requirements[i + 1];
-        }
-
-        private void SelectRequirement(object? param)
-        {
-            if (param is Requirement r)
+            // If the Requirements collection reference changed, re-hook to the new instance
+            if (e.PropertyName == nameof(MainViewModel.Requirements))
             {
-                _main.CurrentRequirement = r;
+                HookCollection(_main.Requirements);
                 return;
             }
-            if (param is string id)
+
+            // Forward relevant MainViewModel property changes to any listeners
+            if (e.PropertyName == nameof(MainViewModel.CurrentRequirement))
             {
-                var found = _main.Requirements.FirstOrDefault(x =>
-                    string.Equals(x.GlobalId, id, StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(x.Item, id, StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(x.Name, id, StringComparison.OrdinalIgnoreCase));
-                if (found != null) _main.CurrentRequirement = found;
+                OnPropertyChanged(nameof(CurrentRequirement));
+                OnPropertyChanged(nameof(RequirementPositionDisplay));
+                TryNotifyHostCommands();
+            }
+            else if (e.PropertyName == nameof(MainViewModel.WrapOnNextWithoutTestCase))
+            {
+                OnPropertyChanged(nameof(WrapOnNextWithoutTestCase));
+            }
+            else if (e.PropertyName == nameof(MainViewModel.RequirementPositionDisplay))
+            {
+                OnPropertyChanged(nameof(RequirementPositionDisplay));
             }
         }
 
-        private void SearchRequirement()
+        private void TryNotifyHostCommands()
         {
-            // If MainViewModel exposes a search text property use it; fall back to nothing if not present.
-            var prop = _main.GetType().GetProperty("RequirementSearchText");
-            string? q = prop?.GetValue(_main) as string;
-            if (string.IsNullOrWhiteSpace(q)) return;
+            try { (_main.PreviousRequirementCommand as IRelayCommand)?.NotifyCanExecuteChanged(); } catch { }
+            try { (_main.NextRequirementCommand as IRelayCommand)?.NotifyCanExecuteChanged(); } catch { }
+            try { (_main.NextWithoutTestCaseCommand as IRelayCommand)?.NotifyCanExecuteChanged(); } catch { }
+        }
 
-            var found = _main.Requirements.FirstOrDefault(r =>
-                (!string.IsNullOrEmpty(r.Name) && r.Name.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0)
-                || (!string.IsNullOrEmpty(r.Item) && r.Item.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0)
-                || (!string.IsNullOrEmpty(r.GlobalId) && r.GlobalId.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0));
-            if (found != null) _main.CurrentRequirement = found;
+        // IRequirementsNavigator implementation (forwards to MainViewModel)
+        public ObservableCollection<Requirement> Requirements => _main.Requirements;
+
+        public Requirement? CurrentRequirement
+        {
+            get => _main.CurrentRequirement;
+            set
+            {
+                if (_main.CurrentRequirement != value)
+                {
+                    _main.CurrentRequirement = value;
+                    OnPropertyChanged(nameof(CurrentRequirement));
+                    OnPropertyChanged(nameof(RequirementPositionDisplay));
+                    TryNotifyHostCommands();
+                }
+            }
+        }
+
+        public ICommand? NextRequirementCommand => _main.NextRequirementCommand;
+        public ICommand? PreviousRequirementCommand => _main.PreviousRequirementCommand;
+        public ICommand? NextWithoutTestCaseCommand => _main.NextWithoutTestCaseCommand;
+
+        public string RequirementPositionDisplay => _main.RequirementPositionDisplay;
+
+        public bool WrapOnNextWithoutTestCase
+        {
+            get => _main.WrapOnNextWithoutTestCase;
+            set
+            {
+                if (_main.WrapOnNextWithoutTestCase != value)
+                {
+                    _main.WrapOnNextWithoutTestCase = value;
+                    OnPropertyChanged(nameof(WrapOnNextWithoutTestCase));
+                }
+            }
         }
 
         public void Dispose()
         {
-            if (_main.Requirements != null)
-                _main.Requirements.CollectionChanged -= Requirements_CollectionChanged;
-            _main.PropertyChanged -= Main_PropertyChanged;
+            try { if (_subscribedCollection != null) _subscribedCollection.CollectionChanged -= SubscribedCollection_CollectionChanged; } catch { }
+            try { _main.PropertyChanged -= Main_PropertyChanged; } catch { }
         }
     }
 }

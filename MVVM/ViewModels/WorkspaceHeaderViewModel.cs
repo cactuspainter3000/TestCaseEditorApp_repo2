@@ -13,12 +13,27 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _window = window;
         }
 
-        [ObservableProperty]
-        private string title = "Workspace";
+        // Existing (keeps Title / Badge for legacy uses)
+        [ObservableProperty] private string title = "Workspace";
+        [ObservableProperty] private object? badge;
 
-        [ObservableProperty]
-        private object? badge;
+        // Properties expected by WorkspaceHeaderView.xaml
+        [ObservableProperty] private string? workspaceName;
+        [ObservableProperty] private string? sourceInfo;
 
+        [ObservableProperty] private string? currentRequirementTitle;
+        [ObservableProperty] private string? currentRequirementSummary;
+        [ObservableProperty] private string? currentRequirementId;
+        [ObservableProperty] private string? currentRequirementStatus;
+
+        [ObservableProperty] private bool hasUnsavedChanges;
+
+        // Commands: main VM may assign its own IRelayCommand instances here
+        // (keep these as settable so the MainViewModel can wire them)
+        public IRelayCommand? EditRequirementCommand { get; set; }
+        public IRelayCommand? OpenRequirementCommand { get; set; }
+
+        // Window controls (generated RelayCommand methods)
         [RelayCommand]
         private void Close()
         {

@@ -307,6 +307,21 @@ namespace TestCaseEditorApp.Import
         // --- Core helpers ---------------------------------------------------
 
         /// <summary>Enumerates top-level content blocks in visual order, flattening SdtBlocks and table cells.</summary>
+        /// 
+        public static List<Requirement> Parse(string path, bool debugDump)
+        {
+            var previous = DebugDump;
+            try
+            {
+                DebugDump = debugDump;
+                return Parse(path); // existing Parse(path)
+            }
+            finally
+            {
+                DebugDump = previous;
+            }
+        }
+
         private static IEnumerable<OpenXmlElement> EnumerateBlocks(Body body)
         {
             foreach (var el in body.Elements())

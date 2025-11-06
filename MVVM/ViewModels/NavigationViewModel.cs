@@ -131,5 +131,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 CurrentIndex = (idx >= 0) ? (idx + 1) : 0;
             }
         }
+
+        // NEW: adapter that holds the requirements navigation VM for binding in the NavigationView.
+        // Set this from MainViewModel after you create the shared RequirementsNavigationService.
+        public RequirementsNavigationViewModel? RequirementsNav { get; set; }
     }
 }

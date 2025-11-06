@@ -1,167 +1,130 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+﻿using System;
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Linq;
+using System.Windows.Input;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.MVVM.Models;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
     /// <summary>
-    /// Small viewmodel that provides requirement-browsing commands and index display.
-    /// Construct with the Requirements collection, a getter for CurrentRequirement, and a setter
-    /// for CurrentRequirement (so it doesn't depend on MainViewModel internals).
+    /// Small navigator VM for Requirements collection.
+    /// - Keeps a SelectedRequirement (bound to the UI)
+    /// - Exposes Prev/Next commands and a method to re-evaluate when the host's CurrentRequirement changes.
+    /// Designed to be lightweight and safe to construct from MainViewModel.
     /// </summary>
-    public class RequirementsIndexViewModel : ObservableObject, IDisposable
+    public class RequirementsIndexViewModel : ObservableObject
     {
         private readonly ObservableCollection<Requirement> _requirements;
-        private readonly Func<Requirement?> _getCurrent;
-        private readonly Action<Requirement?> _setCurrent;
+        private readonly Func<Requirement?> _getCurrentRequirement;
+        private readonly Action<Requirement?> _setCurrentRequirement;
+        private readonly Action? _commitPendingEdits;
 
         public RequirementsIndexViewModel(
             ObservableCollection<Requirement> requirements,
             Func<Requirement?> getCurrentRequirement,
-            Action<Requirement?> setCurrentRequirement)
+            Action<Requirement?> setCurrentRequirement,
+            Action? commitPendingEdits = null)
         {
             _requirements = requirements ?? throw new ArgumentNullException(nameof(requirements));
-            _getCurrent = getCurrentRequirement ?? throw new ArgumentNullException(nameof(getCurrentRequirement));
-            _setCurrent = setCurrentRequirement ?? throw new ArgumentNullException(nameof(setCurrentRequirement));
+            _getCurrentRequirement = getCurrentRequirement ?? throw new ArgumentNullException(nameof(getCurrentRequirement));
+            _setCurrentRequirement = setCurrentRequirement ?? throw new ArgumentNullException(nameof(setCurrentRequirement));
+            _commitPendingEdits = commitPendingEdits;
 
-            // subscribe
-            _requirements.CollectionChanged += Requirements_CollectionChanged;
+            // Commands
+            PrevCommand = new RelayCommand(ExecutePrev, CanExecutePrev);
+            NextCommand = new RelayCommand(ExecuteNext, CanExecuteNext);
 
-            PrevCommand = new RelayCommand(PrevImpl, CanPrevImpl);
-            NextCommand = new RelayCommand(NextImpl, CanNextImpl);
-            SelectCommand = new RelayCommand<object?>(SelectImpl);
-            SearchCommand = new RelayCommand(SearchImpl);
-
-            UpdateState();
+            // Keep collection changes observed so command availability updates
+            _requirements.CollectionChanged += (_, __) => NotifyCommands();
         }
 
-        // Commands
-        public IRelayCommand PrevCommand { get; }
-        public IRelayCommand NextCommand { get; }
-        public IRelayCommand SelectCommand { get; }     // parameter: Requirement or string id
-        public IRelayCommand SearchCommand { get; }
+        // Exposed ICommand for UI
+        public ICommand PrevCommand { get; }
+        public ICommand NextCommand { get; }
 
-        // Search text (bind this on MainViewModel or on the view to pass via CommandParameter)
-        private string? _searchText;
-        public string? SearchText
+        // SelectedRequirement is mirror of host's current requirement for binding convenience.
+        // When set locally, we call back into the host via _setCurrentRequirement.
+        private Requirement? _selectedRequirement;
+        public Requirement? SelectedRequirement
         {
-            get => _searchText;
-            set => SetProperty(ref _searchText, value);
+            get => _selectedRequirement ?? _getCurrentRequirement();
+            set
+            {
+                if (Equals(_selectedRequirement, value)) return;
+                _selectedRequirement = value;
+                OnPropertyChanged(nameof(SelectedRequirement));
+                // Commit pending edits in host before changing selection
+                _commitPendingEdits?.Invoke();
+                _setCurrentRequirement?.Invoke(value);
+                NotifyCommands();
+            }
         }
 
-        // Read-only properties for display
-        private int _selectedRequirementIndex;
-        public int SelectedRequirementIndex
-        {
-            get => _selectedRequirementIndex;
-            private set => SetProperty(ref _selectedRequirementIndex, value);
-        }
-
-        public int TotalRequirementsCount => _requirements?.Count ?? 0;
-
-        public string RequirementPositionDisplay =>
-            _requirements == null || _requirements.Count == 0 || _getCurrent() == null
-                ? string.Empty
-                : $"{_requirements.IndexOf(_getCurrent()!) + 1} of {_requirements.Count}";
-
-        private void Requirements_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        {
-            UpdateState();
-        }
-
-        // Call when CurrentRequirement may have changed externally
+        // Called by the host (MainViewModel) when it sets its CurrentRequirement so the navigator can sync.
         public void NotifyCurrentRequirementChanged()
         {
-            UpdateState();
+            // Clear any cached selection so getter pulls from host delegate,
+            // then raise property changed so bindings update.
+            _selectedRequirement = null;
+            OnPropertyChanged(nameof(SelectedRequirement));
+            NotifyCommands();
         }
 
-        private void UpdateState()
+        private void ExecutePrev()
         {
-            var current = _getCurrent();
-            if (_requirements == null || _requirements.Count == 0 || current == null)
+            var cur = _getCurrentRequirement();
+            if (cur == null)
             {
-                SelectedRequirementIndex = 0;
-            }
-            else
-            {
-                var idx = _requirements.IndexOf(current);
-                SelectedRequirementIndex = (idx >= 0) ? idx + 1 : 0;
-            }
-
-            OnPropertyChanged(nameof(TotalRequirementsCount));
-            OnPropertyChanged(nameof(RequirementPositionDisplay));
-
-            PrevCommand.NotifyCanExecuteChanged();
-            NextCommand.NotifyCanExecuteChanged();
-        }
-
-        private bool CanPrevImpl() =>
-            _getCurrent() != null && _requirements.IndexOf(_getCurrent()!) > 0;
-
-        private bool CanNextImpl() =>
-            _getCurrent() != null && _requirements.IndexOf(_getCurrent()!) < (_requirements.Count - 1);
-
-        private void PrevImpl()
-        {
-            var cur = _getCurrent();
-            if (cur == null) return;
-            var i = _requirements.IndexOf(cur);
-            if (i > 0) _setCurrent(_requirements[i - 1]);
-            UpdateState();
-        }
-
-        private void NextImpl()
-        {
-            var cur = _getCurrent();
-            if (cur == null) return;
-            var i = _requirements.IndexOf(cur);
-            if (i >= 0 && i < _requirements.Count - 1) _setCurrent(_requirements[i + 1]);
-            UpdateState();
-        }
-
-        private void SelectImpl(object? param)
-        {
-            if (param is Requirement r)
-            {
-                _setCurrent(r);
-                UpdateState();
+                if (_requirements.Count > 0)
+                {
+                    _commitPendingEdits?.Invoke();
+                    _setCurrentRequirement(_requirements[0]);
+                    return;
+                }
                 return;
             }
 
-            if (param is string id)
+            var idx = _requirements.IndexOf(cur);
+            if (idx > 0)
             {
-                var found = _requirements.FirstOrDefault(x =>
-                    string.Equals(x.GlobalId, id, StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(x.Item, id, StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(x.Name, id, StringComparison.OrdinalIgnoreCase));
-                if (found != null)
+                _commitPendingEdits?.Invoke();
+                _setCurrentRequirement(_requirements[idx - 1]);
+            }
+        }
+
+        private bool CanExecutePrev() => _getCurrentRequirement() != null && _requirements.IndexOf(_getCurrentRequirement()!) > 0;
+
+        private void ExecuteNext()
+        {
+            var cur = _getCurrentRequirement();
+            if (cur == null)
+            {
+                if (_requirements.Count > 0)
                 {
-                    _setCurrent(found);
-                    UpdateState();
+                    _commitPendingEdits?.Invoke();
+                    _setCurrentRequirement(_requirements[0]);
+                    return;
                 }
+                return;
             }
-        }
 
-        private void SearchImpl()
-        {
-            var q = SearchText;
-            if (string.IsNullOrWhiteSpace(q)) return;
-            var found = _requirements.FirstOrDefault(r =>
-                (!string.IsNullOrEmpty(r.Name) && r.Name.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0)
-                || (!string.IsNullOrEmpty(r.Item) && r.Item.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0)
-                || (!string.IsNullOrEmpty(r.GlobalId) && r.GlobalId.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0));
-            if (found != null)
+            var idx = _requirements.IndexOf(cur);
+            if (idx >= 0 && idx < _requirements.Count - 1)
             {
-                _setCurrent(found);
-                UpdateState();
+                _commitPendingEdits?.Invoke();
+                _setCurrentRequirement(_requirements[idx + 1]);
             }
         }
 
-        public void Dispose()
+        private bool CanExecuteNext() => _getCurrentRequirement() != null && _requirements.IndexOf(_getCurrentRequirement()!) < _requirements.Count - 1;
+
+        private void NotifyCommands()
         {
-            _requirements.CollectionChanged -= Requirements_CollectionChanged;
+            (PrevCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+            (NextCommand as IRelayCommand)?.NotifyCanExecuteChanged();
         }
     }
 }

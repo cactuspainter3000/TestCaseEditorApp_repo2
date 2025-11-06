@@ -4,11 +4,12 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-
-                <!-- Make the control's styles available application-wide -->
+                <!-- existing merged dictionaries -->
                 <ResourceDictionary Source="/EditableDataControl;component/Themes/Generic.xaml" />
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/MainWindowResources.xaml" />
-                <!-- Add other merged dictionaries here -->
+
+                <!-- add your shared styles file -->
+                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/SharedStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

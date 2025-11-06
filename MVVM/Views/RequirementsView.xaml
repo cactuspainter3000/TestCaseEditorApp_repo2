@@ -3,24 +3,149 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:helpers="clr-namespace:TestCaseEditorApp.Helpers"
+             xmlns:local="clr-namespace:TestCaseEditorApp.MVVM.Views"
              mc:Ignorable="d"
-             d:DesignHeight="300" d:DesignWidth="400">
-    <Border Padding="10" Background="White" CornerRadius="6">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
+             d:DesignHeight="600" d:DesignWidth="900">
 
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,8">
-                <Button Content="Add" Command="{Binding AddRequirementCommand}" Margin="4"/>
-                <Button Content="Remove" Command="{Binding RemoveRequirementCommand}" Margin="4"/>
-            </StackPanel>
+    <GroupBox Header="Requirements" Margin="0,8,0,0" VerticalAlignment="Top" VerticalContentAlignment="Top">
+        <!-- 3 columns: left pane | splitter | right pane -->
+        <Grid Margin="8" VerticalAlignment="Stretch">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.15*"/>
+                <!-- Left: info + description + nav -->
+                <ColumnDefinition Width="6"/>
+                <!-- Splitter -->
+                <ColumnDefinition Width="1.35*"/>
+                <!-- Right: support content -->
+            </Grid.ColumnDefinitions>
 
-            <ListBox Grid.Row="1"
-                     ItemsSource="{Binding Requirements}"
-                     SelectedItem="{Binding SelectedRequirement, Mode=TwoWay}"
-                     Margin="0,2,0,0"/>
+            <!-- ================= LEFT PANE ================= -->
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <!-- Row 0: metadata chips -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Row 1: description (above nav) -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Row 2: navigation / jump / actions -->
+                </Grid.RowDefinitions>
+
+                <!-- Metadata chips (wrap as width changes) -->
+                <StackPanel Grid.Row="0" Margin="0,0,0,8">
+                    <WrapPanel ItemHeight="28">
+                        <Border Style="{StaticResource MetaChip}">
+                            <TextBlock Style="{StaticResource MetaText}">
+                                <Run Text="Item ID: "/><Run FontWeight="SemiBold" Text="{Binding SelectedRequirement.Item}"/>
+                            </TextBlock>
+                        </Border>
+                        <Border Style="{StaticResource MetaChip}">
+                            <TextBlock Style="{StaticResource MetaText}">
+                                <Run Text="Name: "/><Run FontWeight="SemiBold" Text="{Binding SelectedRequirement.Name}"/>
+                            </TextBlock>
+                        </Border>
+                        <Border Style="{StaticResource MetaChip}">
+                            <TextBlock Style="{StaticResource MetaText}">
+                                <Run Text="Status: "/><Run FontWeight="SemiBold" Text="{Binding SelectedRequirement.Status}"/>
+                            </TextBlock>
+                        </Border>
+                        <Border Style="{StaticResource MetaChip}">
+                            <TextBlock Style="{StaticResource MetaText}">
+                                <Run Text="Type: "/><Run FontWeight="SemiBold" Text="{Binding SelectedRequirement.RequirementType}"/>
+                            </TextBlock>
+                        </Border>
+                        <Border Style="{StaticResource MetaChip}">
+                            <TextBlock Style="{StaticResource MetaText}">
+                                <Run Text="Verification: "/><Run FontWeight="SemiBold" Text="{Binding SelectedRequirement.VerificationMethodRaw}"/>
+                            </TextBlock>
+                        </Border>
+                        <Border Style="{StaticResource MetaChip}">
+                            <TextBlock Style="{StaticResource MetaText}">
+                                <Run Text="Set: "/><Run FontWeight="SemiBold" Text="{Binding SelectedRequirement.SetName}"/>
+                            </TextBlock>
+                        </Border>
+                    </WrapPanel>
+                </StackPanel>
+
+                <!-- Description (full width of LEFT pane, above nav). 
+                     Short height w/ its own scroll; tweak DescTwoLineHeight in Window.Resources -->
+                <StackPanel Grid.Row="1" Margin="0,0,0,8">
+                    <TextBlock Text="Description" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <Border BorderBrush="#22000000" BorderThickness="1" CornerRadius="6" Padding="8" Background="White">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Height="{StaticResource DescTwoLineHeight}">
+                            <TextBlock Text="{Binding SelectedRequirement.Description}"
+                                       TextWrapping="Wrap"
+                                       LineStackingStrategy="BlockLineHeight"
+                                       LineHeight="18"/>
+                        </ScrollViewer>
+                    </Border>
+                </StackPanel>
+
+                <!-- Navigation / selection / actions (wrap as width changes)
+                     NOTE: navigation controls are expected to live in the Navigation area.
+                     Keep minimal action buttons here (Add/Remove) if desired. -->
+                <WrapPanel Grid.Row="2" Margin="0,0,0,0" ItemHeight="28" ItemWidth="Auto">
+                    <Button Content="Add" Command="{Binding AddRequirementCommand}" Margin="0,0,6,6"/>
+                    <Button Content="Remove" Command="{Binding RemoveRequirementCommand}" Margin="0,0,6,6"/>
+                    <!-- You can show current position (read-only) if desired -->
+                    <TextBlock Text="{Binding RequirementPositionDisplay, Mode=OneWay}" VerticalAlignment="Center"
+                               Width="120" TextAlignment="Center" Opacity="0.8" Margin="12,0,0,6"/>
+                </WrapPanel>
+            </Grid>
+
+            <!-- ================= SPLITTER ================= -->
+            <GridSplitter Grid.Column="1"
+                          Width="6"
+                          HorizontalAlignment="Stretch"
+                          Background="#11000000"
+                          ResizeDirection="Columns"
+                          ResizeBehavior="PreviousAndNext"
+                          ShowsPreview="True"/>
+
+            <!-- ================= RIGHT PANE: SUPPORT CONTENT ================= -->
+            <!-- Note: DataContext for this GroupBox is inherited from the RequirementsViewModel -->
+            <GroupBox Grid.Column="2" Header="Support Content" Padding="0" Margin="0,0,0,0">
+                <DockPanel LastChildFill="True">
+                    <!-- Fixed height inside the right pane; scrolls internally -->
+                    <TabControl Height="{StaticResource SupportPaneHeight}">
+                        <TabControl.SelectedIndex>
+                            <Binding Path="SelectedLooseTabIndex" Mode="TwoWay"/>
+                        </TabControl.SelectedIndex>
+
+                        <!-- TABLES TAB -->
+                        <TabItem>
+                            <TabItem.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Tables"/>
+                                    <TextBlock Text=" ("/>
+                                    <TextBlock Text="{Binding SelectedTableVMs.Count}"/>
+                                    <TextBlock Text=")"/>
+                                </StackPanel>
+                            </TabItem.Header>
+
+                            <!-- extracted control binds to SelectedTableVMs, SelectAll/Clear commands -->
+                            <local:RequirementsTablesControl />
+                        </TabItem>
+
+                        <!-- PARAGRAPHS TAB -->
+                        <TabItem>
+                            <TabItem.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Paragraphs"/>
+                                    <TextBlock Text=" ("/>
+                                    <TextBlock Text="{Binding SelectedParagraphs.Count}"/>
+                                    <TextBlock Text=")"/>
+                                </StackPanel>
+                            </TabItem.Header>
+
+                            <!-- extracted control binds to SelectedParagraphs, IncludeLooseParagraphs -->
+                            <local:RequirementsParagraphsControl />
+                        </TabItem>
+                    </TabControl>
+                </DockPanel>
+            </GroupBox>
         </Grid>
-    </Border>
+    </GroupBox>
 </UserControl>

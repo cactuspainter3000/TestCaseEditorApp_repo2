@@ -1,9 +1,28 @@
 ﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
+using EditableDataControl.ViewModels;
 
 namespace TestCaseEditorApp.Converters
 {
+
+    /// <summary>Returns the cell Value for a given bindingPath key from a TableRowModel.</summary>
+    public sealed class RowCellConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            // value: TableRowModel ; parameter: string bindingPath/key
+            if (value is not TableRowModel row) return string.Empty;
+            var key = parameter as string ?? string.Empty;
+
+            var cell = row.Cells?.FirstOrDefault(c => string.Equals(c.Key, key, StringComparison.Ordinal));
+            return cell?.Value ?? string.Empty;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotSupportedException();
+    }
+
     public class BoolToVisibilityConverter : IValueConverter
     {
         public bool Invert { get; set; } = false;

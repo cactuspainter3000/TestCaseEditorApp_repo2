@@ -10,6 +10,15 @@
     <Compile Update="MVVM\Views\ClarifyingQuestionsView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="MVVM\Views\RequirementsNavigationControl.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="MVVM\Views\RequirementsParagraphsControl.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="MVVM\Views\RequirementsTablesControl.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="MVVM\Views\RequirementsView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -24,10 +33,22 @@
     <Page Update="MVVM\Views\MainWindow.xaml">
       <SubType>Designer</SubType>
     </Page>
+    <Page Update="MVVM\Views\RequirementsNavigationControl.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="MVVM\Views\RequirementsParagraphsControl.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="MVVM\Views\RequirementsTablesControl.xaml">
+      <SubType>Designer</SubType>
+    </Page>
     <Page Update="MVVM\Views\WorkspaceHeaderView.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Resources\MainWindowResources.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Resources\SharedStyles.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Styles\SharedStyles.xaml">

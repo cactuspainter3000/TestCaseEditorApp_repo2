@@ -153,7 +153,26 @@
                         <!-- small area -->
                     </Grid.ColumnDefinitions>
 
-                    <ContentControl Content="{Binding HeaderViewModel}" Grid.ColumnSpan="4" Margin="6"/>
+                    <Grid Grid.ColumnSpan="4" Margin="6">
+                        <!-- Keep the existing header content -->
+                        <ContentPresenter Content="{Binding HeaderViewModel}" />
+
+                        <!-- Status text overlay at bottom-left of header.
+                             Bind explicitly to the Window's DataContext.StatusMessage (MainViewModel).
+                             Adjust Margin/HorizontalAlignment/VerticalAlignment to taste. -->
+                        
+                        <TextBlock
+                            Text="{Binding DataContext.StatusMessage, RelativeSource={RelativeSource AncestorType=Window}}"
+                            FontSize="12"
+                            Padding="4,2"
+                            Margin="8,0,0,6"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Bottom"
+                            Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"
+                            TextTrimming="CharacterEllipsis"
+                            ToolTip="{Binding DataContext.StatusMessage, RelativeSource={RelativeSource AncestorType=Window}}"
+                            />
+                    </Grid>
                 </Grid>
             </Border>
 
@@ -329,72 +348,8 @@
 
             <!-- Navigation area: compact, responsive controls (keeps your original placement) -->
             <!-- Bottom requirement navigation (Grid.Column=2 Grid.Row=6) -->
-            <Border Grid.Column="2" Grid.Row="6" Padding="6" Style="{StaticResource MenuSectionBorderStyle}">
-                <StackPanel>
-                    <Grid Margin="0,0,0,6">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <!-- Prev/indicator/Next -->
-                            <ColumnDefinition Width="8"/>
-                            <ColumnDefinition Width="2*"/>
-                            <!-- ComboBox -->
-                            <ColumnDefinition Width="1*"/>
-                            <!-- Search -->
-                            <ColumnDefinition Width="Auto"/>
-                            <!-- Search button -->
-                        </Grid.ColumnDefinitions>
-
-                        <!-- Prev / Indicator / Next group -->
-                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button Content="◀"
-                Width="28" Height="24"
-                Command="{Binding PrevRequirementCommand}"
-                IsEnabled="{Binding PrevRequirementCommand.CanExecute, Mode=OneWay}"
-                Style="{StaticResource MenuPopupButtonStyle}" />
-
-                            <Border Background="Transparent" Padding="6,0" VerticalAlignment="Center" Margin="6,0,6,0">
-                                <TextBlock Foreground="White" VerticalAlignment="Center" FontSize="12">
-            <Run Text="{Binding SelectedRequirementIndex}" />
-            <Run Text=" of " />
-            <Run Text="{Binding TotalRequirements}" />
-                                </TextBlock>
-                            </Border>
-
-                            <Button Content="▶"
-                Width="28" Height="24"
-                Command="{Binding NextRequirementCommand}"
-                IsEnabled="{Binding NextRequirementCommand.CanExecute, Mode=OneWay}"
-                Style="{StaticResource MenuPopupButtonStyle}" />
-                        </StackPanel>
-
-                        <!-- Dropdown to pick requirement directly -->
-                        <ComboBox Grid.Column="2"
-                Margin="8,0,8,0"
-                ItemsSource="{Binding Requirements}"
-                SelectedItem="{Binding SelectedRequirement, Mode=TwoWay}"
-                DisplayMemberPath="Title"
-                HorizontalAlignment="Stretch"
-                MaxWidth="420"
-                MinWidth="120"
-                Style="{StaticResource MenuPopupComboBoxStyle}" />
-
-                        <!-- Search box -->
-                        <TextBox Grid.Column="3"
-               Margin="0,0,8,0"
-               VerticalAlignment="Center"
-               Text="{Binding RequirementSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-               MaxWidth="240"
-               MinWidth="80"
-               Style="{StaticResource MenuPopupTextBoxStyle}" />
-
-                        <Button Grid.Column="4"
-              Content="Search"
-              Padding="6,2"
-              Command="{Binding SearchRequirementCommand}"
-              Style="{StaticResource MenuPopupButtonStyle}" />
-                    </Grid>
-                </StackPanel>
-            </Border>
+            <views:RequirementsNavigationControl Grid.Column="2" Grid.Row="6"
+                                    DataContext="{Binding Navigation.RequirementsNav}" />
 
         </Grid>
     </Border>
