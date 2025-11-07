@@ -45,7 +45,7 @@ C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Deb
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\ClarifyingQuestionsView.baml
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\EditableTableEditorWindow.baml
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\RequirementsNavigationControl.baml
-C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\RequirementsParagraphsControl.baml
+C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\RequirementsTablesPopupControl.baml
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\TestCaseCreationView.baml
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\Styles\SharedStyles.baml
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\App.baml
@@ -55,6 +55,7 @@ C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Deb
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\RequirementsNavigationControl.g.cs
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\RequirementsParagraphsControl.g.cs
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\RequirementsTablesControl.g.cs
+C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\RequirementsTablesPopupControl.g.cs
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\RequirementsView.g.cs
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\TestCaseCreationView.g.cs
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\WorkspaceHeaderView.g.cs
@@ -63,6 +64,7 @@ C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Deb
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\TestCaseEditorApp_MarkupCompile.cache
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\TestCaseEditorApp_MarkupCompile.lref
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\MainWindow.baml
+C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\RequirementsParagraphsControl.baml
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\RequirementsTablesControl.baml
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\RequirementsView.baml
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\obj\Debug\net8.0-windows\MVVM\Views\WorkspaceHeaderView.baml

@@ -3,34 +3,56 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             mc:Ignorable="d" d:DesignHeight="80" d:DesignWidth="800">
-    <Border Padding="6" Style="{StaticResource MenuSectionBorderStyle}">
+             mc:Ignorable="d"
+             d:DesignHeight="80" d:DesignWidth="800"
+             UseLayoutRounding="True">
+    <Border Padding="6" Style="{StaticResource MenuSectionBorderStyle}" ClipToBounds="True">
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="8"/>
                 <ColumnDefinition Width="2*"/>
                 <ColumnDefinition Width="1*"/>
-                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="auto"/>
             </Grid.ColumnDefinitions>
 
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <Button Content="◀"
-                        Width="28" Height="35"
-                        Command="{Binding PreviousRequirementCommand}"
-                        Style="{StaticResource MenuPopupButtonStyle}" />
+            <!-- NAV AREA -->
+            <Grid Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-                <Border Background="Transparent" Padding="6,0" VerticalAlignment="Center" Margin="6,0,6,0">
-                    <TextBlock Foreground="White" VerticalAlignment="Center" FontSize="12">
-                        <Run Text="{Binding RequirementsNav.RequirementPositionDisplay, Mode=OneWay}" />
+                <Button Grid.Column="0"
+                        Content="◀"
+                        Height="35"
+                        Command="{Binding PreviousRequirementCommand}"
+                        Style="{StaticResource NavArrowButtonStyle}"
+                        ToolTip="Previous requirement"
+                        AutomationProperties.Name="Previous Requirement"
+                        Margin="0,0,6,0"/>
+
+                <Border Grid.Column="1"
+                        Background="Transparent"
+                        Padding="4,0"
+                        VerticalAlignment="Center"
+                        MinWidth="70"
+                        HorizontalAlignment="Center"
+                        Margin="0,0,6,0">
+                    <TextBlock Foreground="White" VerticalAlignment="Center" FontSize="12" TextAlignment="Center">
+                        <Run Text="{Binding RequirementPositionDisplay, Mode=OneWay, FallbackValue='—', TargetNullValue='—'}" />
                     </TextBlock>
                 </Border>
 
-                <Button Content="▶"
-                        Width="28" Height="35"
+                <Button Grid.Column="2"
+                        Content="▶"
+                        Height="35"
                         Command="{Binding NextRequirementCommand}"
-                        Style="{StaticResource MenuPopupButtonStyle}" />
-            </StackPanel>
+                        Style="{StaticResource NavArrowButtonStyle}"
+                        ToolTip="Next requirement"
+                        AutomationProperties.Name="Next Requirement"/>
+            </Grid>
 
             <ComboBox Grid.Column="2"
                       Margin="8,0,8,0"
@@ -39,10 +61,14 @@
                       HorizontalAlignment="Stretch"
                       MaxWidth="420"
                       MinWidth="120"
-                      Style="{StaticResource MenuPopupComboBoxStyle}">
+                      Style="{StaticResource MenuPopupComboBoxStyle}"
+                      Background="{DynamicResource CardBackgroundBrush}"
+                      Foreground="{DynamicResource PrimaryTextBrush}"
+                      BorderBrush="{DynamicResource CardBorderBrush}"
+                      Padding="6,2">
                 <ComboBox.ItemTemplate>
                     <DataTemplate>
-                        <TextBlock>
+                        <TextBlock Foreground="{DynamicResource PrimaryTextBrush}">
                             <Run Text="{Binding Item}" /><Run Text=" — " /><Run Text="{Binding Name}" />
                         </TextBlock>
                     </DataTemplate>
@@ -59,9 +85,11 @@
 
             <Button Grid.Column="4"
                     Content="Search"
+                    Width="70"
+                    Margin="4,0,0,0"
                     Padding="6,2"
                     Command="{Binding SearchCommand}"
-                    Style="{StaticResource MenuPopupButtonStyle}" />
+                    Style="{StaticResource PillActionButtonStyle}"  />
         </Grid>
     </Border>
 </UserControl>

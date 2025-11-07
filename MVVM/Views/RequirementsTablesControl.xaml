@@ -6,9 +6,17 @@
              xmlns:helpers="clr-namespace:TestCaseEditorApp.Helpers"
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="500">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    </UserControl.Resources>
+
     <DockPanel LastChildFill="True" Margin="6">
-        <!-- Top action row -->
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+        <!-- Top action row (visibility bound to ShowLocalToolbar DP on the UserControl) -->
+        <StackPanel DockPanel.Dock="Top"
+                    Orientation="Horizontal"
+                    Margin="0,0,0,8"
+                    Visibility="{Binding ShowLocalToolbar, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibilityConverter}}">
             <Button Content="Select All" Command="{Binding SelectAllTablesCommand}" Margin="0,0,8,0"/>
             <Button Content="Clear All" Command="{Binding ClearAllTablesCommand}"/>
         </StackPanel>

@@ -10,11 +10,11 @@ none
 false
 TRACE;DEBUG;NET;NET8_0;NETCOREAPP
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\App.xaml
-1298782317
+13809750245
 
-75-1936385630
+78489577197
 219-97103234
-MVVM\Views\ClarifyingQuestionsView.xaml;MVVM\Views\EditableTableEditorWindow.xaml;MVVM\Views\MainWindow.xaml;MVVM\Views\RequirementsNavigationControl.xaml;MVVM\Views\RequirementsParagraphsControl.xaml;MVVM\Views\RequirementsTablesControl.xaml;MVVM\Views\RequirementsView.xaml;MVVM\Views\TestCaseCreationView.xaml;MVVM\Views\WorkspaceHeaderView.xaml;Resources\MainWindowResources.xaml;Resources\SharedStyles.xaml;Styles\SharedStyles.xaml;
+MVVM\Views\ClarifyingQuestionsView.xaml;MVVM\Views\EditableTableEditorWindow.xaml;MVVM\Views\MainWindow.xaml;MVVM\Views\RequirementsNavigationControl.xaml;MVVM\Views\RequirementsParagraphsControl.xaml;MVVM\Views\RequirementsTablesControl.xaml;MVVM\Views\RequirementsTablesPopupControl.xaml;MVVM\Views\RequirementsView.xaml;MVVM\Views\TestCaseCreationView.xaml;MVVM\Views\WorkspaceHeaderView.xaml;Resources\MainWindowResources.xaml;Resources\SharedStyles.xaml;Styles\SharedStyles.xaml;
 
 True
 

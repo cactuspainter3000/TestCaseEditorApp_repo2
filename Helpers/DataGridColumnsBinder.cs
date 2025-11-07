@@ -6,13 +6,16 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Threading;
 using EditableDataControl.ViewModels;          // ColumnDefinitionModel, TableRowModel
 using TestCaseEditorApp.Converters;            // RowCellConverter
-using System.Globalization;
-using System.Windows.Markup;
 
 namespace TestCaseEditorApp.Helpers
 {
+    /// <summary>
+    /// Attached helper to bind a collection of ColumnDefinitionModel to a DataGrid's Columns.
+    /// Usage: Helpers:DataGridColumnsBinder.ColumnsSource="{Binding MyColumnDefinitions}"
+    /// </summary>
     public static class DataGridColumnsBinder
     {
         public static readonly DependencyProperty ColumnsSourceProperty =
@@ -44,6 +47,7 @@ namespace TestCaseEditorApp.Helpers
         private sealed class SubscriptionBag
         {
             public INotifyCollectionChanged CollectionChangedSource;
+            public NotifyCollectionChangedEventHandler CollectionChangedHandler;
             public readonly System.Collections.Generic.List<INotifyPropertyChanged> Items = new();
         }
 
@@ -51,16 +55,25 @@ namespace TestCaseEditorApp.Helpers
         {
             if (d is not DataGrid grid) return;
 
-            var newCols = e.NewValue as IEnumerable;   // 👈 moved up
+            var newCols = e.NewValue as IEnumerable;
 
             // Tear down previous subscriptions
             var oldBag = GetSubscriptions(grid);
             if (oldBag != null)
             {
-                if (oldBag.CollectionChangedSource != null)
-                    oldBag.CollectionChangedSource.CollectionChanged -= (_, __) => { };
+                try
+                {
+                    if (oldBag.CollectionChangedSource != null && oldBag.CollectionChangedHandler != null)
+                        oldBag.CollectionChangedSource.CollectionChanged -= oldBag.CollectionChangedHandler;
+                }
+                catch
+                {
+                    // swallow any unsubscribe exceptions (best-effort cleanup)
+                }
+
                 foreach (var npc in oldBag.Items)
                     npc.PropertyChanged -= OnColumnPropertyChanged;
+
                 SetSubscriptions(grid, null);
             }
 
@@ -68,7 +81,7 @@ namespace TestCaseEditorApp.Helpers
 
             if (newCols is INotifyCollectionChanged incc)
             {
-                void onCollChanged(object? s, NotifyCollectionChangedEventArgs args)
+                NotifyCollectionChangedEventHandler handler = (s, args) =>
                 {
                     if (args.OldItems != null)
                         foreach (var item in args.OldItems.OfType<INotifyPropertyChanged>())
@@ -77,12 +90,14 @@ namespace TestCaseEditorApp.Helpers
                         foreach (var item in args.NewItems.OfType<INotifyPropertyChanged>())
                             item.PropertyChanged += OnColumnPropertyChanged;
 
+                    // Rebuild on collection changes (Add/Remove/Replace/Reset)
+                    // If you want smarter incremental updates, replace this with targeted updates.
                     RebuildColumns(grid, newCols);
-                }
+                };
 
-                incc.CollectionChanged += onCollChanged;
+                incc.CollectionChanged += handler;
 
-                var bag = new SubscriptionBag { CollectionChangedSource = incc };
+                var bag = new SubscriptionBag { CollectionChangedSource = incc, CollectionChangedHandler = handler };
                 foreach (var item in newCols.Cast<object>().OfType<INotifyPropertyChanged>())
                 {
                     item.PropertyChanged += OnColumnPropertyChanged;
@@ -91,29 +106,30 @@ namespace TestCaseEditorApp.Helpers
                 SetSubscriptions(grid, bag);
             }
 
+            // Local handler to respond to column-definition property changes
             void OnColumnPropertyChanged(object? sender, PropertyChangedEventArgs args)
             {
+                // Recreate columns only for changes that affect header or binding
                 if (args.PropertyName is nameof(ColumnDefinitionModel.Header) or nameof(ColumnDefinitionModel.BindingPath))
                     RebuildColumns(grid, newCols);
             }
         }
 
-private static void RebuildColumns(DataGrid dg, IEnumerable? cols)
-    {
-        dg.Columns.Clear();
-        if (cols == null) return;
-
-        foreach (var item in cols)
+        private static void RebuildColumns(DataGrid dg, IEnumerable? cols)
         {
-            if (item is not ColumnDefinitionModel c) continue;
+            dg.Columns.Clear();
+            if (cols == null) return;
 
-            // Text (display) template
-            var cellTemplateFactory = new FrameworkElementFactory(typeof(TextBlock));
-                var binding = new Binding(".")   // bind the whole row (TableRowModel)
+            foreach (var item in cols)
+            {
+                if (item is not ColumnDefinitionModel c) continue;
+
+                // Create a binding that passes the whole row into a converter which will extract the cell value
+                var binding = new Binding(".")
                 {
                     Converter = new RowCellConverter(),
-                    ConverterParameter = c.BindingPath,   // e.g., "c0", "Voltage", etc.
-                    Mode = BindingMode.OneWay             // read-only path; avoid exceptions
+                    ConverterParameter = c.BindingPath,
+                    Mode = BindingMode.OneWay
                 };
 
                 var col = new DataGridTextColumn
@@ -123,151 +139,13 @@ private static void RebuildColumns(DataGrid dg, IEnumerable? cols)
                     Width = DataGridLength.Auto
                 };
 
-                col.ElementStyle = new Style(typeof(TextBlock))
-                {
-                    Setters =
-    {
-        new Setter(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis),
-        // or: new Setter(TextBlock.TextWrappingProperty, TextWrapping.Wrap)
-    }
-                };
+                // ElementStyle to trim long text rather than wrap
+                var elementStyle = new Style(typeof(TextBlock));
+                elementStyle.Setters.Add(new Setter(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis));
+                col.ElementStyle = elementStyle;
 
                 dg.Columns.Add(col);
             }
+        }
     }
-
-
-
 }
-}
-
-
-
-
-//// TestCaseEditorApp/Helpers/DataGridColumnsBinder.cs
-//using System;
-//using System.Collections;
-//using System.Collections.Specialized;
-//using System.Windows;
-//using System.Windows.Controls;
-//using System.Windows.Data;
-//using System.Windows.Media;
-//using EditableDataControl.ViewModels; // for ColumnDefinitionModel type
-
-//namespace TestCaseEditorApp.Helpers
-//{
-//    public static class DataGridColumnsBinder
-//    {
-//        // Attach your Columns collection (ObservableCollection<ColumnDefinitionModel>)
-//        public static readonly DependencyProperty ColumnsSourceProperty =
-//            DependencyProperty.RegisterAttached(
-//                "ColumnsSource",
-//                typeof(IEnumerable),
-//                typeof(DataGridColumnsBinder),
-//                new PropertyMetadata(null, OnColumnsSourceChanged));
-
-//        public static void SetColumnsSource(DependencyObject d, IEnumerable value) =>
-//            d.SetValue(ColumnsSourceProperty, value);
-
-//        public static IEnumerable GetColumnsSource(DependencyObject d) =>
-//            (IEnumerable)d.GetValue(ColumnsSourceProperty);
-
-//        private static readonly DependencyProperty SubscriptionProperty =
-//            DependencyProperty.RegisterAttached(
-//                "Subscription",
-//                typeof(INotifyCollectionChanged),
-//                typeof(DataGridColumnsBinder),
-//                new PropertyMetadata(null, OnSubscriptionChanged));
-
-//        private static void OnSubscriptionChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-//        {
-//            if (e.OldValue is INotifyCollectionChanged oldObs)
-//                oldObs.CollectionChanged -= OnColumnsCollectionChanged;
-//            if (e.NewValue is INotifyCollectionChanged newObs)
-//                newObs.CollectionChanged += OnColumnsCollectionChanged;
-//        }
-
-//        private static void OnColumnsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-//        {
-//            // Find the DataGrid that owns this subscription and rebuild
-//            // (sender is the ObservableCollection<ColumnDefinitionModel>)
-//            foreach (var obj in Application.Current.Windows)
-//            {
-//                if (obj is not Window win) continue;
-//                if (!FindAndRebuildForWindow(win, sender)) continue;
-//            }
-//        }
-
-//        private static bool FindAndRebuildForWindow(DependencyObject root, object? targetCollection)
-//        {
-//            if (root is DataGrid dg)
-//            {
-//                var sub = (INotifyCollectionChanged)dg.GetValue(SubscriptionProperty);
-//                if (ReferenceEquals(sub, targetCollection))
-//                {
-//                    RebuildColumns(dg, GetColumnsSource(dg));
-//                    return true;
-//                }
-//            }
-
-//            int count = VisualTreeHelper.GetChildrenCount(root);
-//            for (int i = 0; i < count; i++)
-//            {
-//                var child = VisualTreeHelper.GetChild(root, i);
-//                if (FindAndRebuildForWindow(child, targetCollection))
-//                    return true;
-//            }
-//            return false;
-//        }
-
-//        private static void OnColumnsSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-//        {
-//            if (d is not DataGrid dg) return;
-
-//            // swap subscription
-//            dg.SetValue(SubscriptionProperty, e.NewValue as INotifyCollectionChanged);
-
-//            // build now
-//            RebuildColumns(dg, e.NewValue as IEnumerable);
-
-//            // also rebuild on DataGrid load to be safe
-//            dg.Loaded -= DgOnLoaded;
-//            dg.Loaded += DgOnLoaded;
-//        }
-
-//        private static void DgOnLoaded(object sender, RoutedEventArgs e)
-//        {
-//            var dg = (DataGrid)sender;
-//            RebuildColumns(dg, GetColumnsSource(dg));
-//        }
-
-//        private static void RebuildColumns(DataGrid dg, IEnumerable? cols)
-//        {
-//            dg.Columns.Clear();
-//            if (cols == null) return;
-
-//            foreach (var item in cols)
-//            {
-//                if (item is not ColumnDefinitionModel c) continue;
-
-//                var binding = new Binding($"[{c.BindingPath}]")
-//                {
-//                    Mode = BindingMode.TwoWay,
-//                    UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged,
-//                    ValidatesOnDataErrors = false,
-//                    ValidatesOnExceptions = false
-//                };
-
-//                var col = new DataGridTextColumn
-//                {
-//                    Header = string.IsNullOrWhiteSpace(c.Header) ? c.BindingPath : c.Header,
-//                    Binding = binding,
-//                    Width = DataGridLength.Auto
-//                };
-
-//                dg.Columns.Add(col);
-//            }
-//        }
-//    }
-//}
-

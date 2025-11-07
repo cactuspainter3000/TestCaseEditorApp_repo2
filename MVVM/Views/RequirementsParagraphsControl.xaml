@@ -1,50 +1,54 @@
 ﻿<UserControl x:Class="TestCaseEditorApp.MVVM.Views.RequirementsParagraphsControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             mc:Ignorable="d"
-             d:DesignHeight="400" d:DesignWidth="500">
-    <DockPanel LastChildFill="True" Margin="6">
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
-            <CheckBox Content="Include all Support Paragraphs in LLM Prompt"
-                      IsChecked="{Binding IncludeLooseParagraphs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-        </StackPanel>
+             xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
+             MinHeight="200">
 
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <ItemsControl ItemsSource="{Binding SelectedParagraphs}">
+    <UserControl.Resources>
+        <!-- Local converter so the toolbar Visibility binding always resolves,
+             even if the app-level converter isn't merged into this control. -->
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- local toolbar (can be hidden by parent) -->
+            <RowDefinition Height="*"/>
+            <!-- content -->
+        </Grid.RowDefinitions>
+
+        <!-- Local toolbar: visibility bound to ShowLocalToolbar DP on the UserControl -->
+        <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,8"
+                   Visibility="{Binding ShowLocalToolbar, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                <!-- Standalone control commands (keep names consistent with your child-viewmodel usage) -->
+                <Button Content="Select all" Command="{Binding SelectAllParagraphsCommand}" Margin="0,0,6,0"/>
+                <Button Content="Clear all" Command="{Binding ClearAllParagraphsCommand}" />
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Paragraph list -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding SelectedParagraphVMs}">
                 <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Grid Margin="0,2,0,2">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="•" Margin="0,0,8,0" VerticalAlignment="Top"/>
-                            <TextBlock Grid.Column="1" Text="{Binding}" TextWrapping="Wrap"/>
-                        </Grid>
+                    <DataTemplate DataType="{x:Type vm:ParagraphViewModel}">
+                        <Border Padding="6" Margin="0,0,0,6">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="{Binding Text}" TextWrapping="Wrap"/>
+
+                                <!-- per-paragraph include checkbox -->
+                                <CheckBox Grid.Column="1" IsChecked="{Binding IncludeInPrompt}" VerticalAlignment="Top" Margin="8,0,0,0" ToolTip="Include this paragraph in the prompt"/>
+                            </Grid>
+                        </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
-
-                <!-- Empty state -->
-                <ItemsControl.Style>
-                    <Style TargetType="ItemsControl">
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding SelectedParagraphs.Count}" Value="0">
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="ItemsControl">
-                                            <Border Margin="8" Padding="12" BorderBrush="#22000000" BorderThickness="1" CornerRadius="6" Background="#FFFDFDFD">
-                                                <TextBlock Opacity="0.75" Text="No support paragraphs found for this requirement."/>
-                                            </Border>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </ItemsControl.Style>
             </ItemsControl>
         </ScrollViewer>
-    </DockPanel>
+    </Grid>
 </UserControl>

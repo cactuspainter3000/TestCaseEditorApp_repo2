@@ -1,7 +1,10 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using EditableDataControl.ViewModels;     // ColumnDefinitionModel, TableRowModel, ProviderBackplane
+using System;
 using System.Collections.ObjectModel;
+using System.Linq;
+using System.Text;
 using System.Windows;
 using TestCaseEditorApp.Session;          // SessionTableStore, TableSnapshot
 
@@ -38,6 +41,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty] private double confidenceScore;
         [ObservableProperty] private bool isModified;
 
+        // New: whether to include this table in the LLM prompt
+        [ObservableProperty] private bool includeInPrompt;
 
         // Optional custom editor opener
         [ObservableProperty] private Action<ITableViewProvider>? editTableCallback;
@@ -46,7 +51,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private bool _hydratingFromSession;
         private bool _sessionHydratedOnce;
-
 
         /// <param name="innerBackplane">
         /// Optional. If provided, ReplaceWith will forward edits to this backplane (true write-through to model).
@@ -72,7 +76,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             NormalizeRows();
             TryLoadFromSession();
         }
-
 
         // If IDs change later, try to load a session copy then.
         partial void OnRequirementIdChanged(string value) => TryLoadFromSession();
@@ -148,16 +151,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 SessionTableStore.Save(RequirementId, TableKey, snap);
             }
             System.Diagnostics.Debug.WriteLine(
-    $"[SAVE][VM] {RequirementId} | {TableKey} | Rows={Rows?.Count} Cols={Columns?.Count} hash={SnapshotHash(Columns, Rows)}");
-
-
+                $"[SAVE][VM] {RequirementId} | {TableKey} | Rows={Rows?.Count} Cols={Columns?.Count} hash={SnapshotHash(Columns, Rows)}");
         }
 
         private static string SnapshotHash(
-    System.Collections.ObjectModel.ObservableCollection<EditableDataControl.ViewModels.ColumnDefinitionModel> cols,
-    System.Collections.ObjectModel.ObservableCollection<EditableDataControl.ViewModels.TableRowModel> rows)
+            ObservableCollection<ColumnDefinitionModel> cols,
+            ObservableCollection<TableRowModel> rows)
         {
-            var sb = new System.Text.StringBuilder();
+            var sb = new StringBuilder();
             // columns by BindingPath then Header (stable)
             foreach (var c in cols)
                 sb.Append(c?.BindingPath).Append("=").Append(c?.Header).Append("|");
@@ -174,10 +175,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 sb.Append('\u241E'); // record separator
             }
             using var sha = System.Security.Cryptography.SHA1.Create();
-            var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+            var bytes = Encoding.UTF8.GetBytes(sb.ToString());
             return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").Substring(0, 10);
         }
-
 
         private void TryLoadFromSession()
         {
@@ -195,12 +195,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 TableSnapshot.ApplyToVM(snap, Columns, Rows, out var newTitle);
                 if (!string.IsNullOrEmpty(newTitle)) Title = newTitle;
                 System.Diagnostics.Debug.WriteLine($"[LOAD] #{GetHashCode()} {RequirementId} | {TableKey} (found snapshot) hash={SnapshotHash(Columns, Rows)}");
-
             }
             else
             {
                 System.Diagnostics.Debug.WriteLine($"[LOAD] #{GetHashCode()} {RequirementId} | {TableKey} (no snapshot)");
-
             }
 
             // selection hydrate
@@ -211,8 +209,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             _hydratingFromSession = false;
         }
-
-
 
         // ---------------- ProviderBackplane ----------------
         // Called by the editor on OK via EditableTableEditorViewModel.ApplyTo(backplane)

@@ -22,6 +22,16 @@
     <sys:Double x:Key="DescTwoLineHeight" xmlns:sys="clr-namespace:System;assembly=mscorlib">48</sys:Double>
     <sys:Double x:Key="SupportPaneHeight" xmlns:sys="clr-namespace:System;assembly=mscorlib">420</sys:Double>
 
+    <!-- Card background used across the app -->
+    <SolidColorBrush x:Key="CardBackgroundBrush" Color="#FFFFFFFF" />
+
+    <!-- A few related tokens you may want to centralize too -->
+    <SolidColorBrush x:Key="CardBorderBrush" Color="#11000000" />
+    <SolidColorBrush x:Key="MetaChipBackgroundBrush" Color="#22333333" />
+    <SolidColorBrush x:Key="MetaChipTextBrush" Color="#FFBFBFBF" />
+    <!-- Add more app tokens (accent, hover, disabled, etc.) here -->
+
+
     <!-- Converters -->
     <conv:BadgeToVisibilityConverter x:Key="BadgeToVisibilityConverter"/>
 
@@ -66,6 +76,85 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+    </Style>
+
+    <!-- Small pill toggle base style -->
+    <Style x:Key="PillToggleStyle" TargetType="ToggleButton">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="bd"
+                  Background="Transparent"
+                  CornerRadius="16"
+                  BorderThickness="0"
+                  Padding="8,4"
+                  SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="#20FFFFFF"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="#33FFFFFF"/>
+                            <Setter TargetName="bd" Property="BorderThickness" Value="0"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Margin" Value="0"/>
+    </Style>
+
+    <!-- Button style to match the pill appearance (for Select all / Clear all) -->
+    <Style x:Key="PillActionButtonStyle" TargetType="Button">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd"
+                  Background="Transparent"
+                  CornerRadius="16"
+                  BorderThickness="0"
+                  Padding="8,4"
+                  SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="#20FFFFFF"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="#33FFFFFF"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Margin" Value="0"/>
+    </Style>
+
+    <!-- Muted badge style (outline) -->
+    <Style x:Key="BadgeStyle" TargetType="Border">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Width" Value="34"/>
+        <Setter Property="MinWidth" Value="34"/>
+        <Setter Property="Height" Value="20"/>
+        <Setter Property="HorizontalAlignment" Value="Right"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
     </Style>
 
     <!-- Popup and menu styles -->
@@ -243,6 +332,32 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <Style x:Key="NavArrowButtonStyle" TargetType="Button" BasedOn="{StaticResource MenuPopupButtonStyle}">
+        <Setter Property="Width" Value="28" />
+        <Setter Property="MinWidth" Value="28" />
+        <Setter Property="MaxWidth" Value="28" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+
+    <!--
+    Optionally centralize other shared styles (badge, small variants, etc.)
+    Example: BadgeStyle used elsewhere in your UI (if you want it global).
+  -->
+    <!--<Style x:Key="BadgeStyle" TargetType="Border">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Width" Value="34"/>
+        <Setter Property="MinWidth" Value="34"/>
+        <Setter Property="Height" Value="20"/>
+        <Setter Property="HorizontalAlignment" Value="Right"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>-->
 
     <Style x:Key="MenuPopupButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>
