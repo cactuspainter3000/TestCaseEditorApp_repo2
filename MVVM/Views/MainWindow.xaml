@@ -160,7 +160,7 @@
                         <!-- Status text overlay at bottom-left of header.
                              Bind explicitly to the Window's DataContext.StatusMessage (MainViewModel).
                              Adjust Margin/HorizontalAlignment/VerticalAlignment to taste. -->
-                        
+
                         <TextBlock
                             Text="{Binding DataContext.StatusMessage, RelativeSource={RelativeSource AncestorType=Window}}"
                             FontSize="12"
@@ -273,42 +273,9 @@
                             </ListBox.ItemContainerStyle>
                         </ListBox>
 
-                        <!-- Repair group -->
-                        <TextBlock Text="Repair" Style="{StaticResource MenuHeaderTheme}"/>
-                        <ListBox ItemsSource="{Binding RepairSteps}"
-                                 ItemContainerStyle="{StaticResource MenuListBoxItemStyle}"
-                                 SelectedItem="{Binding SelectedStep, Mode=TwoWay}"
-                                 ItemTemplate="{StaticResource StepDescriptorTemplate}"
-                                 Background="Transparent"
-                                 BorderThickness="0"
-                                 SelectionMode="Single"
-                                 Margin="0"/>
-
-                        <!-- Reports group -->
-                        <TextBlock Text="Reports" Style="{StaticResource MenuHeaderTheme}"/>
-                        <ListBox ItemsSource="{Binding ReportsSteps}"
-                                 ItemContainerStyle="{StaticResource MenuListBoxItemStyle}"
-                                 SelectedItem="{Binding SelectedStep, Mode=TwoWay}"
-                                 ItemTemplate="{StaticResource StepDescriptorTemplate}"
-                                 Background="Transparent"
-                                 BorderThickness="0"
-                                 SelectionMode="Single"
-                                 Margin="0"/>
-
-                        <!-- General group -->
-                        <TextBlock Text="General" Style="{StaticResource MenuHeaderTheme}"/>
-                        <ListBox ItemsSource="{Binding GeneralSteps}"
-                                 ItemContainerStyle="{StaticResource MenuListBoxItemStyle}"
-                                 SelectedItem="{Binding SelectedStep, Mode=TwoWay}"
-                                 ItemTemplate="{StaticResource StepDescriptorTemplate}"
-                                 Background="Transparent"
-                                 BorderThickness="0"
-                                 SelectionMode="Single"
-                                 Margin="0"/>
-
-                        <!-- Quick Links group -->
-                        <TextBlock Text="Quick Links" Style="{StaticResource MenuHeaderTheme}"/>
-                        <ListBox ItemsSource="{Binding QuickLinksSteps}"
+                        <!-- Test Flow Creator group (new, replaces placeholders) -->
+                        <TextBlock Text="Test Flow Creator" Style="{StaticResource MenuHeaderTheme}"/>
+                        <ListBox ItemsSource="{Binding TestFlowSteps}"
                                  ItemContainerStyle="{StaticResource MenuListBoxItemStyle}"
                                  SelectedItem="{Binding SelectedStep, Mode=TwoWay}"
                                  ItemTemplate="{StaticResource StepDescriptorTemplate}"
