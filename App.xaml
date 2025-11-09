@@ -7,6 +7,7 @@
                 <!-- existing merged dictionaries -->
                 <ResourceDictionary Source="/EditableDataControl;component/Themes/Generic.xaml" />
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/MainWindowResources.xaml" />
+                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/ComboBoxStyles.xaml" />
 
                 <!-- add your shared styles file -->
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/SharedStyles.xaml" />
