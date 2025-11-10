@@ -10,11 +10,11 @@ none
 false
 TRACE;DEBUG;NET;NET8_0;NETCOREAPP
 C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\App.xaml
-13809750245
+19-1074463867
 
-761637899503
-219-97103234
-MVVM\Views\ClarifyingQuestionsView.xaml;MVVM\Views\EditableTableEditorWindow.xaml;MVVM\Views\MainWindow.xaml;MVVM\Views\RequirementsNavigationControl.xaml;MVVM\Views\RequirementsParagraphsControl.xaml;MVVM\Views\RequirementsTablesControl.xaml;MVVM\Views\RequirementsTablesPopupControl.xaml;MVVM\Views\RequirementsView.xaml;MVVM\Views\TestCaseCreationView.xaml;MVVM\Views\WorkspaceHeaderView.xaml;Resources\MainWindowResources.xaml;Resources\SharedStyles.xaml;Styles\SharedStyles.xaml;
+901150502896
+244-170356565
+MVVM\Views\ClarifyingQuestionsView.xaml;MVVM\Views\EditableTableEditorWindow.xaml;MVVM\Views\MainWindow.xaml;MVVM\Views\RequirementsNavigationControl.xaml;MVVM\Views\RequirementsParagraphsControl.xaml;MVVM\Views\RequirementsTablesControl.xaml;MVVM\Views\RequirementsTablesPopupControl.xaml;MVVM\Views\RequirementsView.xaml;MVVM\Views\TestCaseCreationView.xaml;MVVM\Views\TestCaseCreatorHeaderView.xaml;MVVM\Views\TestCaseHeaderView.xaml;MVVM\Views\TestFlowHeaderView.xaml;MVVM\Views\WorkspaceHeaderView.xaml;Resources\ComboBoxStyles.xaml;Resources\MainWindowResources.xaml;Resources\MenuTemplates.xaml;Resources\SharedStyles.xaml;Resources\TestCaseCreatorHeader.xaml;Styles\SharedStyles.xaml;
 
 False
 

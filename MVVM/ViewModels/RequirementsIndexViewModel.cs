@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
-using System.Windows.Input;
+using Microsoft.Extensions.Logging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.MVVM.Models;
@@ -21,29 +21,39 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly Func<Requirement?> _getCurrentRequirement;
         private readonly Action<Requirement?> _setCurrentRequirement;
         private readonly Action? _commitPendingEdits;
+        private readonly ILogger<RequirementsIndexViewModel>? _logger;
 
         public RequirementsIndexViewModel(
             ObservableCollection<Requirement> requirements,
             Func<Requirement?> getCurrentRequirement,
             Action<Requirement?> setCurrentRequirement,
-            Action? commitPendingEdits = null)
+            Action? commitPendingEdits = null,
+            ILogger<RequirementsIndexViewModel>? logger = null)
         {
             _requirements = requirements ?? throw new ArgumentNullException(nameof(requirements));
             _getCurrentRequirement = getCurrentRequirement ?? throw new ArgumentNullException(nameof(getCurrentRequirement));
             _setCurrentRequirement = setCurrentRequirement ?? throw new ArgumentNullException(nameof(setCurrentRequirement));
             _commitPendingEdits = commitPendingEdits;
+            _logger = logger;
 
-            // Commands
-            PrevCommand = new RelayCommand(ExecutePrev, CanExecutePrev);
-            NextCommand = new RelayCommand(ExecuteNext, CanExecuteNext);
+            // Commands - expose names the view expects (PreviousRequirementCommand / NextRequirementCommand)
+            PreviousRequirementCommand = new RelayCommand(ExecutePrev, CanExecutePrev);
+            NextRequirementCommand = new RelayCommand(ExecuteNext, CanExecuteNext);
 
-            // Keep collection changes observed so command availability updates
-            _requirements.CollectionChanged += (_, __) => NotifyCommands();
+            // Keep collection changes observed so command availability and position display update
+            _requirements.CollectionChanged += (_, __) =>
+            {
+                NotifyCommands();
+                OnPropertyChanged(nameof(RequirementPositionDisplay));
+            };
         }
 
-        // Exposed ICommand for UI
-        public ICommand PrevCommand { get; }
-        public ICommand NextCommand { get; }
+        // Exposed collection reference for the view to bind ItemsSource to.
+        public ObservableCollection<Requirement> Requirements => _requirements;
+
+        // Exposed ICommand properties matching XAML bindings
+        public IRelayCommand PreviousRequirementCommand { get; }
+        public IRelayCommand NextRequirementCommand { get; }
 
         // SelectedRequirement is mirror of host's current requirement for binding convenience.
         // When set locally, we call back into the host via _setCurrentRequirement.
@@ -56,10 +66,27 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 if (Equals(_selectedRequirement, value)) return;
                 _selectedRequirement = value;
                 OnPropertyChanged(nameof(SelectedRequirement));
+
                 // Commit pending edits in host before changing selection
                 _commitPendingEdits?.Invoke();
                 _setCurrentRequirement?.Invoke(value);
+
+                _logger?.LogDebug("[NAV] SelectedRequirement set -> {RequirementItem}", value?.Item ?? "<null>");
                 NotifyCommands();
+                OnPropertyChanged(nameof(RequirementPositionDisplay));
+            }
+        }
+
+        // Readable position display for the UI (e.g. "3 / 31")
+        public string RequirementPositionDisplay
+        {
+            get
+            {
+                var cur = _getCurrentRequirement();
+                if (cur == null || _requirements.Count == 0) return "—";
+                var idx = _requirements.IndexOf(cur);
+                if (idx < 0) return "—";
+                return $"{idx + 1} / {_requirements.Count}";
             }
         }
 
@@ -70,7 +97,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // then raise property changed so bindings update.
             _selectedRequirement = null;
             OnPropertyChanged(nameof(SelectedRequirement));
+            OnPropertyChanged(nameof(RequirementPositionDisplay));
             NotifyCommands();
+
+            _logger?.LogDebug("[NAV] NotifyCurrentRequirementChanged invoked. Current={Current}, Count={Count}",
+                _getCurrentRequirement()?.Item ?? "<null>", _requirements.Count);
         }
 
         private void ExecutePrev()
@@ -82,6 +113,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     _commitPendingEdits?.Invoke();
                     _setCurrentRequirement(_requirements[0]);
+                    _logger?.LogDebug("[NAV] ExecutePrev -> wrapped to first item: {Item}", _requirements[0].Item);
                     return;
                 }
                 return;
@@ -92,6 +124,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 _commitPendingEdits?.Invoke();
                 _setCurrentRequirement(_requirements[idx - 1]);
+                _logger?.LogDebug("[NAV] ExecutePrev -> moved to index {Index} ({Item})", idx - 1, _requirements[idx - 1].Item);
             }
         }
 
@@ -106,6 +139,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     _commitPendingEdits?.Invoke();
                     _setCurrentRequirement(_requirements[0]);
+                    _logger?.LogDebug("[NAV] ExecuteNext -> wrapped to first item: {Item}", _requirements[0].Item);
                     return;
                 }
                 return;
@@ -116,6 +150,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 _commitPendingEdits?.Invoke();
                 _setCurrentRequirement(_requirements[idx + 1]);
+                _logger?.LogDebug("[NAV] ExecuteNext -> moved to index {Index} ({Item})", idx + 1, _requirements[idx + 1].Item);
             }
         }
 
@@ -123,8 +158,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private void NotifyCommands()
         {
-            (PrevCommand as IRelayCommand)?.NotifyCanExecuteChanged();
-            (NextCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+            PreviousRequirementCommand?.NotifyCanExecuteChanged();
+            NextRequirementCommand?.NotifyCanExecuteChanged();
         }
     }
 }

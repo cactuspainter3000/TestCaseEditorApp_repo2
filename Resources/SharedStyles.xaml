@@ -333,6 +333,7 @@
         </Setter>
     </Style>
 
+
     <Style x:Key="NavArrowButtonStyle" TargetType="Button" BasedOn="{StaticResource MenuPopupButtonStyle}">
         <Setter Property="Width" Value="28" />
         <Setter Property="MinWidth" Value="28" />
@@ -340,6 +341,9 @@
         <Setter Property="Padding" Value="0" />
         <Setter Property="HorizontalAlignment" Value="Center" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
+
+        <!-- Make arrow/icon use the same orange as the dropdown hover text -->
+        <Setter Property="Foreground" Value="{DynamicResource DropdownItemForegroundBrush}" />
     </Style>
 
     <!--

@@ -9,9 +9,10 @@
     <SolidColorBrush x:Key="DropdownItemForegroundBrush" Color="DarkOrange"/>
 
     <Style x:Key="CardComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource MenuPopupComboBoxStyle}">
-        <!-- default collapsed text color: WHITE as requested -->
+        <!-- default collapsed text color restored to WHITE -->
+
         <Setter Property="Foreground" Value="White" />
-        <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
+        <Setter Property="Background" Value="{DynamicResource MenuBackground}" />
         <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
         <Setter Property="Padding" Value="6,2" />
 
@@ -42,46 +43,48 @@
 
                                 <!-- Selected content / collapsed view -->
                                 <ContentPresenter x:Name="ContentSite"
-                                  Grid.Column="0"
-                                  Margin="6,0"
-                                  VerticalAlignment="Center"
-                                  HorizontalAlignment="Left"
-                                  Content="{TemplateBinding SelectionBoxItem}"
-                                  ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                  ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
-                                  RecognizesAccessKey="True" />
+                                                  Grid.Column="0"
+                                                  Margin="6,0"
+                                                  VerticalAlignment="Center"
+                                                  HorizontalAlignment="Left"
+                                                  Content="{TemplateBinding SelectionBoxItem}"
+                                                  ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                  ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                                  RecognizesAccessKey="True"
+                                                  TextElement.Foreground="{TemplateBinding Foreground}" />
 
                                 <!-- ToggleButton (arrow) -->
                                 <ToggleButton x:Name="ToggleButton"
-                              Grid.Column="1"
-                              Width="38"
-                              HorizontalAlignment="Right"
-                              Focusable="False"
-                              IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
-                              ClickMode="Press"
-                              Background="{TemplateBinding Background}"
-                              BorderThickness="0"
-                              Padding="6,0"
-                              HorizontalContentAlignment="Center"
-                              VerticalContentAlignment="Center"
-                              FocusVisualStyle="{x:Null}">
+                                              Grid.Column="1"
+                                              Width="38"
+                                              HorizontalAlignment="Right"
+                                              Focusable="False"
+                                              IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                              ClickMode="Press"
+                                              Background="{TemplateBinding Background}"
+                                              BorderThickness="0"
+                                              Padding="6,0"
+                                              HorizontalContentAlignment="Center"
+                                              VerticalContentAlignment="Center"
+                                              FocusVisualStyle="{x:Null}">
                                     <ToggleButton.Template>
                                         <ControlTemplate TargetType="ToggleButton">
                                             <Border x:Name="ArrowBd"
-                              Background="{TemplateBinding Background}"
-                              BorderThickness="0"
-                              CornerRadius="2"
-                              Padding="{TemplateBinding Padding}">
+                                                                    Background="{TemplateBinding Background}"
+                                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                                      BorderThickness="0"
+                                                                      CornerRadius="2"
+                                                                      Padding="{TemplateBinding Padding}">
                                                 <Grid Width="18" Height="12" HorizontalAlignment="Center" VerticalAlignment="Center">
                                                     <Path x:Name="Chevron"
-                                Data="M1,4 L9,10 L17,4"
-                                Stroke="White"
-                                Fill="Transparent"
-                                StrokeThickness="1.8"
-                                StrokeStartLineCap="Round"
-                                StrokeEndLineCap="Round"
-                                StrokeLineJoin="Round"
-                                RenderTransformOrigin="0.5,0.5">
+                                                                        Data="M1,4 L9,10 L17,4"
+                                                                        Stroke="{DynamicResource DropdownItemForegroundBrush}"
+                                                                        Fill="Transparent"
+                                                                        StrokeThickness="1.8"
+                                                                        StrokeStartLineCap="Round"
+                                                                        StrokeEndLineCap="Round"
+                                                                        StrokeLineJoin="Round"
+                                                                        RenderTransformOrigin="0.5,0.5">
                                                         <Path.RenderTransform>
                                                             <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}, Converter={StaticResource BoolToAngleConverter}}" />
                                                         </Path.RenderTransform>
@@ -149,7 +152,7 @@
         <Setter Property="ItemContainerStyle">
             <Setter.Value>
                 <Style TargetType="ComboBoxItem">
-                    <!-- default text in list: WHITE -->
+                    <!-- default text in list: restored to WHITE -->
                     <Setter Property="Foreground" Value="White" />
                     <!-- items transparent so panel grey shows through -->
                     <Setter Property="Background" Value="Transparent" />
@@ -163,10 +166,11 @@
                         Padding="{TemplateBinding Padding}"
                         SnapsToDevicePixels="True">
                                     <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                    VerticalAlignment="Center"
-                                    Content="{TemplateBinding Content}"
-                                    ContentTemplate="{TemplateBinding ContentTemplate}"
-                                    RecognizesAccessKey="True"/>
+                                                      VerticalAlignment="Center"
+                                                      Content="{TemplateBinding Content}"
+                                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                      RecognizesAccessKey="True"
+                                                      TextElement.Foreground="{TemplateBinding Foreground}" />
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <!-- On mouseover: item background overlay + ORANGE text -->

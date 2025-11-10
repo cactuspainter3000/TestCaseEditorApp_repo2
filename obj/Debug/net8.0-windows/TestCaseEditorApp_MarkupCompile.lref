@@ -4,7 +4,11 @@ FC:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\V
 FC:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Views\RequirementsParagraphsControl.xaml;;
 FC:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Views\RequirementsTablesControl.xaml;;
 FC:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Views\RequirementsView.xaml;;
-FC:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Views\WorkspaceHeaderView.xaml;;
+FC:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Views\TestCaseCreatorHeaderView.xaml;;
+FC:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Views\TestCaseHeaderView.xaml;;
+FC:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Views\TestFlowHeaderView.xaml;;
+FC:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Resources\ComboBoxStyles.xaml;;
 FC:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Resources\MainWindowResources.xaml;;
 FC:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Resources\SharedStyles.xaml;;
+FC:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Resources\TestCaseCreatorHeader.xaml;;
 

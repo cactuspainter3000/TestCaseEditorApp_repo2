@@ -1,48 +1,76 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using System;
 using System.Reflection;
+using System.Threading.Tasks;
 using System.Windows;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Views;
-using TestCaseEditorApp.Services;           // for RequirementService, IFileDialogService, etc.
+using TestCaseEditorApp.Services;
 
 namespace TestCaseEditorApp
 {
+    /// <summary>
+    /// Application entrypoint that sets up a Generic Host for DI, logging and any app-wide services.
+    /// </summary>
     public partial class App : Application
     {
-        private ServiceProvider? _serviceProvider;
+        // Make the host static so the static ServiceProvider accessor can reference it without an instance.
+        private static IHost? _host;
 
-        protected override void OnStartup(StartupEventArgs e)
+        /// <summary>
+        /// Public accessor for the application's root service provider.
+        /// Returns null if the host has not yet been started.
+        /// </summary>
+        public static IServiceProvider? ServiceProvider => _host?.Services;
+
+        protected override async void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
 
-            var services = new ServiceCollection();
+            _host = Host.CreateDefaultBuilder()
+                .ConfigureLogging(logging =>
+                {
+                    // optional: configure logging here (console/file/etc.) or leave defaults
+                    logging.AddDebug();
+                })
+                .ConfigureServices((ctx, services) =>
+                {
+                    // Core / persistence services
+                    services.AddSingleton<IPersistenceService, JsonPersistenceService>();
 
-            // Core services
-            services.AddSingleton<IPersistenceService, JsonPersistenceService>();
+                    // Requirement parsing
+                    services.AddSingleton<IRequirementService, RequirementService>();
 
-            // Requirement parsing
-            services.AddSingleton<IRequirementService, RequirementService>();
+                    // File dialog helper used by the VM
+                    services.AddSingleton<IFileDialogService, FileDialogService>();
 
-            // File dialog helper used by the VM
-            services.AddSingleton<IFileDialogService, FileDialogService>();
+                    // ViewModels and header VM
+                    services.AddTransient<RequirementsViewModel>();
+                    services.AddSingleton<WorkspaceHeaderViewModel>(); // workspace header shared instance
+                    services.AddTransient<MainViewModel>();
+                    services.AddTransient<NavigationViewModel>();
 
-            // ViewModels
-            services.AddTransient<RequirementsViewModel>();
+                    // Views / Windows
+                    services.AddTransient<MainWindow>();
 
-            // Register the WorkspaceHeaderViewModel so DI can construct it and inject its dependencies
-            services.AddTransient<WorkspaceHeaderViewModel>();
+                    // Add any other services your app needs here...
+                })
+                .Build();
 
-            // MainViewModel remains transient (or change lifetime as needed)
-            services.AddTransient<MainViewModel>();
-
-            services.AddTransient<NavigationViewModel>();
-
-            // Register the window and expose it via IWindow if WorkspaceHeaderViewModel (or others) need it.
-            // This registers MainWindow as the implementation for IWindow and also registers MainWindow itself for direct resolution.
-            services.AddSingleton<IWindow, MainWindow>();
-            services.AddTransient<MainWindow>();
-
-            _serviceProvider = services.BuildServiceProvider();
+            try
+            {
+                await _host.StartAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to start host: {ex.Message}", "Startup error", MessageBoxButton.OK, MessageBoxImage.Error);
+                _host?.Dispose();
+                _host = null;
+                Shutdown(-1);
+                return;
+            }
 
             // Load merged dictionary BEFORE creating MainWindow so StaticResource resolves at parse time
             var asm = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
@@ -58,31 +86,61 @@ namespace TestCaseEditorApp
             catch (Exception ex)
             {
                 MessageBox.Show($"Failed to load resources: {ex.Message}", "Startup error", MessageBoxButton.OK, MessageBoxImage.Error);
+                try { await _host.StopAsync(); } catch { }
+                _host.Dispose();
+                _host = null;
                 Shutdown(-1);
                 return;
             }
 
-            // Resolve and show window
-            var main = _serviceProvider.GetRequiredService<MainWindow>();
+            // Resolve MainWindow from DI so its constructor can receive injected dependencies (MainViewModel, etc.)
+            MainWindow mainWindow;
+            try
+            {
+                mainWindow = _host.Services.GetRequiredService<MainWindow>();
+            }
+            catch (Exception ex)
+            {
+                // Fallback: if MainWindow ctor expects a MainViewModel, resolve the VM and construct manually.
+                try
+                {
+                    var vm = _host.Services.GetService<MainViewModel>() ?? new MainViewModel();
+                    mainWindow = new MainWindow(vm);
+                }
+                catch (Exception fallbackEx)
+                {
+                    MessageBox.Show($"Failed to create main window: {ex.Message}\nFallback error: {fallbackEx.Message}", "Startup error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    try { await _host.StopAsync(); } catch { }
+                    _host.Dispose();
+                    _host = null;
+                    Shutdown(-1);
+                    return;
+                }
+            }
 
-            // Provide the MainViewModel from DI as DataContext for the window
-            // In App.xaml.cs, when resolving MainViewModel from DI
-            var mainVm = _serviceProvider.GetRequiredService<MainViewModel>();
-            main.DataContext = mainVm;
-
-            Current.MainWindow = main;
-            main.WindowStartupLocation = WindowStartupLocation.CenterScreen;
-            main.ShowInTaskbar = true;
-            main.WindowState = WindowState.Normal;
-            main.Show();
-            main.Activate();
+            // Show window
+            Current.MainWindow = mainWindow;
+            mainWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            mainWindow.ShowInTaskbar = true;
+            mainWindow.WindowState = WindowState.Normal;
+            mainWindow.Show();
+            mainWindow.Activate();
         }
 
-        protected override void OnExit(ExitEventArgs e)
+        protected override async void OnExit(ExitEventArgs e)
         {
             base.OnExit(e);
-            if (_serviceProvider is IDisposable disposable)
-                disposable.Dispose();
+
+            if (_host != null)
+            {
+                try
+                {
+                    await _host.StopAsync(TimeSpan.FromSeconds(3));
+                }
+                catch { /* best-effort */ }
+                _host.Dispose();
+                _host = null;
+            }
         }
     }
 }

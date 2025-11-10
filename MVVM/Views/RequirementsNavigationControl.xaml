@@ -6,18 +6,29 @@
              mc:Ignorable="d"
              d:DesignHeight="80" d:DesignWidth="800"
              UseLayoutRounding="True">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Ensure the standalone ComboBox template is available to this control -->
+                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/ComboBoxStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
     <Border Padding="6" Style="{StaticResource MenuSectionBorderStyle}" ClipToBounds="True">
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="8"/>
-                <ColumnDefinition Width="2*"/>
-                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="66*"/>
+                <ColumnDefinition Width="28*"/>
+                <ColumnDefinition Width="47*"/>
                 <ColumnDefinition Width="auto"/>
             </Grid.ColumnDefinitions>
 
             <!-- NAV AREA -->
-            <Grid Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0">
+            <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -54,36 +65,44 @@
                         AutomationProperties.Name="Next Requirement"/>
             </Grid>
 
+            <!-- ComboBox (use the CardComboBoxStyle; do NOT override Background here so the template/style controls it) -->
             <ComboBox Grid.Column="2"
-                      Margin="8,0,8,0"
-                      ItemsSource="{Binding Requirements}"
-                      SelectedItem="{Binding SelectedRequirement, Mode=TwoWay}"
-                      HorizontalAlignment="Stretch"
-                      MaxWidth="420"
-                      MinWidth="120"
-                      Style="{StaticResource MenuPopupComboBoxStyle}"
-                      Background="{DynamicResource CardBackgroundBrush}"
-                      Foreground="{DynamicResource PrimaryTextBrush}"
-                      BorderBrush="{DynamicResource CardBorderBrush}"
-                      Padding="6,2">
+                  Margin="8,0,8,0"
+                  ItemsSource="{Binding Requirements}"
+                  SelectedItem="{Binding SelectedRequirement, Mode=TwoWay}"
+                  MaxWidth="420"
+                  MinWidth="120"
+                  Style="{StaticResource CardComboBoxStyle}"
+                  BorderBrush="{DynamicResource CardBorderBrush}"
+                  Padding="6,2"
+                  Grid.ColumnSpan="2">
+
                 <ComboBox.ItemTemplate>
                     <DataTemplate>
-                        <TextBlock Foreground="{DynamicResource PrimaryTextBrush}">
+                        <TextBlock VerticalAlignment="Center" FontSize="12">
+                            <TextBlock.Foreground>
+                                <PriorityBinding>
+                                    <!-- 1) Use ComboBoxItem.Foreground when inside the popup -->
+                                    <Binding RelativeSource="{RelativeSource AncestorType=ComboBoxItem}" Path="Foreground" />
+                                    <!-- 2) Fallback to the ComboBox Foreground (closed selection inherits this) -->
+                                    <Binding RelativeSource="{RelativeSource AncestorType=ComboBox}" Path="Foreground" />
+                                </PriorityBinding>
+                            </TextBlock.Foreground>
                             <Run Text="{Binding Item}" /><Run Text=" — " /><Run Text="{Binding Name}" />
                         </TextBlock>
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>
 
-            <TextBox Grid.Column="3"
-                     Margin="0,0,8,0"
+            <TextBox Grid.Column="4"
+                     Margin="8,0,8,0"
                      VerticalAlignment="Center"
                      Text="{Binding SearchQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                      MaxWidth="240"
                      MinWidth="80"
                      Style="{StaticResource MenuPopupTextBoxStyle}" />
 
-            <Button Grid.Column="4"
+            <Button Grid.Column="5"
                     Content="Search"
                     Width="70"
                     Margin="4,0,0,0"

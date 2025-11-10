@@ -28,6 +28,15 @@
     <Compile Update="MVVM\Views\TestCaseCreationView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="MVVM\Views\TestCaseCreatorHeaderView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="MVVM\Views\TestCaseHeaderView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="MVVM\Views\TestFlowHeaderView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="MVVM\Views\WorkspaceHeaderView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -48,13 +57,28 @@
     <Page Update="MVVM\Views\RequirementsTablesPopupControl.xaml">
       <SubType>Designer</SubType>
     </Page>
+    <Page Update="MVVM\Views\TestCaseCreatorHeaderView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="MVVM\Views\TestCaseHeaderView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="MVVM\Views\TestFlowHeaderView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
     <Page Update="MVVM\Views\WorkspaceHeaderView.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Resources\MainWindowResources.xaml">
       <SubType>Designer</SubType>
     </Page>
+    <Page Update="Resources\MenuTemplates.xaml">
+      <SubType>Designer</SubType>
+    </Page>
     <Page Update="Resources\SharedStyles.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Resources\TestCaseCreatorHeader.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Styles\SharedStyles.xaml">

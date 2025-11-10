@@ -8,6 +8,8 @@
                 <ResourceDictionary Source="/EditableDataControl;component/Themes/Generic.xaml" />
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/MainWindowResources.xaml" />
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/ComboBoxStyles.xaml" />
+                <ResourceDictionary Source="Resources/MenuTemplates.xaml" />
+                <ResourceDictionary Source="Resources/TestCaseCreatorHeader.xaml" />
 
                 <!-- add your shared styles file -->
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/SharedStyles.xaml" />

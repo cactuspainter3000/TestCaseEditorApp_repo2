@@ -377,7 +377,10 @@
                         </Grid.ColumnDefinitions>
 
                         <Rectangle x:Name="AccentBar" Grid.Column="0" Fill="Transparent" RadiusX="2" RadiusY="2"/>
-                        <Border x:Name="MainBorder" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" Grid.Column="1">
+                        <Border x:Name="MainBorder"    
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                Padding="{TemplateBinding Padding}" Grid.Column="1">
                             <ContentPresenter VerticalAlignment="Center" Margin="6,2"/>
                         </Border>
                     </Grid>

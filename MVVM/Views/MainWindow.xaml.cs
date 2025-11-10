@@ -1,12 +1,20 @@
-﻿using System.Windows;
+﻿using System;
+using System.Linq;
+using System.Reflection;
+using System.Windows;
 using System.Windows.Input;
 using TestCaseEditorApp.MVVM.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.Views
 {
-    public partial class MainWindow : Window, IWindow
+    /// <summary>
+    /// Code-behind for MainWindow. Supports both designer-friendly parameterless construction
+    /// and a DI constructor that accepts a fully-wired MainViewModel. Implements IWindow so
+    /// header viewmodels can interact with the window via a lightweight abstraction.
+    /// </summary>
+    public partial class MainWindow : Window, IWindow, IDisposable
     {
-        private readonly AppViewModel? _vm;
+        private readonly MainViewModel? _vm;
         private bool _disposed;
 
         // Parameterless ctor keeps the XAML designer happy. DataContext will be set at runtime via DI ctor.
@@ -16,13 +24,14 @@ namespace TestCaseEditorApp.MVVM.Views
             // Designer can render; don't set DataContext here for runtime.
         }
 
-        // Main DI constructor
-        public MainWindow(AppViewModel vm) : this()
+        // DI constructor that accepts the MainViewModel (ensures the runtime VM has its services wired)
+        public MainWindow(MainViewModel vm) : this()
         {
             _vm = vm ?? throw new ArgumentNullException(nameof(vm));
             DataContext = _vm;
         }
 
+        // Standard Dispose pattern
         protected virtual void Dispose(bool disposing)
         {
             if (_disposed) return;
@@ -38,10 +47,16 @@ namespace TestCaseEditorApp.MVVM.Views
             _disposed = true;
         }
 
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+
         ~MainWindow() => Dispose(disposing: false);
 
         // Allow window dragging by clicking the outer border
-        public void Border_MouseDown(object sender, MouseButtonEventArgs e)
+        private void Border_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed)
             {
@@ -58,8 +73,13 @@ namespace TestCaseEditorApp.MVVM.Views
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            var vm = DataContext; System.Diagnostics.Debug.WriteLine($"MainWindow DataContext = {vm?.GetType().FullName ?? "<null>"}");
-            var props = vm?.GetType().GetProperties(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+            // Prefer DI-provided DataContext. Fall back to App.ServiceProvider if available, then to a parameterless VM.
+            DataContext ??= App.ServiceProvider?.GetService(typeof(MainViewModel)) as MainViewModel
+               ?? new MainViewModel();
+
+            var vm = DataContext;
+            System.Diagnostics.Debug.WriteLine($"MainWindow DataContext = {vm?.GetType().FullName ?? "<null>"}");
+            var props = vm?.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public);
             if (props == null)
             {
                 System.Diagnostics.Debug.WriteLine("No public properties on DataContext.");
@@ -71,7 +91,7 @@ namespace TestCaseEditorApp.MVVM.Views
                 var val = p.GetValue(vm);
                 var typeName = p.PropertyType.FullName;
                 string info = $"{p.Name} : {typeName}";
-                // if it's enumerable, print a count
+                // if it's enumerable, print a count (best-effort)
                 if (val is System.Collections.IEnumerable enm && !(val is string))
                 {
                     int c = 0;
@@ -85,29 +105,96 @@ namespace TestCaseEditorApp.MVVM.Views
                 System.Diagnostics.Debug.WriteLine(info);
             }
 
+            // Try to provide a Window wrapper to any header VM that expects it.
             try
             {
-                var headerVm = new WorkspaceHeaderViewModel(new WindowWrapper(this));
+                var wrapper = new WindowWrapper(this);
 
-                // If DataContext (AppViewModel) exposes a property named "WorkspaceHeaderViewModel", set it.
+                // If DataContext exposes a property named "WorkspaceHeaderViewModel", prefer to set its window
                 if (DataContext != null)
                 {
                     var prop = DataContext.GetType().GetProperty("WorkspaceHeaderViewModel",
-                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
-                    if (prop != null && prop.CanWrite && prop.PropertyType.IsAssignableFrom(headerVm.GetType()))
+                        BindingFlags.Instance | BindingFlags.Public);
+                    if (prop != null)
                     {
-                        prop.SetValue(DataContext, headerVm);
-                        System.Diagnostics.Debug.WriteLine("Assigned WorkspaceHeaderViewModel into AppViewModel.");
+                        var headerVm = prop.GetValue(DataContext);
+                        if (headerVm != null)
+                        {
+                            // Try a strongly-typed SetWindow method first
+                            var setWin = headerVm.GetType().GetMethod("SetWindow",
+                                BindingFlags.Public | BindingFlags.Instance);
+                            if (setWin != null)
+                            {
+                                // Call SetWindow with our wrapper
+                                setWin.Invoke(headerVm, new object[] { wrapper });
+                                System.Diagnostics.Debug.WriteLine("Called SetWindow on injected WorkspaceHeaderViewModel.");
+                            }
+                            else
+                            {
+                                // Fallback: if the headerVm exposes a property "Window" that is settable, assign it
+                                var winProp = headerVm.GetType().GetProperty("Window",
+                                    BindingFlags.Public | BindingFlags.Instance);
+                                if (winProp != null && winProp.CanWrite && winProp.PropertyType.IsAssignableFrom(typeof(IWindow)))
+                                {
+                                    winProp.SetValue(headerVm, wrapper);
+                                    System.Diagnostics.Debug.WriteLine("Assigned Window property on injected WorkspaceHeaderViewModel.");
+                                }
+                                else
+                                {
+                                    System.Diagnostics.Debug.WriteLine("Injected WorkspaceHeaderViewModel has no SetWindow/Window setter; creating and assigning a new header VM.");
+                                    // Create and set a new header VM with window
+                                    var newHeaderVm = new WorkspaceHeaderViewModel();
+                                    try { newHeaderVm.SetWindow(wrapper); } catch { /* best-effort */ }
+
+                                    // Try to assign into DataContext property if possible
+                                    if (prop.CanWrite && prop.PropertyType.IsAssignableFrom(newHeaderVm.GetType()))
+                                    {
+                                        prop.SetValue(DataContext, newHeaderVm);
+                                        System.Diagnostics.Debug.WriteLine("Assigned new WorkspaceHeaderViewModel into DataContext.");
+                                    }
+                                    else
+                                    {
+                                        var headerElement = this.FindName("WorkspaceHeaderView") as FrameworkElement;
+                                        if (headerElement != null)
+                                        {
+                                            headerElement.DataContext = newHeaderVm;
+                                            System.Diagnostics.Debug.WriteLine("Set DataContext on named WorkspaceHeaderView element with newly created WorkspaceHeaderViewModel.");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // No injected header VM present — create one, set its window and assign to DataContext if possible
+                            var newHeaderVm = new WorkspaceHeaderViewModel();
+                            try { newHeaderVm.SetWindow(wrapper); } catch { /* best-effort */ }
+                            if (prop.CanWrite && prop.PropertyType.IsAssignableFrom(newHeaderVm.GetType()))
+                            {
+                                prop.SetValue(DataContext, newHeaderVm);
+                                System.Diagnostics.Debug.WriteLine("Assigned new WorkspaceHeaderViewModel into DataContext.");
+                            }
+                            else
+                            {
+                                var headerElement = this.FindName("WorkspaceHeaderView") as FrameworkElement;
+                                if (headerElement != null)
+                                {
+                                    headerElement.DataContext = newHeaderVm;
+                                    System.Diagnostics.Debug.WriteLine("Set DataContext on named WorkspaceHeaderView element.");
+                                }
+                            }
+                        }
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine("AppViewModel has no writable WorkspaceHeaderViewModel property; will try view lookup.");
-                        // fallthrough to view lookup below
-                        var headerElement = this.FindName("WorkspaceHeaderView") as System.Windows.FrameworkElement;
+                        // No WorkspaceHeaderViewModel property on DataContext: fallback as before
+                        var headerElement = this.FindName("WorkspaceHeaderView") as FrameworkElement;
                         if (headerElement != null)
                         {
-                            headerElement.DataContext = headerVm;
-                            System.Diagnostics.Debug.WriteLine("Set DataContext on named WorkspaceHeaderView element.");
+                            var newHeaderVm = new WorkspaceHeaderViewModel();
+                            try { newHeaderVm.SetWindow(wrapper); } catch { /* best-effort */ }
+                            headerElement.DataContext = newHeaderVm;
+                            System.Diagnostics.Debug.WriteLine("No WorkspaceHeaderViewModel on DataContext — set DataContext on named WorkspaceHeaderView element.");
                         }
                     }
                 }
@@ -116,17 +203,46 @@ namespace TestCaseEditorApp.MVVM.Views
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to create/set WorkspaceHeaderViewModel: {ex}");
             }
+
+            // Command presence probe (keeps previous diagnostic)
+            try
+            {
+                Type? vmType = vm?.GetType();
+                string[] commandNames = new[] { "ImportWordCommand", "ImportRequirementsCommand", "ImportWordAsyncCommand", "ImportCommand", "Import" };
+
+                foreach (var name in commandNames)
+                {
+                    var prop = vmType?.GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase);
+                    var hasProp = prop != null;
+                    object? val = hasProp ? prop.GetValue(vm) : null;
+                    bool isIcmd = val is System.Windows.Input.ICommand;
+                    System.Diagnostics.Debug.WriteLine($"[CMD CHECK] {name}: propExists={hasProp}, valueType={(val == null ? "null" : val.GetType().FullName)}, isICommand={isIcmd}");
+                    if (isIcmd)
+                    {
+                        var cmd = (System.Windows.Input.ICommand)val!;
+                        bool can = true;
+                        try { can = cmd.CanExecute(null); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CMD CHECK] {name}.CanExecute threw: {ex}"); }
+                        System.Diagnostics.Debug.WriteLine($"[CMD CHECK] {name}.CanExecute(null) = {can}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[CMD CHECK] Exception: " + ex);
+            }
         }
 
         public void ButtonMinimize_Click(object sender, RoutedEventArgs e)
         {
-            Application.Current.MainWindow.WindowState = WindowState.Minimized;
+            if (Application.Current?.MainWindow != null)
+                Application.Current.MainWindow.WindowState = WindowState.Minimized;
         }
 
         public void WindowStateButton_Click(object sender, RoutedEventArgs e)
         {
-            Application.Current.MainWindow.WindowState =
-                Application.Current.MainWindow.WindowState != WindowState.Maximized ? WindowState.Maximized : WindowState.Normal;
+            if (Application.Current?.MainWindow != null)
+                Application.Current.MainWindow.WindowState =
+                    Application.Current.MainWindow.WindowState != WindowState.Maximized ? WindowState.Maximized : WindowState.Normal;
         }
 
         public void CloseButton_Click(object sender, RoutedEventArgs e)
@@ -134,9 +250,36 @@ namespace TestCaseEditorApp.MVVM.Views
             Application.Current.Shutdown();
         }
 
-        public void Dispose()
+        #region IWindow implementation (wrapper for header VMs that expect an IWindow)
+
+        // These members allow header VMs to interact with the window without a direct Window dependency.
+        WindowState IWindow.WindowState
         {
-            // Dispose of managed resources here if you later add them.
+            get => this.WindowState;
+            set => this.WindowState = value;
+        }
+
+        void IWindow.Close()
+        {
+            this.Close();
+        }
+
+        #endregion
+
+        /// <summary>
+        /// A lightweight wrapper that implements IWindow around a WPF Window instance.
+        /// Used to pass a stable abstraction into ViewModels that require window operations.
+        /// </summary>
+        private sealed class WindowWrapper : IWindow
+        {
+            private readonly Window _w;
+            public WindowWrapper(Window w) => _w = w ?? throw new ArgumentNullException(nameof(w));
+            public WindowState WindowState
+            {
+                get => _w.WindowState;
+                set => _w.WindowState = value;
+            }
+            public void Close() => _w.Close();
         }
     }
 }
