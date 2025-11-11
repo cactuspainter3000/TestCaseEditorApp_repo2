@@ -43,18 +43,25 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly ILogger<MainViewModel>? _logger;
 
         // --- Header / navigation / view state ---
-        // Use object so HeaderViewModel can accept different header VM types (WorkspaceHeaderViewModel, TestCaseCreatorHeaderViewModel, etc.)
+
+        public TitleBarViewModel TitleBar { get; }
         private object? _headerViewModel;
         public object? HeaderViewModel
         {
             get => _headerViewModel;
-            private set => SetProperty(ref _headerViewModel, value);
+            private set
+            {
+                if (_headerViewModel == value) return;
+                _headerViewModel = value;
+                OnPropertyChanged(nameof(HeaderViewModel));
+            }
         }
 
         // Keep an explicit strongly-typed workspace header instance we update programmatically.
         private WorkspaceHeaderViewModel _workspaceHeaderViewModel;
 
         public NavigationViewModel Navigation { get; private set; }
+
 
         // --- Core observable collections / properties ---
         private ObservableCollection<Requirement> _requirements = new ObservableCollection<Requirement>();
@@ -132,6 +139,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private bool _headerSubscriptionsWired = false;
         private INotifyPropertyChanged? _linkedTestCaseGeneratorInpc;
 
+        //public TitleBarViewModel TitleBar { get; }
+
         // Commands exposed directly (so bindings can reference them without source-generation)
         public ICommand NextRequirementCommand { get; }
         public ICommand PreviousRequirementCommand { get; }
@@ -195,6 +204,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _fileDialog = fileDialog ?? throw new ArgumentNullException(nameof(fileDialog));
             _services = services ?? new SimpleServiceProviderStub();
             _logger = logger;
+            TitleBar = new TitleBarViewModel();
+
+            CreateAndAssignWorkspaceHeader();
 
             // Initialize state
             HeaderViewModel = _workspaceHeaderViewModel;
@@ -304,6 +316,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // -----------------------------
         // Header wiring and helpers
         // -----------------------------
+
+        private void CreateAndAssignWorkspaceHeader()
+        {
+            var workspaceHeader = new WorkspaceHeaderViewModel
+            {
+                WorkspaceName = this.Workspace?.Name,
+                // populate other generic workspace properties if you have them
+                // e.g. sourceInfo = Workspace?.Source ?? string.Empty
+            };
+
+            HeaderViewModel = workspaceHeader;
+        }
 
         private void WireHeaderSubscriptions()
         {
@@ -900,23 +924,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             if (r != null) { _prevReq = r; _prevReq.PropertyChanged += CurrentRequirement_PropertyChanged; }
         }
 
-        private void CurrentRequirement_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(Requirement.Name) || e.PropertyName == nameof(Requirement.Description))
-            {
-                if (sender is Requirement r)
-                {
-                    try
-                    {
-                        _workspaceHeaderViewModel.CurrentRequirementTitle = r.Name ?? string.Empty;
-                        _workspaceHeaderViewModel.CurrentRequirementSummary = ShortSummary(r.Description);
-                        _workspaceHeaderViewModel.CurrentRequirementId = r.Item ?? string.Empty;
-                    }
-                    catch { /* ignore */ }
-                }
-            }
-        }
-
         // Called whenever CurrentRequirement is changed (setter triggers this)
         private void OnCurrentRequirementChanged(Requirement? value)
         {
@@ -999,16 +1006,87 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             OnPropertyChanged(nameof(RequirementPositionDisplay));
         }
 
-        private void _workspaceHeaderView_update(Requirement? value)
+        // Replace both old methods with this single helper:
+        private void UpdateHeaderWithRequirement(Requirement? requirement)
         {
+            // Prepare values once
+            var title = requirement?.Name ?? string.Empty;
+            var summary = ShortSummary(requirement?.Description);
+            var id = requirement?.Item ?? string.Empty;
+            var status = requirement?.Status ?? string.Empty;
+
             try
             {
-                _workspaceHeaderViewModel.CurrentRequirementTitle = value?.Name ?? string.Empty;
-                _workspaceHeaderViewModel.CurrentRequirementSummary = ShortSummary(value?.Description);
-                _workspaceHeaderViewModel.CurrentRequirementId = value?.Item ?? string.Empty;
-                _workspaceHeaderViewModel.CurrentRequirementStatus = value?.Status ?? string.Empty;
+                // Prefer updating the currently active HeaderViewModel (TestCaseCreatorHeaderViewModel)
+                if (HeaderViewModel is TestCaseCreatorHeaderViewModel tcHeader)
+                {
+                    tcHeader.CurrentRequirementName = title;
+                    tcHeader.CurrentRequirementSummary = summary;
+                    // if your TestCaseCreatorHeaderViewModel uses different property names, update them here
+                    // e.g. tcHeader.CurrentRequirementTitle = title;
+                    // copy id/status if the VM exposes them
+                    // tcHeader.CurrentRequirementId = id;
+                    // tcHeader.CurrentRequirementStatus = status;
+                    return;
+                }
+
+                // Fallback: if you still have an injected/workspace header VM, update it.
+                if (_workspaceHeaderViewModel != null)
+                {
+                    // If WorkspaceHeaderViewModel still has requirement properties, set them
+                    // (if you removed these from WorkspaceHeaderViewModel, this block can be removed)
+                    _workspaceHeaderViewModel.CurrentRequirementTitle = title;
+                    _workspaceHeaderViewModel.CurrentRequirementSummary = summary;
+                    _workspaceHeaderViewModel.CurrentRequirementId = id;
+                    _workspaceHeaderViewModel.CurrentRequirementStatus = status;
+                    return;
+                }
+
+                // As a final fallback, attempt to update HeaderViewModel by reflection if it exposes the expected properties
+                var header = HeaderViewModel;
+                if (header != null)
+                {
+                    var t = header.GetType();
+
+                    void TrySet(string propName, object? val)
+                    {
+                        var prop = t.GetProperty(propName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                        if (prop != null && prop.CanWrite)
+                        {
+                            prop.SetValue(header, val);
+                        }
+                    }
+
+                    TrySet("CurrentRequirementTitle", title);
+                    TrySet("CurrentRequirementSummary", summary);
+                    TrySet("CurrentRequirementId", id);
+                    TrySet("CurrentRequirementStatus", status);
+                    TrySet("CurrentRequirementName", title);
+                    TrySet("CurrentRequirementStatus", status);
+                }
             }
-            catch { /* ignore */ }
+            catch
+            {
+                // best-effort: swallow exceptions to avoid breaking UI updates
+            }
+        }
+
+        // Updated PropertyChanged handler to call the helper:
+        private void CurrentRequirement_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(Requirement.Name) || e.PropertyName == nameof(Requirement.Description) || e.PropertyName == nameof(Requirement.Status))
+            {
+                if (sender is Requirement r)
+                {
+                    UpdateHeaderWithRequirement(r);
+                }
+            }
+        }
+
+        // If you previously used _workspaceHeader_view_update, replace its body with a call to the helper:
+        private void _workspaceHeaderView_update(Requirement? value)
+        {
+            UpdateHeaderWithRequirement(value);
         }
 
         private void OnSelectedMenuSectionChanged(string? value)
@@ -1040,57 +1118,51 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private void CreateAndAssignTestCaseCreatorHeader()
         {
-            if (_testCaseCreatorHeader != null)
+            // Build a header VM and wire commands to existing MainViewModel behaviors (use TryInvoke* helpers where appropriate).
+            var headerVm = new TestCaseCreatorHeaderViewModel
             {
-                HeaderViewModel = _testCaseCreatorHeader;
-                UpdateTestCaseCreatorHeaderFromState();
-                return;
-            }
+                WorkspaceName = this.Workspace?.Name
+            };
 
-            // Ensure ImportWordCommand exists and is available to reuse
-            ImportWordCommand = ImportWordCommand ?? new AsyncRelayCommand(ImportWordAsync);
-
-            var vm = new TestCaseCreatorHeaderViewModel
+            // Compute RequirementsWithTestCasesCount without relying on an external helper method name.
+            int count = 0;
+            try
             {
-                OpenRequirementsCommand = new RelayCommand(() =>
+                count = Requirements?.Count(r =>
                 {
                     try
                     {
-                        // Keep the Test Case Creator menu expanded
-                        SelectedMenuSection = "TestCase";
-
-                        // Show the Requirements step in the center area
-                        SelectedStep = TestCaseCreationSteps.FirstOrDefault(s => string.Equals(s.Id, "requirements", StringComparison.OrdinalIgnoreCase));
-
-                        // Invoke the shared import command if available; otherwise fall back to calling the async method
-                        if (ImportWordCommand != null && ImportWordCommand.CanExecute(null))
-                            ImportWordCommand.Execute(null);
-                        else
-                            _ = ImportWordAsync();
+                        return (r != null) && ((r.GeneratedTestCases != null && r.GeneratedTestCases.Count > 0) || r.HasGeneratedTestCase);
                     }
-                    catch (Exception ex)
-                    {
-                        _logger?.LogWarning(ex, "TestCaseCreator header OpenRequirements command failed");
-                    }
-                }),
-                OpenWorkspaceCommand = new RelayCommand(() => Header_OpenWorkspace()),
-                SaveCommand = new RelayCommand(() => { TryInvokeSaveWorkspace(); })
-            };
+                    catch { return false; }
+                }) ?? 0;
+            }
+            catch { count = 0; }
+            headerVm.RequirementsWithTestCasesCount = count;
 
-            // Wire File menu commands into the header VM using wrappers that call existing methods or reflection-based helpers.
-            // This avoids referencing missing command properties on MainViewModel.
-            vm.ImportWordCommand = ImportWordCommand as ICommand ?? new RelayCommand(() => _ = ImportWordAsync());
-            vm.LoadWorkspaceCommand = new RelayCommand(() => TryInvokeLoadWorkspace());
-            vm.SaveWorkspaceCommand = new RelayCommand(() => TryInvokeSaveWorkspace());
-            vm.ReloadCommand = new RelayCommand(() => _ = ReloadAsync());
-            vm.ExportAllToJamaCommand = new RelayCommand(() => TryInvokeExportAllToJama());
-            vm.HelpCommand = new RelayCommand(() => TryInvokeHelp());
+            headerVm.StatusHint = "Test Case Creator";
 
-            _testCaseCreatorHeader = vm;
-            HeaderViewModel = vm;
+            // Reuse existing Import command if present, else fall back to the local ImportWordAsync method.
+            headerVm.ImportWordCommand = (ImportWordCommand as ICommand) ?? new AsyncRelayCommand(ImportWordAsync);
 
-            UpdateTestCaseCreatorHeaderFromState();
-            WireHeaderSubscriptions();
+            // Wire the file/menu actions to the existing TryInvoke* helpers (these methods exist on MainViewModel).
+            headerVm.LoadWorkspaceCommand = new RelayCommand(() => TryInvokeLoadWorkspace());
+            headerVm.SaveWorkspaceCommand = new RelayCommand(() => TryInvokeSaveWorkspace());
+            headerVm.ReloadCommand = new AsyncRelayCommand(ReloadAsync);
+            headerVm.ExportAllToJamaCommand = new RelayCommand(() => TryInvokeExportAllToJama());
+            headerVm.HelpCommand = new RelayCommand(() => TryInvokeHelp());
+
+            // Optional header action commands used by the right-side buttons: reuse the Header_* helpers where appropriate.
+            headerVm.OpenRequirementsCommand = new RelayCommand(() => Header_OpenRequirements());
+            headerVm.OpenWorkspaceCommand = new RelayCommand(() => Header_OpenWorkspace());
+            headerVm.SaveCommand = new RelayCommand(() => { TryInvokeSaveWorkspace(); });
+
+            // Cache for update routines and publish header so the ContentPresenter/DataTemplate picks it up.
+            _testCaseCreatorHeader = headerVm;
+            HeaderViewModel = headerVm;
+
+            // Ensure header-related subscriptions are wired (idempotent)
+            try { WireHeaderSubscriptions(); } catch { /* best-effort */ }
         }
 
         // --- Import implementation (updated to preserve collection instance and use logger) ---
