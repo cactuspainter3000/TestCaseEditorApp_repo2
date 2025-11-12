@@ -6,9 +6,20 @@
              xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
              mc:Ignorable="d"
              d:DesignHeight="75" d:DesignWidth="800">
-    <DockPanel LastChildFill="True" Margin="6" VerticalAlignment="Center">
-        <!-- Left: File menu in header (Test Case Creator specific) -->
-        <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,12,0">
+
+    <Grid Margin="6">
+        <!-- Three-column layout: File menu | Title + counts | Actions / LLM indicator -->
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <!-- File menu -->
+            <ColumnDefinition Width="*"/>
+            <!-- Title and counts -->
+            <ColumnDefinition Width="Auto"/>
+            <!-- Right actions / LLM -->
+        </Grid.ColumnDefinitions>
+
+        <!-- LEFT: File menu (keeps existing Popup and ToggleButton) -->
+        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Top" Margin="0,0,12,0">
             <ToggleButton x:Name="HeaderFileToggle" Style="{StaticResource MenuHeaderToggleStyle}" Cursor="Hand">
                 <TextBlock Text="File" Style="{StaticResource MenuHeaderTheme}" />
             </ToggleButton>
@@ -61,15 +72,56 @@
             </Popup>
         </StackPanel>
 
-        <!-- Center: workspace name + requirement info (binds to TestCaseCreatorHeaderViewModel) -->
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <TextBlock Text="{Binding WorkspaceName}" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0"/>
-            <TextBlock Text="•" Margin="0,0,8,0" VerticalAlignment="Center"/>
-            <TextBlock Text="{Binding CurrentRequirementName}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-            <TextBlock Text="(" VerticalAlignment="Center"/>
-            <TextBlock Text="{Binding RequirementsWithTestCasesCount}" VerticalAlignment="Center" />
-            <TextBlock Text=" with test cases)" VerticalAlignment="Center" Margin="4,0,0,0"/>
+        <!-- CENTER: Title and counts (keeps bindings) -->
+        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <TextBlock Text="{Binding TitleText}"
+                       Style="{StaticResource TitleText}" />
+
+            <TextBlock
+                FontSize="12"
+                Padding="4,2"
+                Margin="12,0,0,0"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Bottom"
+                Foreground="{DynamicResource HeaderTextBrush}"
+                TextTrimming="CharacterEllipsis"
+                ToolTip="{Binding RequirementsWithTestCasesCount}">
+                <Run Text="{Binding RequirementsWithTestCasesCount}" />
+                <Run Text=" with Test Cases" />
+            </TextBlock>
         </StackPanel>
 
-    </DockPanel>
+        <!-- RIGHT: LLM indicator and optional right-side actions area -->
+        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8,0,0,0">
+            <!-- LLM indicator: small dot + status text (bound to OllamaStatusColor/OllamaStatusMessage) -->
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                <Ellipse Width="12" Height="12"
+                         Fill="{Binding OllamaStatusColor}"
+                         Stroke="#FF666666"
+                         StrokeThickness="0.5"
+                         Margin="0,0,6,0"
+                         VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding OllamaStatusMessage}"
+                           VerticalAlignment="Center"
+                           Opacity="0.85"
+                           FontSize="12"/>
+            </StackPanel>
+
+            <!-- Keep space for future header actions (if any) -->
+            <!-- Example placeholder: you can add additional small buttons here if desired -->
+        </StackPanel>
+
+        <!-- Status text overlay at bottom-left of the header (unchanged, still bound to Window DataContext) -->
+        <TextBlock
+            Text="{Binding DataContext.StatusMessage, RelativeSource={RelativeSource AncestorType=Window}}"
+            FontSize="12"
+            Padding="4,2"
+            Margin="8,0,0,6"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Bottom"
+            Foreground="{DynamicResource HeaderTextBrush}"
+            TextTrimming="CharacterEllipsis"
+            ToolTip="{Binding DataContext.StatusMessage, RelativeSource={RelativeSource AncestorType=Window}}"
+        />
+    </Grid>
 </UserControl>

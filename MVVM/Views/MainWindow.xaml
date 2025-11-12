@@ -181,37 +181,16 @@
             <!-- Workspace header -->
             <Border Grid.Row="2" Grid.Column="2" Style="{StaticResource HeaderBorderStyle}" Height="75" Padding="0" Margin="0">
                 <Grid>
-                    <!-- cleaned up column widths: use simple proportional stars for clarity -->
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1*"/>
-                        <!-- left area -->
                         <ColumnDefinition Width="3*"/>
-                        <!-- main center stretch -->
                         <ColumnDefinition Width="1*"/>
-                        <!-- right-side controls -->
                         <ColumnDefinition Width="0.6*"/>
-                        <!-- small area -->
                     </Grid.ColumnDefinitions>
 
                     <Grid Grid.ColumnSpan="4" Margin="6">
-                        <!-- Keep the existing header content -->
+                        <!-- Header content rendered via the HeaderViewModel (DataTemplate or UserControl) -->
                         <ContentPresenter Content="{Binding HeaderViewModel}" />
-
-                        <!-- Status text overlay at bottom-left of header.
-                             Bind explicitly to the Window's DataContext.StatusMessage (MainViewModel).
-                             Adjust Margin/HorizontalAlignment/VerticalAlignment to taste. -->
-
-                        <TextBlock
-                            Text="{Binding DataContext.StatusMessage, RelativeSource={RelativeSource AncestorType=Window}}"
-                            FontSize="12"
-                            Padding="4,2"
-                            Margin="8,0,0,6"
-                            HorizontalAlignment="Left"
-                            VerticalAlignment="Bottom"
-                            Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"
-                            TextTrimming="CharacterEllipsis"
-                            ToolTip="{Binding DataContext.StatusMessage, RelativeSource={RelativeSource AncestorType=Window}}"
-                            />
                     </Grid>
                 </Grid>
             </Border>
@@ -399,11 +378,9 @@
             <!-- Navigation area: compact, responsive controls (keeps your original placement) -->
             <!-- Bottom requirement navigation (Grid.Column=2 Grid.Row=6) -->
             <views:RequirementsNavigationControl
-    x:Name="RequirementsNavigationControl"
-    Grid.Column="2"
-    Grid.Row="6"
-    DataContext="{Binding RequirementsNavigator}" />
-
+                Grid.Column="2"
+                Grid.Row="6"
+                DataContext="{Binding RequirementsNavigator}"/>
         </Grid>
     </Border>
 </Window>

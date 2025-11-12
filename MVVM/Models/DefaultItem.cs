@@ -1,6 +1,7 @@
 ﻿namespace TestCaseEditorApp.MVVM.Models
 {
     using CommunityToolkit.Mvvm.ComponentModel;
+    using System.Text.Json.Serialization;
 
     public sealed class DefaultItem : ObservableObject
     {
@@ -17,8 +18,18 @@
             set => SetProperty(ref _isEnabled, value);
         }
 
+        // true means “auto-selected by LLM” (render orange when enabled)
+        private bool _isLlmSuggested;
+        [JsonIgnore] // keep this purely UI state; don’t persist if you serialize DefaultItem
+        public bool IsLlmSuggested
+        {
+            get => _isLlmSuggested;
+            set => SetProperty(ref _isLlmSuggested, value);
+        }
+
         public string PromptLine => string.IsNullOrWhiteSpace(ContentLine) ? Name : ContentLine!;
     }
+
 
 }
 

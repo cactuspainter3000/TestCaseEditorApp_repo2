@@ -2,7 +2,20 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels">
 
-    <!-- Local styles used by the header so we don't need converters -->
+    <!-- Header text brush (centralized so theme changes are easy) -->
+    <SolidColorBrush x:Key="HeaderTextBrush" Color="White" />
+
+    <!-- TitleText style for header title pieces -->
+    <Style x:Key="TitleText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource HeaderTextBrush}" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="Margin" Value="0" />
+    </Style>
+
+    <!-- LLM status visuals -->
     <Style x:Key="LlmEllipseStyle" TargetType="Ellipse">
         <Setter Property="Width" Value="10" />
         <Setter Property="Height" Value="10" />
@@ -32,32 +45,4 @@
         </Style.Triggers>
     </Style>
 
-    <!-- DataTemplate for the header VM. Renders only the six items requested. -->
-    <DataTemplate DataType="{x:Type vm:TestCaseCreatorHeaderViewModel}">
-        <DockPanel LastChildFill="True" Margin="6" VerticalAlignment="Center">
-
-            <!-- Left: LLM status -->
-            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,12,0">
-                <Ellipse Style="{StaticResource LlmEllipseStyle}" />
-                <TextBlock Style="{StaticResource LlmStatusTextStyle}" Margin="0,0,12,0"/>
-            </StackPanel>
-
-            <!-- Center: Workspace name, current requirement, and count -->
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <TextBlock Text="{Binding WorkspaceName}" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <TextBlock Text="•" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding CurrentRequirementName}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <TextBlock Text="(" VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding RequirementsWithTestCasesCount}" VerticalAlignment="Center" />
-                <TextBlock Text=" with test cases)" VerticalAlignment="Center" Margin="4,0,0,0"/>
-            </StackPanel>
-
-            <!-- Right: action buttons (only the three you asked for) -->
-            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center" >
-                <Button Content="Open Requirements" Command="{Binding OpenRequirementsCommand}" Margin="6,0,0,0" />
-                <Button Content="Open Workspace" Command="{Binding OpenWorkspaceCommand}" Margin="6,0,0,0" />
-                <Button Content="Save" Command="{Binding SaveCommand}" Margin="6,0,0,0" />
-            </StackPanel>
-        </DockPanel>
-    </DataTemplate>
 </ResourceDictionary>

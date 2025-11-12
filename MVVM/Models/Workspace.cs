@@ -19,6 +19,7 @@ namespace TestCaseEditorApp.MVVM.Models
         public string? JamaTestPlan { get; set; }
 
         public DefaultsBlock? Defaults { get; set; }
+        public string Name { get; internal set; }
     }
 }
 
