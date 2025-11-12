@@ -9,6 +9,7 @@
 	</PropertyGroup>
 	<ItemGroup>
 	  <Compile Remove="Helpers\TableConversionHelper.cs" />
+	  <Compile Remove="MVVM\ViewModels\MainViewModel.Bindings.cs" />
 	  <Compile Remove="MVVM\ViewModels\TestCaseCreatorHeaderViewModel.Ollama.cs" />
 	</ItemGroup>
 
@@ -31,5 +32,9 @@
 
 	<ItemGroup>
 	  <Folder Include="Controls\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Include="MVVM\ViewModels\MainViewModel.Bindings.cs" />
 	</ItemGroup>
 </Project>
