@@ -68,7 +68,7 @@ namespace TestCaseEditorApp.Controls {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/TestCaseEditorApp;V1.0.0.0;component/mvvm/controls/dropdownbutton.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/TestCaseEditorApp;component/mvvm/controls/dropdownbutton.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\..\..\MVVM\Controls\DropDownButton.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);

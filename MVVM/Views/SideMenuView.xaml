@@ -17,6 +17,13 @@
         <conv:BoolToAngleConverter x:Key="BoolToAngleConverter" />
         <conv:AllTrueToVisibilityConverter x:Key="AllTrueToVisibilityConverter" />
 
+        <!-- Compact menu button style for side menu (fits in 200px width) -->
+        <Style x:Key="SideMenuPopupButtonStyle" TargetType="Button" BasedOn="{StaticResource MenuPopupButtonStyle}">
+            <Setter Property="MinWidth" Value="0"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+
         <!-- Small Grid style used by item templates -->
         <Style x:Key="StepItemGridStyle" TargetType="Grid">
             <Setter Property="Margin" Value="0,2,0,2"/>
@@ -226,39 +233,39 @@
                                                 </Style.Triggers>
                                             </Style>
                                         </Border.Style>
-                                        <StackPanel Margin="12,8">
+                                        <StackPanel Margin="8,6">
                                             <Button Command="{Binding DataContext.ImportWordCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                    Style="{StaticResource MenuPopupButtonStyle}">
-                                                <TextBlock Text="Import New Requirements…" />
+                                                    Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                <TextBlock Text="Import New Requirements…" TextWrapping="Wrap" />
                                             </Button>
                                             <Button Command="{Binding DataContext.LoadWorkspaceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                    Style="{StaticResource MenuPopupButtonStyle}">
-                                                <TextBlock Text="Import In-Process Requirements…" />
+                                                    Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                <TextBlock Text="Import In-Process…" TextWrapping="Wrap" />
                                             </Button>
 
-                                            <Separator Margin="0,6"/>
+                                            <Separator Margin="0,4"/>
 
                                             <Button Command="{Binding DataContext.SaveWorkspaceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                    Style="{StaticResource MenuPopupButtonStyle}">
+                                                    Style="{StaticResource SideMenuPopupButtonStyle}">
                                                 <TextBlock Text="Save Workspace" />
                                             </Button>
 
-                                            <Separator Margin="0,6"/>
+                                            <Separator Margin="0,4"/>
 
                                             <Button Command="{Binding DataContext.ReloadCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                    Style="{StaticResource MenuPopupButtonStyle}">
-                                                <TextBlock Text="Reload Source (from DOCX)" />
+                                                    Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                <TextBlock Text="Reload Source" TextWrapping="Wrap" />
                                             </Button>
 
                                             <Button Command="{Binding DataContext.ExportAllToJamaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                    Style="{StaticResource MenuPopupButtonStyle}">
-                                                <TextBlock Text="Export All to Jama…" />
+                                                    Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                <TextBlock Text="Export All to Jama…" TextWrapping="Wrap" />
                                             </Button>
 
-                                            <Separator Margin="0,8"/>
+                                            <Separator Margin="0,6"/>
 
                                             <Button Command="{Binding DataContext.HelpCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                    Style="{StaticResource MenuPopupButtonStyle}">
+                                                    Style="{StaticResource SideMenuPopupButtonStyle}">
                                                 <TextBlock Text="Help" />
                                             </Button>
                                         </StackPanel>
