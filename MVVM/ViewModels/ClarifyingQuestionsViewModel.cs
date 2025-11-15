@@ -73,6 +73,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Handlers map for ClarifyingQuestionVM property-changed subscriptions
         private readonly Dictionary<ClarifyingQuestionVM, PropertyChangedEventHandler> _vmHandlers = new();
 
+        // Add or replace this constructor body in ClarifyingQuestionsViewModel
         public ClarifyingQuestionsViewModel(IPersistenceService persistence, ITextGenerationService? llm = null, TestCaseCreatorHeaderViewModel? headerVm = null)
         {
             _persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
@@ -144,6 +145,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Keep converted Presets in sync with DefaultPresets
             DefaultPresets.CollectionChanged += DefaultPresets_CollectionChanged;
             UpdatePresetsFromDefaultPresets();
+
+            // Initialize command wiring (SetAsAssumption, SmartButton etc.) and session state
+            InitializeCommands();
+            UpdateSessionStateAfterQuestionsUpdate();
         }
 
         // Header property-changed forwarding
@@ -334,6 +339,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         // --- LLM / Clarifying flow -------------
+        // Diagnostic replacement for AskClarifyingQuestionsAsync.
+        // Paste into ClarifyingQuestionsViewModel replacing the existing method to capture debugging info
+        // Replace the existing AskClarifyingQuestionsAsync method in ClarifyingQuestionsViewModel with this implementation.
+
         private async Task AskClarifyingQuestionsAsync()
         {
             if (_llm == null)
@@ -344,7 +353,30 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             if (IsClarifyingCommandRunning) return;
 
-            // These initial updates run on the caller's context (UI) before any await.
+            // Validate requirement data up front: do NOT use defaults or filler values.
+            var requirementDescription = _headerVm?.RequirementDescription;
+            var methodEnum = _headerVm?.RequirementMethodEnum;
+
+            if (string.IsNullOrWhiteSpace(requirementDescription))
+            {
+                if (_headerVm != null)
+                {
+                    _headerVm.RequirementDescriptionHighlight = true;
+                    _headerVm.StatusMessage = "Cannot ask clarifying questions: requirement Description is missing. Please enter the Description in the workspace header.";
+                }
+                return;
+            }
+
+            if (methodEnum == null)
+            {
+                if (_headerVm != null)
+                {
+                    _headerVm.RequirementMethodHighlight = true;
+                    _headerVm.StatusMessage = "Cannot ask clarifying questions: Verification Method is not set. Please set the Method for the requirement.";
+                }
+                return;
+            }
+
             IsClarifyingCommandRunning = true;
             ClarifyCommand.NotifyCanExecuteChanged();
 
@@ -352,20 +384,52 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             try
             {
+                // Clear only the UI list (we'll update persisted Questions after LLM returns)
                 Application.Current?.Dispatcher?.Invoke(() =>
                 {
                     PendingQuestions.Clear();
-                    Questions.Clear();
                     StatusHint = null;
                 });
 
-                // Build prompt using helper
-                var prompt = ClarifyingParsingHelpers.BuildBudgetedQuestionsPrompt(null, questionBudget, false, Enumerable.Empty<string>(), Enumerable.Empty<TableDto>());
+                // Build assumptions list from currently enabled default items (PromptLine is the full prompt text).
+                var enabledAssumptions = SuggestedDefaults
+                    .Where(d => d.IsEnabled)
+                    .Select(d => d.PromptLine)
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .ToList();
+
+                // Additionally include any assumptions associated with the requirement's Verification Method.
+                var methodName = methodEnum.Value.ToString();
+                var methodAssumptions = SuggestedDefaults
+                    .Where(d => !string.IsNullOrWhiteSpace(d.Category) && string.Equals(d.Category, methodName, StringComparison.OrdinalIgnoreCase))
+                    .Select(d => d.PromptLine)
+                    .Where(s => !string.IsNullOrWhiteSpace(s));
+
+                foreach (var a in methodAssumptions)
+                {
+                    if (!enabledAssumptions.Any(existing => string.Equals(existing, a, StringComparison.OrdinalIgnoreCase)))
+                        enabledAssumptions.Add(a);
+                }
+
+                // Build a temporary Requirement instance to pass to the prompt builder (expects Requirement?).
+                var tempRequirement = new Requirement
+                {
+                    Description = requirementDescription,
+                    Method = methodEnum.Value
+                };
+
+                // Build prompt including the temporary requirement object and enabled assumptions.
+                var prompt = ClarifyingParsingHelpers.BuildBudgetedQuestionsPrompt(
+                    tempRequirement,
+                    questionBudget,
+                    false,
+                    enabledAssumptions,
+                    Enumerable.Empty<TableDto>());
 
                 string llmText;
                 try
                 {
-                    // Do the network/LLM call off the UI thread
+                    // Call LLM off the UI thread
                     llmText = await _llm.GenerateAsync(prompt, _cts.Token).ConfigureAwait(false);
                 }
                 catch (Exception ex)
@@ -376,30 +440,73 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 LlmOutput = llmText ?? string.Empty;
 
-                // Extract suggested keys and merge them into SuggestedDefaults catalog (DefaultItem)
+                // Extract suggested keys and merge into SuggestedDefaults catalog (DefaultItem)
                 var suggested = ClarifyingParsingHelpers.TryExtractSuggestedChipKeys(llmText, SuggestedDefaults);
                 if (suggested.Any())
                 {
                     Application.Current?.Dispatcher?.Invoke(() => MergeLlmSuggestedDefaults(suggested));
                 }
 
-                var parsed = ClarifyingParsingHelpers.ParseQuestions(llmText);
+                // Parse questions from LLM output
+                var parsed = ClarifyingParsingHelpers.ParseQuestions(llmText) ?? Enumerable.Empty<ClarifyingQuestionVM>();
+                var parsedList = parsed.ToList();
+
+                // Deduplicate parsed questions by normalized text (trim/collapse whitespace, lowercase)
+                static string Normalize(string? s)
+                {
+                    if (string.IsNullOrWhiteSpace(s)) return string.Empty;
+                    var t = s!.Trim();
+                    while (t.Contains("  ")) t = t.Replace("  ", " ");
+                    return t.ToLowerInvariant();
+                }
+
+                var distinctParsed = parsedList
+                    .GroupBy(q => Normalize(q?.Text))
+                    .Where(g => !string.IsNullOrEmpty(g.Key))
+                    .Select(g => g.First())
+                    .ToList();
+
+                int totalParsed = parsedList.Count;
+                int distinctCount = distinctParsed.Count;
+                int duplicatesRemoved = Math.Max(0, totalParsed - distinctCount);
+
+                // Apply parsed questions to UI and persist the legacy Questions list
                 Application.Current?.Dispatcher?.Invoke(() =>
                 {
                     PendingQuestions.Clear();
                     Questions.Clear();
-                    foreach (ClarifyingQuestionVM q in parsed)
+
+                    foreach (var qvm in distinctParsed)
                     {
-                        PendingQuestions.Add(q);
-                        Questions.Add(q.Text);
+                        AttachQuestionVmHandler(qvm);
+                        PendingQuestions.Add(qvm);
+
+                        // Add question text to legacy Questions list (avoid duplicates just in case)
+                        var normalizedText = Normalize(qvm.Text);
+                        if (!Questions.Any(existing => Normalize(existing) == normalizedText))
+                        {
+                            Questions.Add(qvm.Text);
+                        }
                     }
 
-                    StatusHint = PendingQuestions.Count > 0 ? $"Loaded {PendingQuestions.Count} question(s)." : "No valid questions detected.";
+                    // Persist the new Questions array for future sessions
+                    try
+                    {
+                        _persistence.Save(PersistenceKey, Questions.ToArray());
+                    }
+                    catch
+                    {
+                        StatusHint = "Failed to save clarifying questions.";
+                    }
+
+                    StatusHint = distinctCount > 0
+                        ? $"Loaded {distinctCount} question(s). {duplicatesRemoved} duplicate(s) removed."
+                        : "No valid questions detected.";
                 });
             }
             finally
             {
-                // Ensure these UI-bound changes run on the UI thread
+                // Ensure UI-bound flags are cleared on the UI thread
                 var dispatcher = Application.Current?.Dispatcher;
                 if (dispatcher != null)
                 {
@@ -412,7 +519,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 }
                 else
                 {
-                    // Fallback if Application.Current is null (e.g., some test scenarios)
                     if (_headerVm != null) _headerVm.IsLlmBusy = false;
                     IsClarifyingCommandRunning = false;
                     ClarifyCommand.NotifyCanExecuteChanged();
@@ -467,6 +573,276 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 }
                 StatusHint = PendingQuestions.Count > 0 ? $"Loaded {PendingQuestions.Count} question(s)." : "No questions detected.";
             });
+        }
+
+        // ==================== Commands and Session State Management ====================
+        // (merged from ClarifyingQuestionsViewModel.Commands.cs)
+        
+        // Session state machine for the smart button
+        private enum SessionState
+        {
+            Idle,
+            QuestionsDisplayed,
+            AwaitingAnswers,
+            ReadyToGenerate,
+            Generating
+        }
+
+        private SessionState _sessionState = SessionState.Idle;
+
+        // Selected question binding (for ListView SelectedItem)
+        [ObservableProperty] private ClarifyingQuestionVM? selectedClarifyingQuestion;
+
+        // Commands expected by the view
+        public ICommand SetAsAssumptionCommand { get; private set; } = null!;
+        public ICommand AcceptQuestionCommand { get; private set; } = null!;
+        public ICommand RegenerateCommand { get; private set; } = null!;
+        public ICommand SmartButtonCommand { get; private set; } = null!;
+        public ICommand ResetAssumptionsCommand { get; private set; } = null!;
+
+        // Small helper properties bound by the view (computed)
+        public string SmartButtonLabel => ComputeSmartButtonLabel();
+        public bool CanExecuteSmartButton => _sessionState != SessionState.Generating;
+
+        // ThinkingMode placeholder (string-backed; you can replace with enum later)
+        [ObservableProperty] private string thinkingMode = "Quick";
+
+        partial void OnIsClarifyingCommandRunningChanged(bool value)
+        {
+            // If ClarifyCommand is running, set session state appropriately
+            if (value) _sessionState = SessionState.Generating;
+            else if (PendingQuestions != null && PendingQuestions.Count > 0) _sessionState = SessionState.QuestionsDisplayed;
+            else _sessionState = SessionState.Idle;
+
+            NotifySmartButtonProperties();
+        }
+
+        // Constructor extension: call this at end of existing constructor to initialize commands.
+        private void InitializeCommands()
+        {
+            SetAsAssumptionCommand = new RelayCommand<ClarifyingQuestionVM?>(q => { if (q != null) SetAsAssumption(q); });
+            AcceptQuestionCommand = new RelayCommand<ClarifyingQuestionVM?>(q => { if (q != null) AcceptQuestion(q); });
+
+            // Use AsyncRelayCommand so CanExecute notifications and async flow behave properly
+            RegenerateCommand = new AsyncRelayCommand(RegenerateAsync, () => !IsClarifyingCommandRunning);
+            SmartButtonCommand = new AsyncRelayCommand(ExecuteSmartButtonAsync, () => CanExecuteSmartButton);
+
+            ResetAssumptionsCommand = new RelayCommand(ResetAssumptions);
+
+            // NOTE: PendingQuestions.CollectionChanged is subscribed in the main constructor
+            // (PendingQuestions.CollectionChanged += PendingQuestions_CollectionChanged;)
+            // to avoid duplicate handlers we do NOT subscribe here.
+        }
+
+        private void UpdateSessionStateAfterQuestionsUpdate()
+        {
+            if (PendingQuestions.Count == 0)
+            {
+                _sessionState = SessionState.Idle;
+            }
+            else if (PendingQuestions.Any(q => !q.IsAnswered))
+            {
+                _sessionState = SessionState.QuestionsDisplayed;
+            }
+            else
+            {
+                _sessionState = SessionState.ReadyToGenerate;
+            }
+
+            NotifySmartButtonProperties();
+        }
+
+        private void NotifySmartButtonProperties()
+        {
+            OnPropertyChanged(nameof(SmartButtonLabel));
+            OnPropertyChanged(nameof(CanExecuteSmartButton));
+
+            // Notify CanExecute on commands if they support it
+            (RegenerateCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+            (SmartButtonCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+        }
+
+        private string ComputeSmartButtonLabel()
+        {
+            return _sessionState switch
+            {
+                SessionState.Idle => "Ask Verifying Questions",
+                SessionState.QuestionsDisplayed => "Submit Answers",
+                SessionState.AwaitingAnswers => "Submit Answers",
+                SessionState.ReadyToGenerate => "Generate Test Cases",
+                SessionState.Generating => "Working…",
+                _ => "Ask Verifying Questions",
+            };
+        }
+
+        private async Task RegenerateAsync()
+        {
+            if (IsClarifyingCommandRunning) return;
+            // Re-run question generation with current assumptions
+            if (ClarifyCommand != null)
+            {
+                _sessionState = SessionState.Generating;
+                NotifySmartButtonProperties();
+                try
+                {
+                    await ClarifyCommand.ExecuteAsync(null);
+                }
+                catch
+                {
+                    // swallow; ClarifyCommand local error handling will set StatusHint
+                }
+                finally
+                {
+                    UpdateSessionStateAfterQuestionsUpdate();
+                }
+            }
+        }
+
+        private async Task ExecuteSmartButtonAsync()
+        {
+            if (!CanExecuteSmartButton) return;
+
+            switch (_sessionState)
+            {
+                case SessionState.Idle:
+                    // Ask verifying questions
+                    if (ClarifyCommand != null)
+                    {
+                        _sessionState = SessionState.Generating;
+                        NotifySmartButtonProperties();
+                        await ClarifyCommand.ExecuteAsync(null);
+                        UpdateSessionStateAfterQuestionsUpdate();
+                    }
+                    break;
+
+                case SessionState.QuestionsDisplayed:
+                case SessionState.AwaitingAnswers:
+                    // Submit answers and apply any marked-as-assumption
+                    SubmitAnswersAndApplyAssumptions();
+                    break;
+
+                case SessionState.ReadyToGenerate:
+                    // Generate test cases (stub placeholder)
+                    await GenerateTestCasesAsync();
+                    break;
+
+                case SessionState.Generating:
+                default:
+                    break;
+            }
+        }
+
+        private void SubmitAnswersAndApplyAssumptions()
+        {
+            // Persist answers into LlmOutput or other storage as needed.
+            // For now we treat marked-as-assumption questions as new assumptions and add them to SuggestedDefaults.
+            bool anyNewAssumptions = false;
+
+            foreach (var q in PendingQuestions.ToList())
+            {
+                if (q.MarkedAsAssumption)
+                {
+                    // Convert question into a DefaultItem via the helper on ClarifyingQuestionVM
+                    var di = q.ToDefaultItem();
+                    var exists = SuggestedDefaults.Any(d => string.Equals(d.Key, di.Key, StringComparison.OrdinalIgnoreCase) || string.Equals(d.Name, di.Name, StringComparison.OrdinalIgnoreCase));
+                    if (!exists)
+                    {
+                        Application.Current?.Dispatcher?.Invoke(() =>
+                        {
+                            SuggestedDefaults.Add(di);
+                        });
+                    }
+                    anyNewAssumptions = true;
+                    // Mark the question as resolved/assumed (IsAnswered will reflect it)
+                }
+            }
+
+            // If any new assumptions were added, regenerate questions (automatic pass)
+            if (anyNewAssumptions)
+            {
+                // Re-run generation to let LLM respect new assumptions
+                _ = RegenerateAsync();
+            }
+            else
+            {
+                // No new assumptions: move to ReadyToGenerate if all questions answered
+                if (PendingQuestions.All(q => q.IsAnswered))
+                {
+                    _sessionState = SessionState.ReadyToGenerate;
+                    NotifySmartButtonProperties();
+                }
+                else
+                {
+                    // still waiting for answers
+                    _sessionState = SessionState.QuestionsDisplayed;
+                    NotifySmartButtonProperties();
+                }
+            }
+        }
+
+        private void SetAsAssumption(ClarifyingQuestionVM q)
+        {
+            if (q == null) return;
+
+            Application.Current?.Dispatcher?.Invoke(() =>
+            {
+                q.MarkedAsAssumption = true;
+                // Use the VM helper to produce a DefaultItem and add if not present
+                var di = q.ToDefaultItem();
+                if (!SuggestedDefaults.Any(d => string.Equals(d.Key, di.Key, StringComparison.OrdinalIgnoreCase) || string.Equals(d.Name, di.Name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    SuggestedDefaults.Add(di);
+                }
+            });
+
+            UpdateSessionStateAfterQuestionsUpdate();
+        }
+
+        private void AcceptQuestion(ClarifyingQuestionVM q)
+        {
+            if (q == null) return;
+            // Accepting simply marks as answered if answer exists, or set a default "Accepted" marker
+            if (string.IsNullOrWhiteSpace(q.Answer))
+            {
+                q.Answer = "Accepted"; // minimal placeholder if user clicked Accept without typing; adjust UX if undesired
+            }
+            UpdateSessionStateAfterQuestionsUpdate();
+        }
+
+        private void ResetAssumptions()
+        {
+            // Minimal behavior: disable all SuggestedDefaults
+            foreach (var d in SuggestedDefaults.ToList())
+            {
+                d.IsEnabled = false;
+            }
+            StatusHint = "Assumptions reset (disabled).";
+            // If you want to remove newly added items instead, implement removal logic here.
+        }
+
+        private async Task GenerateTestCasesAsync()
+        {
+            _sessionState = SessionState.Generating;
+            NotifySmartButtonProperties();
+
+            try
+            {
+                // Minimal placeholder: your real implementation should build a prompt using assumptions + answers
+                StatusHint = "Generating test cases (not implemented)";
+
+                await Task.Delay(400); // small UI pause so user sees the working state
+
+                // TODO: implement real test-case generation using _llm.GenerateAsync and parse results to populate TestCaseCreationViewModel
+                StatusHint = "Test-case generation is not yet implemented.";
+            }
+            catch (Exception ex)
+            {
+                StatusHint = $"Error generating test cases: {ex.Message}";
+            }
+            finally
+            {
+                UpdateSessionStateAfterQuestionsUpdate();
+            }
         }
 
         public void Dispose()

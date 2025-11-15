@@ -7,6 +7,9 @@
     </ApplicationDefinition>
   </ItemGroup>
   <ItemGroup>
+    <Compile Update="MVVM\Controls\DropDownButton.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="MVVM\Views\ClarifyingQuestionsView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -25,6 +28,9 @@
     <Compile Update="MVVM\Views\RequirementsView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="MVVM\Views\SideMenuView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="MVVM\Views\TestCaseCreatorHeaderView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -39,6 +45,9 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Page Update="MVVM\Controls\DropDownButton.xaml">
+      <SubType>Designer</SubType>
+    </Page>
     <Page Update="MVVM\Views\MainWindow.xaml">
       <SubType>Designer</SubType>
     </Page>
@@ -52,6 +61,9 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Update="MVVM\Views\RequirementsTablesPopupControl.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="MVVM\Views\SideMenuView.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="MVVM\Views\TestCaseCreationView.xaml">
@@ -69,6 +81,9 @@
     <Page Update="MVVM\Views\WorkspaceHeaderView.xaml">
       <SubType>Designer</SubType>
     </Page>
+    <Page Update="Resources\CommonHeaderResources.xaml">
+      <SubType>Designer</SubType>
+    </Page>
     <Page Update="Resources\MainWindowResources.xaml">
       <SubType>Designer</SubType>
     </Page>
@@ -76,9 +91,6 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Resources\SharedStyles.xaml">
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="Resources\TestCaseCreatorHeader.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Styles\SharedStyles.xaml">

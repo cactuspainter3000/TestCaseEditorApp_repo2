@@ -24,16 +24,13 @@ using TestCaseEditorApp.Services.Prompts;
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
     /// <summary>
-    /// Single-file MainViewModel implementation intended to be a drop-in replacement
-    /// that compiles and runs without partial-method issues.
+    /// Single-file MainViewModel implementation intended to be a drop-in replacement.
     /// - Uses CommunityToolkit's ObservableObject for property change helpers.
     /// - Provides an IRequirementsNavigator implementation for navigation UI.
     /// - Includes a DI-friendly constructor and a parameterless design-time constructor.
     /// - Minimal no-op service stubs are embedded so this file can compile standalone; remove them
     ///   if you already have implementations in the project.
     /// </summary>
-    /// 
-
     public partial class MainViewModel : ObservableObject, IDisposable, IRequirementsNavigator
     {
         // --- Services / collaborators ---
@@ -43,33 +40,38 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly IServiceProvider _services;
 
         // Optional/managed runtime services
-        private LlmProbeService? _llmProbeService;                 // probe may be started/stopped during lifetime
-        private readonly ITextGenerationService? _llmService;      // optional, may be null when no LLM configured
-        private readonly TestCaseCreatorHeaderViewModel? _headerVm; // optional header VM
+        private LlmProbeService? _llmProbeService;
 
         // --- Logging ---
         private readonly ILogger<MainViewModel>? _logger;
 
         // --- Header / navigation / view state ---
-
         public TitleBarViewModel TitleBar { get; }
-        private object? _headerViewModel;
-        public object? HeaderViewModel
+
+        // Strongly-typed header instances
+        private TestCaseCreatorHeaderViewModel? _testCaseCreatorHeader;
+        private WorkspaceHeaderViewModel? _workspaceHeaderViewModel;
+
+        // Active header slot: the UI binds to ActiveHeader (ContentControl Content="{Binding ActiveHeader}")
+        private object? _activeHeader;
+        public object? ActiveHeader
         {
-            get => _headerViewModel;
-            private set
-            {
-                if (_headerViewModel == value) return;
-                _headerViewModel = value;
-                OnPropertyChanged(nameof(HeaderViewModel));
-            }
+            get => _activeHeader;
+            private set => SetProperty(ref _activeHeader, value);
         }
 
-        // Keep an explicit strongly-typed workspace header instance we update programmatically.
-        private WorkspaceHeaderViewModel _workspaceHeaderViewModel;
+        // Backwards-compatible alias used in some places in the codebase
+        public object? HeaderViewModel
+        {
+            get => ActiveHeader;
+            set => ActiveHeader = value;
+        }
 
+        // Also expose the test-case header explicitly when callers want it
+        public TestCaseCreatorHeaderViewModel? TestCaseCreatorHeader => _testCaseCreatorHeader;
+
+        // Navigation VM
         public NavigationViewModel Navigation { get; private set; }
-
 
         // --- Core observable collections / properties ---
         private ObservableCollection<Requirement> _requirements = new ObservableCollection<Requirement>();
@@ -83,68 +85,29 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 if (SetProperty(ref _currentRequirement, value))
                 {
-                    // Keep old behavior: update header, hooks, and notify navigator
+                    // inside CurrentRequirement setter, immediately after a successful SetProperty(...)
+                    System.Diagnostics.Debug.WriteLine($"[CurrentRequirement] set -> Item='{value?.Item ?? "<null>"}' Name='{value?.Name ?? "<null>"}' Method='{value?.Method}' ActiveHeader={ActiveHeader?.GetType().Name ?? "<null>"}");
+                    // Update header and other requirement-related hooks
                     OnCurrentRequirementChanged(value);
 
-                    // Ensure navigator is told about the change so it refreshes its cached selection
+                    // Defensive final step: always forward to header(s)
+                    try
+                    {
+                        if (Application.Current?.Dispatcher?.CheckAccess() == true)
+                            ForwardRequirementToActiveHeader(value);
+                        else
+                            Application.Current?.Dispatcher?.Invoke(() => ForwardRequirementToActiveHeader(value));
+                    }
+                    catch { /* swallow */ }
+
                     try { _requirementsNavigator?.NotifyCurrentRequirementChanged(); } catch { }
 
-                    // Make sure any UI bound directly to the host's position is updated
                     OnPropertyChanged(nameof(RequirementPositionDisplay));
                 }
             }
         }
 
-        // Update header when CurrentRequirement changes. Your setter already calls OnCurrentRequirementChanged(value).
-        private void OnCurrentRequirementChanged(Requirement? newValue)
-        {
-            try
-            {
-                // Keep requirement wiring in sync
-                try { UnhookOldRequirement(); } catch { }
-                try { HookNewRequirement(newValue); } catch { }
-
-                // Let header VM decide how to format the requirement for display.
-                if (_testCaseCreatorHeader != null)
-                {
-                    _testCaseCreatorHeader.SetCurrentRequirement(newValue);
-                    return;
-                }
-
-                // Fallback: if you still have an injected/workspace header VM, update it.
-                if (_workspaceHeaderViewModel != null)
-                {
-                    _workspaceHeaderViewModel.CurrentRequirementTitle = newValue?.Name ?? string.Empty;
-                    _workspaceHeaderViewModel.CurrentRequirementSummary = ShortSummary(newValue?.Description);
-                    _workspaceHeaderViewModel.CurrentRequirementId = newValue?.Item ?? string.Empty;
-                    _workspaceHeaderViewModel.CurrentRequirementStatus = newValue?.Status ?? string.Empty;
-                    return;
-                }
-
-                // Final fallback: reflection-based update of whatever header is present.
-                var header = HeaderViewModel;
-                if (header != null)
-                {
-                    var t = header.GetType();
-                    void TrySet(string propName, object? val)
-                    {
-                        var prop = t.GetProperty(propName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-                        if (prop != null && prop.CanWrite) prop.SetValue(header, val);
-                    }
-
-                    TrySet("CurrentRequirementTitle", newValue?.Name ?? string.Empty);
-                    TrySet("CurrentRequirementSummary", ShortSummary(newValue?.Description));
-                    TrySet("CurrentRequirementId", newValue?.Item ?? string.Empty);
-                    TrySet("CurrentRequirementStatus", newValue?.Status ?? string.Empty);
-                    TrySet("CurrentRequirementName", newValue?.Name ?? string.Empty);
-                }
-            }
-            catch
-            {
-                // best-effort
-            }
-        }
-
+        // --- Other persisted/view state ---
         private string? _workspacePath;
         public string? WorkspacePath
         {
@@ -153,7 +116,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         private bool _requirementsCollectionHooked;
-
         private bool _hasUnsavedChanges;
         public bool HasUnsavedChanges
         {
@@ -191,6 +153,43 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Steps UI
         public ObservableCollection<StepDescriptor> TestCaseCreationSteps { get; } = new ObservableCollection<StepDescriptor>();
 
+        // Test Flow steps (from side menu)
+        public ObservableCollection<StepDescriptor> TestFlowSteps { get; } = new ObservableCollection<StepDescriptor>();
+
+        // Display name for window title
+        private string _displayName = "Test Case Editor";
+        public string DisplayName
+        {
+            get => _displayName;
+            set => SetProperty(ref _displayName, value);
+        }
+
+        // SAP status properties (from side menu)
+        private string _sapStatus = string.Empty;
+        public string SapStatus
+        {
+            get => _sapStatus;
+            set
+            {
+                if (SetProperty(ref _sapStatus, value))
+                {
+                    OnPropertyChanged(nameof(SapForegroundStatus));
+                }
+            }
+        }
+
+        public System.Windows.Media.Brush SapForegroundStatus
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(SapStatus)) return System.Windows.Media.Brushes.Transparent;
+                return string.Equals(SapStatus, "OK", StringComparison.OrdinalIgnoreCase) || 
+                       string.Equals(SapStatus, "Connected", StringComparison.OrdinalIgnoreCase)
+                    ? System.Windows.Media.Brushes.LightGreen
+                    : System.Windows.Media.Brushes.Orange;
+            }
+        }
+
         // Navigator VM (wraps Requirements collection)
         private RequirementsIndexViewModel? _requirementsNavigator;
         public RequirementsIndexViewModel RequirementsNavigator => _requirementsNavigator!;
@@ -202,17 +201,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private TestCaseGenViewModel? _testCaseGenerator = new TestCaseGenViewModel();
 
         // header adapter for test-case-creator UI
-        private TestCaseCreatorHeaderViewModel? _testCaseCreatorHeader;
-        private bool _headerSubscriptionsWired = false;
         private INotifyPropertyChanged? _linkedTestCaseGeneratorInpc;
 
-        //public TitleBarViewModel TitleBar { get; }
+
 
         // Commands exposed directly (so bindings can reference them without source-generation)
         public ICommand NextRequirementCommand { get; }
         public ICommand PreviousRequirementCommand { get; }
         public ICommand NextWithoutTestCaseCommand { get; }
         public IAsyncRelayCommand ImportWordCommand { get; private set; }
+        public ICommand LoadWorkspaceCommand { get; private set; }
+        public ICommand SaveWorkspaceCommand { get; private set; }
+        public ICommand ReloadCommand { get; private set; }
+        public ICommand ExportAllToJamaCommand { get; private set; }
+        public ICommand HelpCommand { get; private set; }
 
         // Selected menu section (was referenced in UI/logic)
         private string? _selectedMenuSection;
@@ -236,7 +238,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             set => SetProperty(ref _wrapOnNextWithoutTestCase, value);
         }
 
-
+        // -------------------------
+        // Constructors
+        // -------------------------
 
         // Simple constructor for design-time / fallback scenarios.
         public MainViewModel()
@@ -254,7 +258,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         // DI-friendly constructor. logger parameters are optional.
-        // --- constructor (replacement snippet) ---
         public MainViewModel(
             IRequirementService requirementService,
             IPersistenceService persistence,
@@ -266,29 +269,53 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             ILogger<RequirementsIndexViewModel>? requirementsIndexLogger = null)
         {
             // Guard required services
-            _requirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
-            _persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
-            _workspaceHeaderViewModel = workspaceHeaderViewModel ?? throw new ArgumentNullException(nameof(workspaceHeaderViewModel));
-            Navigation = navigationViewModel ?? throw new ArgumentNullException(nameof(navigationViewModel));
-            _fileDialog = fileDialog ?? throw new ArgumentNullException(nameof(fileDialog));
+            _requirement_service_guard(requirementService, persistence, workspaceHeaderViewModel, navigationViewModel, fileDialog);
+
+            _requirementService = requirementService;
+            _persistence = persistence;
+            _workspaceHeaderViewModel = workspaceHeaderViewModel;
+            Navigation = navigationViewModel;
+            _fileDialog = fileDialog;
             _services = services ?? new SimpleServiceProviderStub();
             _logger = logger;
             TitleBar = new TitleBarViewModel();
 
-            CreateAndAssignWorkspaceHeader();
+            // Initialize header instances
+            _testCaseCreatorHeader = new TestCaseCreatorHeaderViewModel { TitleText = "Test Case Creator" };
 
-            // Initialize state
-            HeaderViewModel = _workspaceHeaderViewModel;
+            if (_testCaseCreatorHeader != null)
+            {
+                _testCaseCreatorHeader.RequirementDescription = "DIAG: description visible";
+                _testCaseCreatorHeader.RequirementMethod = "DIAG: method (string)";
+                // If the VM exposes RequirementMethodEnum and you don't know the enum type,
+                // set it via reflection to the first enum value (best-effort):
+                var prop = _testCaseCreatorHeader.GetType().GetProperty("RequirementMethodEnum");
+                if (prop != null)
+                {
+                    var enumType = prop.PropertyType;
+                    if (enumType.IsEnum)
+                    {
+                        var first = Enum.GetValues(enumType).GetValue(0);
+                        prop.SetValue(_testCaseCreatorHeader, first);
+                    }
+                }
+                ActiveHeader = _testCaseCreatorHeader; // ensure it's visible while debugging
+            }
 
-            // wire collection change notifications (preserve the ObservableCollection instance)
+            // Default active header is workspace header
+            ActiveHeader = _workspaceHeaderViewModel;
+
+            // Wire collection change notifications (preserve the ObservableCollection instance)
             Requirements.CollectionChanged += RequirementsOnCollectionChanged;
+            _requirementsCollectionHooked = true;
 
-            // Initialize/ensure Import command exists before wiring header (so both menu and header share the same command)
             // Initialize/ensure Import command exists before wiring header (so both menu and header share the same command)
             ImportWordCommand = ImportWordCommand ?? new AsyncRelayCommand(ImportWordAsync);
-
-            // Ensure the runtime HeaderViewModel reference points at the injected header (it already does, but set explicitly).
-            HeaderViewModel = _workspaceHeaderViewModel;
+            LoadWorkspaceCommand = new RelayCommand(() => TryInvokeLoadWorkspace());
+            SaveWorkspaceCommand = new RelayCommand(() => TryInvokeSaveWorkspace());
+            ReloadCommand = new AsyncRelayCommand(ReloadAsync);
+            ExportAllToJamaCommand = new RelayCommand(() => TryInvokeExportAllToJama());
+            HelpCommand = new RelayCommand(() => TryInvokeHelp());
 
             // Create navigator and pass child logger if available
             _requirementsNavigator = new RequirementsIndexViewModel(
@@ -304,11 +331,32 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             NextWithoutTestCaseCommand = new RelayCommand(NextWithoutTestCase);
 
             // Populate UI steps (factories create step VMs)
+            InitializeSteps();
+
+            // Ensure header wiring is consistent
+            TryWireDynamicTestCaseGenerator();
+            WireHeaderSubscriptions();
+
+            _logger?.LogDebug("MainViewModel constructed");
+        }
+
+        private void _requirement_service_guard(IRequirementService requirementService, IPersistenceService persistence, WorkspaceHeaderViewModel workspaceHeaderViewModel, NavigationViewModel navigationViewModel, IFileDialogService fileDialog)
+        {
+            if (requirementService == null) throw new ArgumentNullException(nameof(requirementService));
+            if (persistence == null) throw new ArgumentNullException(nameof(persistence));
+            if (workspaceHeaderViewModel == null) throw new ArgumentNullException(nameof(workspaceHeaderViewModel));
+            if (navigationViewModel == null) throw new ArgumentNullException(nameof(navigationViewModel));
+            if (fileDialog == null) throw new ArgumentNullException(nameof(fileDialog));
+        }
+
+        private void InitializeSteps()
+        {
             TestCaseCreationSteps.Add(new StepDescriptor
             {
                 Id = "requirements",
                 DisplayName = "Requirements",
                 Badge = string.Empty,
+                HasFileMenu = true,
                 CreateViewModel = svc =>
                 {
                     var vm = new RequirementsViewModel(_persistence, this);
@@ -322,12 +370,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 Id = "clarifying-questions",
                 DisplayName = "Clarifying Questions",
                 Badge = string.Empty,
+                HasFileMenu = false,
                 CreateViewModel = svc =>
                 {
-                    // Use the factory. LlmFactory.Create() defaults to "ollama".
                     var llm = TestCaseEditorApp.Services.LlmFactory.Create();
                     return new ClarifyingQuestionsViewModel(_persistence, llm, _testCaseCreatorHeader);
                 }
+                
             });
 
             TestCaseCreationSteps.Add(new StepDescriptor
@@ -335,16 +384,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 Id = "testcase-creation",
                 DisplayName = "Test Case Creation",
                 Badge = string.Empty,
+                HasFileMenu = false,
                 CreateViewModel = svc => new TestCaseCreationViewModel()
             });
 
-            // default selected step
             SelectedStep = TestCaseCreationSteps.FirstOrDefault(s => s.CreateViewModel != null);
-
-            _logger?.LogDebug("MainViewModel constructed");
         }
 
-        // SelectedStep property (not source-generated; explicit implementation)
+        // SelectedStep property
         private StepDescriptor? _selectedStep;
         public StepDescriptor? SelectedStep
         {
@@ -391,34 +438,143 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Header wiring and helpers
         // -----------------------------
 
+        // Insert this method into MainViewModel.cs (near other header helpers)
+        private void OnSelectedMenuSectionChanged(string? value)
+        {
+            try
+            {
+                // Treat a few common labels as "Test Case Creator"
+                if (string.Equals(value, "TestCase", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(value, "Test Case Creator", StringComparison.OrdinalIgnoreCase)
+                    || (value?.IndexOf("Test", StringComparison.OrdinalIgnoreCase) >= 0))
+                {
+                    CreateAndAssignTestCaseCreatorHeader();
+                    return;
+                }
+
+                // TestFlow uses workspace header (TestFlowHeaderViewModel stub was removed)
+                if (string.Equals(value, "TestFlow", StringComparison.OrdinalIgnoreCase))
+                {
+                    CreateAndAssignWorkspaceHeader();
+                    return;
+                }
+
+                // Default to workspace header
+                CreateAndAssignWorkspaceHeader();
+            }
+            catch
+            {
+                // Best-effort fallback
+                CreateAndAssignWorkspaceHeader();
+            }
+        }
+
         private void CreateAndAssignWorkspaceHeader()
         {
-            var workspaceHeader = new WorkspaceHeaderViewModel
+            if (_workspaceHeaderViewModel == null)
             {
-                WorkspaceName = this.Workspace?.Name,
-                // populate other generic workspace properties if you have them
-                // e.g. sourceInfo = Workspace?.Source ?? string.Empty
+                _workspaceHeaderViewModel = new WorkspaceHeaderViewModel();
+            }
+
+            // initialize some workspace header values if possible
+            try { _workspaceHeaderViewModel.WorkspaceName = CurrentWorkspace?.Name ?? Path.GetFileName(WorkspacePath ?? string.Empty); } catch { }
+
+            ActiveHeader = _workspaceHeaderViewModel;
+        }
+
+        private void CreateAndAssignTestCaseCreatorHeader()
+        {
+            if (_testCaseCreatorHeader == null)
+                _testCaseCreatorHeader = new TestCaseCreatorHeaderViewModel();
+
+            var ctx = new TestCaseCreatorHeaderContext
+            {
+                WorkspaceName = string.IsNullOrWhiteSpace(WorkspacePath) ? string.Empty : Path.GetFileName(WorkspacePath),
+                Requirements = this.Requirements,
+                ImportCommand = ImportWordCommand,
+                LoadWorkspaceCommand = LoadWorkspaceCommand,
+                SaveWorkspaceCommand = SaveWorkspaceCommand,
+                ReloadCommand = ReloadCommand,
+                ExportAllToJamaCommand = ExportAllToJamaCommand,
+                HelpCommand = HelpCommand,
+                OpenRequirementsCommand = new RelayCommand(() => Header_OpenRequirements()),
+                OpenWorkspaceCommand = new RelayCommand(() => Header_OpenWorkspace()),
+                SaveCommand = new RelayCommand(() => TryInvokeSaveWorkspace())
             };
 
-            HeaderViewModel = workspaceHeader;
+            _testCaseCreatorHeader.Initialize(ctx);
+            _testCaseCreatorHeader.AttachConnectionManager();
+            _testCaseCreatorHeader.IsLlmBusy = false;
+
+            // assign active header
+            ActiveHeader = _testCaseCreatorHeader;
+
+            // ensure probe exists
+            if (_llmProbeService == null)
+            {
+                try
+                {
+                    _llmProbeService = new LlmProbeService("http://localhost:11434/api/tags", TimeSpan.FromSeconds(10));
+                    _llmProbeService.Start();
+                }
+                catch { /* best-effort */ }
+            }
+
+            WireHeaderSubscriptions();
+        }
+
+        private void WireHeaderSubscriptions()
+        {
+            try
+            {
+                if (!_requirementsCollectionHooked)
+                {
+                    _requirements.CollectionChanged += Requirements_CollectionChanged;
+                    _requirementsCollectionHooked = true;
+                }
+
+                _testCaseCreatorHeader?.UpdateRequirements(Requirements);
+
+                if (_testCaseCreatorHeader != null)
+                {
+                    _testCaseCreatorHeader.SetCurrentRequirement(CurrentRequirement);
+                }
+            }
+            catch { /* swallow */ }
+        }
+
+        private void UnwireHeaderSubscriptions()
+        {
+            try
+            {
+                if (_requirementsCollectionHooked)
+                {
+                    _requirements.CollectionChanged -= Requirements_CollectionChanged;
+                    _requirementsCollectionHooked = false;
+                }
+
+                if (_linkedTestCaseGeneratorInpc != null)
+                {
+                    _linkedTestCaseGeneratorInpc.PropertyChanged -= TestCaseGenerator_PropertyChanged;
+                    _linkedTestCaseGeneratorInpc = null;
+                }
+            }
+            catch { /* swallow */ }
+        }
+
+        private void Requirements_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            try
+            {
+                _testCaseCreatorHeader?.UpdateRequirements(Requirements);
+            }
+            catch { /* swallow */ }
         }
 
         private void LlmConnectionManager_ConnectionChanged(bool connected)
         {
             if (_testCaseCreatorHeader == null) return;
-            try
-            {
-                _testCaseCreatorHeader.IsLlmConnected = connected;
-            }
-            catch { /* swallow */ }
-        }
-
-        private void MainViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(CurrentRequirement) || e.PropertyName == nameof(WorkspacePath) || e.PropertyName == nameof(CurrentWorkspace))
-            {
-                UpdateTestCaseCreatorHeaderFromState();
-            }
+            try { _testCaseCreatorHeader.IsLlmConnected = connected; } catch { }
         }
 
         private void TestCaseGenerator_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -461,7 +617,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 foreach (Requirement r in e.NewItems) TryWireRequirementForHeader(r);
             }
-            UpdateTestCaseCreatorHeaderFromState();
+            _testCaseCreatorHeader?.UpdateRequirements(Requirements);
         }
 
         private void TryWireRequirementForHeader(Requirement? r)
@@ -481,7 +637,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             if (e.PropertyName == nameof(Requirement.CurrentResponse) ||
                 e.PropertyName == nameof(Requirement.GeneratedTestCases))
             {
-                UpdateTestCaseCreatorHeaderFromState();
+                _testCaseCreatorHeader?.UpdateRequirements(Requirements);
             }
         }
 
@@ -549,62 +705,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             LlmConnectionManager.SetConnected(connected);
         }
 
-        // Try to invoke an ExportAllToJama command/method if present; otherwise show a transient message.
-        private void TryInvokeExportAllToJama()
-        {
-            try
-            {
-                var cmdProp = this.GetType().GetProperty("ExportAllToJamaCommand", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-                if (cmdProp != null && cmdProp.GetValue(this) is ICommand cmd && cmd.CanExecute(null))
-                {
-                    cmd.Execute(null);
-                    return;
-                }
-
-                var m = this.GetType().GetMethod("ExportAllToJama", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-                if (m != null)
-                {
-                    m.Invoke(this, Array.Empty<object>());
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogWarning(ex, "TryInvokeExportAllToJama failed");
-            }
-
-            TryInvokeSetTransientStatus("Export to Jama is not available.", 3);
-        }
-
-        // Try to invoke a help action (command or method) if present; otherwise show a transient message.
-        private void TryInvokeHelp()
-        {
-            try
-            {
-                var cmdProp = this.GetType().GetProperty("HelpCommand", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-                if (cmdProp != null && cmdProp.GetValue(this) is ICommand cmd && cmd.CanExecute(null))
-                {
-                    cmd.Execute(null);
-                    return;
-                }
-
-                var m = this.GetType().GetMethod("ShowHelp", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase)
-                     ?? this.GetType().GetMethod("OpenHelp", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-                if (m != null)
-                {
-                    m.Invoke(this, Array.Empty<object>());
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogWarning(ex, "TryInvokeHelp failed");
-            }
-
-            TryInvokeSetTransientStatus("Help is not available.", 3);
-        }
-
-
         private void Header_OpenRequirements()
         {
             try
@@ -623,10 +723,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private void Header_OpenWorkspace()
         {
-            try
-            {
-                TryInvokeLoadWorkspace();
-            }
+            try { TryInvokeLoadWorkspace(); }
             catch (Exception ex)
             {
                 _logger?.LogWarning(ex, "[Header_OpenWorkspace] failed");
@@ -726,6 +823,59 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             catch { /* ignore */ }
         }
 
+        private void TryInvokeExportAllToJama()
+        {
+            try
+            {
+                var cmdProp = this.GetType().GetProperty("ExportAllToJamaCommand", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+                if (cmdProp != null && cmdProp.GetValue(this) is ICommand cmd && cmd.CanExecute(null))
+                {
+                    cmd.Execute(null);
+                    return;
+                }
+
+                var m = this.GetType().GetMethod("ExportAllToJama", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+                if (m != null)
+                {
+                    m.Invoke(this, Array.Empty<object>());
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "TryInvokeExportAllToJama failed");
+            }
+
+            TryInvokeSetTransientStatus("Export to Jama is not available.", 3);
+        }
+
+        private void TryInvokeHelp()
+        {
+            try
+            {
+                var cmdProp = this.GetType().GetProperty("HelpCommand", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+                if (cmdProp != null && cmdProp.GetValue(this) is ICommand cmd && cmd.CanExecute(null))
+                {
+                    cmd.Execute(null);
+                    return;
+                }
+
+                var m = this.GetType().GetMethod("ShowHelp", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase)
+                     ?? this.GetType().GetMethod("OpenHelp", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+                if (m != null)
+                {
+                    m.Invoke(this, Array.Empty<object>());
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "TryInvokeHelp failed");
+            }
+
+            TryInvokeSetTransientStatus("Help is not available.", 3);
+        }
+
         private void TryInvokeSetTransientStatus(string msg, int seconds)
         {
             try
@@ -784,14 +934,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             await ImportFromPathAsync(dlg.FileName, replace: true);
         }
 
-        public async Task ReloadAsync()
+        public Task ReloadAsync()
         {
             if (string.IsNullOrWhiteSpace(CurrentSourcePath))
             {
                 SetTransientStatus("No source loaded to reload.", 3);
-                return;
+                return Task.CompletedTask;
             }
-            await ImportFromPathAsync(CurrentSourcePath!, replace: true);
+            return ImportFromPathAsync(CurrentSourcePath!, replace: true);
         }
 
         public async Task SaveWorkspaceAsync()
@@ -951,321 +1101,171 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             if (r != null) { _prevReq = r; _prevReq.PropertyChanged += CurrentRequirement_PropertyChanged; }
         }
 
-        //// Called whenever CurrentRequirement is changed (setter triggers this)
-        //private void OnCurrentRequirementChanged(Requirement? value)
-        //{
-        //    UnhookOldRequirement();
-        //    HookNewRequirement(value);
-
-        //    _requirementsNavigator?.NotifyCurrentRequirementChanged();
-
-        //    try
-        //    {
-        //        _workspaceHeaderView_update(value);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger?.LogDebug(ex, "[OnCurrentRequirementChanged] header update failed");
-        //    }
-
-        //    LooseTables.Clear();
-        //    LooseParagraphs.Clear();
-        //    OnPropertyChanged(nameof(RequirementPositionDisplay));
-
-        //    if (value == null)
-        //    {
-        //        try
-        //        {
-        //            _testCaseGenerator?.ResetForRequirement(null);
-        //            var _vcvm = _testCaseGenerator?.VerificationCaseVM;
-        //            if (_vcvm != null)
-        //            {
-        //                _vcvm.ReqId = string.Empty;
-        //                _vcvm.ReqName = string.Empty;
-        //                _vcvm.ReqDescription = string.Empty;
-        //                _vcvm.Methods = Array.Empty<Models.VerificationMethod>();
-        //                _vcvm.SelectedMethod = Models.VerificationMethod.Inspection;
-        //                _vcvm.ImportedRationale = null;
-        //                _vcvm.ImportedValidationEvidence = null;
-        //                _vcvm.ImportedSupportingNotes = null;
-        //                _vcvm.ImportedSupportingTables = null;
-        //                _vcvm.GenerationResult = string.Empty;
-        //            }
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            _logger?.LogDebug(ex, "[OnCurrentRequirementChanged] VCVM clear error");
-        //        }
-        //        return;
-        //    }
-
-        //    try { BuildSupportingInfoFromRequirement(value); } catch (Exception ex) { _logger?.LogDebug(ex, "[OnCurrentRequirementChanged] BuildSupportingInfo failed"); }
-
-        //    try { _testCaseGenerator?.ResetForRequirement(value); WireGeneratorCallbacks(); } catch (Exception ex) { _logger?.LogDebug(ex, "[OnCurrentRequirementChanged] Reset/wire failed"); }
-
-        //    var vcvm = _testCaseGenerator?.VerificationCaseVM;
-        //    if (vcvm != null)
-        //    {
-        //        try
-        //        {
-        //            vcvm.ReqId = value.Item ?? value.Name ?? string.Empty;
-        //            vcvm.ReqName = value.Name ?? string.Empty;
-        //            vcvm.ReqDescription = value.Description ?? string.Empty;
-
-        //            var list = value.VerificationMethods;
-        //            IReadOnlyList<Models.VerificationMethod> methods = (list != null) ? list.AsReadOnly() : Array.Empty<Models.VerificationMethod>();
-        //            vcvm.Methods = methods;
-        //            vcvm.SelectedMethod = value.Method != default ? value.Method : Models.VerificationMethod.Inspection;
-        //            vcvm.ImportedRationale = value.Rationale;
-        //            vcvm.ImportedValidationEvidence = value.ValidationEvidence;
-        //            vcvm.ImportedSupportingNotes = FormatSupportingNotes(value);
-        //            vcvm.ImportedSupportingTables = FormatSupportingTables(value);
-
-        //            vcvm.GenerationResult = GetLatestLlmDraftText(value);
-        //            _testCaseGenerator.LlmOutput = BuildStrictOutputFromSaved(value);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            _logger?.LogDebug(ex, "[OnCurrentRequirementChanged] VCVM populate failed");
-        //        }
-        //    }
-
-        //    OnPropertyChanged(nameof(RequirementPositionDisplay));
-        //}
-
-        // Replace both old methods with this single helper:
-        private void UpdateHeaderWithRequirement(Requirement? requirement)
+        // CurrentRequirement change handling
+        private void OnCurrentRequirementChanged(Requirement? newValue)
         {
-            // Prepare values once
-            var title = requirement?.Name ?? string.Empty;
-            var summary = ShortSummary(requirement?.Description);
-            var id = requirement?.Item ?? string.Empty;
-            var status = requirement?.Status ?? string.Empty;
-
             try
             {
-                // Prefer updating the currently active HeaderViewModel (TestCaseCreatorHeaderViewModel)
-                if (HeaderViewModel is TestCaseCreatorHeaderViewModel tcHeader)
+                UnhookOldRequirement();
+                HookNewRequirement(newValue);
+
+                // Update header(s)
+                if (_testCaseCreatorHeader != null && ActiveHeader == _testCaseCreatorHeader)
                 {
-                    tcHeader.CurrentRequirementName = title;
-                    tcHeader.CurrentRequirementSummary = summary;
-                    // if your TestCaseCreatorHeaderViewModel uses different property names, update them here
-                    // e.g. tcHeader.CurrentRequirementTitle = title;
-                    // copy id/status if the VM exposes them
-                    // tcHeader.CurrentRequirementId = id;
-                    // tcHeader.CurrentRequirementStatus = status;
+                    _testCaseCreatorHeader.SetCurrentRequirement(newValue);
+
                     return;
                 }
 
-                // Fallback: if you still have an injected/workspace header VM, update it.
-                if (_workspaceHeaderViewModel != null)
+                if (_workspaceHeaderViewModel != null && ActiveHeader == _workspaceHeaderViewModel)
                 {
-                    // If WorkspaceHeaderViewModel still has requirement properties, set them
-                    // (if you removed these from WorkspaceHeaderViewModel, this block can be removed)
-                    _workspaceHeaderViewModel.CurrentRequirementTitle = title;
-                    _workspaceHeaderViewModel.CurrentRequirementSummary = summary;
-                    _workspaceHeaderViewModel.CurrentRequirementId = id;
-                    _workspaceHeaderViewModel.CurrentRequirementStatus = status;
+                    _workspaceHeaderViewModel.CurrentRequirementTitle = newValue?.Name ?? string.Empty;
+                    _workspaceHeaderViewModel.CurrentRequirementSummary = ShortSummary(newValue?.Description);
+                    _workspaceHeaderViewModel.CurrentRequirementId = newValue?.Item ?? string.Empty;
+                    _workspaceHeaderViewModel.CurrentRequirementStatus = newValue?.Status ?? string.Empty;
                     return;
                 }
 
-                // As a final fallback, attempt to update HeaderViewModel by reflection if it exposes the expected properties
-                var header = HeaderViewModel;
+                // fallback reflection update
+                var header = ActiveHeader;
                 if (header != null)
                 {
                     var t = header.GetType();
-
                     void TrySet(string propName, object? val)
                     {
-                        var prop = t.GetProperty(propName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-                        if (prop != null && prop.CanWrite)
-                        {
-                            prop.SetValue(header, val);
-                        }
+                        var prop = t.GetProperty(propName, BindingFlags.Public | BindingFlags.Instance);
+                        if (prop != null && prop.CanWrite) prop.SetValue(header, val);
                     }
 
-                    TrySet("CurrentRequirementTitle", title);
-                    TrySet("CurrentRequirementSummary", summary);
-                    TrySet("CurrentRequirementId", id);
-                    TrySet("CurrentRequirementStatus", status);
-                    TrySet("CurrentRequirementName", title);
-                    TrySet("CurrentRequirementStatus", status);
+                    TrySet("CurrentRequirementTitle", newValue?.Name ?? string.Empty);
+                    TrySet("CurrentRequirementSummary", ShortSummary(newValue?.Description));
+                    TrySet("CurrentRequirementId", newValue?.Item ?? string.Empty);
+                    TrySet("CurrentRequirementStatus", newValue?.Status ?? string.Empty);
+                    TrySet("CurrentRequirementName", newValue?.Name ?? string.Empty);
                 }
             }
-            catch
-            {
-                // best-effort: swallow exceptions to avoid breaking UI updates
-            }
+            catch { /* best-effort */ }
         }
 
-        // Updated PropertyChanged handler to call the helper:
-        private void CurrentRequirement_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        private void ForwardRequirementToActiveHeader(Requirement? req)
         {
-            if (e.PropertyName == nameof(Requirement.Name) || e.PropertyName == nameof(Requirement.Description) || e.PropertyName == nameof(Requirement.Status))
+            System.Diagnostics.Debug.WriteLine($"[ForwardReq] invoked ActiveHeader={ActiveHeader?.GetType().Name ?? "<null>"} ReqItem={req?.Item ?? "<null>"} Method='{req?.Method}' DescLen={(req?.Description?.Length ?? 0)}");
+
+            if (req == null)
             {
-                if (sender is Requirement r)
+                // Clear both headers defensively when no requirement
+                try
                 {
-                    UpdateHeaderWithRequirement(r);
+                    if (_testCaseCreatorHeader != null)
+                    {
+                        _testCaseCreatorHeader.RequirementDescription = string.Empty;
+                        _testCaseCreatorHeader.RequirementMethod = string.Empty;
+                    }
                 }
+                catch { }
+
+                try
+                {
+                    if (_workspaceHeaderViewModel != null)
+                        _workspaceHeaderViewModel.CurrentRequirementSummary = string.Empty;
+                }
+                catch { }
+
+                return;
             }
-        }
 
-        // If you previously used _workspaceHeader_view_update, replace its body with a call to the helper:
-        private void _workspaceHeaderView_update(Requirement? value)
-        {
-            UpdateHeaderWithRequirement(value);
-        }
+            var description = req.Description ?? string.Empty;
+            var methodStr = req.Method.ToString();
 
-        private void OnSelectedMenuSectionChanged(string? value)
-        {
+            // 1) Update the test-case header instance if it exists (always, regardless of ActiveHeader)
             try
             {
-                if (string.Equals(value, "TestCase", StringComparison.OrdinalIgnoreCase))
-                {
-                    // Use or create the TestCaseCreator header VM (keeps a cached instance)
-                    CreateAndAssignTestCaseCreatorHeader();
-                }
-                else if (string.Equals(value, "TestFlow", StringComparison.OrdinalIgnoreCase))
-                {
-                    // If you have a TestFlowHeaderViewModel, create or reuse it
-                    HeaderViewModel = new TestFlowHeaderViewModel();
-                }
-                else
-                {
-                    // Default to the workspace header
-                    HeaderViewModel = _workspaceHeaderViewModel ??= new WorkspaceHeaderViewModel();
-                }
-            }
-            catch
-            {
-                // fallback to workspace header on any error
-                HeaderViewModel = _workspaceHeaderViewModel ??= new WorkspaceHeaderViewModel();
-            }
-        }
-
-        private void WireHeaderSubscriptions()
-        {
-            try
-            {
-                // Unsubscribe previous hook if any (safe/idempotent).
-                if (_requirementsCollectionHooked && _requirements != null)
-                {
-                    _requirements.CollectionChanged -= Requirements_CollectionChanged;
-                    _requirementsCollectionHooked = false;
-                }
-
-                // Subscribe to the current Requirements collection if it supports notifications.
-                if (_requirements != null)
-                {
-                    _requirements.CollectionChanged -= Requirements_CollectionChanged; // defensive
-                    _requirements.CollectionChanged += Requirements_CollectionChanged;
-                    _requirementsCollectionHooked = true;
-                }
-
-                // Ensure header initial values are in sync.
-                _testCaseCreatorHeader?.UpdateRequirements(Requirements);
-
-                // Use a normal null-check (cannot assign to a ?. expression) and let the header VM format the requirement.
                 if (_testCaseCreatorHeader != null)
                 {
-                    _testCaseCreatorHeader.SetCurrentRequirement(CurrentRequirement);
+                    _testCaseCreatorHeader.RequirementDescription = description;
+                    _testCaseCreatorHeader.RequirementMethod = methodStr;
+                    _testCaseCreatorHeader.RequirementMethodEnum = req.Method;
+                    _testCaseCreatorHeader.CurrentRequirementName = req.Name ?? req.Item ?? string.Empty;
+                    _testCaseCreatorHeader.CurrentRequirementSummary = ShortSummary(req.Description);
+                    System.Diagnostics.Debug.WriteLine($"[ForwardReq] wrote to _testCaseCreatorHeader: Method='{methodStr}'");
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Best-effort. Swallowing to avoid breaking startup paths; consider logging in future.
+                System.Diagnostics.Debug.WriteLine($"[ForwardReq] failed writing to _testCaseCreatorHeader: {ex.Message}");
             }
-        }
 
-        private void UnwireHeaderSubscriptions()
-        {
+            // 2) Update the workspace header instance if it exists
             try
             {
-                if (_requirementsCollectionHooked && _requirements != null)
+                if (_workspaceHeaderViewModel != null)
                 {
-                    _requirements.CollectionChanged -= Requirements_CollectionChanged;
-                    _requirementsCollectionHooked = false;
+                    _workspaceHeaderViewModel.CurrentRequirementTitle = req.Name ?? string.Empty;
+                    _workspaceHeaderViewModel.CurrentRequirementSummary = ShortSummary(req.Description);
+                    _workspaceHeaderViewModel.CurrentRequirementId = req.Item ?? string.Empty;
+                    _workspaceHeaderViewModel.CurrentRequirementStatus = req.Status ?? string.Empty;
+                    System.Diagnostics.Debug.WriteLine("[ForwardReq] wrote to _workspaceHeaderViewModel");
                 }
             }
-            catch { /* best-effort cleanup */ }
-        }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ForwardReq] failed writing to _workspaceHeaderViewModel: {ex.Message}");
+            }
 
-        // Handler for collection changes — recompute the count in the header.
-        private void Requirements_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        {
+            // 3) Best-effort: set properties on the ActiveHeader object if it's some other header type
             try
             {
-                _testCaseCreatorHeader?.UpdateRequirements(Requirements);
+                var header = ActiveHeader;
+                if (header != null && header != _testCaseCreatorHeader && header != _workspaceHeaderViewModel)
+                {
+                    var t = header.GetType();
+                    void TrySet(string propName, object? val)
+                    {
+                        var prop = t.GetProperty(propName, BindingFlags.Public | BindingFlags.Instance);
+                        if (prop != null && prop.CanWrite) prop.SetValue(header, val);
+                    }
+
+                    TrySet("RequirementDescription", description);
+                    TrySet("RequirementMethod", methodStr);
+                    TrySet("RequirementMethodEnum", req.Method);
+                    TrySet("CurrentRequirementName", req.Name ?? string.Empty);
+                    TrySet("CurrentRequirementSummary", ShortSummary(req.Description));
+                    System.Diagnostics.Debug.WriteLine("[ForwardReq] wrote to ActiveHeader via reflection");
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                // best-effort
+                System.Diagnostics.Debug.WriteLine($"[ForwardReq] reflection fallback failed: {ex.Message}");
             }
         }
 
-        //// Update header when CurrentRequirement changes. Your setter already calls OnCurrentRequirementChanged(value).
-        //private void OnCurrentRequirementChanged(Requirement? newValue)
-        //{
-        //    try
-        //    {
-        //        if (_testCaseCreatorHeader != null)
-        //        {
-        //            // Let the header VM decide how to format the requirement for display.
-        //            _testCaseCreatorHeader.SetCurrentRequirement(newValue);
-        //        }
-        //    }
-        //    catch
-        //    {
-        //        // best-effort
-        //    }
-        //}
-
-        private void CreateAndAssignTestCaseCreatorHeader()
+        private void CurrentRequirement_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            var headerVm = new TestCaseCreatorHeaderViewModel();
-
-            var ctx = new TestCaseCreatorHeaderContext
+            if (string.IsNullOrEmpty(e?.PropertyName) ||
+                e.PropertyName == nameof(Requirement.Description) ||
+                e.PropertyName == nameof(Requirement.Method))
             {
-                // Keep the workspace label empty so the header shows only the requirement (removes filename).
-                WorkspaceName = string.Empty,
-                Requirements = this.Requirements,
-                ImportCommand = (ImportWordCommand as System.Windows.Input.ICommand) ?? new CommunityToolkit.Mvvm.Input.AsyncRelayCommand(ImportWordAsync),
-                LoadWorkspaceCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(() => TryInvokeLoadWorkspace()),
-                SaveWorkspaceCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(() => TryInvokeSaveWorkspace()),
-                ReloadCommand = new CommunityToolkit.Mvvm.Input.AsyncRelayCommand(ReloadAsync),
-                ExportAllToJamaCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(() => TryInvokeExportAllToJama()),
-                HelpCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(() => TryInvokeHelp()),
-                OpenRequirementsCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(() => Header_OpenRequirements()),
-                OpenWorkspaceCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(() => Header_OpenWorkspace()),
-                SaveCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(() => { TryInvokeSaveWorkspace(); })
-            };
-
-            // Initialize the VM with its context before attaching globals so initialization can set dependent flags.
-            headerVm.Initialize(ctx);
-
-            // Assign to fields so other code can access it immediately.
-            _testCaseCreatorHeader = headerVm;
-            HeaderViewModel = headerVm;
-
-            // Attach the global connection manager so the header reflects global connection changes.
-            // This only wires a subscription and sets the initial IsLlmConnected from LlmConnectionManager.
-            headerVm.AttachConnectionManager();
-
-            // ensure the animated progress indicator starts in the "not busy" state
-            try { headerVm.IsLlmBusy = false; } catch { /* ignore if property missing */ }
-
-            // Create/start the probe service only once for the app (do not overwrite an existing one).
-            if (_llmProbeService == null)
-            {
-                _llmProbeService = new LlmProbeService("http://localhost:11434/api/tags", TimeSpan.FromSeconds(10));
-                _llmProbeService.Start();
+                try
+                {
+                    if (Application.Current?.Dispatcher?.CheckAccess() == true)
+                    {
+                        ForwardRequirementToActiveHeader(CurrentRequirement);
+                    }
+                    else
+                    {
+                        Application.Current?.Dispatcher?.Invoke(() => ForwardRequirementToActiveHeader(CurrentRequirement));
+                    }
+                }
+                catch
+                {
+                    // best-effort - swallow exceptions
+                }
             }
-
-            // Ensure header-related subscriptions are wired (idempotent)
-            try { WireHeaderSubscriptions(); } catch { /* best-effort */ }
         }
 
-        // --- Import implementation (updated to preserve collection instance and use logger) ---
+        // -----------------
+        // Import implementation (trimmed helper)
+        // -----------------
         private async Task ImportFromPathAsync(string path, bool replace)
         {
             if (replace && HasUnsavedChanges && Requirements.Count > 0)
@@ -1304,48 +1304,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 var sw = Stopwatch.StartNew();
 
-                _logger?.LogDebug("requirementService = {RequirementServiceType}", _requirementService?.GetType().FullName ?? "<null>");
-
                 var reqs = await Task.Run(() => _requirement_service_call_for_import(path));
                 _logger?.LogInformation("Parser returned {Count} requirement(s)", reqs?.Count ?? 0);
 
                 sw.Stop();
-
-                if (reqs == null || reqs.Count == 0)
-                {
-                    try
-                    {
-                        var tmp = Path.Combine(Path.GetTempPath(), $"tce_import_debug_{DateTime.UtcNow:yyyyMMdd_HHmmss}.txt");
-                        using var swf = new StreamWriter(tmp, false, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
-                        swf.WriteLine("Import debug snapshot");
-                        swf.WriteLine("Source DOCX: " + path);
-                        swf.WriteLine("Parsed requirement count: 0");
-                        swf.WriteLine("");
-
-                        swf.WriteLine("Dumping first non-empty DOCX paragraphs for inspection (up to 120):");
-                        try
-                        {
-                            using var wordDoc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(path, false);
-                            var paragraphs = wordDoc.MainDocumentPart?.Document?.Body?.Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()
-                                                .Select(p => (p.InnerText ?? "").Trim()).Where(s => s.Length > 0).ToList() ?? new List<string>();
-
-                            for (int i = 0; i < Math.Min(120, paragraphs.Count); i++)
-                                swf.WriteLine($"[{i + 1}] {paragraphs[i]}");
-                        }
-                        catch (Exception ex)
-                        {
-                            swf.WriteLine("Failed to read DOCX paragraphs for debug: " + ex.Message);
-                            _logger?.LogWarning(ex, "Failed to read DOCX paragraphs while building diagnostic snapshot for '{Path}'", path);
-                        }
-
-                        swf.Flush();
-                        _logger?.LogInformation("Wrote parse debug to: {TempFile}", tmp);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger?.LogWarning(ex, "Diagnostic snapshot failed while importing '{Path}'", path);
-                    }
-                }
 
                 // Build workspace model
                 CurrentWorkspace = new Workspace
@@ -1354,70 +1316,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     Requirements = reqs.ToList()
                 };
 
-                // Seed defaults from project template (best-effort)
-                object? template = null;
-                try { template = DefaultsHelper.LoadProjectDefaultsTemplate(); } catch (Exception ex) { _logger?.LogWarning(ex, "DefaultsHelper failed"); }
-
-                if (template is DefaultsBlock dbTemplate)
-                {
-                    CurrentWorkspace.Defaults = dbTemplate;
-                }
-                else if (template is DefaultsCatalogDto catalogDto)
-                {
-                    CurrentWorkspace.Defaults = new DefaultsBlock
-                    {
-                        Version = 1,
-                        Catalog = catalogDto,
-                        State = new DefaultsState { SelectedPreset = "Bench (default)" }
-                    };
-                }
-                else if (template != null)
-                {
-                    try
-                    {
-                        dynamic dyn = template;
-                        var catalog = new DefaultsCatalogDto();
-                        try { catalog.Items = dyn.Items; } catch { }
-                        try { catalog.Presets = dyn.Presets; } catch { }
-
-                        CurrentWorkspace.Defaults = new DefaultsBlock
-                        {
-                            Version = 1,
-                            Catalog = catalog,
-                            State = new DefaultsState { SelectedPreset = "Bench (default)" }
-                        };
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger?.LogWarning(ex, "Failed to adapt template object to DefaultsBlock; falling back to starter defaults");
-                        CurrentWorkspace.Defaults = new DefaultsBlock { Version = 1, Catalog = null, State = new DefaultsState { SelectedPreset = "Bench (default)" } };
-                    }
-                }
-                else
-                {
-                    CurrentWorkspace.Defaults = new DefaultsBlock { Version = 1, Catalog = null, State = new DefaultsState { SelectedPreset = "Bench (default)" } };
-                }
-
-                // Update UI-bound collection: preserve existing ObservableCollection instance so navigators stay wired.
+                // Update UI-bound collection: preserve existing ObservableCollection instance
                 reqs = reqs ?? new List<Requirement>();
-
                 try
                 {
                     Requirements.CollectionChanged -= RequirementsOnCollectionChanged;
-
-                    if (Application.Current?.Dispatcher?.CheckAccess() == true)
-                    {
-                        Requirements.Clear();
-                        foreach (var r in reqs) Requirements.Add(r);
-                    }
-                    else
-                    {
-                        Application.Current?.Dispatcher?.Invoke(() =>
-                        {
-                            Requirements.Clear();
-                            foreach (var r in reqs) Requirements.Add(r);
-                        });
-                    }
+                    Requirements.Clear();
+                    foreach (var r in reqs) Requirements.Add(r);
                 }
                 finally
                 {
@@ -1426,19 +1331,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 CurrentWorkspace.Requirements = Requirements.ToList();
 
-                try
-                {
-                    if (!string.IsNullOrWhiteSpace(WorkspacePath))
-                        WorkspaceService.Save(WorkspacePath!, CurrentWorkspace);
-                }
-                catch (Exception ex)
-                {
-                    _logger?.LogWarning(ex, "WorkspaceService.Save failed for path '{WorkspacePath}'", WorkspacePath);
-                }
-
                 HasUnsavedChanges = false;
-
-                try { _testCaseGenerator?.LoadDefaultsFromWorking(CurrentWorkspace.Defaults ?? new DefaultsBlock()); } catch (Exception ex) { _logger?.LogWarning(ex, "TestCaseGenerator.LoadDefaultsFromWorking failed"); }
 
                 Requirement? firstFromView = null;
                 try
@@ -1450,87 +1343,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 CurrentRequirement = firstFromView ?? Requirements.FirstOrDefault();
                 RefreshSupportingInfo();
 
-                var db = CurrentWorkspace.Defaults ?? new DefaultsBlock();
-                try
-                {
-                    if (db != null && db.Catalog?.Items != null)
-                    {
-                        foreach (var it in db.Catalog.Items)
-                            _logger?.LogDebug("DefaultItem: Key='{Key}', Name='{Name}'", it?.Key, it?.Name);
-                    }
-                }
-                catch (Exception ex) { _logger?.LogWarning(ex, "Exception while logging defaults"); }
-
-                try { _testCaseGenerator?.LoadDefaultsFromWorking(db); } catch (Exception ex) { _logger?.LogWarning(ex, "TestCaseGenerator.LoadDefaultsFromWorking (2) failed"); }
-
-                WordFilePath = null;
-                CurrentSourcePath = null;
-
                 ComputeDraftedCount();
                 RaiseCounterChanges();
 
-                // Single notification to navigator after full update
                 _requirementsNavigator?.NotifyCurrentRequirementChanged();
-
-                // Concise navigator diagnostic (single line) using safe reflection to check ReferenceEquals
-                try
-                {
-                    var navType = _requirementsNavigator?.GetType().FullName ?? "<null>";
-                    bool navigatorRefsRequirements = false;
-                    try
-                    {
-                        object? navColObj = null;
-                        var nav = _requirementsNavigator;
-                        if (nav != null)
-                        {
-                            var p = nav.GetType().GetProperty("Requirements", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-                            if (p != null) navColObj = p.GetValue(nav);
-                            else
-                            {
-                                var f = nav.GetType().GetField("_requirements", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
-                                        ?? nav.GetType().GetField("requirements", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-                                if (f != null) navColObj = f.GetValue(nav);
-                            }
-                        }
-                        navigatorRefsRequirements = ReferenceEquals(navColObj, Requirements);
-                    }
-                    catch (Exception ex) { _logger?.LogDebug(ex, "Navigator reflection check failed"); }
-                    _logger?.LogInformation("[NAV DIAG] Requirements.Count={Count}; NavigatorType={Type}; NavigatorRefsRequirements={Refs}",
-                        Requirements?.Count ?? -1, navType, navigatorRefsRequirements);
-                }
-                catch (Exception ex) { _logger?.LogDebug(ex, "Navigator diagnostic logging failed"); }
-
-                if (Requirements.Count == 0)
-                {
-                    SetTransientStatus($"Import completed: 0 requirements — see logs in LocalAppData\\TestCaseEditorApp\\imports", 8);
-                    try
-                    {
-                        var folder = Path.GetDirectoryName(WorkspacePath) ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-                        Process.Start(new ProcessStartInfo("explorer.exe", $"\"{folder}\"") { UseShellExecute = true });
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger?.LogDebug(ex, "Failed to open folder explorer");
-                    }
-                }
-                else
-                {
-                    _logger?.LogInformation("CurrentRequirement set to: {Item} • {Name} (Total: {Total})",
-                        CurrentRequirement?.Item, CurrentRequirement?.Name, Requirements.Count);
-                }
 
                 SetTransientStatus($"💾 Workspace created • {Requirements?.Count ?? 0} requirement(s)", 6);
                 _logger?.LogInformation("final status: {StatusMessage}", StatusMessage);
-            }
-            catch (NotSupportedException ex)
-            {
-                Status = ex.Message;
-                _logger?.LogError(ex, "NotSupportedException during import");
-            }
-            catch (IOException ex)
-            {
-                Status = "Close the Word file and try again.";
-                _logger?.LogError(ex, "IOException during import");
             }
             catch (Exception ex)
             {
@@ -1680,7 +1499,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch { }
             _llmProbeService = null;
-
         }
 
         // Explicit IRequirementsNavigator implementations (map to public ICommand props)

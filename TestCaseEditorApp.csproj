@@ -12,6 +12,9 @@
 	  <Compile Remove="MVVM\ViewModels\MainViewModel.Bindings.cs" />
 	  <Compile Remove="MVVM\ViewModels\TestCaseCreatorHeaderViewModel.Ollama.cs" />
 	</ItemGroup>
+	<ItemGroup>
+	  <Page Remove="Resources\TestCaseCreatorHeader.xaml" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<!-- Add package references here -->
@@ -28,10 +31,6 @@
 
 	<ItemGroup>
 	  <ProjectReference Include="..\..\TestCaseEditorApp_Repo\TestCaseEditorApp\EditableDataControl\EditableDataControl.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Controls\" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -44,7 +44,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private IServiceProvider _services;
 
         // --- Header / view state ---
-        private WorkspaceHeaderViewModel _workspaceHeaderViewModel = new WorkspaceHeaderViewModel();
+        private WorkspaceHeaderViewModel _workspaceActiveHeader = new WorkspaceHeaderViewModel();
         public WorkspaceHeaderViewModel HeaderViewModel { get; private set; }
         public NavigationViewModel Navigation { get; set; } = new NavigationViewModel();
 
@@ -118,14 +118,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _requirementService = requirementService;
 
             _persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
-            _workspaceHeaderViewModel = workspaceHeaderViewModel ?? throw new ArgumentNullException(nameof(workspaceHeaderViewModel));
+            _workspaceActiveHeader = workspaceHeaderViewModel ?? throw new ArgumentNullException(nameof(workspaceHeaderViewModel));
             Navigation = navigationViewModel ?? throw new ArgumentNullException(nameof(navigationViewModel));
             _fileDialog = fileDialog ?? throw new ArgumentNullException(nameof(fileDialog));
             _services = services ?? new SimpleServiceProviderStub();
 
             _logger = logger;
 
-            HeaderViewModel = _workspaceHeaderViewModel;
+            ActiveHeader = _workspaceHeaderViewModel;
 
             // wire collection change to keep counts/position updated
             Requirements.CollectionChanged += RequirementsOnCollectionChanged;
@@ -180,14 +180,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             _requirementService = new NoOpRequirementService();
             _persistence = new NoOpPersistenceService();
-            _workspaceHeaderViewModel = new WorkspaceHeaderViewModel();
+            _workspaceActiveHeader = new WorkspaceHeaderViewModel();
             Navigation = new NavigationViewModel();
             _fileDialog = new NoOpFileDialogService();
             _services = new SimpleServiceProviderStub();
 
             _logger = null;
 
-            HeaderViewModel = _workspaceHeaderViewModel;
+            ActiveHeader = _workspaceHeaderViewModel;
 
             // Requirements ObservableProperty already initialised by backing field
             // Create navigator with null logger (safe)
@@ -208,7 +208,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             if (_testCaseCreatorHeader != null)
             {
-                HeaderViewModel = _testCaseCreatorHeader;
+                ActiveHeader = _testCaseCreatorHeader;
                 UpdateTestCaseCreatorHeaderFromState();
                 return;
             }
@@ -221,7 +221,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             };
 
             _testCaseCreatorHeader = vm;
-            HeaderViewModel = vm;
+            ActiveHeader = vm;
 
             UpdateTestCaseCreatorHeaderFromState();
             WireHeaderSubscriptions();
@@ -1233,19 +1233,19 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 switch (value)
                 {
                     case "TestCase":
-                        HeaderViewModel = new TestCaseHeaderViewModel();
+                        ActiveHeader = new TestCaseHeaderViewModel();
                         break;
                     case "TestFlow":
-                        HeaderViewModel = new TestFlowHeaderViewModel();
+                        ActiveHeader = new TestFlowHeaderViewModel();
                         break;
                     default:
-                        HeaderViewModel = _workspaceHeaderViewModel;
+                        ActiveHeader = _workspaceHeaderViewModel;
                         break;
                 }
             }
             catch
             {
-                HeaderViewModel = _workspaceHeaderViewModel;
+                ActiveHeader = _workspaceHeaderViewModel;
             }
         }
 

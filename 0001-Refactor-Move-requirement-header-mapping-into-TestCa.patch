@@ -26,8 +26,8 @@ index 4c140cd..ea88f8a 100644
 -            private set => SetProperty(ref _headerViewModel, value);
 +            private set
 +            {
-+                if (_headerViewModel == value) return;
-+                _headerViewModel = value;
++                if (_ActiveHeader == value) return;
++                _ActiveHeader = value;
 +                OnPropertyChanged(nameof(HeaderViewModel));
 +            }
          }
@@ -59,7 +59,7 @@ index 4c140cd..ea88f8a 100644
 +            CreateAndAssignWorkspaceHeader();
  
              // Initialize state
-             HeaderViewModel = _workspaceHeaderViewModel;
+             ActiveHeader = _workspaceHeaderViewModel;
 @@ -305,6 +317,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
          // Header wiring and helpers
          // -----------------------------
@@ -73,7 +73,7 @@ index 4c140cd..ea88f8a 100644
 +                // e.g. sourceInfo = Workspace?.Source ?? string.Empty
 +            };
 +
-+            HeaderViewModel = workspaceHeader;
++            ActiveHeader = workspaceHeader;
 +        }
 +
          private void WireHeaderSubscriptions()
@@ -205,7 +205,7 @@ index 4c140cd..ea88f8a 100644
 +            // Build a header VM and wire commands to existing MainViewModel behaviors (use TryInvoke* helpers where appropriate).
 +            var headerVm = new TestCaseCreatorHeaderViewModel
              {
--                HeaderViewModel = _testCaseCreatorHeader;
+-                ActiveHeader = _testCaseCreatorHeader;
 -                UpdateTestCaseCreatorHeaderFromState();
 -                return;
 -            }
@@ -272,7 +272,7 @@ index 4c140cd..ea88f8a 100644
 +            headerVm.HelpCommand = new RelayCommand(() => TryInvokeHelp());
  
 -            _testCaseCreatorHeader = vm;
--            HeaderViewModel = vm;
+-            ActiveHeader = vm;
 +            // Optional header action commands used by the right-side buttons: reuse the Header_* helpers where appropriate.
 +            headerVm.OpenRequirementsCommand = new RelayCommand(() => Header_OpenRequirements());
 +            headerVm.OpenWorkspaceCommand = new RelayCommand(() => Header_OpenWorkspace());
@@ -282,7 +282,7 @@ index 4c140cd..ea88f8a 100644
 -            WireHeaderSubscriptions();
 +            // Cache for update routines and publish header so the ContentPresenter/DataTemplate picks it up.
 +            _testCaseCreatorHeader = headerVm;
-+            HeaderViewModel = headerVm;
++            ActiveHeader = headerVm;
 +
 +            // Ensure header-related subscriptions are wired (idempotent)
 +            try { WireHeaderSubscriptions(); } catch { /* best-effort */ }

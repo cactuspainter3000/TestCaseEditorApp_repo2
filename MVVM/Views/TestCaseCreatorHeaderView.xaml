@@ -3,26 +3,42 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
              mc:Ignorable="d"
              d:DesignHeight="75" d:DesignWidth="800">
 
-    <Grid Margin="6">
-        <!-- Three-column layout: File menu | Title + counts | Actions / LLM indicator -->
+    <!--
+      Compact header:
+      - "File" uses the app theme PillActionButtonStyle
+      - Description now spans columns 1–2 (center + right) while reserving safe space for the right stack
+      - Full description available on hover via ToolTip (ShowDuration increased for readability)
+      - Background left transparent to match your request
+    -->
+
+    <Grid Margin="6" Background="Transparent">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
-            <!-- File menu -->
+            <!-- file menu -->
             <ColumnDefinition Width="*"/>
-            <!-- Title and counts -->
+            <!-- description (spans) -->
             <ColumnDefinition Width="Auto"/>
-            <!-- Right actions / LLM -->
+            <!-- stacked status on right -->
         </Grid.ColumnDefinitions>
 
-        <!-- LEFT: File menu (keeps existing Popup and ToggleButton) -->
-        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Top" Margin="0,0,12,0">
-            <ToggleButton x:Name="HeaderFileToggle" Style="{StaticResource MenuHeaderToggleStyle}" Cursor="Hand">
-                <TextBlock Text="File" Style="{StaticResource MenuHeaderTheme}" />
-            </ToggleButton>
+        <!-- LEFT: File menu - use app theme PillActionButtonStyle so it looks like a button -->
+        <Grid Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Top">
+            <!--<ToggleButton x:Name="HeaderFileToggle"
+                          Style="{StaticResource PillActionToggleButtonStyle}"
+                          IsChecked="{Binding IsFileMenuOpen, Mode=TwoWay}"
+                          Cursor="Hand"
+                          ToolTip="File menu"
+                          VerticalAlignment="Top"
+                          MinWidth="72"
+                          MinHeight="28">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0">
+                    <TextBlock Text="File" FontWeight="SemiBold" />
+                    <TextBlock Text=" ▼" Margin="6,0,0,0" />
+                </StackPanel>
+            </ToggleButton>-->
 
             <Popup IsOpen="{Binding IsChecked, ElementName=HeaderFileToggle, Mode=TwoWay}"
                    PlacementTarget="{Binding ElementName=HeaderFileToggle}"
@@ -41,7 +57,6 @@
                         <Button Command="{Binding ImportWordCommand}" Style="{StaticResource MenuPopupButtonStyle}">
                             <TextBlock Text="Import New Requirements…" />
                         </Button>
-
                         <Button Command="{Binding LoadWorkspaceCommand}" Style="{StaticResource MenuPopupButtonStyle}">
                             <TextBlock Text="Import In-Process Requirements…" />
                         </Button>
@@ -70,58 +85,85 @@
                     </StackPanel>
                 </Border>
             </Popup>
-        </StackPanel>
+        </Grid>
 
-        <!-- CENTER: Title and counts (keeps bindings) -->
-        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <TextBlock Text="{Binding TitleText}"
-                       Style="{StaticResource TitleText}" />
+        <!-- CENTER: Description spanning center + right; reserve right margin so text does not overlap stacked controls.
+             Start just below the File button by aligning to Top and giving a small top margin. -->
+        <Border Grid.Column="1" Grid.ColumnSpan="2"
+                Style="{StaticResource HeaderDescriptionBorderStyle}"
+                Padding="12"
+                Margin="0,6,200,0" 
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Top"
+                MaxHeight="160">
+            <TextBlock Text="{Binding RequirementDescription}"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource HeaderTextBrush}"
+                       FontSize="13"
+                       TextTrimming="CharacterEllipsis"
+                       ToolTip="{Binding RequirementDescription}"
+                       ToolTipService.ShowDuration="60000" />
+        </Border>
 
-            <TextBlock
-                FontSize="12"
-                Padding="4,2"
-                Margin="12,0,0,0"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Bottom"
-                Foreground="{DynamicResource HeaderTextBrush}"
-                TextTrimming="CharacterEllipsis"
-                ToolTip="{Binding RequirementsWithTestCasesCount}">
+        <!-- RIGHT: Vertical stacked area for Ollama indicator, Method, and TestCase count -->
+        <Grid Grid.Column="2" VerticalAlignment="Top" Margin="8,0,0,0" Width="180">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <!-- Ollama status -->
+                <RowDefinition Height="Auto"/>
+                <!-- Method -->
+                <RowDefinition Height="Auto"/>
+                <!-- Test case count -->
+            </Grid.RowDefinitions>
+
+            <!-- Ollama indicator -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,0,6">
+                <Ellipse Style="{StaticResource LlmEllipseStyle}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <TextBlock Text="{Binding OllamaStatusMessage}" Style="{StaticResource LlmStatusTextStyle}" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Verification method (collapses when empty) -->
+            <TextBlock Grid.Row="1"
+                       Text="{Binding RequirementMethod}"
+                       FontSize="11"
+                       Foreground="{DynamicResource HeaderStatusTextBrush}"
+                       HorizontalAlignment="Right"
+                       TextTrimming="CharacterEllipsis"
+                       ToolTip="{Binding RequirementMethod}">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding RequirementMethod}" Value="">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding RequirementMethod}" Value="{x:Null}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+            <!-- Requirements with test-cases count -->
+            <TextBlock Grid.Row="2"
+                       HorizontalAlignment="Right"
+                       FontSize="12"
+                       Foreground="{DynamicResource HeaderStatusTextBrush}"
+                       TextTrimming="CharacterEllipsis"
+                       ToolTip="{Binding RequirementsWithTestCasesCount}">
                 <Run Text="{Binding RequirementsWithTestCasesCount}" />
                 <Run Text=" with Test Cases" />
             </TextBlock>
-        </StackPanel>
+        </Grid>
 
-        <!-- RIGHT: LLM indicator and optional right-side actions area -->
-        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8,0,0,0">
-            <!-- LLM indicator: small dot + status text (bound to OllamaStatusColor/OllamaStatusMessage) -->
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                <Ellipse Width="12" Height="12"
-                         Fill="{Binding OllamaStatusColor}"
-                         Stroke="#FF666666"
-                         StrokeThickness="0.5"
-                         Margin="0,0,6,0"
-                         VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding OllamaStatusMessage}"
-                           VerticalAlignment="Center"
-                           Opacity="0.85"
-                           FontSize="12"/>
-            </StackPanel>
-
-            <!-- Keep space for future header actions (if any) -->
-            <!-- Example placeholder: you can add additional small buttons here if desired -->
-        </StackPanel>
-
-        <!-- Status text overlay at bottom-left of the header (unchanged, still bound to Window DataContext) -->
-        <TextBlock
-            Text="{Binding DataContext.StatusMessage, RelativeSource={RelativeSource AncestorType=Window}}"
-            FontSize="12"
-            Padding="4,2"
-            Margin="8,0,0,6"
-            HorizontalAlignment="Left"
-            VerticalAlignment="Bottom"
-            Foreground="{DynamicResource HeaderTextBrush}"
-            TextTrimming="CharacterEllipsis"
-            ToolTip="{Binding DataContext.StatusMessage, RelativeSource={RelativeSource AncestorType=Window}}"
-        />
+        <!-- Status message overlay (bottom-left) -->
+        <TextBlock Grid.ColumnSpan="3"
+                   Text="{Binding StatusMessage}"
+                   Style="{StaticResource HeaderStatusMessageStyle}"
+                   Margin="8,0,0,6"
+                   HorizontalAlignment="Left"
+                   VerticalAlignment="Bottom"
+                   ToolTip="{Binding StatusMessage}" />
     </Grid>
 </UserControl>

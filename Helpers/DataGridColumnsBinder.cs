@@ -46,8 +46,8 @@ namespace TestCaseEditorApp.Helpers
 
         private sealed class SubscriptionBag
         {
-            public INotifyCollectionChanged CollectionChangedSource;
-            public NotifyCollectionChangedEventHandler CollectionChangedHandler;
+            public INotifyCollectionChanged CollectionChangedSource = null!;
+            public NotifyCollectionChangedEventHandler CollectionChangedHandler = null!;
             public readonly System.Collections.Generic.List<INotifyPropertyChanged> Items = new();
         }
 

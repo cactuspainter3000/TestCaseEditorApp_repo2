@@ -1,8 +1,10 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Services;
+
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -25,91 +27,98 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             var clarifyingVm = _services.GetRequiredService<ClarifyingQuestionsViewModel>();
             var testCaseVm = _services.GetRequiredService<TestCaseCreationViewModel>();
 
-            // Populate TestCaseCreationSteps and hook badges to the underlying collection counts
-            TestCaseCreationSteps = new ObservableCollection<StepDescriptor>
-            {
-                new StepDescriptor
-                {
-                    Id = "requirements",
-                    DisplayName = "Requirements",
-                    CreateViewModel = sp => requirementsVm,
-                    Badge = requirementsVm.Requirements.Count
-                },
-                new StepDescriptor
-                {
-                    Id = "clarifying",
-                    DisplayName = "Clarifying Questions",
-                    CreateViewModel = sp => clarifyingVm,
-                    Badge = clarifyingVm.Questions.Count
-                },
-                new StepDescriptor
-                {
-                    Id = "testcase_creation",
-                    DisplayName = "Test Case Creation",
-                    CreateViewModel = sp => testCaseVm,
-                    Badge = testCaseVm.TestCases.Count
-                },
-            };
+            //// Populate TestCaseCreationSteps and hook badges to the underlying collection counts
+            //TestCaseCreationSteps = new ObservableCollection<StepDescriptor>
+            //{
+            //    new StepDescriptor
+            //    {
+            //        Id = "requirements",
+            //        DisplayName = "Requirements Hello",
+            //        CreateViewModel = sp => requirementsVm,
+            //        Badge = requirementsVm.Requirements.Count,
+            //        HasFileMenu = true
+            //    },
+            //    new StepDescriptor
+            //    {
+            //        Id = "clarifying",
+            //        DisplayName = "Clarifying Questions",
+            //        CreateViewModel = sp => clarifyingVm,
+            //        Badge = clarifyingVm.Questions.Count,
+            //        HasFileMenu = false
+            //    },
+            //    new StepDescriptor
+            //    {
+            //        Id = "testcase_creation",
+            //        DisplayName = "Test Case Creation",
+            //        CreateViewModel = sp => testCaseVm,
+            //        Badge = testCaseVm.TestCases.Count,
+            //        HasFileMenu = false
+            //    },
+            //};
 
-            // subscribe to collection changes for live badges
-            requirementsVm.Requirements.CollectionChanged += (s, e) =>
-            {
-                TestCaseCreationSteps[0].Badge = requirementsVm.Requirements.Count;
-            };
-            clarifyingVm.Questions.CollectionChanged += (s, e) =>
-            {
-                TestCaseCreationSteps[1].Badge = clarifyingVm.Questions.Count;
-            };
-            testCaseVm.TestCases.CollectionChanged += (s, e) =>
-            {
-                TestCaseCreationSteps[2].Badge = testCaseVm.TestCases.Count;
-            };
+            //var reqDebug = TestCaseCreationSteps.FirstOrDefault(s => s.Id == "requirements");
+            //Debug.WriteLine($"[DEBUG] TestCaseCreationSteps count={TestCaseCreationSteps?.Count}. Requirements HasFileMenu={reqDebug?.HasFileMenu}");
 
-            // Repair group
-            RepairSteps = new ObservableCollection<StepDescriptor>
-            {
-                new StepDescriptor { Id = "repair_notes", DisplayName = "Notes", CreateViewModel = sp => new PlaceholderViewModel("Repair Notes") },
-                new StepDescriptor { Id = "module_stock", DisplayName = "Module Stock", CreateViewModel = sp => new PlaceholderViewModel("Module Stock") },
-            };
 
-            // Reports group
-            ReportsSteps = new ObservableCollection<StepDescriptor>
-            {
-                new StepDescriptor { Id = "tl_inventory", DisplayName = "TL Inventory", CreateViewModel = sp => new PlaceholderViewModel("TL Inventory") },
-                new StepDescriptor { Id = "product_location", DisplayName = "Product Location", CreateViewModel = sp => new PlaceholderViewModel("Product Location") },
-            };
+            //// subscribe to collection changes for live badges
+            //requirementsVm.Requirements.CollectionChanged += (s, e) =>
+            //{
+            //    TestCaseCreationSteps[0].Badge = requirementsVm.Requirements.Count;
+            //};
+            //clarifyingVm.Questions.CollectionChanged += (s, e) =>
+            //{
+            //    TestCaseCreationSteps[1].Badge = clarifyingVm.Questions.Count;
+            //};
+            //testCaseVm.TestCases.CollectionChanged += (s, e) =>
+            //{
+            //    TestCaseCreationSteps[2].Badge = testCaseVm.TestCases.Count;
+            //};
 
-            // General group
-            GeneralSteps = new ObservableCollection<StepDescriptor>
-            {
-                new StepDescriptor { Id = "ocrrh", DisplayName = "OCR | Run & Hold", CreateViewModel = sp => new PlaceholderViewModel("OCR | Run & Hold") },
-            };
+            //// Repair group
+            //RepairSteps = new ObservableCollection<StepDescriptor>
+            //{
+            //    new StepDescriptor { Id = "repair_notes", DisplayName = "Notes", CreateViewModel = sp => new PlaceholderViewModel("Repair Notes") },
+            //    new StepDescriptor { Id = "module_stock", DisplayName = "Module Stock", CreateViewModel = sp => new PlaceholderViewModel("Module Stock") },
+            //};
 
-            // Quick Links group
-            QuickLinksSteps = new ObservableCollection<StepDescriptor>
-            {
-                new StepDescriptor { Id = "trutest", DisplayName = "TruTest", CreateViewModel = sp => new PlaceholderViewModel("TruTest") },
-                new StepDescriptor { Id = "shared", DisplayName = "Shared$", CreateViewModel = sp => new PlaceholderViewModel("Shared$") },
-                new StepDescriptor { Id = "drawings", DisplayName = "Drawings", CreateViewModel = sp => new PlaceholderViewModel("Drawings") },
-                new StepDescriptor { Id = "production_floor", DisplayName = "Production Floor", CreateViewModel = sp => new PlaceholderViewModel("Production Floor") },
-                new StepDescriptor { Id = "mee", DisplayName = "MEE", CreateViewModel = sp => new PlaceholderViewModel("MEE") },
-            };
+            //// Reports group
+            //ReportsSteps = new ObservableCollection<StepDescriptor>
+            //{
+            //    new StepDescriptor { Id = "tl_inventory", DisplayName = "TL Inventory", CreateViewModel = sp => new PlaceholderViewModel("TL Inventory") },
+            //    new StepDescriptor { Id = "product_location", DisplayName = "Product Location", CreateViewModel = sp => new PlaceholderViewModel("Product Location") },
+            //};
 
-            // restore last selected step if present
-            var last = _persistence.Load<string>(SelectedStepKey);
-            if (!string.IsNullOrEmpty(last))
-            {
-                // try find in TestCaseCreationSteps first, then other groups
-                SelectedStep = FindById(last) ?? TestCaseCreationSteps[0];
-            }
-            else
-            {
-                // Select the first Test Case item by default
-                if (TestCaseCreationSteps.Count > 0)
-                {
-                    SelectedStep = TestCaseCreationSteps[0];
-                }
-            }
+            //// General group
+            //GeneralSteps = new ObservableCollection<StepDescriptor>
+            //{
+            //    new StepDescriptor { Id = "ocrrh", DisplayName = "OCR | Run & Hold", CreateViewModel = sp => new PlaceholderViewModel("OCR | Run & Hold") },
+            //};
+
+            //// Quick Links group
+            //QuickLinksSteps = new ObservableCollection<StepDescriptor>
+            //{
+            //    new StepDescriptor { Id = "trutest", DisplayName = "TruTest", CreateViewModel = sp => new PlaceholderViewModel("TruTest") },
+            //    new StepDescriptor { Id = "shared", DisplayName = "Shared$", CreateViewModel = sp => new PlaceholderViewModel("Shared$") },
+            //    new StepDescriptor { Id = "drawings", DisplayName = "Drawings", CreateViewModel = sp => new PlaceholderViewModel("Drawings") },
+            //    new StepDescriptor { Id = "production_floor", DisplayName = "Production Floor", CreateViewModel = sp => new PlaceholderViewModel("Production Floor") },
+            //    new StepDescriptor { Id = "mee", DisplayName = "MEE", CreateViewModel = sp => new PlaceholderViewModel("MEE") },
+            //};
+
+            //// restore last selected step if present
+            //var last = _persistence.Load<string>(SelectedStepKey);
+            //if (!string.IsNullOrEmpty(last))
+            //{
+            //    // try find in TestCaseCreationSteps first, then other groups
+            //    SelectedStep = FindById(last) ?? TestCaseCreationSteps[0];
+            //}
+            //else
+            //{
+            //    // Select the first Test Case item by default
+            //    if (TestCaseCreationSteps.Count > 0)
+            //    {
+            //        SelectedStep = TestCaseCreationSteps[0];
+            //    }
+            //}
         }
 
         private StepDescriptor? FindById(string id)

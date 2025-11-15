@@ -51,45 +51,6 @@
             <views:TestCaseCreatorHeaderView />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type vm:TestCaseHeaderViewModel}">
-            <DockPanel LastChildFill="True" Margin="6" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,12,0">
-                    <Ellipse Width="10" Height="10" Margin="0,0,6,0" x:Name="LlmDotLegacy" Fill="Gray" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="LlmTextLegacy" VerticalAlignment="Center" Margin="0,0,12,0" Text="LLM: Unknown"/>
-                </StackPanel>
-
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding WorkspaceName}" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBlock Text="•" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding CurrentRequirementName}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBlock Text="(" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding RequirementsWithTestCasesCount}" VerticalAlignment="Center" />
-                    <TextBlock Text=" with test cases)" VerticalAlignment="Center" Margin="4,0,0,0"/>
-                </StackPanel>
-
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center" >
-                    <Button Content="Open Requirements" Command="{Binding OpenRequirementsCommand}" Margin="6,0,0,0" />
-                    <Button Content="Open Workspace" Command="{Binding OpenWorkspaceCommand}" Margin="6,0,0,0" />
-                    <Button Content="Save" Command="{Binding SaveCommand}" Margin="6,0,0,0" />
-                </StackPanel>
-            </DockPanel>
-
-            <DataTemplate.Triggers>
-                <DataTrigger Binding="{Binding IsLlmConnected}" Value="True">
-                    <Setter TargetName="LlmDotLegacy" Property="Fill" Value="Green"/>
-                    <Setter TargetName="LlmTextLegacy" Property="Text" Value="LLM: Connected"/>
-                </DataTrigger>
-                <DataTrigger Binding="{Binding IsLlmConnected}" Value="False">
-                    <Setter TargetName="LlmDotLegacy" Property="Fill" Value="Red"/>
-                    <Setter TargetName="LlmTextLegacy" Property="Text" Value="LLM: Disconnected"/>
-                </DataTrigger>
-            </DataTemplate.Triggers>
-        </DataTemplate>
-
-        <DataTemplate DataType="{x:Type vm:TestFlowHeaderViewModel}">
-            <views:TestFlowHeaderView />
-        </DataTemplate>
-
         <DataTemplate x:Key="StepDescriptorTemplate" DataType="{x:Type models:StepDescriptor}">
             <RadioButton Style="{StaticResource MenuButtonTheme}"
                      IsChecked="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected, Mode=TwoWay}"
@@ -188,172 +149,15 @@
                         <ColumnDefinition Width="0.6*"/>
                     </Grid.ColumnDefinitions>
 
-                    <Grid Grid.ColumnSpan="4" Margin="6">
+                    <Grid Grid.ColumnSpan="4" Margin="0">
                         <!-- Header content rendered via the HeaderViewModel (DataTemplate or UserControl) -->
-                        <ContentPresenter Content="{Binding HeaderViewModel}" />
+                        <ContentControl Content="{Binding ActiveHeader}" />
                     </Grid>
                 </Grid>
             </Border>
 
             <!-- Left menu section: Test Case / Test Flow, with one-open-at-a-time behavior -->
-            <Border Grid.Column="0" Grid.Row="2" Grid.RowSpan="5"
-                    Style="{StaticResource MenuSectionBorderStyle}">
-                <Grid Background="#252525" Margin="5">
-                    <StackPanel>
-                        <!-- Test Case Creator group -->
-                        <ToggleButton x:Name="TestCaseCreatorToggle"
-                                      Style="{StaticResource MenuHeaderToggleStyle}"
-                                      HorizontalAlignment="Stretch"
-                                      Cursor="Hand"
-                                      Margin="0,6,0,0"
-                                      IsChecked="{Binding SelectedMenuSection,
-                                                          Converter={StaticResource SectionSelectedConverter},
-                                                          ConverterParameter=TestCase,
-                                                          Mode=TwoWay}">
-                            <TextBlock Text="Test Case Creator" Style="{StaticResource MenuHeaderTheme}" />
-                        </ToggleButton>
-
-                        <!-- Animated container for the TestCaseCreationSteps list -->
-                        <Border Margin="0,4,0,0" Padding="0" Background="Transparent" ClipToBounds="True">
-                            <Border.LayoutTransform>
-                                <ScaleTransform ScaleY="0" />
-                            </Border.LayoutTransform>
-
-                            <Border.Style>
-                                <Style TargetType="Border">
-                                    <Setter Property="Opacity" Value="0" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsChecked, ElementName=TestCaseCreatorToggle}" Value="True">
-                                            <DataTrigger.EnterActions>
-                                                <BeginStoryboard>
-                                                    <Storyboard>
-                                                        <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY"
-                                                                         To="1"
-                                                                         Duration="0:0:0.20"
-                                                                         AccelerationRatio="0.15" DecelerationRatio="0.85" />
-                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                         To="1"
-                                                                         Duration="0:0:0.14" />
-                                                    </Storyboard>
-                                                </BeginStoryboard>
-                                            </DataTrigger.EnterActions>
-                                            <DataTrigger.ExitActions>
-                                                <BeginStoryboard>
-                                                    <Storyboard>
-                                                        <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY"
-                                                                         To="0"
-                                                                         Duration="0:0:0.16"
-                                                                         AccelerationRatio="0.15" DecelerationRatio="0.85" />
-                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                         To="0"
-                                                                         Duration="0:0:0.12" />
-                                                    </Storyboard>
-                                                </BeginStoryboard>
-                                            </DataTrigger.ExitActions>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-
-                            <ListBox ItemsSource="{Binding TestCaseCreationSteps}"
-                                     SelectedItem="{Binding SelectedStep, Mode=TwoWay}"
-                                     ItemTemplate="{StaticResource StepDescriptorTemplate}"
-                                     Background="Transparent"
-                                     BorderThickness="0"
-                                     SelectionMode="Single"
-                                     Margin="0" d:ItemsSource="{d:SampleData ItemCount=5}">
-                                <ListBox.ItemContainerStyle>
-                                    <Style TargetType="ListBoxItem">
-                                        <Setter Property="Background" Value="Transparent"/>
-                                        <Setter Property="BorderThickness" Value="0"/>
-                                        <Setter Property="Padding" Value="0"/>
-                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                        <Setter Property="VerticalContentAlignment" Value="Center"/>
-                                        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-                                        <Setter Property="Template">
-                                            <Setter.Value>
-                                                <ControlTemplate TargetType="ListBoxItem">
-                                                    <ContentPresenter />
-                                                </ControlTemplate>
-                                            </Setter.Value>
-                                        </Setter>
-                                    </Style>
-                                </ListBox.ItemContainerStyle>
-                            </ListBox>
-                        </Border>
-
-                        <!-- Test Flow Creator group -->
-                        <ToggleButton x:Name="TestFlowCreatorToggle"
-                                      Style="{StaticResource MenuHeaderToggleStyle}"
-                                      HorizontalAlignment="Stretch"
-                                      Cursor="Hand"
-                                      Margin="0,6,0,0"
-                                      IsChecked="{Binding SelectedMenuSection,
-                                                          Converter={StaticResource SectionSelectedConverter},
-                                                          ConverterParameter=TestFlow,
-                                                          Mode=TwoWay}">
-                            <TextBlock Text="Test Flow Creator" Style="{StaticResource MenuHeaderTheme}" />
-                        </ToggleButton>
-
-                        <Border Margin="0,4,0,0" Padding="0" Background="Transparent" ClipToBounds="True">
-                            <Border.LayoutTransform>
-                                <ScaleTransform ScaleY="0" />
-                            </Border.LayoutTransform>
-
-                            <Border.Style>
-                                <Style TargetType="Border">
-                                    <Setter Property="Opacity" Value="0" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsChecked, ElementName=TestFlowCreatorToggle}" Value="True">
-                                            <DataTrigger.EnterActions>
-                                                <BeginStoryboard>
-                                                    <Storyboard>
-                                                        <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY"
-                                                                         To="1"
-                                                                         Duration="0:0:0.20"
-                                                                         AccelerationRatio="0.15" DecelerationRatio="0.85" />
-                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                         To="1"
-                                                                         Duration="0:0:0.14" />
-                                                    </Storyboard>
-                                                </BeginStoryboard>
-                                            </DataTrigger.EnterActions>
-                                            <DataTrigger.ExitActions>
-                                                <BeginStoryboard>
-                                                    <Storyboard>
-                                                        <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY"
-                                                                         To="0"
-                                                                         Duration="0:0:0.16"
-                                                                         AccelerationRatio="0.15" DecelerationRatio="0.85" />
-                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                         To="0"
-                                                                         Duration="0:0:0.12" />
-                                                    </Storyboard>
-                                                </BeginStoryboard>
-                                            </DataTrigger.ExitActions>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-
-                            <ListBox ItemsSource="{Binding TestFlowSteps}"
-                                     ItemContainerStyle="{StaticResource MenuListBoxItemStyle}"
-                                     SelectedItem="{Binding SelectedFlowStep, Mode=TwoWay}"
-                                     ItemTemplate="{StaticResource StepDescriptorTemplate}"
-                                     Background="Transparent"
-                                     BorderThickness="0"
-                                     SelectionMode="Single"
-                                     Margin="0"/>
-                        </Border>
-
-                        <TextBlock VerticalAlignment="Bottom"
-                                   Text="{Binding SapStatus}"
-                                   HorizontalAlignment="Center"
-                                   Foreground="{Binding SapForegroundStatus}"
-                                   Style="{StaticResource MenuHeaderTheme}"/>
-                    </StackPanel>
-                </Grid>
-            </Border>
+            <views:SideMenuView Grid.Column="0" Grid.Row="2" Grid.RowSpan="5" />
 
             <!-- Content area -->
             <Border Grid.Column="2" Grid.Row="4" Style="{StaticResource ContentBorderStyle}">

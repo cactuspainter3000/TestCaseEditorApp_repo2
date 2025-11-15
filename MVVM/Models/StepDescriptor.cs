@@ -20,5 +20,22 @@
             get => _badge;
             set => SetProperty(ref _badge, value);
         }
+
+        // New: indicate this step offers a per-step file/menu dropdown (e.g. Requirements).
+        // Observable so UI updates if you switch it at runtime.
+        private bool _hasFileMenu;
+        public bool HasFileMenu
+        {
+            get => _hasFileMenu;
+            set => SetProperty(ref _hasFileMenu, value);
+        }
+
+        // Track whether the file menu is expanded
+        private bool _isFileMenuExpanded;
+        public bool IsFileMenuExpanded
+        {
+            get => _isFileMenuExpanded;
+            set => SetProperty(ref _isFileMenuExpanded, value);
+        }
     }
 }

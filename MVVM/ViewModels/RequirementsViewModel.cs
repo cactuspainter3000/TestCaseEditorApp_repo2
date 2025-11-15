@@ -189,6 +189,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty]
         private bool includeLooseParagraphs;
 
+        // HasMeta used by the view (Border visibility / style)
+        [ObservableProperty]
+        private bool hasMeta;
+
         // Support pane commands (per-type)
         public ICommand SelectAllTablesCommand { get; }
         public ICommand ClearAllTablesCommand { get; }

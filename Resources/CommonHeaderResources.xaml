@@ -1,0 +1,194 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+    CommonHeaderResources.xaml
+    Generic header resource dictionary intended to be used by all workspace/header views.
+    - Place this file under MVVM/Views (or another central ResourceDictionaries folder).
+    - Add it to App.xaml's merged dictionaries so every view can reference these keys.
+  -->
+
+    <!-- Brushes -->
+    <SolidColorBrush x:Key="HeaderBackground" Color="#FF1E1E1E" />
+    <SolidColorBrush x:Key="HeaderTextBrush" Color="DarkOrange" />
+    <SolidColorBrush x:Key="HeaderAccentBrush" Color="DarkOrange" />
+    <!-- primary accent (orange) -->
+    <SolidColorBrush x:Key="HeaderHighlightBorderBrush" Color="DarkOrange" />
+    <SolidColorBrush x:Key="HeaderHighlightBackground" Color="#22FFA500" />
+    <!-- semi-transparent -->
+    <SolidColorBrush x:Key="MenuListBackground" Color="#FF2B2B2B" />
+    <SolidColorBrush x:Key="HeaderStatusTextBrush" Color="#FFCCCCCC" />
+
+    <!-- TitleText: used for workspace titles -->
+    <Style x:Key="TitleText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource HeaderTextBrush}" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="Margin" Value="0" />
+    </Style>
+
+    <!-- Small text style used in header for counts/status -->
+    <Style x:Key="HeaderSmallText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource HeaderStatusTextBrush}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- MenuHeaderTheme: for small 'File' or menu labels -->
+    <Style x:Key="MenuHeaderTheme" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource HeaderTextBrush}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- ToggleButton style used for header file toggle -->
+    <Style x:Key="MenuHeaderToggleStyle" TargetType="ToggleButton">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="6,2" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Simple menu popup button style -->
+    <Style x:Key="MenuPopupButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="Foreground" Value="{DynamicResource HeaderTextBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Small ellipse used for LLM status indicator -->
+    <Style x:Key="LlmEllipseStyle" TargetType="Ellipse">
+        <Setter Property="Width" Value="10" />
+        <Setter Property="Height" Value="10" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,6,0" />
+        <Setter Property="Fill" Value="Gray" />
+        <Style.Triggers>
+            <!-- These triggers expect a boolean IsLlmConnected on DataContext; if not present,
+           style will simply keep the default gray fill. -->
+            <DataTrigger Binding="{Binding IsLlmConnected}" Value="True">
+                <Setter Property="Fill" Value="Green" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding IsLlmConnected}" Value="False">
+                <Setter Property="Fill" Value="Red" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Text style for LLM status text next to indicator -->
+    <Style x:Key="LlmStatusTextStyle" TargetType="TextBlock">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource HeaderStatusTextBrush}" />
+    </Style>
+
+    <!-- Status message style shown in header (bottom-left) -->
+    <Style x:Key="HeaderStatusMessageStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource HeaderStatusTextBrush}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Padding" Value="4,2" />
+    </Style>
+
+    <!-- Generic border style for a description area that can be highlighted -->
+    <Style x:Key="HeaderDescriptionBorderStyle" TargetType="Border">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Style.Triggers>
+            <!-- Expect the DataContext to expose a boolean RequirementDescriptionHighlight -->
+            <DataTrigger Binding="{Binding RequirementDescriptionHighlight}" Value="True">
+                <Setter Property="BorderThickness" Value="1.5" />
+                <Setter Property="BorderBrush" Value="{DynamicResource HeaderHighlightBorderBrush}" />
+                <Setter Property="Background" Value="{DynamicResource HeaderHighlightBackground}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Small helper: default tooltip style for header tooltips -->
+    <Style x:Key="HeaderToolTipStyle" TargetType="ToolTip">
+        <Setter Property="Background" Value="#FF2B2B2B"/>
+        <Setter Property="Foreground" Value="{DynamicResource HeaderTextBrush}"/>
+        <Setter Property="FontSize" Value="12"/>
+    </Style>
+
+    <!-- ToggleButton "pill" style that matches the header theme -->
+    <Style x:Key="PillActionToggleButtonStyle" TargetType="ToggleButton">
+        <Setter Property="Foreground" Value="{DynamicResource HeaderTextBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="MinWidth" Value="64" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Bd"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="6"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          RecognizesAccessKey="True"/>
+                    </Border>
+
+                    <ControlTemplate.Triggers>
+                        <!-- Hover -->
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HeaderHighlightBackground}" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource HeaderHighlightBorderBrush}" />
+                        </Trigger>
+
+                        <!-- Pressed -->
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource HeaderBackground}" />
+                        </Trigger>
+
+                        <!-- Subtler Checked (active) visual -->
+                        <Trigger Property="IsChecked" Value="True">
+                            <!-- soft, semi-transparent accent so the pill highlights but doesn't overpower -->
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HeaderHighlightBackground}" />
+                            <!-- slightly stronger border using the accent color -->
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource HeaderAccentBrush}" />
+                            <!-- keep the text in the theme color (DarkOrange) instead of switching to white -->
+                            <Setter Property="Foreground" Value="{DynamicResource HeaderTextBrush}" />
+                            <!-- nudge opacity for a gentle "pressed" feel -->
+                            <Setter Property="Opacity" Value="0.98" />
+                        </Trigger>
+
+                        <!-- Disabled -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.55" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>
