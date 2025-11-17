@@ -1,0 +1,224 @@
+{
+  "Items": [
+    {
+      "Key": "env_ambient25",
+      "Name": "Ambient 25 °C",
+      "Category": "Environment",
+      "Description": "Bench tests at 25 °C ±5 °C",
+      "ContentLine": "Testing performed at ambient 25 °C ± 5 °C."
+    },
+    {
+      "Key": "env_temp_range",
+      "Name": "Temperature Range Testing",
+      "Category": "Environment",
+      "Description": "Testing across specified temperature range",
+      "ContentLine": "Testing performed across full specified temperature range (-40°C to +85°C)."
+    },
+    {
+      "Key": "env_humidity",
+      "Name": "Controlled Humidity",
+      "Category": "Environment",
+      "Description": "Humidity controlled environment",
+      "ContentLine": "Testing performed in controlled humidity environment (45-55% RH)."
+    },
+    {
+      "Key": "tools_cal_12mo",
+      "Name": "Tools Calibrated (12 mo)",
+      "Category": "Equipment",
+      "Description": "Traceable calibration within 12 months",
+      "ContentLine": "All test instruments calibrated within the last 12 months, traceable to NIST."
+    },
+    {
+      "Key": "power_regulated5pct",
+      "Name": "Power Regulated ±5%",
+      "Category": "Test",
+      "Description": "Power supply regulation within ±5%",
+      "ContentLine": "Power supply maintains voltage regulation within ±5% during test."
+    },
+    {
+      "Key": "load_nominal",
+      "Name": "Nominal Load",
+      "Category": "Test",
+      "Description": "Device under nominal load conditions",
+      "ContentLine": "Device tested under nominal load conditions as specified in datasheet."
+    },
+    {
+      "Key": "load_min_max",
+      "Name": "Min/Max Load",
+      "Category": "Test",
+      "Description": "Testing at minimum and maximum loads",
+      "ContentLine": "Device tested at minimum and maximum load conditions."
+    },
+    {
+      "Key": "func_all_modes",
+      "Name": "All Operating Modes",
+      "Category": "Test",
+      "Description": "Verify functionality in all operating modes",
+      "ContentLine": "Device functionality verified in all specified operating modes."
+    },
+    {
+      "Key": "sample_size_3",
+      "Name": "Sample Size: 3 Units",
+      "Category": "Test",
+      "Description": "Three sample units tested",
+      "ContentLine": "Three sample units tested to verify consistency."
+    },
+    {
+      "Key": "visual_inspect",
+      "Name": "Visual Inspection",
+      "Category": "Inspection",
+      "Description": "Visual inspection for defects",
+      "ContentLine": "Visual inspection performed for physical defects, proper assembly, and labeling."
+    },
+    {
+      "Key": "dimensional_check",
+      "Name": "Dimensional Check",
+      "Category": "Inspection",
+      "Description": "Verify dimensions meet specifications",
+      "ContentLine": "Dimensional inspection performed to verify compliance with drawings."
+    },
+    {
+      "Key": "material_verify",
+      "Name": "Material Verification",
+      "Category": "Inspection",
+      "Description": "Verify correct materials used",
+      "ContentLine": "Material verification performed against specifications and BOM."
+    },
+    {
+      "Key": "doc_photos",
+      "Name": "Photographic Documentation",
+      "Category": "Documentation",
+      "Description": "Test setup and results photographed",
+      "ContentLine": "Test setup and key results documented with photographs."
+    },
+    {
+      "Key": "doc_detailed_log",
+      "Name": "Detailed Test Log",
+      "Category": "Documentation",
+      "Description": "Comprehensive test log maintained",
+      "ContentLine": "Detailed test log maintained with timestamps and observations."
+    },
+    {
+      "Key": "esd_precautions",
+      "Name": "ESD Precautions",
+      "Category": "Safety",
+      "Description": "Electrostatic discharge prevention measures",
+      "ContentLine": "ESD precautions followed: grounded wrist strap, ESD mat, and humidity-controlled environment."
+    },
+    {
+      "Key": "analysis_math_model",
+      "Name": "Mathematical Model",
+      "Category": "Analysis",
+      "Description": "Use validated mathematical model",
+      "ContentLine": "Analysis based on validated mathematical model with documented assumptions."
+    },
+    {
+      "Key": "analysis_cad_validated",
+      "Name": "CAD Tool Validated",
+      "Category": "Analysis",
+      "Description": "CAD/analysis tools validated for use",
+      "ContentLine": "CAD and analysis tools validated for this application per company procedures."
+    },
+    {
+      "Key": "analysis_worst_case",
+      "Name": "Worst-Case Analysis",
+      "Category": "Analysis",
+      "Description": "Worst-case scenarios analyzed",
+      "ContentLine": "Analysis includes worst-case scenarios for all critical parameters."
+    },
+    {
+      "Key": "sim_validated_model",
+      "Name": "Validated Simulation Model",
+      "Category": "Simulation",
+      "Description": "Simulation model validated against test data",
+      "ContentLine": "Simulation model validated against empirical test data."
+    },
+    {
+      "Key": "sim_corner_cases",
+      "Name": "Corner Case Simulation",
+      "Category": "Simulation",
+      "Description": "Simulate corner cases and extremes",
+      "ContentLine": "Simulation includes corner cases and extreme operating conditions."
+    },
+    {
+      "Key": "demo_user_scenarios",
+      "Name": "User Scenarios",
+      "Category": "Demonstration",
+      "Description": "Demonstrate typical user scenarios",
+      "ContentLine": "Demonstration covers typical user scenarios and use cases."
+    },
+    {
+      "Key": "demo_live_operation",
+      "Name": "Live Operation",
+      "Category": "Demonstration",
+      "Description": "Demonstrate under live operating conditions",
+      "ContentLine": "Demonstration performed under live operating conditions."
+    },
+    {
+      "Key": "history_field_data",
+      "Name": "Field Data Available",
+      "Category": "Service History",
+      "Description": "Field service data available for review",
+      "ContentLine": "Field service history data available spanning multiple years of operation."
+    },
+    {
+      "Key": "history_similar_design",
+      "Name": "Similar Design History",
+      "Category": "Service History",
+      "Description": "Service history from similar designs",
+      "ContentLine": "Service history available from similar designs with comparable operating conditions."
+    }
+  ],
+  "Presets": [
+    {
+      "Name": "Bench (default)",
+      "OnKeys": [
+        "env_ambient25",
+        "tools_cal_12mo"
+      ],
+      "EnabledKeys": [
+        "env_ambient25",
+        "tools_cal_12mo"
+      ]
+    },
+    {
+      "Name": "Environmental Testing",
+      "OnKeys": [
+        "env_temp_range",
+        "tools_cal_12mo",
+        "doc_photos",
+        "sample_size_3"
+      ],
+      "EnabledKeys": [
+        "env_temp_range",
+        "tools_cal_12mo"
+      ]
+    },
+    {
+      "Name": "Functional Verification",
+      "OnKeys": [
+        "func_all_modes",
+        "load_nominal",
+        "visual_inspect",
+        "tools_cal_12mo"
+      ],
+      "EnabledKeys": [
+        "func_all_modes",
+        "tools_cal_12mo"
+      ]
+    },
+    {
+      "Name": "Safety Testing",
+      "OnKeys": [
+        "esd_precautions",
+        "tools_cal_12mo",
+        "doc_photos",
+        "env_ambient25"
+      ],
+      "EnabledKeys": [
+        "esd_precautions",
+        "tools_cal_12mo"
+      ]
+    }
+  ]
+}

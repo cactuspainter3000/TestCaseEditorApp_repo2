@@ -9,111 +9,447 @@
              Background="Transparent">
 
     <UserControl.Resources>
-        <!-- Local fallback converter if the project doesn't define one globally -->
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
-        <SolidColorBrush x:Key="ListViewBackgroundBrush" Color="#F3F4F6"/>
     </UserControl.Resources>
 
     <Grid Margin="8">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <!-- Top bar -->
-            <RowDefinition Height="Auto"/>
-            <!-- Chips -->
             <RowDefinition Height="*"/>
-            <!-- Questions list -->
             <RowDefinition Height="Auto"/>
-            <!-- Footer / smart button -->
         </Grid.RowDefinitions>
 
-        <!-- Top row omitted here for brevity; keep the version you already have (verification/presets controls) -->
+        <Border Grid.Row="0" BorderThickness="0" CornerRadius="4" Background="Transparent">
+            <Grid>
+                <!-- Questions list (visible when we have questions) -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <ScrollViewer.Style>
+                        <Style TargetType="ScrollViewer">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding PendingQuestions.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ScrollViewer.Style>
+                    <ItemsControl ItemsSource="{Binding PendingQuestions}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type local:ClarifyingQuestionVM}">
+                                <Border Margin="0,0,0,12" 
+                                        Background="{StaticResource MenuBackground}" 
+                                        BorderBrush="{StaticResource CardBorderBrush}" 
+                                        BorderThickness="1" 
+                                        CornerRadius="6" 
+                                        Padding="16">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
 
-        <!-- Chips row -->
-        <ItemsControl Grid.Row="1" ItemsSource="{Binding FilteredDefaults}" Margin="0,4,0,8">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapPanel/>
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <!-- Bind to Name and Description (DefaultItem properties) -->
-                    <ToggleButton Style="{StaticResource PillToggleStyle}"
-                                  Content="{Binding Name}"
-                                  IsChecked="{Binding IsEnabled, Mode=TwoWay}"
-                                  ToolTip="{Binding Description}" Margin="4,4,0,0"/>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+                                        <!-- Header: Category and Severity badges -->
+                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                                            <Border Background="#444444" 
+                                                    CornerRadius="3" 
+                                                    Padding="6,2" 
+                                                    Margin="0,0,6,0">
+                                                <TextBlock Text="{Binding Category}" 
+                                                           FontSize="10" 
+                                                           FontWeight="SemiBold"
+                                                           Foreground="#CCCCCC"/>
+                                            </Border>
+                                            <Border CornerRadius="3" 
+                                                    Padding="6,2">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#555555"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Severity}" Value="MUST">
+                                                                <Setter Property="Background" Value="#8B4545"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Severity}" Value="SHOULD">
+                                                                <Setter Property="Background" Value="#8B6F47"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Severity}" Value="OPTIONAL">
+                                                                <Setter Property="Background" Value="#555555"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock Text="{Binding Severity}" 
+                                                           FontSize="10" 
+                                                           FontWeight="SemiBold"
+                                                           Foreground="#CCCCCC"/>
+                                            </Border>
+                                        </StackPanel>
 
-        <!-- Questions: use a ListView for virtualization and selectable items -->
-        <Border Grid.Row="2" BorderThickness="1" BorderBrush="{StaticResource CardBorderBrush}" CornerRadius="4" Padding="6" Background="Transparent">
-            <ListView ItemsSource="{Binding PendingQuestions}"
-                      SelectedItem="{Binding SelectedClarifyingQuestion, Mode=TwoWay}"
-                      VirtualizingPanel.IsVirtualizing="True"
-                      VirtualizingPanel.VirtualizationMode="Recycling"
-                      ScrollViewer.VerticalScrollBarVisibility="Auto"
-                      Background="{StaticResource ListViewBackgroundBrush}">
-                <ListView.ItemTemplate>
-                    <DataTemplate DataType="{x:Type local:ClarifyingQuestionVM}">
-                        <Border Padding="8" Margin="0,6,0,6" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Background="{StaticResource ListViewBackgroundBrush}">
-                            <StackPanel>
-                                <DockPanel>
-                                    <TextBlock Text="{Binding Category}" FontSize="11" Foreground="{StaticResource MenuForeground}" DockPanel.Dock="Left" Margin="0,0,8,0"/>
+                                        <!-- Question Text -->
+                                        <TextBlock Grid.Row="1" 
+                                                   Text="{Binding Text}" 
+                                                   TextWrapping="Wrap" 
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{StaticResource MenuForeground}"
+                                                   Margin="0,0,0,8"/>
 
-                                    <!-- Severity text -->
-                                    <TextBlock x:Name="SeverityText" Text="{Binding Severity}" FontWeight="Bold" DockPanel.Dock="Left" Margin="0,0,8,0">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Foreground" Value="{StaticResource MenuForeground}" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Severity}" Value="MUST">
-                                                        <Setter Property="Foreground" Value="{StaticResource Accent}" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Severity}" Value="SHOULD">
-                                                        <Setter Property="Foreground" Value="{StaticResource AccentForeground}" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Severity}" Value="OPTIONAL">
-                                                        <Setter Property="Foreground" Value="{StaticResource MenuForeground}" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
+                                        <!-- Rationale -->
+                                        <TextBlock Grid.Row="2" 
+                                                   Text="{Binding Rationale}" 
+                                                   TextWrapping="Wrap" 
+                                                   FontSize="12"
+                                                   FontStyle="Italic" 
+                                                   Foreground="{StaticResource MenuForeground}"
+                                                   Opacity="0.7"
+                                                   Margin="0,0,0,12"/>
 
-                                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontWeight="SemiBold"/>
-                                </DockPanel>
+                                        <!-- Answer Section and Actions -->
+                                        <Grid Grid.Row="3">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
 
-                                <TextBlock Text="{Binding Rationale}" Margin="0,6,0,6" TextWrapping="Wrap" Foreground="#444" FontStyle="Italic"/>
+                                            <!-- Answer TextBox -->
+                                            <Border Grid.Column="0" 
+                                                    Background="#1A1A1A" 
+                                                    BorderBrush="{StaticResource CardBorderBrush}" 
+                                                    BorderThickness="1" 
+                                                    CornerRadius="4"
+                                                    Margin="0,0,12,0">
+                                                <Grid>
+                                                    <TextBlock Text="Type your answer here or mark as assumption..." 
+                                                               Foreground="#666666"
+                                                               FontStyle="Italic"
+                                                               Margin="8,8,8,8"
+                                                               IsHitTestVisible="False">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Answer}" Value="">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Answer}" Value="{x:Null}">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                    <TextBox Text="{Binding Answer, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                                             AcceptsReturn="True" 
+                                                             TextWrapping="Wrap"
+                                                             MinHeight="60"
+                                                             Background="Transparent"
+                                                             BorderThickness="0"
+                                                             Foreground="{StaticResource MenuForeground}"
+                                                             Padding="8"
+                                                             VerticalScrollBarVisibility="Auto"/>
+                                                </Grid>
+                                            </Border>
 
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,6,0,0">
-                                    <TextBlock Text="Answer:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                    <TextBox Text="{Binding Answer, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="420" AcceptsReturn="True" Height="60" TextWrapping="Wrap" />
+                                            <!-- Action Buttons -->
+                                            <StackPanel Grid.Column="1" 
+                                                        VerticalAlignment="Top">
+                                                <Button Content="✓ Mark as Assumption"
+                                                        Command="{Binding DataContext.SetAsAssumptionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}" 
+                                                        Background="#4A4A4A"
+                                                        Foreground="{StaticResource MenuForeground}"
+                                                        BorderThickness="1"
+                                                        BorderBrush="{StaticResource CardBorderBrush}"
+                                                        Padding="14,8"
+                                                        Cursor="Hand"
+                                                        FontWeight="Normal"
+                                                        FontSize="12"
+                                                        MinWidth="160">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button">
+                                                            <Setter Property="Template">
+                                                                <Setter.Value>
+                                                                    <ControlTemplate TargetType="Button">
+                                                                        <Border Background="{TemplateBinding Background}" 
+                                                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                                                CornerRadius="4" 
+                                                                                Padding="{TemplateBinding Padding}">
+                                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                        </Border>
+                                                                    </ControlTemplate>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                            <Style.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter Property="Background" Value="#555555"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsPressed" Value="True">
+                                                                    <Setter Property="Background" Value="#606060"/>
+                                                                </Trigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
+                                                <Button Content="✕ Remove"
+                                                        Command="{Binding DataContext.MarkResolvedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Background="Transparent"
+                                                        Foreground="{StaticResource MenuForeground}"
+                                                        BorderBrush="{StaticResource CardBorderBrush}"
+                                                        BorderThickness="1"
+                                                        Padding="14,8"
+                                                        Cursor="Hand"
+                                                        FontSize="12"
+                                                        MinWidth="160"
+                                                        Margin="0,8,0,0">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button">
+                                                            <Setter Property="Template">
+                                                                <Setter.Value>
+                                                                    <ControlTemplate TargetType="Button">
+                                                                        <Border Background="{TemplateBinding Background}" 
+                                                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                                                CornerRadius="4" 
+                                                                                Padding="{TemplateBinding Padding}">
+                                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                        </Border>
+                                                                    </ControlTemplate>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                            <Style.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter Property="Background" Value="#1AFFFFFF"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsPressed" Value="True">
+                                                                    <Setter Property="Background" Value="#33FFFFFF"/>
+                                                                </Trigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- Instructional panel (visible when no questions) -->
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="32" MaxWidth="600">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding PendingQuestions.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+
+                    <TextBlock Text="🔍 Clarifying Questions (Optional)" 
+                               FontSize="16" 
+                               FontWeight="SemiBold" 
+                               Foreground="{StaticResource MenuForeground}" 
+                               HorizontalAlignment="Center" 
+                               Margin="0,0,0,20"/>
+
+                    <Border Background="{StaticResource MenuBackground}" 
+                            Padding="20" 
+                            CornerRadius="8" 
+                            BorderBrush="{StaticResource CardBorderBrush}" 
+                            BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock TextWrapping="Wrap" 
+                                       Margin="0,0,0,16" 
+                                       Foreground="{StaticResource MenuForeground}"
+                                       FontSize="13"
+                                       LineHeight="20">
+                                <Run FontWeight="SemiBold">This step is optional.</Run>
+                                <Run>You can skip directly to test case generation, or use clarifying questions to refine ambiguous requirements.</Run>
+                            </TextBlock>
+
+                            <Border Background="#1A1A1A" 
+                                    Padding="16" 
+                                    CornerRadius="6"
+                                    Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="How it works:" 
+                                               FontWeight="SemiBold" 
+                                               Foreground="{StaticResource MenuForeground}"
+                                               Margin="0,0,0,12"
+                                               FontSize="12"/>
+
+                                    <StackPanel Margin="0,0,0,8">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                            <TextBlock Text="1" 
+                                                       FontWeight="Bold" 
+                                                       Foreground="{StaticResource MenuForeground}"
+                                                       Width="20"
+                                                       FontSize="11"/>
+                                            <TextBlock TextWrapping="Wrap" 
+                                                       Foreground="{StaticResource MenuForeground}"
+                                                       FontSize="12">
+                                                <Run>Click "</Run><Run FontWeight="SemiBold">Ask Clarifying Questions</Run><Run>" to generate AI questions about ambiguities</Run>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <StackPanel Margin="0,0,0,8">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                            <TextBlock Text="2" 
+                                                       FontWeight="Bold" 
+                                                       Foreground="{StaticResource MenuForeground}"
+                                                       Width="20"
+                                                       FontSize="11"/>
+                                            <TextBlock TextWrapping="Wrap" 
+                                                       Foreground="{StaticResource MenuForeground}"
+                                                       FontSize="12"
+                                                       Text="Answer questions in the text boxes, OR mark them as assumptions"/>
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <StackPanel Margin="0,0,0,8">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                            <TextBlock Text="3" 
+                                                       FontWeight="Bold" 
+                                                       Foreground="{StaticResource MenuForeground}"
+                                                       Width="20"
+                                                       FontSize="11"/>
+                                            <TextBlock TextWrapping="Wrap" 
+                                                       Foreground="{StaticResource MenuForeground}"
+                                                       FontSize="12"
+                                                       Text="Marking as assumption auto-saves and regenerates questions"/>
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="4" 
+                                                       FontWeight="Bold" 
+                                                       Foreground="{StaticResource MenuForeground}"
+                                                       Width="20"
+                                                       FontSize="11"/>
+                                            <TextBlock TextWrapping="Wrap" 
+                                                       Foreground="{StaticResource MenuForeground}"
+                                                       FontSize="12">
+                                                <Run>Click "</Run><Run FontWeight="SemiBold">Submit Answers</Run><Run>" to proceed to test case generation</Run>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </StackPanel>
                                 </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
 
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0" >
-                                    <Button Style="{StaticResource PillActionButtonStyle}" Content="Set as assumption"
-                                            Command="{Binding DataContext.SetAsAssumptionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                            CommandParameter="{Binding}" Margin="0,0,8,0"/>
-                                    <Button Style="{StaticResource PillActionButtonStyle}" Content="Accept"
-                                            Command="{Binding DataContext.AcceptQuestionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                            CommandParameter="{Binding}" Margin="0,0,8,0"/>
-                                    <Button Style="{StaticResource PillActionButtonStyle}" Content="Resolve"
-                                            Command="{Binding DataContext.MarkResolvedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                            CommandParameter="{Binding}" />
-                                </StackPanel>
-                            </StackPanel>
-                        </Border>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
+                    <TextBlock Text="{Binding StatusHint}" 
+                               TextWrapping="Wrap" 
+                               Margin="0,20,0,0" 
+                               FontStyle="Italic" 
+                               FontSize="12"
+                               Foreground="{StaticResource AccentForeground}" 
+                               HorizontalAlignment="Center" 
+                               TextAlignment="Center"/>
+                </StackPanel>
+            </Grid>
         </Border>
 
-        <!-- Footer: smart action / secondary -->
-        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
-            <Button Style="{StaticResource MenuPopupButtonStyle}" Content="Reset Assumptions" Command="{Binding ResetAssumptionsCommand}" Margin="0,0,8,0"/>
-            <Button Style="{StaticResource MenuPopupButtonStyle}" Content="{Binding SmartButtonLabel}" Command="{Binding SmartButtonCommand}" Padding="12,6" MinWidth="160"
-                    IsEnabled="{Binding CanExecuteSmartButton}" />
-        </StackPanel>
+        <!-- Footer: smart action button with progress indicator -->
+        <Grid Grid.Row="1" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Loading indicator (shown when LLM is busy) -->
+            <StackPanel Grid.Column="0" 
+                        Orientation="Horizontal" 
+                        HorizontalAlignment="Left" 
+                        VerticalAlignment="Center"
+                        x:Name="LoadingPanel"
+                        Visibility="{Binding IsLlmBusy, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Viewbox Width="20" Height="20" Margin="0,0,10,0">
+                    <Canvas Width="24" Height="24">
+                        <Canvas.RenderTransform>
+                            <RotateTransform x:Name="SpinnerRotate" CenterX="12" CenterY="12"/>
+                        </Canvas.RenderTransform>
+                        <Path Data="M12,4 A8,8 0 0,1 20,12" 
+                              Stroke="{StaticResource Accent}" 
+                              StrokeThickness="2"/>
+                    </Canvas>
+                </Viewbox>
+                <TextBlock Text="Generating clarifying questions..." 
+                           Foreground="{StaticResource MenuForeground}" 
+                           FontSize="12"
+                           FontStyle="Italic"
+                           VerticalAlignment="Center"/>
+                <StackPanel.Triggers>
+                    <EventTrigger RoutedEvent="StackPanel.Loaded">
+                        <BeginStoryboard x:Name="SpinnerStoryboard">
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetName="SpinnerRotate"
+                                                 Storyboard.TargetProperty="Angle"
+                                                 From="0"
+                                                 To="360"
+                                                 Duration="0:0:1"
+                                                 RepeatBehavior="Forever"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                    <EventTrigger RoutedEvent="StackPanel.Unloaded">
+                        <StopStoryboard BeginStoryboardName="SpinnerStoryboard"/>
+                    </EventTrigger>
+                </StackPanel.Triggers>
+            </StackPanel>
+
+            <!-- Action button -->
+            <Button Grid.Column="1"
+                    Content="{Binding SmartButtonLabel}" 
+                    Command="{Binding SmartButtonCommand}" 
+                    IsEnabled="{Binding CanExecuteSmartButton}"
+                    Background="#4A4A4A"
+                    Foreground="{StaticResource MenuForeground}"
+                    BorderThickness="1"
+                    BorderBrush="{StaticResource CardBorderBrush}"
+                    Padding="18,10"
+                    MinWidth="180"
+                    FontWeight="Normal"
+                    FontSize="13"
+                    Cursor="Hand">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" 
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="4" 
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#555555"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#606060"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </Grid>
     </Grid>
 </UserControl>

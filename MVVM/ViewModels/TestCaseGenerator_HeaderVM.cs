@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Input;
@@ -38,6 +39,19 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Visual guidance flags — UI highlights input areas when true
         [ObservableProperty] private bool requirementDescriptionHighlight = false;
         [ObservableProperty] private bool requirementMethodHighlight = false;
+
+        // ==================== Shared Test Assumptions ====================
+        
+        /// <summary>
+        /// Shared assumption items (chips) used by both Test Assumptions and Clarifying Questions tabs.
+        /// This allows the enabled state to persist across tab navigation.
+        /// </summary>
+        public ObservableCollection<DefaultItem> SuggestedDefaults { get; } = new();
+        
+        /// <summary>
+        /// Preset definitions for quick assumption selection.
+        /// </summary>
+        public ObservableCollection<DefaultPreset> DefaultPresets { get; } = new();
 
         // ==================== Commands ====================
         

@@ -27,13 +27,20 @@
                    Margin="0,0,0,8"/>
 
         <!-- Instructions -->
-        <TextBlock Grid.Row="1" 
-                   TextWrapping="Wrap"
-                   Foreground="#AAAAAA"
-                   FontSize="11"
-                   Margin="0,0,0,12">
-            <Run Text="Edit the text below. Use"/><Run Text=" ||| " FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/><Run Text="to separate items, or click 'Insert Split' to add a separator at the cursor position."/>
-        </TextBlock>
+            <!-- Collapsible Tips/Instructions -->
+            <Expander Grid.Row="1"
+                      Header="Tips &amp; Instructions"
+                      IsExpanded="False"
+                      Background="Transparent"
+                      Foreground="#AAAAAA"
+                      FontSize="11"
+                      Margin="0,0,0,12">
+                <TextBlock TextWrapping="Wrap">
+                    <Run Text="Edit the text below. Use"/>
+                    <Run Text=" ||| " FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
+                    <Run Text="to separate items, or click 'Insert Split' to add a separator at the cursor position."/>
+                </TextBlock>
+            </Expander>
 
         <!-- Text editor with Insert Split button -->
         <Grid Grid.Row="2">

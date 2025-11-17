@@ -369,6 +369,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             TestCaseGeneratorSteps.Add(new StepDescriptor
             {
+                Id = "test-assumptions",
+                DisplayName = "Test Assumptions",
+                Badge = string.Empty,
+                HasFileMenu = false,
+                CreateViewModel = svc =>
+                {
+                    return new TestCaseGenerator_AssumptionsVM(_testCaseGeneratorHeader);
+                }
+            });
+
+            TestCaseGeneratorSteps.Add(new StepDescriptor
+            {
                 Id = "clarifying-questions",
                 DisplayName = "Clarifying Questions",
                 Badge = string.Empty,

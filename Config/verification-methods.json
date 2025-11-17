@@ -1,0 +1,21 @@
+{
+  "VerificationMethods": {
+    "Analysis": "When creating test cases for Analysis verification, focus on documenting the analytical method, inputs, calculations, and acceptance criteria. Test cases should specify what type of analysis (mathematical calculations, FEA, thermal analysis, etc.), what input data/assumptions are required, the calculation procedure, and how results will be compared to requirements. No physical testing equipment needed.",
+    
+    "Simulation": "Test cases for Simulation verification should define the simulation model to be used, input parameters, scenarios to be simulated (including worst-case conditions), and expected output ranges. Specify how simulation results will be compared to requirement limits. Test cases should be executable by running the simulation with documented inputs.",
+    
+    "Demonstration": "Test cases for Demonstration are less rigorous than Test. Write procedures that describe how to exercise the function, what to observe, and how to judge success using engineering judgment. Focus on showing the system performs as intended rather than measuring against tight tolerances. Document the nominal behavior expected.",
+    
+    "Inspection": "Test cases for Inspection are checklists or review procedures. Write steps for visually examining drawings, hardware, documentation, or physical attributes. Specify what to look for (dimensions, materials, labels, defects) and acceptance criteria. Include photo documentation requirements.",
+    
+    "ServiceHistory": "Test cases for Service History document the comparison between existing proven systems and the new design. Write procedures that identify what evidence to collect from the existing system, how to compare attributes, and how to document the engineering judgment that the new system will perform equivalently.",
+    
+    "Test": "Test cases for Test verification are detailed, repeatable procedures executable by any qualified tester. Write step-by-step instructions including setup, stimulus/inputs, expected responses, measurements to take, pass/fail criteria, and equipment needed. Focus on quantitative, measurable results.",
+    
+    "TestUnintendedFunction": "Test cases for TUF are exploratory scenarios focused on edge cases and abnormal usage. Write test scenarios (not detailed scripts) describing: incorrect control usage, simultaneous operations, failure mode combinations, power cycling, and unexpected inputs. Document observations rather than strict pass/fail criteria.",
+    
+    "VerifiedAtAnotherLevel": "No test cases needed. Document references to existing verification performed elsewhere (higher-level system tests or lower-level component tests) that cover this requirement.",
+    
+    "Unassigned": "Cannot create test cases until verification method is assigned."
+  }
+}

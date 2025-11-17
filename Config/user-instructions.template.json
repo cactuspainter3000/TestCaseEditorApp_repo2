@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "User-defined custom instructions for LLM behavior per verification method",
+  "instructions": {
+    "Analysis": "",
+    "Test": "",
+    "Demonstration": "",
+    "Inspection": "",
+    "Similarity": ""
+  }
+}

@@ -48,11 +48,11 @@ namespace TestCaseEditorApp.Services.Prompts
 
     public sealed class VerificationPromptBuilder
     {
-        public string Build(VerificationMethod method, string reqId, string reqName, string reqDescription)
-            => Build(new VerificationPromptInput(new[] { method }, reqId, reqName, reqDescription));
+        public string Build(VerificationMethod method, string reqId, string reqName, string reqDescription, string? customInstructions = null)
+            => Build(new VerificationPromptInput(new[] { method }, reqId, reqName, reqDescription), customInstructions);
 
-        public string Build(IReadOnlyList<VerificationMethod> methods, string reqId, string reqName, string reqDescription)
-            => Build(new VerificationPromptInput(methods, reqId, reqName, reqDescription));
+        public string Build(IReadOnlyList<VerificationMethod> methods, string reqId, string reqName, string reqDescription, string? customInstructions = null)
+            => Build(new VerificationPromptInput(methods, reqId, reqName, reqDescription), customInstructions);
 
         public string BuildClarifyingWithSuggestedDefaults(
             VerificationPromptInput input,
@@ -88,7 +88,7 @@ namespace TestCaseEditorApp.Services.Prompts
             return sb.ToString();
         }
 
-        public string Build(VerificationPromptInput input)
+        public string Build(VerificationPromptInput input, string? customInstructions = null)
         {
             var seq = (input.Methods ?? Array.Empty<VerificationMethod>())
                 .Where(m => m != VerificationMethod.Unassigned)
@@ -100,6 +100,15 @@ namespace TestCaseEditorApp.Services.Prompts
                 seq.Add(VerificationMethod.Unassigned);
 
             var sb = new StringBuilder();
+
+            // Add custom instructions at the top if provided
+            if (!string.IsNullOrWhiteSpace(customInstructions))
+            {
+                sb.AppendLine("[SPECIAL INSTRUCTIONS FROM USER]");
+                sb.AppendLine(customInstructions.Trim());
+                sb.AppendLine("[/SPECIAL INSTRUCTIONS]");
+                sb.AppendLine();
+            }
 
             var preamble = BuildContextPreamble(
                 input.Rationale,

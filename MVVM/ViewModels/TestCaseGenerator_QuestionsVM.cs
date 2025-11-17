@@ -17,6 +17,18 @@ using TestCaseEditorApp.Services.Prompts;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
+    // Serializable DTO for persisting clarifying questions with full metadata
+    public class PersistedQuestion
+    {
+        public string Text { get; set; } = string.Empty;
+        public string? Answer { get; set; }
+        public string? Category { get; set; }
+        public string Severity { get; set; } = "OPTIONAL";
+        public string? Rationale { get; set; }
+        public bool MarkedAsAssumption { get; set; }
+        public string[] Options { get; set; } = Array.Empty<string>();
+    }
+
     public partial class TestCaseGenerator_QuestionsVM : ObservableObject, IDisposable
     {
         private readonly IPersistenceService _persistence;
@@ -32,8 +44,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // New/modern shape used by UI with ClarifyingQuestionVM
         public ObservableCollection<ClarifyingQuestionVM> PendingQuestions { get; } = new();
 
-        public ObservableCollection<DefaultPreset> DefaultPresets { get; } = new();
-        public ObservableCollection<DefaultItem> SuggestedDefaults { get; } = new();
+        /// <summary>
+        /// Access HeaderVM's shared SuggestedDefaults collection.
+        /// This ensures assumptions persist across the Assumptions and Questions tabs.
+        /// </summary>
+        public ObservableCollection<DefaultItem> SuggestedDefaults => _headerVm?.SuggestedDefaults ?? new();
+        
+        /// <summary>
+        /// Access HeaderVM's shared DefaultPresets collection.
+        /// </summary>
+        public ObservableCollection<DefaultPreset> DefaultPresets => _headerVm?.DefaultPresets ?? new();
+        
         public ObservableCollection<Preset> Presets { get; } = new();
 
         // Synchronization guard to avoid re-entrant updates
@@ -93,21 +114,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Ensure FilteredDefaults consumers are notified when SuggestedDefaults changes
             SuggestedDefaults.CollectionChanged += (s, e) => OnPropertyChanged(nameof(FilteredDefaults));
 
-            // Load persisted questions into legacy Questions collection (strings).
-            var loaded = _persistence.Load<string[]>(PersistenceKey);
-            if (loaded != null && loaded.Length > 0)
-            {
-                foreach (var q in loaded) Questions.Add(q);
-            }
-            else
-            {
-                //// seed default legacy questions
-                //Questions.Add("CQ-001: What environment will this run in?");
-                //Questions.Add("CQ-002: What browsers are supported?");
-            }
-
-            // Populate PendingQuestions from Questions
-            foreach (var q in Questions) PendingQuestions.Add(new ClarifyingQuestionVM(q));
+            // Don't load persisted questions - start fresh each time
+            // Users should explicitly generate new questions for each requirement
 
             // Hook collection changed handlers for two-way sync and persistence
             Questions.CollectionChanged += Questions_CollectionChanged;
@@ -149,6 +157,50 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Initialize command wiring (SetAsAssumption, SmartButton etc.) and session state
             InitializeCommands();
             UpdateSessionStateAfterQuestionsUpdate();
+
+            // Load defaults catalog only if HeaderVM collections are empty
+            if (SuggestedDefaults.Count == 0)
+            {
+                LoadDefaultsCatalog();
+            }
+        }
+
+        /// <summary>
+        /// Load the defaults catalog (chips/assumptions) and presets.
+        /// Uses DefaultsHelper to load from Config/defaults.catalog.template.json or hardcoded fallback.
+        /// </summary>
+        private void LoadDefaultsCatalog()
+        {
+            try
+            {
+                var catalog = DefaultsHelper.LoadProjectDefaultsTemplate();
+
+                // Populate SuggestedDefaults from catalog Items
+                SuggestedDefaults.Clear();
+                if (catalog?.Items != null)
+                {
+                    foreach (var item in catalog.Items)
+                    {
+                        SuggestedDefaults.Add(item);
+                    }
+                }
+
+                // Populate DefaultPresets from catalog Presets
+                DefaultPresets.Clear();
+                if (catalog?.Presets != null)
+                {
+                    foreach (var preset in catalog.Presets)
+                    {
+                        DefaultPresets.Add(preset);
+                    }
+                }
+
+                StatusHint = $"Loaded {SuggestedDefaults.Count} defaults and {DefaultPresets.Count} presets.";
+            }
+            catch (Exception ex)
+            {
+                StatusHint = $"Failed to load defaults catalog: {ex.Message}";
+            }
         }
 
         // Header property-changed forwarding
@@ -219,7 +271,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 // Persist Questions to storage
                 try
                 {
-                    _persistence.Save(PersistenceKey, Questions.ToArray());
+                    SaveQuestionsToStorage();
                 }
                 catch
                 {
@@ -265,7 +317,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 // Persist Questions to storage
                 try
                 {
-                    _persistence.Save(PersistenceKey, Questions.ToArray());
+                    SaveQuestionsToStorage();
                 }
                 catch
                 {
@@ -419,12 +471,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 };
 
                 // Build prompt including the temporary requirement object and enabled assumptions.
+                var customInstructions = DefaultsHelper.GetUserInstructions(methodEnum.Value);
                 var prompt = ClarifyingParsingHelpers.BuildBudgetedQuestionsPrompt(
                     tempRequirement,
                     questionBudget,
                     false,
                     enabledAssumptions,
-                    Enumerable.Empty<TableDto>());
+                    Enumerable.Empty<TableDto>(),
+                    customInstructions);
 
                 string llmText;
                 try
@@ -450,6 +504,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 // Parse questions from LLM output
                 var parsed = ClarifyingParsingHelpers.ParseQuestions(llmText) ?? Enumerable.Empty<ClarifyingQuestionVM>();
                 var parsedList = parsed.ToList();
+
+                // Validation: reject if we got malformed output (single question containing JSON)
+                if (parsedList.Count == 1 && parsedList[0].Text.Contains("[{") && parsedList[0].Text.Contains("}]"))
+                {
+                    StatusHint = "LLM returned malformed output. Please try again.";
+                    return;
+                }
 
                 // Deduplicate parsed questions by normalized text (trim/collapse whitespace, lowercase)
                 static string Normalize(string? s)
@@ -492,7 +553,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     // Persist the new Questions array for future sessions
                     try
                     {
-                        _persistence.Save(PersistenceKey, Questions.ToArray());
+                        SaveQuestionsToStorage();
                     }
                     catch
                     {
@@ -666,12 +727,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             return _sessionState switch
             {
-                SessionState.Idle => "Ask Verifying Questions",
+                SessionState.Idle => "Ask Clarifying Questions",
                 SessionState.QuestionsDisplayed => "Submit Answers",
                 SessionState.AwaitingAnswers => "Submit Answers",
                 SessionState.ReadyToGenerate => "Generate Test Cases",
                 SessionState.Generating => "Working…",
-                _ => "Ask Verifying Questions",
+                _ => "Ask Clarifying Questions",
             };
         }
 
@@ -705,7 +766,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             switch (_sessionState)
             {
                 case SessionState.Idle:
-                    // Ask verifying questions
+                    // Ask clarifying questions
                     if (ClarifyCommand != null)
                     {
                         _sessionState = SessionState.Generating;
@@ -845,13 +906,35 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
         }
 
+        /// <summary>
+        /// Save PendingQuestions to storage with full metadata.
+        /// </summary>
+        private void SaveQuestionsToStorage()
+        {
+            var toSave = PendingQuestions.Select(q => new PersistedQuestion
+            {
+                Text = q.Text,
+                Answer = q.Answer,
+                Category = q.Category,
+                Severity = q.Severity,
+                Rationale = q.Rationale,
+                MarkedAsAssumption = q.MarkedAsAssumption,
+                Options = q.Options.ToArray()
+            }).ToArray();
+
+            _persistence.Save(PersistenceKey, toSave);
+        }
+
         public void Dispose()
         {
             LlmConnectionManager.ConnectionChanged -= OnGlobalConnectionChanged;
             Questions.CollectionChanged -= Questions_CollectionChanged;
             PendingQuestions.CollectionChanged -= PendingQuestions_CollectionChanged;
             DefaultPresets.CollectionChanged -= DefaultPresets_CollectionChanged;
-            if (_headerVm != null) _headerVm.PropertyChanged -= HeaderVm_PropertyChanged;
+            if (_headerVm != null)
+            {
+                _headerVm.PropertyChanged -= HeaderVm_PropertyChanged;
+            }
             _cts.Cancel();
             _cts.Dispose();
         }

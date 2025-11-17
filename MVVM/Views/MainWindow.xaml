@@ -28,6 +28,10 @@
             <views:TestCaseGenerator_View />
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type vm:TestCaseGenerator_AssumptionsVM}">
+            <views:TestCaseGenerator_AssumptionsView />
+        </DataTemplate>
+
         <DataTemplate DataType="{x:Type vm:TestCaseGenerator_QuestionsVM}">
             <views:TestCaseGenerator_QuestionsView />
         </DataTemplate>

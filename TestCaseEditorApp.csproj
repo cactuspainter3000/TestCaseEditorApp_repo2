@@ -32,4 +32,16 @@
 	<ItemGroup>
 	  <None Include="MVVM\ViewModels\MainViewModel.Bindings.cs" />
 	</ItemGroup>
+
+	<ItemGroup>
+	  <None Update="Config\defaults.catalog.template.json">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Update="Config\verification-methods.json">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Update="Config\user-instructions.template.json">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	</ItemGroup>
 </Project>

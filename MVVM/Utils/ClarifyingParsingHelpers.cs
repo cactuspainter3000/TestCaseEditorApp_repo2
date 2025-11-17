@@ -392,7 +392,8 @@ namespace TestCaseEditorApp.MVVM.Utils
             int budget,
             bool thorough,
             IEnumerable<string> paragraphs,
-            IEnumerable<TableDto> tables)
+            IEnumerable<TableDto> tables,
+            string? customInstructions = null)
         {
             var id = req?.Item ?? req?.Name ?? "(unnamed requirement)";
             var desc = req?.Description ?? "(no description)";
@@ -410,6 +411,14 @@ namespace TestCaseEditorApp.MVVM.Utils
             sb.AppendLine($"Ask at most {maxQs} questions (0..{maxQs}). Mode: {(thorough ? "THOROUGH" : "FAST")}.");
             sb.AppendLine();
 
+            // Include custom user instructions if provided
+            if (!string.IsNullOrWhiteSpace(customInstructions))
+            {
+                sb.AppendLine("Special Instructions from User:");
+                sb.AppendLine(customInstructions.Trim());
+                sb.AppendLine();
+            }
+
             sb.AppendLine("Context:");
             sb.AppendLine($"RequirementId: {id}");
             sb.AppendLine($"RequirementDescription: {desc}");
@@ -419,11 +428,13 @@ namespace TestCaseEditorApp.MVVM.Utils
             sb.AppendLine();
 
             sb.AppendLine("Questions Output Rules:");
-            sb.AppendLine("- Return the clarifying QUESTIONS as a JSON array ONLY (no markdown, no code fences, no commentary).");
-            sb.AppendLine("- JSON schema: an array of objects with: { \"text\": string, \"options\": string[] (optional) }");
-            sb.AppendLine("- If the question has answer choices, include them ONLY in the \"options\" array as full words/phrases. Do not include them in the text.");
-            sb.AppendLine("- The question text may contain parentheses and commas (e.g., part numbers); those MUST NOT create options.");
-            sb.AppendLine("- Do not number the questions; do not add keys other than \"text\" and optional \"options\".");
+            sb.AppendLine("- Return ONLY a JSON array of question objects. Nothing else.");
+            sb.AppendLine("- Each question MUST be a separate object in the array.");
+            sb.AppendLine("- JSON schema: [{\"text\": \"question here?\", \"options\": [\"option1\", \"option2\"]}]");
+            sb.AppendLine("- The \"options\" field is optional - only include it if the question has multiple choice answers.");
+            sb.AppendLine("- Do NOT return the entire array as a single string. Each question must be its own object.");
+            sb.AppendLine("- Do NOT include question numbers, prefixes, or any other keys besides \"text\" and \"options\".");
+            sb.AppendLine("- Do NOT wrap the JSON in markdown code fences or add any commentary.");
             sb.AppendLine();
 
             sb.AppendLine("Suggested Defaults (Chips) Output Rules:");
