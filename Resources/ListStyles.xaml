@@ -1,0 +1,139 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models"
+                    xmlns:conv="clr-namespace:TestCaseEditorApp.Converters">
+
+    <!-- Converter needed for badge visibility -->
+    <conv:BadgeToVisibilityConverter x:Key="BadgeToVisibilityConverter"/>
+
+    <!-- =========================== -->
+    <!-- LISTBOX STYLES              -->
+    <!-- =========================== -->
+
+    <!-- Menu ListBox Item - for menu lists -->
+    <Style x:Key="MenuListBoxItemStyle" TargetType="ListBoxItem">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="#333333"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource MenuHover}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+
+    <!-- =========================== -->
+    <!-- RADIOBUTTON STYLES          -->
+    <!-- =========================== -->
+
+    <!-- Menu Button Theme - RadioButton styled as menu item with accent bar -->
+    <Style x:Key="MenuButtonTheme" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource MenuForeground}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Padding" Value="6"/>
+        <Setter Property="Margin" Value="2,2,2,2"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="6"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Rectangle x:Name="AccentBar" Grid.Column="0" Fill="Transparent" RadiusX="2" RadiusY="2"/>
+                        <Border x:Name="MainBorder" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" Grid.Column="1">
+                            <ContentPresenter VerticalAlignment="Center" Margin="6,2"/>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="AccentBar" Property="Fill" Value="{StaticResource Accent}"/>
+                            <Setter TargetName="MainBorder" Property="Background" Value="#333333"/>
+                            <Setter Property="Foreground" Value="{StaticResource AccentForeground}"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="MainBorder" Property="Background" Value="{StaticResource MenuHover}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+
+    <!-- =========================== -->
+    <!-- DATA TEMPLATES              -->
+    <!-- =========================== -->
+
+    <!-- Commands Template - simple text template -->
+    <DataTemplate x:Key="CommandsTemplate">
+        <TextBlock Text="{Binding}" Foreground="{StaticResource MenuForeground}"/>
+    </DataTemplate>
+
+    <!-- Step Descriptor Template - for navigation steps with badges -->
+    <DataTemplate x:Key="StepDescriptorTemplate" DataType="{x:Type models:StepDescriptor}">
+        <RadioButton Style="{StaticResource MenuButtonTheme}"
+                     IsChecked="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected, Mode=TwoWay}"
+                     Margin="0,2,0,2">
+            <DockPanel LastChildFill="True">
+                <TextBlock Text="{Binding DisplayName}" 
+                           Foreground="{StaticResource MenuForeground}" 
+                           VerticalAlignment="Center" 
+                           DockPanel.Dock="Left"/>
+                <Border Background="{StaticResource Accent}" 
+                        CornerRadius="10" 
+                        Padding="6,2" 
+                        Margin="8,0,0,0" 
+                        VerticalAlignment="Center" 
+                        DockPanel.Dock="Right"
+                        Visibility="{Binding Badge, Converter={StaticResource BadgeToVisibilityConverter}}">
+                    <TextBlock Text="{Binding Badge}" 
+                               Foreground="White" 
+                               FontSize="12" 
+                               VerticalAlignment="Center"/>
+                </Border>
+            </DockPanel>
+        </RadioButton>
+    </DataTemplate>
+
+    <!-- Left Menu Item Template - simple badge template -->
+    <DataTemplate x:Key="LeftMenuItemTemplate">
+        <DockPanel Margin="6">
+            <TextBlock Text="{Binding Title}" 
+                       VerticalAlignment="Center" 
+                       Foreground="{StaticResource MutedTextBrush}"/>
+            <TextBlock DockPanel.Dock="Right" 
+                       Text="{Binding Badge}" 
+                       Foreground="{StaticResource AccentBrush}" 
+                       Margin="6,0,0,0"/>
+        </DockPanel>
+    </DataTemplate>
+
+</ResourceDictionary>

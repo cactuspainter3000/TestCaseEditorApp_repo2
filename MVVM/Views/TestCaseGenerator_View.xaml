@@ -1,0 +1,381 @@
+﻿<UserControl x:Class="TestCaseEditorApp.MVVM.Views.TestCaseGenerator_View"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
+             xmlns:local="clr-namespace:TestCaseEditorApp.MVVM.Views"
+             mc:Ignorable="d"
+             MinHeight="400" MinWidth="800"
+             HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+             d:DesignHeight="600" d:DesignWidth="900"
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    </UserControl.Resources>
+
+    <Grid Margin="8" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- toolbar (pills + actions) -->
+            <RowDefinition Height="*"/>
+            <!-- support content -->
+        </Grid.RowDefinitions>
+
+        <!-- toolbar: pills on the left, bulk actions on the right -->
+        <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,8">
+            <!-- left: pills -->
+            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+
+                <!-- Details pill -->
+                <ToggleButton Style="{StaticResource PillToggleStyle}"
+              IsChecked="{Binding IsMetaSelected, Mode=TwoWay}"
+              ToolTip="Requirement details and properties">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="Details" VerticalAlignment="Center" Margin="6,0"/>
+
+                        <Border Grid.Column="1">
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource BadgeStyle}">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <!-- bind to a boolean VM property instead of Count; use Hidden to keep layout -->
+                                        <DataTrigger Binding="{Binding HasMeta}" Value="False">
+                                            <Setter Property="Visibility" Value="Hidden"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+
+                            <TextBlock Text="{Binding VisibleChips.Count}"
+                 Foreground="White"
+                 FontSize="11"
+                 FontWeight="SemiBold"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 TextAlignment="Center"/>
+                        </Border>
+                    </Grid>
+                </ToggleButton>
+
+                <!-- Tables pill -->
+                <ToggleButton Style="{StaticResource PillToggleStyle}"
+              Margin="8,0,0,0"
+              IsChecked="{Binding IsTablesSelected, Mode=TwoWay}"
+              ToolTip="{Binding SelectedTableVMs.Count, StringFormat={}{0} tables}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="Tables" VerticalAlignment="Center" Margin="6,0"/>
+
+                        <Border Grid.Column="1">
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource BadgeStyle}">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasTables}" Value="False">
+                                            <Setter Property="Visibility" Value="Hidden"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+
+                            <TextBlock Text="{Binding SelectedTableVMs.Count}"
+                 Foreground="White"
+                 FontSize="11"
+                 FontWeight="SemiBold"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 TextAlignment="Center"/>
+                        </Border>
+                    </Grid>
+                </ToggleButton>
+
+                <!-- Paragraphs pill -->
+                <ToggleButton Style="{StaticResource PillToggleStyle}"
+              Margin="8,0,0,0"
+              IsChecked="{Binding IsParagraphsSelected, Mode=TwoWay}"
+              ToolTip="{Binding SelectedParagraphVMs.Count, StringFormat={}{0} paragraphs}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="Supplemental Info" VerticalAlignment="Center" Margin="6,0"/>
+
+                        <Border Grid.Column="1">
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource BadgeStyle}">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasParagraphs}" Value="False">
+                                            <Setter Property="Visibility" Value="Hidden"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+
+                            <TextBlock Text="{Binding SelectedParagraphVMs.Count}"
+                 Foreground="White"
+                 FontSize="11"
+                 FontWeight="SemiBold"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 TextAlignment="Center"/>
+                        </Border>
+                    </Grid>
+                </ToggleButton>
+
+            </StackPanel>
+
+            <!-- right: bulk actions (visible only when meaningful) -->
+            <StackPanel DockPanel.Dock="Right"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Visibility="{Binding BulkActionsVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                
+                <!-- Edit button (only for Supplemental Info view) -->
+                <Button Content="Edit"
+                        Command="{Binding EditSupplementalInfoCommand}"
+                        Margin="0,0,6,0"
+                        ToolTip="Edit supplemental information items"
+                        Style="{StaticResource PillActionButtonStyle}">
+                    <Button.Visibility>
+                        <Binding Path="IsParagraphsSelected" Converter="{StaticResource BoolToVisibilityConverter}"/>
+                    </Button.Visibility>
+                </Button>
+                
+                <Button Content="Select all"
+                        Command="{Binding SelectAllVisibleCommand}"
+                        Margin="0,0,6,0"
+                        ToolTip="Select all items in the current view"
+                        Style="{StaticResource PillActionButtonStyle}" />
+
+                <Button Content="Clear all"
+                        Command="{Binding ClearAllVisibleCommand}"
+                        ToolTip="Clear selection for all items in the current view"
+                        Style="{StaticResource PillActionButtonStyle}" />
+            </StackPanel>
+        </DockPanel>
+
+        <!-- support content area -->
+        <Border Grid.Row="1" Background="Transparent" CornerRadius="6" Padding="8" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
+            <ContentControl Content="{Binding}">
+                <ContentControl.Style>
+                    <Style TargetType="ContentControl">
+                        <Setter Property="ContentTemplate">
+                            <Setter.Value>
+                                <!-- Details template -->
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        
+                                        <StackPanel Grid.Row="0" Margin="8,0,8,0">
+                                            <!-- Core fields header bar -->
+                                            <Border Background="{DynamicResource MenuSectionBackground}" 
+                                                    CornerRadius="4" 
+                                                    Padding="10,6"
+                                                    Margin="0">
+                                                <ItemsControl ItemsSource="{Binding VisibleChips}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch" />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border BorderBrush="{DynamicResource CardBorderBrush}" 
+                                                                    BorderThickness="0,0,1,0" 
+                                                                    Padding="10,1"
+                                                                    Margin="0,0,10,0"
+                                                                    MinWidth="180">
+                                                                <Border.Style>
+                                                                    <Style TargetType="Border">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsCore}" Value="True">
+                                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Border.Style>
+                                                                <StackPanel>
+                                                                    <TextBlock Text="{Binding Label}" 
+                                                                               FontSize="9" 
+                                                                               Foreground="{DynamicResource AccentBrush}" 
+                                                                               Margin="0,0,0,1"/>
+                                                                    <TextBlock Text="{Binding Value}" 
+                                                                               FontSize="12" 
+                                                                               FontWeight="SemiBold">
+                                                                        <TextBlock.Style>
+                                                                            <Style TargetType="TextBlock">
+                                                                                <Setter Property="Foreground" Value="White"/>
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding Value}" Value="(not set)">
+                                                                                        <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
+                                                                                        <Setter Property="FontStyle" Value="Italic"/>
+                                                                                        <Setter Property="FontWeight" Value="Normal"/>
+                                                                                    </DataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </TextBlock.Style>
+                                                                    </TextBlock>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </Border>
+                                        </StackPanel>
+
+                                        <!-- Optional metadata pills (fixed grid) -->
+                                        <ItemsControl Grid.Row="1" ItemsSource="{Binding OptionalChips}" Margin="8,12,8,8">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <UniformGrid Columns="3" />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Padding="12,6" 
+                                                                Margin="0,0,10,6"
+                                                                Background="Transparent"
+                                                                BorderBrush="White"
+                                                                BorderThickness="0,1,0,1"
+                                                                Height="38">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                
+                                                                <!-- Label in column 0 -->
+                                                                <TextBlock Grid.Column="0"
+                                                                           Text="{Binding Label}" 
+                                                                           FontSize="10"
+                                                                           Foreground="{DynamicResource AccentBrush}"
+                                                                           VerticalAlignment="Top"
+                                                                           Margin="0,0,12,0"
+                                                                           TextTrimming="CharacterEllipsis"
+                                                                           ToolTip="{Binding Label}"/>
+                                                                
+                                                                <!-- Value in column 1, with top margin to offset it down -->
+                                                                <TextBlock Grid.Column="1"
+                                                                           Text="{Binding Value}" 
+                                                                           FontSize="12" 
+                                                                           FontWeight="SemiBold"
+                                                                           VerticalAlignment="Top"
+                                                                           Margin="0,6,0,0"
+                                                                           TextTrimming="CharacterEllipsis"
+                                                                           ToolTip="{Binding Value}">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Setter Property="Foreground" Value="White"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding Value}" Value="(not set)">
+                                                                                    <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
+                                                                                    <Setter Property="FontStyle" Value="Italic"/>
+                                                                                    <Setter Property="FontWeight" Value="Normal"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                        <!-- Date timeline (bottom border style) -->
+                                        <Border Grid.Row="2"
+                                                Background="{DynamicResource MenuBackground}" 
+                                                Padding="10,6"
+                                                BorderBrush="{DynamicResource AccentBrush}"
+                                                BorderThickness="0,2,0,0"
+                                                Margin="8,8,8,8">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding DateChips.Count}" Value="0">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <ItemsControl ItemsSource="{Binding DateChips}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal" />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,0,20,0">
+                                                            <TextBlock Text="●" 
+                                                                       Foreground="{DynamicResource AccentBrush}" 
+                                                                       FontSize="10"
+                                                                       Margin="0,0,6,0"
+                                                                       VerticalAlignment="Center"/>
+                                                            <TextBlock Foreground="#AAAAAA" 
+                                                                       FontSize="11"
+                                                                       VerticalAlignment="Center">
+                                                                <Run Text="{Binding Label}" FontWeight="SemiBold"/>
+                                                                <Run Text=": "/>
+                                                                <Run Text="{Binding Value}"/>
+                                                            </TextBlock>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Border>
+                                    </Grid>
+                                </DataTemplate>
+                            </Setter.Value>
+                        </Setter>
+
+                        <Style.Triggers>
+                            <!-- Tables: only the child control -->
+                            <DataTrigger Binding="{Binding SelectedSupportView}" Value="Tables">
+                                <Setter Property="ContentTemplate">
+                                    <Setter.Value>
+                                        <DataTemplate>
+                                            <local:TestCaseGenerator_TablesControl ShowLocalToolbar="False" />
+                                        </DataTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </DataTrigger>
+
+                            <!-- Paragraphs: only the child control -->
+                            <DataTrigger Binding="{Binding SelectedSupportView}" Value="Paragraphs">
+                                <Setter Property="ContentTemplate">
+                                    <Setter.Value>
+                                        <DataTemplate>
+                                            <local:TestCaseGenerator_ParagraphsControl ShowLocalToolbar="False" />
+                                        </DataTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ContentControl.Style>
+            </ContentControl>
+        </Border>
+    </Grid>
+</UserControl>

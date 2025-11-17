@@ -133,7 +133,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         // NEW: adapter that holds the requirements navigation VM for binding in the NavigationView.
-        // Set this from MainViewModel after you create the shared RequirementsNavigationService.
-        public RequirementsNavigationViewModel? RequirementsNav { get; set; }
+        // Set this from MainViewModel after you create the shared TestCaseGenerator_NavigationService.
+        public TestCaseGenerator_NavigationVM? RequirementsNav { get; set; }
     }
 }

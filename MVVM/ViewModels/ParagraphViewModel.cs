@@ -15,7 +15,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         // Whether this paragraph should be included in the LLM prompt
         [ObservableProperty]
-        private bool includeInPrompt;
+        private bool includeInPrompt = true;
 
         // Optional selection flag if you want inline actions on selection
         [ObservableProperty]

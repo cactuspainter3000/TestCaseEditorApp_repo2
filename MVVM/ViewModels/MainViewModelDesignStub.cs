@@ -21,13 +21,13 @@
             IsHotReloadAvailable = false;
 
             // Only the two placeholders requested:
-            TestCaseCreationSteps = new ObservableCollection<StepDescriptor>
+            TestCaseGeneratorSteps = new ObservableCollection<StepDescriptor>
             {
                 new StepDescriptor { DisplayName = "Test Case Generator", Badge = "" },
                 new StepDescriptor { DisplayName = "Test Flow Generator", Badge = "" }
             };
 
-            SelectedStep = TestCaseCreationSteps.Count > 0 ? TestCaseCreationSteps[0] : null;
+            SelectedStep = TestCaseGeneratorSteps.Count > 0 ? TestCaseGeneratorSteps[0] : null;
 
             SapStatus = "Disconnected (design)";
             SapForegroundStatus = new SolidColorBrush(Colors.Gray);
@@ -42,13 +42,13 @@
             // Use Activator.CreateInstance to avoid compile-time constructor matching errors.
             try
             {
-                // Pass a single null argument (will be mapped to the IRequirementsNavigator parameter if present).
-                var created = Activator.CreateInstance(typeof(RequirementsNavigationViewModel), new object[] { null }) as RequirementsNavigationViewModel;
+                // Pass a single null argument (will be mapped to the ITestCaseGenerator_Navigator parameter if present).
+                var created = Activator.CreateInstance(typeof(TestCaseGenerator_NavigationVM), new object[] { null }) as TestCaseGenerator_NavigationVM;
                 Navigation.RequirementsNav = created;
             }
             catch
             {
-                // ignore if RequirementsNavigationViewModel requires non-null services or throws in ctor
+                // ignore if TestCaseGenerator_NavigationVM requires non-null services or throws in ctor
             }
         }
 
@@ -73,7 +73,7 @@
         public ICommand HelpCommand => _noop;
 
         // Reduced step list used by the left menu (only the two placeholders)
-        public ObservableCollection<StepDescriptor> TestCaseCreationSteps { get; }
+        public ObservableCollection<StepDescriptor> TestCaseGeneratorSteps { get; }
 
         public StepDescriptor? SelectedStep { get; set; }
 

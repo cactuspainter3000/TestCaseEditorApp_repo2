@@ -30,10 +30,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\..\TestCaseEditorApp_Repo\TestCaseEditorApp\EditableDataControl\EditableDataControl.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
 	  <None Include="MVVM\ViewModels\MainViewModel.Bindings.cs" />
 	</ItemGroup>
 </Project>

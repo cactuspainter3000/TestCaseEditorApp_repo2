@@ -6,7 +6,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Windows;
-using TestCaseEditorApp.Session;          // SessionTableStore, TableSnapshot
+// using TestCaseEditorApp.Session;          // SessionTableStore, TableSnapshot - TODO: implement session persistence
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -86,7 +86,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             if (_hydratingFromSession) return;
             if (string.IsNullOrWhiteSpace(RequirementId) || string.IsNullOrWhiteSpace(TableKey)) return;
-            SessionLooseSelectionStore.SetTableSelected(RequirementId, TableKey, value);
+            // TODO: SessionLooseSelectionStore.SetTableSelected(RequirementId, TableKey, value);
         }
 
         public override string ToString() => Title ?? base.ToString();
@@ -144,12 +144,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             Title = (Title ?? string.Empty).Trim();
             IsModified = true;
 
-            if (!string.IsNullOrWhiteSpace(RequirementId) &&
-                !string.IsNullOrWhiteSpace(TableKey))
-            {
-                var snap = TableSnapshot.FromVM(Title, Columns, Rows);
-                SessionTableStore.Save(RequirementId, TableKey, snap);
-            }
+            // TODO: Session persistence
+            //if (!string.IsNullOrWhiteSpace(RequirementId) &&
+            //    !string.IsNullOrWhiteSpace(TableKey))
+            //{
+            //    var snap = TableSnapshot.FromVM(Title, Columns, Rows);
+            //    SessionTableStore.Save(RequirementId, TableKey, snap);
+            //}
             System.Diagnostics.Debug.WriteLine(
                 $"[SAVE][VM] {RequirementId} | {TableKey} | Rows={Rows?.Count} Cols={Columns?.Count} hash={SnapshotHash(Columns, Rows)}");
         }
@@ -190,22 +191,23 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _sessionHydratedOnce = true;
             _hydratingFromSession = true;
 
-            if (SessionTableStore.TryGet(RequirementId, TableKey, out var snap))
-            {
-                TableSnapshot.ApplyToVM(snap, Columns, Rows, out var newTitle);
-                if (!string.IsNullOrEmpty(newTitle)) Title = newTitle;
-                System.Diagnostics.Debug.WriteLine($"[LOAD] #{GetHashCode()} {RequirementId} | {TableKey} (found snapshot) hash={SnapshotHash(Columns, Rows)}");
-            }
-            else
-            {
+            // TODO: Session persistence
+            //if (SessionTableStore.TryGet(RequirementId, TableKey, out var snap))
+            //{
+            //    TableSnapshot.ApplyToVM(snap, Columns, Rows, out var newTitle);
+            //    if (!string.IsNullOrEmpty(newTitle)) Title = newTitle;
+            //    System.Diagnostics.Debug.WriteLine($"[LOAD] #{GetHashCode()} {RequirementId} | {TableKey} (found snapshot) hash={SnapshotHash(Columns, Rows)}");
+            //}
+            //else
+            //{
                 System.Diagnostics.Debug.WriteLine($"[LOAD] #{GetHashCode()} {RequirementId} | {TableKey} (no snapshot)");
-            }
+            //}
 
-            // selection hydrate
-            if (SessionLooseSelectionStore.TryGetTableSelected(RequirementId, TableKey, out var stored))
-                IsSelected = stored;
-            else
-                IsSelected = true;
+            // TODO: selection hydrate
+            // if (SessionLooseSelectionStore.TryGetTableSelected(RequirementId, TableKey, out var stored))
+            //     IsSelected = stored;
+            // else
+            IsSelected = true;
 
             _hydratingFromSession = false;
         }
@@ -232,17 +234,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 Rows.Add(nr);
             }
 
-            // Title comes from the editor’s VM; the dialog will set our Title after ApplyTo(...)
+            // Title comes from the editor's VM; the dialog will set our Title after ApplyTo(...)
             NormalizeRows();
             IsModified = true;
 
+            // TODO: Session persistence
             // 3) Persist to session so navigation (that reads session) sees updated content
-            if (!string.IsNullOrWhiteSpace(RequirementId) &&
-                !string.IsNullOrWhiteSpace(TableKey))
-            {
-                var snap = TableSnapshot.FromVM(Title, Columns, Rows);
-                SessionTableStore.Save(RequirementId, TableKey, snap);
-            }
+            //if (!string.IsNullOrWhiteSpace(RequirementId) &&
+            //    !string.IsNullOrWhiteSpace(TableKey))
+            //{
+            //    var snap = TableSnapshot.FromVM(Title, Columns, Rows);
+            //    SessionTableStore.Save(RequirementId, TableKey, snap);
+            //}
         }
     }
 }

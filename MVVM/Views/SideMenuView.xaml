@@ -11,37 +11,10 @@
 
     
 
-        <!-- Local resources: converters and small fallbacks to keep XAML designer happy -->
+        <!-- Local resources: converters only -->
     <UserControl.Resources>
         <conv:SectionSelectedConverter x:Key="SectionSelectedConverter" />
-        <conv:BoolToAngleConverter x:Key="BoolToAngleConverter" />
         <conv:AllTrueToVisibilityConverter x:Key="AllTrueToVisibilityConverter" />
-
-        <!-- Compact menu button style for side menu (fits in 200px width) -->
-        <Style x:Key="SideMenuPopupButtonStyle" TargetType="Button" BasedOn="{StaticResource MenuPopupButtonStyle}">
-            <Setter Property="MinWidth" Value="0"/>
-            <Setter Property="Padding" Value="8,6"/>
-            <Setter Property="FontSize" Value="13"/>
-        </Style>
-
-        <!-- Small Grid style used by item templates -->
-        <Style x:Key="StepItemGridStyle" TargetType="Grid">
-            <Setter Property="Margin" Value="0,2,0,2"/>
-        </Style>
-
-        <!-- Fallback StepDescriptorTemplate so this file compiles even if your app defines it elsewhere.
-             Replace/remove if you have a richer shared template in resources. -->
-        <DataTemplate x:Key="StepDescriptorTemplate">
-            <Grid Margin="2">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <TextBlock Text="{Binding DisplayName}" Foreground="White" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Text="{Binding Badge}" Foreground="DarkOrange" Margin="8,0,0,0" VerticalAlignment="Center"/>
-            </Grid>
-        </DataTemplate>
     </UserControl.Resources>
 
     <Border Style="{StaticResource MenuSectionBorderStyle}">
@@ -49,7 +22,7 @@
             <StackPanel>
 
                 <!-- Test Case Creator header -->
-                <ToggleButton x:Name="TestCaseCreatorToggle"
+                <ToggleButton x:Name="TestCaseGeneratorToggle"
                               Style="{StaticResource MenuHeaderToggleStyle}"
                               HorizontalAlignment="Stretch"
                               Cursor="Hand"
@@ -67,7 +40,7 @@
                         <Style TargetType="Border">
                             <Setter Property="Opacity" Value="0" />
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsChecked, ElementName=TestCaseCreatorToggle}" Value="True">
+                                <DataTrigger Binding="{Binding IsChecked, ElementName=TestCaseGeneratorToggle}" Value="True">
                                     <DataTrigger.EnterActions>
                                         <BeginStoryboard>
                                             <Storyboard>
@@ -93,12 +66,13 @@
 
                         <!-- Steps list -->
                         <ListBox x:Name="StepsListBox"
-             ItemsSource="{Binding TestCaseCreationSteps}"
+             ItemsSource="{Binding TestCaseGeneratorSteps}"
              SelectedItem="{Binding SelectedStep, Mode=TwoWay}"
              Background="Transparent"
              BorderThickness="0"
              SelectionMode="Single"
              Margin="0"
+             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
              d:ItemsSource="{d:SampleData ItemCount=5}"
              SelectionChanged="StepsListBox_SelectionChanged">
                             <!-- Fixed ListBox.ItemTemplate fragment -->
@@ -130,9 +104,9 @@
                                         <ToggleButton Grid.Column="1" 
                                                       IsChecked="{Binding IsFileMenuExpanded, Mode=TwoWay}"
                                                       Width="20" Height="20"
-                                                      Margin="0,0,6,0"
+                                                      Margin="0,0,4,0"
                                                       VerticalAlignment="Center"
-                                                      HorizontalAlignment="Right"
+                                                      HorizontalAlignment="Center"
                                                       Background="Transparent"
                                                       BorderThickness="0"
                                                       Cursor="Hand">
@@ -233,7 +207,14 @@
                                                 </Style.Triggers>
                                             </Style>
                                         </Border.Style>
-                                        <StackPanel Margin="8,6">
+                                        <StackPanel Margin="4,4">
+                                            <Button Command="{Binding DataContext.QuickImportCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                    Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                <TextBlock Text="⚡ Quick Import Decagon" TextWrapping="Wrap" FontWeight="Bold" />
+                                            </Button>
+                                            
+                                            <Separator Margin="0,3"/>
+                                            
                                             <Button Command="{Binding DataContext.ImportWordCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                     Style="{StaticResource SideMenuPopupButtonStyle}">
                                                 <TextBlock Text="Import New Requirements…" TextWrapping="Wrap" />
@@ -243,14 +224,14 @@
                                                 <TextBlock Text="Import In-Process…" TextWrapping="Wrap" />
                                             </Button>
 
-                                            <Separator Margin="0,4"/>
+                                            <Separator Margin="0,3"/>
 
                                             <Button Command="{Binding DataContext.SaveWorkspaceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                     Style="{StaticResource SideMenuPopupButtonStyle}">
                                                 <TextBlock Text="Save Workspace" />
                                             </Button>
 
-                                            <Separator Margin="0,4"/>
+                                            <Separator Margin="0,3"/>
 
                                             <Button Command="{Binding DataContext.ReloadCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                     Style="{StaticResource SideMenuPopupButtonStyle}">
@@ -259,10 +240,10 @@
 
                                             <Button Command="{Binding DataContext.ExportAllToJamaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                     Style="{StaticResource SideMenuPopupButtonStyle}">
-                                                <TextBlock Text="Export All to Jama…" TextWrapping="Wrap" />
+                                                <TextBlock Text="Export to Jama…" TextWrapping="Wrap" />
                                             </Button>
 
-                                            <Separator Margin="0,6"/>
+                                            <Separator Margin="0,4"/>
 
                                             <Button Command="{Binding DataContext.HelpCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                     Style="{StaticResource SideMenuPopupButtonStyle}">
@@ -366,7 +347,7 @@
 
                     <!-- Inline fallback item template used if your shared StepDescriptorTemplate is not present -->
                     <ListBox ItemsSource="{Binding TestFlowSteps}"
-                             SelectedItem="{Binding SelectedFlowStep, Mode=TwoWay}"
+                             SelectedItem="{Binding SelectedStep, Mode=TwoWay}"
                              Background="Transparent"
                              BorderThickness="0"
                              SelectionMode="Single"

@@ -23,9 +23,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             MenuButtonEnable = true;
 
             // Create the actual viewmodel instances for the three Test Case workspaces now, so we can read their counts
-            var requirementsVm = _services.GetRequiredService<RequirementsViewModel>();
-            var clarifyingVm = _services.GetRequiredService<ClarifyingQuestionsViewModel>();
-            var testCaseVm = _services.GetRequiredService<TestCaseCreationViewModel>();
+            var requirementsVm = _services.GetRequiredService<TestCaseGenerator_VM>();
+            var clarifyingVm = _services.GetRequiredService<TestCaseGenerator_QuestionsVM>();
+            var testCaseVm = _services.GetRequiredService<TestCaseGenerator_CreationVM>();
 
             //// Populate TestCaseCreationSteps and hook badges to the underlying collection counts
             //TestCaseCreationSteps = new ObservableCollection<StepDescriptor>
@@ -123,7 +123,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private StepDescriptor? FindById(string id)
         {
-            foreach (var s in TestCaseCreationSteps)
+            foreach (var s in TestCaseGeneratorSteps)
                 if (s.Id == id) return s;
             foreach (var s in RepairSteps)
                 if (s.Id == id) return s;
@@ -137,7 +137,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         // Groups mapped to corresponding left-menu sections
-        public ObservableCollection<StepDescriptor> TestCaseCreationSteps { get; }
+        public ObservableCollection<StepDescriptor> TestCaseGeneratorSteps { get; }
         public ObservableCollection<StepDescriptor> RepairSteps { get; }
         public ObservableCollection<StepDescriptor> ReportsSteps { get; }
         public ObservableCollection<StepDescriptor> GeneralSteps { get; }

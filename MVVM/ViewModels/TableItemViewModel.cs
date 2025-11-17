@@ -95,7 +95,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
 
             // Default selected
-            IsSelected = false;
+            IsSelected = true;
 
             // Command
             EditTableCommand = new RelayCommand(OnEditTable);
@@ -236,7 +236,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// <summary>
         /// Called after the editor commits. Kept for callers that expect an AfterEditCommit method.
         /// We don't modify the original SourceDto (its Rows are init-only) — persistence is done by calling ToDto()
-        /// and letting the owner VM (TestCaseGenViewModel) persist that DTO into the Requirement.
+        /// and letting the owner VM (TestCaseGenerator_CoreVM) persist that DTO into the Requirement.
         /// </summary>
         public void AfterEditCommit()
         {

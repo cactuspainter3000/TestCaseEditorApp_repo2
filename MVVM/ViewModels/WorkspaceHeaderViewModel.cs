@@ -43,6 +43,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty] private string? currentRequirementStatus;
 
         [ObservableProperty] private bool hasUnsavedChanges;
+        [ObservableProperty] private string? statusMessage;
 
         // --- Commands (settable so MainViewModel can wire them) ---
         // Exposed as IRelayCommand to allow wiring RelayCommand / AsyncRelayCommand wrappers from MainViewModel.

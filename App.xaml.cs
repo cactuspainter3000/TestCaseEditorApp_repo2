@@ -47,7 +47,7 @@ namespace TestCaseEditorApp
                     services.AddSingleton<IFileDialogService, FileDialogService>();
 
                     // ViewModels and header VM
-                    services.AddTransient<RequirementsViewModel>();
+                    services.AddTransient<TestCaseGenerator_VM>();
                     services.AddSingleton<WorkspaceHeaderViewModel>(); // workspace header shared instance
                     services.AddTransient<MainViewModel>();
                     services.AddTransient<NavigationViewModel>();

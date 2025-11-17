@@ -1,4 +1,4 @@
-﻿// Minimal interface for the LLM client used by ClarifyingQuestionsViewModel.
+﻿// Minimal interface for the LLM client used by TestCaseGenerator_QuestionsVM.
 // Implement this with your existing Ollama/OpenAI/LmStudio calling code.
 namespace TestCaseEditorApp.MVVM.Services
 {

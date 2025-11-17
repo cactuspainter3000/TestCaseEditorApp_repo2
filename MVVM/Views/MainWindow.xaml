@@ -24,16 +24,16 @@
 
         <!-- Put resources directly in Window.Resources (do NOT nest a ResourceDictionary element here) -->
 
-        <DataTemplate DataType="{x:Type vm:RequirementsViewModel}">
-            <views:RequirementsView />
+        <DataTemplate DataType="{x:Type vm:TestCaseGenerator_VM}">
+            <views:TestCaseGenerator_View />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type vm:ClarifyingQuestionsViewModel}">
-            <views:ClarifyingQuestionsView />
+        <DataTemplate DataType="{x:Type vm:TestCaseGenerator_QuestionsVM}">
+            <views:TestCaseGenerator_QuestionsView />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type vm:TestCaseCreationViewModel}">
-            <views:TestCaseCreationView />
+        <DataTemplate DataType="{x:Type vm:TestCaseGenerator_CreationVM}">
+            <views:TestCaseGenerator_CreationView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:WorkspaceHeaderViewModel}">
@@ -46,9 +46,9 @@
             </Border>
         </DataTemplate>
 
-        <!-- DataTemplate for TestCaseCreatorHeaderViewModel -->
-        <DataTemplate DataType="{x:Type vm:TestCaseCreatorHeaderViewModel}">
-            <views:TestCaseCreatorHeaderView />
+        <!-- DataTemplate for TestCaseGenerator_HeaderVM -->
+        <DataTemplate DataType="{x:Type vm:TestCaseGenerator_HeaderVM}">
+            <views:TestCaseGenerator_HeaderView />
         </DataTemplate>
 
         <DataTemplate x:Key="StepDescriptorTemplate" DataType="{x:Type models:StepDescriptor}">
@@ -181,7 +181,7 @@
 
             <!-- Navigation area: compact, responsive controls (keeps your original placement) -->
             <!-- Bottom requirement navigation (Grid.Column=2 Grid.Row=6) -->
-            <views:RequirementsNavigationControl
+            <views:TestCaseGenerator_NavigationControl
                 Grid.Column="2"
                 Grid.Row="6"
                 DataContext="{Binding RequirementsNavigator}"/>

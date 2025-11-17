@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -26,12 +26,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     /// <summary>
     /// Single-file MainViewModel implementation intended to be a drop-in replacement.
     /// - Uses CommunityToolkit's ObservableObject for property change helpers.
-    /// - Provides an IRequirementsNavigator implementation for navigation UI.
+    /// - Provides an ITestCaseGenerator_Navigator implementation for navigation UI.
     /// - Includes a DI-friendly constructor and a parameterless design-time constructor.
     /// - Minimal no-op service stubs are embedded so this file can compile standalone; remove them
     ///   if you already have implementations in the project.
     /// </summary>
-    public partial class MainViewModel : ObservableObject, IDisposable, IRequirementsNavigator
+    public partial class MainViewModel : ObservableObject, IDisposable, ITestCaseGenerator_Navigator
     {
         // --- Services / collaborators ---
         private readonly IRequirementService _requirementService;
@@ -49,7 +49,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public TitleBarViewModel TitleBar { get; }
 
         // Strongly-typed header instances
-        private TestCaseCreatorHeaderViewModel? _testCaseCreatorHeader;
+        private TestCaseGenerator_HeaderVM? _testCaseGeneratorHeader;
         private WorkspaceHeaderViewModel? _workspaceHeaderViewModel;
 
         // Active header slot: the UI binds to ActiveHeader (ContentControl Content="{Binding ActiveHeader}")
@@ -68,7 +68,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         // Also expose the test-case header explicitly when callers want it
-        public TestCaseCreatorHeaderViewModel? TestCaseCreatorHeader => _testCaseCreatorHeader;
+        public TestCaseGenerator_HeaderVM? TestCaseGeneratorHeader => _testCaseGeneratorHeader;
 
         // Navigation VM
         public NavigationViewModel Navigation { get; private set; }
@@ -151,7 +151,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ObservableCollection<string> LooseParagraphs => _looseParagraphs;
 
         // Steps UI
-        public ObservableCollection<StepDescriptor> TestCaseCreationSteps { get; } = new ObservableCollection<StepDescriptor>();
+        public ObservableCollection<StepDescriptor> TestCaseGeneratorSteps { get; } = new ObservableCollection<StepDescriptor>();
 
         // Test Flow steps (from side menu)
         public ObservableCollection<StepDescriptor> TestFlowSteps { get; } = new ObservableCollection<StepDescriptor>();
@@ -197,8 +197,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Timer for transient status messages
         private DispatcherTimer? _statusTimer;
 
-        // Minimal test case generator placeholder used by RequirementsViewModel instances
-        private TestCaseGenViewModel? _testCaseGenerator = new TestCaseGenViewModel();
+        // Minimal test case generator placeholder used by TestCaseGenerator_VM instances
+        private TestCaseGenerator_CoreVM? _testCaseGenerator = new TestCaseGenerator_CoreVM();
 
         // header adapter for test-case-creator UI
         private INotifyPropertyChanged? _linkedTestCaseGeneratorInpc;
@@ -210,6 +210,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand PreviousRequirementCommand { get; }
         public ICommand NextWithoutTestCaseCommand { get; }
         public IAsyncRelayCommand ImportWordCommand { get; private set; }
+        public IAsyncRelayCommand QuickImportCommand { get; private set; }
         public ICommand LoadWorkspaceCommand { get; private set; }
         public ICommand SaveWorkspaceCommand { get; private set; }
         public ICommand ReloadCommand { get; private set; }
@@ -230,7 +231,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
         }
 
-        // WrapOnNextWithoutTestCase required by IRequirementsNavigator
+        // WrapOnNextWithoutTestCase required by ITestCaseGenerator_Navigator
         private bool _wrapOnNextWithoutTestCase;
         public bool WrapOnNextWithoutTestCase
         {
@@ -281,25 +282,25 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             TitleBar = new TitleBarViewModel();
 
             // Initialize header instances
-            _testCaseCreatorHeader = new TestCaseCreatorHeaderViewModel { TitleText = "Test Case Creator" };
+            _testCaseGeneratorHeader = new TestCaseGenerator_HeaderVM { TitleText = "Test Case Creator" };
 
-            if (_testCaseCreatorHeader != null)
+            if (_testCaseGeneratorHeader != null)
             {
-                _testCaseCreatorHeader.RequirementDescription = "DIAG: description visible";
-                _testCaseCreatorHeader.RequirementMethod = "DIAG: method (string)";
+                _testCaseGeneratorHeader.RequirementDescription = "DIAG: description visible";
+                _testCaseGeneratorHeader.RequirementMethod = "DIAG: method (string)";
                 // If the VM exposes RequirementMethodEnum and you don't know the enum type,
                 // set it via reflection to the first enum value (best-effort):
-                var prop = _testCaseCreatorHeader.GetType().GetProperty("RequirementMethodEnum");
+                var prop = _testCaseGeneratorHeader.GetType().GetProperty("RequirementMethodEnum");
                 if (prop != null)
                 {
                     var enumType = prop.PropertyType;
                     if (enumType.IsEnum)
                     {
                         var first = Enum.GetValues(enumType).GetValue(0);
-                        prop.SetValue(_testCaseCreatorHeader, first);
+                        prop.SetValue(_testCaseGeneratorHeader, first);
                     }
                 }
-                ActiveHeader = _testCaseCreatorHeader; // ensure it's visible while debugging
+                ActiveHeader = _testCaseGeneratorHeader; // ensure it's visible while debugging
             }
 
             // Default active header is workspace header
@@ -311,6 +312,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             // Initialize/ensure Import command exists before wiring header (so both menu and header share the same command)
             ImportWordCommand = ImportWordCommand ?? new AsyncRelayCommand(ImportWordAsync);
+            QuickImportCommand = new AsyncRelayCommand(QuickImportAsync);
             LoadWorkspaceCommand = new RelayCommand(() => TryInvokeLoadWorkspace());
             SaveWorkspaceCommand = new RelayCommand(() => TryInvokeSaveWorkspace());
             ReloadCommand = new AsyncRelayCommand(ReloadAsync);
@@ -351,7 +353,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private void InitializeSteps()
         {
-            TestCaseCreationSteps.Add(new StepDescriptor
+            TestCaseGeneratorSteps.Add(new StepDescriptor
             {
                 Id = "requirements",
                 DisplayName = "Requirements",
@@ -359,13 +361,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 HasFileMenu = true,
                 CreateViewModel = svc =>
                 {
-                    var vm = new RequirementsViewModel(_persistence, this);
+                    var vm = new TestCaseGenerator_VM(_persistence, this);
                     vm.TestCaseGenerator = _testCaseGenerator;
                     return vm;
                 }
             });
 
-            TestCaseCreationSteps.Add(new StepDescriptor
+            TestCaseGeneratorSteps.Add(new StepDescriptor
             {
                 Id = "clarifying-questions",
                 DisplayName = "Clarifying Questions",
@@ -374,21 +376,21 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 CreateViewModel = svc =>
                 {
                     var llm = TestCaseEditorApp.Services.LlmFactory.Create();
-                    return new ClarifyingQuestionsViewModel(_persistence, llm, _testCaseCreatorHeader);
+                    return new TestCaseGenerator_QuestionsVM(_persistence, llm, _testCaseGeneratorHeader);
                 }
                 
             });
 
-            TestCaseCreationSteps.Add(new StepDescriptor
+            TestCaseGeneratorSteps.Add(new StepDescriptor
             {
                 Id = "testcase-creation",
-                DisplayName = "Test Case Creation",
+                DisplayName = "Test Case Generator",
                 Badge = string.Empty,
                 HasFileMenu = false,
-                CreateViewModel = svc => new TestCaseCreationViewModel()
+                CreateViewModel = svc => new TestCaseGenerator_CreationVM()
             });
 
-            SelectedStep = TestCaseCreationSteps.FirstOrDefault(s => s.CreateViewModel != null);
+            SelectedStep = TestCaseGeneratorSteps.FirstOrDefault(s => s.CreateViewModel != null);
         }
 
         // SelectedStep property
@@ -413,7 +415,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     var created = value.CreateViewModel(_services);
                     CurrentStepViewModel = created;
 
-                    if (created is RequirementsViewModel reqVm)
+                    if (created is TestCaseGenerator_VM reqVm)
                     {
                         reqVm.TestCaseGenerator = _testCaseGenerator;
                     }
@@ -448,7 +450,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     || string.Equals(value, "Test Case Creator", StringComparison.OrdinalIgnoreCase)
                     || (value?.IndexOf("Test", StringComparison.OrdinalIgnoreCase) >= 0))
                 {
-                    CreateAndAssignTestCaseCreatorHeader();
+                    // Defer expensive initialization to allow UI animation to start immediately
+                    System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(
+                        new Action(() => CreateAndAssignTestCaseGeneratorHeader()),
+                        System.Windows.Threading.DispatcherPriority.Background);
                     return;
                 }
 
@@ -482,12 +487,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             ActiveHeader = _workspaceHeaderViewModel;
         }
 
-        private void CreateAndAssignTestCaseCreatorHeader()
+        private void CreateAndAssignTestCaseGeneratorHeader()
         {
-            if (_testCaseCreatorHeader == null)
-                _testCaseCreatorHeader = new TestCaseCreatorHeaderViewModel();
+            if (_testCaseGeneratorHeader == null)
+                _testCaseGeneratorHeader = new TestCaseGenerator_HeaderVM();
 
-            var ctx = new TestCaseCreatorHeaderContext
+            var ctx = new TestCaseGenerator_HeaderContext
             {
                 WorkspaceName = string.IsNullOrWhiteSpace(WorkspacePath) ? string.Empty : Path.GetFileName(WorkspacePath),
                 Requirements = this.Requirements,
@@ -502,12 +507,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 SaveCommand = new RelayCommand(() => TryInvokeSaveWorkspace())
             };
 
-            _testCaseCreatorHeader.Initialize(ctx);
-            _testCaseCreatorHeader.AttachConnectionManager();
-            _testCaseCreatorHeader.IsLlmBusy = false;
+            _testCaseGeneratorHeader.Initialize(ctx);
+            _testCaseGeneratorHeader.AttachConnectionManager();
+            _testCaseGeneratorHeader.IsLlmBusy = false;
 
             // assign active header
-            ActiveHeader = _testCaseCreatorHeader;
+            ActiveHeader = _testCaseGeneratorHeader;
 
             // ensure probe exists
             if (_llmProbeService == null)
@@ -533,11 +538,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     _requirementsCollectionHooked = true;
                 }
 
-                _testCaseCreatorHeader?.UpdateRequirements(Requirements);
+                _testCaseGeneratorHeader?.UpdateRequirements(Requirements);
 
-                if (_testCaseCreatorHeader != null)
+                if (_testCaseGeneratorHeader != null)
                 {
-                    _testCaseCreatorHeader.SetCurrentRequirement(CurrentRequirement);
+                    _testCaseGeneratorHeader.SetCurrentRequirement(CurrentRequirement);
                 }
             }
             catch { /* swallow */ }
@@ -566,20 +571,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             try
             {
-                _testCaseCreatorHeader?.UpdateRequirements(Requirements);
+                _testCaseGeneratorHeader?.UpdateRequirements(Requirements);
             }
             catch { /* swallow */ }
         }
 
         private void LlmConnectionManager_ConnectionChanged(bool connected)
         {
-            if (_testCaseCreatorHeader == null) return;
-            try { _testCaseCreatorHeader.IsLlmConnected = connected; } catch { }
+            if (_testCaseGeneratorHeader == null) return;
+            try { _testCaseGeneratorHeader.IsLlmConnected = connected; } catch { }
         }
 
         private void TestCaseGenerator_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (_testCaseCreatorHeader == null) return;
+            if (_testCaseGeneratorHeader == null) return;
 
             if (string.Equals(e.PropertyName, "IsLlmAvailable", StringComparison.Ordinal)
                 || string.Equals(e.PropertyName, "IsLlmBusy", StringComparison.Ordinal))
@@ -601,7 +606,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     }
                     catch { connected = false; }
 
-                    _testCaseCreatorHeader.IsLlmConnected = connected;
+                    _testCaseGeneratorHeader.IsLlmConnected = connected;
                 }
                 catch { /* swallow */ }
             }
@@ -617,7 +622,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 foreach (Requirement r in e.NewItems) TryWireRequirementForHeader(r);
             }
-            _testCaseCreatorHeader?.UpdateRequirements(Requirements);
+            _testCaseGeneratorHeader?.UpdateRequirements(Requirements);
         }
 
         private void TryWireRequirementForHeader(Requirement? r)
@@ -637,13 +642,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             if (e.PropertyName == nameof(Requirement.CurrentResponse) ||
                 e.PropertyName == nameof(Requirement.GeneratedTestCases))
             {
-                _testCaseCreatorHeader?.UpdateRequirements(Requirements);
+                _testCaseGeneratorHeader?.UpdateRequirements(Requirements);
             }
         }
 
-        private void UpdateTestCaseCreatorHeaderFromState()
+        private void UpdateTestCaseGeneratorHeaderFromState()
         {
-            var h = _testCaseCreatorHeader;
+            var h = _testCaseGeneratorHeader;
             if (h == null) return;
 
             try
@@ -709,7 +714,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             try
             {
-                var reqStep = TestCaseCreationSteps.FirstOrDefault(s => string.Equals(s.Id, "requirements", StringComparison.OrdinalIgnoreCase));
+                var reqStep = TestCaseGeneratorSteps.FirstOrDefault(s => string.Equals(s.Id, "requirements", StringComparison.OrdinalIgnoreCase));
                 if (reqStep != null) SelectedStep = reqStep;
                 SelectedMenuSection = "Requirements";
                 TryInvokeSetTransientStatus("Opened requirements.", 2);
@@ -918,6 +923,52 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private void CommitPendingEdits() => Keyboard.ClearFocus();
 
         // --- Import / Save / Load implementations ---
+        public async Task QuickImportAsync()
+        {
+            const string fixedSourcePath = @"C:\Users\e10653214\Downloads\Decagon_Boundary Scan.docx";
+            const string fixedDestinationFolder = @"C:\Users\e10653214\Desktop";
+
+            if (!File.Exists(fixedSourcePath))
+            {
+                SetTransientStatus($"Source file not found: {fixedSourcePath}", 3);
+                return;
+            }
+
+            // Import from fixed source
+            await ImportFromPathAsync(fixedSourcePath, replace: true);
+
+            // Auto-save to fixed destination
+            if (Requirements == null || Requirements.Count == 0)
+            {
+                SetTransientStatus("Nothing to save after import.", 2);
+                return;
+            }
+
+            var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+            var guid = Guid.NewGuid().ToString("N").Substring(0, 8);
+            var fileName = $"Decagon_Boundary Scan_{timestamp}_{guid}.tcex.json";
+            var fullPath = Path.Combine(fixedDestinationFolder, fileName);
+
+            try
+            {
+                WorkspacePath = fullPath;
+                var ws = new Workspace
+                {
+                    SourceDocPath = CurrentSourcePath,
+                    Requirements = Requirements.ToList()
+                };
+
+                WorkspaceService.Save(WorkspacePath!, ws);
+                CurrentWorkspace = ws;
+                HasUnsavedChanges = false;
+                SetTransientStatus($"Quick import complete: {fileName}", 5);
+            }
+            catch (Exception ex)
+            {
+                SetTransientStatus($"Save failed: {ex.Message}", 5);
+            }
+        }
+
         public async Task ImportWordAsync()
         {
             var dlg = new OpenFileDialog
@@ -1026,7 +1077,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 CurrentRequirement = firstFromView ?? Requirements.FirstOrDefault();
                 CurrentSourcePath = ws.SourceDocPath;
-                SetTransientStatus($"Opened workspace: {Path.GetFileName(WorkspacePath)} • {Requirements.Count} requirements", 4);
+                SetTransientStatus($"Opened workspace: {Path.GetFileName(WorkspacePath)} � {Requirements.Count} requirements", 4);
                 HasUnsavedChanges = false;
             }
             catch (Exception ex)
@@ -1110,9 +1161,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 HookNewRequirement(newValue);
 
                 // Update header(s)
-                if (_testCaseCreatorHeader != null && ActiveHeader == _testCaseCreatorHeader)
+                if (_testCaseGeneratorHeader != null && ActiveHeader == _testCaseGeneratorHeader)
                 {
-                    _testCaseCreatorHeader.SetCurrentRequirement(newValue);
+                    _testCaseGeneratorHeader.SetCurrentRequirement(newValue);
 
                     return;
                 }
@@ -1156,10 +1207,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 // Clear both headers defensively when no requirement
                 try
                 {
-                    if (_testCaseCreatorHeader != null)
+                    if (_testCaseGeneratorHeader != null)
                     {
-                        _testCaseCreatorHeader.RequirementDescription = string.Empty;
-                        _testCaseCreatorHeader.RequirementMethod = string.Empty;
+                        _testCaseGeneratorHeader.RequirementDescription = string.Empty;
+                        _testCaseGeneratorHeader.RequirementMethod = string.Empty;
                     }
                 }
                 catch { }
@@ -1180,19 +1231,19 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // 1) Update the test-case header instance if it exists (always, regardless of ActiveHeader)
             try
             {
-                if (_testCaseCreatorHeader != null)
+                if (_testCaseGeneratorHeader != null)
                 {
-                    _testCaseCreatorHeader.RequirementDescription = description;
-                    _testCaseCreatorHeader.RequirementMethod = methodStr;
-                    _testCaseCreatorHeader.RequirementMethodEnum = req.Method;
-                    _testCaseCreatorHeader.CurrentRequirementName = req.Name ?? req.Item ?? string.Empty;
-                    _testCaseCreatorHeader.CurrentRequirementSummary = ShortSummary(req.Description);
-                    System.Diagnostics.Debug.WriteLine($"[ForwardReq] wrote to _testCaseCreatorHeader: Method='{methodStr}'");
+                    _testCaseGeneratorHeader.RequirementDescription = description;
+                    _testCaseGeneratorHeader.RequirementMethod = methodStr;
+                    _testCaseGeneratorHeader.RequirementMethodEnum = req.Method;
+                    _testCaseGeneratorHeader.CurrentRequirementName = req.Name ?? req.Item ?? string.Empty;
+                    _testCaseGeneratorHeader.CurrentRequirementSummary = ShortSummary(req.Description);
+                    System.Diagnostics.Debug.WriteLine($"[ForwardReq] wrote to _testCaseGeneratorHeader: Method='{methodStr}'");
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[ForwardReq] failed writing to _testCaseCreatorHeader: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[ForwardReq] failed writing to _testCaseGeneratorHeader: {ex.Message}");
             }
 
             // 2) Update the workspace header instance if it exists
@@ -1216,7 +1267,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             try
             {
                 var header = ActiveHeader;
-                if (header != null && header != _testCaseCreatorHeader && header != _workspaceHeaderViewModel)
+                if (header != null && header != _testCaseGeneratorHeader && header != _workspaceHeaderViewModel)
                 {
                     var t = header.GetType();
                     void TrySet(string propName, object? val)
@@ -1299,7 +1350,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 WorkspacePath = FileNameHelper.EnsureUniquePath(Path.GetDirectoryName(chosen)!, Path.GetFileName(chosen));
 
-                SetTransientStatus($"Importing {Path.GetFileName(path)}…", 0);
+                SetTransientStatus($"Importing {Path.GetFileName(path)}�", 0);
                 _logger?.LogInformation("Starting import of '{Path}'", path);
 
                 var sw = Stopwatch.StartNew();
@@ -1348,7 +1399,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 _requirementsNavigator?.NotifyCurrentRequirementChanged();
 
-                SetTransientStatus($"💾 Workspace created • {Requirements?.Count ?? 0} requirement(s)", 6);
+                SetTransientStatus($"?? Workspace created � {Requirements?.Count ?? 0} requirement(s)", 6);
                 _logger?.LogInformation("final status: {StatusMessage}", StatusMessage);
             }
             catch (Exception ex)
@@ -1371,11 +1422,26 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private void SetTransientStatus(string message, int seconds = 3)
         {
             StatusMessage = message;
+            
+            // Also update workspace header if it exists
+            if (_workspaceHeaderViewModel != null)
+            {
+                _workspaceHeaderViewModel.StatusMessage = message;
+            }
+            
             try { _statusTimer?.Stop(); } catch { }
             if (seconds > 0)
             {
                 _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(seconds) };
-                _statusTimer.Tick += (_, __) => { try { _statusTimer?.Stop(); } catch { } StatusMessage = null; };
+                _statusTimer.Tick += (_, __) => 
+                { 
+                    try { _statusTimer?.Stop(); } catch { } 
+                    StatusMessage = null;
+                    if (_workspaceHeaderViewModel != null)
+                    {
+                        _workspaceHeaderViewModel.StatusMessage = null;
+                    }
+                };
                 _statusTimer.Start();
             }
         }
@@ -1451,7 +1517,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                                        .FirstOrDefault() ?? description;
             firstLine = firstLine.Trim();
             if (firstLine.Length <= maxLength) return firstLine;
-            return firstLine.Substring(0, maxLength).Trim() + "…";
+            return firstLine.Substring(0, maxLength).Trim() + "�";
         }
 
         // Simple service provider stub
@@ -1501,10 +1567,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _llmProbeService = null;
         }
 
-        // Explicit IRequirementsNavigator implementations (map to public ICommand props)
-        ICommand? IRequirementsNavigator.NextRequirementCommand => this.NextRequirementCommand;
-        ICommand? IRequirementsNavigator.PreviousRequirementCommand => this.PreviousRequirementCommand;
-        ICommand? IRequirementsNavigator.NextWithoutTestCaseCommand => this.NextWithoutTestCaseCommand;
+        // Explicit ITestCaseGenerator_Navigator implementations (map to public ICommand props)
+        ICommand? ITestCaseGenerator_Navigator.NextRequirementCommand => this.NextRequirementCommand;
+        ICommand? ITestCaseGenerator_Navigator.PreviousRequirementCommand => this.PreviousRequirementCommand;
+        ICommand? ITestCaseGenerator_Navigator.NextWithoutTestCaseCommand => this.NextWithoutTestCaseCommand;
 
         // Current workspace (public for other parts of app)
         public Workspace? CurrentWorkspace { get; set; }

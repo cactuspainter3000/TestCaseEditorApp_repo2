@@ -196,11 +196,31 @@ namespace TestCaseEditorApp.Import
                                     blockIdx))
                             {
                                 // If we split a fused table, assign a title from the preceding paragraph (if present)
+                                // BUT: don't steal the paragraph if it's the first one after a header (that's likely the description)
                                 if (fusedSupporting.Count > 0)
                                 {
                                     var hasCandidate = preludeParagraphs.Count > 0;
                                     var candidate = hasCandidate ? preludeParagraphs[^1] : null;
-                                    if (!string.IsNullOrWhiteSpace(candidate) && IsLikelyTableTitle(candidate))
+                                    
+                                    // Find if there's a header in the prelude
+                                    int tempHeaderIdx = -1;
+                                    for (int i = preludeParagraphs.Count - 1; i >= 0; i--)
+                                    {
+                                        if (TryParseHeader(preludeParagraphs[i], out var _))
+                                        {
+                                            tempHeaderIdx = i;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    // Only use the candidate as a title if:
+                                    // 1. It looks like a title, AND
+                                    // 2. It's NOT the first paragraph right after a header (which would be the description)
+                                    bool canUseAsTitle = !string.IsNullOrWhiteSpace(candidate) 
+                                                        && IsLikelyTableTitle(candidate)
+                                                        && (tempHeaderIdx < 0 || preludeParagraphs.Count - 1 > tempHeaderIdx + 1);
+                                    
+                                    if (canUseAsTitle)
                                     {
                                         fusedSupporting[0].EditableTitle = StripTrailingColon(candidate);
                                         if (hasCandidate) preludeParagraphs.RemoveAt(preludeParagraphs.Count - 1); // prevent leakage into Supporting Info
@@ -276,10 +296,30 @@ namespace TestCaseEditorApp.Import
                             else
                             {
                                 // Not a KV table → treat as supporting; try to derive a title from the immediately preceding paragraph
+                                // BUT: don't steal the paragraph if it's the first one after a header (that's likely the description)
                                 var loose = ReadLooseTable(t);
                                 var hasCandidate = preludeParagraphs.Count > 0;
                                 var candidate = hasCandidate ? preludeParagraphs[^1] : null;
-                                if (!string.IsNullOrWhiteSpace(candidate) && IsLikelyTableTitle(candidate))
+                                
+                                // Find if there's a header in the prelude
+                                int headerIdx = -1;
+                                for (int i = preludeParagraphs.Count - 1; i >= 0; i--)
+                                {
+                                    if (TryParseHeader(preludeParagraphs[i], out var _))
+                                    {
+                                        headerIdx = i;
+                                        break;
+                                    }
+                                }
+                                
+                                // Only use the candidate as a title if:
+                                // 1. It looks like a title, AND
+                                // 2. It's NOT the first paragraph right after a header (which would be the description)
+                                bool canUseAsTitle = !string.IsNullOrWhiteSpace(candidate) 
+                                                    && IsLikelyTableTitle(candidate)
+                                                    && (headerIdx < 0 || preludeParagraphs.Count - 1 > headerIdx + 1);
+                                
+                                if (canUseAsTitle)
                                 {
                                     loose.EditableTitle = StripTrailingColon(candidate);
                                     if (hasCandidate) preludeParagraphs.RemoveAt(preludeParagraphs.Count - 1); // prevent title leakage

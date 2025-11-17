@@ -11,7 +11,7 @@ using TestCaseEditorApp.Services;
 namespace TestCaseEditorApp.MVVM.Utils
 {
     /// <summary>
-    /// Parsing helpers (extracted/ported from the original TestCaseGenViewModel).
+    /// Parsing helpers (extracted/ported from the original TestCaseGenerator_CoreVM).
     /// - Preclean: remove fences/labels and trim.
     /// - ParseQuestions: JSON-first tolerant parser -> List<ClarifyingQuestionVM>.
     /// - TryParseJsonQuestions: strict JSON parser for the questions contract.

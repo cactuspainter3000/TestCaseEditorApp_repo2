@@ -4,7 +4,7 @@ namespace TestCaseEditorApp.Services
 {
     /// <summary>
     /// Simple, process-wide manager for LLM connection status.
-    /// Call SetConnected(true/false) from your LLM integration (Ollama/OpenAI/LmStudio or TestCaseGenViewModel).
+    /// Call SetConnected(true/false) from your LLM integration (Ollama/OpenAI/LmStudio or TestCaseGenerator_CoreVM).
     /// Consumers subscribe to ConnectionChanged to be notified.
     /// </summary>
     public static class LlmConnectionManager

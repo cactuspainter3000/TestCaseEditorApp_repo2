@@ -54,6 +54,8 @@ namespace TestCaseEditorApp.MVVM.Views
 
             // 4) Clone rows using the normalized editor keys
             var eRows = new ObservableCollection<EditableDataControl.ViewModels.TableRowModel>();
+            System.Diagnostics.Debug.WriteLine($"\n=== Cloning {_provider.Rows.Count} rows ===");
+            int rowIdx = 0;
             foreach (var r in _provider.Rows)
             {
                 var er = new EditableDataControl.ViewModels.TableRowModel();
@@ -61,16 +63,23 @@ namespace TestCaseEditorApp.MVVM.Views
                 {
                     var val = TryGetCellValue(r, km.SourceKey) ?? "";
                     er[km.EditorKey] = val;
+                    System.Diagnostics.Debug.WriteLine($"  Row {rowIdx}, Key '{km.EditorKey}' = '{val}'");
                 }
                 eRows.Add(er);
+                rowIdx++;
             }
 
             // 5) Create VM and bind (use the disambiguated alias)
+            System.Diagnostics.Debug.WriteLine($"\n=== Creating VM with {eCols.Count} columns and {eRows.Count} rows ===");
             var vm = EditorVm.From(_provider.Title, eCols, eRows);
-            DataContext = vm;
-
-            // explicit assignment to ensure the templated control definitely receives the VM
+            System.Diagnostics.Debug.WriteLine($"VM created: Columns={vm.Columns.Count}, Rows={vm.Rows.Count}");
+            
+            // Set the EditorViewModel property - binding will handle the rest
             EditorControl.EditorViewModel = vm;
+            System.Diagnostics.Debug.WriteLine($"Set EditorControl.EditorViewModel to VM with {vm.Rows.Count} rows");
+            
+            // Also set window DataContext for consistency
+            DataContext = vm;
 
             if (owner != null) Owner = owner;
         }

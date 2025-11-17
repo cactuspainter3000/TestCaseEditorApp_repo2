@@ -23,7 +23,14 @@
             <TextBlock Text=")" VerticalAlignment="Center" Margin="4,0,0,0"/>
         </StackPanel>
 
-        <!-- Right: intentionally left empty (action buttons removed) -->
-        <!-- If you want small status indicators (e.g., IsLlmConnected) show them here. -->
+        <!-- Right: Status message display -->
+        <TextBlock DockPanel.Dock="Right" 
+                   Text="{Binding StatusMessage}" 
+                   VerticalAlignment="Center" 
+                   Margin="12,0,0,0"
+                   Foreground="#FFB8B8B8"
+                   FontStyle="Italic"
+                   TextTrimming="CharacterEllipsis"
+                   MaxWidth="250"/>
     </DockPanel>
 </UserControl>

@@ -4,18 +4,24 @@
              xmlns:conv="clr-namespace:TestCaseEditorApp.MVVM.Converters">
     <Application.Resources>
         <ResourceDictionary>
-            <!-- Register the converter here so {StaticResource BoolToVisibilityConverter} is available app-wide -->
+            <!-- Register converters here so they're available app-wide -->
             <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" CollapseWhenFalse="True" />
 
             <ResourceDictionary.MergedDictionaries>
-                <!-- existing merged dictionaries -->
-                <ResourceDictionary Source="/EditableDataControl;component/Themes/Generic.xaml" />
+                <!-- EditableDataControl template -->
+                <ResourceDictionary Source="/TestCaseEditorApp;component/MVVM/Controls/EditableDataControl/Themes/Generic.xaml" />
+                
+                <!-- Core styles (order matters: Colors → Styles → Templates) -->
+                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/Colors.xaml" />
+                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/ButtonStyles.xaml" />
+                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/TextStyles.xaml" />
+                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/ContainerStyles.xaml" />
+                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/InputStyles.xaml" />
+                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/ListStyles.xaml" />
+                
+                <!-- Legacy resource files (keep for now for backwards compatibility) -->
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/MainWindowResources.xaml" />
-                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/ComboBoxStyles.xaml" />
-                <ResourceDictionary Source="Resources/MenuTemplates.xaml" />
-                <ResourceDictionary Source="Resources/CommonHeaderResources.xaml" />
-                <!-- add your shared styles file -->
-                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/SharedStyles.xaml" />
+                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/MenuTemplates.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
