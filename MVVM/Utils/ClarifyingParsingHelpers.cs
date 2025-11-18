@@ -42,6 +42,29 @@ namespace TestCaseEditorApp.MVVM.Utils
         }
 
         /// <summary>
+        /// Clean question text that may contain embedded JSON patterns
+        /// </summary>
+        private static string CleanQuestionText(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return text;
+
+            // Pattern: Starts with or contains JSON object like {"text":"actual question", ...}
+            // Extract just the "text" field value
+            if (text.Contains("{") && text.Contains("\"text\""))
+            {
+                // Try to extract the text field value
+                var textFieldPattern = new Regex(@"""text""\s*:\s*""([^""]+)""", RegexOptions.IgnoreCase);
+                var match = textFieldPattern.Match(text);
+                if (match.Success)
+                {
+                    return match.Groups[1].Value.Trim();
+                }
+            }
+
+            return text;
+        }
+
+        /// <summary>
         /// Parse clarifying questions from arbitrary LLM text using tolerant, JSON-first approach.
         /// Returns an empty list when none found.
         /// </summary>
@@ -62,11 +85,48 @@ namespace TestCaseEditorApp.MVVM.Utils
             if (looksJson)
             {
                 if (TryParseJsonQuestions(llmText, out var jsonQs) && jsonQs.Count > 0)
+                {
+                    // Clean each question text in case they contain embedded JSON
+                    foreach (var q in jsonQs)
+                    {
+                        q.Text = CleanQuestionText(q.Text);
+                    }
                     return jsonQs;
+                }
 
                 var arrSlice = ExtractFirstJsonArray(llmText);
                 if (!string.IsNullOrWhiteSpace(arrSlice) && TryParseJsonQuestions(arrSlice, out var retry) && retry.Count > 0)
+                {
+                    // Clean each question text in case they contain embedded JSON
+                    foreach (var q in retry)
+                    {
+                        q.Text = CleanQuestionText(q.Text);
+                    }
                     return retry;
+                }
+            }
+
+            // If JSON parsing failed, check for malformed single question patterns
+            // Only try this if we didn't find a valid JSON array
+            var cleaned = CleanQuestionText(llmText);
+            
+            // If cleaning extracted a simple question (no JSON markers), return it
+            if (cleaned != llmText && !cleaned.Contains("[") && !cleaned.Contains("{") && cleaned.Contains("?"))
+            {
+                results.Add(new ClarifyingQuestionVM(cleaned.Trim(), new List<string>()));
+                return results;
+            }
+
+            // Pattern: {"text":"..."} or {"text":"...", "category":"...", ...} SUGGEST: ... or similar
+            // More flexible pattern that handles any JSON object containing a "text" field
+            var jsonObjectPattern = new Regex(@"^\s*\{[^}]*""text""\s*:\s*""([^""]+)""[^}]*\}", RegexOptions.IgnoreCase);
+            var match = jsonObjectPattern.Match(llmText);
+            if (match.Success)
+            {
+                // Extract just the text value and use it as the question
+                var extractedText = match.Groups[1].Value;
+                results.Add(new ClarifyingQuestionVM(extractedText.Trim(), new List<string>()));
+                return results;
             }
 
             // Tolerant text parse fallback (line-oriented)
@@ -426,6 +486,22 @@ namespace TestCaseEditorApp.MVVM.Utils
             sb.AppendLine($"LooseParagraphsCount: {paraCount}");
             sb.AppendLine($"LooseTablesCount: {tableCount}");
             sb.AppendLine();
+
+            // Include assumptions/previous answers if provided
+            if (paraCount > 0)
+            {
+                sb.AppendLine("Already Known / Assumed:");
+                sb.AppendLine("CRITICAL: The following topics have ALREADY been answered or assumed. DO NOT ask questions about these topics or any related/similar variations:");
+                foreach (var p in paragraphs)
+                {
+                    if (!string.IsNullOrWhiteSpace(p))
+                    {
+                        sb.AppendLine($"  - {p.Trim()}");
+                    }
+                }
+                sb.AppendLine("If a question would be similar to or overlap with any of the above, skip it entirely and ask about a different aspect of the requirement.");
+                sb.AppendLine();
+            }
 
             sb.AppendLine("Questions Output Rules:");
             sb.AppendLine("- Return ONLY a JSON array of question objects. Nothing else.");

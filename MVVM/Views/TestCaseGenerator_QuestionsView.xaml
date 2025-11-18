@@ -12,14 +12,13 @@
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
     </UserControl.Resources>
 
-    <Grid Margin="8">
+    <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" BorderThickness="0" CornerRadius="4" Background="Transparent">
-            <Grid>
+        <Grid Grid.Row="0">
                 <!-- Questions list (visible when we have questions) -->
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <ScrollViewer.Style>
@@ -36,7 +35,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type local:ClarifyingQuestionVM}">
                                 <Border Margin="0,0,0,12" 
-                                        Background="{StaticResource MenuBackground}" 
+                                        Background="#2D2D30" 
                                         BorderBrush="{StaticResource CardBorderBrush}" 
                                         BorderThickness="1" 
                                         CornerRadius="6" 
@@ -131,14 +130,43 @@
                                             </Border>
                                         </StackPanel>
 
-                                        <!-- Question Text -->
-                                        <TextBlock Grid.Row="1" 
-                                                   Text="{Binding Text}" 
-                                                   TextWrapping="Wrap" 
-                                                   FontSize="14"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{StaticResource MenuForeground}"
-                                                   Margin="0,0,0,8"/>
+                                        <!-- Question Text with Submitted Indicator -->
+                                        <Grid Grid.Row="1" Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <TextBlock Grid.Column="0"
+                                                       Text="{Binding Text}" 
+                                                       TextWrapping="Wrap" 
+                                                       FontSize="14"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource MenuForeground}"/>
+                                            
+                                            <!-- Submitted Indicator -->
+                                            <Border Grid.Column="1"
+                                                    Background="#2E7D32"
+                                                    CornerRadius="3"
+                                                    Padding="6,2"
+                                                    Margin="8,0,0,0"
+                                                    VerticalAlignment="Top">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSubmitted}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock Text="✓ Submitted" 
+                                                           FontSize="11"
+                                                           FontWeight="Medium"
+                                                           Foreground="White"/>
+                                            </Border>
+                                        </Grid>
 
                                         <!-- Rationale -->
                                         <TextBlock Grid.Row="2" 
@@ -191,6 +219,7 @@
                                                              Background="Transparent"
                                                              BorderThickness="0"
                                                              Foreground="{StaticResource MenuForeground}"
+                                                             CaretBrush="White"
                                                              Padding="8"
                                                              VerticalScrollBarVisibility="Auto"/>
                                                 </Grid>
@@ -304,9 +333,9 @@
                 </ScrollViewer>
 
                 <!-- Instructional panel (visible when no questions) -->
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="32" MaxWidth="600">
-                    <StackPanel.Style>
-                        <Style TargetType="StackPanel">
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
                             <Setter Property="Visibility" Value="Collapsed"/>
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding PendingQuestions.Count}" Value="0">
@@ -314,81 +343,87 @@
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
-                    </StackPanel.Style>
-
-                    <TextBlock Text="🔍 Clarifying Questions (Optional)" 
-                               FontSize="16" 
+                    </Grid.Style>
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="20" MaxWidth="750">
+                        <TextBlock Text="🔍 Clarifying Questions (Optional)" 
+                               FontSize="15" 
                                FontWeight="SemiBold" 
-                               Foreground="{StaticResource MenuForeground}" 
+                               Foreground="{StaticResource Accent}" 
                                HorizontalAlignment="Center" 
-                               Margin="0,0,0,20"/>
+                               Margin="0,0,0,16"/>
 
                     <Border Background="{StaticResource MenuBackground}" 
-                            Padding="20" 
+                            Padding="18" 
                             CornerRadius="8" 
                             BorderBrush="{StaticResource CardBorderBrush}" 
                             BorderThickness="1">
                         <StackPanel>
                             <TextBlock TextWrapping="Wrap" 
-                                       Margin="0,0,0,16" 
+                                       Margin="0,0,0,12" 
                                        Foreground="{StaticResource MenuForeground}"
-                                       FontSize="13"
-                                       LineHeight="20">
+                                       FontSize="12"
+                                       LineHeight="18">
                                 <Run FontWeight="SemiBold">This step is optional.</Run>
-                                <Run>You can skip directly to test case generation, or use clarifying questions to refine ambiguous requirements.</Run>
+                                <Run>You can skip directly to test case generation, or let the AI ask questions about things it finds ambiguous (and occasionally things that aren't).</Run>
                             </TextBlock>
 
-                            <Border Background="#1A1A1A" 
-                                    Padding="16" 
+                            <Border Background="#2D2D30" 
+                                    Padding="14" 
                                     CornerRadius="6"
-                                    Margin="0,0,0,16">
+                                    Margin="0,0,0,0">
                                 <StackPanel>
                                     <TextBlock Text="How it works:" 
                                                FontWeight="SemiBold" 
                                                Foreground="{StaticResource MenuForeground}"
-                                               Margin="0,0,0,12"
-                                               FontSize="12"/>
+                                               Margin="0,0,0,10"
+                                               FontSize="11"/>
 
-                                    <StackPanel Margin="0,0,0,8">
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <StackPanel Margin="0,0,0,6">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
                                             <TextBlock Text="1" 
                                                        FontWeight="Bold" 
                                                        Foreground="{StaticResource MenuForeground}"
-                                                       Width="20"
+                                                       Width="18"
                                                        FontSize="11"/>
                                             <TextBlock TextWrapping="Wrap" 
                                                        Foreground="{StaticResource MenuForeground}"
-                                                       FontSize="12">
-                                                <Run>Click "</Run><Run FontWeight="SemiBold">Ask Clarifying Questions</Run><Run>" to generate AI questions about ambiguities</Run>
+                                                       FontSize="11">
+                                                <Run>Click "</Run><Run FontWeight="SemiBold">Ask Clarifying Questions</Run><Run>" and the AI will find things to ask about</Run>
                                             </TextBlock>
                                         </StackPanel>
                                     </StackPanel>
 
-                                    <StackPanel Margin="0,0,0,8">
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <StackPanel Margin="0,0,0,6">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
                                             <TextBlock Text="2" 
                                                        FontWeight="Bold" 
                                                        Foreground="{StaticResource MenuForeground}"
-                                                       Width="20"
+                                                       Width="18"
                                                        FontSize="11"/>
                                             <TextBlock TextWrapping="Wrap" 
                                                        Foreground="{StaticResource MenuForeground}"
-                                                       FontSize="12"
-                                                       Text="Answer questions in the text boxes, OR mark them as assumptions"/>
+                                                       FontSize="11">
+                                                <Run>Answer questions or mark as assumptions. </Run>
+                                                <Run FontWeight="SemiBold">High-priority (MUST/SHOULD)</Run>
+                                                <Run> answers trigger replacement questions for continuous flow.</Run>
+                                            </TextBlock>
                                         </StackPanel>
                                     </StackPanel>
 
-                                    <StackPanel Margin="0,0,0,8">
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <StackPanel Margin="0,0,0,6">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
                                             <TextBlock Text="3" 
                                                        FontWeight="Bold" 
                                                        Foreground="{StaticResource MenuForeground}"
-                                                       Width="20"
+                                                       Width="18"
                                                        FontSize="11"/>
                                             <TextBlock TextWrapping="Wrap" 
                                                        Foreground="{StaticResource MenuForeground}"
-                                                       FontSize="12"
-                                                       Text="Marking as assumption auto-saves and regenerates questions"/>
+                                                       FontSize="11">
+                                                <Run>Checking </Run>
+                                                <Run FontWeight="SemiBold">'Save as Global Assumption'</Run>
+                                                <Run> teaches the AI to stop asking about this topic (results may vary)</Run>
+                                            </TextBlock>
                                         </StackPanel>
                                     </StackPanel>
 
@@ -397,12 +432,16 @@
                                             <TextBlock Text="4" 
                                                        FontWeight="Bold" 
                                                        Foreground="{StaticResource MenuForeground}"
-                                                       Width="20"
+                                                       Width="18"
                                                        FontSize="11"/>
                                             <TextBlock TextWrapping="Wrap" 
                                                        Foreground="{StaticResource MenuForeground}"
-                                                       FontSize="12">
-                                                <Run>Click "</Run><Run FontWeight="SemiBold">Submit Answers</Run><Run>" to proceed to test case generation</Run>
+                                                       FontSize="11">
+                                                <Run>When only </Run>
+                                                <Run FontWeight="SemiBold">OPTIONAL</Run>
+                                                <Run> questions remain (or you're just done), the </Run>
+                                                <Run FontWeight="SemiBold">'Generate Test Cases'</Run>
+                                                <Run> button activates</Run>
                                             </TextBlock>
                                         </StackPanel>
                                     </StackPanel>
@@ -410,23 +449,15 @@
                             </Border>
                         </StackPanel>
                     </Border>
-
-                    <TextBlock Text="{Binding StatusHint}" 
-                               TextWrapping="Wrap" 
-                               Margin="0,20,0,0" 
-                               FontStyle="Italic" 
-                               FontSize="12"
-                               Foreground="{StaticResource AccentForeground}" 
-                               HorizontalAlignment="Center" 
-                               TextAlignment="Center"/>
                 </StackPanel>
-            </Grid>
-        </Border>
+                </Grid>
+        </Grid>
 
         <!-- Footer: smart action button with progress indicator -->
         <Grid Grid.Row="1" Margin="0,12,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
@@ -447,14 +478,14 @@
                               StrokeThickness="2"/>
                     </Canvas>
                 </Viewbox>
-                <TextBlock Text="Generating clarifying questions..." 
+                <TextBlock Text="{Binding StatusHint}" 
                            Foreground="{StaticResource MenuForeground}" 
                            FontSize="12"
                            FontStyle="Italic"
                            VerticalAlignment="Center"/>
                 <StackPanel.Triggers>
                     <EventTrigger RoutedEvent="StackPanel.Loaded">
-                        <BeginStoryboard x:Name="SpinnerStoryboard">
+                        <BeginStoryboard>
                             <Storyboard>
                                 <DoubleAnimation Storyboard.TargetName="SpinnerRotate"
                                                  Storyboard.TargetProperty="Angle"
@@ -465,14 +496,56 @@
                             </Storyboard>
                         </BeginStoryboard>
                     </EventTrigger>
-                    <EventTrigger RoutedEvent="StackPanel.Unloaded">
-                        <StopStoryboard BeginStoryboardName="SpinnerStoryboard"/>
-                    </EventTrigger>
                 </StackPanel.Triggers>
             </StackPanel>
 
-            <!-- Action button -->
+            <!-- Skip Questions Button -->
             <Button Grid.Column="1"
+                    Content="Skip Questions" 
+                    Command="{Binding SkipQuestionsCommand}"
+                    Background="#3A3A3A"
+                    Foreground="{StaticResource MenuForeground}"
+                    BorderThickness="1"
+                    BorderBrush="{StaticResource CardBorderBrush}"
+                    Padding="16,10"
+                    Margin="0,0,12,0"
+                    FontWeight="Normal"
+                    FontSize="13"
+                    Cursor="Hand"
+                    ToolTip="Skip clarifying questions and generate test cases with current assumptions only">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" 
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="4" 
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#454545"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#505050"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.3"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+
+            <!-- Action button -->
+            <Button Grid.Column="2"
                     Content="{Binding SmartButtonLabel}" 
                     Command="{Binding SmartButtonCommand}" 
                     IsEnabled="{Binding CanExecuteSmartButton}"

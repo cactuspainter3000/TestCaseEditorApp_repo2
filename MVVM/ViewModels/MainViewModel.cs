@@ -197,6 +197,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Timer for transient status messages
         private DispatcherTimer? _statusTimer;
 
+        // Auto-save timer for periodic workspace saves
+        private DispatcherTimer? _autoSaveTimer;
+        private const int AutoSaveIntervalMinutes = 5;
+
+        // Recent files service for tracking recently opened workspaces
+        private RecentFilesService? _recentFilesService;
+
         // Minimal test case generator placeholder used by TestCaseGenerator_VM instances
         private TestCaseGenerator_CoreVM? _testCaseGenerator = new TestCaseGenerator_CoreVM();
 
@@ -228,6 +235,32 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     OnSelectedMenuSectionChanged(value);
                 }
+            }
+        }
+
+        // Dirty state tracking for unsaved changes
+        private bool _isDirty;
+        public bool IsDirty
+        {
+            get => _isDirty;
+            set
+            {
+                if (SetProperty(ref _isDirty, value))
+                {
+                    UpdateWindowTitle();
+                }
+            }
+        }
+
+        private void UpdateWindowTitle()
+        {
+            // Update title bar to show dirty state (asterisk)
+            if (TitleBar != null)
+            {
+                var baseName = string.IsNullOrEmpty(_workspaceHeaderViewModel?.WorkspaceName)
+                    ? "Test Case Editor"
+                    : _workspaceHeaderViewModel.WorkspaceName;
+                TitleBar.Title = IsDirty ? $"{baseName} *" : baseName;
             }
         }
 
@@ -310,6 +343,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             Requirements.CollectionChanged += RequirementsOnCollectionChanged;
             _requirementsCollectionHooked = true;
 
+            // Initialize auto-save timer
+            InitializeAutoSave();
+
+            // Initialize recent files service
+            try { _recentFilesService = new RecentFilesService(); } catch { }
+
             // Initialize/ensure Import command exists before wiring header (so both menu and header share the same command)
             ImportWordCommand = ImportWordCommand ?? new AsyncRelayCommand(ImportWordAsync);
             QuickImportCommand = new AsyncRelayCommand(QuickImportAsync);
@@ -327,10 +366,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 () => CommitPendingEdits(),
                 logger: requirementsIndexLogger);
 
-            // Bind navigation commands to methods
-            NextRequirementCommand = new RelayCommand(NextRequirement);
-            PreviousRequirementCommand = new RelayCommand(PreviousRequirement);
-            NextWithoutTestCaseCommand = new RelayCommand(NextWithoutTestCase);
+            // Bind navigation commands to methods with CanExecute checks
+            NextRequirementCommand = new RelayCommand(NextRequirement, CanNavigate);
+            PreviousRequirementCommand = new RelayCommand(PreviousRequirement, CanNavigate);
+            NextWithoutTestCaseCommand = new RelayCommand(NextWithoutTestCase, CanNavigate);
 
             // Populate UI steps (factories create step VMs)
             InitializeSteps();
@@ -399,7 +438,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 DisplayName = "Test Case Generator",
                 Badge = string.Empty,
                 HasFileMenu = false,
-                CreateViewModel = svc => new TestCaseGenerator_CreationVM()
+                IsSelectable = false,  // Only accessible via Questions workflow
+                CreateViewModel = svc => new TestCaseGenerator_CreationVM(this)
             });
 
             SelectedStep = TestCaseGeneratorSteps.FirstOrDefault(s => s.CreateViewModel != null);
@@ -555,9 +595,22 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 if (_testCaseGeneratorHeader != null)
                 {
                     _testCaseGeneratorHeader.SetCurrentRequirement(CurrentRequirement);
+                    
+                    // Subscribe to IsLlmBusy changes to update navigation command state
+                    _testCaseGeneratorHeader.PropertyChanged += Header_PropertyChanged;
                 }
             }
             catch { /* swallow */ }
+        }
+        
+        private void Header_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(TestCaseGenerator_HeaderVM.IsLlmBusy))
+            {
+                (NextRequirementCommand as RelayCommand)?.NotifyCanExecuteChanged();
+                (PreviousRequirementCommand as RelayCommand)?.NotifyCanExecuteChanged();
+                (NextWithoutTestCaseCommand as RelayCommand)?.NotifyCanExecuteChanged();
+            }
         }
 
         private void UnwireHeaderSubscriptions()
@@ -568,6 +621,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     _requirements.CollectionChanged -= Requirements_CollectionChanged;
                     _requirementsCollectionHooked = false;
+                }
+                
+                if (_testCaseGeneratorHeader != null)
+                {
+                    _testCaseGeneratorHeader.PropertyChanged -= Header_PropertyChanged;
                 }
 
                 if (_linkedTestCaseGeneratorInpc != null)
@@ -798,11 +856,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             try
             {
+                // Store dirty state to avoid recursive updates
+                var wasDirty = _isDirty;
+                
                 var cmdProp = this.GetType().GetProperty("SaveWorkspaceCommand", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase)
                             ?? this.GetType().GetProperty("SaveCommand", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
                 if (cmdProp != null && cmdProp.GetValue(this) is ICommand cmd && cmd.CanExecute(null))
                 {
                     cmd.Execute(null);
+                    if (wasDirty) _isDirty = false; // Clear dirty flag directly without triggering property change
                     return;
                 }
 
@@ -811,6 +873,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 if (m != null)
                 {
                     m.Invoke(this, Array.Empty<object>());
+                    if (wasDirty) _isDirty = false; // Clear dirty flag directly without triggering property change
                     return;
                 }
             }
@@ -1044,6 +1107,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 WorkspaceService.Save(WorkspacePath!, ws);
                 CurrentWorkspace = ws;
                 HasUnsavedChanges = false;
+                
+                // Track in recent files
+                try { _recentFilesService?.AddRecentFile(WorkspacePath!); } catch { }
+                
                 SetTransientStatus($"Saved workspace: {Path.GetFileName(WorkspacePath)}", 4);
             }
             catch (Exception ex)
@@ -1076,6 +1143,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 }
 
                 CurrentWorkspace = ws;
+                
+                // Track in recent files
+                try { _recentFilesService?.AddRecentFile(WorkspacePath!); } catch { }
                 Requirements.Clear();
                 foreach (var r in ws.Requirements ?? Enumerable.Empty<Requirement>())
                     Requirements.Add(r);
@@ -1099,6 +1169,27 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         // Navigation methods (ICommand-backed)
+        private bool CanNavigate()
+        {
+            // Don't allow navigation when LLM is busy
+            try
+            {
+                if (_testCaseGeneratorHeader?.IsLlmBusy == true)
+                    return false;
+                    
+                var tcg = GetTestCaseGeneratorInstance();
+                if (tcg != null)
+                {
+                    var busyProp = tcg.GetType().GetProperty("IsLlmBusy", BindingFlags.Public | BindingFlags.Instance);
+                    if (busyProp != null && busyProp.GetValue(tcg) is bool isBusy && isBusy)
+                        return false;
+                }
+            }
+            catch { /* ignore */ }
+            
+            return true;
+        }
+        
         private void NextRequirement()
         {
             CommitPendingEdits();
@@ -1395,6 +1486,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 CurrentWorkspace.Requirements = Requirements.ToList();
 
                 HasUnsavedChanges = false;
+                
+                // Track in recent files
+                try { _recentFilesService?.AddRecentFile(WorkspacePath!); } catch { }
 
                 Requirement? firstFromView = null;
                 try
@@ -1455,6 +1549,39 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     }
                 };
                 _statusTimer.Start();
+            }
+        }
+
+        private void InitializeAutoSave()
+        {
+            try
+            {
+                _autoSaveTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMinutes(AutoSaveIntervalMinutes)
+                };
+                _autoSaveTimer.Tick += (_, __) =>
+                {
+                    try
+                    {
+                        if (IsDirty && !string.IsNullOrWhiteSpace(WorkspacePath) && CurrentWorkspace != null)
+                        {
+                            System.Diagnostics.Debug.WriteLine("[AutoSave] Saving workspace...");
+                            TryInvokeSaveWorkspace();
+                            SetTransientStatus($"Auto-saved at {DateTime.Now:HH:mm}", 2);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[AutoSave] Failed: {ex.Message}");
+                    }
+                };
+                _autoSaveTimer.Start();
+                System.Diagnostics.Debug.WriteLine($"[AutoSave] Timer initialized ({AutoSaveIntervalMinutes} minute interval)");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[AutoSave] Initialization failed: {ex.Message}");
             }
         }
 
@@ -1566,6 +1693,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             try { if (Requirements != null) Requirements.CollectionChanged -= RequirementsOnCollectionChanged; } catch { }
             try { UnhookOldRequirement(); } catch { }
             try { if (_statusTimer != null) { _statusTimer.Stop(); _statusTimer = null; } } catch { }
+            try { if (_autoSaveTimer != null) { _autoSaveTimer.Stop(); _autoSaveTimer = null; } } catch { }
             try { if (_requirementsNavigator is IDisposable d) d.Dispose(); } catch { }
             try { if (HeaderViewModel is IDisposable hd) hd.Dispose(); } catch { }
             try { UnwireHeaderSubscriptions(); } catch { }

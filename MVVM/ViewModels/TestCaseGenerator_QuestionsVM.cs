@@ -37,6 +37,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly MainViewModel? _mainVm;
         private readonly CancellationTokenSource _cts = new();
         private const string PersistenceKey = "clarifying_questions";
+        private Requirement? _currentRequirement;
 
         // Collections (legacy shape + new shape)
         // Legacy callers expect Questions : ObservableCollection<string>
@@ -103,6 +104,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _headerVm = headerVm;
             _mainVm = mainVm;
 
+            // Track current requirement and subscribe to changes
+            if (_mainVm != null)
+            {
+                _currentRequirement = _mainVm.CurrentRequirement;
+                _mainVm.PropertyChanged += MainVm_PropertyChanged;
+            }
+
             // Initialize the simple command stubs
             ClearPresetFilterCommand = new RelayCommand(ClearPresetFilter);
             SavePresetCommand = new RelayCommand(SavePreset);
@@ -116,8 +124,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Ensure FilteredDefaults consumers are notified when SuggestedDefaults changes
             SuggestedDefaults.CollectionChanged += (s, e) => OnPropertyChanged(nameof(FilteredDefaults));
 
-            // Don't load persisted questions - start fresh each time
-            // Users should explicitly generate new questions for each requirement
+            // Load persisted questions for current requirement
+            LoadQuestionsForRequirement(_currentRequirement);
 
             // Hook collection changed handlers for two-way sync and persistence
             Questions.CollectionChanged += Questions_CollectionChanged;
@@ -214,6 +222,92 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
         }
 
+        private void MainVm_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e?.PropertyName == nameof(MainViewModel.CurrentRequirement))
+            {
+                // Save current questions before switching
+                SaveQuestionsForRequirement(_currentRequirement);
+                
+                // Load questions for new requirement
+                _currentRequirement = _mainVm?.CurrentRequirement;
+                LoadQuestionsForRequirement(_currentRequirement);
+            }
+        }
+
+        private void LoadQuestionsForRequirement(Requirement? requirement)
+        {
+            // Clear current questions
+            PendingQuestions.Clear();
+            Questions.Clear();
+
+            if (requirement == null)
+                return;
+
+            // Load from requirement's ClarifyingQuestions property (persisted in workspace JSON)
+            if (requirement.ClarifyingQuestions != null && requirement.ClarifyingQuestions.Count > 0)
+            {
+                _synchronizingCollections = true;
+                try
+                {
+                    foreach (var data in requirement.ClarifyingQuestions)
+                    {
+                        var qvm = new ClarifyingQuestionVM
+                        {
+                            Text = data.Text,
+                            Answer = data.Answer,
+                            Category = data.Category,
+                            Severity = data.Severity,
+                            Rationale = data.Rationale,
+                            MarkedAsAssumption = data.MarkedAsAssumption
+                        };
+                        
+                        if (data.Options != null)
+                        {
+                            qvm.Options.Clear();
+                            foreach (var opt in data.Options)
+                                qvm.Options.Add(opt);
+                        }
+
+                        PendingQuestions.Add(qvm);
+                        AttachQuestionVmHandler(qvm);
+                    }
+                }
+                finally
+                {
+                    _synchronizingCollections = false;
+                }
+            }
+        }
+
+        private void SaveQuestionsForRequirement(Requirement? requirement)
+        {
+            if (requirement == null)
+                return;
+
+            // Save to requirement's ClarifyingQuestions property (will be persisted in workspace JSON)
+            requirement.ClarifyingQuestions.Clear();
+            foreach (var q in PendingQuestions)
+            {
+                requirement.ClarifyingQuestions.Add(new ClarifyingQuestionData
+                {
+                    Text = q.Text,
+                    Answer = q.Answer,
+                    Category = q.Category,
+                    Severity = q.Severity,
+                    Rationale = q.Rationale,
+                    MarkedAsAssumption = q.MarkedAsAssumption,
+                    Options = q.Options.ToList()
+                });
+            }
+            
+            // Mark workspace as dirty
+            if (_mainVm != null)
+            {
+                _mainVm.IsDirty = true;
+            }
+        }
+
         // Minimal no-op command implementations (replace with real behavior if needed)
         private void ClearPresetFilter()
         {
@@ -242,7 +336,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private void OnGlobalConnectionChanged(bool connected) => ClarifyCommand.NotifyCanExecuteChanged();
 
-        private bool CanRunClarifying() => !IsClarifyingCommandRunning && UseIntegratedLlm && LlmConnectionManager.IsConnected && _llm != null;
+        private bool CanRunClarifying()
+        {
+            // Cannot run if already running
+            if (IsClarifyingCommandRunning) return false;
+            
+            // Cannot run if not using integrated LLM or not connected
+            if (!UseIntegratedLlm || !LlmConnectionManager.IsConnected || _llm == null) return false;
+            
+            // Cannot run if no requirement description or method
+            var hasDescription = !string.IsNullOrWhiteSpace(_headerVm?.RequirementDescription);
+            var hasMethod = _headerVm?.RequirementMethodEnum != null;
+            
+            return hasDescription && hasMethod;
+        }
 
         // --- Collection synchronization helpers ------------------
         private void Questions_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -442,7 +549,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 Application.Current?.Dispatcher?.Invoke(() =>
                 {
                     PendingQuestions.Clear();
-                    StatusHint = null;
+                    StatusHint = "Requesting clarifying questions...";
                 });
 
                 // Build assumptions list from currently enabled default items (PromptLine is the full prompt text).
@@ -507,12 +614,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 var parsed = ClarifyingParsingHelpers.ParseQuestions(llmText) ?? Enumerable.Empty<ClarifyingQuestionVM>();
                 var parsedList = parsed.ToList();
 
-                // Validation: reject if we got malformed output (single question containing JSON)
-                if (parsedList.Count == 1 && parsedList[0].Text.Contains("[{") && parsedList[0].Text.Contains("}]"))
-                {
-                    StatusHint = "LLM returned malformed output. Please try again.";
-                    return;
-                }
+                // Note: Malformed patterns are now automatically cleaned by ParseQuestions helper
 
                 // Deduplicate parsed questions by normalized text (trim/collapse whitespace, lowercase)
                 static string Normalize(string? s)
@@ -661,11 +763,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand AcceptQuestionCommand { get; private set; } = null!;
         public ICommand RegenerateCommand { get; private set; } = null!;
         public ICommand SmartButtonCommand { get; private set; } = null!;
+        public ICommand SkipQuestionsCommand { get; private set; } = null!;
         public ICommand ResetAssumptionsCommand { get; private set; } = null!;
 
         // Small helper properties bound by the view (computed)
         public string SmartButtonLabel => ComputeSmartButtonLabel();
-        public bool CanExecuteSmartButton => _sessionState != SessionState.Generating;
+        public bool CanExecuteSmartButton => _sessionState != SessionState.Generating && (_headerVm == null || !_headerVm.IsLlmBusy);
 
         // ThinkingMode placeholder (string-backed; you can replace with enum later)
         [ObservableProperty] private string thinkingMode = "Quick";
@@ -678,6 +781,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             else _sessionState = SessionState.Idle;
 
             NotifySmartButtonProperties();
+            ClarifyCommand.NotifyCanExecuteChanged();
         }
 
         // Constructor extension: call this at end of existing constructor to initialize commands.
@@ -689,6 +793,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Use AsyncRelayCommand so CanExecute notifications and async flow behave properly
             RegenerateCommand = new AsyncRelayCommand(RegenerateAsync, () => !IsClarifyingCommandRunning);
             SmartButtonCommand = new AsyncRelayCommand(ExecuteSmartButtonAsync, () => CanExecuteSmartButton);
+            SkipQuestionsCommand = new AsyncRelayCommand(SkipToTestCaseGenerationAsync, () => true); // Always allow skipping to test case generation
 
             ResetAssumptionsCommand = new RelayCommand(ResetAssumptions);
 
@@ -703,13 +808,39 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 _sessionState = SessionState.Idle;
             }
-            else if (PendingQuestions.Any(q => !q.IsAnswered))
-            {
-                _sessionState = SessionState.QuestionsDisplayed;
-            }
             else
             {
-                _sessionState = SessionState.ReadyToGenerate;
+                // Only count questions that haven't been submitted (not fading out or removed)
+                var activeQuestions = PendingQuestions.Where(q => !q.IsSubmitted).ToList();
+                
+                if (activeQuestions.Count == 0)
+                {
+                    // All questions have been submitted, ready to generate
+                    _sessionState = SessionState.ReadyToGenerate;
+                }
+                else
+                {
+                    // Check if all remaining active questions are OPTIONAL (low priority)
+                    var hasHighPriorityQuestions = activeQuestions.Any(q => 
+                        !q.IsAnswered && 
+                        !string.Equals(q.Severity, "OPTIONAL", StringComparison.OrdinalIgnoreCase));
+                    
+                    if (!hasHighPriorityQuestions)
+                    {
+                        // Only OPTIONAL questions remain (or all questions answered) - ready to generate
+                        _sessionState = SessionState.ReadyToGenerate;
+                    }
+                    else if (activeQuestions.Any(q => !q.IsAnswered))
+                    {
+                        // Some active high-priority questions still need answers
+                        _sessionState = SessionState.QuestionsDisplayed;
+                    }
+                    else
+                    {
+                        // All active questions have been answered but not submitted yet
+                        _sessionState = SessionState.ReadyToGenerate;
+                    }
+                }
             }
 
             NotifySmartButtonProperties();
@@ -723,6 +854,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Notify CanExecute on commands if they support it
             (RegenerateCommand as IRelayCommand)?.NotifyCanExecuteChanged();
             (SmartButtonCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+            ClarifyCommand.NotifyCanExecuteChanged();
         }
 
         private string ComputeSmartButtonLabel()
@@ -946,70 +1078,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 // Add explicit instruction to return ONLY ONE question
                 var prompt = basePrompt + "\n\nIMPORTANT: Return EXACTLY ONE question in a JSON array with a single object. Do not return multiple questions. Format: [{\"text\":\"...\",\"category\":\"...\",\"severity\":\"...\",\"rationale\":\"...\"}]";
 
-                // Try up to 2 times to get a valid response
-                string? llmText = null;
-                List<ClarifyingQuestionVM>? parsedList = null;
-                int maxRetries = 2;
+                // Call LLM
+                string? llmText = await _llm.GenerateAsync(prompt, _cts.Token).ConfigureAwait(false);
 
-                for (int attempt = 0; attempt < maxRetries; attempt++)
-                {
-                    // Call LLM
-                    llmText = await _llm.GenerateAsync(prompt, _cts.Token).ConfigureAwait(false);
-
-                    // Parse the response
-                    var parsed = ClarifyingParsingHelpers.ParseQuestions(llmText) ?? Enumerable.Empty<ClarifyingQuestionVM>();
-                    parsedList = parsed.ToList();
-
-                    // Detect malformed output: single question containing entire JSON array text
-                    if (parsedList.Count == 1 && parsedList[0].Text.Contains("[{") && parsedList[0].Text.Contains("}]"))
-                    {
-                        // Try to extract the embedded JSON array from the malformed question text
-                        var malformedText = parsedList[0].Text;
-                        var startIdx = malformedText.IndexOf("[{");
-                        var endIdx = malformedText.LastIndexOf("}]");
-                        
-                        if (startIdx >= 0 && endIdx > startIdx)
-                        {
-                            // Extract the JSON array substring
-                            var extractedJson = malformedText.Substring(startIdx, endIdx - startIdx + 2);
-                            
-                            // Try to parse the extracted JSON
-                            var reparsed = ClarifyingParsingHelpers.ParseQuestions(extractedJson);
-                            if (reparsed != null)
-                            {
-                                var reparsedList = reparsed.ToList();
-                                if (reparsedList.Count > 0)
-                                {
-                                    // Successfully extracted questions from malformed response
-                                    parsedList = reparsedList;
-                                    break;
-                                }
-                            }
-                        }
-                        
-                        // Extraction failed - retry if we have attempts left
-                        if (attempt < maxRetries - 1)
-                        {
-                            await Task.Delay(500, _cts.Token); // Brief pause before retry
-                            continue;
-                        }
-                        
-                        // Final attempt failed and extraction failed, give up
-                        Application.Current?.Dispatcher?.Invoke(() =>
-                        {
-                            if (!keepOriginal)
-                            {
-                                PendingQuestions.Remove(oldQuestion);
-                            }
-                            StatusHint = "LLM returned malformed response after retries";
-                            UpdateSessionStateAfterQuestionsUpdate();
-                        });
-                        return;
-                    }
-
-                    // Valid response, break out of retry loop
-                    break;
-                }
+                // Parse the response - ParseQuestions will automatically clean up malformed patterns
+                var parsed = ClarifyingParsingHelpers.ParseQuestions(llmText) ?? Enumerable.Empty<ClarifyingQuestionVM>();
+                var parsedList = parsed.ToList();
 
                 // Update UI on dispatcher thread
                 Application.Current?.Dispatcher?.Invoke(() =>
@@ -1025,13 +1099,39 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     {
                         foreach (var newQuestion in parsedList)
                         {
-                            // Check for duplicates
+                            // Check for duplicates against both pending questions AND saved assumptions
                             var normalized = NormalizeText(newQuestion.Text);
-                            var isDuplicate = PendingQuestions.Any(q => NormalizeText(q.Text) == normalized);
+                            var isDuplicateOfPending = PendingQuestions.Any(q => NormalizeText(q.Text) == normalized);
                             
-                            if (!isDuplicate)
+                            // For assumptions, extract the question text from ContentLine format "Q: {text} | A: {answer}"
+                            var isDuplicateOfAssumption = SuggestedDefaults
+                                .Where(d => d.IsEnabled)
+                                .Any(d => {
+                                    var nameMatch = NormalizeText(d.Name) == normalized;
+                                    if (nameMatch) return true;
+                                    
+                                    // Extract question from ContentLine if it exists
+                                    if (d.ContentLine != null && d.ContentLine.Contains("Q:"))
+                                    {
+                                        var qPart = d.ContentLine.Split(new[] { " | A:" }, StringSplitOptions.None)[0];
+                                        if (qPart.StartsWith("Q: "))
+                                        {
+                                            var extractedQuestion = qPart.Substring(3);
+                                            return NormalizeText(extractedQuestion) == normalized;
+                                        }
+                                    }
+                                    
+                                    return false;
+                                });
+                            
+                            if (!isDuplicateOfPending && !isDuplicateOfAssumption)
                             {
                                 PendingQuestions.Add(newQuestion);
+                            }
+                            else if (isDuplicateOfAssumption)
+                            {
+                                // Log that we skipped a duplicate
+                                StatusHint = "Skipped duplicate question (already answered as assumption)";
                             }
                         }
                     }
@@ -1073,6 +1173,16 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             if (q == null) return;
 
+            // Prevent submitting if LLM is already busy
+            if (_headerVm != null && _headerVm.IsLlmBusy)
+            {
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    StatusHint = "Please wait for the current LLM query to complete before submitting another answer.";
+                });
+                return;
+            }
+
             bool hasAnswer = !string.IsNullOrWhiteSpace(q.Answer);
             bool isMarkedAsAssumption = q.MarkedAsAssumption;
 
@@ -1091,23 +1201,26 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 Application.Current?.Dispatcher?.Invoke(() =>
                 {
-                    // Build the DefaultItem with answer included in description if present
+                    // Build the DefaultItem with answer included in ContentLine for proper prompt formatting
                     var baseItem = q.ToDefaultItem();
                     
-                    // If there's an answer, append it to the description
-                    string description = baseItem.Description ?? "";
+                    // Create ContentLine that includes both question and answer
+                    string contentLine;
                     if (hasAnswer)
                     {
-                        description = string.IsNullOrEmpty(description) 
-                            ? $"Answer: {q.Answer}" 
-                            : $"{description}\nAnswer: {q.Answer}";
+                        contentLine = $"Q: {q.Text} | A: {q.Answer}";
+                    }
+                    else
+                    {
+                        contentLine = $"Assumption: {q.Text}";
                     }
 
                     var di = new DefaultItem
                     {
                         Key = baseItem.Key,
                         Name = baseItem.Name,
-                        Description = description,
+                        Description = baseItem.Description,
+                        ContentLine = contentLine,  // This is what gets used in PromptLine
                         IsEnabled = true
                     };
                     
@@ -1118,14 +1231,23 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 });
             }
 
-            // Determine fade behavior: complete fade if assumption-only, partial fade if answered
-            bool shouldFadeOut = isMarkedAsAssumption && !hasAnswer;
+            // Determine fade behavior: complete fade+remove if assumption-only, keep visible if answered
+            bool shouldRemove = isMarkedAsAssumption && !hasAnswer;
             bool shouldKeepVisible = hasAnswer;
+            
+            // Check if we should request a replacement question
+            // Don't request new questions if this was OPTIONAL or if only OPTIONAL questions will remain
+            bool isOptionalQuestion = string.Equals(q.Severity, "OPTIONAL", StringComparison.OrdinalIgnoreCase);
+            bool shouldRequestReplacement = !isOptionalQuestion;
+
+            // Set LLM busy state BEFORE updating session state and UI (only if requesting replacement)
+            if (shouldRequestReplacement && _headerVm != null) 
+                _headerVm.IsLlmBusy = true;
 
             Application.Current?.Dispatcher?.Invoke(() =>
             {
                 q.IsSubmitted = true;
-                if (shouldFadeOut)
+                if (shouldRemove)
                 {
                     q.IsFadingOut = true;
                 }
@@ -1133,29 +1255,43 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             UpdateSessionStateAfterQuestionsUpdate();
 
-            // Set LLM busy state before requesting replacement
-            if (_headerVm != null) _headerVm.IsLlmBusy = true;
-
-            // Request replacement question in background
-            _ = Task.Run(async () =>
+            // Request replacement question in background (only for high-priority questions)
+            if (shouldRequestReplacement)
             {
-                try
+                _ = Task.Run(async () =>
                 {
-                    if (shouldFadeOut)
+                    try
+                    {
+                        if (shouldRemove)
+                        {
+                            await Task.Delay(1000); // Wait for fade-out animation
+                            // Remove the question after fade completes
+                            Application.Current?.Dispatcher?.Invoke(() => PendingQuestions.Remove(q));
+                        }
+                        await RequestReplacementQuestionAsync(q, keepOriginal: shouldKeepVisible);
+                    }
+                    finally
+                    {
+                        // Clear busy state when done
+                        Application.Current?.Dispatcher?.Invoke(() =>
+                        {
+                            if (_headerVm != null) _headerVm.IsLlmBusy = false;
+                        });
+                    }
+                });
+            }
+            else
+            {
+                // For OPTIONAL questions, just remove if needed but don't request replacement
+                if (shouldRemove)
+                {
+                    _ = Task.Run(async () =>
                     {
                         await Task.Delay(1000); // Wait for fade-out animation
-                    }
-                    await RequestReplacementQuestionAsync(q, keepOriginal: shouldKeepVisible);
-                }
-                finally
-                {
-                    // Clear busy state when done
-                    Application.Current?.Dispatcher?.Invoke(() =>
-                    {
-                        if (_headerVm != null) _headerVm.IsLlmBusy = false;
+                        Application.Current?.Dispatcher?.Invoke(() => PendingQuestions.Remove(q));
                     });
                 }
-            });
+            }
         }
 
         private void ResetAssumptions()
@@ -1169,22 +1305,101 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // If you want to remove newly added items instead, implement removal logic here.
         }
 
+        private async Task SkipToTestCaseGenerationAsync()
+        {
+            // Skip all questions and go straight to test case generation
+            StatusHint = "Generating test cases with current assumptions...";
+            await GenerateTestCasesAsync();
+        }
+
         private async Task GenerateTestCasesAsync()
         {
             _sessionState = SessionState.Generating;
             NotifySmartButtonProperties();
 
+            // Set spinner message
+            if (_headerVm != null)
+            {
+                _headerVm.IsLlmBusy = true;
+                StatusHint = "Generating test cases...";
+            }
+
             try
             {
-                // Minimal placeholder: your real implementation should build a prompt using assumptions + answers
-                StatusHint = "Generating test cases (not implemented)";
+                // Build context from requirement and answered questions
+                var requirementDescription = _headerVm?.RequirementDescription ?? "(no description)";
+                var methodEnum = _headerVm?.RequirementMethodEnum;
+                var methodName = methodEnum?.ToString() ?? "(none)";
 
-                await Task.Delay(400); // small UI pause so user sees the working state
+                // Gather all enabled assumptions
+                var enabledAssumptions = SuggestedDefaults
+                    .Where(d => d.IsEnabled)
+                    .Select(d => d.PromptLine)
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .ToList();
 
-                // TODO: implement real test-case generation using _llm.GenerateAsync and parse results to populate TestCaseGenerator_CreationVM
-                StatusHint = "Test-case generation is not yet implemented.";
+                // Add answered questions to context
+                var answeredQuestions = PendingQuestions
+                    .Where(q => !string.IsNullOrWhiteSpace(q.Answer))
+                    .Select(q => $"Q: {q.Text}\nA: {q.Answer}")
+                    .ToList();
 
-                // Navigate to the test case creation view
+                // Build the prompt
+                var prompt = new System.Text.StringBuilder();
+                prompt.AppendLine("Generate test cases for the following requirement:");
+                prompt.AppendLine();
+                prompt.AppendLine($"Requirement: {requirementDescription}");
+                prompt.AppendLine($"Verification Method: {methodName}");
+                prompt.AppendLine();
+
+                if (enabledAssumptions.Any())
+                {
+                    prompt.AppendLine("Known Assumptions:");
+                    foreach (var assumption in enabledAssumptions)
+                    {
+                        prompt.AppendLine($"  - {assumption}");
+                    }
+                    prompt.AppendLine();
+                }
+
+                if (answeredQuestions.Any())
+                {
+                    prompt.AppendLine("Answered Clarifying Questions:");
+                    foreach (var qa in answeredQuestions)
+                    {
+                        prompt.AppendLine(qa);
+                    }
+                    prompt.AppendLine();
+                }
+
+                prompt.AppendLine("Generate a single comprehensive test case that verifies this requirement.");
+                prompt.AppendLine();
+                prompt.AppendLine("Format your response EXACTLY as follows:");
+                prompt.AppendLine();
+                prompt.AppendLine("Title: [Your test case title]");
+                prompt.AppendLine();
+                prompt.AppendLine("Preconditions:");
+                prompt.AppendLine("[List all preconditions needed before test execution]");
+                prompt.AppendLine();
+                prompt.AppendLine("Test Steps:");
+                prompt.AppendLine("[List the test steps - use as many or as few as needed to be thorough]");
+                prompt.AppendLine();
+                prompt.AppendLine("Expected Results:");
+                prompt.AppendLine("[Describe what should happen if the test passes - be specific about expected outcomes]");
+
+                // Call LLM
+                StatusHint = "Generating test cases from your answers...";
+                string llmResponse = await _llm.GenerateAsync(prompt.ToString(), _cts.Token).ConfigureAwait(false);
+
+                // Store raw output for inspection
+                LlmOutput = llmResponse ?? "(no response)";
+                
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    StatusHint = $"Generated {llmResponse?.Length ?? 0} characters of test cases. Check LLM Output for raw response.";
+                });
+
+                // Navigate to the test case creation view and pass the LLM output
                 if (_mainVm != null)
                 {
                     var creationStep = _mainVm.TestCaseGeneratorSteps.FirstOrDefault(s => s.Id == "testcase-creation");
@@ -1193,6 +1408,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         Application.Current.Dispatcher.Invoke(() =>
                         {
                             _mainVm.SelectedStep = creationStep;
+                            
+                            // Pass LLM output to the creation VM (which gets set in CurrentStepViewModel)
+                            if (_mainVm.CurrentStepViewModel is TestCaseGenerator_CreationVM creationVm)
+                            {
+                                creationVm.LlmOutput = llmResponse;
+                            }
                         });
                     }
                 }
@@ -1203,7 +1424,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             finally
             {
-                UpdateSessionStateAfterQuestionsUpdate();
+                // Clear busy state and update UI state on UI thread
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    if (_headerVm != null) _headerVm.IsLlmBusy = false;
+                    UpdateSessionStateAfterQuestionsUpdate();
+                });
             }
         }
 
@@ -1211,6 +1437,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// Save PendingQuestions to storage with full metadata.
         /// </summary>
         private void SaveQuestionsToStorage()
+        {
+            // Save to requirement-specific key if we have a current requirement
+            if (_currentRequirement != null)
+            {
+                SaveQuestionsForRequirement(_currentRequirement);
+            }
+            else
+            {
+                // Fallback to global key for backward compatibility
+                SaveQuestionsToStorageWithKey(PersistenceKey);
+            }
+        }
+
+        private void SaveQuestionsToStorageWithKey(string key)
         {
             var toSave = PendingQuestions.Select(q => new PersistedQuestion
             {
@@ -1223,7 +1463,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 Options = q.Options.ToArray()
             }).ToArray();
 
-            _persistence.Save(PersistenceKey, toSave);
+            _persistence.Save(key, toSave);
         }
 
         public void Dispose()
@@ -1235,6 +1475,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             if (_headerVm != null)
             {
                 _headerVm.PropertyChanged -= HeaderVm_PropertyChanged;
+            }
+            if (_mainVm != null)
+            {
+                _mainVm.PropertyChanged -= MainVm_PropertyChanged;
             }
             _cts.Cancel();
             _cts.Dispose();

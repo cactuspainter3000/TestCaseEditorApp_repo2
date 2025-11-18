@@ -9,6 +9,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     {
         private IWindow? _window;
 
+        [ObservableProperty]
+        private string _title = "Test Case Editor";
+
         public void SetWindow(IWindow? window) => _window = window;
 
         // Close command

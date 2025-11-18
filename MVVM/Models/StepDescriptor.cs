@@ -37,5 +37,13 @@
             get => _isFileMenuExpanded;
             set => SetProperty(ref _isFileMenuExpanded, value);
         }
+
+        // Whether this step can be directly selected from the menu (false for workflow-only steps)
+        private bool _isSelectable = true;
+        public bool IsSelectable
+        {
+            get => _isSelectable;
+            set => SetProperty(ref _isSelectable, value);
+        }
     }
 }

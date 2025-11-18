@@ -26,6 +26,27 @@ namespace TestCaseEditorApp.MVVM.Models
         /// </summary>
         public HashSet<string> SelectedAssumptionKeys { get; set; }
             = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Clarifying questions asked for this requirement.
+        /// Persisted in the workspace so questions/answers survive reloads.
+        /// </summary>
+        public List<ClarifyingQuestionData> ClarifyingQuestions { get; set; }
+            = new List<ClarifyingQuestionData>();
+    }
+
+    /// <summary>
+    /// Serializable data class for persisting clarifying questions in workspace JSON.
+    /// </summary>
+    public class ClarifyingQuestionData
+    {
+        public string Text { get; set; } = string.Empty;
+        public string? Answer { get; set; }
+        public string? Category { get; set; }
+        public string Severity { get; set; } = "OPTIONAL";
+        public string? Rationale { get; set; }
+        public bool MarkedAsAssumption { get; set; }
+        public List<string> Options { get; set; } = new List<string>();
     }
 
     public partial class Requirement : ObservableObject

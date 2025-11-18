@@ -263,6 +263,7 @@
                                     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                                     <Setter Property="VerticalContentAlignment" Value="Center"/>
                                     <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                                    <Setter Property="IsEnabled" Value="{Binding IsSelectable}"/>
 
                                     <Setter Property="Template">
                                         <Setter.Value>
