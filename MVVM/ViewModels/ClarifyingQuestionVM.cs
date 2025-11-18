@@ -97,6 +97,22 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
         }
 
+        // Controls fade-out animation when question is being replaced
+        private bool _isFadingOut;
+        public bool IsFadingOut
+        {
+            get => _isFadingOut;
+            set => SetProperty(ref _isFadingOut, value);
+        }
+
+        // Indicates question has been submitted (for partial fade on answered questions)
+        private bool _isSubmitted;
+        public bool IsSubmitted
+        {
+            get => _isSubmitted;
+            set => SetProperty(ref _isSubmitted, value);
+        }
+
         // Derived property used by the UI to decide whether the question is "done"
         public bool IsAnswered => !string.IsNullOrWhiteSpace(Answer) || MarkedAsAssumption;
 

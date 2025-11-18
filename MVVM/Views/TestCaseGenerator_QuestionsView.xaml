@@ -40,8 +40,53 @@
                                         BorderBrush="{StaticResource CardBorderBrush}" 
                                         BorderThickness="1" 
                                         CornerRadius="6" 
-                                        Padding="16">
-                                    <Grid>
+                                        Padding="16"
+                                        x:Name="QuestionCard">
+                                    <Grid x:Name="ContentGrid">
+                                        <Grid.Style>
+                                            <Style TargetType="Grid">
+                                                <Setter Property="Opacity" Value="1"/>
+                                                <Style.Triggers>
+                                                    <!-- Fade out completely when marked for removal (assumption) -->
+                                                    <DataTrigger Binding="{Binding IsFadingOut}" Value="True">
+                                                        <DataTrigger.EnterActions>
+                                                            <BeginStoryboard>
+                                                                <Storyboard>
+                                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                                     From="1.0"
+                                                                                     To="0.0"
+                                                                                     Duration="0:0:1.0">
+                                                                        <DoubleAnimation.EasingFunction>
+                                                                            <CubicEase EasingMode="EaseInOut"/>
+                                                                        </DoubleAnimation.EasingFunction>
+                                                                    </DoubleAnimation>
+                                                                </Storyboard>
+                                                            </BeginStoryboard>
+                                                        </DataTrigger.EnterActions>
+                                                    </DataTrigger>
+                                                    <!-- Fade to 50% when submitted with answer (not an assumption) -->
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding MarkedAsAssumption}" Value="False"/>
+                                                            <Condition Binding="{Binding IsSubmitted}" Value="True"/>
+                                                        </MultiDataTrigger.Conditions>
+                                                        <MultiDataTrigger.EnterActions>
+                                                            <BeginStoryboard>
+                                                                <Storyboard>
+                                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                                     To="0.5"
+                                                                                     Duration="0:0:0.5">
+                                                                        <DoubleAnimation.EasingFunction>
+                                                                            <CubicEase EasingMode="EaseOut"/>
+                                                                        </DoubleAnimation.EasingFunction>
+                                                                    </DoubleAnimation>
+                                                                </Storyboard>
+                                                            </BeginStoryboard>
+                                                        </MultiDataTrigger.EnterActions>
+                                                    </MultiDataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Grid.Style>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="Auto"/>
@@ -50,7 +95,7 @@
                                         </Grid.RowDefinitions>
 
                                         <!-- Header: Category and Severity badges -->
-                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8" Visibility="Collapsed">
                                             <Border Background="#444444" 
                                                     CornerRadius="3" 
                                                     Padding="6,2" 
@@ -65,6 +110,7 @@
                                                 <Border.Style>
                                                     <Style TargetType="Border">
                                                         <Setter Property="Background" Value="#555555"/>
+                                                        <Setter Property="Visibility" Value="Visible"/>
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding Severity}" Value="MUST">
                                                                 <Setter Property="Background" Value="#8B4545"/>
@@ -73,7 +119,7 @@
                                                                 <Setter Property="Background" Value="#8B6F47"/>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding Severity}" Value="OPTIONAL">
-                                                                <Setter Property="Background" Value="#555555"/>
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -113,7 +159,7 @@
 
                                             <!-- Answer TextBox -->
                                             <Border Grid.Column="0" 
-                                                    Background="#1A1A1A" 
+                                                    Background="Transparent" 
                                                     BorderBrush="{StaticResource CardBorderBrush}" 
                                                     BorderThickness="1" 
                                                     CornerRadius="4"
@@ -153,8 +199,22 @@
                                             <!-- Action Buttons -->
                                             <StackPanel Grid.Column="1" 
                                                         VerticalAlignment="Top">
-                                                <Button Content="✓ Mark as Assumption"
-                                                        Command="{Binding DataContext.SetAsAssumptionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                
+                                                <!-- Mark as Assumption Checkbox -->
+                                                <CheckBox IsChecked="{Binding MarkedAsAssumption, Mode=TwoWay}"
+                                                          Foreground="{StaticResource MenuForeground}"
+                                                          FontSize="12"
+                                                          Margin="0,4,0,0">
+                                                    <CheckBox.Content>
+                                                        <TextBlock Text="Save as Global Assumption" 
+                                                                   TextWrapping="Wrap"
+                                                                   MaxWidth="140"/>
+                                                    </CheckBox.Content>
+                                                </CheckBox>
+                                                
+                                                <!-- Submit Button -->
+                                                <Button Content="✓ Submit"
+                                                        Command="{Binding DataContext.AcceptQuestionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         CommandParameter="{Binding}" 
                                                         Background="#4A4A4A"
                                                         Foreground="{StaticResource MenuForeground}"
@@ -167,6 +227,7 @@
                                                         MinWidth="160">
                                                     <Button.Style>
                                                         <Style TargetType="Button">
+                                                            <Setter Property="Visibility" Value="Visible"/>
                                                             <Setter Property="Template">
                                                                 <Setter.Value>
                                                                     <ControlTemplate TargetType="Button">
@@ -181,6 +242,9 @@
                                                                 </Setter.Value>
                                                             </Setter>
                                                             <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsSubmitted}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
                                                                 <Trigger Property="IsMouseOver" Value="True">
                                                                     <Setter Property="Background" Value="#555555"/>
                                                                 </Trigger>
@@ -191,6 +255,8 @@
                                                         </Style>
                                                     </Button.Style>
                                                 </Button>
+                                                
+                                                <!-- Remove Button -->
                                                 <Button Content="✕ Remove"
                                                         Command="{Binding DataContext.MarkResolvedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         CommandParameter="{Binding}"
@@ -201,8 +267,7 @@
                                                         Padding="14,8"
                                                         Cursor="Hand"
                                                         FontSize="12"
-                                                        MinWidth="160"
-                                                        Margin="0,8,0,0">
+                                                        MinWidth="160">
                                                     <Button.Style>
                                                         <Style TargetType="Button">
                                                             <Setter Property="Template">

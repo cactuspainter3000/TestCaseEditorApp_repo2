@@ -388,7 +388,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 CreateViewModel = svc =>
                 {
                     var llm = TestCaseEditorApp.Services.LlmFactory.Create();
-                    return new TestCaseGenerator_QuestionsVM(_persistence, llm, _testCaseGeneratorHeader);
+                    return new TestCaseGenerator_QuestionsVM(_persistence, llm, _testCaseGeneratorHeader, this);
                 }
                 
             });

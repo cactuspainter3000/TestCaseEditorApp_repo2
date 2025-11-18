@@ -34,6 +34,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly IPersistenceService _persistence;
         private readonly ITextGenerationService? _llm;
         private readonly TestCaseGenerator_HeaderVM? _headerVm;
+        private readonly MainViewModel? _mainVm;
         private readonly CancellationTokenSource _cts = new();
         private const string PersistenceKey = "clarifying_questions";
 
@@ -95,11 +96,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly Dictionary<ClarifyingQuestionVM, PropertyChangedEventHandler> _vmHandlers = new();
 
         // Add or replace this constructor body in TestCaseGenerator_QuestionsVM
-        public TestCaseGenerator_QuestionsVM(IPersistenceService persistence, ITextGenerationService? llm = null, TestCaseGenerator_HeaderVM? headerVm = null)
+        public TestCaseGenerator_QuestionsVM(IPersistenceService persistence, ITextGenerationService? llm = null, TestCaseGenerator_HeaderVM? headerVm = null, MainViewModel? mainVm = null)
         {
             _persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
             _llm = llm;
             _headerVm = headerVm;
+            _mainVm = mainVm;
 
             // Initialize the simple command stubs
             ClearPresetFilterCommand = new RelayCommand(ClearPresetFilter);
@@ -841,7 +843,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
         }
 
-        private void SetAsAssumption(ClarifyingQuestionVM q)
+        private async void SetAsAssumption(ClarifyingQuestionVM q)
         {
             if (q == null) return;
 
@@ -854,20 +856,306 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     SuggestedDefaults.Add(di);
                 }
+
+                // Start fade-out animation
+                q.IsFadingOut = true;
             });
 
             UpdateSessionStateAfterQuestionsUpdate();
+
+            // Request replacement question in background
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(1000); // Wait for fade-out animation
+                await RequestReplacementQuestionAsync(q);
+            });
         }
 
-        private void AcceptQuestion(ClarifyingQuestionVM q)
+        /// <summary>
+        /// Request a single replacement question from the LLM after a question is answered or marked as assumption.
+        /// This provides a continuous flow experience without waiting for all questions to be answered.
+        /// </summary>
+        /// <param name="oldQuestion">The question being replaced</param>
+        /// <param name="keepOriginal">If true, keeps the original question visible (for answered questions); if false, removes it (for assumptions)</param>
+        private async Task RequestReplacementQuestionAsync(ClarifyingQuestionVM oldQuestion, bool keepOriginal = false)
+        {
+            if (_llm == null || _headerVm == null) return;
+
+            try
+            {
+                // Gather context for the prompt
+                var requirementDescription = _headerVm.RequirementDescription;
+                var methodEnum = _headerVm.RequirementMethodEnum;
+                if (string.IsNullOrWhiteSpace(requirementDescription) || methodEnum == null)
+                {
+                    // Remove old question without replacement (only if not keeping original)
+                    if (!keepOriginal)
+                    {
+                        Application.Current?.Dispatcher?.Invoke(() => PendingQuestions.Remove(oldQuestion));
+                    }
+                    return;
+                }
+
+                // Build list of enabled assumptions
+                var enabledAssumptions = SuggestedDefaults
+                    .Where(d => d.IsEnabled)
+                    .Select(d => d.PromptLine)
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .ToList();
+
+                var methodName = methodEnum.Value.ToString();
+                var methodAssumptions = SuggestedDefaults
+                    .Where(d => !string.IsNullOrWhiteSpace(d.Category) && string.Equals(d.Category, methodName, StringComparison.OrdinalIgnoreCase))
+                    .Select(d => d.PromptLine)
+                    .Where(s => !string.IsNullOrWhiteSpace(s));
+
+                foreach (var a in methodAssumptions)
+                {
+                    if (!enabledAssumptions.Any(existing => string.Equals(existing, a, StringComparison.OrdinalIgnoreCase)))
+                        enabledAssumptions.Add(a);
+                }
+
+                // Add already answered questions as context to avoid duplicate questions
+                var answeredQuestions = PendingQuestions
+                    .Where(q => !string.IsNullOrWhiteSpace(q.Answer) || q.MarkedAsAssumption)
+                    .Select(q => $"Q: {q.Text} | A: {q.Answer ?? "(marked as assumption)"}")
+                    .ToList();
+                
+                foreach (var aq in answeredQuestions)
+                {
+                    enabledAssumptions.Add(aq);
+                }
+
+                // Build temporary requirement
+                var tempRequirement = new Requirement
+                {
+                    Description = requirementDescription,
+                    Method = methodEnum.Value
+                };
+
+                // Request only 1 question as replacement
+                var customInstructions = DefaultsHelper.GetUserInstructions(methodEnum.Value);
+                var basePrompt = ClarifyingParsingHelpers.BuildBudgetedQuestionsPrompt(
+                    tempRequirement,
+                    1, // Single question
+                    false,
+                    enabledAssumptions,
+                    Enumerable.Empty<TableDto>(),
+                    customInstructions);
+
+                // Add explicit instruction to return ONLY ONE question
+                var prompt = basePrompt + "\n\nIMPORTANT: Return EXACTLY ONE question in a JSON array with a single object. Do not return multiple questions. Format: [{\"text\":\"...\",\"category\":\"...\",\"severity\":\"...\",\"rationale\":\"...\"}]";
+
+                // Try up to 2 times to get a valid response
+                string? llmText = null;
+                List<ClarifyingQuestionVM>? parsedList = null;
+                int maxRetries = 2;
+
+                for (int attempt = 0; attempt < maxRetries; attempt++)
+                {
+                    // Call LLM
+                    llmText = await _llm.GenerateAsync(prompt, _cts.Token).ConfigureAwait(false);
+
+                    // Parse the response
+                    var parsed = ClarifyingParsingHelpers.ParseQuestions(llmText) ?? Enumerable.Empty<ClarifyingQuestionVM>();
+                    parsedList = parsed.ToList();
+
+                    // Detect malformed output: single question containing entire JSON array text
+                    if (parsedList.Count == 1 && parsedList[0].Text.Contains("[{") && parsedList[0].Text.Contains("}]"))
+                    {
+                        // Try to extract the embedded JSON array from the malformed question text
+                        var malformedText = parsedList[0].Text;
+                        var startIdx = malformedText.IndexOf("[{");
+                        var endIdx = malformedText.LastIndexOf("}]");
+                        
+                        if (startIdx >= 0 && endIdx > startIdx)
+                        {
+                            // Extract the JSON array substring
+                            var extractedJson = malformedText.Substring(startIdx, endIdx - startIdx + 2);
+                            
+                            // Try to parse the extracted JSON
+                            var reparsed = ClarifyingParsingHelpers.ParseQuestions(extractedJson);
+                            if (reparsed != null)
+                            {
+                                var reparsedList = reparsed.ToList();
+                                if (reparsedList.Count > 0)
+                                {
+                                    // Successfully extracted questions from malformed response
+                                    parsedList = reparsedList;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // Extraction failed - retry if we have attempts left
+                        if (attempt < maxRetries - 1)
+                        {
+                            await Task.Delay(500, _cts.Token); // Brief pause before retry
+                            continue;
+                        }
+                        
+                        // Final attempt failed and extraction failed, give up
+                        Application.Current?.Dispatcher?.Invoke(() =>
+                        {
+                            if (!keepOriginal)
+                            {
+                                PendingQuestions.Remove(oldQuestion);
+                            }
+                            StatusHint = "LLM returned malformed response after retries";
+                            UpdateSessionStateAfterQuestionsUpdate();
+                        });
+                        return;
+                    }
+
+                    // Valid response, break out of retry loop
+                    break;
+                }
+
+                // Update UI on dispatcher thread
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    // Remove old question only if not keeping original
+                    if (!keepOriginal)
+                    {
+                        PendingQuestions.Remove(oldQuestion);
+                    }
+
+                    // Add new questions (could be one from replacement request, or multiple if we extracted from malformed response)
+                    if (parsedList != null && parsedList.Count > 0)
+                    {
+                        foreach (var newQuestion in parsedList)
+                        {
+                            // Check for duplicates
+                            var normalized = NormalizeText(newQuestion.Text);
+                            var isDuplicate = PendingQuestions.Any(q => NormalizeText(q.Text) == normalized);
+                            
+                            if (!isDuplicate)
+                            {
+                                PendingQuestions.Add(newQuestion);
+                            }
+                        }
+                    }
+
+                    UpdateSessionStateAfterQuestionsUpdate();
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                // User canceled, remove old question only if not keeping original
+                if (!keepOriginal)
+                {
+                    Application.Current?.Dispatcher?.Invoke(() => PendingQuestions.Remove(oldQuestion));
+                }
+            }
+            catch (Exception ex)
+            {
+                // On error, remove old question (if not keeping) and show status
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    if (!keepOriginal)
+                    {
+                        PendingQuestions.Remove(oldQuestion);
+                    }
+                    StatusHint = $"Error getting replacement question: {ex.Message}";
+                });
+            }
+        }
+
+        private static string NormalizeText(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+            var t = text!.Trim();
+            while (t.Contains("  ")) t = t.Replace("  ", " ");
+            return t.ToLowerInvariant();
+        }
+
+        private async void AcceptQuestion(ClarifyingQuestionVM q)
         {
             if (q == null) return;
-            // Accepting simply marks as answered if answer exists, or set a default "Accepted" marker
-            if (string.IsNullOrWhiteSpace(q.Answer))
+
+            bool hasAnswer = !string.IsNullOrWhiteSpace(q.Answer);
+            bool isMarkedAsAssumption = q.MarkedAsAssumption;
+
+            // Validation: must have either an answer or be marked as assumption
+            if (!hasAnswer && !isMarkedAsAssumption)
             {
-                q.Answer = "Accepted"; // minimal placeholder if user clicked Accept without typing; adjust UX if undesired
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    StatusHint = "Please provide an answer or mark the question as an assumption before submitting.";
+                });
+                return;
             }
+
+            // If marked as assumption, save to global assumptions catalog
+            if (isMarkedAsAssumption)
+            {
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    // Build the DefaultItem with answer included in description if present
+                    var baseItem = q.ToDefaultItem();
+                    
+                    // If there's an answer, append it to the description
+                    string description = baseItem.Description ?? "";
+                    if (hasAnswer)
+                    {
+                        description = string.IsNullOrEmpty(description) 
+                            ? $"Answer: {q.Answer}" 
+                            : $"{description}\nAnswer: {q.Answer}";
+                    }
+
+                    var di = new DefaultItem
+                    {
+                        Key = baseItem.Key,
+                        Name = baseItem.Name,
+                        Description = description,
+                        IsEnabled = true
+                    };
+                    
+                    if (!SuggestedDefaults.Any(d => string.Equals(d.Key, di.Key, StringComparison.OrdinalIgnoreCase) || string.Equals(d.Name, di.Name, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        SuggestedDefaults.Add(di);
+                    }
+                });
+            }
+
+            // Determine fade behavior: complete fade if assumption-only, partial fade if answered
+            bool shouldFadeOut = isMarkedAsAssumption && !hasAnswer;
+            bool shouldKeepVisible = hasAnswer;
+
+            Application.Current?.Dispatcher?.Invoke(() =>
+            {
+                q.IsSubmitted = true;
+                if (shouldFadeOut)
+                {
+                    q.IsFadingOut = true;
+                }
+            });
+
             UpdateSessionStateAfterQuestionsUpdate();
+
+            // Set LLM busy state before requesting replacement
+            if (_headerVm != null) _headerVm.IsLlmBusy = true;
+
+            // Request replacement question in background
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    if (shouldFadeOut)
+                    {
+                        await Task.Delay(1000); // Wait for fade-out animation
+                    }
+                    await RequestReplacementQuestionAsync(q, keepOriginal: shouldKeepVisible);
+                }
+                finally
+                {
+                    // Clear busy state when done
+                    Application.Current?.Dispatcher?.Invoke(() =>
+                    {
+                        if (_headerVm != null) _headerVm.IsLlmBusy = false;
+                    });
+                }
+            });
         }
 
         private void ResetAssumptions()
@@ -895,6 +1183,19 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 // TODO: implement real test-case generation using _llm.GenerateAsync and parse results to populate TestCaseGenerator_CreationVM
                 StatusHint = "Test-case generation is not yet implemented.";
+
+                // Navigate to the test case creation view
+                if (_mainVm != null)
+                {
+                    var creationStep = _mainVm.TestCaseGeneratorSteps.FirstOrDefault(s => s.Id == "testcase-creation");
+                    if (creationStep != null)
+                    {
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            _mainVm.SelectedStep = creationStep;
+                        });
+                    }
+                }
             }
             catch (Exception ex)
             {
