@@ -3,12 +3,14 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:TestCaseEditorApp.Converters"
              mc:Ignorable="d"
              d:DesignHeight="80" d:DesignWidth="800"
              UseLayoutRounding="True">
 
     <UserControl.Resources>
         <ResourceDictionary>
+            <converters:InvertBoolConverter x:Key="InvertBoolConverter" />
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/ComboBoxStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
@@ -27,7 +29,8 @@
             </Grid.ColumnDefinitions>
 
             <!-- NAV AREA -->
-            <Grid VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Column="0">
+            <Grid VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Column="0"
+                  IsEnabled="{Binding DataContext.IsLlmBusy, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InvertBoolConverter}}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -78,7 +81,8 @@
                       Style="{StaticResource CardComboBoxStyle}"
                       BorderBrush="{DynamicResource CardBorderBrush}"
                       Padding="6,2"
-                      Grid.ColumnSpan="2">
+                      Grid.ColumnSpan="2"
+                      IsEnabled="{Binding DataContext.IsLlmBusy, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InvertBoolConverter}}">
 
                 <ComboBox.ItemTemplate>
                     <DataTemplate>

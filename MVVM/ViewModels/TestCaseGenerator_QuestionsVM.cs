@@ -226,8 +226,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             if (e?.PropertyName == nameof(MainViewModel.CurrentRequirement))
             {
-                // Save current questions before switching
-                SaveQuestionsForRequirement(_currentRequirement);
+                // Only save current questions before switching if there are questions to preserve
+                if (_currentRequirement != null && PendingQuestions.Count > 0)
+                {
+                    SaveQuestionsForRequirement(_currentRequirement, markDirty: false);
+                }
                 
                 // Load questions for new requirement
                 _currentRequirement = _mainVm?.CurrentRequirement;
@@ -252,15 +255,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     foreach (var data in requirement.ClarifyingQuestions)
                     {
-                        var qvm = new ClarifyingQuestionVM
-                        {
-                            Text = data.Text,
-                            Answer = data.Answer,
-                            Category = data.Category,
-                            Severity = data.Severity,
-                            Rationale = data.Rationale,
-                            MarkedAsAssumption = data.MarkedAsAssumption
-                        };
+                        var qvm = new ClarifyingQuestionVM(_mainVm);
+                        qvm.SetPropertiesForLoad(
+                            data.Text,
+                            data.Answer,
+                            data.Category,
+                            data.Severity,
+                            data.Rationale,
+                            data.MarkedAsAssumption
+                        );
                         
                         if (data.Options != null)
                         {
@@ -280,7 +283,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
         }
 
-        private void SaveQuestionsForRequirement(Requirement? requirement)
+        internal void SaveQuestionsForRequirement(Requirement? requirement, bool markDirty = true)
         {
             if (requirement == null)
                 return;
@@ -301,8 +304,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 });
             }
             
-            // Mark workspace as dirty
-            if (_mainVm != null)
+            // Mark workspace as dirty only if requested (not during navigation)
+            if (markDirty && _mainVm != null)
             {
                 _mainVm.IsDirty = true;
             }
@@ -363,7 +366,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     foreach (var it in e.NewItems.OfType<string>())
                     {
-                        PendingQuestions.Add(new ClarifyingQuestionVM(it));
+                        PendingQuestions.Add(new ClarifyingQuestionVM(it, null, _mainVm));
                     }
                 }
 
@@ -377,14 +380,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     }
                 }
 
-                // Persist Questions to storage
-                try
+                // Persist Questions to storage (but not during initial load)
+                if (!_synchronizingCollections)
                 {
-                    SaveQuestionsToStorage();
-                }
-                catch
-                {
-                    StatusHint = "Failed to save clarifying questions.";
+                    try
+                    {
+                        SaveQuestionsToStorage();
+                    }
+                    catch
+                    {
+                        StatusHint = "Failed to save clarifying questions.";
+                    }
                 }
             }
             finally
@@ -423,14 +429,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     }
                 }
 
-                // Persist Questions to storage
-                try
+                // Persist Questions to storage (but not during initial load)
+                if (!_synchronizingCollections)
                 {
-                    SaveQuestionsToStorage();
-                }
-                catch
-                {
-                    StatusHint = "Failed to save clarifying questions.";
+                    try
+                    {
+                        SaveQuestionsToStorage();
+                    }
+                    catch
+                    {
+                        StatusHint = "Failed to save clarifying questions.";
+                    }
                 }
 
                 // Update HasPendingQuestions-like signals if needed
@@ -726,7 +735,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 return;
             }
 
-            var parsed = ClarifyingParsingHelpers.ParseQuestions(llmText);
+            var parsed = ClarifyingParsingHelpers.ParseQuestions(llmText, _mainVm);
             Application.Current?.Dispatcher?.Invoke(() =>
             {
                 PendingQuestions.Clear();
@@ -1082,7 +1091,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 string? llmText = await _llm.GenerateAsync(prompt, _cts.Token).ConfigureAwait(false);
 
                 // Parse the response - ParseQuestions will automatically clean up malformed patterns
-                var parsed = ClarifyingParsingHelpers.ParseQuestions(llmText) ?? Enumerable.Empty<ClarifyingQuestionVM>();
+                var parsed = ClarifyingParsingHelpers.ParseQuestions(llmText, _mainVm) ?? Enumerable.Empty<ClarifyingQuestionVM>();
                 var parsedList = parsed.ToList();
 
                 // Update UI on dispatcher thread
@@ -1308,11 +1317,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private async Task SkipToTestCaseGenerationAsync()
         {
             // Skip all questions and go straight to test case generation
-            StatusHint = "Generating test cases with current assumptions...";
-            await GenerateTestCasesAsync();
+            StatusHint = "Bypassing clarifying questions... brave soul!";
+            await GenerateTestCasesAsync(skippedQuestions: true);
         }
 
-        private async Task GenerateTestCasesAsync()
+        private async Task GenerateTestCasesAsync(bool skippedQuestions = false)
         {
             _sessionState = SessionState.Generating;
             NotifySmartButtonProperties();
@@ -1387,8 +1396,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 prompt.AppendLine("Expected Results:");
                 prompt.AppendLine("[Describe what should happen if the test passes - be specific about expected outcomes]");
 
-                // Call LLM
-                StatusHint = "Generating test cases from your answers...";
+                // Call LLM with appropriate status message
+                StatusHint = skippedQuestions 
+                    ? "Generating test cases (no clarifying questions answered)..." 
+                    : "Generating test cases (incorporating answers to clarifying questions)...";
                 string llmResponse = await _llm.GenerateAsync(prompt.ToString(), _cts.Token).ConfigureAwait(false);
 
                 // Store raw output for inspection

@@ -15,13 +15,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     /// </summary>
     public class ClarifyingQuestionVM : ObservableObject
     {
-        public ClarifyingQuestionVM()
+        private readonly MainViewModel? _mainVm;
+        private bool _isLoading = false;
+
+        public ClarifyingQuestionVM(MainViewModel? mainVm = null)
         {
+            _mainVm = mainVm;
             Id = Guid.NewGuid().ToString("N");
             Options.CollectionChanged += Options_CollectionChanged;
         }
 
-        public ClarifyingQuestionVM(string textValue, IReadOnlyList<string>? options = null) : this()
+        public ClarifyingQuestionVM(string textValue, IReadOnlyList<string>? options = null, MainViewModel? mainVm = null) : this(mainVm)
         {
             Text = textValue ?? string.Empty;
             if (options != null)
@@ -51,6 +55,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 if (SetProperty(ref _answer, value))
                 {
                     OnPropertyChanged(nameof(IsAnswered));
+                    
+                    // Mark workspace dirty when answer changes (skip if loading)
+                    if (_mainVm != null && !_isLoading)
+                    {
+                        _mainVm.IsDirty = true;
+                        System.Diagnostics.Debug.WriteLine("[Question] Answer changed - marked workspace dirty");
+                    }
                 }
             }
         }
@@ -115,6 +126,27 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         // Derived property used by the UI to decide whether the question is "done"
         public bool IsAnswered => !string.IsNullOrWhiteSpace(Answer) || MarkedAsAssumption;
+
+        /// <summary>
+        /// Set properties without triggering dirty flag (used during loading).
+        /// </summary>
+        public void SetPropertiesForLoad(string text, string? answer, string? category, string severity, string? rationale, bool markedAsAssumption)
+        {
+            _isLoading = true;
+            try
+            {
+                Text = text;
+                Answer = answer;
+                Category = category;
+                Severity = severity;
+                Rationale = rationale;
+                MarkedAsAssumption = markedAsAssumption;
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
 
         private void Options_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {

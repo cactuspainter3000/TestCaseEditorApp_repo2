@@ -41,6 +41,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         // Optional/managed runtime services
         private LlmProbeService? _llmProbeService;
+        private readonly ToastNotificationService _toastService;
 
         // --- Logging ---
         private readonly ILogger<MainViewModel>? _logger;
@@ -77,18 +78,40 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private ObservableCollection<Requirement> _requirements = new ObservableCollection<Requirement>();
         public ObservableCollection<Requirement> Requirements => _requirements;
 
+        // Toast notifications collection for UI binding
+        public ObservableCollection<ToastNotification> ToastNotifications => _toastService.Toasts;
+
         private Requirement? _currentRequirement;
         public Requirement? CurrentRequirement
         {
             get => _currentRequirement;
             set
             {
+                // Save BEFORE changing requirement so we can access the OLD requirement's data
+                if (_currentRequirement != value && _isDirty)
+                {
+                    SavePillSelectionsBeforeNavigation();
+                }
+
                 if (SetProperty(ref _currentRequirement, value))
                 {
                     // inside CurrentRequirement setter, immediately after a successful SetProperty(...)
                     System.Diagnostics.Debug.WriteLine($"[CurrentRequirement] set -> Item='{value?.Item ?? "<null>"}' Name='{value?.Name ?? "<null>"}' Method='{value?.Method}' ActiveHeader={ActiveHeader?.GetType().Name ?? "<null>"}");
+                    
+                    // Update AssumptionsVM with new requirement for pill persistence FIRST
+                    // This must happen before OnCurrentRequirementChanged so pills load from correct requirement
+                    if (CurrentStepViewModel is TestCaseGenerator_AssumptionsVM assumptionsVm)
+                    {
+                        assumptionsVm.SetCurrentRequirement(value);
+                        assumptionsVm.LoadPillsForRequirement(value);
+                    }
+
                     // Update header and other requirement-related hooks
                     OnCurrentRequirementChanged(value);
+                    
+                    // Update workspace header CanReAnalyze state
+                    _workspaceHeaderViewModel.CanReAnalyze = (value != null && !IsLlmBusy);
+                    ((AsyncRelayCommand?)_workspaceHeaderViewModel.ReAnalyzeCommand)?.NotifyCanExecuteChanged();
 
                     // Defensive final step: always forward to header(s)
                     try
@@ -213,9 +236,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
 
         // Commands exposed directly (so bindings can reference them without source-generation)
-        public ICommand NextRequirementCommand { get; }
-        public ICommand PreviousRequirementCommand { get; }
-        public ICommand NextWithoutTestCaseCommand { get; }
+        public IRelayCommand NextRequirementCommand { get; }
+        public IRelayCommand PreviousRequirementCommand { get; }
+        public IRelayCommand NextWithoutTestCaseCommand { get; }
         public IAsyncRelayCommand ImportWordCommand { get; private set; }
         public IAsyncRelayCommand QuickImportCommand { get; private set; }
         public ICommand LoadWorkspaceCommand { get; private set; }
@@ -245,6 +268,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             get => _isDirty;
             set
             {
+                if (_isDirty != value)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainViewModel] IsDirty changing from {_isDirty} to {value}. Stack: {Environment.StackTrace}");
+                }
                 if (SetProperty(ref _isDirty, value))
                 {
                     UpdateWindowTitle();
@@ -270,6 +297,29 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             get => _wrapOnNextWithoutTestCase;
             set => SetProperty(ref _wrapOnNextWithoutTestCase, value);
+        }
+
+        // IsLlmBusy required by ITestCaseGenerator_Navigator
+        private bool _isLlmBusy;
+        public bool IsLlmBusy
+        {
+            get => _isLlmBusy;
+            set
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainViewModel] IsLlmBusy changing from {_isLlmBusy} to {value}");
+                if (SetProperty(ref _isLlmBusy, value))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainViewModel] IsLlmBusy changed to {value}, notifying navigation commands");
+                    // Notify navigation commands to re-evaluate CanExecute
+                    NextRequirementCommand?.NotifyCanExecuteChanged();
+                    PreviousRequirementCommand?.NotifyCanExecuteChanged();
+                    NextWithoutTestCaseCommand?.NotifyCanExecuteChanged();
+                    
+                    // Update workspace header CanReAnalyze state
+                    _workspaceHeaderViewModel.CanReAnalyze = (CurrentRequirement != null && !value);
+                    ((AsyncRelayCommand?)_workspaceHeaderViewModel.ReAnalyzeCommand)?.NotifyCanExecuteChanged();
+                }
+            }
         }
 
         // -------------------------
@@ -314,8 +364,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _logger = logger;
             TitleBar = new TitleBarViewModel();
 
+            // Initialize toast notification service
+            _toastService = new ToastNotificationService(Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher);
+
             // Initialize header instances
-            _testCaseGeneratorHeader = new TestCaseGenerator_HeaderVM { TitleText = "Test Case Creator" };
+            _testCaseGeneratorHeader = new TestCaseGenerator_HeaderVM(this) { TitleText = "Test Case Creator" };
 
             if (_testCaseGeneratorHeader != null)
             {
@@ -353,7 +406,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             ImportWordCommand = ImportWordCommand ?? new AsyncRelayCommand(ImportWordAsync);
             QuickImportCommand = new AsyncRelayCommand(QuickImportAsync);
             LoadWorkspaceCommand = new RelayCommand(() => TryInvokeLoadWorkspace());
-            SaveWorkspaceCommand = new RelayCommand(() => TryInvokeSaveWorkspace());
+            SaveWorkspaceCommand = new RelayCommand(() => SaveWorkspace());
             ReloadCommand = new AsyncRelayCommand(ReloadAsync);
             ExportAllToJamaCommand = new RelayCommand(() => TryInvokeExportAllToJama());
             HelpCommand = new RelayCommand(() => TryInvokeHelp());
@@ -370,6 +423,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             NextRequirementCommand = new RelayCommand(NextRequirement, CanNavigate);
             PreviousRequirementCommand = new RelayCommand(PreviousRequirement, CanNavigate);
             NextWithoutTestCaseCommand = new RelayCommand(NextWithoutTestCase, CanNavigate);
+            
+            // Wire Re-Analyze command to workspace header
+            _workspaceHeaderViewModel.ReAnalyzeCommand = new AsyncRelayCommand(ReAnalyzeRequirementAsync, CanReAnalyze);
 
             // Populate UI steps (factories create step VMs)
             InitializeSteps();
@@ -414,7 +470,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 HasFileMenu = false,
                 CreateViewModel = svc =>
                 {
-                    return new TestCaseGenerator_AssumptionsVM(_testCaseGeneratorHeader);
+                    return new TestCaseGenerator_AssumptionsVM(_testCaseGeneratorHeader, this);
                 }
             });
 
@@ -452,9 +508,24 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             get => _selectedStep;
             set
             {
+                // Save BEFORE changing SelectedStep so CurrentStepViewModel still points to the old view
+                if (_hasUnsavedChanges)
+                {
+                    SavePillSelectionsBeforeNavigation();
+                }
+
                 if (!SetProperty(ref _selectedStep, value)) return;
 
                 _logger?.LogDebug("SelectedStep set: {Step}", value?.DisplayName);
+
+                // Collapse any file menus when switching steps
+                foreach (var step in TestCaseGeneratorSteps)
+                {
+                    if (step != value && step.IsFileMenuExpanded)
+                    {
+                        step.IsFileMenuExpanded = false;
+                    }
+                }
 
                 if (value?.CreateViewModel == null)
                 {
@@ -466,6 +537,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     var created = value.CreateViewModel(_services);
                     CurrentStepViewModel = created;
+
+                    // Set current requirement on AssumptionsVM when view is created
+                    if (created is TestCaseGenerator_AssumptionsVM assumptionsVm)
+                    {
+                        assumptionsVm.SetCurrentRequirement(CurrentRequirement);
+                        assumptionsVm.LoadPillsForRequirement(CurrentRequirement);
+                    }
 
                     if (created is TestCaseGenerator_VM reqVm)
                     {
@@ -542,7 +620,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private void CreateAndAssignTestCaseGeneratorHeader()
         {
             if (_testCaseGeneratorHeader == null)
-                _testCaseGeneratorHeader = new TestCaseGenerator_HeaderVM();
+                _testCaseGeneratorHeader = new TestCaseGenerator_HeaderVM(this);
 
             var ctx = new TestCaseGenerator_HeaderContext
             {
@@ -787,12 +865,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 var reqStep = TestCaseGeneratorSteps.FirstOrDefault(s => string.Equals(s.Id, "requirements", StringComparison.OrdinalIgnoreCase));
                 if (reqStep != null) SelectedStep = reqStep;
                 SelectedMenuSection = "Requirements";
-                TryInvokeSetTransientStatus("Opened requirements.", 2);
+                SetTransientStatus("Opened requirements.", 2);
             }
             catch (Exception ex)
             {
                 _logger?.LogWarning(ex, "[Header_OpenRequirements] failed");
-                TryInvokeSetTransientStatus("Failed to open requirements.", 4);
+                SetTransientStatus($"Failed to open requirements: {ex.Message}", blockingError: true);
             }
         }
 
@@ -802,7 +880,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             catch (Exception ex)
             {
                 _logger?.LogWarning(ex, "[Header_OpenWorkspace] failed");
-                TryInvokeSetTransientStatus("Failed to open workspace.", 4);
+                SetTransientStatus($"Failed to open workspace: {ex.Message}", blockingError: true);
             }
         }
 
@@ -816,7 +894,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             catch (Exception ex)
             {
                 _logger?.LogWarning(ex, "[Header_SaveAsync] failed");
-                TryInvokeSetTransientStatus("Failed to save workspace.", 4);
+                SetTransientStatus($"Failed to save workspace: {ex.Message}", blockingError: true);
                 return Task.CompletedTask;
             }
         }
@@ -926,7 +1004,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 _logger?.LogWarning(ex, "TryInvokeExportAllToJama failed");
             }
 
-            TryInvokeSetTransientStatus("Export to Jama is not available.", 3);
+            SetTransientStatus("Export to Jama is not available.", 3);
         }
 
         private void TryInvokeHelp()
@@ -953,7 +1031,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 _logger?.LogWarning(ex, "TryInvokeHelp failed");
             }
 
-            TryInvokeSetTransientStatus("Help is not available.", 3);
+            SetTransientStatus("Help is not available.", 3);
         }
 
         private void TryInvokeSetTransientStatus(string msg, int seconds)
@@ -1040,7 +1118,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                SetTransientStatus($"Save failed: {ex.Message}", 5);
+                SetTransientStatus($"Save failed: {ex.Message}", blockingError: true);
             }
         }
 
@@ -1070,6 +1148,47 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             return ImportFromPathAsync(CurrentSourcePath!, replace: true);
         }
 
+        // Quick save to existing workspace path
+        public void SaveWorkspace()
+        {
+            if (string.IsNullOrWhiteSpace(WorkspacePath))
+            {
+                // No existing path, delegate to SaveAs
+                _ = SaveWorkspaceAsync();
+                return;
+            }
+
+            if (Requirements == null || Requirements.Count == 0)
+            {
+                SetTransientStatus("Nothing to save.", 2);
+                return;
+            }
+
+            var ws = new Workspace
+            {
+                SourceDocPath = CurrentSourcePath,
+                Requirements = Requirements.ToList()
+            };
+
+            try
+            {
+                WorkspaceService.Save(WorkspacePath!, ws);
+                CurrentWorkspace = ws;
+                IsDirty = false;
+                HasUnsavedChanges = false;
+                
+                // Track in recent files
+                try { _recentFilesService?.AddRecentFile(WorkspacePath!); } catch { }
+                
+                SetTransientStatus($"Saved: {Path.GetFileName(WorkspacePath)}", 3);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to save workspace: {ex.Message}", "Save error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // Save As - prompts for location
         public async Task SaveWorkspaceAsync()
         {
             if (Requirements == null || Requirements.Count == 0)
@@ -1106,6 +1225,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 WorkspaceService.Save(WorkspacePath!, ws);
                 CurrentWorkspace = ws;
+                IsDirty = false;
                 HasUnsavedChanges = false;
                 
                 // Track in recent files
@@ -1138,7 +1258,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 var ws = WorkspaceService.Load<Workspace>(WorkspacePath!);
                 if (ws == null)
                 {
-                    SetTransientStatus("Failed to load workspace (file empty or invalid).", 4);
+                    SetTransientStatus("Failed to load workspace (file empty or invalid).", blockingError: true);
                     return;
                 }
 
@@ -1161,6 +1281,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 CurrentSourcePath = ws.SourceDocPath;
                 SetTransientStatus($"Opened workspace: {Path.GetFileName(WorkspacePath)} � {Requirements.Count} requirements", 4);
                 HasUnsavedChanges = false;
+                IsDirty = false;
             }
             catch (Exception ex)
             {
@@ -1171,23 +1292,74 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Navigation methods (ICommand-backed)
         private bool CanNavigate()
         {
+            System.Diagnostics.Debug.WriteLine($"[MainViewModel] CanNavigate() called. IsLlmBusy={IsLlmBusy}");
+            
             // Don't allow navigation when LLM is busy
+            if (IsLlmBusy)
+            {
+                System.Diagnostics.Debug.WriteLine("[MainViewModel] CanNavigate() returning FALSE - IsLlmBusy is true");
+                SetTransientStatus("Please wait - the AI is working on your request. LLMs are powerful, but they need a moment!", 2);
+                return false;
+            }
+
             try
             {
                 if (_testCaseGeneratorHeader?.IsLlmBusy == true)
+                {
+                    SetTransientStatus("Please wait - the AI is working on your request. LLMs are powerful, but they need a moment!", 2);
                     return false;
+                }
                     
                 var tcg = GetTestCaseGeneratorInstance();
                 if (tcg != null)
                 {
                     var busyProp = tcg.GetType().GetProperty("IsLlmBusy", BindingFlags.Public | BindingFlags.Instance);
                     if (busyProp != null && busyProp.GetValue(tcg) is bool isBusy && isBusy)
+                    {
+                        SetTransientStatus("Please wait - the AI is working on your request. LLMs are powerful, but they need a moment!", 2);
                         return false;
+                    }
                 }
             }
             catch { /* ignore */ }
             
             return true;
+        }
+        
+        private bool CanReAnalyze()
+        {
+            return CurrentRequirement != null && !IsLlmBusy;
+        }
+        
+        private async Task ReAnalyzeRequirementAsync()
+        {
+            try
+            {
+                var tcg = GetTestCaseGeneratorInstance();
+                if (tcg == null) return;
+                
+                // Get the AnalysisVM from TestCaseGenerator_VM
+                var analysisVmProp = tcg.GetType().GetProperty("AnalysisVM", BindingFlags.Public | BindingFlags.Instance);
+                if (analysisVmProp == null) return;
+                
+                var analysisVm = analysisVmProp.GetValue(tcg);
+                if (analysisVm == null) return;
+                
+                // Switch to Analysis tab first
+                var isAnalysisSelectedProp = tcg.GetType().GetProperty("IsAnalysisSelected", BindingFlags.Public | BindingFlags.Instance);
+                isAnalysisSelectedProp?.SetValue(tcg, true);
+                
+                // Trigger analysis
+                var analyzeCommandProp = analysisVm.GetType().GetProperty("AnalyzeRequirementCommand", BindingFlags.Public | BindingFlags.Instance);
+                if (analyzeCommandProp?.GetValue(analysisVm) is ICommand analyzeCommand && analyzeCommand.CanExecute(null))
+                {
+                    analyzeCommand.Execute(null);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainViewModel] Re-Analyze error: {ex}");
+            }
         }
         
         private void NextRequirement()
@@ -1256,6 +1428,40 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         // CurrentRequirement change handling
+        /// <summary>
+        /// Save data before navigating to a new requirement or view.
+        /// Only saves if workspace is dirty (orange unsaved state).
+        /// Checks the current view type and saves appropriate data.
+        /// </summary>
+        private void SavePillSelectionsBeforeNavigation()
+        {
+            try
+            {
+                // Check if current view is AssumptionsVM and save its data
+                if (CurrentStepViewModel is TestCaseGenerator_AssumptionsVM assumptionsVm)
+                {
+                    assumptionsVm.SaveAllAssumptionsData();
+                    System.Diagnostics.Debug.WriteLine("[Navigation] Saved assumptions data before navigation");
+                }
+                // Check if current view is QuestionsVM and save its data
+                else if (CurrentStepViewModel is TestCaseGenerator_QuestionsVM questionsVm)
+                {
+                    questionsVm.SaveQuestionsForRequirement(CurrentRequirement, markDirty: false);
+                    System.Diagnostics.Debug.WriteLine("[Navigation] Saved questions data before navigation");
+                }
+                // Check if current view is HeaderVM and save its data
+                else if (CurrentStepViewModel is TestCaseGenerator_HeaderVM headerVm)
+                {
+                    // Header data saves automatically via requirement property binding
+                    System.Diagnostics.Debug.WriteLine("[Navigation] Header data handled by requirement property");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Navigation] Error saving data: {ex.Message}");
+            }
+        }
+
         private void OnCurrentRequirementChanged(Requirement? newValue)
         {
             try
@@ -1453,7 +1659,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 WorkspacePath = FileNameHelper.EnsureUniquePath(Path.GetDirectoryName(chosen)!, Path.GetFileName(chosen));
 
-                SetTransientStatus($"Importing {Path.GetFileName(path)}�", 0);
+                SetTransientStatus($"Importing {Path.GetFileName(path)}...", 60); // Auto-dismiss after 60s or when next status appears
                 _logger?.LogInformation("Starting import of '{Path}'", path);
 
                 var sw = Stopwatch.StartNew();
@@ -1485,8 +1691,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 CurrentWorkspace.Requirements = Requirements.ToList();
 
-                HasUnsavedChanges = false;
-                
                 // Track in recent files
                 try { _recentFilesService?.AddRecentFile(WorkspacePath!); } catch { }
 
@@ -1498,6 +1702,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 catch { firstFromView = null; }
 
                 CurrentRequirement = firstFromView ?? Requirements.FirstOrDefault();
+                HasUnsavedChanges = false;
+                IsDirty = false;
                 RefreshSupportingInfo();
 
                 ComputeDraftedCount();
@@ -1505,7 +1711,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 _requirementsNavigator?.NotifyCurrentRequirementChanged();
 
-                SetTransientStatus($"?? Workspace created � {Requirements?.Count ?? 0} requirement(s)", 6);
+                SetTransientStatus($"Workspace created - {Requirements?.Count ?? 0} requirement(s)", 6);
                 _logger?.LogInformation("final status: {StatusMessage}", StatusMessage);
             }
             catch (Exception ex)
@@ -1525,31 +1731,35 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private string _file_dialog_show_save_helper(string suggestedFileName, string initialDirectory)
             => _fileDialog.ShowSaveFile(title: "Create Workspace", suggestedFileName: suggestedFileName, filter: "Test Case Editor Session|*.tcex.json|JSON|*.json|All Files|*.*", defaultExt: ".tcex.json", initialDirectory: initialDirectory);
 
-        private void SetTransientStatus(string message, int seconds = 3)
+        private void SetTransientStatus(string message, int seconds = 3, bool blockingError = false)
         {
-            StatusMessage = message;
-            
-            // Also update workspace header if it exists
-            if (_workspaceHeaderViewModel != null)
+            // For critical errors, show a blocking modal dialog
+            if (blockingError)
             {
-                _workspaceHeaderViewModel.StatusMessage = message;
+                MessageBox.Show(message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
             }
             
-            try { _statusTimer?.Stop(); } catch { }
-            if (seconds > 0)
+            // Use toast notifications for non-blocking messages
+            var toastType = ToastType.Info;
+            
+            // Detect error/warning messages and set appropriate toast type
+            var lowerMsg = message.ToLowerInvariant();
+            if (lowerMsg.Contains("fail") || lowerMsg.Contains("error"))
             {
-                _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(seconds) };
-                _statusTimer.Tick += (_, __) => 
-                { 
-                    try { _statusTimer?.Stop(); } catch { } 
-                    StatusMessage = null;
-                    if (_workspaceHeaderViewModel != null)
-                    {
-                        _workspaceHeaderViewModel.StatusMessage = null;
-                    }
-                };
-                _statusTimer.Start();
+                toastType = ToastType.Error;
             }
+            else if (lowerMsg.Contains("cancel"))
+            {
+                toastType = ToastType.Warning;
+            }
+            else if (lowerMsg.Contains("saved") || lowerMsg.Contains("complete") || lowerMsg.Contains("created") || lowerMsg.Contains("opened"))
+            {
+                toastType = ToastType.Success;
+            }
+            
+            // New toast triggers existing toasts to fade out gracefully
+            _toastService.ShowToast(message, seconds, toastType);
         }
 
         private void InitializeAutoSave()
@@ -1567,7 +1777,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         if (IsDirty && !string.IsNullOrWhiteSpace(WorkspacePath) && CurrentWorkspace != null)
                         {
                             System.Diagnostics.Debug.WriteLine("[AutoSave] Saving workspace...");
-                            TryInvokeSaveWorkspace();
+                            SaveWorkspace();
                             SetTransientStatus($"Auto-saved at {DateTime.Now:HH:mm}", 2);
                         }
                     }

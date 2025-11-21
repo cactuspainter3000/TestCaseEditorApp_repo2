@@ -1,11 +1,62 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using TestCaseEditorApp.MVVM.Models;
 
 public static class DefaultsHelper
 {
+    /// <summary>
+    /// Convert DefaultItem to AssumptionPill with applicable methods based on category.
+    /// </summary>
+    public static AssumptionPill ToAssumptionPill(DefaultItem item)
+    {
+        var applicableMethods = new List<VerificationMethod>();
+        
+        // Map categories to verification methods
+        // Empty list = applicable to all methods
+        switch (item.Category?.ToLowerInvariant())
+        {
+            case "test":
+                // Test-specific pills only show for Test method
+                applicableMethods.Add(VerificationMethod.Test);
+                break;
+            
+            case "inspection":
+                // Inspection pills for Inspection method
+                applicableMethods.Add(VerificationMethod.Inspection);
+                break;
+            
+            case "analysis":
+                // Analysis-specific pills
+                applicableMethods.Add(VerificationMethod.Analysis);
+                break;
+                
+            case "demonstration":
+                // Demonstration-specific pills
+                applicableMethods.Add(VerificationMethod.Demonstration);
+                break;
+            
+            // Environment, Equipment, Documentation = show for all methods (empty list)
+            default:
+                // Leave empty - shows for all methods
+                break;
+        }
+        
+        return new AssumptionPill
+        {
+            Key = item.Key,
+            Name = item.Name,
+            Category = item.Category,
+            Description = item.Description,
+            ContentLine = item.ContentLine,
+            ApplicableMethods = applicableMethods,
+            IsEnabled = item.IsEnabled,
+            IsLlmSuggested = item.IsLlmSuggested
+        };
+    }
+
     public static DefaultsCatalogDto LoadProjectDefaultsTemplate()
     {
         try
@@ -185,6 +236,77 @@ public static class DefaultsHelper
     private class UserInstructionsWrapper
     {
         public Dictionary<string, string> Instructions { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Load user's pill selections per verification method.
+    /// Returns a dictionary mapping verification method names to lists of enabled pill keys.
+    /// </summary>
+    public static Dictionary<string, List<string>> LoadPillSelections()
+    {
+        try
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "Config", "pill-selections.json");
+            System.Diagnostics.Debug.WriteLine($"[PillSelections] looking for: {path}  exists={File.Exists(path)}");
+
+            if (File.Exists(path))
+            {
+                var json = File.ReadAllText(path);
+                var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var wrapper = JsonSerializer.Deserialize<PillSelectionsWrapper>(json, opts);
+
+                if (wrapper?.Selections != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[PillSelections] loaded {wrapper.Selections.Count} method selections");
+                    return wrapper.Selections;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[PillSelections] error loading: {ex.Message}");
+        }
+
+        // Fallback: return empty dictionary
+        System.Diagnostics.Debug.WriteLine("[PillSelections] using empty fallback (file missing or invalid)");
+        return new Dictionary<string, List<string>>();
+    }
+
+    /// <summary>
+    /// Save user's pill selections per verification method.
+    /// </summary>
+    public static void SavePillSelections(Dictionary<string, List<string>> selections)
+    {
+        try
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "Config", "pill-selections.json");
+            var wrapper = new PillSelectionsWrapper { Selections = selections };
+            var opts = new JsonSerializerOptions 
+            { 
+                PropertyNameCaseInsensitive = true,
+                WriteIndented = true
+            };
+            var json = JsonSerializer.Serialize(wrapper, opts);
+            
+            // Ensure directory exists
+            var dir = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            File.WriteAllText(path, json);
+            System.Diagnostics.Debug.WriteLine($"[PillSelections] saved {selections.Count} method selections to: {path}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[PillSelections] error saving: {ex.Message}");
+        }
+    }
+
+    private class PillSelectionsWrapper
+    {
+        public Dictionary<string, List<string>> Selections { get; set; } = new();
     }
 
 }

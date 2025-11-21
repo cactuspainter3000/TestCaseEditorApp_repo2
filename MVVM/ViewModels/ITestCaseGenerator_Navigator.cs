@@ -22,5 +22,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // UI helpers
         string RequirementPositionDisplay { get; }
         bool WrapOnNextWithoutTestCase { get; set; }
+        
+        // LLM state
+        bool IsLlmBusy { get; set; }
     }
 }

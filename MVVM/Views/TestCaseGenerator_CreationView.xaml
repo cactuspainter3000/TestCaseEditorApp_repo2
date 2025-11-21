@@ -29,10 +29,12 @@
                     <!-- Placeholder when no test case selected -->
                     <TextBlock Grid.Row="0"
                                Grid.RowSpan="6"
-                               Text="Select a test case from the list to edit"
+                               Text="No test cases here yet! 🤷&#x0a;Maybe generate some first? Just a thought..."
                                FontSize="14"
                                Foreground="{StaticResource MenuForeground}"
                                Opacity="0.5"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center">
                         <TextBlock.Style>

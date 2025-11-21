@@ -33,6 +33,13 @@ namespace TestCaseEditorApp.MVVM.Models
         /// </summary>
         public List<ClarifyingQuestionData> ClarifyingQuestions { get; set; }
             = new List<ClarifyingQuestionData>();
+
+        /// <summary>
+        /// LLM-powered quality analysis of this requirement.
+        /// Includes quality score, identified issues, recommendations, and freeform feedback.
+        /// Persisted in the workspace so analysis results survive reloads.
+        /// </summary>
+        public RequirementAnalysis? Analysis { get; set; }
     }
 
     /// <summary>

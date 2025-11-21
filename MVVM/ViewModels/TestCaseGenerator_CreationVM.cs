@@ -32,7 +32,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             AddTestCaseCommand = new RelayCommand(() =>
             {
-                var newTestCase = new GeneratedTestCase
+                var newTestCase = new GeneratedTestCase(_navigator as MainViewModel)
                 {
                     Title = $"TC-{TestCases.Count + 1:000}: New Test Case",
                     Preconditions = "",
@@ -68,45 +68,135 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Try to mark the main workspace as dirty via navigator
             if (_navigator is MainViewModel mainVm)
             {
+                System.Diagnostics.Debug.WriteLine($"[TestCaseGenerator_CreationVM] MarkWorkspaceDirty called! Stack trace: {Environment.StackTrace}");
                 mainVm.IsDirty = true;
             }
         }
 
         private void Navigator_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[TestCaseGenerator_CreationVM] Navigator_PropertyChanged: {e.PropertyName}");
+            
             if (e.PropertyName == nameof(ITestCaseGenerator_Navigator.CurrentRequirement))
             {
-                // Save current test cases before switching
-                SaveTestCasesToRequirement();
+                System.Diagnostics.Debug.WriteLine($"[TestCaseGenerator_CreationVM] CurrentRequirement changed! Old: {_currentRequirement?.Item}, New: {_navigator?.CurrentRequirement?.Item}");
+                
+                // Only save if there are actually test cases to preserve
+                if (_currentRequirement != null && TestCases.Count > 0)
+                {
+                    SaveTestCasesToRequirement(markDirty: false);
+                }
                 
                 // Load test cases for new requirement
                 _currentRequirement = _navigator?.CurrentRequirement;
                 LoadTestCasesFromRequirement(_currentRequirement);
+                
+                System.Diagnostics.Debug.WriteLine($"[TestCaseGenerator_CreationVM] Loaded {TestCases.Count} test cases");
             }
         }
 
         private void LoadTestCasesFromRequirement(Requirement? requirement)
         {
+            System.Diagnostics.Debug.WriteLine($"[TestCaseGenerator_CreationVM] LoadTestCasesFromRequirement called for: {requirement?.Item ?? "<null>"}");
+            
             TestCases.Clear();
+            SelectedTestCase = null; // Clear selection before loading new test cases
 
             if (requirement == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[TestCaseGenerator_CreationVM] Requirement is null, clearing test cases");
                 return;
+            }
 
-            // Check if requirement has an LLM response with output
+            // First, check if requirement has GeneratedTestCases (the primary source)
+            if (requirement.GeneratedTestCases != null && requirement.GeneratedTestCases.Count > 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"[TestCaseGenerator_CreationVM] Found {requirement.GeneratedTestCases.Count} GeneratedTestCases, loading...");
+                
+            foreach (var tc in requirement.GeneratedTestCases)
+            {
+                // Convert TestCase.Steps collection to formatted string
+                var stepsText = string.Join("\n", tc.Steps.Select((s, i) => $"{i + 1}. {s.StepAction}"));
+                var expectedText = string.Join("\n", tc.Steps.Select((s, i) => $"{i + 1}. {s.StepExpectedResult}"));
+                
+                var testCase = new GeneratedTestCase(_navigator as MainViewModel);
+                testCase.SetPropertiesForLoad(
+                    tc.Name ?? "",
+                    tc.TestCaseText ?? "",
+                    stepsText,
+                    expectedText
+                );
+                TestCases.Add(testCase);
+            }                SelectedTestCase = TestCases.FirstOrDefault();
+                System.Diagnostics.Debug.WriteLine($"[TestCaseGenerator_CreationVM] Loaded {TestCases.Count} test cases from GeneratedTestCases");
+                return;
+            }
+
+            // Fallback: Check if requirement has an LLM response with output (for backward compatibility)
             if (requirement.CurrentResponse != null && !string.IsNullOrWhiteSpace(requirement.CurrentResponse.Output))
             {
+                System.Diagnostics.Debug.WriteLine($"[TestCaseGenerator_CreationVM] Found LLM output ({requirement.CurrentResponse.Output.Length} chars), parsing...");
                 // Parse the LLM output to populate test cases
                 LlmOutput = requirement.CurrentResponse.Output;
+                
+                // Always set SelectedTestCase to the first test case when loading a new requirement
+                SelectedTestCase = TestCases.FirstOrDefault();
+                System.Diagnostics.Debug.WriteLine($"[TestCaseGenerator_CreationVM] Set SelectedTestCase to: {SelectedTestCase?.Title}");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[TestCaseGenerator_CreationVM] No test cases or LLM output found for requirement {requirement.Item}");
+                // Clear the view if there's no test case data
+                SelectedTestCase = null;
             }
         }
 
-        private void SaveTestCasesToRequirement()
+        private void SaveTestCasesToRequirement(bool markDirty = true)
         {
             if (_currentRequirement == null)
                 return;
 
-            // Recreate LLM output from current test cases for persistence
-            // This allows the test cases to be reloaded when navigating back
+            System.Diagnostics.Debug.WriteLine($"[TestCaseGenerator_CreationVM] SaveTestCasesToRequirement: Saving {TestCases.Count} test cases");
+
+            // Save all test cases to GeneratedTestCases collection
+            _currentRequirement.GeneratedTestCases.Clear();
+            
+            foreach (var tc in TestCases)
+            {
+                var testCase = new TestCase
+                {
+                    Name = tc.Title ?? "",
+                    TestCaseText = tc.Preconditions ?? ""
+                };
+                
+                // Parse steps and expected results into TestStep collection
+                if (!string.IsNullOrWhiteSpace(tc.Steps))
+                {
+                    var stepLines = tc.Steps.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                    var expectedLines = tc.ExpectedResults?.Split('\n', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+                    
+                    for (int i = 0; i < stepLines.Length; i++)
+                    {
+                        var stepText = stepLines[i].Trim();
+                        // Remove numbering if present (e.g., "1. Action" -> "Action")
+                        stepText = System.Text.RegularExpressions.Regex.Replace(stepText, @"^\d+\.\s*", "");
+                        
+                        var expectedText = i < expectedLines.Length ? expectedLines[i].Trim() : "";
+                        expectedText = System.Text.RegularExpressions.Regex.Replace(expectedText, @"^\d+\.\s*", "");
+                        
+                        testCase.Steps.Add(new TestStep
+                        {
+                            StepNumber = i + 1,
+                            StepAction = stepText,
+                            StepExpectedResult = expectedText
+                        });
+                    }
+                }
+                
+                _currentRequirement.GeneratedTestCases.Add(testCase);
+            }
+
+            // Also reconstruct LLM output from first test case for backward compatibility
             if (TestCases.Count > 0)
             {
                 var tc = TestCases.First();
@@ -121,6 +211,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     _currentRequirement.CurrentResponse = new Requirement.LlmDraft();
                 }
                 _currentRequirement.CurrentResponse.Output = reconstructed;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[TestCaseGenerator_CreationVM] Saved to GeneratedTestCases.Count = {_currentRequirement.GeneratedTestCases.Count}");
+            
+            // Only mark dirty if this is a user action, not navigation
+            if (markDirty && _navigator is MainViewModel mainVm)
+            {
+                mainVm.IsDirty = true;
             }
         }
 
@@ -153,20 +251,28 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 if (SetProperty(ref _llmOutput, value))
                 {
+                    System.Diagnostics.Debug.WriteLine($"[TestCaseGenerator_CreationVM] LlmOutput set, parsing into test cases...");
+                    
                     // Always parse, even if empty
                     ParseLlmOutputIntoTestCases(value);
+                    
+                    System.Diagnostics.Debug.WriteLine($"[TestCaseGenerator_CreationVM] After parsing: TestCases.Count = {TestCases.Count}");
                     
                     // Ensure we always have at least one item
                     if (TestCases.Count == 0)
                     {
-                        TestCases.Add(new GeneratedTestCase
+                        TestCases.Add(new GeneratedTestCase(_navigator as MainViewModel)
                         {
                             Title = "[DEBUG] No test cases parsed",
                             Steps = $"LLM Output was: {(string.IsNullOrEmpty(value) ? "NULL or EMPTY" : $"{value.Length} characters")}",
                             ExpectedResults = string.IsNullOrEmpty(value) ? "(no output)" : value
                         });
                         SelectedTestCase = TestCases.FirstOrDefault();
+                        System.Diagnostics.Debug.WriteLine($"[TestCaseGenerator_CreationVM] Added debug test case");
                     }
+                    
+                    // Force UI update
+                    OnPropertyChanged(nameof(TestCases));
                 }
             }
         }
@@ -199,7 +305,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // If we found at least a title or steps, create the test case
             if (!string.IsNullOrWhiteSpace(title) || !string.IsNullOrWhiteSpace(steps))
             {
-                TestCases.Add(new GeneratedTestCase
+                TestCases.Add(new GeneratedTestCase(_navigator as MainViewModel)
                 {
                     Title = string.IsNullOrWhiteSpace(title) ? "Generated Test Case" : title,
                     Preconditions = preconditions ?? "",
@@ -212,7 +318,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             // If structured parsing failed, just put the whole thing in one test case
             var firstLine = output.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim();
-            TestCases.Add(new GeneratedTestCase
+            TestCases.Add(new GeneratedTestCase(_navigator as MainViewModel)
             {
                 Title = firstLine ?? "Generated Test Case",
                 Preconditions = "",

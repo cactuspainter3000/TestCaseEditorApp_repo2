@@ -91,6 +91,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 OnPropertyChanged(nameof(RequirementPositionDisplay));
             }
+            else if (e.PropertyName == nameof(MainViewModel.IsLlmBusy))
+            {
+                OnPropertyChanged(nameof(IsLlmBusy));
+            }
         }
 
         private void TryNotifyHostCommands()
@@ -133,6 +137,19 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     _main.WrapOnNextWithoutTestCase = value;
                     OnPropertyChanged(nameof(WrapOnNextWithoutTestCase));
+                }
+            }
+        }
+
+        public bool IsLlmBusy
+        {
+            get => _main.IsLlmBusy;
+            set
+            {
+                if (_main.IsLlmBusy != value)
+                {
+                    _main.IsLlmBusy = value;
+                    OnPropertyChanged(nameof(IsLlmBusy));
                 }
             }
         }

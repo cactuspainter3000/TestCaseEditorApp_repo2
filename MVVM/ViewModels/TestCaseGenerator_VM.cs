@@ -28,6 +28,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Optional richer provider that can provide VMs directly.
         internal TestCaseGenerator_CoreVM? TestCaseGenerator { get; set; }
 
+        // Analysis VM for LLM-powered requirement analysis
+        public TestCaseGenerator_AnalysisVM? AnalysisVM { get; private set; }
+
         public TestCaseGenerator_VM(
             IPersistenceService persistence,
             ITestCaseGenerator_Navigator navigator,
@@ -66,6 +69,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Wire collection-changed handlers and initial notifications
             WirePresenceNotifications();
 
+            // Create Analysis VM (will create its own LLM service via LlmFactory if needed)
+            AnalysisVM = new TestCaseGenerator_AnalysisVM(_navigator, llmService: null);
+
             // Track SelectedSupportView changes via PropertyChanged so we don't rely on a generated partial hook
             this.PropertyChanged += TestCaseGenerator_VM_PropertyChanged;
 
@@ -99,6 +105,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 OnPropertyChanged(nameof(SelectedRequirement));
                 RefreshSupportContent();
                 UpdateVisibleChipsFromRequirement(SelectedRequirement);
+                OnPropertyChanged(nameof(HasAnalysis));
+                OnPropertyChanged(nameof(AnalysisQualityScore));
             }
             else if (e.PropertyName == nameof(_navigator.RequirementPositionDisplay))
             {
@@ -560,6 +568,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 OnPropertyChanged(nameof(IsMetaSelected));
                 OnPropertyChanged(nameof(IsTablesSelected));
                 OnPropertyChanged(nameof(IsParagraphsSelected));
+                OnPropertyChanged(nameof(IsAnalysisSelected));
             }
         }
 
@@ -572,6 +581,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 OnPropertyChanged(nameof(IsMetaSelected));
                 OnPropertyChanged(nameof(IsTablesSelected));
                 OnPropertyChanged(nameof(IsParagraphsSelected));
+                OnPropertyChanged(nameof(IsAnalysisSelected));
             }
         }
 
@@ -584,6 +594,41 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 OnPropertyChanged(nameof(IsMetaSelected));
                 OnPropertyChanged(nameof(IsTablesSelected));
                 OnPropertyChanged(nameof(IsParagraphsSelected));
+                OnPropertyChanged(nameof(IsAnalysisSelected));
+            }
+        }
+
+        public bool IsAnalysisSelected
+        {
+            get => SelectedSupportView == SupportView.Analysis;
+            set
+            {
+                if (value) SelectedSupportView = SupportView.Analysis;
+                OnPropertyChanged(nameof(IsMetaSelected));
+                OnPropertyChanged(nameof(IsTablesSelected));
+                OnPropertyChanged(nameof(IsParagraphsSelected));
+                OnPropertyChanged(nameof(IsAnalysisSelected));
+            }
+        }
+
+        /// <summary>
+        /// Whether the current requirement has analysis data available.
+        /// </summary>
+        public bool HasAnalysis => _navigator?.CurrentRequirement?.Analysis?.IsAnalyzed == true;
+
+        /// <summary>
+        /// The quality score from the analysis (1-10), or empty string if no analysis.
+        /// </summary>
+        public string AnalysisQualityScore
+        {
+            get
+            {
+                var analysis = _navigator?.CurrentRequirement?.Analysis;
+                if (analysis?.IsAnalyzed == true)
+                {
+                    return analysis.QualityScore.ToString();
+                }
+                return string.Empty;
             }
         }
 
@@ -605,6 +650,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     {
         Meta,
         Tables,
-        Paragraphs
+        Paragraphs,
+        Analysis
     }
 }

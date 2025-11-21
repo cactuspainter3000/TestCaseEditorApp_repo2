@@ -6,6 +6,20 @@ using EditableDataControl.ViewModels;
 namespace TestCaseEditorApp.Converters
 {
 
+    /// <summary>Inverts a boolean value.</summary>
+    public sealed class InvertBoolConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return value is bool b ? !b : value;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return value is bool b ? !b : value;
+        }
+    }
+
     /// <summary>Returns the cell Value for a given bindingPath key from a TableRowModel.</summary>
     public sealed class RowCellConverter : IValueConverter
     {

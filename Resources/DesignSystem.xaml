@@ -1,0 +1,307 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- ========================================== -->
+    <!-- DESIGN SYSTEM - SINGLE SOURCE OF TRUTH    -->
+    <!-- ========================================== -->
+    <!-- This file defines the complete design language for the Test Case Editor App.
+         All colors, typography, spacing, and component styles should reference tokens defined here.
+         
+         USAGE GUIDELINES:
+         - Orange (#FF8C00): Primary actions, headers, active states, accents
+         - White/Gray: Text hierarchy (white headers, light gray body, muted gray hints)
+         - Dark backgrounds: #252525 for menus, #1E1E1E for headers
+         - Consistent FontSize: 16 headers, 14 body, 12 meta/hints
+         - Bold only for headers and emphasized actions
+    -->
+
+
+    <!-- ========================================== -->
+    <!-- COLOR PALETTE                             -->
+    <!-- ========================================== -->
+    
+    <!-- Primary Accent: Orange for all primary actions, headers, and emphasis -->
+    <Color x:Key="Accent.Primary">#FF8C00</Color>
+    <!-- DarkOrange -->
+    <Color x:Key="Accent.Primary.Light">#FFA94A</Color>
+    <Color x:Key="Accent.Primary.Hover">#FFAD33</Color>
+    <Color x:Key="Accent.Primary.Pressed">#CC6A00</Color>
+    
+    <!-- Background Colors: Dark theme -->
+    <Color x:Key="Background.Menu">#252525</Color>
+    <Color x:Key="Background.Menu.Hover">#2E2E2E</Color>
+    <Color x:Key="Background.Menu.Pressed">#222222</Color>
+    <Color x:Key="Background.Header">#1E1E1E</Color>
+    <Color x:Key="Background.Card">#FFFFFF</Color>
+    <Color x:Key="Background.Surface">#F7F7F7</Color>
+    <Color x:Key="Background.Overlay.Light">#20FFFFFF</Color>
+    <Color x:Key="Background.Overlay.Medium">#33FFFFFF</Color>
+    <Color x:Key="Background.Overlay.Dark">#40FFFFFF</Color>
+    
+    <!-- Text Colors: Clear hierarchy -->
+    <Color x:Key="Text.Primary">#FFFFFF</Color>
+    <!-- Headers, labels on dark backgrounds -->
+    <Color x:Key="Text.Secondary">#CCCCCC</Color>
+    <!-- Status text, less important info -->
+    <Color x:Key="Text.Tertiary">#999999</Color>
+    <!-- Hints, placeholders -->
+    <Color x:Key="Text.Disabled">#777777</Color>
+    <Color x:Key="Text.OnAccent">#FFFFFF</Color>
+    <!-- Text on orange buttons -->
+    <Color x:Key="Text.OnLight">#333333</Color>
+    <!-- Text on light backgrounds -->
+    
+    <!-- Border Colors -->
+    <Color x:Key="Border.Subtle">#11000000</Color>
+    <Color x:Key="Border.Default">#444444</Color>
+    <Color x:Key="Border.Accent">#FF8C00</Color>
+    <Color x:Key="Border.Focus">#66B26A00</Color>
+    <!-- Orange with transparency -->
+    
+    <!-- State Colors -->
+    <Color x:Key="State.Success">#4CAF50</Color>
+    <Color x:Key="State.Warning">#FFC107</Color>
+    <Color x:Key="State.Error">#F44336</Color>
+    <Color x:Key="State.Info">#2196F3</Color>
+    
+    <!-- Special Purpose -->
+    <Color x:Key="Special.MetaChip.Background">#22333333</Color>
+    <Color x:Key="Special.MetaChip.Text">#BFBFBF</Color>
+    <Color x:Key="Special.HeaderHighlight">#22FFA500</Color>
+    
+
+    <!-- ========================================== -->
+    <!-- BRUSHES (Static Resources)                -->
+    <!-- ========================================== -->
+    
+    <!-- Accent Brushes -->
+    <SolidColorBrush x:Key="Brush.Accent.Primary" Color="{StaticResource Accent.Primary}"/>
+    <SolidColorBrush x:Key="Brush.Accent.Primary.Light" Color="{StaticResource Accent.Primary.Light}"/>
+    <SolidColorBrush x:Key="Brush.Accent.Primary.Hover" Color="{StaticResource Accent.Primary.Hover}"/>
+    <SolidColorBrush x:Key="Brush.Accent.Primary.Pressed" Color="{StaticResource Accent.Primary.Pressed}"/>
+    
+    <!-- Background Brushes -->
+    <SolidColorBrush x:Key="Brush.Background.Menu" Color="{StaticResource Background.Menu}"/>
+    <SolidColorBrush x:Key="Brush.Background.Menu.Hover" Color="{StaticResource Background.Menu.Hover}"/>
+    <SolidColorBrush x:Key="Brush.Background.Menu.Pressed" Color="{StaticResource Background.Menu.Pressed}"/>
+    <SolidColorBrush x:Key="Brush.Background.Header" Color="{StaticResource Background.Header}"/>
+    <SolidColorBrush x:Key="Brush.Background.Card" Color="{StaticResource Background.Card}"/>
+    <SolidColorBrush x:Key="Brush.Background.Surface" Color="{StaticResource Background.Surface}"/>
+    <SolidColorBrush x:Key="Brush.Background.Overlay.Light" Color="{StaticResource Background.Overlay.Light}"/>
+    <SolidColorBrush x:Key="Brush.Background.Overlay.Medium" Color="{StaticResource Background.Overlay.Medium}"/>
+    <SolidColorBrush x:Key="Brush.Background.Overlay.Dark" Color="{StaticResource Background.Overlay.Dark}"/>
+    
+    <!-- Text Brushes -->
+    <SolidColorBrush x:Key="Brush.Text.Primary" Color="{StaticResource Text.Primary}"/>
+    <SolidColorBrush x:Key="Brush.Text.Secondary" Color="{StaticResource Text.Secondary}"/>
+    <SolidColorBrush x:Key="Brush.Text.Tertiary" Color="{StaticResource Text.Tertiary}"/>
+    <SolidColorBrush x:Key="Brush.Text.Disabled" Color="{StaticResource Text.Disabled}"/>
+    <SolidColorBrush x:Key="Brush.Text.OnAccent" Color="{StaticResource Text.OnAccent}"/>
+    <SolidColorBrush x:Key="Brush.Text.OnLight" Color="{StaticResource Text.OnLight}"/>
+    
+    <!-- Border Brushes -->
+    <SolidColorBrush x:Key="Brush.Border.Subtle" Color="{StaticResource Border.Subtle}"/>
+    <SolidColorBrush x:Key="Brush.Border.Default" Color="{StaticResource Border.Default}"/>
+    <SolidColorBrush x:Key="Brush.Border.Accent" Color="{StaticResource Border.Accent}"/>
+    <SolidColorBrush x:Key="Brush.Border.Focus" Color="{StaticResource Border.Focus}"/>
+    
+    <!-- State Brushes -->
+    <SolidColorBrush x:Key="Brush.State.Success" Color="{StaticResource State.Success}"/>
+    <SolidColorBrush x:Key="Brush.State.Warning" Color="{StaticResource State.Warning}"/>
+    <SolidColorBrush x:Key="Brush.State.Error" Color="{StaticResource State.Error}"/>
+    <SolidColorBrush x:Key="Brush.State.Info" Color="{StaticResource State.Info}"/>
+    
+    <!-- Special Purpose Brushes -->
+    <SolidColorBrush x:Key="Brush.Special.MetaChip.Background" Color="{StaticResource Special.MetaChip.Background}"/>
+    <SolidColorBrush x:Key="Brush.Special.MetaChip.Text" Color="{StaticResource Special.MetaChip.Text}"/>
+    <SolidColorBrush x:Key="Brush.Special.HeaderHighlight" Color="{StaticResource Special.HeaderHighlight}"/>
+    
+
+    <!-- ========================================== -->
+    <!-- TYPOGRAPHY SCALE                          -->
+    <!-- ========================================== -->
+    <!-- 
+        Clear hierarchy:
+        - Header 1 (H1): 16pt Bold - Major section headers
+        - Header 2 (H2): 14pt Bold - Subsection headers
+        - Header 3 (H3): 14pt SemiBold - Minor headers
+        - Body: 14pt Regular - Standard text, labels
+        - Body Small: 12pt Regular - Secondary information
+        - Caption: 12pt Regular - Metadata, hints
+        - Caption Small: 11pt Regular - Minimal text
+    -->
+    
+    <!-- Font Sizes -->
+    <sys:Double x:Key="FontSize.H1">16</sys:Double>
+    <sys:Double x:Key="FontSize.H2">14</sys:Double>
+    <sys:Double x:Key="FontSize.H3">14</sys:Double>
+    <sys:Double x:Key="FontSize.Body">14</sys:Double>
+    <sys:Double x:Key="FontSize.Body.Small">12</sys:Double>
+    <sys:Double x:Key="FontSize.Caption">12</sys:Double>
+    <sys:Double x:Key="FontSize.Caption.Small">11</sys:Double>
+    
+    <!-- Font Weights -->
+    <FontWeight x:Key="FontWeight.Bold">Bold</FontWeight>
+    <FontWeight x:Key="FontWeight.SemiBold">SemiBold</FontWeight>
+    <FontWeight x:Key="FontWeight.Regular">Normal</FontWeight>
+    <FontWeight x:Key="FontWeight.Light">Light</FontWeight>
+    
+
+    <!-- ========================================== -->
+    <!-- SPACING & SIZING TOKENS                   -->
+    <!-- ========================================== -->
+    
+    <!-- Spacing Scale (multiples of 4) -->
+    <sys:Double x:Key="Space.XXS">2</sys:Double>
+    <sys:Double x:Key="Space.XS">4</sys:Double>
+    <sys:Double x:Key="Space.SM">8</sys:Double>
+    <sys:Double x:Key="Space.MD">12</sys:Double>
+    <sys:Double x:Key="Space.LG">16</sys:Double>
+    <sys:Double x:Key="Space.XL">24</sys:Double>
+    <sys:Double x:Key="Space.XXL">32</sys:Double>
+    
+    <!-- Border Radius -->
+    <CornerRadius x:Key="Radius.SM">3</CornerRadius>
+    <CornerRadius x:Key="Radius.MD">4</CornerRadius>
+    <CornerRadius x:Key="Radius.LG">6</CornerRadius>
+    <CornerRadius x:Key="Radius.XL">8</CornerRadius>
+    <CornerRadius x:Key="Radius.Round">16</CornerRadius>
+    
+    <!-- Control Sizes -->
+    <sys:Double x:Key="Control.Height.SM">28</sys:Double>
+    <sys:Double x:Key="Control.Height.MD">34</sys:Double>
+    <sys:Double x:Key="Control.Height.LG">38</sys:Double>
+    
+    <!-- Icon Sizes -->
+    <sys:Double x:Key="Icon.SM">16</sys:Double>
+    <sys:Double x:Key="Icon.MD">20</sys:Double>
+    <sys:Double x:Key="Icon.LG">24</sys:Double>
+    
+    <!-- Special Measurements -->
+    <sys:Double x:Key="Size.DescTwoLineHeight">48</sys:Double>
+    <sys:Double x:Key="Size.SupportPaneHeight">420</sys:Double>
+    
+
+    <!-- ========================================== -->
+    <!-- TYPOGRAPHY STYLES                         -->
+    <!-- ========================================== -->
+    
+    <!-- Header Styles -->
+    <Style x:Key="Text.H1" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSize.H1}"/>
+        <Setter Property="FontWeight" Value="{StaticResource FontWeight.Bold}"/>
+        <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+    </Style>
+    
+    <Style x:Key="Text.H2" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSize.H2}"/>
+        <Setter Property="FontWeight" Value="{StaticResource FontWeight.Bold}"/>
+        <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    
+    <Style x:Key="Text.H3" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSize.H3}"/>
+        <Setter Property="FontWeight" Value="{StaticResource FontWeight.SemiBold}"/>
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    
+    <!-- Body Styles -->
+    <Style x:Key="Text.Body" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}"/>
+        <Setter Property="FontWeight" Value="{StaticResource FontWeight.Regular}"/>
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    
+    <Style x:Key="Text.Body.Small" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body.Small}"/>
+        <Setter Property="FontWeight" Value="{StaticResource FontWeight.Regular}"/>
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Secondary}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    
+    <!-- Caption Styles -->
+    <Style x:Key="Text.Caption" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}"/>
+        <Setter Property="FontWeight" Value="{StaticResource FontWeight.Regular}"/>
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Tertiary}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    
+    <Style x:Key="Text.Caption.Small" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Caption.Small}"/>
+        <Setter Property="FontWeight" Value="{StaticResource FontWeight.Regular}"/>
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Tertiary}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    
+    <!-- Specialized Text Styles -->
+    <Style x:Key="Text.Status" TargetType="TextBlock" BasedOn="{StaticResource Text.Body.Small}">
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Secondary}"/>
+    </Style>
+    
+    <Style x:Key="Text.Hint" TargetType="TextBlock" BasedOn="{StaticResource Text.Caption}">
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Tertiary}"/>
+        <Setter Property="FontStyle" Value="Italic"/>
+    </Style>
+    
+    <Style x:Key="Text.Error" TargetType="TextBlock" BasedOn="{StaticResource Text.Body}">
+        <Setter Property="Foreground" Value="{StaticResource Brush.State.Error}"/>
+    </Style>
+
+
+    <!-- ========================================== -->
+    <!-- LEGACY ALIASES FOR COMPATIBILITY          -->
+    <!-- ========================================== -->
+    <!-- These aliases maintain backward compatibility with existing code.
+         Gradually migrate to using DesignSystem tokens directly. -->
+    
+    <!-- Color Aliases -->
+    <SolidColorBrush x:Key="Accent" Color="{StaticResource Accent.Primary}"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource Accent.Primary}"/>
+    <SolidColorBrush x:Key="AccentForeground" Color="{StaticResource Accent.Primary.Light}"/>
+    <SolidColorBrush x:Key="AccentForegroundBrush" Color="{StaticResource Accent.Primary.Light}"/>
+    
+    <SolidColorBrush x:Key="MenuBackground" Color="{StaticResource Background.Menu}"/>
+    <SolidColorBrush x:Key="MenuForeground" Color="{StaticResource Text.Primary}"/>
+    <SolidColorBrush x:Key="MenuHover" Color="{StaticResource Background.Menu.Hover}"/>
+    <SolidColorBrush x:Key="MenuPressed" Color="{StaticResource Background.Menu.Pressed}"/>
+    <SolidColorBrush x:Key="MenuListBackground" Color="{StaticResource Background.Menu}"/>
+    <SolidColorBrush x:Key="MenuListForeground" Color="{StaticResource Text.Primary}"/>
+    
+    <SolidColorBrush x:Key="HeaderBackground" Color="{StaticResource Background.Header}"/>
+    <SolidColorBrush x:Key="HeaderTextBrush" Color="{StaticResource Accent.Primary}"/>
+    <SolidColorBrush x:Key="HeaderAccentBrush" Color="{StaticResource Accent.Primary}"/>
+    <SolidColorBrush x:Key="HeaderStatusTextBrush" Color="{StaticResource Text.Secondary}"/>
+    <SolidColorBrush x:Key="HeaderHighlightBackground" Color="{StaticResource Special.HeaderHighlight}"/>
+    <SolidColorBrush x:Key="HeaderHighlightBorderBrush" Color="{StaticResource Border.Accent}"/>
+    
+    <SolidColorBrush x:Key="CardBackgroundBrush" Color="{StaticResource Background.Card}"/>
+    <SolidColorBrush x:Key="CardBrush" Color="{StaticResource Background.Card}"/>
+    <SolidColorBrush x:Key="CardBorderBrush" Color="{StaticResource Border.Subtle}"/>
+    <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource Background.Surface}"/>
+    
+    <SolidColorBrush x:Key="DisabledBrush" Color="{StaticResource Text.Disabled}"/>
+    <SolidColorBrush x:Key="MutedTextBrush" Color="{StaticResource Text.Tertiary}"/>
+    <SolidColorBrush x:Key="FocusRing" Color="{StaticResource Border.Focus}"/>
+    
+    <SolidColorBrush x:Key="MetaChipBackgroundBrush" Color="{StaticResource Special.MetaChip.Background}"/>
+    <SolidColorBrush x:Key="MetaChipTextBrush" Color="{StaticResource Special.MetaChip.Text}"/>
+    <SolidColorBrush x:Key="DropdownItemForegroundBrush" Color="{StaticResource Accent.Primary}"/>
+    
+    <!-- Special Colors (deprecated - use State colors instead) -->
+    <Color x:Key="PrimaryColor">#FF2D7AFC</Color>
+    <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}"/>
+    <Color x:Key="CloseHoverColor">#4D1F1F</Color>
+    <SolidColorBrush x:Key="CloseHover" Color="{StaticResource CloseHoverColor}"/>
+    
+    <!-- Measurement Aliases -->
+    <sys:Double x:Key="DescTwoLineHeight">48</sys:Double>
+    <sys:Double x:Key="SupportPaneHeight">420</sys:Double>
+
+</ResourceDictionary>

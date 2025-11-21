@@ -183,11 +183,11 @@
                                                             <BeginStoryboard>
                                                                 <Storyboard>
                                                                     <DoubleAnimation Storyboard.TargetProperty="MaxHeight" 
-                                                                                     To="500" Duration="0:0:0.25" />
+                                                                                     To="500" Duration="0:0:0.4" />
                                                                     <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
-                                                                                     To="1" Duration="0:0:0.25" />
+                                                                                     To="1" Duration="0:0:0.4" />
                                                                     <DoubleAnimation Storyboard.TargetProperty="Opacity" 
-                                                                                     To="1" Duration="0:0:0.2" />
+                                                                                     To="1" Duration="0:0:0.35" />
                                                                 </Storyboard>
                                                             </BeginStoryboard>
                                                         </DataTrigger.EnterActions>
@@ -195,11 +195,11 @@
                                                             <BeginStoryboard>
                                                                 <Storyboard>
                                                                     <DoubleAnimation Storyboard.TargetProperty="MaxHeight" 
-                                                                                     To="0" Duration="0:0:0.2" />
+                                                                                     To="0" Duration="0:0:0.35" />
                                                                     <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
-                                                                                     To="0" Duration="0:0:0.2" />
+                                                                                     To="0" Duration="0:0:0.35" />
                                                                     <DoubleAnimation Storyboard.TargetProperty="Opacity" 
-                                                                                     To="0" Duration="0:0:0.15" />
+                                                                                     To="0" Duration="0:0:0.3" />
                                                                 </Storyboard>
                                                             </BeginStoryboard>
                                                         </DataTrigger.ExitActions>

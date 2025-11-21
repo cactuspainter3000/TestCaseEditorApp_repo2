@@ -1,37 +1,97 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using TestCaseEditorApp.MVVM.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.Models
 {
     public class GeneratedTestCase : ObservableObject
     {
+        private readonly MainViewModel? _mainVm;
+        private bool _isLoading = false;
         private string _title = string.Empty;
         private string _preconditions = string.Empty;
         private string _steps = string.Empty;
         private string _expectedResults = string.Empty;
         private bool _isSelected;
 
+        public GeneratedTestCase(MainViewModel? mainVm = null)
+        {
+            _mainVm = mainVm;
+        }
+
         public string Title
         {
             get => _title;
-            set => SetProperty(ref _title, value);
+            set
+            {
+                if (SetProperty(ref _title, value))
+                {
+                    MarkDirty();
+                }
+            }
         }
 
         public string Preconditions
         {
             get => _preconditions;
-            set => SetProperty(ref _preconditions, value);
+            set
+            {
+                if (SetProperty(ref _preconditions, value))
+                {
+                    MarkDirty();
+                }
+            }
         }
 
         public string Steps
         {
             get => _steps;
-            set => SetProperty(ref _steps, value);
+            set
+            {
+                if (SetProperty(ref _steps, value))
+                {
+                    MarkDirty();
+                }
+            }
         }
 
         public string ExpectedResults
         {
             get => _expectedResults;
-            set => SetProperty(ref _expectedResults, value);
+            set
+            {
+                if (SetProperty(ref _expectedResults, value))
+                {
+                    MarkDirty();
+                }
+            }
+        }
+
+        private void MarkDirty()
+        {
+            if (_mainVm != null && !_isLoading)
+            {
+                _mainVm.IsDirty = true;
+                System.Diagnostics.Debug.WriteLine("[TestCase] Property changed - marked workspace dirty");
+            }
+        }
+
+        /// <summary>
+        /// Set properties without triggering dirty flag (used during loading).
+        /// </summary>
+        public void SetPropertiesForLoad(string title, string preconditions, string steps, string expectedResults)
+        {
+            _isLoading = true;
+            try
+            {
+                Title = title;
+                Preconditions = preconditions;
+                Steps = steps;
+                ExpectedResults = expectedResults;
+            }
+            finally
+            {
+                _isLoading = false;
+            }
         }
 
         public bool IsSelected

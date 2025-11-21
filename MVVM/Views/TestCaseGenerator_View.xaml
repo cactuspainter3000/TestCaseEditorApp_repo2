@@ -136,6 +136,42 @@
                     </Grid>
                 </ToggleButton>
 
+                <!-- LLM Analysis pill -->
+                <ToggleButton Style="{StaticResource PillToggleStyle}"
+              Margin="8,0,0,0"
+              IsChecked="{Binding IsAnalysisSelected, Mode=TwoWay}"
+              ToolTip="View AI-powered requirement quality analysis">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="LLM Analysis" VerticalAlignment="Center" Margin="6,0"/>
+
+                        <Border Grid.Column="1">
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource BadgeStyle}">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasAnalysis}" Value="False">
+                                            <Setter Property="Visibility" Value="Hidden"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+
+                            <TextBlock Text="{Binding AnalysisQualityScore}"
+                 Foreground="White"
+                 FontSize="11"
+                 FontWeight="SemiBold"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 TextAlignment="Center"/>
+                        </Border>
+                    </Grid>
+                </ToggleButton>
+
             </StackPanel>
 
             <!-- right: bulk actions (visible only when meaningful) -->
@@ -368,6 +404,17 @@
                                     <Setter.Value>
                                         <DataTemplate>
                                             <local:TestCaseGenerator_ParagraphsControl ShowLocalToolbar="False" />
+                                        </DataTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </DataTrigger>
+
+                            <!-- LLM Analysis: show analysis control -->
+                            <DataTrigger Binding="{Binding SelectedSupportView}" Value="Analysis">
+                                <Setter Property="ContentTemplate">
+                                    <Setter.Value>
+                                        <DataTemplate>
+                                            <local:TestCaseGenerator_AnalysisControl />
                                         </DataTemplate>
                                     </Setter.Value>
                                 </Setter>

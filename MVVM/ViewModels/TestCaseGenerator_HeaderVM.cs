@@ -19,6 +19,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     /// </summary>
     public partial class TestCaseGenerator_HeaderVM : ObservableObject
     {
+        private readonly MainViewModel? _mainVm;
+        private bool _isLoadingRequirement = false;
+
         // ==================== State Properties ====================
         
         [ObservableProperty] private string titleText = "Create Test Case";
@@ -86,7 +89,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         // ==================== Constructor ====================
         
-        public TestCaseGenerator_HeaderVM() { }
+        public TestCaseGenerator_HeaderVM(MainViewModel? mainVm = null) 
+        {
+            _mainVm = mainVm;
+        }
 
         // ==================== Property Change Handlers ====================
         
@@ -112,6 +118,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     StatusMessage = string.Empty;
                 }
+            }
+            
+            // Mark workspace dirty when requirement description changes
+            // Skip if we're just loading a requirement (not user editing)
+            if (_mainVm != null && !_isLoadingRequirement)
+            {
+                _mainVm.IsDirty = true;
+                System.Diagnostics.Debug.WriteLine("[Header] Requirement description changed - marked workspace dirty");
             }
         }
 
@@ -183,11 +197,19 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         public void SetCurrentRequirement(Requirement? req)
         {
-            CurrentRequirementName = req?.Name ?? string.Empty;
-            CurrentRequirementSummary = req?.Description ?? string.Empty;
-            RequirementDescription = req?.Description ?? string.Empty;
-            RequirementMethod = req?.Method.ToString() ?? string.Empty;
-            RequirementMethodEnum = req?.Method;
+            _isLoadingRequirement = true;
+            try
+            {
+                CurrentRequirementName = req?.Name ?? string.Empty;
+                CurrentRequirementSummary = req?.Description ?? string.Empty;
+                RequirementDescription = req?.Description ?? string.Empty;
+                RequirementMethod = req?.Method.ToString() ?? string.Empty;
+                RequirementMethodEnum = req?.Method;
+            }
+            finally
+            {
+                _isLoadingRequirement = false;
+            }
         }
 
         // ==================== LLM Connection Management ====================

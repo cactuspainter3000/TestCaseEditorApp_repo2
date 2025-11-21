@@ -90,7 +90,7 @@
                 </TextBlock>
             </DockPanel>
 
-            <ItemsControl ItemsSource="{Binding FilteredDefaults}">
+            <ItemsControl ItemsSource="{Binding VisiblePills}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <WrapPanel/>

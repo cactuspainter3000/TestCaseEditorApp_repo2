@@ -8,20 +8,43 @@
             <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" CollapseWhenFalse="True" />
 
             <ResourceDictionary.MergedDictionaries>
-                <!-- EditableDataControl template -->
-                <ResourceDictionary Source="/TestCaseEditorApp;component/MVVM/Controls/EditableDataControl/Themes/Generic.xaml" />
+                <!-- ===================================== -->
+                <!-- DESIGN SYSTEM - LOAD FIRST            -->
+                <!-- ===================================== -->
+                <!-- DesignSystem.xaml contains all color, typography, and spacing tokens.
+                     Must be loaded first so other resources can reference these tokens. -->
+                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/DesignSystem.xaml" />
                 
-                <!-- Core styles (order matters: Colors → Styles → Templates) -->
+                <!-- ===================================== -->
+                <!-- CORE STYLES                           -->
+                <!-- ===================================== -->
+                <!-- Colors.xaml now references DesignSystem, kept for backward compatibility -->
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/Colors.xaml" />
+                
+                <!-- Component styles (reference DesignSystem tokens) -->
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/ButtonStyles.xaml" />
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/TextStyles.xaml" />
+                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/ComboBoxStyles.xaml" />
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/ContainerStyles.xaml" />
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/InputStyles.xaml" />
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/ListStyles.xaml" />
+                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/CommonHeaderResources.xaml" />
                 
-                <!-- Legacy resource files (keep for now for backwards compatibility) -->
+                <!-- SharedStyles contains UI building blocks (badges, pills, menu items) -->
+                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/SharedStyles.xaml" />
+                
+                <!-- ===================================== -->
+                <!-- LEGACY RESOURCES                      -->
+                <!-- ===================================== -->
+                <!-- Kept for backward compatibility, gradually migrate to DesignSystem -->
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/MainWindowResources.xaml" />
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/MenuTemplates.xaml" />
+                
+                <!-- ===================================== -->
+                <!-- CONTROL TEMPLATES                     -->
+                <!-- ===================================== -->
+                <!-- EditableDataControl template -->
+                <ResourceDictionary Source="/TestCaseEditorApp;component/MVVM/Controls/EditableDataControl/Themes/Generic.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

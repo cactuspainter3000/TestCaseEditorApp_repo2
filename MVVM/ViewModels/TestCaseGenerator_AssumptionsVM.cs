@@ -17,6 +17,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     public partial class TestCaseGenerator_AssumptionsVM : ObservableObject, IDisposable
     {
         private readonly TestCaseGenerator_HeaderVM? _headerVm;
+        private readonly MainViewModel? _mainVm;
+        private bool _isApplyingDefaults = false;
+        private bool _isLoadingInstructions = false;
+        private Requirement? _currentRequirement;
 
         [ObservableProperty] private string? statusHint;
         [ObservableProperty] private Preset? selectedPreset;
@@ -25,9 +29,31 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private Dictionary<string, string> _allUserInstructions = new();
 
         /// <summary>
-        /// Access HeaderVM's shared SuggestedDefaults collection.
-        /// This ensures assumptions persist across tabs.
+        /// Master collection of all assumption pills loaded from defaults catalog.
+        /// This is the single source of truth for pill state.
         /// </summary>
+        public ObservableCollection<AssumptionPill> AllPills { get; } = new();
+
+        /// <summary>
+        /// Pills visible for the current verification method.
+        /// Filtered based on each pill's ApplicableMethods list.
+        /// </summary>
+        public IEnumerable<AssumptionPill> VisiblePills
+        {
+            get
+            {
+                var method = _headerVm?.RequirementMethodEnum;
+                if (method == null) return Enumerable.Empty<AssumptionPill>();
+                
+                return AllPills.Where(p => p.IsVisibleForMethod(method.Value));
+            }
+        }
+
+        /// <summary>
+        /// Access HeaderVM's shared SuggestedDefaults collection FOR BACKWARD COMPATIBILITY ONLY.
+        /// New code should use AllPills instead.
+        /// </summary>
+        [Obsolete("Use AllPills instead")]
         public ObservableCollection<DefaultItem> SuggestedDefaults => _headerVm?.SuggestedDefaults ?? new();
         
         /// <summary>
@@ -35,6 +61,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         public ObservableCollection<DefaultPreset> DefaultPresets => _headerVm?.DefaultPresets ?? new();
 
+        /// <summary>
+        /// Filtered defaults for backward compatibility.
+        /// </summary>
+        [Obsolete("Use VisiblePills instead")]
         public IEnumerable<DefaultItem> FilteredDefaults => SuggestedDefaults;
 
         /// <summary>
@@ -42,72 +72,117 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         public string RequirementMethod => _headerVm?.RequirementMethod ?? "Unassigned";
 
-        public TestCaseGenerator_AssumptionsVM(TestCaseGenerator_HeaderVM? headerVm = null)
+        /// <summary>
+        /// Update the current requirement reference for pill persistence.
+        /// </summary>
+        public void SetCurrentRequirement(Requirement? requirement)
+        {
+            _currentRequirement = requirement;
+        }
+
+        public TestCaseGenerator_AssumptionsVM(TestCaseGenerator_HeaderVM? headerVm = null, MainViewModel? mainVm = null)
         {
             _headerVm = headerVm;
-
-            // Subscribe to verification method changes to auto-enable relevant chips
-            if (_headerVm != null)
-            {
-                _headerVm.PropertyChanged += OnHeaderVerificationMethodChanged;
-            }
+            _mainVm = mainVm;
 
             ResetAssumptionsCommand = new RelayCommand(ResetAssumptions);
             ClearPresetFilterCommand = new RelayCommand(ClearPresetFilter);
             SavePresetCommand = new RelayCommand(SavePreset);
             
-            // Load defaults catalog if HeaderVM collections are empty
-            if (SuggestedDefaults.Count == 0)
-            {
-                LoadDefaultsCatalog();
-            }
+            // Load pills from defaults catalog into AllPills collection
+            LoadPillsFromCatalog();
 
-            // Subscribe to changes in SuggestedDefaults to auto-save selections
-            SuggestedDefaults.CollectionChanged += (s, e) =>
+            // Subscribe to pill changes to mark dirty
+            AllPills.CollectionChanged += (s, e) =>
             {
                 if (e.NewItems != null)
                 {
-                    foreach (DefaultItem item in e.NewItems)
+                    foreach (AssumptionPill pill in e.NewItems)
                     {
-                        item.PropertyChanged += OnDefaultItemChanged;
+                        pill.PropertyChanged += OnPillChanged;
                     }
                 }
             };
 
-            // Subscribe to existing items
-            foreach (var item in SuggestedDefaults)
+            // Subscribe to existing pills
+            foreach (var pill in AllPills)
             {
-                item.PropertyChanged += OnDefaultItemChanged;
+                pill.PropertyChanged += OnPillChanged;
+            }
+
+            // Subscribe to verification method changes to refresh visible pills
+            if (_headerVm != null)
+            {
+                _headerVm.PropertyChanged += OnHeaderVerificationMethodChanged;
             }
 
             // Load user instructions
             LoadUserInstructions();
             
-            // Apply initial verification method defaults
-            if (_headerVm?.RequirementMethodEnum != null)
+            // NOTE: Do NOT auto-load pills here. 
+            // Pills will be loaded explicitly via LoadPillsForRequirement() during navigation.
+        }
+
+        /// <summary>
+        /// Mark workspace dirty when user toggles a pill.
+        /// Actual save happens during navigation.
+        /// </summary>
+        private void OnPillChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(AssumptionPill.IsEnabled) && !_isApplyingDefaults)
             {
-                ApplyVerificationMethodDefaults(_headerVm.RequirementMethodEnum);
+                if (_mainVm != null)
+                {
+                    _mainVm.IsDirty = true;
+                    System.Diagnostics.Debug.WriteLine("[Assumptions] Pill toggled - marked workspace dirty");
+                }
             }
         }
 
         /// <summary>
-        /// Auto-save when user toggles a pill.
+        /// DEPRECATED: For backward compatibility only.
         /// </summary>
+        [Obsolete]
         private void OnDefaultItemChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(DefaultItem.IsEnabled))
+            if (e.PropertyName == nameof(DefaultItem.IsEnabled) && !_isApplyingDefaults)
             {
-                SaveUserAssumptionSelections();
+                if (_mainVm != null)
+                {
+                    _mainVm.IsDirty = true;
+                    System.Diagnostics.Debug.WriteLine("[Assumptions] Pill toggled - marked workspace dirty");
+                }
             }
         }
 
         /// <summary>
-        /// Save user's pill selections to config file.
+        /// Save user's pill selections to the current requirement.
+        /// Called during navigation when workspace is dirty.
         /// </summary>
-        private void SaveUserAssumptionSelections()
+        public void SaveUserAssumptionSelections()
         {
-            // TODO: Implement saving user's assumption selections per verification method
-            System.Diagnostics.Debug.WriteLine("[Assumptions] User selections auto-saved");
+            if (_currentRequirement == null) return;
+
+            // Get currently enabled pill keys from AllPills collection
+            var enabledKeys = AllPills
+                .Where(p => p.IsEnabled)
+                .Select(p => p.Key)
+                .ToHashSet();
+
+            // Save to requirement object
+            _currentRequirement.SelectedAssumptionKeys = enabledKeys;
+            
+            System.Diagnostics.Debug.WriteLine($"[Assumptions] Saved {enabledKeys.Count} pill selections to requirement {_currentRequirement.Item}");
+        }
+
+        /// <summary>
+        /// Save all assumptions data (pill selections + custom instructions) before navigation.
+        /// </summary>
+        public void SaveAllAssumptionsData()
+        {
+            SaveUserAssumptionSelections();
+            SaveCustomInstructions();
+            System.Diagnostics.Debug.WriteLine("[Assumptions] Saved all assumptions data");
         }
 
         /// <summary>
@@ -117,7 +192,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             if (e.PropertyName == nameof(TestCaseGenerator_HeaderVM.RequirementMethodEnum))
             {
-                ApplyVerificationMethodDefaults(_headerVm?.RequirementMethodEnum);
+                // Refresh visible pills for new method
+                OnPropertyChanged(nameof(VisiblePills));
                 OnPropertyChanged(nameof(RequirementMethod)); // Update display
                 
                 // Load custom instructions for the new verification method
@@ -126,12 +202,45 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         /// <summary>
+        /// Apply default pill suggestions based on verification method.
+        /// Only called when requirement has no saved selections.
+        /// </summary>
+        private void ApplyDefaultSuggestionsForMethod(VerificationMethod? method)
+        {
+            if (method == null) return;
+
+            // Enable pills that are commonly used for this method
+            // This is a simple heuristic - pills marked for this method + common ones (Environment, Equipment)
+            foreach (var pill in AllPills)
+            {
+                // Enable if applicable to this method OR if it's a common category (Environment, Equipment, Documentation)
+                bool isCommon = pill.Category?.Equals("Environment", StringComparison.OrdinalIgnoreCase) == true ||
+                               pill.Category?.Equals("Equipment", StringComparison.OrdinalIgnoreCase) == true ||
+                               pill.Category?.Equals("Documentation", StringComparison.OrdinalIgnoreCase) == true;
+                
+                bool isApplicable = pill.ApplicableMethods.Count == 0 || pill.ApplicableMethods.Contains(method.Value);
+                
+                pill.IsEnabled = isCommon && isApplicable;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[Assumptions] Applied default suggestions for method {method}");
+        }
+
+        /// <summary>
         /// Load user-defined custom instructions from config file.
         /// </summary>
         private void LoadUserInstructions()
         {
-            _allUserInstructions = DefaultsHelper.LoadUserInstructions();
-            LoadCustomInstructionsForCurrentMethod();
+            _isLoadingInstructions = true;
+            try
+            {
+                _allUserInstructions = DefaultsHelper.LoadUserInstructions();
+                LoadCustomInstructionsForCurrentMethod();
+            }
+            finally
+            {
+                _isLoadingInstructions = false;
+            }
         }
 
         /// <summary>
@@ -139,14 +248,22 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         private void LoadCustomInstructionsForCurrentMethod()
         {
-            var method = _headerVm?.RequirementMethodEnum?.ToString() ?? "";
-            if (_allUserInstructions.ContainsKey(method))
+            _isLoadingInstructions = true;
+            try
             {
-                CustomInstructions = _allUserInstructions[method] ?? "";
+                var method = _headerVm?.RequirementMethodEnum?.ToString() ?? "";
+                if (_allUserInstructions.ContainsKey(method))
+                {
+                    CustomInstructions = _allUserInstructions[method] ?? "";
+                }
+                else
+                {
+                    CustomInstructions = "";
+                }
             }
-            else
+            finally
             {
-                CustomInstructions = "";
+                _isLoadingInstructions = false;
             }
         }
 
@@ -154,7 +271,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// Save custom instructions for the current verification method.
         /// Called automatically when CustomInstructions property changes.
         /// </summary>
-        private void SaveCustomInstructions()
+        /// <summary>
+        /// Save custom instructions to config file.
+        /// Called during navigation when workspace is dirty.
+        /// </summary>
+        public void SaveCustomInstructions()
         {
             var method = _headerVm?.RequirementMethodEnum?.ToString();
             if (string.IsNullOrEmpty(method)) return;
@@ -165,8 +286,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         partial void OnCustomInstructionsChanged(string value)
         {
-            // Auto-save when user types (with slight delay to avoid excessive saves)
-            SaveCustomInstructions();
+            // Mark workspace dirty when custom instructions change
+            // Actual save happens during navigation
+            // Skip if we're just loading instructions (not user editing)
+            if (_mainVm != null && !_isLoadingInstructions)
+            {
+                _mainVm.IsDirty = true;
+                System.Diagnostics.Debug.WriteLine("[Assumptions] Custom instructions changed - marked workspace dirty");
+            }
         }
 
         /// <summary>
@@ -177,14 +304,38 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             if (method == null || SuggestedDefaults.Count == 0) return;
 
-            // First, disable all non-user-selected chips (preserve user choices)
-            foreach (var item in SuggestedDefaults.Where(d => !d.IsLlmSuggested))
+            _isApplyingDefaults = true;
+
+            // Temporarily unsubscribe from PropertyChanged to prevent auto-save during bulk updates
+            foreach (var item in SuggestedDefaults)
             {
-                item.IsEnabled = false;
+                item.PropertyChanged -= OnDefaultItemChanged;
             }
 
-            // Map verification method to relevant assumption keys
-            var relevantKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                // First, disable all chips
+                foreach (var item in SuggestedDefaults.Where(d => !d.IsLlmSuggested))
+                {
+                    item.IsEnabled = false;
+                }
+
+                // Check if current requirement has saved selections
+                if (_currentRequirement?.SelectedAssumptionKeys != null && _currentRequirement.SelectedAssumptionKeys.Count > 0)
+                {
+                    // Apply requirement's saved selections
+                    var savedKeys = new HashSet<string>(_currentRequirement.SelectedAssumptionKeys, StringComparer.OrdinalIgnoreCase);
+                    foreach (var item in SuggestedDefaults.Where(d => savedKeys.Contains(d.Key)))
+                    {
+                        item.IsEnabled = true;
+                    }
+                    System.Diagnostics.Debug.WriteLine($"[Assumptions] Applied {savedKeys.Count} saved pill selections for requirement {_currentRequirement.Item}");
+                    // Don't apply default suggestions if user has saved selections, but continue to finally block
+                }
+                else
+                {
+                    // Map verification method to relevant assumption keys
+                    var relevantKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             switch (method.Value)
             {
@@ -277,6 +428,19 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             StatusHint = relevantKeys.Count > 0 
                 ? $"Applied {relevantKeys.Count} default assumptions for {methodName} verification."
                 : $"{methodName} verification selected. Choose relevant assumptions below.";
+                }
+            }
+            finally
+            {
+                // Re-subscribe to PropertyChanged events
+                foreach (var item in SuggestedDefaults)
+                {
+                    item.PropertyChanged -= OnDefaultItemChanged; // Remove first to avoid duplicates
+                    item.PropertyChanged += OnDefaultItemChanged;
+                }
+                
+                _isApplyingDefaults = false;
+            }
         }
 
         /// <summary>
@@ -317,6 +481,103 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
         }
 
+        /// <summary>
+        /// Load pills from defaults catalog into AllPills collection.
+        /// This is called once at construction time.
+        /// </summary>
+        private void LoadPillsFromCatalog()
+        {
+            try
+            {
+                var catalog = DefaultsHelper.LoadProjectDefaultsTemplate();
+
+                // Convert DefaultItems to AssumptionPills
+                AllPills.Clear();
+                if (catalog?.Items != null)
+                {
+                    foreach (var item in catalog.Items)
+                    {
+                        var pill = DefaultsHelper.ToAssumptionPill(item);
+                        AllPills.Add(pill);
+                    }
+                }
+
+                // Populate DefaultPresets from catalog Presets
+                DefaultPresets.Clear();
+                if (catalog?.Presets != null)
+                {
+                    foreach (var preset in catalog.Presets)
+                    {
+                        DefaultPresets.Add(preset);
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine($"[Assumptions] Loaded {AllPills.Count} pills from catalog");
+                StatusHint = $"Loaded {AllPills.Count} assumptions and {DefaultPresets.Count} presets.";
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Assumptions] Error loading pills: {ex.Message}");
+                StatusHint = $"Error loading defaults catalog: {ex.Message}";
+            }
+        }
+
+        /// <summary>
+        /// Load pill selections for a specific requirement.
+        /// This is called explicitly during navigation after SetCurrentRequirement().
+        /// </summary>
+        public void LoadPillsForRequirement(Requirement? requirement)
+        {
+            if (requirement == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Assumptions] LoadPillsForRequirement: requirement is null, clearing all pills");
+                // Clear all pills
+                _isApplyingDefaults = true;
+                foreach (var pill in AllPills)
+                {
+                    pill.IsEnabled = false;
+                }
+                _isApplyingDefaults = false;
+                OnPropertyChanged(nameof(VisiblePills));
+                return;
+            }
+
+            _isApplyingDefaults = true;
+            try
+            {
+                // First, disable all pills
+                foreach (var pill in AllPills)
+                {
+                    pill.IsEnabled = false;
+                }
+
+                // Load requirement's saved selections
+                // null = never configured (apply defaults), empty HashSet = user disabled all (respect it)
+                if (requirement.SelectedAssumptionKeys != null)
+                {
+                    var savedKeys = new HashSet<string>(requirement.SelectedAssumptionKeys, StringComparer.OrdinalIgnoreCase);
+                    foreach (var pill in AllPills.Where(p => savedKeys.Contains(p.Key)))
+                    {
+                        pill.IsEnabled = true;
+                    }
+                    System.Diagnostics.Debug.WriteLine($"[Assumptions] Loaded {savedKeys.Count} saved pill selections for requirement {requirement.Item}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Assumptions] No saved pills for requirement {requirement.Item}, applying defaults");
+                    // Apply default suggestions based on verification method
+                    ApplyDefaultSuggestionsForMethod(_headerVm?.RequirementMethodEnum);
+                }
+                
+                // Notify UI that visible pills may have changed
+                OnPropertyChanged(nameof(VisiblePills));
+            }
+            finally
+            {
+                _isApplyingDefaults = false;
+            }
+        }
+
         public IRelayCommand ResetAssumptionsCommand { get; }
         public IRelayCommand ClearPresetFilterCommand { get; }
         public IRelayCommand SavePresetCommand { get; }
@@ -347,6 +608,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             if (_headerVm != null)
             {
                 _headerVm.PropertyChanged -= OnHeaderVerificationMethodChanged;
+            }
+
+            foreach (var item in SuggestedDefaults)
+            {
+                item.PropertyChanged -= OnDefaultItemChanged;
             }
         }
     }

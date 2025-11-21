@@ -1,96 +1,22 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- =========================== -->
-    <!-- CORE COLOR PALETTE          -->
-    <!-- =========================== -->
-    
-    <!-- Primary Colors -->
-    <Color x:Key="PrimaryColor">#FF2D7AFC</Color>
-    <Color x:Key="AccentColor">#FF8C00</Color>
-    <!-- DarkOrange -->
-    <Color x:Key="AccentForegroundColor">#FFA94A</Color>
-    
-    <!-- Background Colors -->
-    <Color x:Key="MenuBackgroundColor">#252525</Color>
-    <Color x:Key="MenuHoverColor">#2E2E2E</Color>
-    <Color x:Key="MenuPressedColor">#222222</Color>
-    <Color x:Key="SurfaceColor">#FFF7F7F7</Color>
-    <Color x:Key="CardColor">#FFFFFF</Color>
-    
-    <!-- Text Colors -->
-    <Color x:Key="MenuForegroundColor">#FFFFFF</Color>
-    <Color x:Key="MutedTextColor">#FF666666</Color>
-    <Color x:Key="DisabledColor">#777777</Color>
-    <Color x:Key="HeaderStatusTextColor">#FFCCCCCC</Color>
-    
-    <!-- Border Colors -->
-    <Color x:Key="CardBorderColor">#11000000</Color>
-    <Color x:Key="FocusRingColor">#66B26A00</Color>
-    
-    <!-- Special Purpose Colors -->
-    <Color x:Key="CloseHoverColor">#4D1F1F</Color>
-    <Color x:Key="MetaChipBackgroundColor">#22333333</Color>
-    <Color x:Key="MetaChipTextColor">#FFBFBFBF</Color>
-    <Color x:Key="HeaderBackgroundColor">#FF1E1E1E</Color>
-    <Color x:Key="HeaderHighlightColor">#22FFA500</Color>
-    
-    
-    <!-- =========================== -->
-    <!-- BRUSH RESOURCES             -->
-    <!-- =========================== -->
-    
-    <!-- Primary Brushes -->
-    <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}"/>
-    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
-    <SolidColorBrush x:Key="Accent" Color="{StaticResource AccentColor}"/>
-    <!-- Alias for compatibility -->
-    <SolidColorBrush x:Key="AccentForegroundBrush" Color="{StaticResource AccentForegroundColor}"/>
-    <SolidColorBrush x:Key="AccentForeground" Color="{StaticResource AccentForegroundColor}"/>
-    <!-- Alias -->
-    
-    <!-- Background Brushes -->
-    <SolidColorBrush x:Key="MenuBackground" Color="{StaticResource MenuBackgroundColor}"/>
-    <SolidColorBrush x:Key="MenuListBackground" Color="{StaticResource MenuBackgroundColor}"/>
-    <!-- Alias -->
-    <SolidColorBrush x:Key="MenuHover" Color="{StaticResource MenuHoverColor}"/>
-    <SolidColorBrush x:Key="MenuPressed" Color="{StaticResource MenuPressedColor}"/>
-    <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}"/>
-    <SolidColorBrush x:Key="CardBrush" Color="{StaticResource CardColor}"/>
-    <SolidColorBrush x:Key="CardBackgroundBrush" Color="{StaticResource CardColor}"/>
-    <!-- Alias -->
-    <SolidColorBrush x:Key="HeaderBackground" Color="{StaticResource HeaderBackgroundColor}"/>
-    
-    <!-- Text Brushes -->
-    <SolidColorBrush x:Key="MenuForeground" Color="{StaticResource MenuForegroundColor}"/>
-    <SolidColorBrush x:Key="MenuListForeground" Color="{StaticResource MenuForegroundColor}"/>
-    <!-- Alias -->
-    <SolidColorBrush x:Key="MutedTextBrush" Color="{StaticResource MutedTextColor}"/>
-    <SolidColorBrush x:Key="DisabledBrush" Color="{StaticResource DisabledColor}"/>
-    <SolidColorBrush x:Key="HeaderTextBrush" Color="{StaticResource AccentColor}"/>
-    <SolidColorBrush x:Key="HeaderAccentBrush" Color="{StaticResource AccentColor}"/>
-    <!-- Alias -->
-    <SolidColorBrush x:Key="HeaderStatusTextBrush" Color="{StaticResource HeaderStatusTextColor}"/>
-    
-    <!-- Border/Outline Brushes -->
-    <SolidColorBrush x:Key="CardBorderBrush" Color="{StaticResource CardBorderColor}"/>
-    <SolidColorBrush x:Key="FocusRing" Color="{StaticResource FocusRingColor}"/>
-    <SolidColorBrush x:Key="HeaderHighlightBorderBrush" Color="{StaticResource AccentColor}"/>
-    <SolidColorBrush x:Key="HeaderHighlightBackground" Color="{StaticResource HeaderHighlightColor}"/>
-    
-    <!-- Special Purpose Brushes -->
-    <SolidColorBrush x:Key="CloseHover" Color="{StaticResource CloseHoverColor}"/>
-    <SolidColorBrush x:Key="MetaChipBackgroundBrush" Color="{StaticResource MetaChipBackgroundColor}"/>
-    <SolidColorBrush x:Key="MetaChipTextBrush" Color="{StaticResource MetaChipTextColor}"/>
-    <SolidColorBrush x:Key="DropdownItemForegroundBrush" Color="{StaticResource AccentColor}"/>
-    
-    
-    <!-- =========================== -->
-    <!-- MEASUREMENTS                -->
-    <!-- =========================== -->
-    
-    <sys:Double x:Key="DescTwoLineHeight">48</sys:Double>
-    <sys:Double x:Key="SupportPaneHeight">420</sys:Double>
-    
+    <!-- ========================================== -->
+    <!-- LEGACY COLORS FILE - DEPRECATED           -->
+    <!-- ========================================== -->
+    <!-- This file is maintained for backward compatibility only.
+         All new code should use DesignSystem.xaml tokens.
+         
+         MIGRATION PATH:
+         This file now references DesignSystem.xaml. All color definitions
+         have been moved there. This file will be removed in a future refactor. -->
+
+    <!-- Merge the Design System first to access tokens -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="DesignSystem.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- NOTE: All color brushes are now defined in DesignSystem.xaml
+         and available through legacy aliases. No additional definitions needed here. -->
+
 </ResourceDictionary>
