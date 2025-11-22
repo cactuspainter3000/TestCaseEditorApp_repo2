@@ -92,7 +92,8 @@
                      Text="{Binding DisplayName}"
                      Foreground="White"
                      VerticalAlignment="Center"
-                     FontWeight="Normal"/>
+                     FontSize="14"
+                     FontWeight="SemiBold"/>
                                                 <TextBlock Text="{Binding Badge}"
                      Foreground="DarkOrange"
                      Margin="8,0,0,0"
@@ -208,47 +209,63 @@
                                             </Style>
                                         </Border.Style>
                                         <StackPanel Margin="4,4">
-                                            <Button Command="{Binding DataContext.QuickImportCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                    Style="{StaticResource SideMenuPopupButtonStyle}">
-                                                <TextBlock Text="⚡ Quick Import Decagon" TextWrapping="Wrap" FontWeight="Bold" />
-                                            </Button>
+                                            <!-- Requirements dropdown items -->
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Id}" Value="requirements">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                
+                                                <Button Command="{Binding DataContext.QuickImportCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                    <TextBlock Text="⚡ Quick Import Decagon" TextWrapping="Wrap" FontWeight="Bold" />
+                                                </Button>
+                                                
+                                                <Separator Margin="0,3"/>
+                                                
+                                                <Button Command="{Binding DataContext.ImportWordCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                    <TextBlock Text="Import New Requirements…" TextWrapping="Wrap" />
+                                                </Button>
+                                                <Button Command="{Binding DataContext.LoadWorkspaceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                    <TextBlock Text="Import In-Process…" TextWrapping="Wrap" />
+                                                </Button>
+
+                                                <Separator Margin="0,3"/>
+
+                                                <Separator Margin="0,4"/>
+
+                                                <Button Command="{Binding DataContext.HelpCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                    <TextBlock Text="Help" />
+                                                </Button>
+                                            </StackPanel>
                                             
-                                            <Separator Margin="0,3"/>
-                                            
-                                            <Button Command="{Binding DataContext.ImportWordCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                    Style="{StaticResource SideMenuPopupButtonStyle}">
-                                                <TextBlock Text="Import New Requirements…" TextWrapping="Wrap" />
-                                            </Button>
-                                            <Button Command="{Binding DataContext.LoadWorkspaceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                    Style="{StaticResource SideMenuPopupButtonStyle}">
-                                                <TextBlock Text="Import In-Process…" TextWrapping="Wrap" />
-                                            </Button>
-
-                                            <Separator Margin="0,3"/>
-
-                                            <Button Command="{Binding DataContext.SaveWorkspaceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                    Style="{StaticResource SideMenuPopupButtonStyle}">
-                                                <TextBlock Text="Save Workspace" />
-                                            </Button>
-
-                                            <Separator Margin="0,3"/>
-
-                                            <Button Command="{Binding DataContext.ReloadCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                    Style="{StaticResource SideMenuPopupButtonStyle}">
-                                                <TextBlock Text="Reload Source" TextWrapping="Wrap" />
-                                            </Button>
-
-                                            <Button Command="{Binding DataContext.ExportAllToJamaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                    Style="{StaticResource SideMenuPopupButtonStyle}">
-                                                <TextBlock Text="Export to Jama…" TextWrapping="Wrap" />
-                                            </Button>
-
-                                            <Separator Margin="0,4"/>
-
-                                            <Button Command="{Binding DataContext.HelpCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                    Style="{StaticResource SideMenuPopupButtonStyle}">
-                                                <TextBlock Text="Help" />
-                                            </Button>
+                                            <!-- Test Case Generator dropdown items -->
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Id}" Value="testcase-creation">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                
+                                                <Button Command="{Binding DataContext.ExportAllToJamaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                    <TextBlock Text="Export to Jama…" TextWrapping="Wrap" />
+                                                </Button>
+                                            </StackPanel>
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>

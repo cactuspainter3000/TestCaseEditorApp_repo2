@@ -19,6 +19,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly ITestCaseGenerator_Navigator? _navigator;
         private readonly ITextGenerationService? _llmService;
         private RequirementAnalysisService? _analysisService;
+        
+        // Expose batch analyzing state for UI binding
+        public bool IsBatchAnalyzing => _navigator?.IsBatchAnalyzing ?? false;
 
         public TestCaseGenerator_AnalysisVM(ITestCaseGenerator_Navigator? navigator = null, ITextGenerationService? llmService = null)
         {
@@ -45,6 +48,16 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 ((AsyncRelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
                 ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
             }
+            else if (e.PropertyName == nameof(ITestCaseGenerator_Navigator.IsBatchAnalyzing))
+            {
+                OnPropertyChanged(nameof(IsBatchAnalyzing));
+                ((AsyncRelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
+            }
+            else if (e.PropertyName == nameof(ITestCaseGenerator_Navigator.Requirements))
+            {
+                // Requirements collection updated - refresh if current requirement's analysis changed
+                RefreshAnalysisDisplay();
+            }
         }
 
         public ICommand AnalyzeRequirementCommand { get; }
@@ -53,7 +66,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private bool CanAnalyzeRequirement()
         {
-            return _navigator?.CurrentRequirement != null && !IsAnalyzing;
+            return _navigator?.CurrentRequirement != null && !IsAnalyzing && !IsBatchAnalyzing;
         }
 
         private bool CanEditRequirement()
@@ -88,6 +101,25 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     : requirement.Description ?? "";
                 System.Diagnostics.Debug.WriteLine($"[AnalysisVM] Updated description: {preview}");
                 
+                // Check if batch analysis is running
+                if (_navigator?.IsBatchAnalyzing == true)
+                {
+                    // Queue for re-analysis instead of analyzing immediately
+                    requirement.IsQueuedForReanalysis = true;
+                    System.Diagnostics.Debug.WriteLine($"[AnalysisVM] Queued requirement {requirement.Item} for re-analysis");
+                    
+                    // Clear existing analysis to show it's outdated
+                    requirement.Analysis = null;
+                    RefreshAnalysisDisplay();
+                    
+                    // Show feedback message
+                    AnalysisStatusMessage = "Queued for re-analysis after batch import completes";
+                    
+                    // Close editor immediately since we're just queuing
+                    editorWindow.Close();
+                    return;
+                }
+                
                 // Show spinner
                 IsAnalyzingInEditor = true;
                 
@@ -95,7 +127,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 
                 try
                 {
-                    // Run analysis
+                    // Run analysis immediately if not in batch mode
                     await AnalyzeRequirementAsync();
                     System.Diagnostics.Debug.WriteLine("[AnalysisVM] Analysis complete");
                 }

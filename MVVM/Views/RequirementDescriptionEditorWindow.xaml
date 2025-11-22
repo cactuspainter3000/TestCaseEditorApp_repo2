@@ -21,10 +21,20 @@
                        FontSize="16"
                        FontWeight="SemiBold"
                        Margin="0,0,0,8"/>
-            <TextBlock Text="Make your changes and click Re-Analyze to update the analysis."
-                       Foreground="#CCCCCC"
+            <TextBlock Foreground="#CCCCCC"
                        FontSize="12"
-                       Margin="0,0,0,0"/>
+                       Margin="0,0,0,0">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Text" Value="Make your changes and click Re-Analyze to update the analysis."/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsBatchAnalyzing}" Value="True">
+                                <Setter Property="Text" Value="Batch analysis is running. Your changes will be queued for re-analysis."/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
         </StackPanel>
 
         <!-- Text Editor -->
@@ -61,14 +71,24 @@
                     Foreground="White"
                     BorderThickness="0"
                     IsEnabled="{Binding IsNotAnalyzing}"/>
-            <Button Content="Re-Analyze"
-                    Click="ReAnalyze_Click"
+            <Button Click="ReAnalyze_Click"
                     Padding="16,8"
                     FontSize="13"
                     Background="{DynamicResource AccentBrush}"
                     Foreground="White"
                     BorderThickness="0"
-                    IsEnabled="{Binding IsNotAnalyzing}"/>
+                    IsEnabled="{Binding IsNotAnalyzing}">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Content" Value="Re-Analyze"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsBatchAnalyzing}" Value="True">
+                                <Setter Property="Content" Value="Queue for Re-Analysis"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
         </StackPanel>
 
         <!-- Spinner Overlay (shown during analysis) -->

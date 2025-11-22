@@ -75,11 +75,17 @@
 
             <!-- Verification method (collapses when empty) -->
             <TextBlock Grid.Row="1"
-                       Text="{Binding RequirementMethod}"
                        FontSize="11"
                        HorizontalAlignment="Right"
-                       TextTrimming="CharacterEllipsis"
-                       ToolTip="{Binding RequirementMethod}">
+                       TextTrimming="CharacterEllipsis">
+                <Run Text="Verification Method: " Foreground="#AAAAAA"/>
+                <Run Text="{Binding RequirementMethod}"/>
+                <TextBlock.ToolTip>
+                    <TextBlock>
+                        <Run Text="Verification Method: "/>
+                        <Run Text="{Binding RequirementMethod}"/>
+                    </TextBlock>
+                </TextBlock.ToolTip>
                 <TextBlock.Style>
                     <Style TargetType="TextBlock" BasedOn="{StaticResource HeaderSmallText}">
                         <Setter Property="Visibility" Value="Visible"/>

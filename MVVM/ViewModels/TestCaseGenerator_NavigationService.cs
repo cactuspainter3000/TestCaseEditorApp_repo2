@@ -95,6 +95,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 OnPropertyChanged(nameof(IsLlmBusy));
             }
+            else if (e.PropertyName == nameof(MainViewModel.IsBatchAnalyzing))
+            {
+                OnPropertyChanged(nameof(IsBatchAnalyzing));
+            }
         }
 
         private void TryNotifyHostCommands()
@@ -153,6 +157,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 }
             }
         }
+
+        public bool IsBatchAnalyzing => _main.IsBatchAnalyzing;
 
         public void Dispose()
         {

@@ -136,41 +136,75 @@
                     </Grid>
                 </ToggleButton>
 
-                <!-- LLM Analysis pill -->
-                <ToggleButton Style="{StaticResource PillToggleStyle}"
-              Margin="8,0,0,0"
-              IsChecked="{Binding IsAnalysisSelected, Mode=TwoWay}"
-              ToolTip="View AI-powered requirement quality analysis">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+                <!-- LLM Analysis pill with animated tracer border during batch -->
+                <Grid Margin="8,0,0,0">
+                    <!-- Animated tracer border (only visible during batch analysis) -->
+                    <Border x:Name="AnalysisTracerBorder"
+                            Visibility="{Binding DataContext.IsBatchAnalyzing, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibilityConverter}}"
+                            BorderThickness="2"
+                            CornerRadius="16"
+                            Padding="2">
+                        <Border.BorderBrush>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <LinearGradientBrush.GradientStops>
+                                    <GradientStop Color="{DynamicResource AccentColor}" Offset="0"/>
+                                    <GradientStop Color="Transparent" Offset="0.25"/>
+                                    <GradientStop Color="Transparent" Offset="0.75"/>
+                                    <GradientStop Color="{DynamicResource AccentColor}" Offset="1"/>
+                                </LinearGradientBrush.GradientStops>
+                                <LinearGradientBrush.RelativeTransform>
+                                    <RotateTransform x:Name="AnalysisTracerRotate" CenterX="0.5" CenterY="0.5"/>
+                                </LinearGradientBrush.RelativeTransform>
+                            </LinearGradientBrush>
+                        </Border.BorderBrush>
+                        <Border.Triggers>
+                            <EventTrigger RoutedEvent="Loaded">
+                                <BeginStoryboard>
+                                    <Storyboard RepeatBehavior="Forever">
+                                        <DoubleAnimation Storyboard.TargetName="AnalysisTracerRotate"
+                                                         Storyboard.TargetProperty="Angle"
+                                                         From="0" To="360" Duration="0:0:2.5"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </Border.Triggers>
+                    </Border>
+                    
+                    <!-- The actual pill button -->
+                    <ToggleButton Style="{StaticResource PillToggleStyle}"
+                                  IsChecked="{Binding IsAnalysisSelected, Mode=TwoWay}"
+                                  ToolTip="View AI-powered requirement quality analysis">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="LLM Analysis" VerticalAlignment="Center" Margin="6,0"/>
+                            <TextBlock Text="LLM Analysis" VerticalAlignment="Center" Margin="6,0"/>
 
-                        <Border Grid.Column="1">
-                            <Border.Style>
-                                <Style TargetType="Border" BasedOn="{StaticResource BadgeStyle}">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding HasAnalysis}" Value="False">
-                                            <Setter Property="Visibility" Value="Hidden"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
+                            <Border Grid.Column="1">
+                                <Border.Style>
+                                    <Style TargetType="Border" BasedOn="{StaticResource BadgeStyle}">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasAnalysis}" Value="False">
+                                                <Setter Property="Visibility" Value="Hidden"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
 
-                            <TextBlock Text="{Binding AnalysisQualityScore}"
-                 Foreground="White"
-                 FontSize="11"
-                 FontWeight="SemiBold"
-                 HorizontalAlignment="Center"
-                 VerticalAlignment="Center"
-                 TextAlignment="Center"/>
-                        </Border>
-                    </Grid>
-                </ToggleButton>
+                                <TextBlock Text="{Binding AnalysisQualityScore}"
+                                           Foreground="White"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Center"/>
+                            </Border>
+                        </Grid>
+                    </ToggleButton>
+                </Grid>
 
             </StackPanel>
 

@@ -226,6 +226,24 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         // Recent files service for tracking recently opened workspaces
         private RecentFilesService? _recentFilesService;
+        
+        // Analysis service for requirement quality analysis
+        private RequirementAnalysisService? _analysisService;
+        
+        // Tracks if batch analysis is currently running (to prevent conflicts)
+        private bool _isBatchAnalyzing = false;
+        public bool IsBatchAnalyzing 
+        { 
+            get => _isBatchAnalyzing;
+            private set
+            {
+                if (_isBatchAnalyzing != value)
+                {
+                    _isBatchAnalyzing = value;
+                    OnPropertyChanged(nameof(IsBatchAnalyzing));
+                }
+            }
+        }
 
         // Minimal test case generator placeholder used by TestCaseGenerator_VM instances
         private TestCaseGenerator_CoreVM? _testCaseGenerator = new TestCaseGenerator_CoreVM();
@@ -401,6 +419,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             // Initialize recent files service
             try { _recentFilesService = new RecentFilesService(); } catch { }
+            
+            // Initialize analysis service for auto-analysis during import
+            try
+            {
+                var llmService = LlmFactory.Create();
+                _analysisService = new RequirementAnalysisService(llmService);
+            }
+            catch
+            {
+                _analysisService = null; // LLM not available, analysis will be skipped
+            }
 
             // Initialize/ensure Import command exists before wiring header (so both menu and header share the same command)
             ImportWordCommand = ImportWordCommand ?? new AsyncRelayCommand(ImportWordAsync);
@@ -493,7 +522,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 Id = "testcase-creation",
                 DisplayName = "Test Case Generator",
                 Badge = string.Empty,
-                HasFileMenu = false,
+                HasFileMenu = true,
                 IsSelectable = false,  // Only accessible via Questions workflow
                 CreateViewModel = svc => new TestCaseGenerator_CreationVM(this)
             });
@@ -1691,6 +1720,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 CurrentWorkspace.Requirements = Requirements.ToList();
 
+                // Auto-analyze requirements if LLM is available
+                if (_analysisService != null && reqs.Any())
+                {
+                    _ = Task.Run(async () => await BatchAnalyzeRequirementsAsync(reqs));
+                }
+
                 // Track in recent files
                 try { _recentFilesService?.AddRecentFile(WorkspacePath!); } catch { }
 
@@ -1882,6 +1917,213 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             public List<Requirement> ImportRequirementsFromWord(string path) => new List<Requirement>();
             public string ExportAllGeneratedTestCasesToCsv(IEnumerable<Requirement> requirements, string folderPath, string filePrefix, string extra) => string.Empty;
             public void ExportAllGeneratedTestCasesToExcel(IEnumerable<Requirement> requirements, string outputPath) { /* no-op */ }
+        }
+
+        /// <summary>
+        /// Batch analyze requirements in background after import.
+        /// Shows progress notifications and updates requirements with analysis results.
+        /// After initial pass, processes any requirements queued for re-analysis.
+        /// </summary>
+        private async Task BatchAnalyzeRequirementsAsync(List<Requirement> requirements)
+        {
+            if (_analysisService == null || !requirements.Any())
+                return;
+
+            try
+            {
+                IsBatchAnalyzing = true;
+                
+                await Task.Delay(500); // Brief delay to let UI settle after import
+
+                int completed = 0;
+                int total = requirements.Count;
+                DateTime? firstAnalysisStart = null;
+                TimeSpan? avgAnalysisTime = null;
+
+                // Initial pass through all requirements
+                foreach (var req in requirements)
+                {
+                    try
+                    {
+                        // Skip if already queued for re-analysis (user edited during batch)
+                        if (req.IsQueuedForReanalysis)
+                        {
+                            completed++;
+                            continue;
+                        }
+                        
+                        // Show progress message at the START of each analysis (except the first)
+                        if (completed > 0 && avgAnalysisTime.HasValue)
+                        {
+                            var nextNumber = completed + 1;
+                            var remaining = total - completed;
+                            var estimatedTimeRemaining = TimeSpan.FromSeconds(avgAnalysisTime.Value.TotalSeconds * remaining);
+                            
+                            string progressMessage;
+                            if (estimatedTimeRemaining.TotalMinutes >= 1)
+                            {
+                                progressMessage = $"Analyzing requirements... ({nextNumber}/{total}) - ~{Math.Ceiling(estimatedTimeRemaining.TotalMinutes)} min remaining";
+                            }
+                            else
+                            {
+                                progressMessage = $"Analyzing requirements... ({nextNumber}/{total}) - ~{Math.Ceiling(estimatedTimeRemaining.TotalSeconds)} sec remaining";
+                            }
+                            
+                            Application.Current?.Dispatcher?.Invoke(() =>
+                            {
+                                SetTransientStatus(progressMessage, 180);
+                            });
+                        }
+                        
+                        // Track timing for first analysis
+                        var analysisStart = DateTime.Now;
+                        if (firstAnalysisStart == null)
+                        {
+                            firstAnalysisStart = analysisStart;
+                            
+                            // Show initial progress message immediately (before analysis completes)
+                            Application.Current?.Dispatcher?.Invoke(() =>
+                            {
+                                SetTransientStatus($"Analyzing requirements... (1/{total})", 180);
+                            });
+                        }
+                        
+                        // Analyze the requirement
+                        var analysis = await _analysisService.AnalyzeRequirementAsync(req, useFastMode: false);
+                        
+                        // Calculate timing after first analysis
+                        var analysisDuration = DateTime.Now - analysisStart;
+                        if (completed == 0)
+                        {
+                            avgAnalysisTime = analysisDuration;
+                        }
+                        
+                        // Update the requirement with analysis results
+                        req.Analysis = analysis;
+                        
+                        completed++;
+                        
+                        // Refresh UI to show the new analysis (for all completions, including first)
+                        Application.Current?.Dispatcher?.Invoke(() =>
+                        {
+                            
+                            // If this is the currently viewed requirement, force refresh by toggling the reference
+                            if (CurrentRequirement?.Item == req.Item)
+                            {
+                                var temp = CurrentRequirement;
+                                CurrentRequirement = null;
+                                CurrentRequirement = temp;
+                            }
+                            
+                            // Notify that the Requirements collection has changed so any lists update
+                            OnPropertyChanged(nameof(Requirements));
+                        });
+                        
+                        // Small delay between analyses to avoid overwhelming the LLM
+                        await Task.Delay(100);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogWarning(ex, "Failed to analyze requirement {ReqId}", req.Item);
+                        // Continue with next requirement even if one fails
+                    }
+                }
+
+                // Process queued re-analyses
+                var queuedRequirements = requirements.Where(r => r.IsQueuedForReanalysis).ToList();
+                if (queuedRequirements.Any())
+                {
+                    Application.Current?.Dispatcher?.Invoke(() =>
+                    {
+                        SetTransientStatus($"Re-analyzing {queuedRequirements.Count} edited requirement(s)...", 180);
+                    });
+                    
+                    int reanalyzed = 0;
+                    foreach (var req in queuedRequirements)
+                    {
+                        try
+                        {
+                            var analysis = await _analysisService.AnalyzeRequirementAsync(req, useFastMode: false);
+                            req.Analysis = analysis;
+                            req.IsQueuedForReanalysis = false;
+                            
+                            reanalyzed++;
+                            
+                            // Calculate remaining for queued items
+                            string queuedProgressMessage;
+                            if (avgAnalysisTime.HasValue)
+                            {
+                                var remaining = queuedRequirements.Count - reanalyzed;
+                                var estimatedTimeRemaining = TimeSpan.FromSeconds(avgAnalysisTime.Value.TotalSeconds * remaining);
+                                
+                                if (estimatedTimeRemaining.TotalMinutes >= 1)
+                                {
+                                    queuedProgressMessage = $"Re-analyzing edited requirements... ({reanalyzed}/{queuedRequirements.Count}) - ~{Math.Ceiling(estimatedTimeRemaining.TotalMinutes)} min remaining";
+                                }
+                                else
+                                {
+                                    queuedProgressMessage = $"Re-analyzing edited requirements... ({reanalyzed}/{queuedRequirements.Count}) - ~{Math.Ceiling(estimatedTimeRemaining.TotalSeconds)} sec remaining";
+                                }
+                            }
+                            else
+                            {
+                                queuedProgressMessage = $"Re-analyzing edited requirements... ({reanalyzed}/{queuedRequirements.Count})";
+                            }
+                            
+                            Application.Current?.Dispatcher?.Invoke(() =>
+                            {
+                                SetTransientStatus(queuedProgressMessage, 180);
+                                
+                                if (CurrentRequirement?.Item == req.Item)
+                                {
+                                    var temp = CurrentRequirement;
+                                    CurrentRequirement = null;
+                                    CurrentRequirement = temp;
+                                }
+                                
+                                OnPropertyChanged(nameof(Requirements));
+                            });
+                            
+                            await Task.Delay(100);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger?.LogWarning(ex, "Failed to re-analyze requirement {ReqId}", req.Item);
+                            req.IsQueuedForReanalysis = false;
+                        }
+                    }
+                }
+
+                // Save the workspace with analysis results
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    if (!string.IsNullOrWhiteSpace(WorkspacePath))
+                    {
+                        SaveWorkspace();
+                    }
+                    
+                    var totalAnalyzed = completed - queuedRequirements.Count + queuedRequirements.Count(r => !r.IsQueuedForReanalysis);
+                    SetTransientStatus($"Analysis complete - {totalAnalyzed} of {total} requirements analyzed", 5);
+                    
+                    // Refresh the current requirement view if we're looking at one
+                    if (CurrentRequirement != null)
+                    {
+                        OnPropertyChanged(nameof(CurrentRequirement));
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Batch analysis failed");
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    SetTransientStatus("Analysis failed - see logs for details", 5);
+                });
+            }
+            finally
+            {
+                IsBatchAnalyzing = false;
+            }
         }
 
         private class NoOpPersistenceService : IPersistenceService

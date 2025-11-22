@@ -25,5 +25,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         // LLM state
         bool IsLlmBusy { get; set; }
+        
+        // Batch analysis state (prevents user-initiated analysis during auto-import analysis)
+        bool IsBatchAnalyzing { get; }
     }
 }

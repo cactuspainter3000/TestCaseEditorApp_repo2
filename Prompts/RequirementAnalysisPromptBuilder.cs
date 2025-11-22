@@ -83,17 +83,37 @@ namespace TestCaseEditorApp.Prompts
             {
                 sb.AppendLine();
                 sb.AppendLine("ASSOCIATED TABLES:");
+                sb.AppendLine("(These tables are part of the requirement and should be included in your analysis)");
+                sb.AppendLine();
+                
                 for (int i = 0; i < tables.Count; i++)
                 {
                     var table = tables[i];
-                    sb.AppendLine($"\nTable {i + 1}: {table.EditableTitle}");
+                    sb.AppendLine($"Table {i + 1}: {table.EditableTitle}");
+                    
                     if (table.Table != null && table.Table.Any())
                     {
-                        foreach (var row in table.Table)
+                        // Format table with clear header separation
+                        bool hasHeader = table.FirstRowLooksLikeHeader && table.Table.Count > 1;
+                        
+                        for (int rowIdx = 0; rowIdx < table.Table.Count; rowIdx++)
                         {
-                            sb.AppendLine("  | " + string.Join(" | ", row ?? new List<string>()));
+                            var row = table.Table[rowIdx] ?? new List<string>();
+                            sb.AppendLine("| " + string.Join(" | ", row) + " |");
+                            
+                            // Add separator after header row
+                            if (hasHeader && rowIdx == 0)
+                            {
+                                var separatorCells = row.Select(_ => "---");
+                                sb.AppendLine("| " + string.Join(" | ", separatorCells) + " |");
+                            }
                         }
                     }
+                    else
+                    {
+                        sb.AppendLine("(empty table)");
+                    }
+                    sb.AppendLine();
                 }
             }
             
@@ -114,20 +134,62 @@ namespace TestCaseEditorApp.Prompts
                 {
                     sb.AppendLine();
                     sb.AppendLine("SUPPLEMENTAL TABLES:");
+                    sb.AppendLine("(These tables are part of the requirement and should be included in your analysis)");
+                    sb.AppendLine();
+                    
                     for (int i = 0; i < looseContent.Tables.Count; i++)
                     {
                         var looseTable = looseContent.Tables[i];
-                        sb.AppendLine($"\nSupplemental Table {i + 1}:");
-                        // Note: LooseTable structure may need to be checked - assuming it has similar structure to RequirementTable
+                        sb.AppendLine($"Supplemental Table {i + 1}: {looseTable.EditableTitle}");
+                        
+                        if (looseTable.Rows != null && looseTable.Rows.Any())
+                        {
+                            // Check if we have column headers to display
+                            bool hasHeaders = looseTable.ColumnHeaders != null && looseTable.ColumnHeaders.Any();
+                            
+                            // If headers exist, display them first
+                            if (hasHeaders)
+                            {
+                                sb.AppendLine("| " + string.Join(" | ", looseTable.ColumnHeaders) + " |");
+                                var separatorCells = looseTable.ColumnHeaders.Select(_ => "---");
+                                sb.AppendLine("| " + string.Join(" | ", separatorCells) + " |");
+                            }
+                            
+                            // Display all data rows
+                            foreach (var row in looseTable.Rows)
+                            {
+                                sb.AppendLine("| " + string.Join(" | ", row ?? new List<string>()) + " |");
+                            }
+                        }
+                        else
+                        {
+                            sb.AppendLine("(empty table)");
+                        }
+                        sb.AppendLine();
                     }
                 }
             }
             
             sb.AppendLine();
-            sb.AppendLine("REMINDER: Base your analysis on ALL the information above (text, tables, and supplemental content). Do not mention example terms like 'adequate', 'user-friendly', or 'reasonable' unless they actually appear in the requirement.");
+            sb.AppendLine("====================================");
+            sb.AppendLine("CRITICAL REMINDER:");
+            sb.AppendLine("====================================");
+            sb.AppendLine("1. Your analysis MUST consider ALL information provided above:");
+            sb.AppendLine("   - The requirement text");
+            sb.AppendLine("   - ALL associated tables (if any)");
+            sb.AppendLine("   - ALL supplemental content (if any)");
             sb.AppendLine();
-            sb.AppendLine("IMPORTANT: Provide concrete rewrite examples in the 'Example' field of your recommendations. Use [brackets] to indicate placeholders for specific values that need to be defined.");
-            sb.AppendLine("Example format: 'The system shall respond within [X] seconds' or 'The [specific component] shall [specific action]'.");
+            sb.AppendLine("2. When the requirement references tables (e.g., 'per the following table', 'as shown in the table'),");
+            sb.AppendLine("   you MUST look at the actual table data provided above. If a table is provided, treat it as part");
+            sb.AppendLine("   of the requirement text itself.");
+            sb.AppendLine();
+            sb.AppendLine("3. Do NOT mention example terms from the criteria (like 'adequate', 'user-friendly', 'reasonable')");
+            sb.AppendLine("   UNLESS they actually appear in this specific requirement.");
+            sb.AppendLine();
+            sb.AppendLine("4. Provide concrete rewrite examples in the 'Example' field of your recommendations.");
+            sb.AppendLine("   Use [brackets] to indicate placeholders: 'The system shall respond within [X] seconds'");
+            sb.AppendLine("====================================");
+            sb.AppendLine();
 
             // Output instructions
             sb.AppendLine("OUTPUT INSTRUCTIONS:");

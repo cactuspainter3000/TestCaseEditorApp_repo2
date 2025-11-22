@@ -40,6 +40,14 @@ namespace TestCaseEditorApp.MVVM.Models
         /// Persisted in the workspace so analysis results survive reloads.
         /// </summary>
         public RequirementAnalysis? Analysis { get; set; }
+        
+        /// <summary>
+        /// Indicates this requirement has been edited and queued for re-analysis.
+        /// Used during batch analysis to track which requirements need re-analysis after the initial pass.
+        /// Not persisted - runtime state only.
+        /// </summary>
+        [JsonIgnore]
+        public bool IsQueuedForReanalysis { get; set; }
     }
 
     /// <summary>
