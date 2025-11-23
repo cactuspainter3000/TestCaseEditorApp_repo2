@@ -274,7 +274,7 @@
                             <Setter TargetName="bd" Property="Background" Value="{StaticResource Brush.Background.Overlay.Light}"/>
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="bd" Property="Background" Value="{StaticResource Brush.Background.Overlay.Medium}"/>
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource Brush.Background.Menu.Selected}"/>
                             <Setter TargetName="bd" Property="BorderThickness" Value="0"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
@@ -355,7 +355,7 @@
                             <Setter TargetName="Root" Property="Background" Value="{StaticResource Brush.Background.Menu.Hover}"/>
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Root" Property="Background" Value="#333333"/>
+                            <Setter TargetName="Root" Property="Background" Value="{StaticResource Brush.Background.Menu.Selected}"/>
                             <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">

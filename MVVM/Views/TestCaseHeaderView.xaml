@@ -31,7 +31,7 @@
         </Button>
 
         <!-- Right side: placeholder for contextual info -->
-        <TextBlock Grid.Column="5" Text="Test Case Creator" VerticalAlignment="Center" HorizontalAlignment="Right"
+        <TextBlock Grid.Column="5" Text="Test Case Generator" VerticalAlignment="Center" HorizontalAlignment="Right"
                    Foreground="{StaticResource MenuForeground}" Opacity="0.7" />
     </Grid>
 </UserControl>

@@ -20,7 +20,7 @@
             <TextBlock Text="Import Flow" />
         </Button>
 
-        <TextBlock Grid.Column="3" Text="Test Flow Creator" VerticalAlignment="Center" HorizontalAlignment="Right"
+        <TextBlock Grid.Column="3" Text="Test Flow Generator" VerticalAlignment="Center" HorizontalAlignment="Right"
                    Foreground="{StaticResource MenuForeground}" Opacity="0.7" />
     </Grid>
 </UserControl>

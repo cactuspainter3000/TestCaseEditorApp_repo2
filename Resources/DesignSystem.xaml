@@ -32,12 +32,14 @@
     <Color x:Key="Background.Menu">#252525</Color>
     <Color x:Key="Background.Menu.Hover">#2E2E2E</Color>
     <Color x:Key="Background.Menu.Pressed">#222222</Color>
+    <Color x:Key="Background.Menu.Selected">#333333</Color>
     <Color x:Key="Background.Header">#1E1E1E</Color>
     <Color x:Key="Background.Card">#FFFFFF</Color>
     <Color x:Key="Background.Surface">#F7F7F7</Color>
     <Color x:Key="Background.Overlay.Light">#20FFFFFF</Color>
     <Color x:Key="Background.Overlay.Medium">#33FFFFFF</Color>
     <Color x:Key="Background.Overlay.Dark">#40FFFFFF</Color>
+    <Color x:Key="Background.Pill.Selected">#2a2a2a</Color>
     
     <!-- Text Colors: Clear hierarchy -->
     <Color x:Key="Text.Primary">#FFFFFF</Color>
@@ -85,12 +87,14 @@
     <SolidColorBrush x:Key="Brush.Background.Menu" Color="{StaticResource Background.Menu}"/>
     <SolidColorBrush x:Key="Brush.Background.Menu.Hover" Color="{StaticResource Background.Menu.Hover}"/>
     <SolidColorBrush x:Key="Brush.Background.Menu.Pressed" Color="{StaticResource Background.Menu.Pressed}"/>
+    <SolidColorBrush x:Key="Brush.Background.Menu.Selected" Color="{StaticResource Background.Menu.Selected}"/>
     <SolidColorBrush x:Key="Brush.Background.Header" Color="{StaticResource Background.Header}"/>
     <SolidColorBrush x:Key="Brush.Background.Card" Color="{StaticResource Background.Card}"/>
     <SolidColorBrush x:Key="Brush.Background.Surface" Color="{StaticResource Background.Surface}"/>
     <SolidColorBrush x:Key="Brush.Background.Overlay.Light" Color="{StaticResource Background.Overlay.Light}"/>
     <SolidColorBrush x:Key="Brush.Background.Overlay.Medium" Color="{StaticResource Background.Overlay.Medium}"/>
     <SolidColorBrush x:Key="Brush.Background.Overlay.Dark" Color="{StaticResource Background.Overlay.Dark}"/>
+    <SolidColorBrush x:Key="Brush.Background.Pill.Selected" Color="{StaticResource Background.Pill.Selected}"/>
     
     <!-- Text Brushes -->
     <SolidColorBrush x:Key="Brush.Text.Primary" Color="{StaticResource Text.Primary}"/>

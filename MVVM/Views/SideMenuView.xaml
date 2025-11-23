@@ -21,14 +21,14 @@
         <Grid Background="#252525" Margin="5">
             <StackPanel>
 
-                <!-- Test Case Creator header -->
+                <!-- Test Case Generator header -->
                 <ToggleButton x:Name="TestCaseGeneratorToggle"
                               Style="{StaticResource MenuHeaderToggleStyle}"
                               HorizontalAlignment="Stretch"
                               Cursor="Hand"
                               Margin="0,6,0,0"
                               IsChecked="{Binding SelectedMenuSection, Converter={StaticResource SectionSelectedConverter}, ConverterParameter=TestCase, Mode=TwoWay}">
-                    <TextBlock Text="Test Case Creator" Style="{StaticResource MenuHeaderTheme}" />
+                    <TextBlock Text="Test Case Generator" Style="{StaticResource MenuHeaderTheme}" />
                 </ToggleButton>
 
                 <!-- Animated expanded area -->
@@ -322,14 +322,14 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Test Flow Creator group -->
-                <ToggleButton x:Name="TestFlowCreatorToggle"
+                <!-- Test Flow Generator group -->
+                <ToggleButton x:Name="TestFlowGeneratorToggle"
                               Style="{StaticResource MenuHeaderToggleStyle}"
                               HorizontalAlignment="Stretch"
                               Cursor="Hand"
                               Margin="0,6,0,0"
                               IsChecked="{Binding SelectedMenuSection, Converter={StaticResource SectionSelectedConverter}, ConverterParameter=TestFlow, Mode=TwoWay}">
-                    <TextBlock Text="Test Flow Creator" Style="{StaticResource MenuHeaderTheme}" />
+                    <TextBlock Text="Test Flow Generator" Style="{StaticResource MenuHeaderTheme}" />
                 </ToggleButton>
 
                 <Border Margin="0,4,0,0" Padding="0" Background="Transparent" ClipToBounds="True">

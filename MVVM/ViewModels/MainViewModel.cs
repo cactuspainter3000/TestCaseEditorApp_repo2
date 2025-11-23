@@ -20,6 +20,7 @@ using System.Reflection;
 using System.Text;
 using System.Collections.Specialized;
 using TestCaseEditorApp.Services.Prompts;
+using TestCaseEditorApp.MVVM.Utils;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -97,6 +98,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     // inside CurrentRequirement setter, immediately after a successful SetProperty(...)
                     System.Diagnostics.Debug.WriteLine($"[CurrentRequirement] set -> Item='{value?.Item ?? "<null>"}' Name='{value?.Name ?? "<null>"}' Method='{value?.Method}' ActiveHeader={ActiveHeader?.GetType().Name ?? "<null>"}");
+                    
+                    // Save assumptions from previous requirement BEFORE switching
+                    if (CurrentStepViewModel is TestCaseGenerator_AssumptionsVM currentAssumptionsVm && _currentRequirement != null)
+                    {
+                        currentAssumptionsVm.SaveAllAssumptionsData();
+                        System.Diagnostics.Debug.WriteLine("[CurrentRequirement] Saved assumptions before switching requirement");
+                    }
                     
                     // Update AssumptionsVM with new requirement for pill persistence FIRST
                     // This must happen before OnCurrentRequirementChanged so pills load from correct requirement
@@ -564,6 +572,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 try
                 {
+                    // Save assumptions from previous view BEFORE switching
+                    if (CurrentStepViewModel is TestCaseGenerator_AssumptionsVM previousAssumptionsVm)
+                    {
+                        previousAssumptionsVm.SaveAllAssumptionsData();
+                        System.Diagnostics.Debug.WriteLine("[SelectedStep] Saved assumptions before switching view");
+                    }
+                    
                     var created = value.CreateViewModel(_services);
                     CurrentStepViewModel = created;
 
@@ -1931,7 +1946,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             try
             {
-                IsBatchAnalyzing = true;
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    IsBatchAnalyzing = true;
+                });
                 
                 await Task.Delay(500); // Brief delay to let UI settle after import
 
@@ -1940,8 +1958,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 DateTime? firstAnalysisStart = null;
                 TimeSpan? avgAnalysisTime = null;
 
-                // Initial pass through all requirements
-                foreach (var req in requirements)
+                // Get requirements in display order (sorted view that user sees)
+                var orderedRequirements = _requirementsNavigator?.RequirementsView?
+                    .Cast<Requirement>()
+                    .Where(r => requirements.Contains(r))
+                    .ToList() ?? requirements;
+
+                // Initial pass through all requirements in display order
+                foreach (var req in orderedRequirements)
                 {
                     try
                     {
@@ -1988,8 +2012,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                             });
                         }
                         
+                        System.Diagnostics.Debug.WriteLine($"[MainViewModel] Starting analysis {completed + 1}/{total} for requirement: {req.Item}");
+                        
                         // Analyze the requirement
                         var analysis = await _analysisService.AnalyzeRequirementAsync(req, useFastMode: false);
+                        
+                        System.Diagnostics.Debug.WriteLine($"[MainViewModel] Completed analysis for {req.Item} - IsAnalyzed: {analysis.IsAnalyzed}, Score: {analysis.QualityScore}");
                         
                         // Calculate timing after first analysis
                         var analysisDuration = DateTime.Now - analysisStart;
@@ -2003,19 +2031,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         
                         completed++;
                         
-                        // Refresh UI to show the new analysis (for all completions, including first)
+                        // Notify via mediator that analysis was updated
                         Application.Current?.Dispatcher?.Invoke(() =>
                         {
-                            
-                            // If this is the currently viewed requirement, force refresh by toggling the reference
-                            if (CurrentRequirement?.Item == req.Item)
-                            {
-                                var temp = CurrentRequirement;
-                                CurrentRequirement = null;
-                                CurrentRequirement = temp;
-                            }
-                            
-                            // Notify that the Requirements collection has changed so any lists update
+                            System.Diagnostics.Debug.WriteLine($"[MainViewModel] Notifying mediator for requirement: {req.Item}");
+                            AnalysisMediator.NotifyAnalysisUpdated(req);
                             OnPropertyChanged(nameof(Requirements));
                         });
                         
@@ -2074,12 +2094,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                             {
                                 SetTransientStatus(queuedProgressMessage, 180);
                                 
-                                if (CurrentRequirement?.Item == req.Item)
-                                {
-                                    var temp = CurrentRequirement;
-                                    CurrentRequirement = null;
-                                    CurrentRequirement = temp;
-                                }
+                                // Notify via mediator that this requirement's analysis was updated
+                                AnalysisMediator.NotifyAnalysisUpdated(req);
                                 
                                 OnPropertyChanged(nameof(Requirements));
                             });
@@ -2122,7 +2138,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             finally
             {
-                IsBatchAnalyzing = false;
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    IsBatchAnalyzing = false;
+                });
             }
         }
 

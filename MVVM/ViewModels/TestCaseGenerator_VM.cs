@@ -93,6 +93,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 catch { /* ignore if not RelayCommand */ }
 
                 OnPropertyChanged(nameof(BulkActionsVisible));
+                
+                // When switching to Analysis view, ensure AnalysisVM refreshes its display
+                if (SelectedSupportView == SupportView.Analysis)
+                {
+                    // Use reflection to call the private RefreshAnalysisDisplay method
+                    var method = AnalysisVM.GetType().GetMethod("RefreshAnalysisDisplay", 
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    method?.Invoke(AnalysisVM, null);
+                }
             }
         }
 

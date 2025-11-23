@@ -262,7 +262,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                             data.Category,
                             data.Severity,
                             data.Rationale,
-                            data.MarkedAsAssumption
+                            data.MarkedAsAssumption,
+                            data.IsSubmitted
                         );
                         
                         if (data.Options != null)
@@ -300,6 +301,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     Severity = q.Severity,
                     Rationale = q.Rationale,
                     MarkedAsAssumption = q.MarkedAsAssumption,
+                    IsSubmitted = q.IsSubmitted,
                     Options = q.Options.ToList()
                 });
             }
@@ -350,8 +352,32 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Cannot run if no requirement description or method
             var hasDescription = !string.IsNullOrWhiteSpace(_headerVm?.RequirementDescription);
             var hasMethod = _headerVm?.RequirementMethodEnum != null;
+            if (!hasDescription || !hasMethod) return false;
             
-            return hasDescription && hasMethod;
+            // Cannot run if requirement is being analyzed or queued for analysis
+            if (IsRequirementBeingAnalyzed())
+            {
+                return false;
+            }
+            
+            return true;
+        }
+        
+        /// <summary>
+        /// Checks if the current requirement is being analyzed or queued for analysis.
+        /// Returns true if batch analysis is running or if the requirement is queued for reanalysis.
+        /// </summary>
+        private bool IsRequirementBeingAnalyzed()
+        {
+            if (_mainVm == null || _currentRequirement == null) return false;
+            
+            // Check if batch analysis is running
+            if (_mainVm.IsBatchAnalyzing) return true;
+            
+            // Check if this specific requirement is queued for reanalysis
+            if (_currentRequirement.IsQueuedForReanalysis) return true;
+            
+            return false;
         }
 
         // --- Collection synchronization helpers ------------------
@@ -522,6 +548,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
 
             if (IsClarifyingCommandRunning) return;
+
+            // Check if requirement is being analyzed or queued for analysis (with snarky message)
+            if (IsRequirementBeingAnalyzed())
+            {
+                if (_currentRequirement?.IsQueuedForReanalysis == true)
+                {
+                    StatusHint = "Hold your horses! This requirement is queued for re-analysis. Wait for the analysis to complete before asking for clarifying questions.";
+                }
+                else
+                {
+                    StatusHint = "Patience, young grasshopper! The requirement is currently being analyzed. Wait for the analysis to finish before requesting clarifying questions.";
+                }
+                return;
+            }
 
             // Validate requirement data up front: do NOT use defaults or filler values.
             var requirementDescription = _headerVm?.RequirementDescription;

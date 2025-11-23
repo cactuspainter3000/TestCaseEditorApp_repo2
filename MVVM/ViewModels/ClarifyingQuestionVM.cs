@@ -130,7 +130,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// <summary>
         /// Set properties without triggering dirty flag (used during loading).
         /// </summary>
-        public void SetPropertiesForLoad(string text, string? answer, string? category, string severity, string? rationale, bool markedAsAssumption)
+        public void SetPropertiesForLoad(string text, string? answer, string? category, string severity, string? rationale, bool markedAsAssumption, bool isSubmitted = false)
         {
             _isLoading = true;
             try
@@ -141,6 +141,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 Severity = severity;
                 Rationale = rationale;
                 MarkedAsAssumption = markedAsAssumption;
+                IsSubmitted = isSubmitted;
             }
             finally
             {

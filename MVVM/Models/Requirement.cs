@@ -61,6 +61,7 @@ namespace TestCaseEditorApp.MVVM.Models
         public string Severity { get; set; } = "OPTIONAL";
         public string? Rationale { get; set; }
         public bool MarkedAsAssumption { get; set; }
+        public bool IsSubmitted { get; set; }
         public List<string> Options { get; set; } = new List<string>();
     }
 

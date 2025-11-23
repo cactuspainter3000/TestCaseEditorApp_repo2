@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
              mc:Ignorable="d"
              d:DesignHeight="520" d:DesignWidth="800"
-             Background="Transparent">
+             Background="{StaticResource Brush.Background.Menu}">
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />

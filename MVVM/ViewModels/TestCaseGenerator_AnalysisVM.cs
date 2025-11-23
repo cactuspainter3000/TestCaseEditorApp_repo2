@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
 
@@ -33,6 +34,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 _navigator.PropertyChanged += Navigator_PropertyChanged;
             }
 
+            // Subscribe to mediator for analysis updates
+            AnalysisMediator.AnalysisUpdated += OnAnalysisUpdated;
+
             AnalyzeRequirementCommand = new AsyncRelayCommand(AnalyzeRequirementAsync, CanAnalyzeRequirement);
             EditRequirementCommand = new RelayCommand(EditRequirement, CanEditRequirement);
 
@@ -57,6 +61,27 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 // Requirements collection updated - refresh if current requirement's analysis changed
                 RefreshAnalysisDisplay();
+            }
+        }
+
+        private void OnAnalysisUpdated(Requirement requirement)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AnalysisVM] OnAnalysisUpdated fired for: {requirement.Item}");
+            System.Diagnostics.Debug.WriteLine($"[AnalysisVM] Current requirement: {_navigator?.CurrentRequirement?.Item}");
+            System.Diagnostics.Debug.WriteLine($"[AnalysisVM] Analysis IsAnalyzed: {requirement.Analysis?.IsAnalyzed}, Score: {requirement.Analysis?.QualityScore}");
+            
+            // Only refresh if this is the currently displayed requirement
+            if (_navigator?.CurrentRequirement?.Item == requirement.Item)
+            {
+                System.Diagnostics.Debug.WriteLine($"[AnalysisVM] Match found! Refreshing display for {requirement.Item}");
+                System.Windows.Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    RefreshAnalysisDisplay();
+                });
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[AnalysisVM] No match - not refreshing (user viewing different requirement)");
             }
         }
 

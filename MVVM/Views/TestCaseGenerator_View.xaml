@@ -9,13 +9,14 @@
              MinHeight="400" MinWidth="800"
              HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
              d:DesignHeight="600" d:DesignWidth="900"
+             Background="{StaticResource Brush.Background.Menu}"
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
         <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
     </UserControl.Resources>
 
-    <Grid Margin="8" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+    <Grid Margin="0" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <!-- toolbar (pills + actions) -->
@@ -38,7 +39,7 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="Details" VerticalAlignment="Center" Margin="6,0"/>
+                        <TextBlock Text="Details" VerticalAlignment="Center" Margin="6,0" Foreground="{StaticResource Brush.Accent.Primary}"/>
 
                         <Border Grid.Column="1">
                             <Border.Style>
@@ -75,7 +76,7 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="Tables" VerticalAlignment="Center" Margin="6,0"/>
+                        <TextBlock Text="Tables" VerticalAlignment="Center" Margin="6,0" Foreground="{StaticResource Brush.Accent.Primary}"/>
 
                         <Border Grid.Column="1">
                             <Border.Style>
@@ -111,7 +112,7 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="Supplemental Info" VerticalAlignment="Center" Margin="6,0"/>
+                        <TextBlock Text="Supplemental Info" VerticalAlignment="Center" Margin="6,0" Foreground="{StaticResource Brush.Accent.Primary}"/>
 
                         <Border Grid.Column="1">
                             <Border.Style>
@@ -143,35 +144,27 @@
                             Visibility="{Binding DataContext.IsBatchAnalyzing, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibilityConverter}}"
                             BorderThickness="2"
                             CornerRadius="16"
-                            Padding="2">
+                            Loaded="AnalysisTracerBorder_Loaded"
+                            IsVisibleChanged="AnalysisTracerBorder_IsVisibleChanged">
                         <Border.BorderBrush>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
                                 <LinearGradientBrush.GradientStops>
-                                    <GradientStop Color="{DynamicResource AccentColor}" Offset="0"/>
-                                    <GradientStop Color="Transparent" Offset="0.25"/>
-                                    <GradientStop Color="Transparent" Offset="0.75"/>
-                                    <GradientStop Color="{DynamicResource AccentColor}" Offset="1"/>
+                                    <GradientStop Color="#FFFF8800" Offset="0.0"/>
+                                    <GradientStop Color="#FF888888" Offset="0.25"/>
+                                    <GradientStop Color="White" Offset="0.5"/>
+                                    <GradientStop Color="#FF888888" Offset="0.75"/>
+                                    <GradientStop Color="#FFFF8800" Offset="1.0"/>
                                 </LinearGradientBrush.GradientStops>
                                 <LinearGradientBrush.RelativeTransform>
-                                    <RotateTransform x:Name="AnalysisTracerRotate" CenterX="0.5" CenterY="0.5"/>
+                                    <RotateTransform x:Name="AnalysisTracerRotate" CenterX="0.5" CenterY="0.5" Angle="0"/>
                                 </LinearGradientBrush.RelativeTransform>
                             </LinearGradientBrush>
                         </Border.BorderBrush>
-                        <Border.Triggers>
-                            <EventTrigger RoutedEvent="Loaded">
-                                <BeginStoryboard>
-                                    <Storyboard RepeatBehavior="Forever">
-                                        <DoubleAnimation Storyboard.TargetName="AnalysisTracerRotate"
-                                                         Storyboard.TargetProperty="Angle"
-                                                         From="0" To="360" Duration="0:0:2.5"/>
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </EventTrigger>
-                        </Border.Triggers>
                     </Border>
                     
-                    <!-- The actual pill button -->
+                    <!-- The actual pill button (always visible) -->
                     <ToggleButton Style="{StaticResource PillToggleStyle}"
+                                  Margin="2"
                                   IsChecked="{Binding IsAnalysisSelected, Mode=TwoWay}"
                                   ToolTip="View AI-powered requirement quality analysis">
                         <Grid>
@@ -180,9 +173,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <TextBlock Text="LLM Analysis" VerticalAlignment="Center" Margin="6,0"/>
-
-                            <Border Grid.Column="1">
+                        <TextBlock Text="LLM Analysis" VerticalAlignment="Center" Margin="6,0" Foreground="{StaticResource Brush.Accent.Primary}"/>                            <Border Grid.Column="1">
                                 <Border.Style>
                                     <Style TargetType="Border" BasedOn="{StaticResource BadgeStyle}">
                                         <Setter Property="Visibility" Value="Visible"/>

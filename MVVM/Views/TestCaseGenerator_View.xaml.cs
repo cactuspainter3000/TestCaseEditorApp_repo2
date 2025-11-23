@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 
 namespace TestCaseEditorApp.MVVM.Views
 {
     public partial class TestCaseGenerator_View : UserControl
     {
+        private Storyboard? _tracerStoryboard;
+
         public TestCaseGenerator_View()
         {
             InitializeComponent();
@@ -37,6 +41,50 @@ namespace TestCaseEditorApp.MVVM.Views
         private void RequirementsParagraphsControl_Loaded(object sender, RoutedEventArgs e)
         {
 
+        }
+
+        private void AnalysisTracerBorder_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Border border) return;
+            
+            // Get the LinearGradientBrush from the border's BorderBrush
+            if (border.BorderBrush is LinearGradientBrush brush && 
+                brush.RelativeTransform is RotateTransform rotateTransform)
+            {
+                // Animate the gradient rotation - slower and smoother
+                var animation = new DoubleAnimation
+                {
+                    From = 0,
+                    To = 360,
+                    Duration = TimeSpan.FromSeconds(3.5),
+                    RepeatBehavior = RepeatBehavior.Forever
+                };
+
+                rotateTransform.BeginAnimation(RotateTransform.AngleProperty, animation);
+            }
+        }
+
+        private void AnalysisTracerBorder_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (sender is not Border border) return;
+
+            if (border.Visibility == Visibility.Visible)
+            {
+                // Get the LinearGradientBrush from the border's BorderBrush
+                if (border.BorderBrush is LinearGradientBrush brush && 
+                    brush.RelativeTransform is RotateTransform rotateTransform)
+                {
+                    var animation = new DoubleAnimation
+                    {
+                        From = 0,
+                        To = 360,
+                        Duration = TimeSpan.FromSeconds(3.5),
+                        RepeatBehavior = RepeatBehavior.Forever
+                    };
+
+                    rotateTransform.BeginAnimation(RotateTransform.AngleProperty, animation);
+                }
+            }
         }
     }
 }
