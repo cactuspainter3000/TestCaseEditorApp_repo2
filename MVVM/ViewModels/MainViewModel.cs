@@ -97,13 +97,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 if (SetProperty(ref _currentRequirement, value))
                 {
                     // inside CurrentRequirement setter, immediately after a successful SetProperty(...)
-                    System.Diagnostics.Debug.WriteLine($"[CurrentRequirement] set -> Item='{value?.Item ?? "<null>"}' Name='{value?.Name ?? "<null>"}' Method='{value?.Method}' ActiveHeader={ActiveHeader?.GetType().Name ?? "<null>"}");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[CurrentRequirement] set -> Item='{value?.Item ?? "<null>"}' Name='{value?.Name ?? "<null>"}' Method='{value?.Method}' ActiveHeader={ActiveHeader?.GetType().Name ?? "<null>"}");
                     
                     // Save assumptions from previous requirement BEFORE switching
                     if (CurrentStepViewModel is TestCaseGenerator_AssumptionsVM currentAssumptionsVm && _currentRequirement != null)
                     {
                         currentAssumptionsVm.SaveAllAssumptionsData();
-                        System.Diagnostics.Debug.WriteLine("[CurrentRequirement] Saved assumptions before switching requirement");
+                        TestCaseEditorApp.Services.Logging.Log.Debug("[CurrentRequirement] Saved assumptions before switching requirement");
                     }
                     
                     // Update AssumptionsVM with new requirement for pill persistence FIRST
@@ -296,7 +296,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 if (_isDirty != value)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[MainViewModel] IsDirty changing from {_isDirty} to {value}. Stack: {Environment.StackTrace}");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[MainViewModel] IsDirty changing from {_isDirty} to {value}. Stack: {Environment.StackTrace}");
                 }
                 if (SetProperty(ref _isDirty, value))
                 {
@@ -332,10 +332,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             get => _isLlmBusy;
             set
             {
-                System.Diagnostics.Debug.WriteLine($"[MainViewModel] IsLlmBusy changing from {_isLlmBusy} to {value}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[MainViewModel] IsLlmBusy changing from {_isLlmBusy} to {value}");
                 if (SetProperty(ref _isLlmBusy, value))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[MainViewModel] IsLlmBusy changed to {value}, notifying navigation commands");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[MainViewModel] IsLlmBusy changed to {value}, notifying navigation commands");
                     // Notify navigation commands to re-evaluate CanExecute
                     NextRequirementCommand?.NotifyCanExecuteChanged();
                     PreviousRequirementCommand?.NotifyCanExecuteChanged();
@@ -576,7 +576,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     if (CurrentStepViewModel is TestCaseGenerator_AssumptionsVM previousAssumptionsVm)
                     {
                         previousAssumptionsVm.SaveAllAssumptionsData();
-                        System.Diagnostics.Debug.WriteLine("[SelectedStep] Saved assumptions before switching view");
+                        TestCaseEditorApp.Services.Logging.Log.Debug("[SelectedStep] Saved assumptions before switching view");
                     }
                     
                     var created = value.CreateViewModel(_services);
@@ -1132,17 +1132,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
                 var tmpDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "TestCaseEditorApp");
 
-                System.Diagnostics.Debug.WriteLine($"[QuickImport] invoked: {ts}");
-                System.Diagnostics.Debug.WriteLine($"[QuickImport] PID={pid}");
-                System.Diagnostics.Debug.WriteLine($"[QuickImport] Assembly={asm}");
-                System.Diagnostics.Debug.WriteLine($"[QuickImport] BaseDir={baseDir}");
-                System.Diagnostics.Debug.WriteLine($"[QuickImport] User={user}");
-                System.Diagnostics.Debug.WriteLine($"[QuickImport] LocalAppData={localAppData}");
-                System.Diagnostics.Debug.WriteLine($"[QuickImport] TempDir={tmpDir}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] invoked: {ts}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] PID={pid}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] Assembly={asm}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] BaseDir={baseDir}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] User={user}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] LocalAppData={localAppData}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] TempDir={tmpDir}");
             }
             catch (Exception ex)
             {
-                try { System.Diagnostics.Debug.WriteLine($"[QuickImport] debug-probe failed: {ex.Message}"); } catch { }
+                try { TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] debug-probe failed: {ex.Message}"); } catch { }
             }
             const string fixedSourcePath = @"C:\Users\e10653214\Downloads\Decagon_Boundary Scan.docx";
             // Determine destination folder for quick-import saves.
@@ -1157,13 +1157,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     if (!string.IsNullOrWhiteSpace(wpDir) && Directory.Exists(wpDir))
                     {
                         fixedDestinationFolder = wpDir;
-                        System.Diagnostics.Debug.WriteLine($"[QuickImport] Using WorkspacePath directory for quick-save: {fixedDestinationFolder}");
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] Using WorkspacePath directory for quick-save: {fixedDestinationFolder}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[QuickImport] Failed to determine preferred save folder: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] Failed to determine preferred save folder: {ex.Message}");
             }
 
             if (!File.Exists(fixedSourcePath))
@@ -1202,13 +1202,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     var testName = $"tcex_write_test_{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString("N").Substring(0,8)}.txt";
                     var testPath = Path.Combine(fixedDestinationFolder, testName);
                     File.WriteAllText(testPath, $"Test write from QuickImport at {DateTime.UtcNow:o} PID={System.Diagnostics.Process.GetCurrentProcess().Id}");
-                    System.Diagnostics.Debug.WriteLine($"[QuickImport] Wrote test file: {testPath}");
-                    try { if (Debugger.IsAttached) Console.WriteLine($"[QuickImport] Wrote test file: {testPath}"); } catch { }
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] Wrote test file: {testPath}");
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[QuickImport] Test write failed: {ex.Message}");
-                    try { if (Debugger.IsAttached) Console.WriteLine($"[QuickImport] Test write failed: {ex.Message}"); } catch { }
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] Test write failed: {ex.Message}");
                 }
 
                 global::WorkspaceService.Save(WorkspacePath!, ws);
@@ -1338,7 +1336,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             catch (Exception ex)
             {
                 // Defensive: if path normalization fails, cancel the save and inform the user
-                Debug.WriteLine($"[SaveWorkspaceAsync] Path normalization failed: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[SaveWorkspaceAsync] Path normalization failed: {ex.Message}");
                 MessageBox.Show($"Failed to determine save file path: {ex.Message}", "Save error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
@@ -1353,7 +1351,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             try
             {
                 // Log and show where we will save to help debug user-reported mismatches
-                System.Diagnostics.Debug.WriteLine($"[SaveWorkspaceAsync] Saving workspace to: {chosen}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[SaveWorkspaceAsync] Saving workspace to: {chosen}");
                 SetTransientStatus($"Saving workspace to: {chosen}", 2);
 
                 global::WorkspaceService.Save(WorkspacePath!, ws);
@@ -1367,7 +1365,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 try { _recentFilesService?.AddRecentFile(WorkspacePath!); } catch { }
                 
                 SetTransientStatus($"Saved workspace: {Path.GetFileName(WorkspacePath)}", 4);
-                System.Diagnostics.Debug.WriteLine($"[SaveWorkspaceAsync] Save complete: {WorkspacePath}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[SaveWorkspaceAsync] Save complete: {WorkspacePath}");
             }
             catch (Exception ex)
             {
@@ -2008,18 +2006,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             try
             {
                 System.Diagnostics.Debug.WriteLine($"[PostSave] Probing saved path: {path}");
-                try { if (Debugger.IsAttached) Console.WriteLine($"[PostSave] Probing saved path: {path}"); } catch { }
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Probing saved path: {path}");
 
                 try
                 {
                     var fi = new FileInfo(path);
                     System.Diagnostics.Debug.WriteLine($"[PostSave] File Exists={fi.Exists}, Length={(fi.Exists ? fi.Length.ToString() : "N/A")}, LastWriteUtc={(fi.Exists ? fi.LastWriteTimeUtc.ToString("o") : "N/A")} ");
-                    try { if (Debugger.IsAttached) Console.WriteLine($"[PostSave] File Exists={fi.Exists}, Length={(fi.Exists ? fi.Length.ToString() : "N/A")}, LastWriteUtc={(fi.Exists ? fi.LastWriteTimeUtc.ToString("o") : "N/A")} "); } catch { }
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] File Exists={fi.Exists}, Length={(fi.Exists ? fi.Length.ToString() : "N/A")}, LastWriteUtc={(fi.Exists ? fi.LastWriteTimeUtc.ToString("o") : "N/A")} ");
                 }
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[PostSave] File probe failed: {ex.Message}");
-                    try { if (Debugger.IsAttached) Console.WriteLine($"[PostSave] File probe failed: {ex.Message}"); } catch { }
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] File probe failed: {ex.Message}");
                 }
 
                 var metaPath = path + ".meta.txt";
@@ -2031,18 +2029,19 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         var preview = string.Join(Environment.NewLine, lines.Take(Math.Min(20, lines.Length)));
                         System.Diagnostics.Debug.WriteLine($"[PostSave] Meta exists: {metaPath} (lines={lines.Length})");
                         System.Diagnostics.Debug.WriteLine(preview);
-                        try { if (Debugger.IsAttached) { Console.WriteLine($"[PostSave] Meta exists: {metaPath} (lines={lines.Length})"); Console.WriteLine(preview); } } catch { }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Meta exists: {metaPath} (lines={lines.Length})");
+                        TestCaseEditorApp.Services.Logging.Log.Debug(preview);
                     }
                     else
                     {
                         System.Diagnostics.Debug.WriteLine($"[PostSave] Meta missing: {metaPath}");
-                        try { if (Debugger.IsAttached) Console.WriteLine($"[PostSave] Meta missing: {metaPath}"); } catch { }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Meta missing: {metaPath}");
                     }
                 }
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[PostSave] Meta probe failed: {ex.Message}");
-                    try { if (Debugger.IsAttached) Console.WriteLine($"[PostSave] Meta probe failed: {ex.Message}"); } catch { }
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Meta probe failed: {ex.Message}");
                 }
 
                 var markerPath = path + ".saved.txt";
@@ -2051,18 +2050,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     if (File.Exists(markerPath))
                     {
                         System.Diagnostics.Debug.WriteLine($"[PostSave] Marker exists: {markerPath}");
-                        try { if (Debugger.IsAttached) Console.WriteLine($"[PostSave] Marker exists: {markerPath}"); } catch { }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Marker exists: {markerPath}");
                     }
                     else
                     {
                         System.Diagnostics.Debug.WriteLine($"[PostSave] Marker missing: {markerPath}");
-                        try { if (Debugger.IsAttached) Console.WriteLine($"[PostSave] Marker missing: {markerPath}"); } catch { }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Marker missing: {markerPath}");
                     }
                 }
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[PostSave] Marker probe failed: {ex.Message}");
-                    try { if (Debugger.IsAttached) Console.WriteLine($"[PostSave] Marker probe failed: {ex.Message}"); } catch { }
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Marker probe failed: {ex.Message}");
                 }
 
                 try
@@ -2073,18 +2072,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         var all = File.ReadAllLines(logPath);
                         var last = all.Skip(Math.Max(0, all.Length - 20)).ToArray();
                         System.Diagnostics.Debug.WriteLine($"[PostSave] Local where-saved.log last lines:\n{string.Join(Environment.NewLine, last)}");
-                        try { if (Debugger.IsAttached) Console.WriteLine($"[PostSave] Local where-saved.log last lines:\n{string.Join(Environment.NewLine, last)}"); } catch { }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Local where-saved.log last lines:\n{string.Join(Environment.NewLine, last)}");
                     }
                     else
                     {
                         System.Diagnostics.Debug.WriteLine($"[PostSave] Local where-saved.log missing: {logPath}");
-                        try { if (Debugger.IsAttached) Console.WriteLine($"[PostSave] Local where-saved.log missing: {logPath}"); } catch { }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Local where-saved.log missing: {logPath}");
                     }
                 }
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[PostSave] where-saved.log probe failed: {ex.Message}");
-                    try { if (Debugger.IsAttached) Console.WriteLine($"[PostSave] where-saved.log probe failed: {ex.Message}"); } catch { }
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] where-saved.log probe failed: {ex.Message}");
                 }
 
                 try
@@ -2095,24 +2094,24 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     {
                         var tfi = new FileInfo(tmpCopy);
                         System.Diagnostics.Debug.WriteLine($"[PostSave] Temp copy exists: {tmpCopy} (Length={tfi.Length})");
-                        try { if (Debugger.IsAttached) Console.WriteLine($"[PostSave] Temp copy exists: {tmpCopy} (Length={tfi.Length})"); } catch { }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Temp copy exists: {tmpCopy} (Length={tfi.Length})");
                     }
                     else
                     {
                         System.Diagnostics.Debug.WriteLine($"[PostSave] Temp copy missing: {tmpCopy}");
-                        try { if (Debugger.IsAttached) Console.WriteLine($"[PostSave] Temp copy missing: {tmpCopy}"); } catch { }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Temp copy missing: {tmpCopy}");
                     }
                 }
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[PostSave] Temp-copy probe failed: {ex.Message}");
-                    try { if (Debugger.IsAttached) Console.WriteLine($"[PostSave] Temp-copy probe failed: {ex.Message}"); } catch { }
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Temp-copy probe failed: {ex.Message}");
                 }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[PostSave] Unexpected diagnostic error: {ex.Message}");
-                try { if (Debugger.IsAttached) Console.WriteLine($"[PostSave] Unexpected diagnostic error: {ex.Message}"); } catch { }
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Unexpected diagnostic error: {ex.Message}");
             }
         }
 

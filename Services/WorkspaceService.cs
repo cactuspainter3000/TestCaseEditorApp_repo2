@@ -34,7 +34,7 @@ public static class WorkspaceService
     {
         var logger = GetLogger();
         logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Debug, new Microsoft.Extensions.Logging.EventId(0), $"[Save] Save invoked for: {path}", null, (s,e) => s ?? string.Empty);
-        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Save invoked for: {path}"); } catch { }
+        TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Save invoked for: {path}");
         Debug.WriteLine($"[Save] Save invoked for: {path}");
 
         // Create backup of previous version before overwriting
@@ -45,12 +45,12 @@ public static class WorkspaceService
                     var backupPath = path + ".bak";
                 File.Copy(path, backupPath, overwrite: true);
                 Debug.WriteLine($"[Save] Created backup: {backupPath}");
-                try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Created backup: {backupPath}"); } catch { }
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Created backup: {backupPath}");
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[Save] Backup failed (continuing anyway): {ex.Message}");
-                try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Backup failed (continuing anyway): {ex.Message}"); } catch { }
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Backup failed (continuing anyway): {ex.Message}");
             }
         }
 
@@ -81,7 +81,7 @@ public static class WorkspaceService
         }
 
         var json = JsonSerializer.Serialize(ws, _json);
-        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] JSON serialized ({json?.Length ?? 0} bytes)"); } catch { }
+        TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] JSON serialized ({json?.Length ?? 0} bytes)");
         Debug.WriteLine($"[Save] JSON serialized ({json?.Length ?? 0} bytes)");
         logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Debug, new Microsoft.Extensions.Logging.EventId(0), $"[Save] JSON serialized ({json?.Length ?? 0} bytes)", null, (s,e) => s ?? string.Empty);
 
@@ -96,7 +96,7 @@ public static class WorkspaceService
             var stagingPath = Path.Combine(stagingDir, Path.GetFileName(path));
                 File.WriteAllText(stagingPath, json, Encoding.UTF8);
             Debug.WriteLine($"[Save] Wrote staging copy: {stagingPath}");
-            try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Wrote staging copy: {stagingPath}"); } catch { }
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Wrote staging copy: {stagingPath}");
                 logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Debug, new Microsoft.Extensions.Logging.EventId(0), $"[Save] Wrote staging copy: {stagingPath}", null, (s,e) => s ?? string.Empty);
 
             // Also write a small staging meta so the file can be validated independently
@@ -120,13 +120,13 @@ public static class WorkspaceService
                 catch (Exception ex)
             {
                 Debug.WriteLine($"[Save] Failed to write staging meta: {ex.Message}");
-                try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Failed to write staging meta: {ex.Message}"); } catch { }
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Failed to write staging meta: {ex.Message}");
             }
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[Save] Failed to write staging copy: {ex.Message}");
-            try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Failed to write staging copy: {ex.Message}"); } catch { }
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Failed to write staging copy: {ex.Message}");
         }
 
 #if DEBUG
@@ -135,12 +135,12 @@ public static class WorkspaceService
                 var debugPath = Path.ChangeExtension(path, ".debug.json");
                 File.WriteAllText(debugPath, json);
                 Debug.WriteLine($"[Save] Wrote debug snapshot: {debugPath}");
-                try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Wrote debug snapshot: {debugPath}"); } catch { }
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Wrote debug snapshot: {debugPath}");
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[Save] Debug snapshot failed: {ex.Message}");
-                try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Debug snapshot failed: {ex.Message}"); } catch { }
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Debug snapshot failed: {ex.Message}");
             }
 #endif
 
@@ -200,13 +200,13 @@ public static class WorkspaceService
             catch (Exception ex)
             {
                 Debug.WriteLine($"[Save] Failed to write meta: {ex.Message}");
-                try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Failed to write meta: {ex.Message}"); } catch { }
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Failed to write meta: {ex.Message}");
             }
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[Save] Write failed: {ex.Message}");
-            try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Write failed: {ex.Message}"); } catch { }
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Write failed: {ex.Message}");
             throw;
         }
         // Persist a small audit log of where workspaces were saved so we can diagnose
@@ -219,13 +219,13 @@ public static class WorkspaceService
             var entry = $"{DateTime.UtcNow:o}\tSaved workspace to: {path}\tUser:{Environment.UserName}" + Environment.NewLine;
             File.AppendAllText(logPath, entry);
             Debug.WriteLine($"[Save] Appended where-saved log: {logPath}");
-            try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Appended where-saved log: {logPath}"); } catch { }
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Appended where-saved log: {logPath}");
             logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Information, new Microsoft.Extensions.Logging.EventId(0), $"[Save] Appended where-saved log: {logPath}", null, (s,e) => s ?? string.Empty);
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[Save] Failed to write where-saved log: {ex.Message}");
-            try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Failed to write where-saved log: {ex.Message}"); } catch { }
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Failed to write where-saved log: {ex.Message}");
         }
 
         // Create a companion marker file next to the saved workspace to make the
@@ -236,13 +236,13 @@ public static class WorkspaceService
             var markerContent = $"Saved: {DateTime.UtcNow:o}\r\nPath: {path}\r\nUser: {Environment.UserName}\r\n";
             File.WriteAllText(markerPath, markerContent);
             Debug.WriteLine($"[Save] Wrote companion marker: {markerPath}");
-            try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Wrote companion marker: {markerPath}"); } catch { }
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Wrote companion marker: {markerPath}");
             logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Debug, new Microsoft.Extensions.Logging.EventId(0), $"[Save] Wrote companion marker: {markerPath}", null, (s,e) => s ?? string.Empty);
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[Save] Failed to write companion marker: {ex.Message}");
-            try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Failed to write companion marker: {ex.Message}"); } catch { }
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Failed to write companion marker: {ex.Message}");
         }
 
         // Fallback diagnostics: also append to a system-wide temp log and drop a
@@ -258,13 +258,13 @@ public static class WorkspaceService
             var tmpCopy = Path.Combine(tmpDir, Path.GetFileName(path));
             File.WriteAllText(tmpCopy, json);
             Debug.WriteLine($"[Save] Wrote fallback copies to: {tmpDir}");
-            try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Wrote fallback copies to: {tmpDir}"); } catch { }
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Wrote fallback copies to: {tmpDir}");
             logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Warning, new Microsoft.Extensions.Logging.EventId(0), $"[Save] Wrote fallback copies to: {tmpDir}", null, (s,e) => s ?? string.Empty);
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[Save] Failed fallback diagnostic writes: {ex.Message}");
-            try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Failed fallback diagnostic writes: {ex.Message}"); } catch { }
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Failed fallback diagnostic writes: {ex.Message}");
         }
 
         // Final verification & last-resort fallback:
@@ -276,7 +276,7 @@ public static class WorkspaceService
             if (!File.Exists(path))
             {
                 Debug.WriteLine($"[Save] Final destination missing after write: {path}. Attempting fallback.");
-                try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Final destination missing after write: {path}. Attempting fallback."); } catch { }
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Final destination missing after write: {path}. Attempting fallback.");
 
                 var stagingPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TestCaseEditorApp", "Staging", Path.GetFileName(path));
                 bool wroteFallback = false;
@@ -287,14 +287,14 @@ public static class WorkspaceService
                         Directory.CreateDirectory(Path.GetDirectoryName(path) ?? Path.GetTempPath());
                         File.Copy(stagingPath, path, overwrite: true);
                         Debug.WriteLine($"[Save] Restored from staging: {stagingPath} -> {path}");
-                        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Restored from staging: {stagingPath} -> {path}"); } catch { }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Restored from staging: {stagingPath} -> {path}");
                             logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Information, new Microsoft.Extensions.Logging.EventId(0), $"[Save] Restored from staging: {stagingPath} -> {path}", null, (s,e) => s ?? string.Empty);
                         wroteFallback = true;
                     }
                     catch (Exception ex)
                     {
                         Debug.WriteLine($"[Save] Failed to copy staging to destination: {ex.Message}");
-                        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Failed to copy staging to destination: {ex.Message}"); } catch { }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Failed to copy staging to destination: {ex.Message}");
                     }
                 }
 
@@ -305,14 +305,14 @@ public static class WorkspaceService
                         Directory.CreateDirectory(Path.GetDirectoryName(path) ?? Path.GetTempPath());
                         File.WriteAllText(path, json, Encoding.UTF8);
                         Debug.WriteLine($"[Save] Wrote direct fallback to destination: {path}");
-                        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Wrote direct fallback to destination: {path}"); } catch { }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Wrote direct fallback to destination: {path}");
                             logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Information, new Microsoft.Extensions.Logging.EventId(0), $"[Save] Wrote direct fallback to destination: {path}", null, (s,e) => s ?? string.Empty);
                         wroteFallback = true;
                     }
                     catch (Exception ex)
                     {
                         Debug.WriteLine($"[Save] Direct fallback write failed: {ex.Message}");
-                        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Direct fallback write failed: {ex.Message}"); } catch { }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Direct fallback write failed: {ex.Message}");
                     }
                 }
 
@@ -339,12 +339,12 @@ public static class WorkspaceService
                         meta.AppendLine(preview);
                         File.WriteAllText(metaPath, meta.ToString(), Encoding.UTF8);
                         Debug.WriteLine($"[Save] Wrote fallback meta: {metaPath}");
-                        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Wrote fallback meta: {metaPath}"); } catch { }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Wrote fallback meta: {metaPath}");
                     }
                     catch (Exception ex)
                     {
                         Debug.WriteLine($"[Save] Failed to write fallback meta: {ex.Message}");
-                        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Failed to write fallback meta: {ex.Message}"); } catch { }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Failed to write fallback meta: {ex.Message}");
                     }
 
                     try
@@ -353,12 +353,12 @@ public static class WorkspaceService
                         var markerContent = $"Saved (fallback): {DateTime.UtcNow:o}\r\nPath: {path}\r\nUser: {Environment.UserName}\r\n";
                         File.WriteAllText(markerPath, markerContent);
                         Debug.WriteLine($"[Save] Wrote fallback marker: {markerPath}");
-                        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Wrote fallback marker: {markerPath}"); } catch { }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Wrote fallback marker: {markerPath}");
                     }
                     catch (Exception ex)
                     {
                         Debug.WriteLine($"[Save] Failed to write fallback marker: {ex.Message}");
-                        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Failed to write fallback marker: {ex.Message}"); } catch { }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Failed to write fallback marker: {ex.Message}");
                     }
 
                     try
@@ -369,12 +369,12 @@ public static class WorkspaceService
                         var entry = $"{DateTime.UtcNow:o}\tFallback saved workspace to: {path}\tUser:{Environment.UserName}" + Environment.NewLine;
                         File.AppendAllText(logPath, entry);
                         Debug.WriteLine($"[Save] Appended fallback where-saved log: {logPath}");
-                        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Appended fallback where-saved log: {logPath}"); } catch { }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Appended fallback where-saved log: {logPath}");
                     }
                     catch (Exception ex)
                     {
                         Debug.WriteLine($"[Save] Failed to append fallback where-saved log: {ex.Message}");
-                        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Failed to append fallback where-saved log: {ex.Message}"); } catch { }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Failed to append fallback where-saved log: {ex.Message}");
                     }
                 }
             }
@@ -382,7 +382,7 @@ public static class WorkspaceService
         catch (Exception ex)
         {
             Debug.WriteLine($"[Save] Final verification failed: {ex.Message}");
-            try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Final verification failed: {ex.Message}"); } catch { }
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Final verification failed: {ex.Message}");
         }
     }
 

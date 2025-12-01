@@ -134,7 +134,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 if (_mainVm != null)
                 {
                     _mainVm.IsDirty = true;
-                    System.Diagnostics.Debug.WriteLine("[Assumptions] Pill toggled - marked workspace dirty");
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[Assumptions] Pill toggled - marked workspace dirty");
                 }
             }
         }
@@ -150,7 +150,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 if (_mainVm != null)
                 {
                     _mainVm.IsDirty = true;
-                    System.Diagnostics.Debug.WriteLine("[Assumptions] Pill toggled - marked workspace dirty");
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[Assumptions] Pill toggled - marked workspace dirty");
                 }
             }
         }
@@ -172,7 +172,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Save to requirement object
             _currentRequirement.SelectedAssumptionKeys = enabledKeys;
             
-            System.Diagnostics.Debug.WriteLine($"[Assumptions] Saved {enabledKeys.Count} pill selections to requirement {_currentRequirement.Item}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] Saved {enabledKeys.Count} pill selections to requirement {_currentRequirement.Item}");
         }
 
         /// <summary>
@@ -182,7 +182,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             SaveUserAssumptionSelections();
             SaveCustomInstructions();
-            System.Diagnostics.Debug.WriteLine("[Assumptions] Saved all assumptions data");
+            TestCaseEditorApp.Services.Logging.Log.Debug("[Assumptions] Saved all assumptions data");
         }
 
         /// <summary>
@@ -223,7 +223,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 pill.IsEnabled = isCommon && isApplicable;
             }
             
-            System.Diagnostics.Debug.WriteLine($"[Assumptions] Applied default suggestions for method {method}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] Applied default suggestions for method {method}");
         }
 
         /// <summary>
@@ -292,7 +292,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             if (_mainVm != null && !_isLoadingInstructions)
             {
                 _mainVm.IsDirty = true;
-                System.Diagnostics.Debug.WriteLine("[Assumptions] Custom instructions changed - marked workspace dirty");
+                TestCaseEditorApp.Services.Logging.Log.Debug("[Assumptions] Custom instructions changed - marked workspace dirty");
             }
         }
 
@@ -329,7 +329,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     {
                         item.IsEnabled = true;
                     }
-                    System.Diagnostics.Debug.WriteLine($"[Assumptions] Applied {savedKeys.Count} saved pill selections for requirement {_currentRequirement.Item}");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] Applied {savedKeys.Count} saved pill selections for requirement {_currentRequirement.Item}");
                     // Don't apply default suggestions if user has saved selections, but continue to finally block
                 }
                 else
@@ -512,12 +512,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     }
                 }
 
-                System.Diagnostics.Debug.WriteLine($"[Assumptions] Loaded {AllPills.Count} pills from catalog");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] Loaded {AllPills.Count} pills from catalog");
                 StatusHint = $"Loaded {AllPills.Count} assumptions and {DefaultPresets.Count} presets.";
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Assumptions] Error loading pills: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] Error loading pills: {ex.Message}");
                 StatusHint = $"Error loading defaults catalog: {ex.Message}";
             }
         }
@@ -530,7 +530,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             if (requirement == null)
             {
-                System.Diagnostics.Debug.WriteLine("[Assumptions] LoadPillsForRequirement: requirement is null, clearing all pills");
+                TestCaseEditorApp.Services.Logging.Log.Debug("[Assumptions] LoadPillsForRequirement: requirement is null, clearing all pills");
                 // Clear all pills
                 _isApplyingDefaults = true;
                 foreach (var pill in AllPills)
@@ -560,11 +560,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     {
                         pill.IsEnabled = true;
                     }
-                    System.Diagnostics.Debug.WriteLine($"[Assumptions] Loaded {savedKeys.Count} saved pill selections for requirement {requirement.Item}");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] Loaded {savedKeys.Count} saved pill selections for requirement {requirement.Item}");
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Assumptions] No saved pills for requirement {requirement.Item}, applying defaults");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] No saved pills for requirement {requirement.Item}, applying defaults");
                     // Apply default suggestions based on verification method
                     ApplyDefaultSuggestionsForMethod(_headerVm?.RequirementMethodEnum);
                 }

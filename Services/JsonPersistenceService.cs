@@ -46,7 +46,7 @@
                         var dir = Path.GetDirectoryName(absPath);
                         if (!string.IsNullOrWhiteSpace(dir)) Directory.CreateDirectory(dir);
                         File.WriteAllText(absPath, json);
-                        try { if (Debugger.IsAttached) Console.WriteLine($"[JsonPersistence] Saved JSON to absolute path: {absPath}"); } catch { }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JsonPersistence] Saved JSON to absolute path: {absPath}");
                         return;
                     }
                     catch (Exception ex)
