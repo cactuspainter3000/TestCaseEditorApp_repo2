@@ -15,8 +15,25 @@ public static class WorkspaceService
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
     };
 
+    private static Microsoft.Extensions.Logging.ILogger? GetLogger()
+    {
+        try
+        {
+            var sp = TestCaseEditorApp.App.ServiceProvider;
+            if (sp == null) return null;
+            var factory = sp.GetService(typeof(Microsoft.Extensions.Logging.ILoggerFactory)) as Microsoft.Extensions.Logging.ILoggerFactory;
+            return factory?.CreateLogger("WorkspaceService");
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public static void Save(string path, Workspace ws)
     {
+        var logger = GetLogger();
+        logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Debug, new Microsoft.Extensions.Logging.EventId(0), $"[Save] Save invoked for: {path}", null, (s,e) => s ?? string.Empty);
         try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Save invoked for: {path}"); } catch { }
         Debug.WriteLine($"[Save] Save invoked for: {path}");
 
@@ -66,6 +83,7 @@ public static class WorkspaceService
         var json = JsonSerializer.Serialize(ws, _json);
         try { if (Debugger.IsAttached) Console.WriteLine($"[Save] JSON serialized ({json?.Length ?? 0} bytes)"); } catch { }
         Debug.WriteLine($"[Save] JSON serialized ({json?.Length ?? 0} bytes)");
+        logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Debug, new Microsoft.Extensions.Logging.EventId(0), $"[Save] JSON serialized ({json?.Length ?? 0} bytes)", null, (s,e) => s ?? string.Empty);
 
         // Always write a guaranteed local staging copy in %LOCALAPPDATA% so we
         // have a recoverable copy even if the final destination is redirected
@@ -79,6 +97,7 @@ public static class WorkspaceService
                 File.WriteAllText(stagingPath, json, Encoding.UTF8);
             Debug.WriteLine($"[Save] Wrote staging copy: {stagingPath}");
             try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Wrote staging copy: {stagingPath}"); } catch { }
+                logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Debug, new Microsoft.Extensions.Logging.EventId(0), $"[Save] Wrote staging copy: {stagingPath}", null, (s,e) => s ?? string.Empty);
 
             // Also write a small staging meta so the file can be validated independently
             try
@@ -201,6 +220,7 @@ public static class WorkspaceService
             File.AppendAllText(logPath, entry);
             Debug.WriteLine($"[Save] Appended where-saved log: {logPath}");
             try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Appended where-saved log: {logPath}"); } catch { }
+            logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Information, new Microsoft.Extensions.Logging.EventId(0), $"[Save] Appended where-saved log: {logPath}", null, (s,e) => s ?? string.Empty);
         }
         catch (Exception ex)
         {
@@ -217,6 +237,7 @@ public static class WorkspaceService
             File.WriteAllText(markerPath, markerContent);
             Debug.WriteLine($"[Save] Wrote companion marker: {markerPath}");
             try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Wrote companion marker: {markerPath}"); } catch { }
+            logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Debug, new Microsoft.Extensions.Logging.EventId(0), $"[Save] Wrote companion marker: {markerPath}", null, (s,e) => s ?? string.Empty);
         }
         catch (Exception ex)
         {
@@ -238,6 +259,7 @@ public static class WorkspaceService
             File.WriteAllText(tmpCopy, json);
             Debug.WriteLine($"[Save] Wrote fallback copies to: {tmpDir}");
             try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Wrote fallback copies to: {tmpDir}"); } catch { }
+            logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Warning, new Microsoft.Extensions.Logging.EventId(0), $"[Save] Wrote fallback copies to: {tmpDir}", null, (s,e) => s ?? string.Empty);
         }
         catch (Exception ex)
         {
@@ -266,6 +288,7 @@ public static class WorkspaceService
                         File.Copy(stagingPath, path, overwrite: true);
                         Debug.WriteLine($"[Save] Restored from staging: {stagingPath} -> {path}");
                         try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Restored from staging: {stagingPath} -> {path}"); } catch { }
+                            logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Information, new Microsoft.Extensions.Logging.EventId(0), $"[Save] Restored from staging: {stagingPath} -> {path}", null, (s,e) => s ?? string.Empty);
                         wroteFallback = true;
                     }
                     catch (Exception ex)
@@ -283,6 +306,7 @@ public static class WorkspaceService
                         File.WriteAllText(path, json, Encoding.UTF8);
                         Debug.WriteLine($"[Save] Wrote direct fallback to destination: {path}");
                         try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Wrote direct fallback to destination: {path}"); } catch { }
+                            logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Information, new Microsoft.Extensions.Logging.EventId(0), $"[Save] Wrote direct fallback to destination: {path}", null, (s,e) => s ?? string.Empty);
                         wroteFallback = true;
                     }
                     catch (Exception ex)

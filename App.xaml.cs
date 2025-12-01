@@ -32,8 +32,18 @@ namespace TestCaseEditorApp
             _host = Host.CreateDefaultBuilder()
                 .ConfigureLogging(logging =>
                 {
-                    // optional: configure logging here (console/file/etc.) or leave defaults
+                    // Configure default console and debug logging plus a simple file sink
                     logging.AddDebug();
+                    logging.AddConsole();
+                    try
+                    {
+                        var logs = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TestCaseEditorApp", "logs");
+                        logging.AddProvider(new TestCaseEditorApp.Services.Logging.FileLoggerProvider(logs));
+                    }
+                    catch
+                    {
+                        // best-effort - do not fail startup for logging provider issues
+                    }
                 })
                 .ConfigureServices((ctx, services) =>
                 {
