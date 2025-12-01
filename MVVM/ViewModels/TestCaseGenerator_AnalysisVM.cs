@@ -66,14 +66,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private void OnAnalysisUpdated(Requirement requirement)
         {
-            System.Diagnostics.Debug.WriteLine($"[AnalysisVM] OnAnalysisUpdated fired for: {requirement.Item}");
-            System.Diagnostics.Debug.WriteLine($"[AnalysisVM] Current requirement: {_navigator?.CurrentRequirement?.Item}");
-            System.Diagnostics.Debug.WriteLine($"[AnalysisVM] Analysis IsAnalyzed: {requirement.Analysis?.IsAnalyzed}, Score: {requirement.Analysis?.QualityScore}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] OnAnalysisUpdated fired for: {requirement.Item}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Current requirement: {_navigator?.CurrentRequirement?.Item}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Analysis IsAnalyzed: {requirement.Analysis?.IsAnalyzed}, Score: {requirement.Analysis?.QualityScore}");
             
             // Only refresh if this is the currently displayed requirement
             if (_navigator?.CurrentRequirement?.Item == requirement.Item)
             {
-                System.Diagnostics.Debug.WriteLine($"[AnalysisVM] Match found! Refreshing display for {requirement.Item}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Match found! Refreshing display for {requirement.Item}");
                 System.Windows.Application.Current?.Dispatcher?.Invoke(() =>
                 {
                     RefreshAnalysisDisplay();
@@ -81,7 +81,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[AnalysisVM] No match - not refreshing (user viewing different requirement)");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] No match - not refreshing (user viewing different requirement)");
             }
         }
 
@@ -117,21 +117,21 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Create command for Re-Analyze button
             ReAnalyzeCommand = new AsyncRelayCommand(async () =>
             {
-                System.Diagnostics.Debug.WriteLine("[AnalysisVM] ReAnalyze command executing");
+                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] ReAnalyze command executing");
                 
                 // Update requirement description from editor
                 requirement.Description = EditedDescription;
                 var preview = requirement.Description?.Length > 50 
                     ? requirement.Description.Substring(0, 50) + "..." 
                     : requirement.Description ?? "";
-                System.Diagnostics.Debug.WriteLine($"[AnalysisVM] Updated description: {preview}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Updated description: {preview}");
                 
                 // Check if batch analysis is running
                 if (_navigator?.IsBatchAnalyzing == true)
                 {
                     // Queue for re-analysis instead of analyzing immediately
                     requirement.IsQueuedForReanalysis = true;
-                    System.Diagnostics.Debug.WriteLine($"[AnalysisVM] Queued requirement {requirement.Item} for re-analysis");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Queued requirement {requirement.Item} for re-analysis");
                     
                     // Clear existing analysis to show it's outdated
                     requirement.Analysis = null;
@@ -154,14 +154,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     // Run analysis immediately if not in batch mode
                     await AnalyzeRequirementAsync();
-                    System.Diagnostics.Debug.WriteLine("[AnalysisVM] Analysis complete");
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Analysis complete");
                 }
                 finally
                 {
                     IsAnalyzingInEditor = false;
                     
                     // Close the editor window after analysis is complete
-                    System.Diagnostics.Debug.WriteLine("[AnalysisVM] Closing editor window");
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Closing editor window");
                     editorWindow.Close();
                 }
             });
@@ -172,7 +172,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Handle window closing - clear command reference
             editorWindow.Closed += (s, e) =>
             {
-                System.Diagnostics.Debug.WriteLine("[AnalysisVM] Editor window closed");
+                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Editor window closed");
                 ReAnalyzeCommand = null;
                 EditedDescription = string.Empty;
             };
@@ -183,17 +183,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             var requirement = _navigator?.CurrentRequirement;
             if (requirement == null) return;
 
-            System.Diagnostics.Debug.WriteLine($"[AnalysisVM] AnalyzeRequirementAsync started");
-            System.Diagnostics.Debug.WriteLine($"[AnalysisVM] Requirement Description (first 200 chars): '{requirement.Description?.Substring(0, Math.Min(200, requirement.Description?.Length ?? 0))}'");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] AnalyzeRequirementAsync started");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Requirement Description (first 200 chars): '{requirement.Description?.Substring(0, Math.Min(200, requirement.Description?.Length ?? 0))}'");
 
             try
             {
                 // Set busy flag to prevent navigation
                 if (_navigator != null)
                 {
-                    System.Diagnostics.Debug.WriteLine("[AnalysisVM] Setting IsLlmBusy = true");
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Setting IsLlmBusy = true");
                     _navigator.IsLlmBusy = true;
-                    System.Diagnostics.Debug.WriteLine($"[AnalysisVM] IsLlmBusy is now: {_navigator.IsLlmBusy}");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] IsLlmBusy is now: {_navigator.IsLlmBusy}");
                 }
 
                 // Clear existing analysis and show spinner
@@ -208,12 +208,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     _analysisService = new RequirementAnalysisService(llm);
                 }
 
-                System.Diagnostics.Debug.WriteLine($"[AnalysisVM] About to call AnalyzeRequirementAsync on service");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] About to call AnalyzeRequirementAsync on service");
 
                 // Perform analysis
                 var analysis = await _analysisService.AnalyzeRequirementAsync(requirement, useFastMode: false);
 
-                System.Diagnostics.Debug.WriteLine($"[AnalysisVM] Analysis complete. IsAnalyzed: {analysis.IsAnalyzed}, QualityScore: {analysis.QualityScore}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Analysis complete. IsAnalyzed: {analysis.IsAnalyzed}, QualityScore: {analysis.QualityScore}");
 
                 // Store result
                 requirement.Analysis = analysis;
@@ -233,7 +233,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             catch (Exception ex)
             {
                 AnalysisStatusMessage = $"Error: {ex.Message}";
-                System.Diagnostics.Debug.WriteLine($"[AnalysisVM] Analysis error: {ex}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Analysis error: {ex}");
             }
             finally
             {
@@ -242,9 +242,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 // Clear busy flag
                 if (_navigator != null)
                 {
-                    System.Diagnostics.Debug.WriteLine("[AnalysisVM] Setting IsLlmBusy = false");
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Setting IsLlmBusy = false");
                     _navigator.IsLlmBusy = false;
-                    System.Diagnostics.Debug.WriteLine($"[AnalysisVM] IsLlmBusy is now: {_navigator.IsLlmBusy}");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] IsLlmBusy is now: {_navigator.IsLlmBusy}");
                 }
 
                 // Clear status message after a delay

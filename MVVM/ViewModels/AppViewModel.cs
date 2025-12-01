@@ -57,7 +57,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             //};
 
             //var reqDebug = TestCaseCreationSteps.FirstOrDefault(s => s.Id == "requirements");
-            //Debug.WriteLine($"[DEBUG] TestCaseCreationSteps count={TestCaseCreationSteps?.Count}. Requirements HasFileMenu={reqDebug?.HasFileMenu}");
+            //TestCaseEditorApp.Services.Logging.Log.Debug($"[DEBUG] TestCaseCreationSteps count={TestCaseCreationSteps?.Count}. Requirements HasFileMenu={reqDebug?.HasFileMenu}");
 
 
             //// subscribe to collection changes for live badges

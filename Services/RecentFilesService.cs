@@ -96,7 +96,7 @@ namespace TestCaseEditorApp.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[RecentFiles] Load failed: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[RecentFiles] Load failed: {ex.Message}");
                 _recentFiles = new List<string>();
             }
         }
@@ -111,7 +111,7 @@ namespace TestCaseEditorApp.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[RecentFiles] Save failed: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[RecentFiles] Save failed: {ex.Message}");
             }
         }
     }

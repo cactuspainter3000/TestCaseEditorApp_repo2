@@ -125,7 +125,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             if (_mainVm != null && !_isLoadingRequirement)
             {
                 _mainVm.IsDirty = true;
-                System.Diagnostics.Debug.WriteLine("[Header] Requirement description changed - marked workspace dirty");
+                TestCaseEditorApp.Services.Logging.Log.Debug("[Header] Requirement description changed - marked workspace dirty");
             }
         }
 

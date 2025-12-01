@@ -56,7 +56,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     RefreshNavCommands();
                 }
             }
-            catch (Exception ex) { Debug.WriteLine($"PollTimer_Tick error: {ex}"); }
+            catch (Exception ex) { TestCaseEditorApp.Services.Logging.Log.Debug($"PollTimer_Tick error: {ex}"); }
         }
 
         private void Navigator_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -86,7 +86,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     OnPropertyChanged(nameof(WrapOnNextWithoutTestCase));
                 }
             }
-            catch (Exception ex) { Debug.WriteLine($"Navigator_PropertyChanged error: {ex}"); }
+            catch (Exception ex) { TestCaseEditorApp.Services.Logging.Log.Debug($"Navigator_PropertyChanged error: {ex}"); }
         }
 
         private void UpdateIndexFromNavigator()

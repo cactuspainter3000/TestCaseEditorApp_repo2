@@ -60,7 +60,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     if (_mainVm != null && !_isLoading)
                     {
                         _mainVm.IsDirty = true;
-                        System.Diagnostics.Debug.WriteLine("[Question] Answer changed - marked workspace dirty");
+                        TestCaseEditorApp.Services.Logging.Log.Debug("[Question] Answer changed - marked workspace dirty");
                     }
                 }
             }

@@ -32,7 +32,7 @@ namespace TestCaseEditorApp.Import
                     hit++;
                 }
             }
-            System.Diagnostics.Debug.WriteLine($"[Jama Enricher] Matched {hit}/{requirements.Count} by ID from '{_path}'.");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Jama Enricher] Matched {hit}/{requirements.Count} by ID from '{_path}'.");
         }
 
         // ===== helpers =====

@@ -54,7 +54,7 @@ namespace TestCaseEditorApp.MVVM.Views
 
             // 4) Clone rows using the normalized editor keys
             var eRows = new ObservableCollection<EditableDataControl.ViewModels.TableRowModel>();
-            System.Diagnostics.Debug.WriteLine($"\n=== Cloning {_provider.Rows.Count} rows ===");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"\n=== Cloning {_provider.Rows.Count} rows ===");
             int rowIdx = 0;
             foreach (var r in _provider.Rows)
             {
@@ -63,20 +63,20 @@ namespace TestCaseEditorApp.MVVM.Views
                 {
                     var val = TryGetCellValue(r, km.SourceKey) ?? "";
                     er[km.EditorKey] = val;
-                    System.Diagnostics.Debug.WriteLine($"  Row {rowIdx}, Key '{km.EditorKey}' = '{val}'");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"  Row {rowIdx}, Key '{km.EditorKey}' = '{val}'");
                 }
                 eRows.Add(er);
                 rowIdx++;
             }
 
             // 5) Create VM and bind (use the disambiguated alias)
-            System.Diagnostics.Debug.WriteLine($"\n=== Creating VM with {eCols.Count} columns and {eRows.Count} rows ===");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"\n=== Creating VM with {eCols.Count} columns and {eRows.Count} rows ===");
             var vm = EditorVm.From(_provider.Title, eCols, eRows);
-            System.Diagnostics.Debug.WriteLine($"VM created: Columns={vm.Columns.Count}, Rows={vm.Rows.Count}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"VM created: Columns={vm.Columns.Count}, Rows={vm.Rows.Count}");
             
             // Set the EditorViewModel property - binding will handle the rest
             EditorControl.EditorViewModel = vm;
-            System.Diagnostics.Debug.WriteLine($"Set EditorControl.EditorViewModel to VM with {vm.Rows.Count} rows");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"Set EditorControl.EditorViewModel to VM with {vm.Rows.Count} rows");
             
             // Also set window DataContext for consistency
             DataContext = vm;
@@ -115,7 +115,7 @@ namespace TestCaseEditorApp.MVVM.Views
         private void Ok_Click(object sender, RoutedEventArgs e)
         {
             var editorVm = DataContext as EditorVm;
-            Debug.WriteLine($"[Editor OK] DataContext type: {editorVm?.GetType().FullName ?? "<null>"}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Editor OK] DataContext type: {editorVm?.GetType().FullName ?? "<null>"}");
 
             if (editorVm == null)
             {
@@ -126,16 +126,16 @@ namespace TestCaseEditorApp.MVVM.Views
 
             if (_provider is EditableDataControl.ViewModels.ProviderBackplane providerBackplane)
             {
-                Debug.WriteLine($"[Editor OK] Provider IS backplane: {_provider.GetType().FullName}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Editor OK] Provider IS backplane: {_provider.GetType().FullName}");
                 editorVm.ApplyTo(providerBackplane);
-                Debug.WriteLine("[Editor OK] Applied to provider backplane.");
+                TestCaseEditorApp.Services.Logging.Log.Debug("[Editor OK] Applied to provider backplane.");
                 _provider.Title = editorVm.Title ?? string.Empty;
                 DialogResult = true;
                 Close();
                 return;
             }
 
-            Debug.WriteLine($"[Editor OK] Provider is NOT backplane: {_provider.GetType().FullName} — using scratch path.");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Editor OK] Provider is NOT backplane: {_provider.GetType().FullName} — using scratch path.");
             editorVm.ApplyTo(this);
 
             // Write scratch back to provider (no model write-through here!)

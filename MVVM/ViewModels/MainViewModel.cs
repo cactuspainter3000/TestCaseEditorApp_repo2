@@ -1426,12 +1426,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Navigation methods (ICommand-backed)
         private bool CanNavigate()
         {
-            System.Diagnostics.Debug.WriteLine($"[MainViewModel] CanNavigate() called. IsLlmBusy={IsLlmBusy}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[MainViewModel] CanNavigate() called. IsLlmBusy={IsLlmBusy}");
             
             // Don't allow navigation when LLM is busy
             if (IsLlmBusy)
             {
-                System.Diagnostics.Debug.WriteLine("[MainViewModel] CanNavigate() returning FALSE - IsLlmBusy is true");
+                TestCaseEditorApp.Services.Logging.Log.Debug("[MainViewModel] CanNavigate() returning FALSE - IsLlmBusy is true");
                 SetTransientStatus("Please wait - the AI is working on your request. LLMs are powerful, but they need a moment!", 2);
                 return false;
             }
@@ -1492,7 +1492,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[MainViewModel] Re-Analyze error: {ex}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[MainViewModel] Re-Analyze error: {ex}");
             }
         }
         
@@ -1575,24 +1575,24 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 if (CurrentStepViewModel is TestCaseGenerator_AssumptionsVM assumptionsVm)
                 {
                     assumptionsVm.SaveAllAssumptionsData();
-                    System.Diagnostics.Debug.WriteLine("[Navigation] Saved assumptions data before navigation");
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[Navigation] Saved assumptions data before navigation");
                 }
                 // Check if current view is QuestionsVM and save its data
                 else if (CurrentStepViewModel is TestCaseGenerator_QuestionsVM questionsVm)
                 {
                     questionsVm.SaveQuestionsForRequirement(CurrentRequirement, markDirty: false);
-                    System.Diagnostics.Debug.WriteLine("[Navigation] Saved questions data before navigation");
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[Navigation] Saved questions data before navigation");
                 }
                 // Check if current view is HeaderVM and save its data
                 else if (CurrentStepViewModel is TestCaseGenerator_HeaderVM headerVm)
                 {
                     // Header data saves automatically via requirement property binding
-                    System.Diagnostics.Debug.WriteLine("[Navigation] Header data handled by requirement property");
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[Navigation] Header data handled by requirement property");
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Navigation] Error saving data: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Navigation] Error saving data: {ex.Message}");
             }
         }
 
@@ -1643,7 +1643,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private void ForwardRequirementToActiveHeader(Requirement? req)
         {
-            System.Diagnostics.Debug.WriteLine($"[ForwardReq] invoked ActiveHeader={ActiveHeader?.GetType().Name ?? "<null>"} ReqItem={req?.Item ?? "<null>"} Method='{req?.Method}' DescLen={(req?.Description?.Length ?? 0)}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[ForwardReq] invoked ActiveHeader={ActiveHeader?.GetType().Name ?? "<null>"} ReqItem={req?.Item ?? "<null>"} Method='{req?.Method}' DescLen={(req?.Description?.Length ?? 0)}");
 
             if (req == null)
             {
@@ -1681,12 +1681,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     _testCaseGeneratorHeader.RequirementMethodEnum = req.Method;
                     _testCaseGeneratorHeader.CurrentRequirementName = req.Name ?? req.Item ?? string.Empty;
                     _testCaseGeneratorHeader.CurrentRequirementSummary = ShortSummary(req.Description);
-                    System.Diagnostics.Debug.WriteLine($"[ForwardReq] wrote to _testCaseGeneratorHeader: Method='{methodStr}'");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[ForwardReq] wrote to _testCaseGeneratorHeader: Method='{methodStr}'");
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[ForwardReq] failed writing to _testCaseGeneratorHeader: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[ForwardReq] failed writing to _testCaseGeneratorHeader: {ex.Message}");
             }
 
             // 2) Update the workspace header instance if it exists
@@ -1698,12 +1698,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     _workspaceHeaderViewModel.CurrentRequirementSummary = ShortSummary(req.Description);
                     _workspaceHeaderViewModel.CurrentRequirementId = req.Item ?? string.Empty;
                     _workspaceHeaderViewModel.CurrentRequirementStatus = req.Status ?? string.Empty;
-                    System.Diagnostics.Debug.WriteLine("[ForwardReq] wrote to _workspaceHeaderViewModel");
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ForwardReq] wrote to _workspaceHeaderViewModel");
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[ForwardReq] failed writing to _workspaceHeaderViewModel: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[ForwardReq] failed writing to _workspaceHeaderViewModel: {ex.Message}");
             }
 
             // 3) Best-effort: set properties on the ActiveHeader object if it's some other header type
@@ -1724,12 +1724,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     TrySet("RequirementMethodEnum", req.Method);
                     TrySet("CurrentRequirementName", req.Name ?? string.Empty);
                     TrySet("CurrentRequirementSummary", ShortSummary(req.Description));
-                    System.Diagnostics.Debug.WriteLine("[ForwardReq] wrote to ActiveHeader via reflection");
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ForwardReq] wrote to ActiveHeader via reflection");
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[ForwardReq] reflection fallback failed: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[ForwardReq] reflection fallback failed: {ex.Message}");
             }
         }
 
@@ -1966,22 +1966,22 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     {
                         if (IsDirty && !string.IsNullOrWhiteSpace(WorkspacePath) && CurrentWorkspace != null)
                         {
-                            System.Diagnostics.Debug.WriteLine("[AutoSave] Saving workspace...");
+                            TestCaseEditorApp.Services.Logging.Log.Debug("[AutoSave] Saving workspace...");
                             SaveWorkspace();
                             SetTransientStatus($"Auto-saved at {DateTime.Now:HH:mm}", 2);
                         }
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[AutoSave] Failed: {ex.Message}");
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[AutoSave] Failed: {ex.Message}");
                     }
                 };
                 _autoSaveTimer.Start();
-                System.Diagnostics.Debug.WriteLine($"[AutoSave] Timer initialized ({AutoSaveIntervalMinutes} minute interval)");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[AutoSave] Timer initialized ({AutoSaveIntervalMinutes} minute interval)");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[AutoSave] Initialization failed: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[AutoSave] Initialization failed: {ex.Message}");
             }
         }
 
@@ -2005,18 +2005,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[PostSave] Probing saved path: {path}");
                 TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Probing saved path: {path}");
 
                 try
                 {
                     var fi = new FileInfo(path);
-                    System.Diagnostics.Debug.WriteLine($"[PostSave] File Exists={fi.Exists}, Length={(fi.Exists ? fi.Length.ToString() : "N/A")}, LastWriteUtc={(fi.Exists ? fi.LastWriteTimeUtc.ToString("o") : "N/A")} ");
                     TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] File Exists={fi.Exists}, Length={(fi.Exists ? fi.Length.ToString() : "N/A")}, LastWriteUtc={(fi.Exists ? fi.LastWriteTimeUtc.ToString("o") : "N/A")} ");
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[PostSave] File probe failed: {ex.Message}");
                     TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] File probe failed: {ex.Message}");
                 }
 
@@ -2027,20 +2024,16 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     {
                         var lines = File.ReadAllLines(metaPath);
                         var preview = string.Join(Environment.NewLine, lines.Take(Math.Min(20, lines.Length)));
-                        System.Diagnostics.Debug.WriteLine($"[PostSave] Meta exists: {metaPath} (lines={lines.Length})");
-                        System.Diagnostics.Debug.WriteLine(preview);
                         TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Meta exists: {metaPath} (lines={lines.Length})");
                         TestCaseEditorApp.Services.Logging.Log.Debug(preview);
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"[PostSave] Meta missing: {metaPath}");
                         TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Meta missing: {metaPath}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[PostSave] Meta probe failed: {ex.Message}");
                     TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Meta probe failed: {ex.Message}");
                 }
 
@@ -2049,18 +2042,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     if (File.Exists(markerPath))
                     {
-                        System.Diagnostics.Debug.WriteLine($"[PostSave] Marker exists: {markerPath}");
                         TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Marker exists: {markerPath}");
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"[PostSave] Marker missing: {markerPath}");
                         TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Marker missing: {markerPath}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[PostSave] Marker probe failed: {ex.Message}");
                     TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Marker probe failed: {ex.Message}");
                 }
 
@@ -2071,18 +2061,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     {
                         var all = File.ReadAllLines(logPath);
                         var last = all.Skip(Math.Max(0, all.Length - 20)).ToArray();
-                        System.Diagnostics.Debug.WriteLine($"[PostSave] Local where-saved.log last lines:\n{string.Join(Environment.NewLine, last)}");
                         TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Local where-saved.log last lines:\n{string.Join(Environment.NewLine, last)}");
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"[PostSave] Local where-saved.log missing: {logPath}");
                         TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Local where-saved.log missing: {logPath}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[PostSave] where-saved.log probe failed: {ex.Message}");
                     TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] where-saved.log probe failed: {ex.Message}");
                 }
 
@@ -2093,24 +2080,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     if (File.Exists(tmpCopy))
                     {
                         var tfi = new FileInfo(tmpCopy);
-                        System.Diagnostics.Debug.WriteLine($"[PostSave] Temp copy exists: {tmpCopy} (Length={tfi.Length})");
                         TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Temp copy exists: {tmpCopy} (Length={tfi.Length})");
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"[PostSave] Temp copy missing: {tmpCopy}");
                         TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Temp copy missing: {tmpCopy}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[PostSave] Temp-copy probe failed: {ex.Message}");
                     TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Temp-copy probe failed: {ex.Message}");
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[PostSave] Unexpected diagnostic error: {ex.Message}");
                 TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Unexpected diagnostic error: {ex.Message}");
             }
         }
@@ -2269,12 +2252,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                             });
                         }
                         
-                        System.Diagnostics.Debug.WriteLine($"[MainViewModel] Starting analysis {completed + 1}/{total} for requirement: {req.Item}");
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[MainViewModel] Starting analysis {completed + 1}/{total} for requirement: {req.Item}");
                         
                         // Analyze the requirement
                         var analysis = await _analysisService.AnalyzeRequirementAsync(req, useFastMode: false);
                         
-                        System.Diagnostics.Debug.WriteLine($"[MainViewModel] Completed analysis for {req.Item} - IsAnalyzed: {analysis.IsAnalyzed}, Score: {analysis.QualityScore}");
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[MainViewModel] Completed analysis for {req.Item} - IsAnalyzed: {analysis.IsAnalyzed}, Score: {analysis.QualityScore}");
                         
                         // Calculate timing after first analysis
                         var analysisDuration = DateTime.Now - analysisStart;
@@ -2291,7 +2274,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         // Notify via mediator that analysis was updated
                         Application.Current?.Dispatcher?.Invoke(() =>
                         {
-                            System.Diagnostics.Debug.WriteLine($"[MainViewModel] Notifying mediator for requirement: {req.Item}");
+                            TestCaseEditorApp.Services.Logging.Log.Debug($"[MainViewModel] Notifying mediator for requirement: {req.Item}");
                             AnalysisMediator.NotifyAnalysisUpdated(req);
                             OnPropertyChanged(nameof(Requirements));
                         });

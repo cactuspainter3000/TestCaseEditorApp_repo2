@@ -20,17 +20,17 @@ namespace TestCaseEditorApp.MVVM.Views
 
         private async void ReAnalyze_Click(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("[EditorWindow] Re-Analyze clicked");
+            TestCaseEditorApp.Services.Logging.Log.Debug("[EditorWindow] Re-Analyze clicked");
             
             // Get ViewModel and execute ReAnalyze command
             if (DataContext is TestCaseEditorApp.MVVM.ViewModels.TestCaseGenerator_AnalysisVM vm && vm.ReAnalyzeCommand != null)
             {
-                System.Diagnostics.Debug.WriteLine("[EditorWindow] Invoking ReAnalyzeCommand");
+                TestCaseEditorApp.Services.Logging.Log.Debug("[EditorWindow] Invoking ReAnalyzeCommand");
                 await vm.ReAnalyzeCommand.ExecuteAsync(null);
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine("[EditorWindow] ERROR: Could not find ReAnalyzeCommand");
+                TestCaseEditorApp.Services.Logging.Log.Debug("[EditorWindow] ERROR: Could not find ReAnalyzeCommand");
             }
         }
     }

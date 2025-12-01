@@ -118,14 +118,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     // If LooseContent provided anything, accept it
                     if (LooseParagraphs.Count > 0 || LooseTableVMs.Count > 0 || LooseTablesDtos.Count > 0)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[ResetForRequirement] (LooseContent) req={r.Item} paras={LooseParagraphs.Count} tablesVM={LooseTableVMs.Count} tablesDto={LooseTablesDtos.Count}");
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[ResetForRequirement] (LooseContent) req={r.Item} paras={LooseParagraphs.Count} tablesVM={LooseTableVMs.Count} tablesDto={LooseTablesDtos.Count}");
                         return;
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("[ResetForRequirement] LooseContent handling failed: " + ex);
+                TestCaseEditorApp.Services.Logging.Log.Debug("[ResetForRequirement] LooseContent handling failed: " + ex);
                 // ignore and try delegate fallback
             }
 
@@ -197,12 +197,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine("[ResetForRequirement] GetSelectedContext invocation failed: " + ex);
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ResetForRequirement] GetSelectedContext invocation failed: " + ex);
                     // ignore delegate invocation errors
                 }
             }
 
-            System.Diagnostics.Debug.WriteLine($"[ResetForRequirement] req={r.Item} paras={LooseParagraphs.Count} tablesVM={LooseTableVMs.Count} tablesDto={LooseTablesDtos.Count}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[ResetForRequirement] req={r.Item} paras={LooseParagraphs.Count} tablesVM={LooseTableVMs.Count} tablesDto={LooseTablesDtos.Count}");
             // end ResetForRequirement
         }
 

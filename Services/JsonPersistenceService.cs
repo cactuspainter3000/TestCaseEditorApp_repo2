@@ -52,7 +52,7 @@
                     catch (Exception ex)
                     {
                         // Fall back to the normal behavior below if absolute write fails
-                        Debug.WriteLine($"[JsonPersistence] Failed to write absolute path {key}: {ex.Message}");
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JsonPersistence] Failed to write absolute path {key}: {ex.Message}");
                     }
                 }
 

@@ -31,7 +31,7 @@ namespace TestCaseEditorApp.Import
                     hit++;
                 }
             }
-            System.Diagnostics.Debug.WriteLine($"[Jama DOCX Enricher] Matched {hit}/{requirements.Count} by ID from '{_path}'.");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Jama DOCX Enricher] Matched {hit}/{requirements.Count} by ID from '{_path}'.");
         }
 
         // ===== helpers =====

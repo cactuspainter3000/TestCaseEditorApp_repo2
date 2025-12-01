@@ -160,7 +160,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             var trimmed = (start <= end) ? rowLists.Skip(start).Take(end - start + 1).ToList() : new List<List<string>>();
 
-            System.Diagnostics.Debug.WriteLine($"[ToDto] Title={Title}; Cols={hdrs.Count}; Rows={trimmed.Count}; FirstRow=[{(trimmed.Count > 0 ? string.Join("|", trimmed[0]) : "<none>")}]");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[ToDto] Title={Title}; Cols={hdrs.Count}; Rows={trimmed.Count}; FirstRow=[{(trimmed.Count > 0 ? string.Join("|", trimmed[0]) : "<none>")}]");
 
             // If nothing left, keep zero rows (up to caller to interpret)
             return new TableDto

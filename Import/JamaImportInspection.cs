@@ -140,7 +140,7 @@ namespace TestCaseEditorApp.Import
 
         // --- Helpers -------------------------------------------------------
 
-        private static void Log(string s) => System.Diagnostics.Debug.WriteLine(s);
+        private static void Log(string s) => TestCaseEditorApp.Services.Logging.Log.Debug(s);
 
         private static string Trunc(string s, int max)
         {
