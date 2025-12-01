@@ -43,10 +43,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty] private bool requirementDescriptionHighlight = false;
         [ObservableProperty] private bool requirementMethodHighlight = false;
 
-        // ==================== Shared Test Assumptions ====================
+        // ==================== Shared Verification Method Assumptions ====================
         
         /// <summary>
-        /// Shared assumption items (chips) used by both Test Assumptions and Clarifying Questions tabs.
+        /// Shared assumption items (chips) used by both Verification Method Assumptions and Clarifying Questions tabs.
         /// This allows the enabled state to persist across tab navigation.
         /// </summary>
         public ObservableCollection<DefaultItem> SuggestedDefaults { get; } = new();

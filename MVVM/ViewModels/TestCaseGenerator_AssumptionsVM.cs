@@ -10,7 +10,7 @@ using TestCaseEditorApp.MVVM.Models;
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
     /// <summary>
-    /// ViewModel for the Test Assumptions tab.
+    /// ViewModel for the Verification Method Assumptions tab.
     /// Purpose: Help the LLM focus on important clarifying questions by declaring common test conditions upfront.
     /// These assumptions reduce the number of trivial questions the LLM needs to ask.
     /// </summary>

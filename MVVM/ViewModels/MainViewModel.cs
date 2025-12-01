@@ -502,7 +502,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             TestCaseGeneratorSteps.Add(new StepDescriptor
             {
                 Id = "test-assumptions",
-                DisplayName = "Test Assumptions",
+                DisplayName = "Verification Method Assumptions",
                 Badge = string.Empty,
                 HasFileMenu = false,
                 CreateViewModel = svc =>
