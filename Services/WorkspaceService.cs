@@ -1,7 +1,10 @@
 ﻿// WorkspaceService.cs
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Text;
 using System.Text.Json;
+using System.Security.Cryptography;
 using TestCaseEditorApp.MVVM.Models;
 
 public static class WorkspaceService
@@ -14,18 +17,23 @@ public static class WorkspaceService
 
     public static void Save(string path, Workspace ws)
     {
+        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Save invoked for: {path}"); } catch { }
+        Debug.WriteLine($"[Save] Save invoked for: {path}");
+
         // Create backup of previous version before overwriting
         if (File.Exists(path))
         {
             try
             {
-                var backupPath = path + ".bak";
+                    var backupPath = path + ".bak";
                 File.Copy(path, backupPath, overwrite: true);
                 Debug.WriteLine($"[Save] Created backup: {backupPath}");
+                try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Created backup: {backupPath}"); } catch { }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[Save] Backup failed (continuing anyway): {ex.Message}");
+                try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Backup failed (continuing anyway): {ex.Message}"); } catch { }
             }
         }
 
@@ -56,21 +64,302 @@ public static class WorkspaceService
         }
 
         var json = JsonSerializer.Serialize(ws, _json);
+        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] JSON serialized ({json?.Length ?? 0} bytes)"); } catch { }
+        Debug.WriteLine($"[Save] JSON serialized ({json?.Length ?? 0} bytes)");
 
-#if DEBUG
+        // Always write a guaranteed local staging copy in %LOCALAPPDATA% so we
+        // have a recoverable copy even if the final destination is redirected
+        // (OneDrive) or a sync/antivirus agent interferes. This is a small
+        // transparent copy kept next to the app's local data directory.
         try
         {
-            var debugPath = Path.ChangeExtension(path, ".debug.json");
-            File.WriteAllText(debugPath, json);
-            Debug.WriteLine($"[Save] Wrote debug snapshot: {debugPath}");
+            var stagingDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TestCaseEditorApp", "Staging");
+            Directory.CreateDirectory(stagingDir);
+            var stagingPath = Path.Combine(stagingDir, Path.GetFileName(path));
+                File.WriteAllText(stagingPath, json, Encoding.UTF8);
+            Debug.WriteLine($"[Save] Wrote staging copy: {stagingPath}");
+            try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Wrote staging copy: {stagingPath}"); } catch { }
+
+            // Also write a small staging meta so the file can be validated independently
+            try
+            {
+                var stagingMeta = stagingPath + ".meta.txt";
+                byte[] hashBytes;
+                using (var sha = SHA256.Create())
+                {
+                    hashBytes = sha.ComputeHash(Encoding.UTF8.GetBytes(json));
+                }
+                var hashHex = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                var meta = new StringBuilder();
+                meta.AppendLine($"SavedUtc: {DateTime.UtcNow:o}");
+                meta.AppendLine($"Path: {stagingPath}");
+                meta.AppendLine($"User: {Environment.UserName}");
+                meta.AppendLine($"Bytes: {Encoding.UTF8.GetByteCount(json)}");
+                meta.AppendLine($"SHA256: {hashHex}");
+                File.WriteAllText(stagingMeta, meta.ToString(), Encoding.UTF8);
+            }
+                catch (Exception ex)
+            {
+                Debug.WriteLine($"[Save] Failed to write staging meta: {ex.Message}");
+                try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Failed to write staging meta: {ex.Message}"); } catch { }
+            }
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[Save] Debug snapshot failed: {ex.Message}");
+            Debug.WriteLine($"[Save] Failed to write staging copy: {ex.Message}");
+            try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Failed to write staging copy: {ex.Message}"); } catch { }
         }
+
+#if DEBUG
+            try
+            {
+                var debugPath = Path.ChangeExtension(path, ".debug.json");
+                File.WriteAllText(debugPath, json);
+                Debug.WriteLine($"[Save] Wrote debug snapshot: {debugPath}");
+                try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Wrote debug snapshot: {debugPath}"); } catch { }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Save] Debug snapshot failed: {ex.Message}");
+                try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Debug snapshot failed: {ex.Message}"); } catch { }
+            }
 #endif
 
-        File.WriteAllText(path, json);
+        // Write the workspace JSON using an atomic write technique: write to a
+        // temporary file in the same directory and then replace/move into place.
+        try
+        {
+            var targetDir = Path.GetDirectoryName(path) ?? Path.GetTempPath();
+            Directory.CreateDirectory(targetDir);
+            var tmpFile = Path.Combine(targetDir, Path.GetFileName(path) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+            File.WriteAllText(tmpFile, json, Encoding.UTF8);
+
+            if (File.Exists(path))
+            {
+                try
+                {
+                    // Attempt an atomic replace (preserves attributes where possible)
+                    var backupReplace = path + ".bakreplace";
+                    File.Replace(tmpFile, path, backupReplace, ignoreMetadataErrors: true);
+                    if (File.Exists(backupReplace)) File.Delete(backupReplace);
+                }
+                catch
+                {
+                    // Best-effort fallback: remove the destination then move
+                    try { File.Delete(path); } catch { }
+                    File.Move(tmpFile, path);
+                }
+            }
+            else
+            {
+                File.Move(tmpFile, path);
+            }
+
+            // Write a small meta diagnostic next to the saved file containing
+            // the JSON byte length, SHA256 hash and a short preview so we can
+            // rapidly diagnose cases where the on-disk file appears empty.
+            try
+            {
+                var metaPath = path + ".meta.txt";
+                byte[] hashBytes;
+                using (var sha = SHA256.Create())
+                {
+                    hashBytes = sha.ComputeHash(Encoding.UTF8.GetBytes(json));
+                }
+                var hashHex = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                var preview = json.Length > 1024 ? json.Substring(0, 1024) : json;
+                var meta = new StringBuilder();
+                meta.AppendLine($"SavedUtc: {DateTime.UtcNow:o}");
+                meta.AppendLine($"Path: {path}");
+                meta.AppendLine($"User: {Environment.UserName}");
+                meta.AppendLine($"Bytes: {Encoding.UTF8.GetByteCount(json)}");
+                meta.AppendLine($"SHA256: {hashHex}");
+                meta.AppendLine("PreviewStart:");
+                meta.AppendLine(preview);
+                File.WriteAllText(metaPath, meta.ToString(), Encoding.UTF8);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Save] Failed to write meta: {ex.Message}");
+                try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Failed to write meta: {ex.Message}"); } catch { }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[Save] Write failed: {ex.Message}");
+            try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Write failed: {ex.Message}"); } catch { }
+            throw;
+        }
+        // Persist a small audit log of where workspaces were saved so we can diagnose
+        // cases where the UI shows a toast but the file can't be found by the user.
+        try
+        {
+            var logDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TestCaseEditorApp");
+            Directory.CreateDirectory(logDir);
+            var logPath = Path.Combine(logDir, "where-saved.log");
+            var entry = $"{DateTime.UtcNow:o}\tSaved workspace to: {path}\tUser:{Environment.UserName}" + Environment.NewLine;
+            File.AppendAllText(logPath, entry);
+            Debug.WriteLine($"[Save] Appended where-saved log: {logPath}");
+            try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Appended where-saved log: {logPath}"); } catch { }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[Save] Failed to write where-saved log: {ex.Message}");
+            try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Failed to write where-saved log: {ex.Message}"); } catch { }
+        }
+
+        // Create a companion marker file next to the saved workspace to make the
+        // saved location obvious in Explorer (helps when Desktop is redirected).
+        try
+        {
+            var markerPath = path + ".saved.txt";
+            var markerContent = $"Saved: {DateTime.UtcNow:o}\r\nPath: {path}\r\nUser: {Environment.UserName}\r\n";
+            File.WriteAllText(markerPath, markerContent);
+            Debug.WriteLine($"[Save] Wrote companion marker: {markerPath}");
+            try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Wrote companion marker: {markerPath}"); } catch { }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[Save] Failed to write companion marker: {ex.Message}");
+            try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Failed to write companion marker: {ex.Message}"); } catch { }
+        }
+
+        // Fallback diagnostics: also append to a system-wide temp log and drop a
+        // copy of the saved JSON into C:\Temp\TestCaseEditorApp so we can find
+        // it even if Desktop is redirected or permissions differ.
+        try
+        {
+            var tmpDir = Path.Combine(Path.GetTempPath(), "TestCaseEditorApp");
+            Directory.CreateDirectory(tmpDir);
+            var tmpLog = Path.Combine(tmpDir, "where-saved.log");
+            var tmpEntry = $"{DateTime.UtcNow:o}\tSaved workspace to: {path}\tUser:{Environment.UserName}" + Environment.NewLine;
+            File.AppendAllText(tmpLog, tmpEntry);
+            var tmpCopy = Path.Combine(tmpDir, Path.GetFileName(path));
+            File.WriteAllText(tmpCopy, json);
+            Debug.WriteLine($"[Save] Wrote fallback copies to: {tmpDir}");
+            try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Wrote fallback copies to: {tmpDir}"); } catch { }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[Save] Failed fallback diagnostic writes: {ex.Message}");
+            try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Failed fallback diagnostic writes: {ex.Message}"); } catch { }
+        }
+
+        // Final verification & last-resort fallback:
+        // If the final destination does not exist after the attempted write,
+        // try a best-effort recovery: copy the guaranteed staging copy into
+        // place (if present) or write the JSON directly to the destination.
+        try
+        {
+            if (!File.Exists(path))
+            {
+                Debug.WriteLine($"[Save] Final destination missing after write: {path}. Attempting fallback.");
+                try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Final destination missing after write: {path}. Attempting fallback."); } catch { }
+
+                var stagingPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TestCaseEditorApp", "Staging", Path.GetFileName(path));
+                bool wroteFallback = false;
+                if (File.Exists(stagingPath))
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(Path.GetDirectoryName(path) ?? Path.GetTempPath());
+                        File.Copy(stagingPath, path, overwrite: true);
+                        Debug.WriteLine($"[Save] Restored from staging: {stagingPath} -> {path}");
+                        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Restored from staging: {stagingPath} -> {path}"); } catch { }
+                        wroteFallback = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[Save] Failed to copy staging to destination: {ex.Message}");
+                        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Failed to copy staging to destination: {ex.Message}"); } catch { }
+                    }
+                }
+
+                if (!wroteFallback)
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(Path.GetDirectoryName(path) ?? Path.GetTempPath());
+                        File.WriteAllText(path, json, Encoding.UTF8);
+                        Debug.WriteLine($"[Save] Wrote direct fallback to destination: {path}");
+                        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Wrote direct fallback to destination: {path}"); } catch { }
+                        wroteFallback = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[Save] Direct fallback write failed: {ex.Message}");
+                        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Direct fallback write failed: {ex.Message}"); } catch { }
+                    }
+                }
+
+                // If fallback produced a file, attempt to write meta/marker/log entries
+                if (wroteFallback && File.Exists(path))
+                {
+                    try
+                    {
+                        var metaPath = path + ".meta.txt";
+                        byte[] hashBytes;
+                        using (var sha = SHA256.Create())
+                        {
+                            hashBytes = sha.ComputeHash(Encoding.UTF8.GetBytes(json));
+                        }
+                        var hashHex = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                        var preview = json.Length > 1024 ? json.Substring(0, 1024) : json;
+                        var meta = new StringBuilder();
+                        meta.AppendLine($"SavedUtc: {DateTime.UtcNow:o}");
+                        meta.AppendLine($"Path: {path}");
+                        meta.AppendLine($"User: {Environment.UserName}");
+                        meta.AppendLine($"Bytes: {Encoding.UTF8.GetByteCount(json)}");
+                        meta.AppendLine($"SHA256: {hashHex}");
+                        meta.AppendLine("PreviewStart:");
+                        meta.AppendLine(preview);
+                        File.WriteAllText(metaPath, meta.ToString(), Encoding.UTF8);
+                        Debug.WriteLine($"[Save] Wrote fallback meta: {metaPath}");
+                        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Wrote fallback meta: {metaPath}"); } catch { }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[Save] Failed to write fallback meta: {ex.Message}");
+                        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Failed to write fallback meta: {ex.Message}"); } catch { }
+                    }
+
+                    try
+                    {
+                        var markerPath = path + ".saved.txt";
+                        var markerContent = $"Saved (fallback): {DateTime.UtcNow:o}\r\nPath: {path}\r\nUser: {Environment.UserName}\r\n";
+                        File.WriteAllText(markerPath, markerContent);
+                        Debug.WriteLine($"[Save] Wrote fallback marker: {markerPath}");
+                        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Wrote fallback marker: {markerPath}"); } catch { }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[Save] Failed to write fallback marker: {ex.Message}");
+                        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Failed to write fallback marker: {ex.Message}"); } catch { }
+                    }
+
+                    try
+                    {
+                        var logDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TestCaseEditorApp");
+                        Directory.CreateDirectory(logDir);
+                        var logPath = Path.Combine(logDir, "where-saved.log");
+                        var entry = $"{DateTime.UtcNow:o}\tFallback saved workspace to: {path}\tUser:{Environment.UserName}" + Environment.NewLine;
+                        File.AppendAllText(logPath, entry);
+                        Debug.WriteLine($"[Save] Appended fallback where-saved log: {logPath}");
+                        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Appended fallback where-saved log: {logPath}"); } catch { }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[Save] Failed to append fallback where-saved log: {ex.Message}");
+                        try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Failed to append fallback where-saved log: {ex.Message}"); } catch { }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[Save] Final verification failed: {ex.Message}");
+            try { if (Debugger.IsAttached) Console.WriteLine($"[Save] Final verification failed: {ex.Message}"); } catch { }
+        }
     }
 
 
