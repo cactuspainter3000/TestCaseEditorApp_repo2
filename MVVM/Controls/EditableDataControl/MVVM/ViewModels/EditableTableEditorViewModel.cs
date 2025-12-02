@@ -63,7 +63,8 @@ namespace EditableDataControl.ViewModels
             public override object? GetValue(object? component)
             {
                 var target = component as TableRowModel;
-                return target?[_key] ?? string.Empty;
+                // Explicitly return an object to satisfy the nullable analysis
+                return (object)(target?[_key] ?? string.Empty);
             }
             public override void ResetValue(object? component) { }
             public override void SetValue(object? component, object? value)

@@ -36,7 +36,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     {
         // --- Services / collaborators ---
         private readonly IRequirementService _requirementService;
-        private readonly IPersistenceService _persistence;
+        private readonly IPersistenceService _persistence = new NoOpPersistenceService();
         private readonly IFileDialogService _fileDialog;
         private readonly IServiceProvider _services;
 
