@@ -1,0 +1,17 @@
+<Project>
+  <!--
+    Prevent stray .deps.json files from transitive project outputs confusing the test host.
+    This target deletes any *.deps.json files from a project's output directory except the
+    project's own deps file (AssemblyName.deps.json) after each Build. This is a minimal,
+    conservative fix to avoid the testhost attempting to load unrelated test-platform deps.
+  -->
+  <Target Name="RemoveStrayDepsJson" AfterTargets="Build">
+    <ItemGroup>
+      <DepsJsonFiles Include="$(OutputPath)\*.deps.json" />
+      <DepsJsonExclude Include="$(OutputPath)\$(AssemblyName).deps.json" />
+      <DepsToDelete Include="@(DepsJsonFiles)" Exclude="@(DepsJsonExclude)" />
+    </ItemGroup>
+    <Message Importance="Normal" Text="Checking for stray .deps.json files to remove: @(DepsToDelete)" />
+    <Delete Files="@(DepsToDelete)" ContinueOnError="true" />
+  </Target>
+</Project>
