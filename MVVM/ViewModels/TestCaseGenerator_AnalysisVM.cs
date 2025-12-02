@@ -313,7 +313,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [NotifyPropertyChangedFor(nameof(IsNotAnalyzing))]
         private bool _isAnalyzingInEditor;
 
-        public bool IsNotAnalyzing => !_isAnalyzingInEditor;
+        public bool IsNotAnalyzing => !IsAnalyzingInEditor;
 
         partial void OnIsAnalyzingChanged(bool value)
         {

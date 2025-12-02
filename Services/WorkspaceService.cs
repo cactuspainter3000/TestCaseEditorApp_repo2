@@ -77,9 +77,9 @@ public static class WorkspaceService
             }
         }
 
-        var json = JsonSerializer.Serialize(ws, _json);
-        TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] JSON serialized ({json?.Length ?? 0} bytes)");
-        logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Debug, new Microsoft.Extensions.Logging.EventId(0), $"[Save] JSON serialized ({json?.Length ?? 0} bytes)", null, (s,e) => s ?? string.Empty);
+        string json = JsonSerializer.Serialize(ws, _json) ?? string.Empty;
+        TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] JSON serialized ({json.Length} bytes)");
+        logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Debug, new Microsoft.Extensions.Logging.EventId(0), $"[Save] JSON serialized ({json.Length} bytes)", null, (s,e) => s ?? string.Empty);
 
         // Always write a guaranteed local staging copy in %LOCALAPPDATA% so we
         // have a recoverable copy even if the final destination is redirected
@@ -101,14 +101,14 @@ public static class WorkspaceService
                 byte[] hashBytes;
                 using (var sha = SHA256.Create())
                 {
-                    hashBytes = sha.ComputeHash(Encoding.UTF8.GetBytes(json));
+                    hashBytes = sha.ComputeHash(Encoding.UTF8.GetBytes(json ?? string.Empty));
                 }
                 var hashHex = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
                 var meta = new StringBuilder();
                 meta.AppendLine($"SavedUtc: {DateTime.UtcNow:o}");
                 meta.AppendLine($"Path: {stagingPath}");
                 meta.AppendLine($"User: {Environment.UserName}");
-                meta.AppendLine($"Bytes: {Encoding.UTF8.GetByteCount(json)}");
+                meta.AppendLine($"Bytes: {Encoding.UTF8.GetByteCount(json ?? string.Empty)}");
                 meta.AppendLine($"SHA256: {hashHex}");
                 File.WriteAllText(stagingMeta, meta.ToString(), Encoding.UTF8);
             }
@@ -174,15 +174,16 @@ public static class WorkspaceService
                 byte[] hashBytes;
                 using (var sha = SHA256.Create())
                 {
-                    hashBytes = sha.ComputeHash(Encoding.UTF8.GetBytes(json));
+                    hashBytes = sha.ComputeHash(Encoding.UTF8.GetBytes(json ?? string.Empty));
                 }
                 var hashHex = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
-                var preview = json.Length > 1024 ? json.Substring(0, 1024) : json;
+                var safeJson = json ?? string.Empty;
+                var preview = safeJson.Length > 1024 ? safeJson.Substring(0, 1024) : safeJson;
                 var meta = new StringBuilder();
                 meta.AppendLine($"SavedUtc: {DateTime.UtcNow:o}");
                 meta.AppendLine($"Path: {path}");
                 meta.AppendLine($"User: {Environment.UserName}");
-                meta.AppendLine($"Bytes: {Encoding.UTF8.GetByteCount(json)}");
+                meta.AppendLine($"Bytes: {Encoding.UTF8.GetByteCount(json ?? string.Empty)}");
                 meta.AppendLine($"SHA256: {hashHex}");
                 meta.AppendLine("PreviewStart:");
                 meta.AppendLine(preview);
@@ -303,15 +304,16 @@ public static class WorkspaceService
                         byte[] hashBytes;
                         using (var sha = SHA256.Create())
                         {
-                            hashBytes = sha.ComputeHash(Encoding.UTF8.GetBytes(json));
+                            hashBytes = sha.ComputeHash(Encoding.UTF8.GetBytes(json ?? string.Empty));
                         }
                         var hashHex = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
-                        var preview = json.Length > 1024 ? json.Substring(0, 1024) : json;
+                        var safeJson = json ?? string.Empty;
+                        var preview = safeJson.Length > 1024 ? safeJson.Substring(0, 1024) : safeJson;
                         var meta = new StringBuilder();
                         meta.AppendLine($"SavedUtc: {DateTime.UtcNow:o}");
                         meta.AppendLine($"Path: {path}");
                         meta.AppendLine($"User: {Environment.UserName}");
-                        meta.AppendLine($"Bytes: {Encoding.UTF8.GetByteCount(json)}");
+                        meta.AppendLine($"Bytes: {Encoding.UTF8.GetByteCount(json ?? string.Empty)}");
                         meta.AppendLine($"SHA256: {hashHex}");
                         meta.AppendLine("PreviewStart:");
                         meta.AppendLine(preview);

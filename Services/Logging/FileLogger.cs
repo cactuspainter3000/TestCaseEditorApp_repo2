@@ -18,7 +18,7 @@ namespace TestCaseEditorApp.Services.Logging
             try { Directory.CreateDirectory(Path.GetDirectoryName(_filePath) ?? Path.GetTempPath()); } catch { }
         }
 
-        public IDisposable? BeginScope<TState>(TState state) => null;
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
 
         public bool IsEnabled(LogLevel logLevel) => logLevel != LogLevel.None;
 

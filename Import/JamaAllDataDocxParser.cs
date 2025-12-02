@@ -95,7 +95,6 @@ namespace TestCaseEditorApp.Import
 
 
         // Debug buffers (first requirement only)
-        private static bool _debugCaptured = false;
         private static readonly List<string> _debugHeaders = new();
         private static readonly List<string> _debugKvKeys = new();
         private static string _debugDescription = string.Empty;
@@ -803,7 +802,6 @@ namespace TestCaseEditorApp.Import
 
         private static void ResetDebug()
         {
-            _debugCaptured = false;
             _debugHeaders.Clear();
             _debugKvKeys.Clear();
             _debugDescription = string.Empty;

@@ -27,11 +27,11 @@ namespace TestCaseEditorApp.Converters
         {
             if (value is bool b && b)
             {
-                return parameter as string;
+                return parameter as string ?? string.Empty;
             }
 
-            // When unchecked, clear selection (no section open)
-            return null!;
+            // When unchecked, clear selection (no section open) — return empty string rather than null to satisfy nullability
+            return string.Empty;
         }
     }
 }

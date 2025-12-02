@@ -80,15 +80,16 @@ namespace TestCaseEditorApp.MVVM.Views
             var vm = DataContext;
             TestCaseEditorApp.Services.Logging.Log.Debug($"MainWindow DataContext = {vm?.GetType().FullName ?? "<null>"}");
             var props = vm?.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public);
-            if (props == null)
+            if (props == null || vm == null)
             {
                 TestCaseEditorApp.Services.Logging.Log.Debug("No public properties on DataContext.");
                 return;
             }
 
+            var nonNullVm = vm; // local non-null alias for analyzer
             foreach (var p in props)
             {
-                var val = p.GetValue(vm);
+                var val = p.GetValue(nonNullVm);
                 var typeName = p.PropertyType.FullName;
                 string info = $"{p.Name} : {typeName}";
                 // if it's enumerable, print a count (best-effort)
@@ -214,15 +215,19 @@ namespace TestCaseEditorApp.MVVM.Views
                 {
                     var prop = vmType?.GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase);
                     var hasProp = prop != null;
-                    object? val = hasProp ? prop.GetValue(vm) : null;
+                    object? val = (hasProp && vm != null) ? prop.GetValue(vm) : null;
                     bool isIcmd = val is System.Windows.Input.ICommand;
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[CMD CHECK] {name}: propExists={hasProp}, valueType={(val == null ? "null" : val.GetType().FullName)}, isICommand={isIcmd}");
+                    var valueType = val?.GetType()?.FullName ?? "null";
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[CMD CHECK] {name}: propExists={hasProp}, valueType={valueType}, isICommand={isIcmd}");
                     if (isIcmd)
                     {
-                        var cmd = (System.Windows.Input.ICommand)val!;
-                        bool can = true;
-                        try { can = cmd.CanExecute(null); } catch (Exception ex) { TestCaseEditorApp.Services.Logging.Log.Debug($"[CMD CHECK] {name}.CanExecute threw: {ex}"); }
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[CMD CHECK] {name}.CanExecute(null) = {can}");
+                        var cmd = val as System.Windows.Input.ICommand;
+                        if (cmd != null)
+                        {
+                            bool can = true;
+                            try { can = cmd.CanExecute(null); } catch (Exception ex) { TestCaseEditorApp.Services.Logging.Log.Debug($"[CMD CHECK] {name}.CanExecute threw: {ex}"); }
+                            TestCaseEditorApp.Services.Logging.Log.Debug($"[CMD CHECK] {name}.CanExecute(null) = {can}");
+                        }
                     }
                 }
             }
@@ -234,8 +239,9 @@ namespace TestCaseEditorApp.MVVM.Views
 
         public void ButtonMinimize_Click(object sender, RoutedEventArgs e)
         {
-            if (Application.Current?.MainWindow != null)
-                Application.Current.MainWindow.WindowState = WindowState.Minimized;
+            var app = Application.Current;
+            if (app?.MainWindow != null)
+                app.MainWindow.WindowState = WindowState.Minimized;
         }
 
         public void WindowStateButton_Click(object sender, RoutedEventArgs e)

@@ -244,6 +244,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // If you want immediate session persistence, call SessionTableStore.Save(...) here.
         }
 
-        public override string ToString() => Title ?? base.ToString();
+        public override string ToString() => Title ?? string.Empty;
     }
 }

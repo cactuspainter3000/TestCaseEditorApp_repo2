@@ -302,22 +302,22 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         private void ApplyVerificationMethodDefaults(VerificationMethod? method)
         {
-            if (method == null || SuggestedDefaults.Count == 0) return;
+            if (method == null || AllPills.Count == 0) return;
 
             _isApplyingDefaults = true;
 
             // Temporarily unsubscribe from PropertyChanged to prevent auto-save during bulk updates
-            foreach (var item in SuggestedDefaults)
+            foreach (var pill in AllPills)
             {
-                item.PropertyChanged -= OnDefaultItemChanged;
+                pill.PropertyChanged -= OnPillChanged;
             }
 
             try
             {
                 // First, disable all chips
-                foreach (var item in SuggestedDefaults.Where(d => !d.IsLlmSuggested))
+                foreach (var pill in AllPills.Where(d => !d.IsLlmSuggested))
                 {
-                    item.IsEnabled = false;
+                    pill.IsEnabled = false;
                 }
 
                 // Check if current requirement has saved selections
@@ -325,9 +325,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     // Apply requirement's saved selections
                     var savedKeys = new HashSet<string>(_currentRequirement.SelectedAssumptionKeys, StringComparer.OrdinalIgnoreCase);
-                    foreach (var item in SuggestedDefaults.Where(d => savedKeys.Contains(d.Key)))
+                    foreach (var pill in AllPills.Where(d => savedKeys.Contains(d.Key)))
                     {
-                        item.IsEnabled = true;
+                        pill.IsEnabled = true;
                     }
                     TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] Applied {savedKeys.Count} saved pill selections for requirement {_currentRequirement.Item}");
                     // Don't apply default suggestions if user has saved selections, but continue to finally block
@@ -416,11 +416,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
 
             // Enable matching chips
-            foreach (var item in SuggestedDefaults)
+            foreach (var pill in AllPills)
             {
-                if (relevantKeys.Contains(item.Key))
+                if (relevantKeys.Contains(pill.Key))
                 {
-                    item.IsEnabled = true;
+                    pill.IsEnabled = true;
                 }
             }
 
@@ -433,10 +433,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             finally
             {
                 // Re-subscribe to PropertyChanged events
-                foreach (var item in SuggestedDefaults)
+                foreach (var pill in AllPills)
                 {
-                    item.PropertyChanged -= OnDefaultItemChanged; // Remove first to avoid duplicates
-                    item.PropertyChanged += OnDefaultItemChanged;
+                    pill.PropertyChanged -= OnPillChanged; // Remove first to avoid duplicates
+                    pill.PropertyChanged += OnPillChanged;
                 }
                 
                 _isApplyingDefaults = false;
@@ -453,13 +453,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 var catalog = DefaultsHelper.LoadProjectDefaultsTemplate();
 
-                // Populate SuggestedDefaults from catalog Items
-                SuggestedDefaults.Clear();
+                // Populate AllPills from catalog Items (migrated from legacy SuggestedDefaults)
+                AllPills.Clear();
                 if (catalog?.Items != null)
                 {
                     foreach (var item in catalog.Items)
                     {
-                        SuggestedDefaults.Add(item);
+                        var pill = DefaultsHelper.ToAssumptionPill(item);
+                        AllPills.Add(pill);
                     }
                 }
 
@@ -473,7 +474,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     }
                 }
 
-                StatusHint = $"Loaded {SuggestedDefaults.Count} assumptions and {DefaultPresets.Count} presets.";
+                StatusHint = $"Loaded {AllPills.Count} assumptions and {DefaultPresets.Count} presets.";
             }
             catch (Exception ex)
             {
@@ -584,9 +585,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private void ResetAssumptions()
         {
-            foreach (var item in SuggestedDefaults)
+            foreach (var pill in AllPills)
             {
-                item.IsEnabled = false;
+                pill.IsEnabled = false;
             }
             StatusHint = "All assumptions cleared.";
         }
@@ -610,9 +611,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 _headerVm.PropertyChanged -= OnHeaderVerificationMethodChanged;
             }
 
-            foreach (var item in SuggestedDefaults)
+            foreach (var pill in AllPills)
             {
-                item.PropertyChanged -= OnDefaultItemChanged;
+                pill.PropertyChanged -= OnPillChanged;
             }
         }
     }

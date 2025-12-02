@@ -314,7 +314,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             private static readonly Regex _trailingNumberRegex = new Regex(@"^(.*?)(\d+)$", RegexOptions.Compiled);
 
-            public int Compare(object x, object y)
+            public int Compare(object? x, object? y)
             {
                 if (ReferenceEquals(x, y)) return 0;
                 if (x is not Requirement a) return -1;

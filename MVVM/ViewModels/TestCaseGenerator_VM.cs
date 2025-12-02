@@ -98,9 +98,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 if (SelectedSupportView == SupportView.Analysis)
                 {
                     // Use reflection to call the private RefreshAnalysisDisplay method
-                    var method = AnalysisVM.GetType().GetMethod("RefreshAnalysisDisplay", 
-                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    method?.Invoke(AnalysisVM, null);
+                    var analysis = AnalysisVM;
+                    if (analysis != null)
+                    {
+                        var method = analysis.GetType().GetMethod("RefreshAnalysisDisplay",
+                            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                        method?.Invoke(analysis, null);
+                    }
                 }
             }
         }

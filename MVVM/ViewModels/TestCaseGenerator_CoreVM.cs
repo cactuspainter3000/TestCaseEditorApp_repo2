@@ -282,7 +282,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 foreach (var r in tivm.Rows ?? new ObservableCollection<TableRowModel>())
                 {
                     var list = new List<string>();
-                    foreach (var c in tivm.Columns)
+                    foreach (var c in tivm.Columns ?? new System.Collections.ObjectModel.ObservableCollection<ColumnDefinitionModel>())
                     {
                         var key = c.BindingPath ?? string.Empty;
                         string val = string.Empty;

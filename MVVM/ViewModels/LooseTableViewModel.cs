@@ -89,7 +89,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // TODO: SessionLooseSelectionStore.SetTableSelected(RequirementId, TableKey, value);
         }
 
-        public override string ToString() => Title ?? base.ToString();
+        public override string ToString() => Title ?? string.Empty;
 
         /// <summary>Ensure each row has all current column keys; optionally remove stale keys.</summary>
         public void NormalizeRows(bool pruneStaleKeys = true)
@@ -156,18 +156,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         private static string SnapshotHash(
-            ObservableCollection<ColumnDefinitionModel> cols,
-            ObservableCollection<TableRowModel> rows)
+            ObservableCollection<ColumnDefinitionModel>? cols,
+            ObservableCollection<TableRowModel>? rows)
         {
+            var safeCols = cols ?? new ObservableCollection<ColumnDefinitionModel>();
+            var safeRows = rows ?? new ObservableCollection<TableRowModel>();
             var sb = new StringBuilder();
             // columns by BindingPath then Header (stable)
-            foreach (var c in cols)
+            foreach (var c in safeCols)
                 sb.Append(c?.BindingPath).Append("=").Append(c?.Header).Append("|");
             sb.Append("||");
             // data row by row, cell by cell in column order
-            foreach (var r in rows)
+            foreach (var r in safeRows)
             {
-                foreach (var c in cols)
+                foreach (var c in safeCols)
                 {
                     var key = c?.BindingPath ?? "";
                     var val = (key.Length == 0) ? "" : (r?[key] ?? "");

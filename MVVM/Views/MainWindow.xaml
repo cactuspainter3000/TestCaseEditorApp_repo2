@@ -74,8 +74,9 @@
             CornerRadius="20">
         <Grid Margin="0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="200"/>
-                <!-- left menu fixed width -->
+                <!-- left menu: auto-size to content but keep a reasonable minimum to preserve layout -->
+                <ColumnDefinition Width="Auto" MinWidth="260"/>
+                <!-- left menu auto width (min 260px) -->
                 <ColumnDefinition Width="4"/>
                 <!-- gutter -->
                 <ColumnDefinition Width="*"/>
