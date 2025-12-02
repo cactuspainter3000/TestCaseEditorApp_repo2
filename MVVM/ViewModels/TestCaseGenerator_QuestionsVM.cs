@@ -632,7 +632,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 var customInstructions = DefaultsHelper.GetUserInstructions(methodEnum.Value);
                 var prompt = ClarifyingParsingHelpers.BuildBudgetedQuestionsPrompt(
                     tempRequirement,
-                    questionBudget,
+                    QuestionBudget,
                     false,
                     enabledAssumptions,
                     Enumerable.Empty<TableDto>(),
@@ -653,14 +653,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 LlmOutput = llmText ?? string.Empty;
 
                 // Extract suggested keys and merge into SuggestedDefaults catalog (DefaultItem)
-                var suggested = ClarifyingParsingHelpers.TryExtractSuggestedChipKeys(llmText, SuggestedDefaults);
+                var safeLlmText = llmText ?? string.Empty;
+                var suggested = ClarifyingParsingHelpers.TryExtractSuggestedChipKeys(safeLlmText, SuggestedDefaults);
                 if (suggested.Any())
                 {
                     Application.Current?.Dispatcher?.Invoke(() => MergeLlmSuggestedDefaults(suggested));
                 }
 
                 // Parse questions from LLM output
-                var parsed = ClarifyingParsingHelpers.ParseQuestions(llmText) ?? Enumerable.Empty<ClarifyingQuestionVM>();
+                var parsed = ClarifyingParsingHelpers.ParseQuestions(safeLlmText) ?? Enumerable.Empty<ClarifyingQuestionVM>();
                 var parsedList = parsed.ToList();
 
                 // Note: Malformed patterns are now automatically cleaned by ParseQuestions helper
@@ -775,7 +776,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 return;
             }
 
-            var parsed = ClarifyingParsingHelpers.ParseQuestions(llmText, _mainVm);
+            var parsed = ClarifyingParsingHelpers.ParseQuestions(llmText ?? string.Empty, _mainVm);
             Application.Current?.Dispatcher?.Invoke(() =>
             {
                 PendingQuestions.Clear();
@@ -1131,7 +1132,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 string? llmText = await _llm.GenerateAsync(prompt, _cts.Token).ConfigureAwait(false);
 
                 // Parse the response - ParseQuestions will automatically clean up malformed patterns
-                var parsed = ClarifyingParsingHelpers.ParseQuestions(llmText, _mainVm) ?? Enumerable.Empty<ClarifyingQuestionVM>();
+                var parsed = ClarifyingParsingHelpers.ParseQuestions(llmText ?? string.Empty, _mainVm) ?? Enumerable.Empty<ClarifyingQuestionVM>();
                 var parsedList = parsed.ToList();
 
                 // Update UI on dispatcher thread
@@ -1440,7 +1441,16 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 StatusHint = skippedQuestions 
                     ? "Generating test cases (no clarifying questions answered)..." 
                     : "Generating test cases (incorporating answers to clarifying questions)...";
-                string llmResponse = await _llm.GenerateAsync(prompt.ToString(), _cts.Token).ConfigureAwait(false);
+                var llm = _llm;
+                string llmResponse;
+                if (llm == null)
+                {
+                    llmResponse = "(no llm service)";
+                }
+                else
+                {
+                    llmResponse = await llm.GenerateAsync(prompt.ToString(), _cts.Token).ConfigureAwait(false);
+                }
 
                 // Store raw output for inspection
                 LlmOutput = llmResponse ?? "(no response)";
@@ -1451,17 +1461,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 });
 
                 // Navigate to the test case creation view and pass the LLM output
-                if (_mainVm != null)
+                var mainVm = _mainVm;
+                if (mainVm != null)
                 {
-                    var creationStep = _mainVm.TestCaseGeneratorSteps.FirstOrDefault(s => s.Id == "testcase-creation");
+                    var creationStep = mainVm.TestCaseGeneratorSteps.FirstOrDefault(s => s.Id == "testcase-creation");
                     if (creationStep != null)
                     {
-                        Application.Current.Dispatcher.Invoke(() =>
+                        Application.Current?.Dispatcher?.Invoke(() =>
                         {
-                            _mainVm.SelectedStep = creationStep;
+                            mainVm.SelectedStep = creationStep;
                             
                             // Pass LLM output to the creation VM (which gets set in CurrentStepViewModel)
-                            if (_mainVm.CurrentStepViewModel is TestCaseGenerator_CreationVM creationVm)
+                            if (mainVm.CurrentStepViewModel is TestCaseGenerator_CreationVM creationVm)
                             {
                                 creationVm.LlmOutput = llmResponse;
                             }
@@ -1476,7 +1487,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             finally
             {
                 // Clear busy state and update UI state on UI thread
-                Application.Current.Dispatcher.Invoke(() =>
+                Application.Current?.Dispatcher?.Invoke(() =>
                 {
                     if (_headerVm != null) _headerVm.IsLlmBusy = false;
                     UpdateSessionStateAfterQuestionsUpdate();

@@ -36,17 +36,17 @@ namespace TestCaseEditorApp.Services
         {
             _dispatcher.Invoke(() =>
             {
-                System.Diagnostics.Debug.WriteLine($"[TOAST] ShowToast: '{message}' (duration: {durationSeconds}s, type: {type})");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[TOAST] ShowToast: '{message}' (duration: {durationSeconds}s, type: {type})");
                 
                 // Trigger fade-out of existing toasts that have been visible for at least 0.5 seconds
                 var existingToasts = _toasts.ToList();
                 var now = DateTime.Now;
                 var toastsToFade = existingToasts.Where(t => (now - t.CreatedAt).TotalSeconds >= 0.5).ToList();
                 
-                System.Diagnostics.Debug.WriteLine($"[TOAST] Found {existingToasts.Count} existing toast(s), {toastsToFade.Count} old enough to dismiss");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[TOAST] Found {existingToasts.Count} existing toast(s), {toastsToFade.Count} old enough to dismiss");
                 foreach (var existingToast in toastsToFade)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[TOAST]   - Dismissing: '{existingToast.Message}' (ID: {existingToast.Id}, age: {(now - existingToast.CreatedAt).TotalSeconds:F1}s)");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[TOAST]   - Dismissing: '{existingToast.Message}' (ID: {existingToast.Id}, age: {(now - existingToast.CreatedAt).TotalSeconds:F1}s)");
                     DismissToast(existingToast);
                 }
                 
@@ -59,7 +59,7 @@ namespace TestCaseEditorApp.Services
                 };
 
                 _toasts.Add(toast);
-                System.Diagnostics.Debug.WriteLine($"[TOAST] Added new toast (ID: {toast.Id}). Total toasts: {_toasts.Count}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[TOAST] Added new toast (ID: {toast.Id}). Total toasts: {_toasts.Count}");
 
                 // Auto-dismiss if duration is specified
                 if (durationSeconds > 0)
@@ -71,7 +71,7 @@ namespace TestCaseEditorApp.Services
                     timer.Tick += (s, e) =>
                     {
                         timer.Stop();
-                        System.Diagnostics.Debug.WriteLine($"[TOAST] Auto-dismiss timer fired for: '{toast.Message}' (ID: {toast.Id})");
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[TOAST] Auto-dismiss timer fired for: '{toast.Message}' (ID: {toast.Id})");
                         DismissToast(toast);
                     };
                     timer.Start();
@@ -86,19 +86,19 @@ namespace TestCaseEditorApp.Services
         {
             _dispatcher.Invoke(() =>
             {
-                System.Diagnostics.Debug.WriteLine($"[TOAST] DismissToast called for: '{toast.Message}' (ID: {toast.Id})");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[TOAST] DismissToast called for: '{toast.Message}' (ID: {toast.Id})");
                 
                 // Prevent multiple dismissals of the same toast
                 if (_dismissingToasts.Contains(toast.Id))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[TOAST]   - Already dismissing, skipping");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[TOAST]   - Already dismissing, skipping");
                     return;
                 }
                 
                 if (_toasts.Contains(toast))
                 {
                     _dismissingToasts.Add(toast.Id);
-                    System.Diagnostics.Debug.WriteLine($"[TOAST]   - Starting dismiss animation");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[TOAST]   - Starting dismiss animation");
                     
                     // Trigger the dismiss animation in the view
                     toast.TriggerDismiss();
@@ -106,7 +106,7 @@ namespace TestCaseEditorApp.Services
                     // Cancel any existing removal timer for this toast
                     if (_removalTimers.ContainsKey(toast.Id))
                     {
-                        System.Diagnostics.Debug.WriteLine($"[TOAST]   - Cancelling existing removal timer");
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[TOAST]   - Cancelling existing removal timer");
                         _removalTimers[toast.Id].Stop();
                         _removalTimers.Remove(toast.Id);
                     }
@@ -122,26 +122,26 @@ namespace TestCaseEditorApp.Services
                     {
                         removalTimer.Stop();
                         _removalTimers.Remove(toastToRemove.Id);
-                        System.Diagnostics.Debug.WriteLine($"[TOAST] Removal timer fired for: '{toastToRemove.Message}' (ID: {toastToRemove.Id})");
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[TOAST] Removal timer fired for: '{toastToRemove.Message}' (ID: {toastToRemove.Id})");
                         if (_toasts.Contains(toastToRemove))
                         {
                             _toasts.Remove(toastToRemove);
-                            System.Diagnostics.Debug.WriteLine($"[TOAST]   - Removed from collection. Remaining toasts: {_toasts.Count}");
+                            TestCaseEditorApp.Services.Logging.Log.Debug($"[TOAST]   - Removed from collection. Remaining toasts: {_toasts.Count}");
                         }
                         else
                         {
-                            System.Diagnostics.Debug.WriteLine($"[TOAST]   - Toast already removed from collection");
+                            TestCaseEditorApp.Services.Logging.Log.Debug($"[TOAST]   - Toast already removed from collection");
                         }
                         _dismissingToasts.Remove(toastToRemove.Id);
                     };
                     
                     _removalTimers[toast.Id] = removalTimer;
                     removalTimer.Start();
-                    System.Diagnostics.Debug.WriteLine($"[TOAST]   - Removal timer started (800ms)");
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[TOAST]   - Removal timer started (800ms)");
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[TOAST]   - Toast not in collection, skipping");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[TOAST]   - Toast not in collection, skipping");
                 }
             });
         }

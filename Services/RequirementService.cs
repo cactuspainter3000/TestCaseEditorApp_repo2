@@ -390,7 +390,7 @@ namespace TestCaseEditorApp.Services
                 // De-dup paragraphs (text-based) and tables (shape/data-based)
                 var desc = (req.Description ?? string.Empty).Trim();
                 var uniqueParas = looseParagraphs
-                    .Select(s => s?.Trim())
+                    .Select(s => s.Trim())
                     .Where(s => !string.IsNullOrWhiteSpace(s))
                     .Distinct(StringComparer.Ordinal)
                     .Where(p => !string.Equals(p, desc, StringComparison.OrdinalIgnoreCase))
@@ -405,9 +405,9 @@ namespace TestCaseEditorApp.Services
                     if (!exists) distinctTables.Add(table);
                 }
 
-                req.LooseContent ??= new RequirementLooseContent();
-                req.LooseContent.Paragraphs = uniqueParas;
-                req.LooseContent.Tables = distinctTables;
+                var loose = req.LooseContent ??= new RequirementLooseContent();
+                loose.Paragraphs = uniqueParas;
+                loose.Tables = distinctTables;
             }
         }
 
@@ -600,10 +600,10 @@ namespace TestCaseEditorApp.Services
 
                 steps.Add(new StepRow
                 {
-                    Number = number,
-                    Action = action,
-                    Expected = expected,
-                    Name = name
+                    Number = number ?? string.Empty,
+                    Action = action ?? string.Empty,
+                    Expected = expected ?? string.Empty,
+                    Name = name ?? string.Empty
                 });
             }
 

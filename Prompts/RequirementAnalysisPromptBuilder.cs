@@ -150,8 +150,9 @@ namespace TestCaseEditorApp.Prompts
                             // If headers exist, display them first
                             if (hasHeaders)
                             {
-                                sb.AppendLine("| " + string.Join(" | ", looseTable.ColumnHeaders) + " |");
-                                var separatorCells = looseTable.ColumnHeaders.Select(_ => "---");
+                                var headers = looseTable.ColumnHeaders ?? new System.Collections.Generic.List<string>();
+                                sb.AppendLine("| " + string.Join(" | ", headers) + " |");
+                                var separatorCells = headers.Select(_ => "---");
                                 sb.AppendLine("| " + string.Join(" | ", separatorCells) + " |");
                             }
                             

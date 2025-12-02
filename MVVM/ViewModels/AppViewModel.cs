@@ -57,7 +57,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             //};
 
             //var reqDebug = TestCaseCreationSteps.FirstOrDefault(s => s.Id == "requirements");
-            //Debug.WriteLine($"[DEBUG] TestCaseCreationSteps count={TestCaseCreationSteps?.Count}. Requirements HasFileMenu={reqDebug?.HasFileMenu}");
+            //TestCaseEditorApp.Services.Logging.Log.Debug($"[DEBUG] TestCaseCreationSteps count={TestCaseCreationSteps?.Count}. Requirements HasFileMenu={reqDebug?.HasFileMenu}");
 
 
             //// subscribe to collection changes for live badges
@@ -137,11 +137,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         // Groups mapped to corresponding left-menu sections
-        public ObservableCollection<StepDescriptor> TestCaseGeneratorSteps { get; }
-        public ObservableCollection<StepDescriptor> RepairSteps { get; }
-        public ObservableCollection<StepDescriptor> ReportsSteps { get; }
-        public ObservableCollection<StepDescriptor> GeneralSteps { get; }
-        public ObservableCollection<StepDescriptor> QuickLinksSteps { get; }
+        public ObservableCollection<StepDescriptor> TestCaseGeneratorSteps { get; } = new();
+        public ObservableCollection<StepDescriptor> RepairSteps { get; } = new();
+        public ObservableCollection<StepDescriptor> ReportsSteps { get; } = new();
+        public ObservableCollection<StepDescriptor> GeneralSteps { get; } = new();
+        public ObservableCollection<StepDescriptor> QuickLinksSteps { get; } = new();
 
         private StepDescriptor? _selectedStep;
         public StepDescriptor? SelectedStep

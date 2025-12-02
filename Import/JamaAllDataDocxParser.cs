@@ -95,7 +95,6 @@ namespace TestCaseEditorApp.Import
 
 
         // Debug buffers (first requirement only)
-        private static bool _debugCaptured = false;
         private static readonly List<string> _debugHeaders = new();
         private static readonly List<string> _debugKvKeys = new();
         private static string _debugDescription = string.Empty;
@@ -192,7 +191,7 @@ namespace TestCaseEditorApp.Import
                                     out var kvKeys,
                                     out var fusedSupporting,
                                     JamaKvKeys,
-                                    s => System.Diagnostics.Debug.WriteLine(s),
+                                    s => TestCaseEditorApp.Services.Logging.Log.Debug(s),
                                     blockIdx))
                             {
                                 // If we split a fused table, assign a title from the preceding paragraph (if present)
@@ -803,7 +802,6 @@ namespace TestCaseEditorApp.Import
 
         private static void ResetDebug()
         {
-            _debugCaptured = false;
             _debugHeaders.Clear();
             _debugKvKeys.Clear();
             _debugDescription = string.Empty;
@@ -812,22 +810,22 @@ namespace TestCaseEditorApp.Import
         private static void DumpDebug()
         {
             // Keep this minimal; you can redirect to your logging facility if desired.
-            System.Diagnostics.Debug.WriteLine("[JamaAllDataDocxParser] Debug (first requirement):");
+            TestCaseEditorApp.Services.Logging.Log.Debug("[JamaAllDataDocxParser] Debug (first requirement):");
             if (_debugHeaders.Count > 0)
             {
-                System.Diagnostics.Debug.WriteLine("  Last 3 prelude lines near header:");
+                TestCaseEditorApp.Services.Logging.Log.Debug("  Last 3 prelude lines near header:");
                 foreach (var h in _debugHeaders)
-                    System.Diagnostics.Debug.WriteLine("    " + h);
+                    TestCaseEditorApp.Services.Logging.Log.Debug("    " + h);
             }
 
             if (_debugKvKeys.Count > 0)
             {
-                System.Diagnostics.Debug.WriteLine("  KV keys detected:");
-                System.Diagnostics.Debug.WriteLine("    " + string.Join(", ", _debugKvKeys.Distinct()));
+                TestCaseEditorApp.Services.Logging.Log.Debug("  KV keys detected:");
+                TestCaseEditorApp.Services.Logging.Log.Debug("    " + string.Join(", ", _debugKvKeys.Distinct()));
             }
 
             if (!string.IsNullOrEmpty(_debugDescription))
-                System.Diagnostics.Debug.WriteLine("  Description: " + _debugDescription);
+                TestCaseEditorApp.Services.Logging.Log.Debug("  Description: " + _debugDescription);
         }
 
         // --- Types ----------------------------------------------------------

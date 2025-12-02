@@ -98,9 +98,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 if (SelectedSupportView == SupportView.Analysis)
                 {
                     // Use reflection to call the private RefreshAnalysisDisplay method
-                    var method = AnalysisVM.GetType().GetMethod("RefreshAnalysisDisplay", 
-                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    method?.Invoke(AnalysisVM, null);
+                    var analysis = AnalysisVM;
+                    if (analysis != null)
+                    {
+                        var method = analysis.GetType().GetMethod("RefreshAnalysisDisplay",
+                            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                        method?.Invoke(analysis, null);
+                    }
                 }
             }
         }
@@ -331,7 +335,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[RefreshSupportContent] _tableProvider threw: {ex}");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[RefreshSupportContent] _tableProvider threw: {ex}");
                 }
             }
 
@@ -344,7 +348,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[RefreshSupportContent] _paragraphProvider threw: {ex}");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[RefreshSupportContent] _paragraphProvider threw: {ex}");
                 }
             }
 
@@ -361,21 +365,21 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 IEnumerable<LooseTableViewModel> tables = Enumerable.Empty<LooseTableViewModel>();
                 try { tables = provider.GetLooseTableVMsForRequirement(SelectedRequirement) ?? Enumerable.Empty<LooseTableViewModel>(); }
-                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[RefreshSupportContentFromProvider] tables failed: {ex}"); }
+                catch (Exception ex) { TestCaseEditorApp.Services.Logging.Log.Debug($"[RefreshSupportContentFromProvider] tables failed: {ex}"); }
 
                 SelectedTableVMs.Clear();
                 foreach (var t in tables) SelectedTableVMs.Add(t);
 
                 IEnumerable<string> paras = Enumerable.Empty<string>();
                 try { paras = provider.GetLooseParagraphsForRequirement(SelectedRequirement) ?? Enumerable.Empty<string>(); }
-                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[RefreshSupportContentFromProvider] paras failed: {ex}"); }
+                catch (Exception ex) { TestCaseEditorApp.Services.Logging.Log.Debug($"[RefreshSupportContentFromProvider] paras failed: {ex}"); }
 
                 SelectedParagraphVMs.Clear();
                 foreach (var p in paras) SelectedParagraphVMs.Add(new ParagraphViewModel(p));
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[RefreshSupportContentFromProvider] unexpected: {ex}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[RefreshSupportContentFromProvider] unexpected: {ex}");
             }
         }
 

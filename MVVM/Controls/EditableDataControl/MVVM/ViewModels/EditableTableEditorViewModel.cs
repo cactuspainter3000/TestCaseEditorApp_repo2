@@ -49,7 +49,7 @@ namespace EditableDataControl.ViewModels
             return new PropertyDescriptorCollection(props.ToArray());
         }
 
-        PropertyDescriptorCollection ICustomTypeDescriptor.GetProperties(Attribute[] attributes) 
+        PropertyDescriptorCollection ICustomTypeDescriptor.GetProperties(Attribute[]? attributes) 
             => ((ICustomTypeDescriptor)this).GetProperties();
 
         private class CellPropertyDescriptor : PropertyDescriptor
@@ -59,12 +59,22 @@ namespace EditableDataControl.ViewModels
             public override Type ComponentType => typeof(TableRowModel);
             public override bool IsReadOnly => false;
             public override Type PropertyType => typeof(string);
-            public override bool CanResetValue(object component) => false;
-            public override object GetValue(object component) => ((TableRowModel)component)[_key];
-            public override void ResetValue(object component) { }
-            public override void SetValue(object component, object value) 
-                => ((TableRowModel)component)[_key] = value?.ToString() ?? "";
-            public override bool ShouldSerializeValue(object component) => false;
+            public override bool CanResetValue(object? component) => false;
+            public override object? GetValue(object? component)
+            {
+                var target = component as TableRowModel;
+                return target?[_key] ?? string.Empty;
+            }
+            public override void ResetValue(object? component) { }
+            public override void SetValue(object? component, object? value)
+            {
+                var target = component as TableRowModel;
+                if (target != null)
+                {
+                    target[_key] = value?.ToString() ?? string.Empty;
+                }
+            }
+            public override bool ShouldSerializeValue(object? component) => false;
         }
 
         // Other ICustomTypeDescriptor members - delegate to default behavior
@@ -76,8 +86,8 @@ namespace EditableDataControl.ViewModels
         PropertyDescriptor ICustomTypeDescriptor.GetDefaultProperty() => TypeDescriptor.GetDefaultProperty(this, true);
         object ICustomTypeDescriptor.GetEditor(Type editorBaseType) => TypeDescriptor.GetEditor(this, editorBaseType, true);
         EventDescriptorCollection ICustomTypeDescriptor.GetEvents() => TypeDescriptor.GetEvents(this, true);
-        EventDescriptorCollection ICustomTypeDescriptor.GetEvents(Attribute[] attributes) => TypeDescriptor.GetEvents(this, attributes, true);
-        object ICustomTypeDescriptor.GetPropertyOwner(PropertyDescriptor pd) => this;
+        EventDescriptorCollection ICustomTypeDescriptor.GetEvents(Attribute[]? attributes) => TypeDescriptor.GetEvents(this, attributes, true);
+        object? ICustomTypeDescriptor.GetPropertyOwner(PropertyDescriptor? pd) => this;
 
         public class Cell : ObservableObject
         {

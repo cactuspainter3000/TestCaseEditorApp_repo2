@@ -3,6 +3,7 @@
     using System;
     using System.IO;
     using System.Text.Json;
+    using System.Diagnostics;
 
     public class JsonPersistenceService : IPersistenceService
     {
@@ -29,9 +30,33 @@
         {
             try
             {
-                var path = PathFor(key);
+                // If callers pass an absolute filesystem path as the 'key', treat it
+                // as a real path and write the JSON there. Historically some parts
+                // of the app passed a full path into the key-based Save API which
+                // caused serialized JSON to be written under ApplicationData using
+                // the sanitized key name. Detect and handle that case explicitly.
                 var options = new JsonSerializerOptions { WriteIndented = true };
                 var json = JsonSerializer.Serialize(obj, options);
+
+                if (Path.IsPathRooted(key))
+                {
+                    try
+                    {
+                        var absPath = key;
+                        var dir = Path.GetDirectoryName(absPath);
+                        if (!string.IsNullOrWhiteSpace(dir)) Directory.CreateDirectory(dir);
+                        File.WriteAllText(absPath, json);
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JsonPersistence] Saved JSON to absolute path: {absPath}");
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        // Fall back to the normal behavior below if absolute write fails
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JsonPersistence] Failed to write absolute path {key}: {ex.Message}");
+                    }
+                }
+
+                var path = PathFor(key);
                 File.WriteAllText(path, json);
             }
             catch

@@ -492,11 +492,14 @@ namespace TestCaseEditorApp.MVVM.Utils
             {
                 sb.AppendLine("Already Known / Assumed:");
                 sb.AppendLine("CRITICAL: The following topics have ALREADY been answered or assumed. DO NOT ask questions about these topics or any related/similar variations:");
-                foreach (var p in paragraphs)
+                if (paragraphs != null)
                 {
-                    if (!string.IsNullOrWhiteSpace(p))
+                    foreach (var p in paragraphs)
                     {
-                        sb.AppendLine($"  - {p.Trim()}");
+                        if (!string.IsNullOrWhiteSpace(p))
+                        {
+                            sb.AppendLine($"  - {p.Trim()}");
+                        }
                     }
                 }
                 sb.AppendLine("If a question would be similar to or overlap with any of the above, skip it entirely and ask about a different aspect of the requirement.");

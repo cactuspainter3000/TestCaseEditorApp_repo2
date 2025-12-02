@@ -139,21 +139,23 @@ namespace EditableDataControl.Controls
             {
                 var args = new global::EditableDataControl.Controls.CellToHeaderArgs(row, col);
 
+                var moveCellToTitleCmd = vm.MoveCellToTitleCommand;
                 var miMoveTitle = new MenuItem { Header = "Move to Title" };
-                miMoveTitle.IsEnabled = vm.MoveCellToTitleCommand?.CanExecute(args) == true;
+                miMoveTitle.IsEnabled = moveCellToTitleCmd?.CanExecute(args) == true;
                 miMoveTitle.Click += (_, __) =>
                 {
-                    if (vm.MoveCellToTitleCommand.CanExecute(args))
-                        vm.MoveCellToTitleCommand.Execute(args);
+                    if (moveCellToTitleCmd?.CanExecute(args) == true)
+                        moveCellToTitleCmd.Execute(args);
                 };
                 menu.Items.Add(miMoveTitle);
 
+                var moveCellToColumnHeaderCmd = vm.MoveCellToColumnHeaderCommand;
                 var miMoveHeader = new MenuItem { Header = "Move to Column Header" };
-                miMoveHeader.IsEnabled = vm.MoveCellToColumnHeaderCommand?.CanExecute(args) == true;
+                miMoveHeader.IsEnabled = moveCellToColumnHeaderCmd?.CanExecute(args) == true;
                 miMoveHeader.Click += (_, __) =>
                 {
-                    if (vm.MoveCellToColumnHeaderCommand.CanExecute(args))
-                        vm.MoveCellToColumnHeaderCommand.Execute(args);
+                    if (moveCellToColumnHeaderCmd?.CanExecute(args) == true)
+                        moveCellToColumnHeaderCmd.Execute(args);
                 };
                 menu.Items.Add(miMoveHeader);
             }

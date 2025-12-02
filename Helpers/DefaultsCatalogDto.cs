@@ -62,7 +62,7 @@ public static class DefaultsHelper
         try
         {
             var path = Path.Combine(AppContext.BaseDirectory, "Config", "defaults.catalog.template.json");
-            System.Diagnostics.Debug.WriteLine($"[Defaults] looking for: {path}  exists={File.Exists(path)}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Defaults] looking for: {path}  exists={File.Exists(path)}");
 
             if (File.Exists(path))
             {
@@ -71,7 +71,7 @@ public static class DefaultsHelper
                 var dto = JsonSerializer.Deserialize<DefaultsCatalogDto>(json, opts);
 
                 // 👇 log what we actually deserialized
-                System.Diagnostics.Debug.WriteLine($"[Defaults] template deserialized: items={dto?.Items?.Count ?? 0}, presets={dto?.Presets?.Count ?? 0}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Defaults] template deserialized: items={dto?.Items?.Count ?? 0}, presets={dto?.Presets?.Count ?? 0}");
 
                 if (dto?.Items?.Count > 0)
                     return dto; // 👈 early return (we saw content)
@@ -83,7 +83,7 @@ public static class DefaultsHelper
         }
 
         // 👇 log that we’re using the hardcoded starter
-        System.Diagnostics.Debug.WriteLine("[Defaults] using starter fallback (template missing/empty/corrupt).");
+        TestCaseEditorApp.Services.Logging.Log.Debug("[Defaults] using starter fallback (template missing/empty/corrupt).");
 
         return new DefaultsCatalogDto
         {
@@ -108,7 +108,7 @@ public static class DefaultsHelper
         try
         {
             var path = Path.Combine(AppContext.BaseDirectory, "Config", "verification-methods.json");
-            System.Diagnostics.Debug.WriteLine($"[VerificationMethods] looking for: {path}  exists={File.Exists(path)}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[VerificationMethods] looking for: {path}  exists={File.Exists(path)}");
 
             if (File.Exists(path))
             {
@@ -118,18 +118,18 @@ public static class DefaultsHelper
 
                 if (wrapper?.VerificationMethods != null && wrapper.VerificationMethods.Count > 0)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[VerificationMethods] loaded {wrapper.VerificationMethods.Count} definitions");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[VerificationMethods] loaded {wrapper.VerificationMethods.Count} definitions");
                     return wrapper.VerificationMethods;
                 }
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[VerificationMethods] error loading: {ex.Message}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[VerificationMethods] error loading: {ex.Message}");
         }
 
         // Fallback to empty dictionary
-        System.Diagnostics.Debug.WriteLine("[VerificationMethods] using empty fallback");
+            TestCaseEditorApp.Services.Logging.Log.Debug("[VerificationMethods] using empty fallback");
         return new Dictionary<string, string>();
     }
 
@@ -158,7 +158,7 @@ public static class DefaultsHelper
         try
         {
             var path = Path.Combine(AppContext.BaseDirectory, "Config", "user-instructions.json");
-            System.Diagnostics.Debug.WriteLine($"[UserInstructions] looking for: {path}  exists={File.Exists(path)}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[UserInstructions] looking for: {path}  exists={File.Exists(path)}");
 
             if (File.Exists(path))
             {
@@ -168,18 +168,18 @@ public static class DefaultsHelper
 
                 if (wrapper?.Instructions != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[UserInstructions] loaded {wrapper.Instructions.Count} instruction sets");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[UserInstructions] loaded {wrapper.Instructions.Count} instruction sets");
                     return wrapper.Instructions;
                 }
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[UserInstructions] error loading: {ex.Message}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[UserInstructions] error loading: {ex.Message}");
         }
 
         // Fallback: return empty dictionary
-        System.Diagnostics.Debug.WriteLine("[UserInstructions] using empty fallback (file missing or invalid)");
+            TestCaseEditorApp.Services.Logging.Log.Debug("[UserInstructions] using empty fallback (file missing or invalid)");
         return new Dictionary<string, string>
         {
             { "Analysis", "" },
@@ -225,11 +225,11 @@ public static class DefaultsHelper
             }
 
             File.WriteAllText(path, json);
-            System.Diagnostics.Debug.WriteLine($"[UserInstructions] saved to: {path}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[UserInstructions] saved to: {path}");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[UserInstructions] error saving: {ex.Message}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[UserInstructions] error saving: {ex.Message}");
         }
     }
 
@@ -247,7 +247,7 @@ public static class DefaultsHelper
         try
         {
             var path = Path.Combine(AppContext.BaseDirectory, "Config", "pill-selections.json");
-            System.Diagnostics.Debug.WriteLine($"[PillSelections] looking for: {path}  exists={File.Exists(path)}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[PillSelections] looking for: {path}  exists={File.Exists(path)}");
 
             if (File.Exists(path))
             {
@@ -257,18 +257,18 @@ public static class DefaultsHelper
 
                 if (wrapper?.Selections != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[PillSelections] loaded {wrapper.Selections.Count} method selections");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[PillSelections] loaded {wrapper.Selections.Count} method selections");
                     return wrapper.Selections;
                 }
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[PillSelections] error loading: {ex.Message}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[PillSelections] error loading: {ex.Message}");
         }
 
         // Fallback: return empty dictionary
-        System.Diagnostics.Debug.WriteLine("[PillSelections] using empty fallback (file missing or invalid)");
+        TestCaseEditorApp.Services.Logging.Log.Debug("[PillSelections] using empty fallback (file missing or invalid)");
         return new Dictionary<string, List<string>>();
     }
 
@@ -296,11 +296,11 @@ public static class DefaultsHelper
             }
 
             File.WriteAllText(path, json);
-            System.Diagnostics.Debug.WriteLine($"[PillSelections] saved {selections.Count} method selections to: {path}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[PillSelections] saved {selections.Count} method selections to: {path}");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[PillSelections] error saving: {ex.Message}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[PillSelections] error saving: {ex.Message}");
         }
     }
 

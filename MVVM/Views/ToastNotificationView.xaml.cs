@@ -35,7 +35,7 @@ namespace TestCaseEditorApp.MVVM.Views
         {
             if (DataContext is ToastNotification toast)
             {
-                System.Diagnostics.Debug.WriteLine($"[TOAST VIEW] OnRequestDismiss for: '{toast.Message}' (ID: {toast.Id})");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[TOAST VIEW] OnRequestDismiss for: '{toast.Message}' (ID: {toast.Id})");
             }
             Dismiss();
         }
@@ -44,7 +44,7 @@ namespace TestCaseEditorApp.MVVM.Views
         {
             if (DataContext is ToastNotification toast)
             {
-                System.Diagnostics.Debug.WriteLine($"[TOAST VIEW] View loaded for: '{toast.Message}' (ID: {toast.Id})");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[TOAST VIEW] View loaded for: '{toast.Message}' (ID: {toast.Id})");
             }
             var storyboard = (Storyboard)Resources["SlideInStoryboard"];
             storyboard.Begin(this);
@@ -54,7 +54,7 @@ namespace TestCaseEditorApp.MVVM.Views
         {
             if (DataContext is ToastNotification toast)
             {
-                System.Diagnostics.Debug.WriteLine($"[TOAST VIEW] Dismiss() called, starting slide-out animation for: '{toast.Message}' (ID: {toast.Id})");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[TOAST VIEW] Dismiss() called, starting slide-out animation for: '{toast.Message}' (ID: {toast.Id})");
             }
             var storyboard = (Storyboard)Resources["SlideOutStoryboard"];
             storyboard.Begin(this);
@@ -64,7 +64,7 @@ namespace TestCaseEditorApp.MVVM.Views
         {
             if (DataContext is ToastNotification toast)
             {
-                System.Diagnostics.Debug.WriteLine($"[TOAST VIEW] SlideOut animation completed for: '{toast.Message}' (ID: {toast.Id})");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[TOAST VIEW] SlideOut animation completed for: '{toast.Message}' (ID: {toast.Id})");
             }
             Dismissed?.Invoke(this, EventArgs.Empty);
         }

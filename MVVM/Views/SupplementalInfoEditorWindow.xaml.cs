@@ -9,7 +9,7 @@ namespace TestCaseEditorApp.MVVM.Views
 {
     public partial class SupplementalInfoEditorWindow : Window
     {
-        public List<string> ResultItems { get; private set; }
+        public List<string> ResultItems { get; private set; } = new List<string>();
 
         public SupplementalInfoEditorWindow(ObservableCollection<ParagraphViewModel> items)
         {

@@ -25,11 +25,11 @@ namespace TestCaseEditorApp.Helpers
                 typeof(DataGridColumnsBinder),
                 new PropertyMetadata(null, OnColumnsSourceChanged));
 
-        public static void SetColumnsSource(DependencyObject d, IEnumerable value) =>
+        public static void SetColumnsSource(DependencyObject d, IEnumerable? value) =>
             d.SetValue(ColumnsSourceProperty, value);
 
-        public static IEnumerable GetColumnsSource(DependencyObject d) =>
-            (IEnumerable)d.GetValue(ColumnsSourceProperty);
+        public static IEnumerable? GetColumnsSource(DependencyObject d) =>
+            (IEnumerable?)d.GetValue(ColumnsSourceProperty);
 
         private static readonly DependencyProperty SubscriptionsProperty =
             DependencyProperty.RegisterAttached(
@@ -38,11 +38,11 @@ namespace TestCaseEditorApp.Helpers
                 typeof(DataGridColumnsBinder),
                 new PropertyMetadata(null));
 
-        private static void SetSubscriptions(DependencyObject d, SubscriptionBag bag) =>
+        private static void SetSubscriptions(DependencyObject d, SubscriptionBag? bag) =>
             d.SetValue(SubscriptionsProperty, bag);
 
-        private static SubscriptionBag GetSubscriptions(DependencyObject d) =>
-            (SubscriptionBag)d.GetValue(SubscriptionsProperty);
+        private static SubscriptionBag? GetSubscriptions(DependencyObject d) =>
+            (SubscriptionBag?)d.GetValue(SubscriptionsProperty);
 
         private sealed class SubscriptionBag
         {

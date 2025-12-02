@@ -63,7 +63,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             ObservableCollection<TableRowModel>? rows,
             ProviderBackplane? innerBackplane = null)
         {
-            System.Diagnostics.Debug.WriteLine($"[CTOR]  #{GetHashCode()} req={requirementId} key={tableKey}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[CTOR]  #{GetHashCode()} req={requirementId} key={tableKey}");
 
             RequirementId = requirementId ?? string.Empty;
             TableKey = tableKey ?? string.Empty;
@@ -89,7 +89,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // TODO: SessionLooseSelectionStore.SetTableSelected(RequirementId, TableKey, value);
         }
 
-        public override string ToString() => Title ?? base.ToString();
+        public override string ToString() => Title ?? string.Empty;
 
         /// <summary>Ensure each row has all current column keys; optionally remove stale keys.</summary>
         public void NormalizeRows(bool pruneStaleKeys = true)
@@ -151,23 +151,25 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             //    var snap = TableSnapshot.FromVM(Title, Columns, Rows);
             //    SessionTableStore.Save(RequirementId, TableKey, snap);
             //}
-            System.Diagnostics.Debug.WriteLine(
+            TestCaseEditorApp.Services.Logging.Log.Debug(
                 $"[SAVE][VM] {RequirementId} | {TableKey} | Rows={Rows?.Count} Cols={Columns?.Count} hash={SnapshotHash(Columns, Rows)}");
         }
 
         private static string SnapshotHash(
-            ObservableCollection<ColumnDefinitionModel> cols,
-            ObservableCollection<TableRowModel> rows)
+            ObservableCollection<ColumnDefinitionModel>? cols,
+            ObservableCollection<TableRowModel>? rows)
         {
+            var safeCols = cols ?? new ObservableCollection<ColumnDefinitionModel>();
+            var safeRows = rows ?? new ObservableCollection<TableRowModel>();
             var sb = new StringBuilder();
             // columns by BindingPath then Header (stable)
-            foreach (var c in cols)
+            foreach (var c in safeCols)
                 sb.Append(c?.BindingPath).Append("=").Append(c?.Header).Append("|");
             sb.Append("||");
             // data row by row, cell by cell in column order
-            foreach (var r in rows)
+            foreach (var r in safeRows)
             {
-                foreach (var c in cols)
+                foreach (var c in safeCols)
                 {
                     var key = c?.BindingPath ?? "";
                     var val = (key.Length == 0) ? "" : (r?[key] ?? "");
@@ -196,11 +198,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             //{
             //    TableSnapshot.ApplyToVM(snap, Columns, Rows, out var newTitle);
             //    if (!string.IsNullOrEmpty(newTitle)) Title = newTitle;
-            //    System.Diagnostics.Debug.WriteLine($"[LOAD] #{GetHashCode()} {RequirementId} | {TableKey} (found snapshot) hash={SnapshotHash(Columns, Rows)}");
+            //    TestCaseEditorApp.Services.Logging.Log.Debug($"[LOAD] #{GetHashCode()} {RequirementId} | {TableKey} (found snapshot) hash={SnapshotHash(Columns, Rows)}");
             //}
             //else
             //{
-                System.Diagnostics.Debug.WriteLine($"[LOAD] #{GetHashCode()} {RequirementId} | {TableKey} (no snapshot)");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[LOAD] #{GetHashCode()} {RequirementId} | {TableKey} (no snapshot)");
             //}
 
             // TODO: selection hydrate

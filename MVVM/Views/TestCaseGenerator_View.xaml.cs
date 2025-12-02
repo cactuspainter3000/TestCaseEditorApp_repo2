@@ -8,8 +8,6 @@ namespace TestCaseEditorApp.MVVM.Views
 {
     public partial class TestCaseGenerator_View : UserControl
     {
-        private Storyboard? _tracerStoryboard;
-
         public TestCaseGenerator_View()
         {
             InitializeComponent();

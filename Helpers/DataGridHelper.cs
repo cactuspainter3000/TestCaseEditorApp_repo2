@@ -28,7 +28,7 @@ namespace TestCaseEditorApp.Helpers
             {
                 if (string.IsNullOrWhiteSpace(col.BindingPath))
                 {
-                    Debug.WriteLine($"[WARNING] Skipping column with empty BindingPath. Header = '{col.Header}'");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[WARNING] Skipping column with empty BindingPath. Header = '{col.Header}'");
                     continue;
                 }
 
@@ -45,10 +45,10 @@ namespace TestCaseEditorApp.Helpers
                 };
 
                 grid.Columns.Add(textColumn);
-                Debug.WriteLine($"[RebuildGridColumns] Added column: Header = '{col.Header}', BindingPath = '{col.BindingPath}'");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[RebuildGridColumns] Added column: Header = '{col.Header}', BindingPath = '{col.BindingPath}'");
             }
 
-            Debug.WriteLine($"[RebuildGridColumns] Final column count: {grid.Columns.Count}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[RebuildGridColumns] Final column count: {grid.Columns.Count}");
         }
 
         public static void RebuildGridColumns(DataGrid grid, ITableViewProvider tableProvider)

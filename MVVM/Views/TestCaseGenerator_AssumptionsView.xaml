@@ -44,7 +44,7 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <TextBlock Grid.Row="0" Text="🎯 Test Assumptions" FontSize="16" FontWeight="SemiBold" 
+        <TextBlock Grid.Row="0" Text="🎯 Verification Method Assumptions" FontSize="16" FontWeight="SemiBold" 
                    Foreground="{StaticResource Accent}" Margin="0,0,0,12"/>
 
         <!-- Explanation panel: what assumptions are for -->
@@ -168,7 +168,7 @@
 
                     <TextBlock TextWrapping="Wrap" Foreground="{StaticResource MenuForeground}" Margin="0,0,0,6">
                         <Run>•</Run>
-                        <Run FontWeight="SemiBold">Test assumptions</Run>
+                        <Run FontWeight="SemiBold">Verification Method assumptions</Run>
                         <Run>(sample size, power supply) establish baseline test parameters</Run>
                     </TextBlock>
 

@@ -71,7 +71,7 @@ namespace TestCaseEditorApp.MVVM.Models
             if (_mainVm != null && !_isLoading)
             {
                 _mainVm.IsDirty = true;
-                System.Diagnostics.Debug.WriteLine("[TestCase] Property changed - marked workspace dirty");
+                TestCaseEditorApp.Services.Logging.Log.Debug("[TestCase] Property changed - marked workspace dirty");
             }
         }
 

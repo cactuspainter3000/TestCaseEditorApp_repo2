@@ -5,7 +5,7 @@ namespace TestCaseEditorApp.Controls
     // Simple global manager so opening one DropDownButton closes others.
     internal static class DropDownManager
     {
-        private static Popup _openPopup;
+        private static Popup? _openPopup;
 
         public static void RegisterOpenPopup(Popup popup)
         {

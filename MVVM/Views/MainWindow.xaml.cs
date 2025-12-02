@@ -78,17 +78,18 @@ namespace TestCaseEditorApp.MVVM.Views
                ?? new MainViewModel();
 
             var vm = DataContext;
-            System.Diagnostics.Debug.WriteLine($"MainWindow DataContext = {vm?.GetType().FullName ?? "<null>"}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"MainWindow DataContext = {vm?.GetType().FullName ?? "<null>"}");
             var props = vm?.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public);
-            if (props == null)
+            if (props == null || vm == null)
             {
-                System.Diagnostics.Debug.WriteLine("No public properties on DataContext.");
+                TestCaseEditorApp.Services.Logging.Log.Debug("No public properties on DataContext.");
                 return;
             }
 
+            var nonNullVm = vm; // local non-null alias for analyzer
             foreach (var p in props)
             {
-                var val = p.GetValue(vm);
+                var val = p.GetValue(nonNullVm);
                 var typeName = p.PropertyType.FullName;
                 string info = $"{p.Name} : {typeName}";
                 // if it's enumerable, print a count (best-effort)
@@ -102,7 +103,7 @@ namespace TestCaseEditorApp.MVVM.Views
                 {
                     info += $" (value={(val == null ? "null" : val.GetType().FullName)})";
                 }
-                System.Diagnostics.Debug.WriteLine(info);
+                TestCaseEditorApp.Services.Logging.Log.Debug(info);
             }
 
             // Try to provide a Window wrapper to any header VM that expects it.
@@ -127,7 +128,7 @@ namespace TestCaseEditorApp.MVVM.Views
                             {
                                 // Call SetWindow with our wrapper
                                 setWin.Invoke(headerVm, new object[] { wrapper });
-                                System.Diagnostics.Debug.WriteLine("Called SetWindow on injected WorkspaceHeaderViewModel.");
+                                TestCaseEditorApp.Services.Logging.Log.Debug("Called SetWindow on injected WorkspaceHeaderViewModel.");
                             }
                             else
                             {
@@ -137,11 +138,11 @@ namespace TestCaseEditorApp.MVVM.Views
                                 if (winProp != null && winProp.CanWrite && winProp.PropertyType.IsAssignableFrom(typeof(IWindow)))
                                 {
                                     winProp.SetValue(headerVm, wrapper);
-                                    System.Diagnostics.Debug.WriteLine("Assigned Window property on injected WorkspaceHeaderViewModel.");
+                                    TestCaseEditorApp.Services.Logging.Log.Debug("Assigned Window property on injected WorkspaceHeaderViewModel.");
                                 }
                                 else
                                 {
-                                    System.Diagnostics.Debug.WriteLine("Injected WorkspaceHeaderViewModel has no SetWindow/Window setter; creating and assigning a new header VM.");
+                                    TestCaseEditorApp.Services.Logging.Log.Debug("Injected WorkspaceHeaderViewModel has no SetWindow/Window setter; creating and assigning a new header VM.");
                                     // Create and set a new header VM with window
                                     var newHeaderVm = new WorkspaceHeaderViewModel();
                                     try { newHeaderVm.SetWindow(wrapper); } catch { /* best-effort */ }
@@ -150,7 +151,7 @@ namespace TestCaseEditorApp.MVVM.Views
                                     if (prop.CanWrite && prop.PropertyType.IsAssignableFrom(newHeaderVm.GetType()))
                                     {
                                         prop.SetValue(DataContext, newHeaderVm);
-                                        System.Diagnostics.Debug.WriteLine("Assigned new WorkspaceHeaderViewModel into DataContext.");
+                                        TestCaseEditorApp.Services.Logging.Log.Debug("Assigned new WorkspaceHeaderViewModel into DataContext.");
                                     }
                                     else
                                     {
@@ -158,7 +159,7 @@ namespace TestCaseEditorApp.MVVM.Views
                                         if (headerElement != null)
                                         {
                                             headerElement.DataContext = newHeaderVm;
-                                            System.Diagnostics.Debug.WriteLine("Set DataContext on named WorkspaceHeaderView element with newly created WorkspaceHeaderViewModel.");
+                                            TestCaseEditorApp.Services.Logging.Log.Debug("Set DataContext on named WorkspaceHeaderView element with newly created WorkspaceHeaderViewModel.");
                                         }
                                     }
                                 }
@@ -172,7 +173,7 @@ namespace TestCaseEditorApp.MVVM.Views
                             if (prop.CanWrite && prop.PropertyType.IsAssignableFrom(newHeaderVm.GetType()))
                             {
                                 prop.SetValue(DataContext, newHeaderVm);
-                                System.Diagnostics.Debug.WriteLine("Assigned new WorkspaceHeaderViewModel into DataContext.");
+                                    TestCaseEditorApp.Services.Logging.Log.Debug("Assigned new WorkspaceHeaderViewModel into DataContext.");
                             }
                             else
                             {
@@ -180,7 +181,7 @@ namespace TestCaseEditorApp.MVVM.Views
                                 if (headerElement != null)
                                 {
                                     headerElement.DataContext = newHeaderVm;
-                                    System.Diagnostics.Debug.WriteLine("Set DataContext on named WorkspaceHeaderView element.");
+                                    TestCaseEditorApp.Services.Logging.Log.Debug("Set DataContext on named WorkspaceHeaderView element.");
                                 }
                             }
                         }
@@ -194,14 +195,14 @@ namespace TestCaseEditorApp.MVVM.Views
                             var newHeaderVm = new WorkspaceHeaderViewModel();
                             try { newHeaderVm.SetWindow(wrapper); } catch { /* best-effort */ }
                             headerElement.DataContext = newHeaderVm;
-                            System.Diagnostics.Debug.WriteLine("No WorkspaceHeaderViewModel on DataContext — set DataContext on named WorkspaceHeaderView element.");
+                            TestCaseEditorApp.Services.Logging.Log.Debug("No WorkspaceHeaderViewModel on DataContext — set DataContext on named WorkspaceHeaderView element.");
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to create/set WorkspaceHeaderViewModel: {ex}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"Failed to create/set WorkspaceHeaderViewModel: {ex}");
             }
 
             // Command presence probe (keeps previous diagnostic)
@@ -214,28 +215,33 @@ namespace TestCaseEditorApp.MVVM.Views
                 {
                     var prop = vmType?.GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase);
                     var hasProp = prop != null;
-                    object? val = hasProp ? prop.GetValue(vm) : null;
+                    object? val = (hasProp && vm != null) ? prop.GetValue(vm) : null;
                     bool isIcmd = val is System.Windows.Input.ICommand;
-                    System.Diagnostics.Debug.WriteLine($"[CMD CHECK] {name}: propExists={hasProp}, valueType={(val == null ? "null" : val.GetType().FullName)}, isICommand={isIcmd}");
+                    var valueType = val?.GetType()?.FullName ?? "null";
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[CMD CHECK] {name}: propExists={hasProp}, valueType={valueType}, isICommand={isIcmd}");
                     if (isIcmd)
                     {
-                        var cmd = (System.Windows.Input.ICommand)val!;
-                        bool can = true;
-                        try { can = cmd.CanExecute(null); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CMD CHECK] {name}.CanExecute threw: {ex}"); }
-                        System.Diagnostics.Debug.WriteLine($"[CMD CHECK] {name}.CanExecute(null) = {can}");
+                        var cmd = val as System.Windows.Input.ICommand;
+                        if (cmd != null)
+                        {
+                            bool can = true;
+                            try { can = cmd.CanExecute(null); } catch (Exception ex) { TestCaseEditorApp.Services.Logging.Log.Debug($"[CMD CHECK] {name}.CanExecute threw: {ex}"); }
+                            TestCaseEditorApp.Services.Logging.Log.Debug($"[CMD CHECK] {name}.CanExecute(null) = {can}");
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("[CMD CHECK] Exception: " + ex);
+                TestCaseEditorApp.Services.Logging.Log.Debug("[CMD CHECK] Exception: " + ex);
             }
         }
 
         public void ButtonMinimize_Click(object sender, RoutedEventArgs e)
         {
-            if (Application.Current?.MainWindow != null)
-                Application.Current.MainWindow.WindowState = WindowState.Minimized;
+            var app = Application.Current;
+            if (app?.MainWindow != null)
+                app.MainWindow.WindowState = WindowState.Minimized;
         }
 
         public void WindowStateButton_Click(object sender, RoutedEventArgs e)

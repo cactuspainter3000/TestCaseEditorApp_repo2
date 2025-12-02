@@ -17,14 +17,15 @@ namespace TestCaseEditorApp.MVVM.Views
         private readonly ObservableCollection<EditableDataControl.ViewModels.TableRowModel> _scratchRows = new();
         private string _scratchTitle = "";
 
-        public EditableTableEditorWindow(AppProvider provider, Window owner = null)
+        public EditableTableEditorWindow(AppProvider provider, Window? owner = null)
         {
             InitializeComponent();
             _provider = provider ?? throw new ArgumentNullException(nameof(provider));
 
             // 1) Build editor columns from provider
+            var providerCols = _provider.Columns ?? new System.Collections.ObjectModel.ObservableCollection<EditableDataControl.ViewModels.ColumnDefinitionModel>();
             var eCols = new ObservableCollection<EditableDataControl.ViewModels.ColumnDefinitionModel>(
-                _provider.Columns.Select(c => new EditableDataControl.ViewModels.ColumnDefinitionModel
+                providerCols.Select(c => new EditableDataControl.ViewModels.ColumnDefinitionModel
                 {
                     Header = c.Header,
                     BindingPath = c.BindingPath // take exactly what's there
@@ -44,7 +45,7 @@ namespace TestCaseEditorApp.MVVM.Views
             }
 
             // 3) Build a map from provider columns to editor keys
-            var keyMap = _provider.Columns
+            var keyMap = providerCols
                 .Zip(eCols, (src, dst) => new
                 {
                     SourceKey = string.IsNullOrWhiteSpace(src.BindingPath) ? src.Header : src.BindingPath,
@@ -54,29 +55,34 @@ namespace TestCaseEditorApp.MVVM.Views
 
             // 4) Clone rows using the normalized editor keys
             var eRows = new ObservableCollection<EditableDataControl.ViewModels.TableRowModel>();
-            System.Diagnostics.Debug.WriteLine($"\n=== Cloning {_provider.Rows.Count} rows ===");
+            var providerRows = _provider.Rows?.Cast<EditableDataControl.ViewModels.TableRowModel>().ToList() ?? new System.Collections.Generic.List<EditableDataControl.ViewModels.TableRowModel>();
+            TestCaseEditorApp.Services.Logging.Log.Debug($"\n=== Cloning {providerRows.Count} rows ===");
+
             int rowIdx = 0;
-            foreach (var r in _provider.Rows)
+            foreach (var r in providerRows)
             {
                 var er = new EditableDataControl.ViewModels.TableRowModel();
                 foreach (var km in keyMap)
                 {
                     var val = TryGetCellValue(r, km.SourceKey) ?? "";
                     er[km.EditorKey] = val;
-                    System.Diagnostics.Debug.WriteLine($"  Row {rowIdx}, Key '{km.EditorKey}' = '{val}'");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"  Row {rowIdx}, Key '{km.EditorKey}' = '{val}'");
                 }
                 eRows.Add(er);
                 rowIdx++;
             }
 
             // 5) Create VM and bind (use the disambiguated alias)
-            System.Diagnostics.Debug.WriteLine($"\n=== Creating VM with {eCols.Count} columns and {eRows.Count} rows ===");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"=== Creating VM with {eCols.Count} columns and {eRows.Count} rows ===");
             var vm = EditorVm.From(_provider.Title, eCols, eRows);
-            System.Diagnostics.Debug.WriteLine($"VM created: Columns={vm.Columns.Count}, Rows={vm.Rows.Count}");
-            
+            TestCaseEditorApp.Services.Logging.Log.Debug($"VM created: Columns={vm?.Columns.Count ?? 0}, Rows={vm?.Rows.Count ?? 0}");
+
             // Set the EditorViewModel property - binding will handle the rest
-            EditorControl.EditorViewModel = vm;
-            System.Diagnostics.Debug.WriteLine($"Set EditorControl.EditorViewModel to VM with {vm.Rows.Count} rows");
+            if (EditorControl != null && vm != null)
+            {
+                EditorControl.EditorViewModel = vm;
+                TestCaseEditorApp.Services.Logging.Log.Debug($"Set EditorControl.EditorViewModel to VM with {vm.Rows.Count} rows");
+            }
             
             // Also set window DataContext for consistency
             DataContext = vm;
@@ -115,7 +121,7 @@ namespace TestCaseEditorApp.MVVM.Views
         private void Ok_Click(object sender, RoutedEventArgs e)
         {
             var editorVm = DataContext as EditorVm;
-            Debug.WriteLine($"[Editor OK] DataContext type: {editorVm?.GetType().FullName ?? "<null>"}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Editor OK] DataContext type: {editorVm?.GetType().FullName ?? "<null>"}");
 
             if (editorVm == null)
             {
@@ -126,16 +132,16 @@ namespace TestCaseEditorApp.MVVM.Views
 
             if (_provider is EditableDataControl.ViewModels.ProviderBackplane providerBackplane)
             {
-                Debug.WriteLine($"[Editor OK] Provider IS backplane: {_provider.GetType().FullName}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Editor OK] Provider IS backplane: {_provider.GetType().FullName}");
                 editorVm.ApplyTo(providerBackplane);
-                Debug.WriteLine("[Editor OK] Applied to provider backplane.");
+                TestCaseEditorApp.Services.Logging.Log.Debug("[Editor OK] Applied to provider backplane.");
                 _provider.Title = editorVm.Title ?? string.Empty;
                 DialogResult = true;
                 Close();
                 return;
             }
 
-            Debug.WriteLine($"[Editor OK] Provider is NOT backplane: {_provider.GetType().FullName} — using scratch path.");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Editor OK] Provider is NOT backplane: {_provider.GetType().FullName} — using scratch path.");
             editorVm.ApplyTo(this);
 
             // Write scratch back to provider (no model write-through here!)
@@ -210,10 +216,13 @@ namespace TestCaseEditorApp.MVVM.Views
                     var cellType = cells.GetType().GetGenericArguments().FirstOrDefault();
                     if (cellType != null)
                     {
-                        var newCell = System.Activator.CreateInstance(cellType);
-                        cellType.GetProperty("Key")?.SetValue(newCell, key);
-                        cellType.GetProperty("Value")?.SetValue(newCell, value ?? "");
-                        cells.Add(newCell);
+                            var newCell = System.Activator.CreateInstance(cellType);
+                            if (newCell != null)
+                            {
+                                cellType.GetProperty("Key")?.SetValue(newCell, key);
+                                cellType.GetProperty("Value")?.SetValue(newCell, value ?? "");
+                                cells.Add(newCell);
+                            }
                         return;
                     }
                 }

@@ -39,6 +39,7 @@ namespace TestCaseEditorApp.Import
             int shown = 0;
             foreach (var r in list)
             {
+                if (r == null) continue;
                 if (shown++ >= MaxRequirements) break;
                 PrintRequirement(r, shown);
             }
@@ -140,7 +141,7 @@ namespace TestCaseEditorApp.Import
 
         // --- Helpers -------------------------------------------------------
 
-        private static void Log(string s) => System.Diagnostics.Debug.WriteLine(s);
+        private static void Log(string s) => TestCaseEditorApp.Services.Logging.Log.Debug(s);
 
         private static string Trunc(string s, int max)
         {
@@ -154,8 +155,9 @@ namespace TestCaseEditorApp.Import
         /// Attempts to read a simple property by name (Status, Version, GlobalId, etc.) without
         /// hard-binding to your model; returns empty string if missing.
         /// </summary>
-        private static string SafeReflect(Requirement r, string propName)
+        private static string SafeReflect(Requirement? r, string propName)
         {
+            if (r == null) return "";
             try
             {
                 var pi = r.GetType().GetProperty(propName);
