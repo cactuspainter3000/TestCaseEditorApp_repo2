@@ -826,9 +826,21 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         partial void OnIsClarifyingCommandRunningChanged(bool value)
         {
             // If ClarifyCommand is running, set session state appropriately
-            if (value) _sessionState = SessionState.Generating;
-            else if (PendingQuestions != null && PendingQuestions.Count > 0) _sessionState = SessionState.QuestionsDisplayed;
-            else _sessionState = SessionState.Idle;
+            if (value) 
+            {
+                _sessionState = SessionState.Generating;
+                NotifySmartButtonProperties();
+            }
+            else if (PendingQuestions != null && PendingQuestions.Count > 0) 
+            {
+                _sessionState = SessionState.QuestionsDisplayed;
+                NotifySmartButtonProperties();
+            }
+            else 
+            {
+                _sessionState = SessionState.Idle;
+                NotifySmartButtonProperties();
+            }
 
             NotifySmartButtonProperties();
             ClarifyCommand.NotifyCanExecuteChanged();
@@ -1029,6 +1041,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             if (q == null) return;
 
+            await Task.CompletedTask;
             Application.Current?.Dispatcher?.Invoke(() =>
             {
                 q.MarkedAsAssumption = true;
@@ -1038,7 +1051,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     SuggestedDefaults.Add(di);
                 }
-
                 // Start fade-out animation
                 q.IsFadingOut = true;
             });
@@ -1223,6 +1235,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             if (q == null) return;
 
+            await Task.CompletedTask;
             // Prevent submitting if LLM is already busy
             if (_headerVm != null && _headerVm.IsLlmBusy)
             {

@@ -79,13 +79,13 @@ namespace TestCaseEditorApp.MVVM.Views
 
             var vm = DataContext;
             TestCaseEditorApp.Services.Logging.Log.Debug($"MainWindow DataContext = {vm?.GetType().FullName ?? "<null>"}");
-            var props = vm?.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public);
-            if (props == null || vm == null)
+            if (vm == null)
             {
-                TestCaseEditorApp.Services.Logging.Log.Debug("No public properties on DataContext.");
+                TestCaseEditorApp.Services.Logging.Log.Debug("No DataContext for MainWindow.");
                 return;
             }
 
+            var props = vm.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public);
             var nonNullVm = vm; // local non-null alias for analyzer
             foreach (var p in props)
             {
@@ -214,11 +214,14 @@ namespace TestCaseEditorApp.MVVM.Views
                 foreach (var name in commandNames)
                 {
                     var prop = vmType?.GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase);
-                    var hasProp = prop != null;
-                    object? val = (hasProp && vm != null) ? prop.GetValue(vm) : null;
+                    object? val = null;
+                    if (prop != null && vm != null)
+                    {
+                        val = prop.GetValue(vm);
+                    }
                     bool isIcmd = val is System.Windows.Input.ICommand;
                     var valueType = val?.GetType()?.FullName ?? "null";
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[CMD CHECK] {name}: propExists={hasProp}, valueType={valueType}, isICommand={isIcmd}");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[CMD CHECK] {name}: propExists={prop != null}, valueType={valueType}, isICommand={isIcmd}");
                     if (isIcmd)
                     {
                         var cmd = val as System.Windows.Input.ICommand;

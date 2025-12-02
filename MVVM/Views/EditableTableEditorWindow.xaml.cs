@@ -205,7 +205,7 @@ namespace TestCaseEditorApp.MVVM.Views
             var cells = cellsProp?.GetValue(appRow) as System.Collections.IList;
             if (cells != null)
             {
-                object found = null;
+                object? found = null;
                 foreach (var cell in cells)
                 {
                     var k = cell.GetType().GetProperty("Key")?.GetValue(cell)?.ToString();

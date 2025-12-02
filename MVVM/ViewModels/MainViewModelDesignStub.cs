@@ -43,7 +43,7 @@
             try
             {
                 // Pass a single null argument (will be mapped to the ITestCaseGenerator_Navigator parameter if present).
-                var created = Activator.CreateInstance(typeof(TestCaseGenerator_NavigationVM), new object[] { null }) as TestCaseGenerator_NavigationVM;
+                var created = Activator.CreateInstance(typeof(TestCaseGenerator_NavigationVM), new object?[] { null }) as TestCaseGenerator_NavigationVM;
                 Navigation.RequirementsNav = created;
             }
             catch

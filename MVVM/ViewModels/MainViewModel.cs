@@ -1331,6 +1331,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Save As - prompts for location
         public async Task SaveWorkspaceAsync()
         {
+            // Ensure async methods contain an await to satisfy analyzer when method is mostly synchronous
+            await Task.CompletedTask;
             if (Requirements == null || Requirements.Count == 0)
             {
                 SetTransientStatus("Nothing to save.", 2);
@@ -1504,6 +1506,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         private async Task ReAnalyzeRequirementAsync()
         {
+            await Task.CompletedTask;
             try
             {
                 var tcg = GetTestCaseGeneratorInstance();
@@ -1890,11 +1893,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 sw.Stop();
 
-                // Build workspace model
+                // Build workspace model (guard reqs if null)
                 CurrentWorkspace = new Workspace
                 {
                     SourceDocPath = path,
-                    Requirements = reqs.ToList()
+                    Requirements = reqs?.ToList() ?? new List<Requirement>()
                 };
 
                 // Update UI-bound collection: preserve existing ObservableCollection instance
@@ -1956,7 +1959,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         private string _file_dialog_show_save_helper(string suggestedFileName, string initialDirectory)
-            => _fileDialog.ShowSaveFile(title: "Create Workspace", suggestedFileName: suggestedFileName, filter: "Test Case Editor Session|*.tcex.json|JSON|*.json|All Files|*.*", defaultExt: ".tcex.json", initialDirectory: initialDirectory);
+            => _fileDialog.ShowSaveFile(title: "Create Workspace", suggestedFileName: suggestedFileName, filter: "Test Case Editor Session|*.tcex.json|JSON|*.json|All Files|*.*", defaultExt: ".tcex.json", initialDirectory: initialDirectory) ?? string.Empty;
 
         private void SetTransientStatus(string message, int seconds = 3, bool blockingError = false)
         {
