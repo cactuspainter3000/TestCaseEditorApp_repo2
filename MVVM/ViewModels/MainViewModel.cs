@@ -118,8 +118,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     OnCurrentRequirementChanged(value);
                     
                     // Update workspace header CanReAnalyze state
-                    _workspaceHeaderViewModel.CanReAnalyze = (value != null && !IsLlmBusy);
-                    ((AsyncRelayCommand?)_workspaceHeaderViewModel.ReAnalyzeCommand)?.NotifyCanExecuteChanged();
+                    if (_workspaceHeaderViewModel != null)
+                    {
+                        _workspaceHeaderViewModel.CanReAnalyze = (value != null && !IsLlmBusy);
+                        ((AsyncRelayCommand?)_workspaceHeaderViewModel.ReAnalyzeCommand)?.NotifyCanExecuteChanged();
+                    }
 
                     // Defensive final step: always forward to header(s)
                     try
@@ -174,6 +177,23 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             get => _currentSourcePath;
             set => SetProperty(ref _currentSourcePath, value);
         }
+
+        // User setting: auto-run requirement analysis after importing a workspace/source
+        private bool _autoAnalyzeOnImport = true;
+        public bool AutoAnalyzeOnImport
+        {
+            get => _autoAnalyzeOnImport;
+            set
+            {
+                if (SetProperty(ref _autoAnalyzeOnImport, value))
+                {
+                    try { _persistence?.Save("AutoAnalyzeOnImport", value); } catch { }
+                }
+            }
+        }
+
+        // Command to toggle auto-analysis (useful for binding to a settings checkbox/menu)
+        public ICommand ToggleAutoAnalyzeCommand { get; }
 
         private ObservableCollection<LooseTableViewModel> _looseTables = new ObservableCollection<LooseTableViewModel>();
         public ObservableCollection<LooseTableViewModel> LooseTables => _looseTables;
@@ -342,8 +362,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     NextWithoutTestCaseCommand?.NotifyCanExecuteChanged();
                     
                     // Update workspace header CanReAnalyze state
-                    _workspaceHeaderViewModel.CanReAnalyze = (CurrentRequirement != null && !value);
-                    ((AsyncRelayCommand?)_workspaceHeaderViewModel.ReAnalyzeCommand)?.NotifyCanExecuteChanged();
+                    if (_workspaceHeaderViewModel != null)
+                    {
+                        _workspaceHeaderViewModel.CanReAnalyze = (CurrentRequirement != null && !value);
+                        ((AsyncRelayCommand?)_workspaceHeaderViewModel.ReAnalyzeCommand)?.NotifyCanExecuteChanged();
+                    }
                 }
             }
         }
@@ -428,6 +451,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Initialize recent files service
             try { _recentFilesService = new RecentFilesService(); } catch { }
             
+            // Load persisted user preference for auto-analysis on import (default: true)
+            try
+            {
+                if (_persistence != null && _persistence.Exists("AutoAnalyzeOnImport"))
+                {
+                    var val = _persistence.Load<bool>("AutoAnalyzeOnImport");
+                    _autoAnalyzeOnImport = val;
+                }
+            }
+            catch { /* ignore persistence errors */ }
+
+            // Initialize toggle command for UI binding
+            ToggleAutoAnalyzeCommand = new RelayCommand(() => AutoAnalyzeOnImport = !AutoAnalyzeOnImport);
+
             // Initialize analysis service for auto-analysis during import
             try
             {
@@ -1875,8 +1912,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 CurrentWorkspace.Requirements = Requirements.ToList();
 
-                // Auto-analyze requirements if LLM is available
-                if (_analysisService != null && reqs.Any())
+                // Auto-analyze requirements if the analysis service is available and user enabled the feature
+                if (_analysisService != null && reqs.Any() && AutoAnalyzeOnImport)
                 {
                     _ = Task.Run(async () => await BatchAnalyzeRequirementsAsync(reqs));
                 }
@@ -2395,7 +2432,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private class NoOpFileDialogService : IFileDialogService
         {
-            public string ShowSaveFile(string title, string suggestedFileName, string filter, string defaultExt, string initialDirectory) => string.Empty;
+            public string? ShowSaveFile(string title, string suggestedFileName, string filter, string defaultExt, string? initialDirectory = null) => null;
         }
 
         // Dispose/unsubscribe

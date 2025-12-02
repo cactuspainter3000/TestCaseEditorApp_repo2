@@ -15,6 +15,7 @@
     <UserControl.Resources>
         <conv:SectionSelectedConverter x:Key="SectionSelectedConverter" />
         <conv:AllTrueToVisibilityConverter x:Key="AllTrueToVisibilityConverter" />
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </UserControl.Resources>
 
     <Border Style="{StaticResource MenuSectionBorderStyle}">
@@ -236,6 +237,22 @@
                                                 <Button Command="{Binding DataContext.LoadWorkspaceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                         Style="{StaticResource SideMenuPopupButtonStyle}">
                                                     <TextBlock Text="Import In-Process…" TextWrapping="Wrap" />
+                                                </Button>
+
+                                                <!-- Toggle to control auto-analysis after import (styled like other menu buttons) -->
+                                                <Button Command="{Binding DataContext.ToggleAutoAnalyzeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}"
+                                                        ToolTip="When enabled, automatically run requirement analysis after importing."
+                                                        Margin="0,6,0,0">
+                                                    <DockPanel>
+                                                        <TextBlock Text="Analyze on import" Foreground="White" />
+                                                        <TextBlock Text="✔"
+                                                                   Foreground="LightGreen"
+                                                                   FontWeight="Bold"
+                                                                   Margin="8,0,0,0"
+                                                                   DockPanel.Dock="Right"
+                                                                   Visibility="{Binding DataContext.AutoAnalyzeOnImport, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
+                                                    </DockPanel>
                                                 </Button>
 
                                                 <Separator Margin="0,3"/>
