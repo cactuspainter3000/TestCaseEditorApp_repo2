@@ -1,3 +1,0 @@
-﻿2025-12-03T15:31:38.8977143Z Cleaning up orphan processes
-2025-12-03T15:31:38.9339024Z Terminate orphan process: pid (4588) (VBCSCompiler)
-2025-12-03T15:31:38.9430923Z Terminate orphan process: pid (9176) (conhost)

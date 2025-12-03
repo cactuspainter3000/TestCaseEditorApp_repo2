@@ -1,8 +1,0 @@
-﻿2025-12-03T15:31:35.6159079Z ##[group]Run dotnet run --project Tests/WorkspaceService.Runner/WorkspaceService.Runner.csproj --configuration Release --no-build --verbosity minimal
-2025-12-03T15:31:35.6160213Z [36;1mdotnet run --project Tests/WorkspaceService.Runner/WorkspaceService.Runner.csproj --configuration Release --no-build --verbosity minimal[0m
-2025-12-03T15:31:35.6223675Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
-2025-12-03T15:31:35.6224029Z env:
-2025-12-03T15:31:35.6224540Z   DOTNET_ROOT: C:\Program Files\dotnet
-2025-12-03T15:31:35.6224787Z ##[endgroup]
-2025-12-03T15:31:36.5630621Z Unhandled exception: An error occurred trying to start process 'D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Runner\bin\Release\net8.0-windows\WorkspaceService.Runner.exe' with working directory 'D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2'. The system cannot find the file specified.
-2025-12-03T15:31:36.6940059Z ##[error]Process completed with exit code 1.

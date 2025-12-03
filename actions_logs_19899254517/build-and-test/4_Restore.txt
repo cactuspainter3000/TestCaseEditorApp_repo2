@@ -1,8 +1,0 @@
-﻿2025-12-03T15:29:28.0881916Z ##[group]Run dotnet restore TestCaseEditorApp.csproj
-2025-12-03T15:29:28.0882377Z [36;1mdotnet restore TestCaseEditorApp.csproj[0m
-2025-12-03T15:29:28.0950183Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
-2025-12-03T15:29:28.0950526Z env:
-2025-12-03T15:29:28.0950712Z   DOTNET_ROOT: C:\Program Files\dotnet
-2025-12-03T15:29:28.0950938Z ##[endgroup]
-2025-12-03T15:30:00.6067427Z   Determining projects to restore...
-2025-12-03T15:30:21.3316477Z   Restored D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj (in 16.08 sec).

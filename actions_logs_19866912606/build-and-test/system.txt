@@ -1,5 +1,0 @@
-2025-12-02T17:03:40.4570000Z Requested labels: windows-latest
-2025-12-02T17:03:40.4570000Z Job defined at: cactuspainter3000/TestCaseEditorApp_repo2/.github/workflows/ci.yml@refs/heads/patch/auto-analyze-on-import
-2025-12-02T17:03:40.4570000Z Waiting for a runner to pick up this job...
-2025-12-02T17:03:40.9570000Z Job is waiting for a hosted runner to come online.
-2025-12-02T17:03:40.9580000Z Job is about to start running on the hosted runner: GitHub Actions 1000000015

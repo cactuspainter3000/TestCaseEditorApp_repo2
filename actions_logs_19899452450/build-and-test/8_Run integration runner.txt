@@ -1,7 +1,0 @@
-﻿2025-12-03T15:36:26.3057796Z ##[group]Run dotnet run --project Tests/WorkspaceService.Runner/WorkspaceService.Runner.csproj --configuration Release --no-build --verbosity minimal
-2025-12-03T15:36:26.3059209Z [36;1mdotnet run --project Tests/WorkspaceService.Runner/WorkspaceService.Runner.csproj --configuration Release --no-build --verbosity minimal[0m
-2025-12-03T15:36:26.3120894Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
-2025-12-03T15:36:26.3121373Z env:
-2025-12-03T15:36:26.3121614Z   DOTNET_ROOT: C:\Program Files\dotnet
-2025-12-03T15:36:26.3121942Z ##[endgroup]
-2025-12-03T15:36:27.2842906Z Runner: all checks passed
