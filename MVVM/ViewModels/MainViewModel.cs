@@ -1963,33 +1963,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private void SetTransientStatus(string message, int seconds = 3, bool blockingError = false)
         {
-            // For critical errors, show a blocking modal dialog
-            if (blockingError)
-            {
-                MessageBox.Show(message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-            
-            // Use toast notifications for non-blocking messages
-            var toastType = ToastType.Info;
-            
-            // Detect error/warning messages and set appropriate toast type
-            var lowerMsg = message.ToLowerInvariant();
-            if (lowerMsg.Contains("fail") || lowerMsg.Contains("error"))
-            {
-                toastType = ToastType.Error;
-            }
-            else if (lowerMsg.Contains("cancel"))
-            {
-                toastType = ToastType.Warning;
-            }
-            else if (lowerMsg.Contains("saved") || lowerMsg.Contains("complete") || lowerMsg.Contains("created") || lowerMsg.Contains("opened"))
-            {
-                toastType = ToastType.Success;
-            }
-            
-            // New toast triggers existing toasts to fade out gracefully
-            _toastService.ShowToast(message, seconds, toastType);
+            TestCaseEditorApp.Services.TransientStatus.Show(_toastService, message, seconds, blockingError);
         }
 
         private void InitializeAutoSave()
