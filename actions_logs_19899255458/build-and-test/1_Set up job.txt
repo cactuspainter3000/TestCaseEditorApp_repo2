@@ -1,0 +1,30 @@
+﻿2025-12-03T15:28:25.5038313Z Current runner version: '2.329.0'
+2025-12-03T15:28:25.5125803Z ##[group]Runner Image Provisioner
+2025-12-03T15:28:25.5126607Z Hosted Compute Agent
+2025-12-03T15:28:25.5127172Z Version: 20251124.448
+2025-12-03T15:28:25.5127796Z Commit: fda5086b43ec66ade217e5fcd18146c879571177
+2025-12-03T15:28:25.5128409Z Build Date: 2025-11-24T21:16:26Z
+2025-12-03T15:28:25.5128978Z ##[endgroup]
+2025-12-03T15:28:25.5129527Z ##[group]Operating System
+2025-12-03T15:28:25.5130109Z Microsoft Windows Server 2025
+2025-12-03T15:28:25.5130616Z 10.0.26100
+2025-12-03T15:28:25.5131070Z Datacenter
+2025-12-03T15:28:25.5131473Z ##[endgroup]
+2025-12-03T15:28:25.5131955Z ##[group]Runner Image
+2025-12-03T15:28:25.5132463Z Image: windows-2025
+2025-12-03T15:28:25.5132924Z Version: 20251125.122.1
+2025-12-03T15:28:25.5134340Z Included Software: https://github.com/actions/runner-images/blob/win25/20251125.122/images/windows/Windows2025-Readme.md
+2025-12-03T15:28:25.5135661Z Image Release: https://github.com/actions/runner-images/releases/tag/win25%2F20251125.122
+2025-12-03T15:28:25.5137095Z ##[endgroup]
+2025-12-03T15:28:25.5138532Z ##[group]GITHUB_TOKEN Permissions
+2025-12-03T15:28:25.5140479Z Contents: read
+2025-12-03T15:28:25.5141165Z Metadata: read
+2025-12-03T15:28:25.5141618Z Packages: read
+2025-12-03T15:28:25.5142137Z ##[endgroup]
+2025-12-03T15:28:25.5144335Z Secret source: Actions
+2025-12-03T15:28:25.5145103Z Prepare workflow directory
+2025-12-03T15:28:25.5586849Z Prepare all required actions
+2025-12-03T15:28:25.5643718Z Getting action download info
+2025-12-03T15:28:25.9401357Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2025-12-03T15:28:26.6121925Z Download action repository 'actions/setup-dotnet@v4' (SHA:67a3573c9a986a3f9c594539f4ab511d57bb3ce9)
+2025-12-03T15:28:27.4490596Z Complete job name: build-and-test

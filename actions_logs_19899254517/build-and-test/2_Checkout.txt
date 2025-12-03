@@ -1,0 +1,59 @@
+﻿2025-12-03T15:28:30.3350347Z ##[group]Run actions/checkout@v4
+2025-12-03T15:28:30.3351774Z with:
+2025-12-03T15:28:30.3352638Z   repository: cactuspainter3000/TestCaseEditorApp_repo2
+2025-12-03T15:28:30.3354040Z   token: ***
+2025-12-03T15:28:30.3354729Z   ssh-strict: true
+2025-12-03T15:28:30.3355425Z   ssh-user: git
+2025-12-03T15:28:30.3356138Z   persist-credentials: true
+2025-12-03T15:28:30.3356943Z   clean: true
+2025-12-03T15:28:30.3357671Z   sparse-checkout-cone-mode: true
+2025-12-03T15:28:30.3358539Z   fetch-depth: 1
+2025-12-03T15:28:30.3359247Z   fetch-tags: false
+2025-12-03T15:28:30.3359954Z   show-progress: true
+2025-12-03T15:28:30.3360679Z   lfs: false
+2025-12-03T15:28:30.3361345Z   submodules: false
+2025-12-03T15:28:30.3362056Z   set-safe-directory: true
+2025-12-03T15:28:30.3363043Z ##[endgroup]
+2025-12-03T15:28:30.6187539Z Syncing repository: cactuspainter3000/TestCaseEditorApp_repo2
+2025-12-03T15:28:30.6190740Z ##[group]Getting Git version info
+2025-12-03T15:28:30.6192829Z Working directory is 'D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2'
+2025-12-03T15:28:30.7136375Z [command]"C:\Program Files\Git\bin\git.exe" version
+2025-12-03T15:28:33.1337463Z git version 2.52.0.windows.1
+2025-12-03T15:28:33.1392810Z ##[endgroup]
+2025-12-03T15:28:33.1413533Z Temporarily overriding HOME='D:\a\_temp\7fe06115-3648-45a4-a4b2-af0009da0e51' before making global git config changes
+2025-12-03T15:28:33.1414402Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-03T15:28:33.1425413Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2
+2025-12-03T15:28:33.3692565Z Deleting the contents of 'D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2'
+2025-12-03T15:28:33.3701352Z ##[group]Initializing the repository
+2025-12-03T15:28:33.3715994Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2
+2025-12-03T15:28:33.7388138Z Initialized empty Git repository in D:/a/TestCaseEditorApp_repo2/TestCaseEditorApp_repo2/.git/
+2025-12-03T15:28:33.7449708Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/cactuspainter3000/TestCaseEditorApp_repo2
+2025-12-03T15:28:33.9509059Z ##[endgroup]
+2025-12-03T15:28:33.9509815Z ##[group]Disabling automatic garbage collection
+2025-12-03T15:28:33.9521296Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2025-12-03T15:28:33.9849300Z ##[endgroup]
+2025-12-03T15:28:33.9849741Z ##[group]Setting up auth
+2025-12-03T15:28:33.9872098Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2025-12-03T15:28:34.0218146Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2025-12-03T15:28:38.9920428Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-03T15:28:39.0232155Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2025-12-03T15:28:40.0544086Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-03T15:28:40.0864591Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2025-12-03T15:28:41.0705632Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2025-12-03T15:28:41.1064935Z ##[endgroup]
+2025-12-03T15:28:41.1065763Z ##[group]Fetching the repository
+2025-12-03T15:28:41.1080731Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +9a6588abad9c6abcb47379bf1aa8ffaf9368823f:refs/remotes/origin/patch/auto-analyze-on-import-to-main
+2025-12-03T15:28:44.8085955Z From https://github.com/cactuspainter3000/TestCaseEditorApp_repo2
+2025-12-03T15:28:44.8086961Z  * [new ref]         9a6588abad9c6abcb47379bf1aa8ffaf9368823f -> origin/patch/auto-analyze-on-import-to-main
+2025-12-03T15:28:44.9066562Z ##[endgroup]
+2025-12-03T15:28:44.9067153Z ##[group]Determining the checkout info
+2025-12-03T15:28:44.9070713Z ##[endgroup]
+2025-12-03T15:28:44.9093455Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2025-12-03T15:28:45.0460749Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2025-12-03T15:28:45.0789895Z ##[group]Checking out the ref
+2025-12-03T15:28:45.0801602Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force -B patch/auto-analyze-on-import-to-main refs/remotes/origin/patch/auto-analyze-on-import-to-main
+2025-12-03T15:28:45.4054005Z branch 'patch/auto-analyze-on-import-to-main' set up to track 'origin/patch/auto-analyze-on-import-to-main'.
+2025-12-03T15:28:45.4085324Z Switched to a new branch 'patch/auto-analyze-on-import-to-main'
+2025-12-03T15:28:45.4127816Z ##[endgroup]
+2025-12-03T15:28:45.5035245Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2025-12-03T15:28:45.5530501Z 9a6588abad9c6abcb47379bf1aa8ffaf9368823f

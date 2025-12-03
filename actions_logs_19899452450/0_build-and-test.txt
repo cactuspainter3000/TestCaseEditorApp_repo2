@@ -1,0 +1,237 @@
+﻿2025-12-03T15:34:33.2906030Z Current runner version: '2.329.0'
+2025-12-03T15:34:33.2941162Z ##[group]Runner Image Provisioner
+2025-12-03T15:34:33.2942449Z Hosted Compute Agent
+2025-12-03T15:34:33.2943254Z Version: 20251016.436
+2025-12-03T15:34:33.2944177Z Commit: 8ab8ac8bfd662a3739dab9fe09456aba92132568
+2025-12-03T15:34:33.2945372Z Build Date: 2025-10-15T20:44:12Z
+2025-12-03T15:34:33.2946312Z ##[endgroup]
+2025-12-03T15:34:33.2947059Z ##[group]Operating System
+2025-12-03T15:34:33.2948010Z Microsoft Windows Server 2025
+2025-12-03T15:34:33.2948889Z 10.0.26100
+2025-12-03T15:34:33.2949638Z Datacenter
+2025-12-03T15:34:33.2950319Z ##[endgroup]
+2025-12-03T15:34:33.2951071Z ##[group]Runner Image
+2025-12-03T15:34:33.2951880Z Image: windows-2025
+2025-12-03T15:34:33.2952668Z Version: 20251102.77.1
+2025-12-03T15:34:33.2954408Z Included Software: https://github.com/actions/runner-images/blob/win25/20251102.77/images/windows/Windows2025-Readme.md
+2025-12-03T15:34:33.2957913Z Image Release: https://github.com/actions/runner-images/releases/tag/win25%2F20251102.77
+2025-12-03T15:34:33.2959715Z ##[endgroup]
+2025-12-03T15:34:33.2961609Z ##[group]GITHUB_TOKEN Permissions
+2025-12-03T15:34:33.2964102Z Contents: read
+2025-12-03T15:34:33.2964900Z Metadata: read
+2025-12-03T15:34:33.2965639Z Packages: read
+2025-12-03T15:34:33.2966435Z ##[endgroup]
+2025-12-03T15:34:33.2969311Z Secret source: Actions
+2025-12-03T15:34:33.2970423Z Prepare workflow directory
+2025-12-03T15:34:33.3325690Z Prepare all required actions
+2025-12-03T15:34:33.3366617Z Getting action download info
+2025-12-03T15:34:33.5706651Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2025-12-03T15:34:34.0525176Z Download action repository 'actions/setup-dotnet@v4' (SHA:67a3573c9a986a3f9c594539f4ab511d57bb3ce9)
+2025-12-03T15:34:34.6136908Z Complete job name: build-and-test
+2025-12-03T15:34:34.7675262Z ##[group]Run actions/checkout@v4
+2025-12-03T15:34:34.7676768Z with:
+2025-12-03T15:34:34.7677592Z   repository: cactuspainter3000/TestCaseEditorApp_repo2
+2025-12-03T15:34:34.7679072Z   token: ***
+2025-12-03T15:34:34.7679716Z   ssh-strict: true
+2025-12-03T15:34:34.7680362Z   ssh-user: git
+2025-12-03T15:34:34.7681041Z   persist-credentials: true
+2025-12-03T15:34:34.7681801Z   clean: true
+2025-12-03T15:34:34.7682475Z   sparse-checkout-cone-mode: true
+2025-12-03T15:34:34.7683319Z   fetch-depth: 1
+2025-12-03T15:34:34.7683976Z   fetch-tags: false
+2025-12-03T15:34:34.7684657Z   show-progress: true
+2025-12-03T15:34:34.7685754Z   lfs: false
+2025-12-03T15:34:34.7686396Z   submodules: false
+2025-12-03T15:34:34.7687102Z   set-safe-directory: true
+2025-12-03T15:34:34.7688150Z ##[endgroup]
+2025-12-03T15:34:34.9377319Z Syncing repository: cactuspainter3000/TestCaseEditorApp_repo2
+2025-12-03T15:34:34.9379969Z ##[group]Getting Git version info
+2025-12-03T15:34:34.9381313Z Working directory is 'D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2'
+2025-12-03T15:34:35.0533841Z [command]"C:\Program Files\Git\bin\git.exe" version
+2025-12-03T15:34:35.5308219Z git version 2.51.2.windows.1
+2025-12-03T15:34:35.5380431Z ##[endgroup]
+2025-12-03T15:34:35.5407247Z Temporarily overriding HOME='D:\a\_temp\2efa5b1a-d302-41ab-933a-3028516cc880' before making global git config changes
+2025-12-03T15:34:35.5409596Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-03T15:34:35.5418660Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2
+2025-12-03T15:34:35.6014522Z Deleting the contents of 'D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2'
+2025-12-03T15:34:35.6021941Z ##[group]Initializing the repository
+2025-12-03T15:34:35.6031525Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2
+2025-12-03T15:34:35.6861249Z Initialized empty Git repository in D:/a/TestCaseEditorApp_repo2/TestCaseEditorApp_repo2/.git/
+2025-12-03T15:34:35.6909447Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/cactuspainter3000/TestCaseEditorApp_repo2
+2025-12-03T15:34:35.7515210Z ##[endgroup]
+2025-12-03T15:34:35.7516511Z ##[group]Disabling automatic garbage collection
+2025-12-03T15:34:35.7524967Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2025-12-03T15:34:35.7866789Z ##[endgroup]
+2025-12-03T15:34:35.7868206Z ##[group]Setting up auth
+2025-12-03T15:34:35.7870015Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2025-12-03T15:34:35.8263799Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2025-12-03T15:34:37.3915093Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-03T15:34:37.4233229Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2025-12-03T15:34:38.0033234Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-03T15:34:38.0357106Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2025-12-03T15:34:38.6159083Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2025-12-03T15:34:38.6587574Z ##[endgroup]
+2025-12-03T15:34:38.6588465Z ##[group]Fetching the repository
+2025-12-03T15:34:38.6612657Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +9d5c750e2d0e2b648064a64b467198ea9eb1349c:refs/remotes/pull/3/merge
+2025-12-03T15:34:39.9253386Z From https://github.com/cactuspainter3000/TestCaseEditorApp_repo2
+2025-12-03T15:34:39.9254732Z  * [new ref]         9d5c750e2d0e2b648064a64b467198ea9eb1349c -> pull/3/merge
+2025-12-03T15:34:39.9584672Z ##[endgroup]
+2025-12-03T15:34:39.9585046Z ##[group]Determining the checkout info
+2025-12-03T15:34:39.9587710Z ##[endgroup]
+2025-12-03T15:34:39.9604708Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2025-12-03T15:34:40.0097752Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2025-12-03T15:34:40.0398314Z ##[group]Checking out the ref
+2025-12-03T15:34:40.0408500Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force refs/remotes/pull/3/merge
+2025-12-03T15:34:40.2458325Z Note: switching to 'refs/remotes/pull/3/merge'.
+2025-12-03T15:34:40.2458800Z 
+2025-12-03T15:34:40.2459170Z You are in 'detached HEAD' state. You can look around, make experimental
+2025-12-03T15:34:40.2459864Z changes and commit them, and you can discard any commits you make in this
+2025-12-03T15:34:40.2460562Z state without impacting any branches by switching back to a branch.
+2025-12-03T15:34:40.2461191Z 
+2025-12-03T15:34:40.2461477Z If you want to create a new branch to retain commits you create, you may
+2025-12-03T15:34:40.2462208Z do so (now or later) by using -c with the switch command. Example:
+2025-12-03T15:34:40.2462865Z 
+2025-12-03T15:34:40.2463619Z   git switch -c <new-branch-name>
+2025-12-03T15:34:40.2463936Z 
+2025-12-03T15:34:40.2464069Z Or undo this operation with:
+2025-12-03T15:34:40.2464341Z 
+2025-12-03T15:34:40.2464462Z   git switch -
+2025-12-03T15:34:40.2464634Z 
+2025-12-03T15:34:40.2464945Z Turn off this advice by setting config variable advice.detachedHead to false
+2025-12-03T15:34:40.2465381Z 
+2025-12-03T15:34:40.2466206Z HEAD is now at 9d5c750 Merge 4a6ec9c1ead73da53ac4741237269a65c635ab3e into 1c99bedc18fa95c8977f81e25ea344e72614ad57
+2025-12-03T15:34:40.2502031Z ##[endgroup]
+2025-12-03T15:34:40.2957303Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2025-12-03T15:34:40.3235958Z 9d5c750e2d0e2b648064a64b467198ea9eb1349c
+2025-12-03T15:34:40.3630649Z ##[group]Run actions/setup-dotnet@v4
+2025-12-03T15:34:40.3630951Z with:
+2025-12-03T15:34:40.3631110Z   dotnet-version: 8.0.x
+2025-12-03T15:34:40.3631301Z   cache: false
+2025-12-03T15:34:40.3631455Z ##[endgroup]
+2025-12-03T15:34:40.7352123Z [command]"C:\Program Files\PowerShell\7\pwsh.exe" -NoLogo -Sta -NoProfile -NonInteractive -ExecutionPolicy Unrestricted -Command & 'D:\a\_actions\actions\setup-dotnet\v4\externals\install-dotnet.ps1' -SkipNonVersionedFiles -Runtime dotnet -Channel LTS
+2025-12-03T15:34:49.7283789Z dotnet-install: Downloaded file https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.0/dotnet-runtime-10.0.0-win-x64.zip size is 37111780 bytes.
+2025-12-03T15:34:49.7294812Z dotnet-install: Either downloaded or local package size can not be measured. One of them may be corrupted.
+2025-12-03T15:34:49.7320720Z dotnet-install: Extracting the archive.
+2025-12-03T15:34:51.2032782Z dotnet-install: Note that the script does not ensure your Windows version is supported during the installation.
+2025-12-03T15:34:51.2040264Z dotnet-install: To check the list of supported versions, go to https://learn.microsoft.com/dotnet/core/install/windows#supported-versions
+2025-12-03T15:34:51.2046884Z dotnet-install: Installed version is 10.0.0
+2025-12-03T15:34:51.2055758Z dotnet-install: Installation finished
+2025-12-03T15:34:51.5730610Z [command]"C:\Program Files\PowerShell\7\pwsh.exe" -NoLogo -Sta -NoProfile -NonInteractive -ExecutionPolicy Unrestricted -Command & 'D:\a\_actions\actions\setup-dotnet\v4\externals\install-dotnet.ps1' -SkipNonVersionedFiles -Channel 8.0
+2025-12-03T15:34:58.0282571Z dotnet-install: Downloaded file https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.416/dotnet-sdk-8.0.416-win-x64.zip size is 285854895 bytes.
+2025-12-03T15:34:58.0298783Z dotnet-install: Either downloaded or local package size can not be measured. One of them may be corrupted.
+2025-12-03T15:34:58.0326380Z dotnet-install: Extracting the archive.
+2025-12-03T15:35:20.4242245Z dotnet-install: Note that the script does not ensure your Windows version is supported during the installation.
+2025-12-03T15:35:20.4246212Z dotnet-install: To check the list of supported versions, go to https://learn.microsoft.com/dotnet/core/install/windows#supported-versions
+2025-12-03T15:35:20.4252443Z dotnet-install: Installed version is 8.0.416
+2025-12-03T15:35:20.4257871Z dotnet-install: Installation finished
+2025-12-03T15:35:20.4978922Z ##[group]Run dotnet restore TestCaseEditorApp.csproj
+2025-12-03T15:35:20.4979481Z [36;1mdotnet restore TestCaseEditorApp.csproj[0m
+2025-12-03T15:35:20.5051901Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2025-12-03T15:35:20.5052318Z env:
+2025-12-03T15:35:20.5052594Z   DOTNET_ROOT: C:\Program Files\dotnet
+2025-12-03T15:35:20.5052864Z ##[endgroup]
+2025-12-03T15:35:28.0728115Z   Determining projects to restore...
+2025-12-03T15:35:41.0536218Z   Restored D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj (in 11.79 sec).
+2025-12-03T15:35:41.8175099Z ##[group]Run dotnet build TestCaseEditorApp.csproj --configuration Release --no-restore
+2025-12-03T15:35:41.8176212Z [36;1mdotnet build TestCaseEditorApp.csproj --configuration Release --no-restore[0m
+2025-12-03T15:35:41.8237929Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2025-12-03T15:35:41.8238222Z env:
+2025-12-03T15:35:41.8238387Z   DOTNET_ROOT: C:\Program Files\dotnet
+2025-12-03T15:35:41.8238616Z ##[endgroup]
+2025-12-03T15:36:03.3100455Z   TestCaseEditorApp -> D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\bin\Release\net8.0-windows\TestCaseEditorApp.dll
+2025-12-03T15:36:03.3498336Z 
+2025-12-03T15:36:03.3504379Z Build succeeded.
+2025-12-03T15:36:03.3505800Z     0 Warning(s)
+2025-12-03T15:36:03.3506079Z     0 Error(s)
+2025-12-03T15:36:03.3507070Z 
+2025-12-03T15:36:03.3507599Z Time Elapsed 00:00:21.02
+2025-12-03T15:36:03.3537505Z 
+2025-12-03T15:36:03.3538178Z Workload updates are available. Run `dotnet workload list` for more information.
+2025-12-03T15:36:03.7794142Z ##[group]Run pwsh -NoProfile -ExecutionPolicy Bypass -File ./run-tests.ps1
+2025-12-03T15:36:03.7794708Z [36;1mpwsh -NoProfile -ExecutionPolicy Bypass -File ./run-tests.ps1[0m
+2025-12-03T15:36:03.7860146Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2025-12-03T15:36:03.7860470Z env:
+2025-12-03T15:36:03.7860657Z   DOTNET_ROOT: C:\Program Files\dotnet
+2025-12-03T15:36:03.7860892Z ##[endgroup]
+2025-12-03T15:36:04.4616590Z 
+2025-12-03T15:36:04.4617811Z === Running tests for: D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\TestCaseEditorApp.Tests\TestCaseEditorApp.Tests.csproj ===
+2025-12-03T15:36:04.4618758Z 
+2025-12-03T15:36:05.1634871Z   Determining projects to restore...
+2025-12-03T15:36:14.6082837Z   Restored D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\TestCaseEditorApp.Tests\TestCaseEditorApp.Tests.csproj (in 9.22 sec).
+2025-12-03T15:36:15.4863568Z   TestCaseEditorApp.Tests -> D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\TestCaseEditorApp.Tests\bin\Debug\net8.0\TestCaseEditorApp.Tests.dll
+2025-12-03T15:36:15.5024471Z Test run for D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\TestCaseEditorApp.Tests\bin\Debug\net8.0\TestCaseEditorApp.Tests.dll (.NETCoreApp,Version=v8.0)
+2025-12-03T15:36:15.8004636Z VSTest version 17.14.1 (x64)
+2025-12-03T15:36:15.8055759Z 
+2025-12-03T15:36:16.2952176Z Starting test execution, please wait...
+2025-12-03T15:36:16.3608527Z A total of 1 test files matched the specified pattern.
+2025-12-03T15:36:17.2473704Z 
+2025-12-03T15:36:17.2523325Z Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 28 ms - TestCaseEditorApp.Tests.dll (net8.0)
+2025-12-03T15:36:17.2738308Z 
+2025-12-03T15:36:17.2739140Z Workload updates are available. Run `dotnet workload list` for more information.
+2025-12-03T15:36:17.5726649Z Tests succeeded for D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\TestCaseEditorApp.Tests\TestCaseEditorApp.Tests.csproj
+2025-12-03T15:36:17.5732181Z 
+2025-12-03T15:36:17.5732949Z === Running tests for: D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Runner\WorkspaceService.Runner.csproj ===
+2025-12-03T15:36:17.5733764Z 
+2025-12-03T15:36:18.1783570Z   Determining projects to restore...
+2025-12-03T15:36:18.4942177Z   Restored D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Runner\WorkspaceService.Runner.csproj (in 75 ms).
+2025-12-03T15:36:18.6354958Z 
+2025-12-03T15:36:18.6355790Z Workload updates are available. Run `dotnet workload list` for more information.
+2025-12-03T15:36:18.6591276Z Tests succeeded for D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Runner\WorkspaceService.Runner.csproj
+2025-12-03T15:36:18.6596540Z 
+2025-12-03T15:36:18.6597519Z === Running tests for: D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Tests\WorkspaceService.Tests.csproj ===
+2025-12-03T15:36:18.6598274Z 
+2025-12-03T15:36:19.2567880Z   Determining projects to restore...
+2025-12-03T15:36:23.0895031Z   Restored D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Tests\WorkspaceService.Tests.csproj (in 3.63 sec).
+2025-12-03T15:36:23.4075932Z C:\Program Files\dotnet\sdk\9.0.306\Microsoft.Common.CurrentVersion.targets(2433,5): warning MSB3245: Could not resolve this reference. Could not locate the assembly "TestCaseEditorApp". Check to make sure the assembly exists on disk. If this reference is required by your code, you may get compilation errors. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Tests\WorkspaceService.Tests.csproj]
+2025-12-03T15:36:23.8295964Z   WorkspaceService.Tests -> D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Tests\bin\Debug\net8.0-windows\WorkspaceService.Tests.dll
+2025-12-03T15:36:23.8476799Z Test run for D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Tests\bin\Debug\net8.0-windows\WorkspaceService.Tests.dll (.NETCoreApp,Version=v8.0)
+2025-12-03T15:36:23.9241187Z VSTest version 17.14.1 (x64)
+2025-12-03T15:36:23.9270168Z 
+2025-12-03T15:36:24.0129672Z Starting test execution, please wait...
+2025-12-03T15:36:24.0369345Z A total of 1 test files matched the specified pattern.
+2025-12-03T15:36:24.5410904Z No test is available in D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Tests\bin\Debug\net8.0-windows\WorkspaceService.Tests.dll. Make sure that test discoverer & executors are registered and platform & framework version settings are appropriate and try again.
+2025-12-03T15:36:24.6026081Z 
+2025-12-03T15:36:24.6097241Z Additionally, path to test adapters can be specified using /TestAdapterPath command. Example  /TestAdapterPath:<pathToCustomAdapters>.
+2025-12-03T15:36:24.6243317Z 
+2025-12-03T15:36:24.6244224Z Workload updates are available. Run `dotnet workload list` for more information.
+2025-12-03T15:36:24.6537919Z Tests succeeded for D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Tests\WorkspaceService.Tests.csproj
+2025-12-03T15:36:24.8021236Z ##[group]Run dotnet build Tests/WorkspaceService.Runner/WorkspaceService.Runner.csproj --configuration Release --no-restore
+2025-12-03T15:36:24.8022138Z [36;1mdotnet build Tests/WorkspaceService.Runner/WorkspaceService.Runner.csproj --configuration Release --no-restore[0m
+2025-12-03T15:36:24.8079610Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2025-12-03T15:36:24.8079913Z env:
+2025-12-03T15:36:24.8080073Z   DOTNET_ROOT: C:\Program Files\dotnet
+2025-12-03T15:36:24.8080298Z ##[endgroup]
+2025-12-03T15:36:26.0981081Z   WorkspaceService.Runner -> D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Runner\bin\Release\net8.0-windows\WorkspaceService.Runner.dll
+2025-12-03T15:36:26.1116540Z 
+2025-12-03T15:36:26.1122563Z Build succeeded.
+2025-12-03T15:36:26.1123037Z     0 Warning(s)
+2025-12-03T15:36:26.1123296Z     0 Error(s)
+2025-12-03T15:36:26.1130108Z 
+2025-12-03T15:36:26.1130462Z Time Elapsed 00:00:00.85
+2025-12-03T15:36:26.1280170Z 
+2025-12-03T15:36:26.1281014Z Workload updates are available. Run `dotnet workload list` for more information.
+2025-12-03T15:36:26.3057831Z ##[group]Run dotnet run --project Tests/WorkspaceService.Runner/WorkspaceService.Runner.csproj --configuration Release --no-build --verbosity minimal
+2025-12-03T15:36:26.3059213Z [36;1mdotnet run --project Tests/WorkspaceService.Runner/WorkspaceService.Runner.csproj --configuration Release --no-build --verbosity minimal[0m
+2025-12-03T15:36:26.3120910Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2025-12-03T15:36:26.3121378Z env:
+2025-12-03T15:36:26.3121619Z   DOTNET_ROOT: C:\Program Files\dotnet
+2025-12-03T15:36:26.3121945Z ##[endgroup]
+2025-12-03T15:36:27.2842946Z Runner: all checks passed
+2025-12-03T15:36:27.4264168Z Post job cleanup.
+2025-12-03T15:36:27.6551162Z Post job cleanup.
+2025-12-03T15:36:27.8957326Z [command]"C:\Program Files\Git\bin\git.exe" version
+2025-12-03T15:36:27.9234338Z git version 2.51.2.windows.1
+2025-12-03T15:36:27.9311116Z Temporarily overriding HOME='D:\a\_temp\be06a8e3-7da5-47d9-989c-a6224b144522' before making global git config changes
+2025-12-03T15:36:27.9311858Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-03T15:36:27.9322909Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2
+2025-12-03T15:36:27.9629586Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2025-12-03T15:36:27.9945251Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2025-12-03T15:36:28.5435604Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-03T15:36:28.5687116Z http.https://github.com/.extraheader
+2025-12-03T15:36:28.5732239Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+2025-12-03T15:36:28.6034843Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2025-12-03T15:36:29.1364247Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-03T15:36:29.1676447Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2025-12-03T15:36:29.7187365Z Cleaning up orphan processes
+2025-12-03T15:36:29.7586395Z Terminate orphan process: pid (7688) (dotnet)
+2025-12-03T15:36:29.7656680Z Terminate orphan process: pid (6768) (conhost)

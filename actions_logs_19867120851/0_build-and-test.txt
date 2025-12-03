@@ -1,0 +1,239 @@
+﻿2025-12-02T17:10:26.0719812Z Current runner version: '2.329.0'
+2025-12-02T17:10:26.0749471Z ##[group]Runner Image Provisioner
+2025-12-02T17:10:26.0750239Z Hosted Compute Agent
+2025-12-02T17:10:26.0750823Z Version: 20251016.436
+2025-12-02T17:10:26.0751412Z Commit: 8ab8ac8bfd662a3739dab9fe09456aba92132568
+2025-12-02T17:10:26.0752118Z Build Date: 2025-10-15T20:44:12Z
+2025-12-02T17:10:26.0752678Z ##[endgroup]
+2025-12-02T17:10:26.0753226Z ##[group]Operating System
+2025-12-02T17:10:26.0753774Z Microsoft Windows Server 2025
+2025-12-02T17:10:26.0754320Z 10.0.26100
+2025-12-02T17:10:26.0755155Z Datacenter
+2025-12-02T17:10:26.0755701Z ##[endgroup]
+2025-12-02T17:10:26.0756162Z ##[group]Runner Image
+2025-12-02T17:10:26.0756690Z Image: windows-2025
+2025-12-02T17:10:26.0757164Z Version: 20251102.77.1
+2025-12-02T17:10:26.0758104Z Included Software: https://github.com/actions/runner-images/blob/win25/20251102.77/images/windows/Windows2025-Readme.md
+2025-12-02T17:10:26.0759921Z Image Release: https://github.com/actions/runner-images/releases/tag/win25%2F20251102.77
+2025-12-02T17:10:26.0760904Z ##[endgroup]
+2025-12-02T17:10:26.0761982Z ##[group]GITHUB_TOKEN Permissions
+2025-12-02T17:10:26.0763764Z Contents: read
+2025-12-02T17:10:26.0764258Z Metadata: read
+2025-12-02T17:10:26.0764745Z Packages: read
+2025-12-02T17:10:26.0765209Z ##[endgroup]
+2025-12-02T17:10:26.0767526Z Secret source: Actions
+2025-12-02T17:10:26.0768190Z Prepare workflow directory
+2025-12-02T17:10:26.1091271Z Prepare all required actions
+2025-12-02T17:10:26.1129294Z Getting action download info
+2025-12-02T17:10:26.3463443Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2025-12-02T17:10:26.6757847Z Download action repository 'actions/setup-dotnet@v4' (SHA:67a3573c9a986a3f9c594539f4ab511d57bb3ce9)
+2025-12-02T17:10:27.1237480Z Complete job name: build-and-test
+2025-12-02T17:10:27.2651340Z ##[group]Run actions/checkout@v4
+2025-12-02T17:10:27.2652983Z with:
+2025-12-02T17:10:27.2653873Z   repository: cactuspainter3000/TestCaseEditorApp_repo2
+2025-12-02T17:10:27.2654986Z   token: ***
+2025-12-02T17:10:27.2655458Z   ssh-strict: true
+2025-12-02T17:10:27.2655930Z   ssh-user: git
+2025-12-02T17:10:27.2656417Z   persist-credentials: true
+2025-12-02T17:10:27.2656972Z   clean: true
+2025-12-02T17:10:27.2657454Z   sparse-checkout-cone-mode: true
+2025-12-02T17:10:27.2658055Z   fetch-depth: 1
+2025-12-02T17:10:27.2658532Z   fetch-tags: false
+2025-12-02T17:10:27.2658964Z   show-progress: true
+2025-12-02T17:10:27.2659359Z   lfs: false
+2025-12-02T17:10:27.2659724Z   submodules: false
+2025-12-02T17:10:27.2660129Z   set-safe-directory: true
+2025-12-02T17:10:27.2660837Z ##[endgroup]
+2025-12-02T17:10:27.4296647Z Syncing repository: cactuspainter3000/TestCaseEditorApp_repo2
+2025-12-02T17:10:27.4298556Z ##[group]Getting Git version info
+2025-12-02T17:10:27.4300020Z Working directory is 'D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2'
+2025-12-02T17:10:27.5297641Z [command]"C:\Program Files\Git\bin\git.exe" version
+2025-12-02T17:10:27.9045998Z git version 2.51.2.windows.1
+2025-12-02T17:10:27.9103491Z ##[endgroup]
+2025-12-02T17:10:27.9124786Z Temporarily overriding HOME='D:\a\_temp\492a8155-f73e-4b34-81f0-79fa363b20fe' before making global git config changes
+2025-12-02T17:10:27.9126640Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-02T17:10:27.9136654Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2
+2025-12-02T17:10:27.9646998Z Deleting the contents of 'D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2'
+2025-12-02T17:10:27.9653807Z ##[group]Initializing the repository
+2025-12-02T17:10:27.9662917Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2
+2025-12-02T17:10:28.0457571Z Initialized empty Git repository in D:/a/TestCaseEditorApp_repo2/TestCaseEditorApp_repo2/.git/
+2025-12-02T17:10:28.0508122Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/cactuspainter3000/TestCaseEditorApp_repo2
+2025-12-02T17:10:28.1098409Z ##[endgroup]
+2025-12-02T17:10:28.1100803Z ##[group]Disabling automatic garbage collection
+2025-12-02T17:10:28.1107417Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2025-12-02T17:10:28.1414020Z ##[endgroup]
+2025-12-02T17:10:28.1415124Z ##[group]Setting up auth
+2025-12-02T17:10:28.1428688Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2025-12-02T17:10:28.1750896Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2025-12-02T17:10:29.6169806Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-02T17:10:29.6454770Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2025-12-02T17:10:30.1551767Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-02T17:10:30.1837819Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2025-12-02T17:10:30.6810720Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2025-12-02T17:10:30.7103353Z ##[endgroup]
+2025-12-02T17:10:30.7103956Z ##[group]Fetching the repository
+2025-12-02T17:10:30.7118775Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +0dac5b27d28026381770cd6b748921a3057688a6:refs/remotes/pull/1/merge
+2025-12-02T17:10:31.6820515Z From https://github.com/cactuspainter3000/TestCaseEditorApp_repo2
+2025-12-02T17:10:31.6821257Z  * [new ref]         0dac5b27d28026381770cd6b748921a3057688a6 -> pull/1/merge
+2025-12-02T17:10:31.7125496Z ##[endgroup]
+2025-12-02T17:10:31.7126307Z ##[group]Determining the checkout info
+2025-12-02T17:10:31.7127405Z ##[endgroup]
+2025-12-02T17:10:31.7139040Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2025-12-02T17:10:31.7617518Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2025-12-02T17:10:31.7921435Z ##[group]Checking out the ref
+2025-12-02T17:10:31.7930185Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force refs/remotes/pull/1/merge
+2025-12-02T17:10:31.9039236Z Note: switching to 'refs/remotes/pull/1/merge'.
+2025-12-02T17:10:31.9040007Z 
+2025-12-02T17:10:31.9040327Z You are in 'detached HEAD' state. You can look around, make experimental
+2025-12-02T17:10:31.9040952Z changes and commit them, and you can discard any commits you make in this
+2025-12-02T17:10:31.9041541Z state without impacting any branches by switching back to a branch.
+2025-12-02T17:10:31.9041961Z 
+2025-12-02T17:10:31.9042190Z If you want to create a new branch to retain commits you create, you may
+2025-12-02T17:10:31.9043137Z do so (now or later) by using -c with the switch command. Example:
+2025-12-02T17:10:31.9043825Z 
+2025-12-02T17:10:31.9044012Z   git switch -c <new-branch-name>
+2025-12-02T17:10:31.9044323Z 
+2025-12-02T17:10:31.9044444Z Or undo this operation with:
+2025-12-02T17:10:31.9044663Z 
+2025-12-02T17:10:31.9044812Z   git switch -
+2025-12-02T17:10:31.9044999Z 
+2025-12-02T17:10:31.9045200Z Turn off this advice by setting config variable advice.detachedHead to false
+2025-12-02T17:10:31.9045509Z 
+2025-12-02T17:10:31.9045908Z HEAD is now at 0dac5b2 Merge 7389269b01360f532a0d41da256b9431e07a28f6 into 0518b56a3187075efeda670fd9843b3aa0a3b824
+2025-12-02T17:10:31.9474809Z ##[endgroup]
+2025-12-02T17:10:31.9483067Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2025-12-02T17:10:31.9745606Z 0dac5b27d28026381770cd6b748921a3057688a6
+2025-12-02T17:10:32.0151422Z ##[group]Run actions/setup-dotnet@v4
+2025-12-02T17:10:32.0151799Z with:
+2025-12-02T17:10:32.0152065Z   dotnet-version: 8.0.x
+2025-12-02T17:10:32.0152332Z   cache: false
+2025-12-02T17:10:32.0152597Z ##[endgroup]
+2025-12-02T17:10:32.3610012Z [command]"C:\Program Files\PowerShell\7\pwsh.exe" -NoLogo -Sta -NoProfile -NonInteractive -ExecutionPolicy Unrestricted -Command & 'D:\a\_actions\actions\setup-dotnet\v4\externals\install-dotnet.ps1' -SkipNonVersionedFiles -Runtime dotnet -Channel LTS
+2025-12-02T17:10:40.0959112Z dotnet-install: Downloaded file https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.0/dotnet-runtime-10.0.0-win-x64.zip size is 37111780 bytes.
+2025-12-02T17:10:40.0970391Z dotnet-install: Either downloaded or local package size can not be measured. One of them may be corrupted.
+2025-12-02T17:10:40.0994794Z dotnet-install: Extracting the archive.
+2025-12-02T17:10:41.3352126Z dotnet-install: Note that the script does not ensure your Windows version is supported during the installation.
+2025-12-02T17:10:41.3356975Z dotnet-install: To check the list of supported versions, go to https://learn.microsoft.com/dotnet/core/install/windows#supported-versions
+2025-12-02T17:10:41.3362622Z dotnet-install: Installed version is 10.0.0
+2025-12-02T17:10:41.3368819Z dotnet-install: Installation finished
+2025-12-02T17:10:41.6753804Z [command]"C:\Program Files\PowerShell\7\pwsh.exe" -NoLogo -Sta -NoProfile -NonInteractive -ExecutionPolicy Unrestricted -Command & 'D:\a\_actions\actions\setup-dotnet\v4\externals\install-dotnet.ps1' -SkipNonVersionedFiles -Channel 8.0
+2025-12-02T17:10:47.3974171Z dotnet-install: Downloaded file https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.416/dotnet-sdk-8.0.416-win-x64.zip size is 285854895 bytes.
+2025-12-02T17:10:47.3991330Z dotnet-install: Either downloaded or local package size can not be measured. One of them may be corrupted.
+2025-12-02T17:10:47.4016473Z dotnet-install: Extracting the archive.
+2025-12-02T17:11:09.1094276Z dotnet-install: Note that the script does not ensure your Windows version is supported during the installation.
+2025-12-02T17:11:09.1098733Z dotnet-install: To check the list of supported versions, go to https://learn.microsoft.com/dotnet/core/install/windows#supported-versions
+2025-12-02T17:11:09.1103986Z dotnet-install: Installed version is 8.0.416
+2025-12-02T17:11:09.1109002Z dotnet-install: Installation finished
+2025-12-02T17:11:09.1846497Z ##[group]Run dotnet restore TestCaseEditorApp.csproj
+2025-12-02T17:11:09.1846959Z [36;1mdotnet restore TestCaseEditorApp.csproj[0m
+2025-12-02T17:11:09.1913550Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2025-12-02T17:11:09.1913882Z env:
+2025-12-02T17:11:09.1914053Z   DOTNET_ROOT: C:\Program Files\dotnet
+2025-12-02T17:11:09.1914280Z ##[endgroup]
+2025-12-02T17:11:16.4192634Z   Determining projects to restore...
+2025-12-02T17:11:28.0890755Z   Restored D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj (in 10.72 sec).
+2025-12-02T17:11:28.2423671Z ##[group]Run dotnet build TestCaseEditorApp.csproj --configuration Release --no-restore
+2025-12-02T17:11:28.2424345Z [36;1mdotnet build TestCaseEditorApp.csproj --configuration Release --no-restore[0m
+2025-12-02T17:11:28.2484447Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2025-12-02T17:11:28.2484751Z env:
+2025-12-02T17:11:28.2484922Z   DOTNET_ROOT: C:\Program Files\dotnet
+2025-12-02T17:11:28.2485151Z ##[endgroup]
+2025-12-02T17:11:44.3851393Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Controls\EditableDataControl\MVVM\ViewModels\EditableTableEditorViewModel.cs(82,56): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:44.3864776Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Controls\EditableDataControl\MVVM\ViewModels\EditableTableEditorViewModel.cs(83,60): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:44.3870312Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Controls\EditableDataControl\MVVM\ViewModels\EditableTableEditorViewModel.cs(85,68): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:44.3875150Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Controls\EditableDataControl\MVVM\ViewModels\EditableTableEditorViewModel.cs(86,74): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:44.3880358Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Controls\EditableDataControl\MVVM\ViewModels\EditableTableEditorViewModel.cs(87,72): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:44.3885303Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Models\Requirement.cs(272,20): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:44.3889073Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Views\MainWindow.xaml.cs(218,61): warning CS8602: Dereference of a possibly null reference. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:44.3891640Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Views\EditableTableEditorWindow.xaml.cs(208,32): warning CS8600: Converting null literal or possible null value to non-nullable type. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:44.3894494Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModelDesignStub.cs(46,111): warning CS8625: Cannot convert null literal to non-nullable reference type. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:44.3897831Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModel.cs(394,16): warning CS8618: Non-nullable field '_persistence' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:44.3903932Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModel.cs(1332,27): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:44.3908648Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\TestCaseGenerator_QuestionsVM.cs(1028,28): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:44.3912664Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModel.cs(1505,28): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:44.3916773Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\TestCaseGenerator_QuestionsVM.cs(1222,28): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:44.3920322Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModel.cs(1897,36): warning CS8604: Possible null reference argument for parameter 'source' in 'List<Requirement> Enumerable.ToList<Requirement>(IEnumerable<Requirement> source)'. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:44.3923037Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModel.cs(1959,16): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:48.3449296Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Controls\EditableDataControl\MVVM\ViewModels\EditableTableEditorViewModel.cs(82,56): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.3456244Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Controls\EditableDataControl\MVVM\ViewModels\EditableTableEditorViewModel.cs(83,60): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.3459886Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Controls\EditableDataControl\MVVM\ViewModels\EditableTableEditorViewModel.cs(85,68): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.3462521Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Controls\EditableDataControl\MVVM\ViewModels\EditableTableEditorViewModel.cs(86,74): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.3465831Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Controls\EditableDataControl\MVVM\ViewModels\EditableTableEditorViewModel.cs(87,72): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.3468530Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Views\EditableTableEditorWindow.xaml.cs(208,32): warning CS8600: Converting null literal or possible null value to non-nullable type. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.3471839Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModelDesignStub.cs(46,111): warning CS8625: Cannot convert null literal to non-nullable reference type. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.3474875Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Views\MainWindow.xaml.cs(218,61): warning CS8602: Dereference of a possibly null reference. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.3477183Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Models\Requirement.cs(272,20): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.3480184Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModel.cs(394,16): warning CS8618: Non-nullable field '_persistence' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.3484721Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModel.cs(1332,27): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.3488891Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModel.cs(1505,28): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.3494791Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModel.cs(1897,36): warning CS8604: Possible null reference argument for parameter 'source' in 'List<Requirement> Enumerable.ToList<Requirement>(IEnumerable<Requirement> source)'. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.3499313Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModel.cs(1959,16): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.3502948Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\TestCaseGenerator_QuestionsVM.cs(1028,28): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.3506795Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\TestCaseGenerator_QuestionsVM.cs(1222,28): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.4803828Z   TestCaseEditorApp -> D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\bin\Release\net8.0-windows\TestCaseEditorApp.dll
+2025-12-02T17:11:48.4900680Z 
+2025-12-02T17:11:48.4906494Z Build succeeded.
+2025-12-02T17:11:48.4906668Z 
+2025-12-02T17:11:48.4910752Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Controls\EditableDataControl\MVVM\ViewModels\EditableTableEditorViewModel.cs(82,56): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:48.4915190Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Controls\EditableDataControl\MVVM\ViewModels\EditableTableEditorViewModel.cs(83,60): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:48.4919816Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Controls\EditableDataControl\MVVM\ViewModels\EditableTableEditorViewModel.cs(85,68): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:48.4924883Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Controls\EditableDataControl\MVVM\ViewModels\EditableTableEditorViewModel.cs(86,74): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:48.4929172Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Controls\EditableDataControl\MVVM\ViewModels\EditableTableEditorViewModel.cs(87,72): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:48.4931636Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Models\Requirement.cs(272,20): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:48.4934380Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Views\MainWindow.xaml.cs(218,61): warning CS8602: Dereference of a possibly null reference. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:48.4937148Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Views\EditableTableEditorWindow.xaml.cs(208,32): warning CS8600: Converting null literal or possible null value to non-nullable type. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:48.4939691Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModelDesignStub.cs(46,111): warning CS8625: Cannot convert null literal to non-nullable reference type. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:48.4944636Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModel.cs(394,16): warning CS8618: Non-nullable field '_persistence' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:48.4948364Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModel.cs(1332,27): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:48.4953927Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\TestCaseGenerator_QuestionsVM.cs(1028,28): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:48.4960871Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModel.cs(1505,28): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:48.4968418Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\TestCaseGenerator_QuestionsVM.cs(1222,28): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:48.4974979Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModel.cs(1897,36): warning CS8604: Possible null reference argument for parameter 'source' in 'List<Requirement> Enumerable.ToList<Requirement>(IEnumerable<Requirement> source)'. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:48.4980042Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModel.cs(1959,16): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp_kysifl0l_wpftmp.csproj]
+2025-12-02T17:11:48.4984843Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Controls\EditableDataControl\MVVM\ViewModels\EditableTableEditorViewModel.cs(82,56): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.4989503Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Controls\EditableDataControl\MVVM\ViewModels\EditableTableEditorViewModel.cs(83,60): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.4993983Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Controls\EditableDataControl\MVVM\ViewModels\EditableTableEditorViewModel.cs(85,68): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.4998556Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Controls\EditableDataControl\MVVM\ViewModels\EditableTableEditorViewModel.cs(86,74): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.5003085Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Controls\EditableDataControl\MVVM\ViewModels\EditableTableEditorViewModel.cs(87,72): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.5008196Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Views\EditableTableEditorWindow.xaml.cs(208,32): warning CS8600: Converting null literal or possible null value to non-nullable type. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.5012799Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModelDesignStub.cs(46,111): warning CS8625: Cannot convert null literal to non-nullable reference type. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.5016932Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Views\MainWindow.xaml.cs(218,61): warning CS8602: Dereference of a possibly null reference. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.5021927Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\Models\Requirement.cs(272,20): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.5027452Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModel.cs(394,16): warning CS8618: Non-nullable field '_persistence' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.5034920Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModel.cs(1332,27): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.5042754Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModel.cs(1505,28): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.5048307Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModel.cs(1897,36): warning CS8604: Possible null reference argument for parameter 'source' in 'List<Requirement> Enumerable.ToList<Requirement>(IEnumerable<Requirement> source)'. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.5051060Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\MainViewModel.cs(1959,16): warning CS8603: Possible null reference return. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.5054372Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\TestCaseGenerator_QuestionsVM.cs(1028,28): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.5059076Z ##[warning]D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\MVVM\ViewModels\TestCaseGenerator_QuestionsVM.cs(1222,28): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.csproj]
+2025-12-02T17:11:48.5060842Z     32 Warning(s)
+2025-12-02T17:11:48.5061003Z     0 Error(s)
+2025-12-02T17:11:48.5061105Z 
+2025-12-02T17:11:48.5061228Z Time Elapsed 00:00:19.73
+2025-12-02T17:11:48.5061461Z 
+2025-12-02T17:11:48.5061804Z Workload updates are available. Run `dotnet workload list` for more information.
+2025-12-02T17:11:48.9244729Z ##[group]Run dotnet run --project Tests/WorkspaceService.Runner/WorkspaceService.Runner.csproj --configuration Release --no-build --verbosity minimal
+2025-12-02T17:11:48.9245930Z [36;1mdotnet run --project Tests/WorkspaceService.Runner/WorkspaceService.Runner.csproj --configuration Release --no-build --verbosity minimal[0m
+2025-12-02T17:11:48.9304573Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2025-12-02T17:11:48.9304872Z env:
+2025-12-02T17:11:48.9305038Z   DOTNET_ROOT: C:\Program Files\dotnet
+2025-12-02T17:11:48.9305269Z ##[endgroup]
+2025-12-02T17:11:49.7777913Z Unhandled exception: An error occurred trying to start process 'D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Runner\bin\Release\net8.0-windows\WorkspaceService.Runner.exe' with working directory 'D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2'. The system cannot find the file specified.
+2025-12-02T17:11:49.9389152Z ##[error]Process completed with exit code 1.
+2025-12-02T17:11:49.9590295Z Post job cleanup.
+2025-12-02T17:11:50.2378837Z [command]"C:\Program Files\Git\bin\git.exe" version
+2025-12-02T17:11:50.2696095Z git version 2.51.2.windows.1
+2025-12-02T17:11:50.2788752Z Temporarily overriding HOME='D:\a\_temp\6dd98a01-70ea-4433-8026-e97a821baec5' before making global git config changes
+2025-12-02T17:11:50.2790237Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-02T17:11:50.2806053Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2
+2025-12-02T17:11:50.3248927Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2025-12-02T17:11:50.3691381Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2025-12-02T17:11:50.9377795Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-02T17:11:50.9735934Z http.https://github.com/.extraheader
+2025-12-02T17:11:50.9785421Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+2025-12-02T17:11:51.0106897Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2025-12-02T17:11:51.5872537Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-02T17:11:51.6215823Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2025-12-02T17:11:52.2286458Z Cleaning up orphan processes
+2025-12-02T17:11:52.2593864Z Terminate orphan process: pid (1008) (dotnet)
+2025-12-02T17:11:52.2665020Z Terminate orphan process: pid (9132) (conhost)

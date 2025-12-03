@@ -1,0 +1,42 @@
+﻿2025-12-03T15:38:06.0766165Z ##[group]Run pwsh -NoProfile -ExecutionPolicy Bypass -File ./run-tests.ps1
+2025-12-03T15:38:06.0766775Z [36;1mpwsh -NoProfile -ExecutionPolicy Bypass -File ./run-tests.ps1[0m
+2025-12-03T15:38:06.0828926Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2025-12-03T15:38:06.0829326Z env:
+2025-12-03T15:38:06.0829559Z   DOTNET_ROOT: C:\Program Files\dotnet
+2025-12-03T15:38:06.0829812Z ##[endgroup]
+2025-12-03T15:38:06.6993113Z 
+2025-12-03T15:38:06.6994314Z === Running tests for: D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\TestCaseEditorApp.Tests\TestCaseEditorApp.Tests.csproj ===
+2025-12-03T15:38:06.6995302Z 
+2025-12-03T15:38:07.4053470Z   Determining projects to restore...
+2025-12-03T15:38:23.6054268Z   Restored D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\TestCaseEditorApp.Tests\TestCaseEditorApp.Tests.csproj (in 15.96 sec).
+2025-12-03T15:38:24.6817254Z   TestCaseEditorApp.Tests -> D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\TestCaseEditorApp.Tests\bin\Debug\net8.0\TestCaseEditorApp.Tests.dll
+2025-12-03T15:38:24.6952061Z Test run for D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\TestCaseEditorApp.Tests\bin\Debug\net8.0\TestCaseEditorApp.Tests.dll (.NETCoreApp,Version=v8.0)
+2025-12-03T15:38:26.3171701Z VSTest version 18.0.1 (x64)
+2025-12-03T15:38:26.3785782Z 
+2025-12-03T15:38:29.8495947Z Starting test execution, please wait...
+2025-12-03T15:38:30.2452252Z A total of 1 test files matched the specified pattern.
+2025-12-03T15:38:56.7441075Z 
+2025-12-03T15:38:56.7478277Z Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 356 ms - TestCaseEditorApp.Tests.dll (net8.0)
+2025-12-03T15:38:56.8295986Z Tests succeeded for D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\TestCaseEditorApp.Tests\TestCaseEditorApp.Tests.csproj
+2025-12-03T15:38:56.8301271Z 
+2025-12-03T15:38:56.8302226Z === Running tests for: D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Runner\WorkspaceService.Runner.csproj ===
+2025-12-03T15:38:56.8303567Z 
+2025-12-03T15:38:57.6018492Z   Determining projects to restore...
+2025-12-03T15:38:57.9482190Z   Restored D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Runner\WorkspaceService.Runner.csproj (in 84 ms).
+2025-12-03T15:38:58.1434994Z Tests succeeded for D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Runner\WorkspaceService.Runner.csproj
+2025-12-03T15:38:58.1440282Z 
+2025-12-03T15:38:58.1441184Z === Running tests for: D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Tests\WorkspaceService.Tests.csproj ===
+2025-12-03T15:38:58.1442293Z 
+2025-12-03T15:38:58.8177279Z   Determining projects to restore...
+2025-12-03T15:39:07.8436899Z   Restored D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Tests\WorkspaceService.Tests.csproj (in 8.79 sec).
+2025-12-03T15:39:08.3256114Z C:\Program Files\dotnet\sdk\10.0.100\Microsoft.Common.CurrentVersion.targets(2437,5): warning MSB3245: Could not resolve this reference. Could not locate the assembly "TestCaseEditorApp". Check to make sure the assembly exists on disk. If this reference is required by your code, you may get compilation errors. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Tests\WorkspaceService.Tests.csproj]
+2025-12-03T15:39:08.7473472Z   WorkspaceService.Tests -> D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Tests\bin\Debug\net8.0-windows\WorkspaceService.Tests.dll
+2025-12-03T15:39:08.7637308Z Test run for D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Tests\bin\Debug\net8.0-windows\WorkspaceService.Tests.dll (.NETCoreApp,Version=v8.0)
+2025-12-03T15:39:08.8360333Z VSTest version 18.0.1 (x64)
+2025-12-03T15:39:08.8385892Z 
+2025-12-03T15:39:08.9260563Z Starting test execution, please wait...
+2025-12-03T15:39:08.9510365Z A total of 1 test files matched the specified pattern.
+2025-12-03T15:39:10.1594802Z No test is available in D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Tests\bin\Debug\net8.0-windows\WorkspaceService.Tests.dll. Make sure that test discoverer & executors are registered and platform & framework version settings are appropriate and try again.
+2025-12-03T15:39:10.2170088Z 
+2025-12-03T15:39:10.2219140Z Additionally, path to test adapters can be specified using /TestAdapterPath command. Example  /TestAdapterPath:<pathToCustomAdapters>.
+2025-12-03T15:39:10.2809077Z Tests succeeded for D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\Tests\WorkspaceService.Tests\WorkspaceService.Tests.csproj

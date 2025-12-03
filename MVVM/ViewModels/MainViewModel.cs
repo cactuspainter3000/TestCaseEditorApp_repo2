@@ -248,8 +248,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Timer for transient status messages
         private DispatcherTimer? _statusTimer;
 
-        // Auto-save timer for periodic workspace saves
-        private DispatcherTimer? _autoSaveTimer;
+        // Auto-save service for periodic workspace saves
+        private TestCaseEditorApp.Services.AutoSaveService? _autoSaveService;
         private const int AutoSaveIntervalMinutes = 5;
 
         // Recent files service for tracking recently opened workspaces
@@ -1246,8 +1246,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] Test write failed: {ex.Message}");
                 }
 
-                global::WorkspaceService.Save(WorkspacePath!, ws);
-                global::WorkspaceService.Save(WorkspacePath!, ws);
+                TestCaseEditorApp.Services.WorkspaceFileManager.Save(WorkspacePath!, ws);
+                TestCaseEditorApp.Services.WorkspaceFileManager.Save(WorkspacePath!, ws);
                 // Log detailed post-save diagnostics to help locate the written file
                 LogPostSaveDiagnostics(WorkspacePath!);
                 CurrentWorkspace = ws;
@@ -1310,7 +1310,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             try
             {
-                global::WorkspaceService.Save(WorkspacePath!, ws);
+                TestCaseEditorApp.Services.WorkspaceFileManager.Save(WorkspacePath!, ws);
                 // Log detailed post-save diagnostics to help locate the written file
                 LogPostSaveDiagnostics(WorkspacePath!);
                 CurrentWorkspace = ws;
@@ -1393,7 +1393,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 TestCaseEditorApp.Services.Logging.Log.Debug($"[SaveWorkspaceAsync] Saving workspace to: {chosen}");
                 SetTransientStatus($"Saving workspace to: {chosen}", 2);
 
-                global::WorkspaceService.Save(WorkspacePath!, ws);
+                TestCaseEditorApp.Services.WorkspaceFileManager.Save(WorkspacePath!, ws);
                 // Log detailed post-save diagnostics to help locate the written file
                 LogPostSaveDiagnostics(WorkspacePath!);
                 CurrentWorkspace = ws;
@@ -1428,7 +1428,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             WorkspacePath = ofd.FileName;
             try
             {
-                var ws = global::WorkspaceService.Load(WorkspacePath!);
+                var ws = TestCaseEditorApp.Services.WorkspaceFileManager.Load(WorkspacePath!);
                 if (ws == null)
                 {
                     SetTransientStatus("Failed to load workspace (file empty or invalid).", blockingError: true);
@@ -1811,7 +1811,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     try
                     {
-                        var ws = global::WorkspaceService.Load(path);
+                        var ws = TestCaseEditorApp.Services.WorkspaceFileManager.Load(path);
                         if (ws == null || (ws.Requirements?.Count ?? 0) == 0)
                         {
                             SetTransientStatus("Failed to load workspace (file empty or invalid).", blockingError: true);
@@ -1970,28 +1970,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             try
             {
-                _autoSaveTimer = new DispatcherTimer
-                {
-                    Interval = TimeSpan.FromMinutes(AutoSaveIntervalMinutes)
-                };
-                _autoSaveTimer.Tick += (_, __) =>
-                {
-                    try
-                    {
-                        if (IsDirty && !string.IsNullOrWhiteSpace(WorkspacePath) && CurrentWorkspace != null)
-                        {
-                            TestCaseEditorApp.Services.Logging.Log.Debug("[AutoSave] Saving workspace...");
-                            SaveWorkspace();
-                            SetTransientStatus($"Auto-saved at {DateTime.Now:HH:mm}", 2);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[AutoSave] Failed: {ex.Message}");
-                    }
-                };
-                _autoSaveTimer.Start();
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[AutoSave] Timer initialized ({AutoSaveIntervalMinutes} minute interval)");
+                _autoSaveService = new TestCaseEditorApp.Services.AutoSaveService(
+                    TimeSpan.FromMinutes(AutoSaveIntervalMinutes),
+                    () => IsDirty && !string.IsNullOrWhiteSpace(WorkspacePath) && CurrentWorkspace != null,
+                    () => { SaveWorkspace(); },
+                    (msg, secs) => SetTransientStatus(msg, secs)
+                );
+                _autoSaveService.Start();
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[AutoSave] Service initialized ({AutoSaveIntervalMinutes} minute interval)");
             }
             catch (Exception ex)
             {
@@ -2007,7 +1993,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             try
             {
                 if (!string.IsNullOrWhiteSpace(WorkspacePath) && WorkspaceService != null && CurrentWorkspace != null)
-                    global::WorkspaceService.Save(WorkspacePath!, CurrentWorkspace);
+                    TestCaseEditorApp.Services.WorkspaceFileManager.Save(WorkspacePath!, CurrentWorkspace);
             }
             catch (Exception ex) { _logger?.LogDebug(ex, "[SaveSessionAuto] failed"); }
         }
@@ -2019,96 +2005,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             try
             {
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Probing saved path: {path}");
-
-                try
-                {
-                    var fi = new FileInfo(path);
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] File Exists={fi.Exists}, Length={(fi.Exists ? fi.Length.ToString() : "N/A")}, LastWriteUtc={(fi.Exists ? fi.LastWriteTimeUtc.ToString("o") : "N/A")} ");
-                }
-                catch (Exception ex)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] File probe failed: {ex.Message}");
-                }
-
-                var metaPath = path + ".meta.txt";
-                try
-                {
-                    if (File.Exists(metaPath))
-                    {
-                        var lines = File.ReadAllLines(metaPath);
-                        var preview = string.Join(Environment.NewLine, lines.Take(Math.Min(20, lines.Length)));
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Meta exists: {metaPath} (lines={lines.Length})");
-                        TestCaseEditorApp.Services.Logging.Log.Debug(preview);
-                    }
-                    else
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Meta missing: {metaPath}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Meta probe failed: {ex.Message}");
-                }
-
-                var markerPath = path + ".saved.txt";
-                try
-                {
-                    if (File.Exists(markerPath))
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Marker exists: {markerPath}");
-                    }
-                    else
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Marker missing: {markerPath}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Marker probe failed: {ex.Message}");
-                }
-
-                try
-                {
-                    var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TestCaseEditorApp", "where-saved.log");
-                    if (File.Exists(logPath))
-                    {
-                        var all = File.ReadAllLines(logPath);
-                        var last = all.Skip(Math.Max(0, all.Length - 20)).ToArray();
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Local where-saved.log last lines:\n{string.Join(Environment.NewLine, last)}");
-                    }
-                    else
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Local where-saved.log missing: {logPath}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] where-saved.log probe failed: {ex.Message}");
-                }
-
-                try
-                {
-                    var tmpDir = Path.Combine(Path.GetTempPath(), "TestCaseEditorApp");
-                    var tmpCopy = Path.Combine(tmpDir, Path.GetFileName(path));
-                    if (File.Exists(tmpCopy))
-                    {
-                        var tfi = new FileInfo(tmpCopy);
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Temp copy exists: {tmpCopy} (Length={tfi.Length})");
-                    }
-                    else
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Temp copy missing: {tmpCopy}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Temp-copy probe failed: {ex.Message}");
-                }
+                TestCaseEditorApp.Services.SaveDiagnostics.Probe(path);
             }
             catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Unexpected diagnostic error: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[PostSave] Probe delegation failed: {ex.Message}");
             }
         }
 
@@ -2418,7 +2319,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             try { if (Requirements != null) Requirements.CollectionChanged -= RequirementsOnCollectionChanged; } catch { }
             try { UnhookOldRequirement(); } catch { }
             try { if (_statusTimer != null) { _statusTimer.Stop(); _statusTimer = null; } } catch { }
-            try { if (_autoSaveTimer != null) { _autoSaveTimer.Stop(); _autoSaveTimer = null; } } catch { }
+            try { if (_autoSaveService != null) { _autoSaveService.Stop(); _autoSaveService = null; } } catch { }
             try { if (_requirementsNavigator is IDisposable d) d.Dispose(); } catch { }
             try { if (HeaderViewModel is IDisposable hd) hd.Dispose(); } catch { }
             try { UnwireHeaderSubscriptions(); } catch { }

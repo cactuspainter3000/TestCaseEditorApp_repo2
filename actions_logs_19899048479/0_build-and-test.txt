@@ -1,0 +1,137 @@
+﻿2025-12-03T15:22:02.7526957Z Current runner version: '2.329.0'
+2025-12-03T15:22:02.7550557Z ##[group]Runner Image Provisioner
+2025-12-03T15:22:02.7551762Z Hosted Compute Agent
+2025-12-03T15:22:02.7552240Z Version: 20251016.436
+2025-12-03T15:22:02.7552775Z Commit: 8ab8ac8bfd662a3739dab9fe09456aba92132568
+2025-12-03T15:22:02.7553397Z Build Date: 2025-10-15T20:44:12Z
+2025-12-03T15:22:02.7553967Z ##[endgroup]
+2025-12-03T15:22:02.7554415Z ##[group]Operating System
+2025-12-03T15:22:02.7554953Z Microsoft Windows Server 2025
+2025-12-03T15:22:02.7555490Z 10.0.26100
+2025-12-03T15:22:02.7555878Z Datacenter
+2025-12-03T15:22:02.7556296Z ##[endgroup]
+2025-12-03T15:22:02.7556696Z ##[group]Runner Image
+2025-12-03T15:22:02.7557187Z Image: windows-2025
+2025-12-03T15:22:02.7557604Z Version: 20251102.77.1
+2025-12-03T15:22:02.7558554Z Included Software: https://github.com/actions/runner-images/blob/win25/20251102.77/images/windows/Windows2025-Readme.md
+2025-12-03T15:22:02.7560195Z Image Release: https://github.com/actions/runner-images/releases/tag/win25%2F20251102.77
+2025-12-03T15:22:02.7561137Z ##[endgroup]
+2025-12-03T15:22:02.7562154Z ##[group]GITHUB_TOKEN Permissions
+2025-12-03T15:22:02.7563838Z Contents: read
+2025-12-03T15:22:02.7564328Z Metadata: read
+2025-12-03T15:22:02.7564788Z Packages: read
+2025-12-03T15:22:02.7565242Z ##[endgroup]
+2025-12-03T15:22:02.7567136Z Secret source: Actions
+2025-12-03T15:22:02.7567744Z Prepare workflow directory
+2025-12-03T15:22:02.7924643Z Prepare all required actions
+2025-12-03T15:22:02.7961854Z Getting action download info
+2025-12-03T15:22:03.1680292Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2025-12-03T15:22:04.0410615Z Download action repository 'actions/setup-dotnet@v4' (SHA:67a3573c9a986a3f9c594539f4ab511d57bb3ce9)
+2025-12-03T15:22:05.0950618Z Complete job name: build-and-test
+2025-12-03T15:22:05.2628283Z ##[group]Run actions/checkout@v4
+2025-12-03T15:22:05.2629627Z with:
+2025-12-03T15:22:05.2630468Z   repository: cactuspainter3000/TestCaseEditorApp_repo2
+2025-12-03T15:22:05.2631897Z   token: ***
+2025-12-03T15:22:05.2632632Z   ssh-strict: true
+2025-12-03T15:22:05.2633337Z   ssh-user: git
+2025-12-03T15:22:05.2634071Z   persist-credentials: true
+2025-12-03T15:22:05.2634889Z   clean: true
+2025-12-03T15:22:05.2635621Z   sparse-checkout-cone-mode: true
+2025-12-03T15:22:05.2636524Z   fetch-depth: 1
+2025-12-03T15:22:05.2637225Z   fetch-tags: false
+2025-12-03T15:22:05.2637957Z   show-progress: true
+2025-12-03T15:22:05.2638716Z   lfs: false
+2025-12-03T15:22:05.2639772Z   submodules: false
+2025-12-03T15:22:05.2640530Z   set-safe-directory: true
+2025-12-03T15:22:05.2641607Z ##[endgroup]
+2025-12-03T15:22:05.4345473Z Syncing repository: cactuspainter3000/TestCaseEditorApp_repo2
+2025-12-03T15:22:05.4349150Z ##[group]Getting Git version info
+2025-12-03T15:22:05.4350776Z Working directory is 'D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2'
+2025-12-03T15:22:05.5304110Z [command]"C:\Program Files\Git\bin\git.exe" version
+2025-12-03T15:22:05.9609276Z git version 2.51.2.windows.1
+2025-12-03T15:22:05.9665458Z ##[endgroup]
+2025-12-03T15:22:05.9687297Z Temporarily overriding HOME='D:\a\_temp\5f0ff005-630f-4d02-9a8c-e8a7739ad4f9' before making global git config changes
+2025-12-03T15:22:05.9689502Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-03T15:22:05.9699024Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2
+2025-12-03T15:22:06.0339402Z Deleting the contents of 'D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2'
+2025-12-03T15:22:06.0346120Z ##[group]Initializing the repository
+2025-12-03T15:22:06.0355764Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2
+2025-12-03T15:22:06.1415260Z Initialized empty Git repository in D:/a/TestCaseEditorApp_repo2/TestCaseEditorApp_repo2/.git/
+2025-12-03T15:22:06.1458931Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/cactuspainter3000/TestCaseEditorApp_repo2
+2025-12-03T15:22:06.2207966Z ##[endgroup]
+2025-12-03T15:22:06.2209176Z ##[group]Disabling automatic garbage collection
+2025-12-03T15:22:06.2217819Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2025-12-03T15:22:06.2515620Z ##[endgroup]
+2025-12-03T15:22:06.2517279Z ##[group]Setting up auth
+2025-12-03T15:22:06.2529864Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2025-12-03T15:22:06.2832289Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2025-12-03T15:22:08.0217542Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-03T15:22:08.0500419Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2025-12-03T15:22:08.5773086Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-03T15:22:08.6080568Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2025-12-03T15:22:09.2025521Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2025-12-03T15:22:09.2338915Z ##[endgroup]
+2025-12-03T15:22:09.2339359Z ##[group]Fetching the repository
+2025-12-03T15:22:09.2362283Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +96d92e56b6037e47ae2446d5f9353038b77c90ac:refs/remotes/origin/patch/auto-analyze-on-import-to-main
+2025-12-03T15:22:11.3268165Z From https://github.com/cactuspainter3000/TestCaseEditorApp_repo2
+2025-12-03T15:22:11.3269226Z  * [new ref]         96d92e56b6037e47ae2446d5f9353038b77c90ac -> origin/patch/auto-analyze-on-import-to-main
+2025-12-03T15:22:11.3684878Z ##[endgroup]
+2025-12-03T15:22:11.3685482Z ##[group]Determining the checkout info
+2025-12-03T15:22:11.3688105Z ##[endgroup]
+2025-12-03T15:22:11.3700174Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2025-12-03T15:22:11.4235141Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2025-12-03T15:22:11.4548785Z ##[group]Checking out the ref
+2025-12-03T15:22:11.4564065Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force -B patch/auto-analyze-on-import-to-main refs/remotes/origin/patch/auto-analyze-on-import-to-main
+2025-12-03T15:22:11.6827377Z branch 'patch/auto-analyze-on-import-to-main' set up to track 'origin/patch/auto-analyze-on-import-to-main'.
+2025-12-03T15:22:11.6852694Z Switched to a new branch 'patch/auto-analyze-on-import-to-main'
+2025-12-03T15:22:11.6892943Z ##[endgroup]
+2025-12-03T15:22:11.7429158Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2025-12-03T15:22:11.7696104Z 96d92e56b6037e47ae2446d5f9353038b77c90ac
+2025-12-03T15:22:11.8109099Z ##[group]Run actions/setup-dotnet@v4
+2025-12-03T15:22:11.8109590Z with:
+2025-12-03T15:22:11.8109809Z   dotnet-version: 8.0.x
+2025-12-03T15:22:11.8110090Z   cache: false
+2025-12-03T15:22:11.8110357Z ##[endgroup]
+2025-12-03T15:22:12.1703732Z [command]"C:\Program Files\PowerShell\7\pwsh.exe" -NoLogo -Sta -NoProfile -NonInteractive -ExecutionPolicy Unrestricted -Command & 'D:\a\_actions\actions\setup-dotnet\v4\externals\install-dotnet.ps1' -SkipNonVersionedFiles -Runtime dotnet -Channel LTS
+2025-12-03T15:22:22.6670588Z dotnet-install: Downloaded file https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.0/dotnet-runtime-10.0.0-win-x64.zip size is 37111780 bytes.
+2025-12-03T15:22:22.6685192Z dotnet-install: Either downloaded or local package size can not be measured. One of them may be corrupted.
+2025-12-03T15:22:22.6712929Z dotnet-install: Extracting the archive.
+2025-12-03T15:22:23.6708322Z dotnet-install: Note that the script does not ensure your Windows version is supported during the installation.
+2025-12-03T15:22:23.6715183Z dotnet-install: To check the list of supported versions, go to https://learn.microsoft.com/dotnet/core/install/windows#supported-versions
+2025-12-03T15:22:23.6723336Z dotnet-install: Installed version is 10.0.0
+2025-12-03T15:22:23.6730518Z dotnet-install: Installation finished
+2025-12-03T15:22:24.4982387Z [command]"C:\Program Files\PowerShell\7\pwsh.exe" -NoLogo -Sta -NoProfile -NonInteractive -ExecutionPolicy Unrestricted -Command & 'D:\a\_actions\actions\setup-dotnet\v4\externals\install-dotnet.ps1' -SkipNonVersionedFiles -Channel 8.0
+2025-12-03T15:22:46.9295828Z dotnet-install: Downloaded file https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.416/dotnet-sdk-8.0.416-win-x64.zip size is 285854895 bytes.
+2025-12-03T15:22:46.9322060Z dotnet-install: Either downloaded or local package size can not be measured. One of them may be corrupted.
+2025-12-03T15:22:46.9354119Z dotnet-install: Extracting the archive.
+2025-12-03T15:23:13.1409457Z dotnet-install: Note that the script does not ensure your Windows version is supported during the installation.
+2025-12-03T15:23:13.1413901Z dotnet-install: To check the list of supported versions, go to https://learn.microsoft.com/dotnet/core/install/windows#supported-versions
+2025-12-03T15:23:13.1418236Z dotnet-install: Installed version is 8.0.416
+2025-12-03T15:23:13.1432422Z dotnet-install: Installation finished
+2025-12-03T15:23:13.2410187Z ##[group]Run dotnet restore
+2025-12-03T15:23:13.2411084Z [36;1mdotnet restore[0m
+2025-12-03T15:23:13.3961287Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2025-12-03T15:23:13.3962075Z env:
+2025-12-03T15:23:13.3962536Z   DOTNET_ROOT: C:\Program Files\dotnet
+2025-12-03T15:23:13.3963064Z ##[endgroup]
+2025-12-03T15:23:21.8715773Z C:\Program Files\dotnet\sdk\9.0.306\NuGet.targets(509,5): error MSB3202: The project file "D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp.Core\TestCaseEditorApp.Core.csproj" was not found. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.sln]
+2025-12-03T15:23:21.8719165Z C:\Program Files\dotnet\sdk\9.0.306\NuGet.targets(509,5): error MSB3202: The project file "D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp.UI\TestCaseEditorApp.UI.csproj" was not found. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.sln]
+2025-12-03T15:23:21.8722974Z C:\Program Files\dotnet\sdk\9.0.306\NuGet.targets(509,5): error MSB3202: The project file "D:\a\TestCaseEditorApp_Repo\TestCaseEditorApp\EditableDataControl\EditableDataControl.csproj" was not found. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.sln]
+2025-12-03T15:23:24.3796134Z ##[error]Process completed with exit code 1.
+2025-12-03T15:23:24.4007450Z Post job cleanup.
+2025-12-03T15:23:24.6793451Z [command]"C:\Program Files\Git\bin\git.exe" version
+2025-12-03T15:23:24.7074359Z git version 2.51.2.windows.1
+2025-12-03T15:23:24.7159980Z Temporarily overriding HOME='D:\a\_temp\1caf6720-989a-4bda-9976-59083f338f31' before making global git config changes
+2025-12-03T15:23:24.7161182Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-03T15:23:24.7172253Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2
+2025-12-03T15:23:24.7575235Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2025-12-03T15:23:24.7895685Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2025-12-03T15:23:25.3697601Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-03T15:23:25.3953413Z http.https://github.com/.extraheader
+2025-12-03T15:23:25.3996257Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+2025-12-03T15:23:25.4294249Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2025-12-03T15:23:25.9813286Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-03T15:23:26.0102157Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2025-12-03T15:23:26.5222113Z Cleaning up orphan processes
+2025-12-03T15:23:26.5665497Z Terminate orphan process: pid (9572) (dotnet)
+2025-12-03T15:23:26.5719048Z Terminate orphan process: pid (10148) (conhost)

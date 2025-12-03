@@ -1,0 +1,10 @@
+﻿2025-12-03T15:22:23.3895544Z ##[group]Run dotnet restore
+2025-12-03T15:22:23.3895972Z [36;1mdotnet restore[0m
+2025-12-03T15:22:23.3964673Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2025-12-03T15:22:23.3965090Z env:
+2025-12-03T15:22:23.3965371Z   DOTNET_ROOT: C:\Program Files\dotnet
+2025-12-03T15:22:23.3965646Z ##[endgroup]
+2025-12-03T15:22:32.9137805Z C:\Program Files\dotnet\sdk\10.0.100\NuGet.targets(519,5): error MSB3202: The project file "D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp.Core\TestCaseEditorApp.Core.csproj" was not found. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.sln]
+2025-12-03T15:22:32.9141329Z C:\Program Files\dotnet\sdk\10.0.100\NuGet.targets(519,5): error MSB3202: The project file "D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp.UI\TestCaseEditorApp.UI.csproj" was not found. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.sln]
+2025-12-03T15:22:32.9143443Z C:\Program Files\dotnet\sdk\10.0.100\NuGet.targets(519,5): error MSB3202: The project file "D:\a\TestCaseEditorApp_Repo\TestCaseEditorApp\EditableDataControl\EditableDataControl.csproj" was not found. [D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\TestCaseEditorApp.sln]
+2025-12-03T15:22:35.2837081Z ##[error]Process completed with exit code 1.

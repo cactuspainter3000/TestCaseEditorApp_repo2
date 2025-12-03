@@ -1,0 +1,21 @@
+﻿2025-12-03T15:22:11.8109074Z ##[group]Run actions/setup-dotnet@v4
+2025-12-03T15:22:11.8109585Z with:
+2025-12-03T15:22:11.8109806Z   dotnet-version: 8.0.x
+2025-12-03T15:22:11.8110087Z   cache: false
+2025-12-03T15:22:11.8110322Z ##[endgroup]
+2025-12-03T15:22:12.1703699Z [command]"C:\Program Files\PowerShell\7\pwsh.exe" -NoLogo -Sta -NoProfile -NonInteractive -ExecutionPolicy Unrestricted -Command & 'D:\a\_actions\actions\setup-dotnet\v4\externals\install-dotnet.ps1' -SkipNonVersionedFiles -Runtime dotnet -Channel LTS
+2025-12-03T15:22:22.6670543Z dotnet-install: Downloaded file https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.0/dotnet-runtime-10.0.0-win-x64.zip size is 37111780 bytes.
+2025-12-03T15:22:22.6685169Z dotnet-install: Either downloaded or local package size can not be measured. One of them may be corrupted.
+2025-12-03T15:22:22.6712909Z dotnet-install: Extracting the archive.
+2025-12-03T15:22:23.6708039Z dotnet-install: Note that the script does not ensure your Windows version is supported during the installation.
+2025-12-03T15:22:23.6715114Z dotnet-install: To check the list of supported versions, go to https://learn.microsoft.com/dotnet/core/install/windows#supported-versions
+2025-12-03T15:22:23.6723320Z dotnet-install: Installed version is 10.0.0
+2025-12-03T15:22:23.6730503Z dotnet-install: Installation finished
+2025-12-03T15:22:24.4982350Z [command]"C:\Program Files\PowerShell\7\pwsh.exe" -NoLogo -Sta -NoProfile -NonInteractive -ExecutionPolicy Unrestricted -Command & 'D:\a\_actions\actions\setup-dotnet\v4\externals\install-dotnet.ps1' -SkipNonVersionedFiles -Channel 8.0
+2025-12-03T15:22:46.9295774Z dotnet-install: Downloaded file https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.416/dotnet-sdk-8.0.416-win-x64.zip size is 285854895 bytes.
+2025-12-03T15:22:46.9322035Z dotnet-install: Either downloaded or local package size can not be measured. One of them may be corrupted.
+2025-12-03T15:22:46.9354093Z dotnet-install: Extracting the archive.
+2025-12-03T15:23:13.1409365Z dotnet-install: Note that the script does not ensure your Windows version is supported during the installation.
+2025-12-03T15:23:13.1413885Z dotnet-install: To check the list of supported versions, go to https://learn.microsoft.com/dotnet/core/install/windows#supported-versions
+2025-12-03T15:23:13.1418221Z dotnet-install: Installed version is 8.0.416
+2025-12-03T15:23:13.1432406Z dotnet-install: Installation finished

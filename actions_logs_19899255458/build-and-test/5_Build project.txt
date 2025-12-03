@@ -1,0 +1,13 @@
+﻿2025-12-03T15:29:17.9602982Z ##[group]Run dotnet build TestCaseEditorApp.csproj --configuration Release --no-restore
+2025-12-03T15:29:17.9603690Z [36;1mdotnet build TestCaseEditorApp.csproj --configuration Release --no-restore[0m
+2025-12-03T15:29:17.9666007Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2025-12-03T15:29:17.9666385Z env:
+2025-12-03T15:29:17.9666571Z   DOTNET_ROOT: C:\Program Files\dotnet
+2025-12-03T15:29:17.9666803Z ##[endgroup]
+2025-12-03T15:29:43.8127808Z   TestCaseEditorApp -> D:\a\TestCaseEditorApp_repo2\TestCaseEditorApp_repo2\bin\Release\net8.0-windows\TestCaseEditorApp.dll
+2025-12-03T15:29:43.8238065Z 
+2025-12-03T15:29:43.8247096Z Build succeeded.
+2025-12-03T15:29:43.8248440Z     0 Warning(s)
+2025-12-03T15:29:43.8248936Z     0 Error(s)
+2025-12-03T15:29:43.8257213Z 
+2025-12-03T15:29:43.8257750Z Time Elapsed 00:00:24.97
