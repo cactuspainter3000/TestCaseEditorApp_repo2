@@ -29,5 +29,8 @@ jobs:
         run: |
           pwsh -NoProfile -ExecutionPolicy Bypass -File ./run-tests.ps1
 
+      - name: Build integration runner
+        run: dotnet build Tests/WorkspaceService.Runner/WorkspaceService.Runner.csproj --configuration Release --no-restore
+
       - name: Run integration runner
         run: dotnet run --project Tests/WorkspaceService.Runner/WorkspaceService.Runner.csproj --configuration Release --no-build --verbosity minimal
