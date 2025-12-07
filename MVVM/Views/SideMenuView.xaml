@@ -29,7 +29,7 @@
                               Cursor="Hand"
                               Margin="0,6,0,0"
                               IsChecked="{Binding SelectedMenuSection, Converter={StaticResource SectionSelectedConverter}, ConverterParameter=TestCase, Mode=TwoWay}">
-                    <TextBlock Text="Test Case Generator" Style="{StaticResource MenuHeaderTheme}" />
+                    <TextBlock Text="Test Case Generator" Style="{StaticResource MenuHeaderTheme}" FontSize="16" FontWeight="Normal" />
                 </ToggleButton>
 
                 <!-- Animated expanded area -->
@@ -91,10 +91,10 @@
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                 <TextBlock x:Name="TitleText"
                      Text="{Binding DisplayName}"
-                     Foreground="White"
+                     Foreground="#CCCCCC"
                      VerticalAlignment="Center"
-                     FontSize="14"
-                     FontWeight="SemiBold"/>
+                     FontSize="13"
+                     FontWeight="Normal"/>
                                                 <TextBlock Text="{Binding Badge}"
                      Foreground="DarkOrange"
                      Margin="8,0,0,0"
@@ -255,6 +255,33 @@
                                                     </DockPanel>
                                                 </Button>
 
+                                                <!-- Toggle to control auto-export for ChatGPT after import -->
+                                                <Button Command="{Binding DataContext.ToggleAutoExportCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}"
+                                                        ToolTip="When enabled, automatically export requirements for ChatGPT analysis after importing (instead of auto-analyze)."
+                                                        Margin="0,6,0,0">
+                                                    <DockPanel>
+                                                        <TextBlock Text="Export for ChatGPT" Foreground="White" />
+                                                        <TextBlock Text="✔"
+                                                                   Foreground="LightBlue"
+                                                                   FontWeight="Bold"
+                                                                   Margin="8,0,0,0"
+                                                                   DockPanel.Dock="Right"
+                                                                   Visibility="{Binding DataContext.AutoExportForChatGpt, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
+                                                    </DockPanel>
+                                                </Button>
+
+                                                <!-- Open ChatGPT Export File button -->
+                                                <Button Command="{Binding DataContext.OpenChatGptExportCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}"
+                                                        ToolTip="Open the most recent ChatGPT export file in Notepad"
+                                                        Margin="0,6,0,0">
+                                                    <DockPanel>
+                                                        <TextBlock Text="📝" Foreground="White" Margin="0,0,5,0" />
+                                                        <TextBlock Text="Open Export" Foreground="White" />
+                                                    </DockPanel>
+                                                </Button>
+
                                                 <Separator Margin="0,3"/>
 
                                                 <Separator Margin="0,4"/>
@@ -346,7 +373,7 @@
                               Cursor="Hand"
                               Margin="0,6,0,0"
                               IsChecked="{Binding SelectedMenuSection, Converter={StaticResource SectionSelectedConverter}, ConverterParameter=TestFlow, Mode=TwoWay}">
-                    <TextBlock Text="Test Flow Generator" Style="{StaticResource MenuHeaderTheme}" />
+                    <TextBlock Text="Test Flow Generator" Style="{StaticResource MenuHeaderTheme}" FontSize="16" FontWeight="Normal" />
                 </ToggleButton>
 
                 <Border Margin="0,4,0,0" Padding="0" Background="Transparent" ClipToBounds="True">
@@ -358,7 +385,7 @@
                         <Style TargetType="Border">
                             <Setter Property="Opacity" Value="0" />
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsChecked, ElementName=TestFlowCreatorToggle}" Value="True">
+                                <DataTrigger Binding="{Binding IsChecked, ElementName=TestFlowGeneratorToggle}" Value="True">
                                     <DataTrigger.EnterActions>
                                         <BeginStoryboard>
                                             <Storyboard>
@@ -396,7 +423,7 @@
                 <TextBlock VerticalAlignment="Bottom"
                            Text="{Binding SapStatus}"
                            HorizontalAlignment="Center"
-                           Foreground="{Binding SapForegroundStatus}"
+                           Foreground="#CCCCCC"
                            Style="{StaticResource MenuHeaderTheme}"/>
             </StackPanel>
         </Grid>

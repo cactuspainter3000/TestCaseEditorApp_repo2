@@ -285,7 +285,7 @@
                                                                                FontWeight="SemiBold">
                                                                         <TextBlock.Style>
                                                                             <Style TargetType="TextBlock">
-                                                                                <Setter Property="Foreground" Value="White"/>
+                                                                                <Setter Property="Foreground" Value="#CCCCCC"/>
                                                                                 <Style.Triggers>
                                                                                     <DataTrigger Binding="{Binding Value}" Value="(not set)">
                                                                                         <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
@@ -316,7 +316,7 @@
                                                         <Border Padding="12,6" 
                                                                 Margin="0,0,10,6"
                                                                 Background="Transparent"
-                                                                BorderBrush="White"
+                                                                BorderBrush="#333333"
                                                                 BorderThickness="0,1,0,1"
                                                                 Height="38">
                                                             <Grid>
@@ -346,7 +346,7 @@
                                                                            ToolTip="{Binding Value}">
                                                                     <TextBlock.Style>
                                                                         <Style TargetType="TextBlock">
-                                                                            <Setter Property="Foreground" Value="White"/>
+                                                                            <Setter Property="Foreground" Value="#CCCCCC"/>
                                                                             <Style.Triggers>
                                                                                 <DataTrigger Binding="{Binding Value}" Value="(not set)">
                                                                                     <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>

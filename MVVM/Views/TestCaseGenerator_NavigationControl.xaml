@@ -86,15 +86,7 @@
 
                 <ComboBox.ItemTemplate>
                     <DataTemplate>
-                        <TextBlock VerticalAlignment="Center" FontSize="12">
-                            <TextBlock.Foreground>
-                                <PriorityBinding>
-                                    <!-- 1) Use ComboBoxItem.Foreground when inside the popup -->
-                                    <Binding RelativeSource="{RelativeSource AncestorType=ComboBoxItem}" Path="Foreground" />
-                                    <!-- 2) Fallback to the ComboBox Foreground (closed selection inherits this) -->
-                                    <Binding RelativeSource="{RelativeSource AncestorType=ComboBox}" Path="Foreground" />
-                                </PriorityBinding>
-                            </TextBlock.Foreground>
+                        <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource Brush.Text.Primary}">
                             <Run Text="{Binding Item}" /><Run Text=" — " /><Run Text="{Binding Name}" />
                         </TextBlock>
                     </DataTemplate>

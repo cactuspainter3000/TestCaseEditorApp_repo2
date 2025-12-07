@@ -10,7 +10,7 @@
         Height="665" Width="1200"
         d:DataContext="{d:DesignInstance vm:MainViewModelDesignStub, IsDesignTimeCreatable=True}"
         WindowStyle="None"
-        Title="{Binding DisplayName}"
+        Title="{Binding DisplayName, FallbackValue='Test Case Editor'}"
         ResizeMode="CanResizeWithGrip"
         Background="Transparent"
         WindowStartupLocation="CenterScreen"

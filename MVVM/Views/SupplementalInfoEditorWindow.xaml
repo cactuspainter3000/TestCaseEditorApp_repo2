@@ -4,29 +4,59 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Edit Supplemental Information"
         Height="600" Width="800"
         WindowStartupLocation="CenterOwner"
-        Background="{DynamicResource MenuBackground}">
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent">
     
-    <Grid Margin="16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <Border Background="{DynamicResource MenuBackground}" 
+            BorderBrush="{DynamicResource AccentBrush}" 
+            BorderThickness="1" 
+            CornerRadius="8">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="BorderBrush" Value="#4A9EFF"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+        <Grid Margin="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/><!-- Custom Title Bar -->
+                <RowDefinition Height="Auto"/><!-- Instructions -->
+                <RowDefinition Height="*"/>  <!-- Content -->
+                <RowDefinition Height="Auto"/><!-- Preview -->
+                <RowDefinition Height="Auto"/><!-- Buttons -->
+            </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <TextBlock Grid.Row="0" 
-                   Text="Edit supplemental information"
-                   Foreground="White"
-                   FontSize="14"
-                   FontWeight="SemiBold"
-                   Margin="0,0,0,8"/>
+            <!-- Custom Title Bar -->
+            <Border Grid.Row="0" 
+                    Background="{DynamicResource MenuBackground}" 
+                    CornerRadius="8,8,0,0" 
+                    MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid Height="32">
+                    <TextBlock Text="Edit Supplemental Information"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Center"
+                               Foreground="White"
+                               FontSize="12"
+                               Margin="40,0"/>
+                    <!-- Close button -->
+                    <Button HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Margin="0,0,8,0"
+                            Width="24" Height="24"
+                            Content="✕"
+                            FontSize="12"
+                            Click="Close_Click"
+                            Style="{StaticResource IconButtonStyle}"/>
+                </Grid>
+            </Border>
 
-        <!-- Instructions -->
+            <!-- Instructions -->
             <!-- Collapsible Tips/Instructions -->
             <Expander Grid.Row="1"
                       Header="Tips &amp; Instructions"
@@ -34,7 +64,7 @@
                       Background="Transparent"
                       Foreground="#AAAAAA"
                       FontSize="11"
-                      Margin="0,0,0,12">
+                      Margin="16,16,16,12">
                 <TextBlock TextWrapping="Wrap">
                     <Run Text="Edit the text below. Use"/>
                     <Run Text=" ||| " FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
@@ -43,7 +73,7 @@
             </Expander>
 
         <!-- Text editor with Insert Split button -->
-        <Grid Grid.Row="2">
+        <Grid Grid.Row="2" Margin="16,0,16,12">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
@@ -74,7 +104,7 @@
         </Grid>
 
         <!-- Preview -->
-        <StackPanel Grid.Row="3" Margin="0,12,0,12">
+        <StackPanel Grid.Row="3" Margin="16,12,16,12">
             <TextBlock Text="Preview (after split):" 
                        Foreground="{DynamicResource AccentBrush}"
                        FontWeight="SemiBold"
@@ -103,7 +133,8 @@
         <!-- Buttons -->
         <StackPanel Grid.Row="4" 
                     Orientation="Horizontal" 
-                    HorizontalAlignment="Right">
+                    HorizontalAlignment="Right"
+                    Margin="16,0,16,16">
             <Button Content="Save"
                     Click="Save_Click"
                     IsDefault="True"
@@ -117,5 +148,6 @@
                     Style="{StaticResource PillActionButtonStyle}"
                     Padding="16,6"/>
         </StackPanel>
-    </Grid>
+        </Grid>
+    </Border>
 </Window>

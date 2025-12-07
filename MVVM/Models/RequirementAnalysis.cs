@@ -15,6 +15,13 @@ namespace TestCaseEditorApp.MVVM.Models
         public int QualityScore { get; set; }
 
         /// <summary>
+        /// Self-reported hallucination check from the LLM.
+        /// "NO_FABRICATION" if only original requirement terms were used,
+        /// "FABRICATED_DETAILS" if new technical details were added.
+        /// </summary>
+        public string? HallucinationCheck { get; set; }
+
+        /// <summary>
         /// Identified issues with the requirement (ambiguity, testability problems, scope issues, etc.)
         /// </summary>
         public List<AnalysisIssue> Issues { get; set; } = new List<AnalysisIssue>();
@@ -82,8 +89,10 @@ namespace TestCaseEditorApp.MVVM.Models
         public string Description { get; set; } = string.Empty;
 
         /// <summary>
-        /// Optional: Example of how to implement this recommendation.
+        /// Complete suggested rewrite of the requirement that incorporates 
+        /// details from supplemental information directly into the requirement text.
+        /// This is the actual improved requirement text the user should use.
         /// </summary>
-        public string? Example { get; set; }
+        public string? SuggestedEdit { get; set; }
     }
 }

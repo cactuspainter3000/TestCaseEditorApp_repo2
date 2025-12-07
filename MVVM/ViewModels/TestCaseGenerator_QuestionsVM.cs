@@ -243,6 +243,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Clear current questions
             PendingQuestions.Clear();
             Questions.Clear();
+            
+            TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] LoadQuestionsForRequirement called for: {requirement?.Item ?? "<null>"}");
 
             if (requirement == null)
                 return;
@@ -250,6 +252,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Load from requirement's ClarifyingQuestions property (persisted in workspace JSON)
             if (requirement.ClarifyingQuestions != null && requirement.ClarifyingQuestions.Count > 0)
             {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] Loading {requirement.ClarifyingQuestions.Count} saved questions for requirement {requirement.Item}");
                 _synchronizingCollections = true;
                 try
                 {
@@ -265,6 +268,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                             data.MarkedAsAssumption,
                             data.IsSubmitted
                         );
+                        
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] Loaded question: '{data.Text}' IsSubmitted={data.IsSubmitted} Answer='{data.Answer ?? "<null>"}'");
                         
                         if (data.Options != null)
                         {
@@ -365,18 +370,24 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         /// <summary>
         /// Checks if the current requirement is being analyzed or queued for analysis.
-        /// Returns true if batch analysis is running or if the requirement is queued for reanalysis.
+        /// Returns true only if the specific requirement is queued for reanalysis.
+        /// Batch analysis of other requirements should not block clarifying questions for completed requirements.
         /// </summary>
         private bool IsRequirementBeingAnalyzed()
         {
             if (_mainVm == null || _currentRequirement == null) return false;
-            
-            // Check if batch analysis is running
-            if (_mainVm.IsBatchAnalyzing) return true;
-            
+
             // Check if this specific requirement is queued for reanalysis
-            if (_currentRequirement.IsQueuedForReanalysis) return true;
-            
+            var queued = _currentRequirement.IsQueuedForReanalysis;
+            if (queued)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] IsRequirementBeingAnalyzed -> true (IsQueuedForReanalysis={queued})");
+                return true;
+            }
+
+            // Allow clarifying questions even during batch analysis of other requirements
+            var batch = _mainVm.IsBatchAnalyzing;
+            TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] IsRequirementBeingAnalyzed -> false (IsBatchAnalyzing={batch}, IsQueuedForReanalysis={queued}) - allowing questions");
             return false;
         }
 
@@ -541,6 +552,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private async Task AskClarifyingQuestionsAsync()
         {
+            TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] AskClarifyingQuestionsAsync start. SessionState={_sessionState}, IsClarifyingRunning={IsClarifyingCommandRunning}, CurrentReq={_currentRequirement?.Item ?? "<null>"}, IsBatchAnalyzing={_mainVm?.IsBatchAnalyzing}");
             if (_llm == null)
             {
                 StatusHint = "LLM client not configured.";
@@ -628,43 +640,25 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     Method = methodEnum.Value
                 };
 
-                // Build prompt including the temporary requirement object and enabled assumptions.
                 var customInstructions = DefaultsHelper.GetUserInstructions(methodEnum.Value);
-                var prompt = ClarifyingParsingHelpers.BuildBudgetedQuestionsPrompt(
+
+                // Call service to perform LLM call and parsing
+                var (llmText, parsedList, suggested) = await ClarifyingQuestionService.GenerateClarifyingQuestionsAsync(
                     tempRequirement,
                     QuestionBudget,
-                    false,
                     enabledAssumptions,
-                    Enumerable.Empty<TableDto>(),
-                    customInstructions);
-
-                string llmText;
-                try
-                {
-                    // Call LLM off the UI thread
-                    llmText = await _llm.GenerateAsync(prompt, _cts.Token).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    Application.Current?.Dispatcher?.Invoke(() => StatusHint = $"LLM error: {ex.Message}");
-                    return;
-                }
+                    _llm,
+                    _mainVm,
+                    SuggestedDefaults,
+                    _cts.Token,
+                    customInstructions).ConfigureAwait(false);
 
                 LlmOutput = llmText ?? string.Empty;
 
-                // Extract suggested keys and merge into SuggestedDefaults catalog (DefaultItem)
-                var safeLlmText = llmText ?? string.Empty;
-                var suggested = ClarifyingParsingHelpers.TryExtractSuggestedChipKeys(safeLlmText, SuggestedDefaults);
-                if (suggested.Any())
+                if (suggested != null && suggested.Count > 0)
                 {
                     Application.Current?.Dispatcher?.Invoke(() => MergeLlmSuggestedDefaults(suggested));
                 }
-
-                // Parse questions from LLM output
-                var parsed = ClarifyingParsingHelpers.ParseQuestions(safeLlmText) ?? Enumerable.Empty<ClarifyingQuestionVM>();
-                var parsedList = parsed.ToList();
-
-                // Note: Malformed patterns are now automatically cleaned by ParseQuestions helper
 
                 // Deduplicate parsed questions by normalized text (trim/collapse whitespace, lowercase)
                 static string Normalize(string? s)
@@ -675,13 +669,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     return t.ToLowerInvariant();
                 }
 
-                var distinctParsed = parsedList
+                var distinctParsed = (parsedList ?? Enumerable.Empty<ClarifyingQuestionVM>())
                     .GroupBy(q => Normalize(q?.Text))
                     .Where(g => !string.IsNullOrEmpty(g.Key))
                     .Select(g => g.First())
                     .ToList();
 
-                int totalParsed = parsedList.Count;
+                int totalParsed = (parsedList ?? Enumerable.Empty<ClarifyingQuestionVM>()).Count();
                 int distinctCount = distinctParsed.Count;
                 int duplicatesRemoved = Math.Max(0, totalParsed - distinctCount);
 
@@ -825,6 +819,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         partial void OnIsClarifyingCommandRunningChanged(bool value)
         {
+            TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] OnIsClarifyingCommandRunningChanged called: value={value}, PendingQuestions={PendingQuestions?.Count ?? 0}, SessionState={_sessionState}");
             // If ClarifyCommand is running, set session state appropriately
             if (value) 
             {
@@ -957,7 +952,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private async Task ExecuteSmartButtonAsync()
         {
-            if (!CanExecuteSmartButton) return;
+            TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] ExecuteSmartButtonAsync invoked. SessionState={_sessionState}, CanExecute={CanExecuteSmartButton}, PendingQuestions={PendingQuestions.Count}");
+            if (!CanExecuteSmartButton)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info("[QuestionsVM] ExecuteSmartButtonAsync cannot execute: CanExecuteSmartButton==false");
+                return;
+            }
 
             switch (_sessionState)
             {
@@ -1127,25 +1127,16 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     Method = methodEnum.Value
                 };
 
-                // Request only 1 question as replacement
+                // Request only 1 question as replacement via the service
                 var customInstructions = DefaultsHelper.GetUserInstructions(methodEnum.Value);
-                var basePrompt = ClarifyingParsingHelpers.BuildBudgetedQuestionsPrompt(
+                var (llmText, parsedList) = await ClarifyingQuestionService.RequestReplacementQuestionAsync(
                     tempRequirement,
-                    1, // Single question
-                    false,
                     enabledAssumptions,
-                    Enumerable.Empty<TableDto>(),
-                    customInstructions);
-
-                // Add explicit instruction to return ONLY ONE question
-                var prompt = basePrompt + "\n\nIMPORTANT: Return EXACTLY ONE question in a JSON array with a single object. Do not return multiple questions. Format: [{\"text\":\"...\",\"category\":\"...\",\"severity\":\"...\",\"rationale\":\"...\"}]";
-
-                // Call LLM
-                string? llmText = await _llm.GenerateAsync(prompt, _cts.Token).ConfigureAwait(false);
-
-                // Parse the response - ParseQuestions will automatically clean up malformed patterns
-                var parsed = ClarifyingParsingHelpers.ParseQuestions(llmText ?? string.Empty, _mainVm) ?? Enumerable.Empty<ClarifyingQuestionVM>();
-                var parsedList = parsed.ToList();
+                    _llm,
+                    _mainVm,
+                    _cts.Token,
+                    customInstructions).ConfigureAwait(false);
+                parsedList = parsedList ?? new List<ClarifyingQuestionVM>();
 
                 // Update UI on dispatcher thread
                 Application.Current?.Dispatcher?.Invoke(() =>
@@ -1488,6 +1479,21 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                             if (mainVm.CurrentStepViewModel is TestCaseGenerator_CreationVM creationVm)
                             {
                                 creationVm.LlmOutput = llmResponse;
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] Set LlmOutput to CreationVM");
+                            }
+                            
+                            // Update Test Cases menu selectability AFTER the LLM output has been set
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] About to call UpdateTestCaseStepSelectability after test generation and LlmOutput setting");
+                            try
+                            {
+                                var updateMethod = mainVm.GetType().GetMethod("UpdateTestCaseStepSelectability", 
+                                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                                updateMethod?.Invoke(mainVm, null);
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] Successfully called UpdateTestCaseStepSelectability");
+                            }
+                            catch (Exception ex)
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] Failed to call UpdateTestCaseStepSelectability: {ex.Message}");
                             }
                         });
                     }

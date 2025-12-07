@@ -17,8 +17,10 @@
     <!-- ========================================== -->
 
     <!-- Menu Header Theme - for section headers in menus -->
-    <Style x:Key="MenuHeaderTheme" TargetType="TextBlock" BasedOn="{StaticResource Text.H2}">
+    <Style x:Key="MenuHeaderTheme" TargetType="TextBlock" BasedOn="{StaticResource Text.H1}">
         <Setter Property="Margin" Value="6,4,6,4"/>
+        <Setter Property="FontSize" Value="16"/>
+        <Setter Property="FontWeight" Value="Normal"/>
     </Style>
 
     <!-- Title Text - for workspace/header titles -->
@@ -51,7 +53,10 @@
     <!-- Description Text - for requirement descriptions -->
     <Style x:Key="DescriptionText" TargetType="TextBlock" BasedOn="{StaticResource Text.Body}">
         <Setter Property="TextWrapping" Value="Wrap"/>
-        <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontSize" Value="16"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="LineHeight" Value="24"/>
         <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
     </Style>
 

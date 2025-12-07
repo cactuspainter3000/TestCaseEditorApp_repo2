@@ -17,6 +17,18 @@
     <!-- Converters -->
     <conv:BadgeToVisibilityConverter x:Key="BadgeToVisibilityConverter"/>
 
+    <!-- Custom ScrollBar Style for consistent appearance -->
+    <Style x:Key="CustomScrollBarStyle" TargetType="ScrollBar">
+        <Setter Property="Width" Value="8"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Opacity" Value="0.3"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Opacity" Value="0.6"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
     <!-- Small reusable UI building blocks -->
     <Style x:Key="MetaChip" TargetType="Border">
         <Setter Property="CornerRadius" Value="10"/>
@@ -79,7 +91,7 @@
                             <Setter TargetName="bd" Property="Background" Value="{StaticResource Brush.Background.Overlay.Light}"/>
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="bd" Property="Background" Value="{StaticResource Brush.Background.Overlay.Medium}"/>
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource Brush.Background.Menu.Selected}"/>
                             <Setter TargetName="bd" Property="BorderThickness" Value="0"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">

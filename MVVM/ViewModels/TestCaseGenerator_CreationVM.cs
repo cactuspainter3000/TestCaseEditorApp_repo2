@@ -219,6 +219,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             if (markDirty && _navigator is MainViewModel mainVm)
             {
                 mainVm.IsDirty = true;
+                
+                // Notify that test cases have changed so Test Cases menu becomes selectable
+                try
+                {
+                    var updateMethod = mainVm.GetType().GetMethod("UpdateTestCaseStepSelectability", 
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    updateMethod?.Invoke(mainVm, null);
+                }
+                catch { /* best effort */ }
             }
         }
 
@@ -253,6 +262,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     TestCaseEditorApp.Services.Logging.Log.Debug($"[TestCaseGenerator_CreationVM] LlmOutput set, parsing into test cases...");
                     
+                    // Save LLM response to requirement's CurrentResponse so HasGeneratedTestCase returns true
+                    if (_currentRequirement != null && !string.IsNullOrWhiteSpace(value))
+                    {
+                        _currentRequirement.SaveResponse(value);
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[TestCaseGenerator_CreationVM] Saved LLM response to requirement's CurrentResponse");
+                    }
+                    
                     // Always parse, even if empty
                     ParseLlmOutputIntoTestCases(value);
                     
@@ -270,6 +286,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         SelectedTestCase = TestCases.FirstOrDefault();
                         TestCaseEditorApp.Services.Logging.Log.Debug($"[TestCaseGenerator_CreationVM] Added debug test case");
                     }
+                    
+                    // Save the test cases to the requirement immediately when LLM output is set
+                    SaveTestCasesToRequirement(markDirty: false);
                     
                     // Force UI update
                     OnPropertyChanged(nameof(TestCases));

@@ -22,5 +22,13 @@ namespace TestCaseEditorApp.Services
             // Return a reproducible placeholder so parsing/flow can be exercised without an LLM.
             return Task.FromResult(_response + " PromptEcho: " + (prompt ?? string.Empty));
         }
+
+        public Task<string> GenerateWithSystemAsync(string systemMessage, string contextMessage, CancellationToken ct = default)
+        {
+            // Return a reproducible placeholder that shows both system and context were received
+            var systemLength = systemMessage?.Length ?? 0;
+            var systemSnippet = systemMessage?.Substring(0, Math.Min(50, systemLength)) ?? "";
+            return Task.FromResult(_response + " SystemEcho: " + systemSnippet + " ContextEcho: " + (contextMessage ?? string.Empty));
+        }
     }
 }

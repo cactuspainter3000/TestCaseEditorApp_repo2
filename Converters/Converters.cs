@@ -59,7 +59,16 @@ namespace TestCaseEditorApp.Converters
         {
             var isNullOrEmpty = value == null || (value is string s && string.IsNullOrWhiteSpace(s));
             var visible = Invert ? isNullOrEmpty : !isNullOrEmpty;
-            return visible ? Visibility.Visible : Visibility.Collapsed;
+            var result = visible ? Visibility.Visible : Visibility.Collapsed;
+            
+            // Enhanced debug logging for SuggestedEdit binding issues
+            if (value is string str && (str.Contains("DECAGON") || str.Length > 20))
+            {
+                System.Diagnostics.Debug.WriteLine($"[NullOrEmptyConverter] SuggestedEdit - Value='{str?.Substring(0, Math.Min(80, str?.Length ?? 0))}...', IsNullOrEmpty={isNullOrEmpty}, Result={result}, Invert={Invert}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[NullOrEmptyConverter] SuggestedEdit visibility: {result} for content length {str?.Length}");
+            }
+            
+            return result;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
@@ -74,6 +83,32 @@ namespace TestCaseEditorApp.Converters
             var isNull = value == null;
             var visible = Invert ? isNull : !isNull;
             return visible ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
+    }
+
+    /// <summary>String not empty to visibility converter - shows when string has content</summary>
+    public class StringNotEmptyToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            var hasContent = value != null && !string.IsNullOrWhiteSpace(value.ToString());
+            return hasContent ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
+    }
+
+    /// <summary>String empty to visibility converter - shows when string is null/empty</summary>
+    public class StringEmptyToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            var isEmpty = value == null || string.IsNullOrWhiteSpace(value.ToString());
+            return isEmpty ? Visibility.Visible : Visibility.Collapsed;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

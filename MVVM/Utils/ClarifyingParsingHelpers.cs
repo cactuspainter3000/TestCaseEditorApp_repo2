@@ -450,7 +450,6 @@ namespace TestCaseEditorApp.MVVM.Utils
         public static string BuildBudgetedQuestionsPrompt(
             Requirement? req,
             int budget,
-            bool thorough,
             IEnumerable<string> paragraphs,
             IEnumerable<TableDto> tables,
             string? customInstructions = null)
@@ -468,7 +467,7 @@ namespace TestCaseEditorApp.MVVM.Utils
             var sb = new StringBuilder();
             sb.AppendLine("You are a test engineer extracting ONLY the MUST-ASK clarifying questions needed before authoring a verification test case,");
             sb.AppendLine("AND suggesting defaults (\"chips\") to auto-enable for this requirement.");
-            sb.AppendLine($"Ask at most {maxQs} questions (0..{maxQs}). Mode: {(thorough ? "THOROUGH" : "FAST")}.");
+            sb.AppendLine($"Ask at most {maxQs} questions (0..{maxQs}).");
             sb.AppendLine();
 
             // Include custom user instructions if provided

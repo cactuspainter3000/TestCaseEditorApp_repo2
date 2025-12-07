@@ -21,6 +21,7 @@ namespace TestCaseEditorApp.Services
                 DefaultExt = defaultExt,         // e.g., ".tcex.json"
                 AddExtension = true,
                 OverwritePrompt = true,
+                RestoreDirectory = true,         // Remember the last used directory
                 InitialDirectory = initialDirectory ?? string.Empty
             };
             return dlg.ShowDialog() == true ? dlg.FileName : null;

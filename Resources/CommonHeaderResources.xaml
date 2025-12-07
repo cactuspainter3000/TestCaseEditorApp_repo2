@@ -127,11 +127,11 @@
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="CornerRadius" Value="6" />
         <Style.Triggers>
             <!-- Expect the DataContext to expose a boolean RequirementDescriptionHighlight -->
             <DataTrigger Binding="{Binding RequirementDescriptionHighlight}" Value="True">
-                <Setter Property="BorderThickness" Value="1.5" />
+                <Setter Property="BorderThickness" Value="2" />
                 <Setter Property="BorderBrush" Value="{DynamicResource HeaderHighlightBorderBrush}" />
                 <Setter Property="Background" Value="{DynamicResource HeaderHighlightBackground}" />
             </DataTrigger>

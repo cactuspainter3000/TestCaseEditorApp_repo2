@@ -21,7 +21,14 @@ namespace TestCaseEditorApp.MVVM.Views
         public MainWindow()
         {
             InitializeComponent();
-            // Designer can render; don't set DataContext here for runtime.
+            
+            // Set DataContext early to avoid binding warnings during startup
+            // Prefer DI-provided DataContext. Fall back to App.ServiceProvider if available, then to a parameterless VM.
+            if (DataContext == null && !System.ComponentModel.DesignerProperties.GetIsInDesignMode(this))
+            {
+                DataContext = App.ServiceProvider?.GetService(typeof(MainViewModel)) as MainViewModel
+                   ?? new MainViewModel();
+            }
         }
 
         // DI constructor that accepts the MainViewModel (ensures the runtime VM has its services wired)
@@ -73,9 +80,12 @@ namespace TestCaseEditorApp.MVVM.Views
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            // Prefer DI-provided DataContext. Fall back to App.ServiceProvider if available, then to a parameterless VM.
-            DataContext ??= App.ServiceProvider?.GetService(typeof(MainViewModel)) as MainViewModel
-               ?? new MainViewModel();
+            // DataContext should already be set in constructor, but ensure it's not null
+            if (DataContext == null)
+            {
+                DataContext = App.ServiceProvider?.GetService(typeof(MainViewModel)) as MainViewModel
+                   ?? new MainViewModel();
+            }
 
             var vm = DataContext;
             TestCaseEditorApp.Services.Logging.Log.Debug($"MainWindow DataContext = {vm?.GetType().FullName ?? "<null>"}");

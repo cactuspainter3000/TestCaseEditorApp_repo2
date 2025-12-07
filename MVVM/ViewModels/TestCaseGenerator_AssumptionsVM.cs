@@ -172,6 +172,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Save to requirement object
             _currentRequirement.SelectedAssumptionKeys = enabledKeys;
             
+            // Also save as user defaults for this verification method
+            SaveAsUserDefaults(enabledKeys);
+            
             TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] Saved {enabledKeys.Count} pill selections to requirement {_currentRequirement.Item}");
         }
 
@@ -198,19 +201,33 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 
                 // Load custom instructions for the new verification method
                 LoadCustomInstructionsForCurrentMethod();
+                
+                // Apply defaults if current requirement has no saved selections
+                if (_currentRequirement?.SelectedAssumptionKeys == null)
+                {
+                    ApplyVerificationMethodDefaults(_headerVm?.RequirementMethodEnum);
+                }
             }
         }
 
         /// <summary>
         /// Apply default pill suggestions based on verification method.
         /// Only called when requirement has no saved selections.
+        /// First tries to load user's personal defaults, then falls back to system defaults.
         /// </summary>
         private void ApplyDefaultSuggestionsForMethod(VerificationMethod? method)
         {
             if (method == null) return;
 
+            // First, try to load user's personal defaults for this verification method
+            if (TryApplyUserDefaults(method.Value))
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] Applied user defaults for method {method}");
+                return;
+            }
+
+            // Fallback to system defaults if no user preferences exist
             // Enable pills that are commonly used for this method
-            // This is a simple heuristic - pills marked for this method + common ones (Environment, Equipment)
             foreach (var pill in AllPills)
             {
                 // Enable if applicable to this method OR if it's a common category (Environment, Equipment, Documentation)
@@ -223,7 +240,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 pill.IsEnabled = isCommon && isApplicable;
             }
             
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] Applied default suggestions for method {method}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] Applied system defaults for method {method}");
         }
 
         /// <summary>
@@ -334,100 +351,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 }
                 else
                 {
-                    // Map verification method to relevant assumption keys
-                    var relevantKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            switch (method.Value)
-            {
-                case VerificationMethod.Test:
-                    // Physical testing: equipment, environment, power, loads, samples
-                    relevantKeys.Add("tools_cal_12mo");
-                    relevantKeys.Add("env_ambient25");
-                    relevantKeys.Add("power_regulated5pct");
-                    relevantKeys.Add("load_nominal");
-                    relevantKeys.Add("sample_size_3");
-                    relevantKeys.Add("func_all_modes");
-                    relevantKeys.Add("doc_photos");
-                    relevantKeys.Add("doc_detailed_log");
-                    break;
-
-                case VerificationMethod.TestUnintendedFunction:
-                    // Testing unintended functions: similar to Test but with edge cases
-                    relevantKeys.Add("tools_cal_12mo");
-                    relevantKeys.Add("env_ambient25");
-                    relevantKeys.Add("load_min_max");
-                    relevantKeys.Add("sample_size_3");
-                    relevantKeys.Add("func_all_modes");
-                    relevantKeys.Add("doc_photos");
-                    relevantKeys.Add("doc_detailed_log");
-                    relevantKeys.Add("esd_precautions");
-                    break;
-
-                case VerificationMethod.Inspection:
-                    // Visual/physical inspection: visual checks, dimensions, materials, documentation
-                    relevantKeys.Add("visual_inspect");
-                    relevantKeys.Add("dimensional_check");
-                    relevantKeys.Add("material_verify");
-                    relevantKeys.Add("doc_photos");
-                    relevantKeys.Add("env_ambient25");
-                    break;
-
-                case VerificationMethod.Analysis:
-                    // Mathematical/engineering analysis: models, tools, worst-case
-                    relevantKeys.Add("analysis_math_model");
-                    relevantKeys.Add("analysis_cad_validated");
-                    relevantKeys.Add("analysis_worst_case");
-                    relevantKeys.Add("doc_detailed_log");
-                    break;
-
-                case VerificationMethod.Simulation:
-                    // Computer simulation: validated models, corner cases
-                    relevantKeys.Add("sim_validated_model");
-                    relevantKeys.Add("sim_corner_cases");
-                    relevantKeys.Add("analysis_worst_case");
-                    relevantKeys.Add("doc_detailed_log");
-                    break;
-
-                case VerificationMethod.Demonstration:
-                    // Live demonstration: user scenarios, live operation
-                    relevantKeys.Add("demo_user_scenarios");
-                    relevantKeys.Add("demo_live_operation");
-                    relevantKeys.Add("func_all_modes");
-                    relevantKeys.Add("visual_inspect");
-                    relevantKeys.Add("doc_photos");
-                    relevantKeys.Add("env_ambient25");
-                    break;
-
-                case VerificationMethod.ServiceHistory:
-                    // Historical data review: field data, similar designs
-                    relevantKeys.Add("history_field_data");
-                    relevantKeys.Add("history_similar_design");
-                    relevantKeys.Add("doc_detailed_log");
-                    break;
-
-                case VerificationMethod.VerifiedAtAnotherLevel:
-                    // Cross-reference to other verification
-                    relevantKeys.Add("doc_detailed_log");
-                    break;
-
-                case VerificationMethod.Unassigned:
-                    // No preset - let user select
-                    break;
-            }
-
-            // Enable matching chips
-            foreach (var pill in AllPills)
-            {
-                if (relevantKeys.Contains(pill.Key))
-                {
-                    pill.IsEnabled = true;
-                }
-            }
-
-            var methodName = method.Value.ToString();
-            StatusHint = relevantKeys.Count > 0 
-                ? $"Applied {relevantKeys.Count} default assumptions for {methodName} verification."
-                : $"{methodName} verification selected. Choose relevant assumptions below.";
+                    // Apply user defaults if available, otherwise use system defaults
+                    if (!TryApplyUserDefaults(method.Value))
+                    {
+                        // Fallback to hardcoded system defaults
+                        ApplySystemDefaults(method.Value);
+                    }
                 }
             }
             finally
@@ -552,10 +481,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     pill.IsEnabled = false;
                 }
 
-                // Load requirement's saved selections
-                // null = never configured (apply defaults), empty HashSet = user disabled all (respect it)
-                if (requirement.SelectedAssumptionKeys != null)
+                // Try to apply user defaults first, then fall back to saved selections
+                var method = requirement.Method;
+                if (TryApplyUserDefaults(method))
                 {
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] Applied user defaults for requirement {requirement.Item} with method {method}");
+                }
+                else if (requirement.SelectedAssumptionKeys != null)
+                {
+                    // No user defaults available, use saved selections from requirement
                     var savedKeys = new HashSet<string>(requirement.SelectedAssumptionKeys, StringComparer.OrdinalIgnoreCase);
                     foreach (var pill in AllPills.Where(p => savedKeys.Contains(p.Key)))
                     {
@@ -565,9 +499,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 }
                 else
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] No saved pills for requirement {requirement.Item}, applying defaults");
-                    // Apply default suggestions based on verification method
-                    ApplyDefaultSuggestionsForMethod(_headerVm?.RequirementMethodEnum);
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] No saved pills or user defaults for requirement {requirement.Item}, applying system defaults");
+                    // Apply system default suggestions based on verification method
+                    ApplyVerificationMethodDefaults(method);
                 }
                 
                 // Notify UI that visible pills may have changed
@@ -582,6 +516,184 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public IRelayCommand ResetAssumptionsCommand { get; }
         public IRelayCommand ClearPresetFilterCommand { get; }
         public IRelayCommand SavePresetCommand { get; }
+
+        /// <summary>
+        /// Save the current pill selections as user defaults for the current verification method.
+        /// </summary>
+        private void SaveAsUserDefaults(HashSet<string> enabledKeys)
+        {
+            if (_headerVm?.RequirementMethodEnum == null) return;
+
+            try
+            {
+                // Load existing user defaults
+                var allDefaults = DefaultsHelper.LoadPillSelections();
+                
+                // Update defaults for current verification method
+                var methodName = _headerVm.RequirementMethodEnum.Value.ToString();
+                allDefaults[methodName] = enabledKeys.ToList();
+                
+                // Save back to file
+                DefaultsHelper.SavePillSelections(allDefaults);
+                
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] Saved {enabledKeys.Count} pill selections as user defaults for {methodName}");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] Error saving user defaults: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Try to apply user's personal defaults for the specified verification method.
+        /// </summary>
+        /// <returns>True if user defaults were found and applied, false if no user defaults exist.</returns>
+        private bool TryApplyUserDefaults(VerificationMethod method)
+        {
+            try
+            {
+                var allDefaults = DefaultsHelper.LoadPillSelections();
+                var methodName = method.ToString();
+                
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] TryApplyUserDefaults for {methodName}: Found {allDefaults.Count} methods in defaults file");
+                
+                if (allDefaults.TryGetValue(methodName, out var userDefaults) && userDefaults?.Count > 0)
+                {
+                    // Apply user's saved defaults
+                    var defaultKeys = new HashSet<string>(userDefaults, StringComparer.OrdinalIgnoreCase);
+                    var appliedCount = 0;
+                    
+                    var userDefaultsStr = string.Join(", ", userDefaults);
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] User defaults for {methodName}: [{userDefaultsStr}]");
+                    
+                    foreach (var pill in AllPills)
+                    {
+                        if (defaultKeys.Contains(pill.Key))
+                        {
+                            pill.IsEnabled = true;
+                            appliedCount++;
+                            TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] Enabled pill: {pill.Key}");
+                        }
+                    }
+                    
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] Applied {appliedCount} of {userDefaults.Count} user default pills for {methodName}");
+                    return true;
+                }
+                else
+                {
+                    var availableMethods = string.Join(", ", allDefaults.Keys);
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] No user defaults found for {methodName} (available methods: [{availableMethods}])");
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Assumptions] Error loading user defaults: {ex.Message}");
+            }
+            
+            return false;
+        }
+
+        /// <summary>
+        /// Apply the original hardcoded system defaults for a verification method.
+        /// This is used as a fallback when no user defaults exist.
+        /// </summary>
+        private void ApplySystemDefaults(VerificationMethod method)
+        {
+            // Map verification method to relevant assumption keys
+            var relevantKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            switch (method)
+            {
+                case VerificationMethod.Test:
+                    // Physical testing: equipment, environment, power, loads, samples
+                    relevantKeys.Add("tools_cal_12mo");
+                    relevantKeys.Add("env_ambient25");
+                    relevantKeys.Add("power_regulated5pct");
+                    relevantKeys.Add("load_nominal");
+                    relevantKeys.Add("sample_size_3");
+                    relevantKeys.Add("func_all_modes");
+                    relevantKeys.Add("doc_photos");
+                    relevantKeys.Add("doc_detailed_log");
+                    break;
+
+                case VerificationMethod.TestUnintendedFunction:
+                    // Testing unintended functions: similar to Test but with edge cases
+                    relevantKeys.Add("tools_cal_12mo");
+                    relevantKeys.Add("env_ambient25");
+                    relevantKeys.Add("load_min_max");
+                    relevantKeys.Add("sample_size_3");
+                    relevantKeys.Add("func_all_modes");
+                    relevantKeys.Add("doc_photos");
+                    relevantKeys.Add("doc_detailed_log");
+                    relevantKeys.Add("esd_precautions");
+                    break;
+
+                case VerificationMethod.Inspection:
+                    // Visual/physical inspection: visual checks, dimensions, materials, documentation
+                    relevantKeys.Add("visual_inspect");
+                    relevantKeys.Add("dimensional_check");
+                    relevantKeys.Add("material_verify");
+                    relevantKeys.Add("doc_photos");
+                    relevantKeys.Add("env_ambient25");
+                    break;
+
+                case VerificationMethod.Analysis:
+                    // Mathematical/engineering analysis: models, tools, worst-case
+                    relevantKeys.Add("analysis_math_model");
+                    relevantKeys.Add("analysis_cad_validated");
+                    relevantKeys.Add("analysis_worst_case");
+                    relevantKeys.Add("doc_detailed_log");
+                    break;
+
+                case VerificationMethod.Simulation:
+                    // Computer simulation: validated models, corner cases
+                    relevantKeys.Add("sim_validated_model");
+                    relevantKeys.Add("sim_corner_cases");
+                    relevantKeys.Add("analysis_worst_case");
+                    relevantKeys.Add("doc_detailed_log");
+                    break;
+
+                case VerificationMethod.Demonstration:
+                    // Live demonstration: user scenarios, live operation
+                    relevantKeys.Add("demo_user_scenarios");
+                    relevantKeys.Add("demo_live_operation");
+                    relevantKeys.Add("func_all_modes");
+                    relevantKeys.Add("visual_inspect");
+                    relevantKeys.Add("doc_photos");
+                    relevantKeys.Add("env_ambient25");
+                    break;
+
+                case VerificationMethod.ServiceHistory:
+                    // Historical data review: field data, similar designs
+                    relevantKeys.Add("history_field_data");
+                    relevantKeys.Add("history_similar_design");
+                    relevantKeys.Add("doc_detailed_log");
+                    break;
+
+                case VerificationMethod.VerifiedAtAnotherLevel:
+                    // Cross-reference to other verification
+                    relevantKeys.Add("doc_detailed_log");
+                    break;
+
+                case VerificationMethod.Unassigned:
+                    // No preset - let user select
+                    break;
+            }
+
+            // Enable matching chips
+            foreach (var pill in AllPills)
+            {
+                if (relevantKeys.Contains(pill.Key))
+                {
+                    pill.IsEnabled = true;
+                }
+            }
+
+            var methodName = method.ToString();
+            StatusHint = relevantKeys.Count > 0 
+                ? $"Applied {relevantKeys.Count} system default assumptions for {methodName} verification."
+                : $"{methodName} verification selected. Choose relevant assumptions below.";
+        }
 
         private void ResetAssumptions()
         {

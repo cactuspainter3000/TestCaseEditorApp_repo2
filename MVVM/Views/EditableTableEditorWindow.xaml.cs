@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Windows;
+using System.Windows.Input;
 using AppColumn = EditableDataControl.ViewModels.ColumnDefinitionModel;
 // app-side types:
 using AppProvider = TestCaseEditorApp.MVVM.ViewModels.ITableViewProvider;
@@ -168,6 +169,20 @@ namespace TestCaseEditorApp.MVVM.Views
         }
 
         private void Cancel_Click(object sender, RoutedEventArgs e)
+        {
+            DialogResult = false;
+            Close();
+        }
+
+        private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                DragMove();
+            }
+        }
+
+        private void Close_Click(object sender, RoutedEventArgs e)
         {
             DialogResult = false;
             Close();

@@ -8,12 +8,18 @@
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <converters:NullOrEmptyToVisibilityConverter x:Key="NullOrEmptyToVisibilityConverter" />
+        <converters:StringNotEmptyToVisibilityConverter x:Key="StringNotEmptyToVisibilityConverter" />
+        <converters:StringEmptyToVisibilityConverter x:Key="StringEmptyToVisibilityConverter" />
         
         <!-- Inverted converter for showing content when NOT analyzing -->
         <converters:BoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" Invert="True" />
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <ScrollViewer.Resources>
+            <Style TargetType="ScrollBar" BasedOn="{StaticResource CustomScrollBarStyle}"/>
+        </ScrollViewer.Resources>
         <Grid Margin="12">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/> <!-- Header -->
@@ -64,31 +70,52 @@
                 
                 <!-- No analysis prompt -->
                 <StackPanel Visibility="{Binding IsAnalyzing, Converter={StaticResource InverseBoolToVisibilityConverter}}">
-                    <TextBlock Text="No analysis available" 
-                               FontSize="16" 
-                               Foreground="#888888" 
-                               HorizontalAlignment="Center"
-                               Margin="0,0,0,12"/>
-                    <TextBlock Text="Analysis will be performed automatically during import." 
-                               FontSize="12" 
-                               Foreground="#AAAAAA" 
-                               HorizontalAlignment="Center"
-                               TextWrapping="Wrap"
-                               MaxWidth="400"
-                               TextAlignment="Center"
-                               Margin="0,0,0,8"/>
                     
-                    <!-- Batch analyzing hint -->
-                    <TextBlock Visibility="{Binding IsBatchAnalyzing, Converter={StaticResource BoolToVisibilityConverter}}"
-                               Text="Analysis results will appear here automatically" 
-                               FontSize="11" 
-                               Foreground="{DynamicResource AccentBrush}"
-                               FontWeight="SemiBold"
-                               HorizontalAlignment="Center"
-                               TextWrapping="Wrap"
-                               MaxWidth="400"
-                               TextAlignment="Center"
-                               Margin="0,0,0,20"/>
+                    <!-- Error message (when analysis failed) -->
+                    <StackPanel Visibility="{Binding AnalysisStatusMessage, Converter={StaticResource StringNotEmptyToVisibilityConverter}}">
+                        <TextBlock Text="Analysis Failed" 
+                                   FontSize="16" 
+                                   Foreground="#CC6666" 
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,12"/>
+                        <TextBlock Text="{Binding AnalysisStatusMessage}" 
+                                   FontSize="14" 
+                                   Foreground="#CC6666" 
+                                   HorizontalAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="400"
+                                   TextAlignment="Center"
+                                   Margin="0,0,0,20"/>
+                    </StackPanel>
+                    
+                    <!-- No analysis available (when not yet attempted) -->
+                    <StackPanel Visibility="{Binding AnalysisStatusMessage, Converter={StaticResource StringEmptyToVisibilityConverter}}">
+                        <TextBlock Text="No analysis available" 
+                                   FontSize="16" 
+                                   Foreground="#888888" 
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,12"/>
+                        <TextBlock Text="Analysis will be performed automatically during import." 
+                                   FontSize="12" 
+                                   Foreground="#AAAAAA" 
+                                   HorizontalAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="400"
+                                   TextAlignment="Center"
+                                   Margin="0,0,0,8"/>
+                        
+                        <!-- Batch analyzing hint -->
+                        <TextBlock Visibility="{Binding IsBatchAnalyzing, Converter={StaticResource BoolToVisibilityConverter}}"
+                                   Text="Analysis results will appear here automatically" 
+                                   FontSize="11" 
+                                   Foreground="{DynamicResource AccentBrush}"
+                                   FontWeight="SemiBold"
+                                   HorizontalAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="400"
+                                   TextAlignment="Center"
+                                   Margin="0,0,0,20"/>
+                    </StackPanel>
                     
                     <Button Content="Analyze Now"
                             Command="{Binding AnalyzeRequirementCommand}"
@@ -112,13 +139,19 @@
 
                 <!-- Header -->
                 <DockPanel Grid.Row="0" Margin="0,0,0,20">
-                    <Button DockPanel.Dock="Right"
-                            Content="Edit"
-                            Command="{Binding EditRequirementCommand}"
-                            ToolTip="Edit requirement description and re-analyze"
-                            Style="{StaticResource PillActionButtonStyle}"
-                            Margin="8,0,0,0"
-                            VerticalAlignment="Top"/>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Content="Inspect Result"
+                                Click="InspectResult_Click"
+                                ToolTip="Debug: View parsed analysis result"
+                                Style="{StaticResource PillActionButtonStyle}"
+                                Margin="0,0,8,0"
+                                VerticalAlignment="Top"/>
+                        <Button Content="Edit"
+                                Command="{Binding EditRequirementCommand}"
+                                ToolTip="Edit requirement description and re-analyze"
+                                Style="{StaticResource PillActionButtonStyle}"
+                                VerticalAlignment="Top"/>
+                    </StackPanel>
                     <StackPanel>
                         <TextBlock Text="Requirement Quality Analysis" 
                                    Style="{StaticResource Text.H2}"
@@ -246,7 +279,35 @@
                                                        FontSize="11"
                                                        FontStyle="Italic"
                                                        Foreground="#888888"
-                                                       Visibility="{Binding Example, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                                       Margin="0,0,0,6"
+                                                       Visibility="{Binding Example, Converter={StaticResource NullOrEmptyToVisibilityConverter}}"/>
+                                            
+                                            <!-- Suggested Edit Section -->
+                                            <Border Background="#1E4D72"
+                                                    BorderBrush="#4A9EFF"
+                                                    BorderThickness="1"
+                                                    Padding="8"
+                                                    CornerRadius="3"
+                                                    Margin="0,6,0,0"
+                                                    Visibility="{Binding SuggestedEdit, Converter={StaticResource NullOrEmptyToVisibilityConverter}}">
+                                                <StackPanel>
+                                                    <TextBlock Text="💡 Suggested Rewrite:" 
+                                                               FontSize="10"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="#4A9EFF"
+                                                               Margin="0,0,0,4"/>
+                                                    <TextBlock Text="{Binding SuggestedEdit}" 
+                                                               TextWrapping="Wrap"
+                                                               FontSize="11"
+                                                               Foreground="#E6F3FF"
+                                                               LineHeight="16"/>
+                                                    <TextBlock Text="This incorporates details from supplemental information into the requirement text"
+                                                               FontSize="9"
+                                                               FontStyle="Italic"
+                                                               Foreground="#8BBFFF"
+                                                               Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                            </Border>
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>

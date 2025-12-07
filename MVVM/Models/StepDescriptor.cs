@@ -43,7 +43,13 @@
         public bool IsSelectable
         {
             get => _isSelectable;
-            set => SetProperty(ref _isSelectable, value);
+            set 
+            { 
+                if (SetProperty(ref _isSelectable, value))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[StepDescriptor] IsSelectable changed to {value} for step {Id} ({DisplayName})");
+                }
+            }
         }
     }
 }

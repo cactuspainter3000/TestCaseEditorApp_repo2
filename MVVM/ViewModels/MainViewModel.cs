@@ -43,6 +43,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Optional/managed runtime services
         private LlmProbeService? _llmProbeService;
         private readonly ToastNotificationService _toastService;
+        private readonly ChatGptExportService _chatGptExportService;
 
         // --- Logging ---
         private readonly ILogger<MainViewModel>? _logger;
@@ -123,14 +124,28 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         _workspaceHeaderViewModel.CanReAnalyze = (value != null && !IsLlmBusy);
                         ((AsyncRelayCommand?)_workspaceHeaderViewModel.ReAnalyzeCommand)?.NotifyCanExecuteChanged();
                     }
+                    
+                    // Update ChatGPT export command state
+                    ((RelayCommand?)ExportForChatGptCommand)?.NotifyCanExecuteChanged();
 
                     // Defensive final step: always forward to header(s)
                     try
                     {
                         if (Application.Current?.Dispatcher?.CheckAccess() == true)
+                        {
                             ForwardRequirementToActiveHeader(value);
+                            
+                            // Update test case step selectability based on new requirement
+                            UpdateTestCaseStepSelectability();
+                        }
                         else
-                            Application.Current?.Dispatcher?.Invoke(() => ForwardRequirementToActiveHeader(value));
+                        {
+                            Application.Current?.Dispatcher?.Invoke(() => 
+                            {
+                                ForwardRequirementToActiveHeader(value);
+                                UpdateTestCaseStepSelectability();
+                            });
+                        }
                     }
                     catch { /* swallow */ }
 
@@ -188,6 +203,32 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 if (SetProperty(ref _autoAnalyzeOnImport, value))
                 {
                     try { _persistence?.Save("AutoAnalyzeOnImport", value); } catch { }
+                }
+            }
+        }
+
+        private bool _autoExportForChatGpt = false;
+        public bool AutoExportForChatGpt
+        {
+            get => _autoExportForChatGpt;
+            set
+            {
+                if (SetProperty(ref _autoExportForChatGpt, value))
+                {
+                    try { _persistence?.Save("AutoExportForChatGpt", value); } catch { }
+                }
+            }
+        }
+
+        private string? _lastChatGptExportFilePath;
+        public string? LastChatGptExportFilePath
+        {
+            get => _lastChatGptExportFilePath;
+            set
+            {
+                if (SetProperty(ref _lastChatGptExportFilePath, value))
+                {
+                    ((RelayCommand?)OpenChatGptExportCommand)?.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -292,6 +333,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand ReloadCommand { get; private set; }
         public ICommand ExportAllToJamaCommand { get; private set; }
         public ICommand HelpCommand { get; private set; }
+        public ICommand ExportForChatGptCommand { get; private set; }
+        public ICommand ExportSelectedForChatGptCommand { get; private set; }
+        public ICommand ToggleAutoExportCommand { get; private set; }
+        public ICommand OpenChatGptExportCommand { get; private set; }
 
         // Selected menu section (was referenced in UI/logic)
         private string? _selectedMenuSection;
@@ -415,6 +460,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             // Initialize toast notification service
             _toastService = new ToastNotificationService(Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher);
+            
+            // Initialize ChatGPT export service
+            _chatGptExportService = new ChatGptExportService();
 
             // Initialize header instances
             _testCaseGeneratorHeader = new TestCaseGenerator_HeaderVM(this) { TitleText = "Test Case Creator" };
@@ -462,8 +510,21 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch { /* ignore persistence errors */ }
 
-            // Initialize toggle command for UI binding
+            // Load persisted user preference for auto-export for ChatGPT (default: false)
+            try
+            {
+                if (_persistence != null && _persistence.Exists("AutoExportForChatGpt"))
+                {
+                    var val = _persistence.Load<bool>("AutoExportForChatGpt");
+                    _autoExportForChatGpt = val;
+                }
+            }
+            catch { /* ignore persistence errors */ }
+
+            // Initialize toggle commands for UI binding
             ToggleAutoAnalyzeCommand = new RelayCommand(() => AutoAnalyzeOnImport = !AutoAnalyzeOnImport);
+            ToggleAutoExportCommand = new RelayCommand(() => AutoExportForChatGpt = !AutoExportForChatGpt);
+            OpenChatGptExportCommand = new RelayCommand(() => OpenChatGptExportFile(), () => !string.IsNullOrEmpty(LastChatGptExportFilePath) && System.IO.File.Exists(LastChatGptExportFilePath));
 
             // Initialize analysis service for auto-analysis during import
             try
@@ -484,6 +545,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             ReloadCommand = new AsyncRelayCommand(ReloadAsync);
             ExportAllToJamaCommand = new RelayCommand(() => TryInvokeExportAllToJama());
             HelpCommand = new RelayCommand(() => TryInvokeHelp());
+            ExportForChatGptCommand = new RelayCommand(() => ExportCurrentRequirementForChatGpt(), () => CurrentRequirement != null);
+            ExportSelectedForChatGptCommand = new RelayCommand(() => ExportSelectedRequirementsForChatGpt());
 
             // Create navigator and pass child logger if available
             _requirementsNavigator = new RequirementsIndexViewModel(
@@ -568,7 +631,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 DisplayName = "Test Case Generator",
                 Badge = string.Empty,
                 HasFileMenu = true,
-                IsSelectable = false,  // Only accessible via Questions workflow
+                IsSelectable = true,  // Allow selection when test cases exist
                 CreateViewModel = svc => new TestCaseGenerator_CreationVM(this)
             });
 
@@ -1088,6 +1151,82 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             SetTransientStatus("Export to Jama is not available.", 3);
         }
 
+        private void ExportCurrentRequirementForChatGpt()
+        {
+            try
+            {
+                if (CurrentRequirement == null)
+                {
+                    SetTransientStatus("No requirement selected for export.", 3);
+                    return;
+                }
+
+                // Export to clipboard
+                bool clipboardSuccess = _chatGptExportService.ExportAndCopy(CurrentRequirement, includeAnalysisRequest: true);
+                
+                // Also save to file
+                string formattedText = _chatGptExportService.ExportSingleRequirement(CurrentRequirement, includeAnalysisRequest: true);
+                string fileName = $"Requirement_{CurrentRequirement.Item?.Replace("/", "_").Replace("\\", "_")}_{DateTime.Now:yyyyMMdd_HHmmss}.md";
+                string filePath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), fileName);
+                
+                try
+                {
+                    System.IO.File.WriteAllText(filePath, formattedText);
+                    LastChatGptExportFilePath = filePath;
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[CHATGPT EXPORT] Saved single requirement to file: {filePath}");
+                }
+                catch (Exception fileEx)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[CHATGPT EXPORT] Failed to save single requirement file: {fileEx.Message}");
+                }
+                
+                if (clipboardSuccess)
+                {
+                    SetTransientStatus($"✅ Requirement {CurrentRequirement.Item} exported to clipboard and saved to {fileName}!", 5);
+                }
+                else
+                {
+                    SetTransientStatus($"⚠️ Export saved to {fileName} but clipboard copy failed.", 4);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Failed to export current requirement for ChatGPT");
+                SetTransientStatus("Error exporting requirement for ChatGPT.", 3);
+            }
+        }
+
+        private void ExportSelectedRequirementsForChatGpt()
+        {
+            try
+            {
+                // For now, export all requirements - could be extended to support selection
+                var requirementsToExport = Requirements.ToList();
+                
+                if (!requirementsToExport.Any())
+                {
+                    SetTransientStatus("No requirements available for export.", 3);
+                    return;
+                }
+
+                bool success = _chatGptExportService.ExportAndCopyMultiple(requirementsToExport, includeAnalysisRequest: true);
+                
+                if (success)
+                {
+                    SetTransientStatus($"{requirementsToExport.Count} requirements exported to clipboard for ChatGPT analysis!", 4);
+                }
+                else
+                {
+                    SetTransientStatus("Failed to export requirements to clipboard.", 3);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Failed to export requirements for ChatGPT");
+                SetTransientStatus("Error exporting requirements for ChatGPT.", 3);
+            }
+        }
+
         private void TryInvokeHelp()
         {
             try
@@ -1157,109 +1296,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private void CommitPendingEdits() => Keyboard.ClearFocus();
 
         // --- Import / Save / Load implementations ---
-        public async Task QuickImportAsync()
-        {
-            try
-            {
-                var ts = DateTime.UtcNow.ToString("o");
-                var pid = System.Diagnostics.Process.GetCurrentProcess().Id;
-                var asm = System.Reflection.Assembly.GetExecutingAssembly().Location;
-                var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                var user = Environment.UserName;
-                var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                var tmpDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "TestCaseEditorApp");
-
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] invoked: {ts}");
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] PID={pid}");
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] Assembly={asm}");
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] BaseDir={baseDir}");
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] User={user}");
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] LocalAppData={localAppData}");
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] TempDir={tmpDir}");
-            }
-            catch (Exception ex)
-            {
-                try { TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] debug-probe failed: {ex.Message}"); } catch { }
-            }
-            const string fixedSourcePath = @"C:\Users\e10653214\Downloads\Decagon_Boundary Scan.docx";
-            // Determine destination folder for quick-import saves.
-            // Prefer the directory of an already-set WorkspacePath (user's previous choice),
-            // otherwise fall back to the Desktop (may be redirected to OneDrive).
-            var fixedDestinationFolder = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            try
-            {
-                if (!string.IsNullOrWhiteSpace(WorkspacePath))
-                {
-                    var wpDir = Path.GetDirectoryName(WorkspacePath!);
-                    if (!string.IsNullOrWhiteSpace(wpDir) && Directory.Exists(wpDir))
-                    {
-                        fixedDestinationFolder = wpDir;
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] Using WorkspacePath directory for quick-save: {fixedDestinationFolder}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] Failed to determine preferred save folder: {ex.Message}");
-            }
-
-            if (!File.Exists(fixedSourcePath))
-            {
-                SetTransientStatus($"Source file not found: {fixedSourcePath}", 3);
-                return;
-            }
-
-            // Import from fixed source
-            await ImportFromPathAsync(fixedSourcePath, replace: true);
-
-            // Auto-save to fixed destination
-            if (Requirements == null || Requirements.Count == 0)
-            {
-                SetTransientStatus("Nothing to save after import.", 2);
-                return;
-            }
-
-            var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-            var guid = Guid.NewGuid().ToString("N").Substring(0, 8);
-            var fileName = $"Decagon_Boundary Scan_{timestamp}_{guid}.tcex.json";
-            var fullPath = Path.Combine(fixedDestinationFolder, fileName);
-
-            try
-            {
-                WorkspacePath = fullPath;
-                var ws = new Workspace
-                {
-                    SourceDocPath = CurrentSourcePath,
-                    Requirements = Requirements.ToList()
-                };
-
-                // Diagnostic test: attempt a tiny write to the destination folder
-                try
-                {
-                    var testName = $"tcex_write_test_{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString("N").Substring(0,8)}.txt";
-                    var testPath = Path.Combine(fixedDestinationFolder, testName);
-                    File.WriteAllText(testPath, $"Test write from QuickImport at {DateTime.UtcNow:o} PID={System.Diagnostics.Process.GetCurrentProcess().Id}");
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] Wrote test file: {testPath}");
-                }
-                catch (Exception ex)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[QuickImport] Test write failed: {ex.Message}");
-                }
-
-                TestCaseEditorApp.Services.WorkspaceFileManager.Save(WorkspacePath!, ws);
-                TestCaseEditorApp.Services.WorkspaceFileManager.Save(WorkspacePath!, ws);
-                // Log detailed post-save diagnostics to help locate the written file
-                LogPostSaveDiagnostics(WorkspacePath!);
-                CurrentWorkspace = ws;
-                HasUnsavedChanges = false;
-                SetTransientStatus($"Quick import complete: {fileName}", 5);
-            }
-            catch (Exception ex)
-            {
-                SetTransientStatus($"Save failed: {ex.Message}", blockingError: true);
-            }
-        }
-
         public async Task ImportWordAsync()
         {
             var dlg = new OpenFileDialog
@@ -1275,6 +1311,137 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             await ImportFromPathAsync(dlg.FileName, replace: true);
         }
+        
+        /// <summary>
+        /// Development convenience: Quick import with actual Decagon Boundary Scan requirements.
+        /// Skips file dialogs and directly imports from the test file you use for development.
+        /// </summary>
+        public async Task QuickImportAsync()
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info("[QuickImport] STARTING QuickImportAsync method");
+                
+                // Check if requirement service exists
+                if (_requirementService == null)
+                {
+                    SetTransientStatus("Quick Import: Requirement service not available", 5);
+                    TestCaseEditorApp.Services.Logging.Log.Warn("[QuickImport] _requirementService is null!");
+                    return;
+                }
+                
+                // Paths for your standard testing setup
+                var testDocPath = @"C:\Users\e10653214\Downloads\Decagon_Boundary Scan.docx";
+                var testWorkspaceFolder = @"C:\Users\e10653214\Desktop\testing import";
+                
+                SetTransientStatus("⚡ Quick Import from Decagon test file...", 3);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[QuickImport] Starting import from: {testDocPath}");
+                
+                // Check if the test file exists
+                if (!File.Exists(testDocPath))
+                {
+                    SetTransientStatus($"Quick Import: Test file not found at {testDocPath}", 5);
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[QuickImport] Test file not found: {testDocPath}");
+                    return;
+                }
+                
+                // Ensure workspace directory exists
+                Directory.CreateDirectory(testWorkspaceFolder);
+                
+                // Generate timestamped workspace file
+                var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                WorkspacePath = Path.Combine(testWorkspaceFolder, $"QuickImport_Decagon_{timestamp}.tcex.json");
+                
+                SetTransientStatus($"Importing {Path.GetFileName(testDocPath)}...", 60);
+                
+                // Import requirements from the actual test file
+                var sw = Stopwatch.StartNew();
+                var reqs = await Task.Run(() => _requirement_service_call_for_import(testDocPath));
+                sw.Stop();
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[QuickImport] Parsed {reqs?.Count ?? 0} requirements in {sw.ElapsedMilliseconds}ms");
+                
+                if (reqs == null || !reqs.Any())
+                {
+                    SetTransientStatus("Quick Import: No requirements found in test file", 5);
+                    TestCaseEditorApp.Services.Logging.Log.Info("[QuickImport] No requirements parsed from test file");
+                    return;
+                }
+                
+                // Build workspace model
+                CurrentWorkspace = new Workspace
+                {
+                    SourceDocPath = testDocPath,
+                    Requirements = reqs.ToList()
+                };
+                
+                // Update UI collection
+                try
+                {
+                    Requirements.CollectionChanged -= RequirementsOnCollectionChanged;
+                    Requirements.Clear();
+                    foreach (var req in reqs)
+                        Requirements.Add(req);
+                }
+                finally
+                {
+                    Requirements.CollectionChanged += RequirementsOnCollectionChanged;
+                }
+                
+                CurrentWorkspace.Requirements = Requirements.ToList();
+                
+                // Auto-process if enabled
+                TestCaseEditorApp.Services.Logging.Log.Info($"[QuickImport] Imported {reqs.Count} requirements, AutoAnalyzeOnImport={AutoAnalyzeOnImport}, AutoExportForChatGpt={AutoExportForChatGpt}");
+                
+                if (reqs.Any() && AutoExportForChatGpt)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[QuickImport] Exporting {reqs.Count} requirements for ChatGPT");
+                    _ = Task.Run(() => BatchExportRequirementsForChatGpt(reqs));
+                }
+                else if (_analysisService != null && reqs.Any() && AutoAnalyzeOnImport)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[QuickImport] Starting batch analysis for {reqs.Count} requirements");
+                    _ = Task.Run(async () => await BatchAnalyzeRequirementsAsync(reqs));
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info("[QuickImport] Auto-processing NOT started - conditions not met");
+                }
+                
+                // Set current requirement and finalize
+                Requirement? firstFromView = null;
+                try
+                {
+                    firstFromView = _requirementsNavigator?.RequirementsView?.Cast<Requirement>().FirstOrDefault();
+                }
+                catch { firstFromView = null; }
+                
+                CurrentRequirement = firstFromView ?? Requirements.FirstOrDefault();
+                CurrentSourcePath = testDocPath;
+                HasUnsavedChanges = false;
+                IsDirty = false;
+                RefreshSupportingInfo();
+                ComputeDraftedCount();
+                RaiseCounterChanges();
+                _requirementsNavigator?.NotifyCurrentRequirementChanged();
+                
+                SetTransientStatus($"⚡ Quick Import complete - {Requirements.Count} Decagon requirements from test file", 4);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[QuickImport] Complete - workspace: {WorkspacePath}");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[QuickImport] FATAL ERROR during quick import: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[QuickImport] Stack trace: {ex.StackTrace}");
+                SetTransientStatus($"Quick Import failed: {ex.Message}", 10);
+                
+                // Also try to show a message box for immediate feedback
+                try
+                {
+                    System.Windows.MessageBox.Show($"Quick Import failed with error:\n\n{ex.Message}\n\nCheck logs for details.", "Quick Import Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                }
+                catch { /* ignore message box errors */ }
+            }
+        }
 
         public Task ReloadAsync()
         {
@@ -1289,8 +1456,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Quick save to existing workspace path
         public void SaveWorkspace()
         {
+            TestCaseEditorApp.Services.Logging.Log.Info($"[SaveWorkspace] Quick save called. WorkspacePath='{WorkspacePath ?? "<null>"}'");
             if (string.IsNullOrWhiteSpace(WorkspacePath))
             {
+                TestCaseEditorApp.Services.Logging.Log.Info("[SaveWorkspace] No existing path, delegating to SaveAs");
                 // No existing path, delegate to SaveAs
                 _ = SaveWorkspaceAsync();
                 return;
@@ -1340,15 +1509,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
 
             var suggested = $"{(string.IsNullOrWhiteSpace(Path.GetFileNameWithoutExtension(WordFilePath)) ? "Workspace" : Path.GetFileNameWithoutExtension(WordFilePath))}.tcex.json";
-            var defaultFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "TestCaseEditorApp", "Sessions");
+            var defaultFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "TestCaseEditorApp", "Workspaces");
             Directory.CreateDirectory(defaultFolder);
 
+            TestCaseEditorApp.Services.Logging.Log.Info($"[MainViewModel] Showing SaveFile dialog. initialDirectory={defaultFolder}, suggestedFileName={suggested}");
             var chosen = _fileDialog.ShowSaveFile(
                 title: "Save Workspace",
                 suggestedFileName: suggested,
                 filter: "Test Case Editor Session|*.tcex.json|JSON|*.json|All Files|*.*",
                 defaultExt: ".tcex.json",
                 initialDirectory: defaultFolder);
+
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[MainViewModel] File dialog returned: '{chosen ?? "NULL"}'");
 
             if (string.IsNullOrWhiteSpace(chosen))
             {
@@ -1381,6 +1553,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
 
             WorkspacePath = chosen;
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[MainViewModel] Set WorkspacePath to: '{WorkspacePath}'");
             var ws = new Workspace
             {
                 SourceDocPath = CurrentSourcePath,
@@ -1420,7 +1593,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 Filter = "Test Case Editor Session|*.tcex.json",
                 DefaultExt = ".tcex.json",
                 RestoreDirectory = true,
-                InitialDirectory = !string.IsNullOrWhiteSpace(WorkspacePath) ? Path.GetDirectoryName(WorkspacePath) : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                InitialDirectory = !string.IsNullOrWhiteSpace(WorkspacePath) ? Path.GetDirectoryName(WorkspacePath) : Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
             };
 
             if (ofd.ShowDialog() != true) return;
@@ -1773,11 +1946,42 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
         }
 
+        private void UpdateTestCaseStepSelectability()
+        {
+            var testCaseStep = TestCaseGeneratorSteps?.FirstOrDefault(s => s.Id == "testcase-creation");
+            if (testCaseStep != null)
+            {
+                var hasTestCases = CurrentRequirement?.GeneratedTestCases?.Count > 0 || CurrentRequirement?.HasGeneratedTestCase == true;
+                TestCaseEditorApp.Services.Logging.Log.Info($"[MainViewModel] UpdateTestCaseStepSelectability: Current={testCaseStep.IsSelectable}, New={hasTestCases}, GeneratedTestCases.Count={CurrentRequirement?.GeneratedTestCases?.Count ?? 0}, HasGeneratedTestCase={CurrentRequirement?.HasGeneratedTestCase}");
+                
+                if (testCaseStep.IsSelectable != hasTestCases)
+                {
+                    testCaseStep.IsSelectable = hasTestCases;
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[MainViewModel] Test Cases step IsSelectable changed to {hasTestCases} for requirement {CurrentRequirement?.Item}");
+                    
+                    // Force property change notifications
+                    OnPropertyChanged(nameof(TestCaseGeneratorSteps));
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[MainViewModel] Test Cases step IsSelectable already {hasTestCases}, no change needed");
+                }
+            }
+            else
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[MainViewModel] Test Cases step not found in TestCaseGeneratorSteps");
+            }
+        }
+
         private void CurrentRequirement_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
+            // Update test case step selectability for any property change that might affect test cases
+            UpdateTestCaseStepSelectability();
+            
             if (string.IsNullOrEmpty(e?.PropertyName) ||
                 e.PropertyName == nameof(Requirement.Description) ||
-                e.PropertyName == nameof(Requirement.Method))
+                e.PropertyName == nameof(Requirement.Method) ||
+                e.PropertyName == nameof(Requirement.GeneratedTestCases))
             {
                 try
                 {
@@ -1867,12 +2071,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             try
             {
-                var defaultFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "TestCaseEditorApp", "Sessions");
+                var defaultFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "TestCaseEditorApp", "Workspaces");
                 Directory.CreateDirectory(defaultFolder);
 
                 var suggested = FileNameHelper.GenerateUniqueFileName(Path.GetFileNameWithoutExtension(path), ".tcex.json");
 
+                TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Showing Create Workspace dialog. defaultFolder={defaultFolder}, suggested={suggested}");
                 var chosen = _file_dialog_show_save_helper(suggested, defaultFolder);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Create Workspace dialog returned: '{chosen}'");
 
                 if (string.IsNullOrWhiteSpace(chosen))
                 {
@@ -1882,6 +2088,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 }
 
                 WorkspacePath = FileNameHelper.EnsureUniquePath(Path.GetDirectoryName(chosen)!, Path.GetFileName(chosen));
+                TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Set WorkspacePath to: '{WorkspacePath}'");
 
                 SetTransientStatus($"Importing {Path.GetFileName(path)}...", 60); // Auto-dismiss after 60s or when next status appears
                 _logger?.LogInformation("Starting import of '{Path}'", path);
@@ -1915,10 +2122,22 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 CurrentWorkspace.Requirements = Requirements.ToList();
 
-                // Auto-analyze requirements if the analysis service is available and user enabled the feature
-                if (_analysisService != null && reqs.Any() && AutoAnalyzeOnImport)
+                // Auto-process requirements if enabled
+                TestCaseEditorApp.Services.Logging.Log.Info($"[IMPORT] Checking auto-processing: _analysisService={_analysisService != null}, reqs.Any()={reqs.Any()}, AutoAnalyzeOnImport={AutoAnalyzeOnImport}, AutoExportForChatGpt={AutoExportForChatGpt}");
+                
+                if (reqs.Any() && AutoExportForChatGpt)
                 {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[IMPORT] Exporting {reqs.Count} requirements for ChatGPT");
+                    _ = Task.Run(() => BatchExportRequirementsForChatGpt(reqs));
+                }
+                else if (_analysisService != null && reqs.Any() && AutoAnalyzeOnImport)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[IMPORT] Starting batch analysis for {reqs.Count} requirements");
                     _ = Task.Run(async () => await BatchAnalyzeRequirementsAsync(reqs));
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info("[IMPORT] Auto-processing NOT started - conditions not met");
                 }
 
                 // Track in recent files
@@ -1955,7 +2174,48 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Wrap requirement service call so it's easy to adapt if your real interface differs.
         private List<Requirement> _requirement_service_call_for_import(string path)
         {
-            return _requirementService?.ImportRequirementsFromJamaAllDataDocx(path) ?? new List<Requirement>();
+            // Try both parsing methods and use the one that returns results
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[Import] _requirement_service_call_for_import called with path: {path}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[Import] _requirementService is null: {_requirementService == null}");
+                
+                if (_requirementService == null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn("[Import] _requirementService is null - cannot import");
+                    return new List<Requirement>();
+                }
+                
+                // First try the Jama All Data parser
+                TestCaseEditorApp.Services.Logging.Log.Info("[Import] Trying Jama All Data parser...");
+                var jamaResults = _requirementService?.ImportRequirementsFromJamaAllDataDocx(path) ?? new List<Requirement>();
+                TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Jama parser returned {jamaResults.Count} requirements");
+                
+                if (jamaResults.Count > 0)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Successfully parsed {jamaResults.Count} requirements using Jama All Data parser");
+                    return jamaResults;
+                }
+                
+                // If that didn't work, try the regular Word parser
+                TestCaseEditorApp.Services.Logging.Log.Info("[Import] Trying regular Word parser...");
+                var wordResults = _requirementService?.ImportRequirementsFromWord(path) ?? new List<Requirement>();
+                TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Word parser returned {wordResults.Count} requirements");
+                
+                if (wordResults.Count > 0)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Successfully parsed {wordResults.Count} requirements using Word parser");
+                    return wordResults;
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[Import] No requirements found with either parser for file: {path}");
+                return new List<Requirement>();
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[Import] Error during import: {ex.Message}");
+                return new List<Requirement>();
+            }
         }
 
         private string _file_dialog_show_save_helper(string suggestedFileName, string initialDirectory)
@@ -2089,15 +2349,32 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             public void ExportAllGeneratedTestCasesToExcel(IEnumerable<Requirement> requirements, string outputPath) { /* no-op */ }
         }
 
+        // Batch analysis state tracking
+        private readonly object _batchAnalysisLock = new object();
+        private readonly HashSet<string> _currentlyAnalyzing = new HashSet<string>();
+        private readonly HashSet<string> _alreadyAnalyzed = new HashSet<string>();
+        private bool _batchAnalysisInProgress = false;
+
         /// <summary>
         /// Batch analyze requirements in background after import.
         /// Shows progress notifications and updates requirements with analysis results.
-        /// After initial pass, processes any requirements queued for re-analysis.
+        /// Thread-safe with duplicate prevention.
         /// </summary>
         private async Task BatchAnalyzeRequirementsAsync(List<Requirement> requirements)
         {
             if (_analysisService == null || !requirements.Any())
                 return;
+
+            // Prevent concurrent batch analysis
+            lock (_batchAnalysisLock)
+            {
+                if (_batchAnalysisInProgress)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[BATCH ANALYSIS] Already in progress - skipping duplicate call for {requirements.Count} requirements");
+                    return;
+                }
+                _batchAnalysisInProgress = true;
+            }
 
             try
             {
@@ -2106,166 +2383,291 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     IsBatchAnalyzing = true;
                 });
                 
+                TestCaseEditorApp.Services.Logging.Log.Info($"[BATCH ANALYSIS] === STARTING BATCH ANALYSIS FOR {requirements.Count} REQUIREMENTS ===");
+                
                 await Task.Delay(500); // Brief delay to let UI settle after import
 
+                // Get requirements in the order they appear in the UI (sorted view)
+                var orderedRequirements = new List<Requirement>();
+                try
+                {
+                    var requirementsView = _requirementsNavigator?.RequirementsView;
+                    if (requirementsView != null)
+                    {
+                        // Use the UI display order - this is the sorted view the user actually sees
+                        foreach (Requirement req in requirementsView)
+                        {
+                            if (requirements.Contains(req))
+                            {
+                                orderedRequirements.Add(req);
+                            }
+                        }
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[BATCH ANALYSIS] Using UI display order: [{string.Join(", ", orderedRequirements.Select(r => r.Item))}]");
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info("[BATCH ANALYSIS] RequirementsView not available, using import order");
+                        orderedRequirements = requirements;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[BATCH ANALYSIS] Error getting UI order: {ex.Message}, using import order");
+                    orderedRequirements = requirements;
+                }
+
+                // Filter requirements to only those that need analysis
+                var needAnalysis = orderedRequirements.Where(r => 
+                {
+                    if (string.IsNullOrWhiteSpace(r.Item)) return false;
+                    
+                    lock (_batchAnalysisLock)
+                    {
+                        if (_currentlyAnalyzing.Contains(r.Item) || _alreadyAnalyzed.Contains(r.Item))
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[BATCH ANALYSIS] SKIPPING {r.Item} - already processing or analyzed");
+                            return false;
+                        }
+                    }
+                    
+                    if (r.Analysis?.IsAnalyzed == true)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[BATCH ANALYSIS] SKIPPING {r.Item} - already has analysis");
+                        lock (_batchAnalysisLock)
+                        {
+                            _alreadyAnalyzed.Add(r.Item);
+                        }
+                        return false;
+                    }
+                    
+                    if (string.IsNullOrWhiteSpace(r.Description))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[BATCH ANALYSIS] SKIPPING {r.Item} - no description");
+                        return false;
+                    }
+                    
+                    return true;
+                }).ToList();
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[BATCH ANALYSIS] Filtered to {needAnalysis.Count} requirements needing analysis (in UI display order)");
+                
+                if (!needAnalysis.Any())
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info("[BATCH ANALYSIS] No requirements need analysis - completing");
+                    Application.Current?.Dispatcher?.Invoke(() =>
+                    {
+                        SetTransientStatus("All requirements already analyzed", 3);
+                    });
+                    return;
+                }
+
+                // Mark all requirements as currently being analyzed
+                lock (_batchAnalysisLock)
+                {
+                    foreach (var req in needAnalysis)
+                    {
+                        _currentlyAnalyzing.Add(req.Item);
+                    }
+                }
+
                 int completed = 0;
-                int total = requirements.Count;
-                DateTime? firstAnalysisStart = null;
+                int total = needAnalysis.Count;
                 TimeSpan? avgAnalysisTime = null;
 
-                // Get requirements in display order (sorted view that user sees)
-                var orderedRequirements = _requirementsNavigator?.RequirementsView?
-                    .Cast<Requirement>()
-                    .Where(r => requirements.Contains(r))
-                    .ToList() ?? requirements;
+                TestCaseEditorApp.Services.Logging.Log.Info($"[BATCH ANALYSIS] Processing {total} requirements in UI display order: [{string.Join(", ", needAnalysis.Select(r => r.Item))}]");
 
-                // Initial pass through all requirements in display order
-                foreach (var req in orderedRequirements)
+                // Process requirements sequentially to avoid overwhelming the LLM service
+                const int maxRetries = 2; // Define retry limit for consistent analysis
+                foreach (var req in needAnalysis)
                 {
                     try
                     {
-                        // Skip if already queued for re-analysis (user edited during batch)
-                        if (req.IsQueuedForReanalysis)
-                        {
-                            completed++;
-                            continue;
-                        }
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[BATCH ANALYSIS] === PROCESSING REQUIREMENT {req.Item} ({completed + 1}/{total}) ===");
                         
-                        // Show progress message at the START of each analysis (except the first)
-                        if (completed > 0 && avgAnalysisTime.HasValue)
-                        {
-                            var nextNumber = completed + 1;
-                            var remaining = total - completed;
-                            var estimatedTimeRemaining = TimeSpan.FromSeconds(avgAnalysisTime.Value.TotalSeconds * remaining);
-                            
-                            string progressMessage;
-                            if (estimatedTimeRemaining.TotalMinutes >= 1)
-                            {
-                                progressMessage = $"Analyzing requirements... ({nextNumber}/{total}) - ~{Math.Ceiling(estimatedTimeRemaining.TotalMinutes)} min remaining";
-                            }
-                            else
-                            {
-                                progressMessage = $"Analyzing requirements... ({nextNumber}/{total}) - ~{Math.Ceiling(estimatedTimeRemaining.TotalSeconds)} sec remaining";
-                            }
-                            
-                            Application.Current?.Dispatcher?.Invoke(() =>
-                            {
-                                SetTransientStatus(progressMessage, 180);
-                            });
-                        }
+                        // Show progress message
+                        var progressMessage = total == 1 
+                            ? "Analyzing requirement..." 
+                            : avgAnalysisTime.HasValue
+                                ? $"Analyzing requirements... ({completed + 1}/{total}) - ~{Math.Ceiling((total - completed) * avgAnalysisTime.Value.TotalMinutes)} min remaining"
+                                : $"Analyzing requirements... ({completed + 1}/{total})";
                         
-                        // Track timing for first analysis
+                        Application.Current?.Dispatcher?.Invoke(() =>
+                        {
+                            SetTransientStatus(progressMessage, 300); // Long timeout for analysis
+                        });
+                        
+                        // Set UI state to show spinner for the requirement being analyzed
+                        Application.Current?.Dispatcher?.Invoke(() =>
+                        {
+                            // If this is the current requirement being viewed, show the analyzing state
+                            if (CurrentRequirement?.Item == req.Item)
+                            {
+                                try
+                                {
+                                    var tcg = GetTestCaseGeneratorInstance();
+                                    var analysisVmProp = tcg?.GetType().GetProperty("AnalysisVM", BindingFlags.Public | BindingFlags.Instance);
+                                    var analysisVm = analysisVmProp?.GetValue(tcg);
+                                    
+                                    if (analysisVm != null)
+                                    {
+                                        // Set IsAnalyzing = true to show orange spinner
+                                        var isAnalyzingProp = analysisVm.GetType().GetProperty("IsAnalyzing", BindingFlags.Public | BindingFlags.Instance);
+                                        isAnalyzingProp?.SetValue(analysisVm, true);
+                                        
+                                        // Set status message
+                                        var statusProp = analysisVm.GetType().GetProperty("AnalysisStatusMessage", BindingFlags.Public | BindingFlags.Instance);
+                                        statusProp?.SetValue(analysisVm, "Analyzing requirement quality...");
+                                        
+                                        TestCaseEditorApp.Services.Logging.Log.Info($"[BATCH ANALYSIS] Set analyzing UI state for current requirement {req.Item}");
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[BATCH ANALYSIS] Failed to set analyzing UI state for {req.Item}");
+                                }
+                            }
+                        });
+                        
+                        // Perform analysis with retry logic for robustness
                         var analysisStart = DateTime.Now;
-                        if (firstAnalysisStart == null)
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[BATCH ANALYSIS] CALLING AnalyzeRequirementAsync for {req.Item} at {analysisStart:HH:mm:ss.fff}");
+                        
+                        RequirementAnalysis? analysis = null;
+                        int retryCount = 0;
+                        
+                        while (retryCount <= maxRetries && (analysis?.IsAnalyzed != true))
                         {
-                            firstAnalysisStart = analysisStart;
-                            
-                            // Show initial progress message immediately (before analysis completes)
-                            Application.Current?.Dispatcher?.Invoke(() =>
+                            if (retryCount > 0)
                             {
-                                SetTransientStatus($"Analyzing requirements... (1/{total})", 180);
-                            });
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[BATCH ANALYSIS] RETRY {retryCount}/{maxRetries} for {req.Item}");
+                                await Task.Delay(1000); // Brief delay before retry
+                            }
+                            
+                            try
+                            {
+                                analysis = await _analysisService.AnalyzeRequirementAsync(req);
+                                
+                                if (analysis?.IsAnalyzed == true)
+                                {
+                                    TestCaseEditorApp.Services.Logging.Log.Info($"[BATCH ANALYSIS] SUCCESS on attempt {retryCount + 1} for {req.Item}");
+                                    break; // Success - exit retry loop
+                                }
+                                else if (retryCount < maxRetries)
+                                {
+                                    TestCaseEditorApp.Services.Logging.Log.Info($"[BATCH ANALYSIS] Failed analysis on attempt {retryCount + 1} for {req.Item}, will retry");
+                                }
+                            }
+                            catch (Exception retryEx)
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Error(retryEx, $"[BATCH ANALYSIS] Exception on attempt {retryCount + 1} for {req.Item}: {retryEx.Message}");
+                                if (retryCount == maxRetries)
+                                {
+                                    throw; // Re-throw on final attempt
+                                }
+                            }
+                            
+                            retryCount++;
                         }
                         
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[MainViewModel] Starting analysis {completed + 1}/{total} for requirement: {req.Item}");
+                        var analysisEnd = DateTime.Now;
+                        var analysisDuration = analysisEnd - analysisStart;
                         
-                        // Analyze the requirement
-                        var analysis = await _analysisService.AnalyzeRequirementAsync(req, useFastMode: false);
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[BATCH ANALYSIS] COMPLETED {req.Item} at {analysisEnd:HH:mm:ss.fff} (duration: {analysisDuration.TotalSeconds:F1}s, attempts: {retryCount + 1}) - IsAnalyzed: {analysis?.IsAnalyzed}, Score: {analysis?.QualityScore}");
                         
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[MainViewModel] Completed analysis for {req.Item} - IsAnalyzed: {analysis.IsAnalyzed}, Score: {analysis.QualityScore}");
-                        
-                        // Calculate timing after first analysis
-                        var analysisDuration = DateTime.Now - analysisStart;
+                        // Update timing estimate
                         if (completed == 0)
                         {
                             avgAnalysisTime = analysisDuration;
                         }
+                        else
+                        {
+                            avgAnalysisTime = TimeSpan.FromTicks((avgAnalysisTime.Value.Ticks + analysisDuration.Ticks) / 2);
+                        }
                         
                         // Update the requirement with analysis results
                         req.Analysis = analysis;
-                        
                         completed++;
                         
-                        // Notify via mediator that analysis was updated
+                        // Mark as analyzed and remove from currently processing
+                        lock (_batchAnalysisLock)
+                        {
+                            _currentlyAnalyzing.Remove(req.Item);
+                            _alreadyAnalyzed.Add(req.Item);
+                        }
+                        
+                        // Notify UI and clear analyzing state
                         Application.Current?.Dispatcher?.Invoke(() =>
                         {
-                            TestCaseEditorApp.Services.Logging.Log.Debug($"[MainViewModel] Notifying mediator for requirement: {req.Item}");
                             AnalysisMediator.NotifyAnalysisUpdated(req);
                             OnPropertyChanged(nameof(Requirements));
+                            
+                            // If this is the current requirement being viewed, clear the analyzing state
+                            if (CurrentRequirement?.Item == req.Item)
+                            {
+                                try
+                                {
+                                    var tcg = GetTestCaseGeneratorInstance();
+                                    var analysisVmProp = tcg?.GetType().GetProperty("AnalysisVM", BindingFlags.Public | BindingFlags.Instance);
+                                    var analysisVm = analysisVmProp?.GetValue(tcg);
+                                    
+                                    if (analysisVm != null)
+                                    {
+                                        // Clear IsAnalyzing to hide spinner
+                                        var isAnalyzingProp = analysisVm.GetType().GetProperty("IsAnalyzing", BindingFlags.Public | BindingFlags.Instance);
+                                        isAnalyzingProp?.SetValue(analysisVm, false);
+                                        
+                                        // Trigger refresh of analysis display
+                                        var refreshMethod = analysisVm.GetType().GetMethod("RefreshAnalysisDisplay", BindingFlags.NonPublic | BindingFlags.Instance);
+                                        refreshMethod?.Invoke(analysisVm, null);
+                                        
+                                        TestCaseEditorApp.Services.Logging.Log.Info($"[BATCH ANALYSIS] Cleared analyzing UI state and refreshed display for current requirement {req.Item}");
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[BATCH ANALYSIS] Failed to clear analyzing UI state for {req.Item}");
+                                }
+                            }
+                            
+                            // If this is the current requirement being viewed, force immediate UI refresh
+                            if (CurrentRequirement?.Item == req.Item)
+                            {
+                                OnPropertyChanged(nameof(CurrentRequirement));
+                            }
                         });
                         
-                        // Small delay between analyses to avoid overwhelming the LLM
-                        await Task.Delay(100);
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[BATCH ANALYSIS] Updated UI for requirement {req.Item}");
+                        
+                        // Small delay between analyses to avoid overwhelming the service
+                        await Task.Delay(500); // Increased delay for better reliability
                     }
                     catch (Exception ex)
                     {
-                        _logger?.LogWarning(ex, "Failed to analyze requirement {ReqId}", req.Item);
+                        TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[BATCH ANALYSIS] ANALYSIS FAILED PERMANENTLY for requirement {req.Item} after {maxRetries + 1} attempts: {ex.Message}");
+                        
+                        // Create error analysis with detailed information
+                        req.Analysis = new RequirementAnalysis
+                        {
+                            IsAnalyzed = false,
+                            ErrorMessage = $"Analysis failed after {maxRetries + 1} attempts: {ex.Message}",
+                            Timestamp = DateTime.Now,
+                            QualityScore = 0
+                        };
+                        
+                        completed++;
+                        
+                        // Mark as processed (even though it failed)
+                        lock (_batchAnalysisLock)
+                        {
+                            _currentlyAnalyzing.Remove(req.Item);
+                            _alreadyAnalyzed.Add(req.Item);
+                        }
+                        
                         // Continue with next requirement even if one fails
                     }
                 }
 
-                // Process queued re-analyses
-                var queuedRequirements = requirements.Where(r => r.IsQueuedForReanalysis).ToList();
-                if (queuedRequirements.Any())
-                {
-                    Application.Current?.Dispatcher?.Invoke(() =>
-                    {
-                        SetTransientStatus($"Re-analyzing {queuedRequirements.Count} edited requirement(s)...", 180);
-                    });
-                    
-                    int reanalyzed = 0;
-                    foreach (var req in queuedRequirements)
-                    {
-                        try
-                        {
-                            var analysis = await _analysisService.AnalyzeRequirementAsync(req, useFastMode: false);
-                            req.Analysis = analysis;
-                            req.IsQueuedForReanalysis = false;
-                            
-                            reanalyzed++;
-                            
-                            // Calculate remaining for queued items
-                            string queuedProgressMessage;
-                            if (avgAnalysisTime.HasValue)
-                            {
-                                var remaining = queuedRequirements.Count - reanalyzed;
-                                var estimatedTimeRemaining = TimeSpan.FromSeconds(avgAnalysisTime.Value.TotalSeconds * remaining);
-                                
-                                if (estimatedTimeRemaining.TotalMinutes >= 1)
-                                {
-                                    queuedProgressMessage = $"Re-analyzing edited requirements... ({reanalyzed}/{queuedRequirements.Count}) - ~{Math.Ceiling(estimatedTimeRemaining.TotalMinutes)} min remaining";
-                                }
-                                else
-                                {
-                                    queuedProgressMessage = $"Re-analyzing edited requirements... ({reanalyzed}/{queuedRequirements.Count}) - ~{Math.Ceiling(estimatedTimeRemaining.TotalSeconds)} sec remaining";
-                                }
-                            }
-                            else
-                            {
-                                queuedProgressMessage = $"Re-analyzing edited requirements... ({reanalyzed}/{queuedRequirements.Count})";
-                            }
-                            
-                            Application.Current?.Dispatcher?.Invoke(() =>
-                            {
-                                SetTransientStatus(queuedProgressMessage, 180);
-                                
-                                // Notify via mediator that this requirement's analysis was updated
-                                AnalysisMediator.NotifyAnalysisUpdated(req);
-                                
-                                OnPropertyChanged(nameof(Requirements));
-                            });
-                            
-                            await Task.Delay(100);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger?.LogWarning(ex, "Failed to re-analyze requirement {ReqId}", req.Item);
-                            req.IsQueuedForReanalysis = false;
-                        }
-                    }
-                }
-
-                // Save the workspace with analysis results
+                // Final summary
                 Application.Current?.Dispatcher?.Invoke(() =>
                 {
                     if (!string.IsNullOrWhiteSpace(WorkspacePath))
@@ -2273,30 +2675,177 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         SaveWorkspace();
                     }
                     
-                    var totalAnalyzed = completed - queuedRequirements.Count + queuedRequirements.Count(r => !r.IsQueuedForReanalysis);
-                    SetTransientStatus($"Analysis complete - {totalAnalyzed} of {total} requirements analyzed", 5);
+                    var analyzedReqs = needAnalysis.Where(r => r.Analysis?.IsAnalyzed == true).ToList();
+                    var failedReqs = needAnalysis.Where(r => r.Analysis?.IsAnalyzed != true).ToList();
                     
-                    // Refresh the current requirement view if we're looking at one
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[BATCH ANALYSIS FINAL SUMMARY]");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"Total processed: {completed}");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"Successfully analyzed: {analyzedReqs.Count} - [{string.Join(", ", analyzedReqs.Select(r => r.Item))}]");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"Failed: {failedReqs.Count} - [{string.Join(", ", failedReqs.Select(r => r.Item))}]");
+                    
+                    var successRate = total > 0 ? (analyzedReqs.Count * 100 / total) : 100;
+                    SetTransientStatus($"Analysis complete - {analyzedReqs.Count}/{total} requirements analyzed ({successRate}% success)", 6);
+                    
+                    // Refresh the current requirement view
                     if (CurrentRequirement != null)
                     {
                         OnPropertyChanged(nameof(CurrentRequirement));
                     }
                 });
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[BATCH ANALYSIS] === COMPLETED BATCH ANALYSIS ===");
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "Batch analysis failed");
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[BATCH ANALYSIS] Fatal error during batch analysis: {ex.Message}");
                 Application.Current?.Dispatcher?.Invoke(() =>
                 {
-                    SetTransientStatus("Analysis failed - see logs for details", 5);
+                    SetTransientStatus($"Batch analysis failed: {ex.Message}", 8);
                 });
             }
             finally
             {
+                lock (_batchAnalysisLock)
+                {
+                    _batchAnalysisInProgress = false;
+                    // Clear the currently analyzing set in case of any issues
+                    _currentlyAnalyzing.Clear();
+                }
+                
                 Application.Current?.Dispatcher?.Invoke(() =>
                 {
                     IsBatchAnalyzing = false;
+                    
+                    // Clear the spinner from the current requirement's analysis display
+                    try
+                    {
+                        var tcg = GetTestCaseGeneratorInstance();
+                        if (tcg != null)
+                        {
+                            var analysisVmProp = tcg.GetType().GetProperty("AnalysisVM", BindingFlags.Public | BindingFlags.Instance);
+                            var analysisVm = analysisVmProp?.GetValue(tcg);
+                            if (analysisVm != null)
+                            {
+                                // Clear IsAnalyzing state
+                                var isAnalyzingProp = analysisVm.GetType().GetProperty("IsAnalyzing", BindingFlags.Public | BindingFlags.Instance);
+                                isAnalyzingProp?.SetValue(analysisVm, false);
+                                
+                                // Refresh analysis display to update UI
+                                var refreshMethod = analysisVm.GetType().GetMethod("RefreshAnalysisDisplay", BindingFlags.NonPublic | BindingFlags.Instance);
+                                refreshMethod?.Invoke(analysisVm, null);
+                                
+                                TestCaseEditorApp.Services.Logging.Log.Info("[BATCH ANALYSIS] Cleared spinner and refreshed analysis display when batch completed");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[BATCH ANALYSIS] Error clearing spinner after batch completion: {ex.Message}");
+                    }
                 });
+            }
+        }
+
+        /// <summary>
+        /// Batch export requirements for ChatGPT analysis in background after import.
+        /// Shows progress notifications and exports requirements in ChatGPT-ready format.
+        /// </summary>
+        private void BatchExportRequirementsForChatGpt(List<Requirement> requirements)
+        {
+            if (!requirements.Any())
+                return;
+
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[CHATGPT EXPORT] Starting export for {requirements.Count} requirements");
+                
+                // Show progress notification
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    SetTransientStatus($"Exporting {requirements.Count} requirements for ChatGPT analysis...", 3);
+                });
+
+                // Export requirements using the service
+                string formattedText = _chatGptExportService.ExportMultipleRequirements(requirements, includeAnalysisRequest: true);
+                
+                // Save to file and copy to clipboard
+                bool clipboardSuccess = _chatGptExportService.CopyToClipboard(formattedText);
+                
+                // Optionally save to file as well
+                string fileName = $"Requirements_Export_{DateTime.Now:yyyyMMdd_HHmmss}.md";
+                string filePath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), fileName);
+                
+                try
+                {
+                    System.IO.File.WriteAllText(filePath, formattedText);
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[CHATGPT EXPORT] Saved to file: {filePath}");
+                    
+                    // Update the last exported file path on UI thread
+                    Application.Current?.Dispatcher?.Invoke(() =>
+                    {
+                        LastChatGptExportFilePath = filePath;
+                    });
+                }
+                catch (Exception fileEx)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[CHATGPT EXPORT] Failed to save file, but clipboard export may have succeeded: {fileEx.Message}");
+                }
+
+                // Show completion notification
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    if (clipboardSuccess)
+                    {
+                        SetTransientStatus($"✅ {requirements.Count} requirements exported for ChatGPT! Copied to clipboard and saved to {fileName}", 6);
+                    }
+                    else
+                    {
+                        SetTransientStatus($"⚠️ Export completed but clipboard copy failed. File saved to {fileName}", 5);
+                    }
+                });
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[CHATGPT EXPORT] Completed export for {requirements.Count} requirements, clipboard={clipboardSuccess}");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[CHATGPT EXPORT] Failed to export requirements: {ex.Message}");
+                
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    SetTransientStatus("❌ Failed to export requirements for ChatGPT.", 4);
+                });
+            }
+        }
+
+        /// <summary>
+        /// Opens the last exported ChatGPT file in Notepad.
+        /// </summary>
+        private void OpenChatGptExportFile()
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(LastChatGptExportFilePath) || !System.IO.File.Exists(LastChatGptExportFilePath))
+                {
+                    SetTransientStatus("❌ No recent ChatGPT export file found.", 3);
+                    return;
+                }
+
+                // Open the file in Notepad
+                var processInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "notepad.exe",
+                    Arguments = $"\"{LastChatGptExportFilePath}\"",
+                    UseShellExecute = true
+                };
+
+                System.Diagnostics.Process.Start(processInfo);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[CHATGPT EXPORT] Opened file in Notepad: {LastChatGptExportFilePath}");
+                SetTransientStatus("📝 Opened ChatGPT export file in Notepad", 3);
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[CHATGPT EXPORT] Failed to open file in Notepad: {ex.Message}");
+                SetTransientStatus("❌ Failed to open file in Notepad", 3);
             }
         }
 
