@@ -15,7 +15,7 @@ namespace TestCaseEditorApp.MVVM.Views
             SelectExisting
         }
 
-        private AnythingLLMService _anythingLLMService;
+        private AnythingLLMService? _anythingLLMService;
         private readonly DialogMode _mode;
         private bool _isServiceReady = false;
 
@@ -26,14 +26,8 @@ namespace TestCaseEditorApp.MVVM.Views
         {
             InitializeComponent();
             _mode = mode;
-            _anythingLLMService = new AnythingLLMService();
             
-            // Subscribe to status updates
-            _anythingLLMService.StatusUpdated += OnServiceStatusUpdated;
-            
-            // Debug: Check if API key is configured
-            var apiKeyStatus = _anythingLLMService.GetConfigurationStatus();
-            TestCaseEditorApp.Services.Logging.Log.Info($"[DIALOG] AnythingLLM configuration: {apiKeyStatus}");
+            // Note: Don't create AnythingLLMService here - wait until installation is verified
             
             // Configure UI based on mode
             if (_mode == DialogMode.CreateNew)
@@ -129,6 +123,19 @@ namespace TestCaseEditorApp.MVVM.Views
                     _anythingLLMService = new AnythingLLMService(apiKey: apiKeyDialog.ApiKey);
                     _anythingLLMService.StatusUpdated += OnServiceStatusUpdated;
                 }
+                else
+                {
+                    // Create service with existing API key if we don't have one yet
+                    if (_anythingLLMService == null)
+                    {
+                        _anythingLLMService = new AnythingLLMService(apiKey: apiKey);
+                        _anythingLLMService.StatusUpdated += OnServiceStatusUpdated;
+                    }
+                }
+                
+                // Log the configuration status after service is created
+                var apiKeyStatus = _anythingLLMService.GetConfigurationStatus();
+                TestCaseEditorApp.Services.Logging.Log.Info($"[DIALOG] AnythingLLM configuration: {apiKeyStatus}");
                 
                 // Check if service is already running
                 if (await _anythingLLMService.IsServiceAvailableAsync())
@@ -230,6 +237,17 @@ namespace TestCaseEditorApp.MVVM.Views
             {
                 CreateButton.IsEnabled = false;
                 CreateButton.Content = "Creating...";
+                
+                // Ensure service is available
+                if (_anythingLLMService == null)
+                {
+                    MessageBox.Show(
+                        "AnythingLLM service is not properly initialized. Please restart the dialog.",
+                        "Service Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                    return;
+                }
 
                 // Create workspace via cloud API
                 var newWorkspace = await _anythingLLMService.CreateWorkspaceAsync(workspaceName);
@@ -289,6 +307,19 @@ namespace TestCaseEditorApp.MVVM.Views
                         TestCaseEditorApp.Services.Logging.Log.Info("[DIALOG] Service not ready, skipping workspace load");
                         return;
                     }
+                }
+                
+                // Ensure service is available
+                if (_anythingLLMService == null)
+                {
+                    MessageBox.Show(
+                        "AnythingLLM service is not properly initialized. Please restart the dialog.",
+                        "Service Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                    DialogResult = false;
+                    Close();
+                    return;
                 }
                 
                 CreateButton.IsEnabled = false;
