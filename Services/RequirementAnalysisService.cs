@@ -103,7 +103,7 @@ namespace TestCaseEditorApp.Services
                 }
                 
                 // Clean response (remove markdown code fences if present)
-                var jsonText = CleanJsonResponse(reflectedResponse);
+                var jsonText = CleanJsonResponse(reflectedResponse ?? string.Empty);
 
                 // Validate JSON format before parsing
                 if (!ValidateJsonFormat(jsonText, requirement.Item ?? "UNKNOWN"))
@@ -651,7 +651,6 @@ namespace TestCaseEditorApp.Services
                 return true;
             }
 
-            bool hasRemovals = false;
             for (int i = 0; i < analysis.Recommendations.Count; i++)
             {
                 var rec = analysis.Recommendations[i];
@@ -689,7 +688,6 @@ namespace TestCaseEditorApp.Services
 
                 if (!isRecValid)
                 {
-                    hasRemovals = true;
                     // Remove invalid recommendation instead of failing the whole analysis
                     TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Removing invalid recommendation {i+1} for {requirementItem}");
                     analysis.Recommendations.RemoveAt(i);

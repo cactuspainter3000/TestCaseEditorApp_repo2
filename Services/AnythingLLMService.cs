@@ -259,6 +259,68 @@ namespace TestCaseEditorApp.Services
             public int? OpenAiHistory { get; set; } // Changed from string to int
             public string? LastUpdatedBy { get; set; }
             public string? VectorTag { get; set; } // Added missing field
+            
+            // Local file management
+            public bool HasLocalFile { get; set; }
+            public string? LocalFilePath { get; set; }
+        }
+
+        /// <summary>
+        /// Checks if a local .tcex.json file exists for the given workspace
+        /// </summary>
+        private static (bool exists, string? path) CheckForLocalWorkspaceFile(string workspaceName, string workspaceSlug)
+        {
+            // Common workspace storage locations
+            var searchLocations = new[]
+            {
+                @"C:\Users\e10653214\Desktop\testing import", // Known test folder
+                Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "TestCaseEditor"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TestCaseEditor")
+            };
+            
+            // Possible filename patterns
+            var filenamePatterns = new[]
+            {
+                $"{workspaceName}.tcex.json",
+                $"{workspaceSlug}.tcex.json",
+                $"QuickImport_Decagon_{workspaceName}.tcex.json"
+            };
+            
+            foreach (var location in searchLocations)
+            {
+                if (!Directory.Exists(location)) continue;
+                
+                foreach (var pattern in filenamePatterns)
+                {
+                    var fullPath = Path.Combine(location, pattern);
+                    if (File.Exists(fullPath))
+                    {
+                        return (true, fullPath);
+                    }
+                }
+                
+                // Also search for files containing the workspace name
+                try
+                {
+                    var matchingFiles = Directory.GetFiles(location, "*.tcex.json")
+                        .Where(f => Path.GetFileNameWithoutExtension(f).Contains(workspaceName, StringComparison.OrdinalIgnoreCase)
+                                 || Path.GetFileNameWithoutExtension(f).Contains(workspaceSlug, StringComparison.OrdinalIgnoreCase))
+                        .FirstOrDefault();
+                    
+                    if (matchingFiles != null)
+                    {
+                        return (true, matchingFiles);
+                    }
+                }
+                catch (Exception)
+                {
+                    // Ignore directory access errors
+                }
+            }
+            
+            return (false, null);
         }
 
         /// <summary>
@@ -350,7 +412,17 @@ namespace TestCaseEditorApp.Services
                                 PropertyNameCaseInsensitive = true 
                             });
 
-                            return result?.Workspaces ?? new List<Workspace>();
+                            var workspaces = result?.Workspaces ?? new List<Workspace>();
+                            
+                            // Check for local files for each workspace
+                            foreach (var workspace in workspaces)
+                            {
+                                var (hasFile, filePath) = CheckForLocalWorkspaceFile(workspace.Name, workspace.Slug);
+                                workspace.HasLocalFile = hasFile;
+                                workspace.LocalFilePath = filePath;
+                            }
+
+                            return workspaces;
                         }
                         else
                         {

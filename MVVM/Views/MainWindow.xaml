@@ -21,6 +21,7 @@
 
     <Window.Resources>
         <conv:SectionSelectedConverter x:Key="SectionSelectedConverter" />
+        <conv:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
 
         <!-- Put resources directly in Window.Resources (do NOT nest a ResourceDictionary element here) -->
 
@@ -53,6 +54,27 @@
         <!-- DataTemplate for TestCaseGenerator_HeaderVM -->
         <DataTemplate DataType="{x:Type vm:TestCaseGenerator_HeaderVM}">
             <views:TestCaseGenerator_HeaderView />
+        </DataTemplate>
+
+        <!-- Modal ViewModels DataTemplates -->
+        <DataTemplate DataType="{x:Type vm:WorkspaceSelectionViewModel}">
+            <views:WorkspaceSelectionView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:ApiKeyConfigViewModel}">
+            <views:ApiKeyConfigView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:ImportMethodSelectionViewModel}">
+            <views:ImportMethodSelectionView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:RequirementDescriptionEditorViewModel}">
+            <views:RequirementDescriptionEditorView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:SplitTextEditorViewModel}">
+            <views:SplitTextEditorView />
         </DataTemplate>
 
         <DataTemplate x:Key="StepDescriptorTemplate" DataType="{x:Type models:StepDescriptor}">

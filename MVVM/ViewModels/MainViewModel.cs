@@ -93,6 +93,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             private set => SetProperty(ref _modalViewModel, value);
         }
 
+        private ImportMethodSelectionViewModel? _importMethodViewModel;
+
         private string _modalTitle = "Modal Dialog";
         public string ModalTitle
         {
@@ -1695,7 +1697,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             if (ofd.ShowDialog() != true) return;
 
-            WorkspacePath = ofd.FileName;
+            LoadWorkspaceFromPath(ofd.FileName);
+        }
+
+        public void LoadWorkspaceFromPath(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+            {
+                SetTransientStatus("Invalid workspace file path.", blockingError: true);
+                return;
+            }
+
+            WorkspacePath = filePath;
             try
             {
                 var ws = TestCaseEditorApp.Services.WorkspaceFileManager.Load(WorkspacePath!);
@@ -2678,7 +2691,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         }
                         else
                         {
-                            avgAnalysisTime = TimeSpan.FromTicks((avgAnalysisTime.Value.Ticks + analysisDuration.Ticks) / 2);
+                            var currentAvg = avgAnalysisTime ?? TimeSpan.Zero;
+                            avgAnalysisTime = TimeSpan.FromTicks((currentAvg.Ticks + analysisDuration.Ticks) / 2);
                         }
                         
                         // Update the requirement with analysis results
@@ -2949,161 +2963,38 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// <summary>
         /// Creates a new project with AnythingLLM workspace integration.
         /// </summary>
-        private async void CreateNewProject()
+        private void CreateNewProject()
         {
             try
             {
                 TestCaseEditorApp.Services.Logging.Log.Info("[PROJECT] CreateNewProject started");
                 
-                // Show workspace selection dialog for creating new workspace only
-                var dialog = new TestCaseEditorApp.MVVM.Views.WorkspaceSelectionDialog()
-                {
-                    Owner = Application.Current.MainWindow
-                };
-
-                TestCaseEditorApp.Services.Logging.Log.Info("[PROJECT] Dialog created, showing...");
-                
-                var result = dialog.ShowDialog();
-                TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Dialog result: {result}, SelectedWorkspace: {dialog.SelectedWorkspace?.Name ?? "null"}");
-
-                if (result == true && dialog.SelectedWorkspace != null)
-                {
-                    var workspace = dialog.SelectedWorkspace;
-                    
-                    // Clear existing requirements and set workspace
-                    Requirements.Clear();
-                    CurrentAnythingLLMWorkspaceSlug = workspace.Slug;
-                    
-                    // Reset to first step
-                    SelectedStep = TestCaseGeneratorSteps.FirstOrDefault();
-
-                    if (dialog.WasCreated)
-                    {
-                        // New workspace was created - offer to import requirements
-                        var importChoice = System.Windows.MessageBox.Show(
-                            $"Successfully created workspace '{workspace.Name}'!\\n\\n" +
-                            "Would you like to import requirements now?",
-                            "Import Requirements",
-                            System.Windows.MessageBoxButton.YesNo,
-                            System.Windows.MessageBoxImage.Question);
-                        
-                        if (importChoice == System.Windows.MessageBoxResult.Yes)
-                        {
-                            // Show import options
-                            var importType = System.Windows.MessageBox.Show(
-                                "Choose import method:\\n\\n" +
-                                "• Yes: Import from Word document with analysis\\n" +
-                                "• No: Quick import (Decagon format)\\n" +
-                                "• Cancel: Skip import for now",
-                                "Import Method",
-                                System.Windows.MessageBoxButton.YesNoCancel,
-                                System.Windows.MessageBoxImage.Question);
-                            
-                            if (importType == System.Windows.MessageBoxResult.Yes)
-                            {
-                                // Import Word with analysis
-                                ImportWordCommand.Execute(null);
-                            }
-                            else if (importType == System.Windows.MessageBoxResult.No)
-                            {
-                                // Quick import
-                                QuickImportCommand.Execute(null);
-                            }
-                        }
-                        
-                        SetTransientStatus($"🆕 Created and opened project: {workspace.Name}", 4);
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Created new project with workspace slug '{workspace.Slug}'");
-                    }
-                    else
-                    {
-                        // Existing workspace was selected
-                        SetTransientStatus($"📂 Opened existing project: {workspace.Name}", 4);
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Opened existing project with workspace slug '{workspace.Slug}'");
-                        
-                        // Optionally load local workspace file
-                        var loadLocal = System.Windows.MessageBox.Show(
-                            "Would you like to load a local workspace file (.tcex.json) with this project?",
-                            "Load Local Workspace",
-                            System.Windows.MessageBoxButton.YesNo,
-                            System.Windows.MessageBoxImage.Question);
-                        
-                        if (loadLocal == System.Windows.MessageBoxResult.Yes)
-                        {
-                            LoadWorkspace();
-                        }
-                    }
-                }
-                else
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Info("[PROJECT] Project creation cancelled or failed");
-                    SetTransientStatus("⚠️ Project creation cancelled", 3);
-                }
+                // Show workspace selection modal
+                ShowWorkspaceSelectionModal();
             }
             catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[PROJECT] Failed to create new project: {ex.Message}");
-                SetTransientStatus("❌ Failed to create project", 3);
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[PROJECT] Error in CreateNewProject");
+                _notificationService.ShowError($"Error creating new project: {ex.Message}");
             }
         }
 
         /// <summary>
         /// Opens an existing project by selecting from available AnythingLLM workspaces.
         /// </summary>
-        private async void OpenProject()
+        private void OpenProject()
         {
             try
             {
                 TestCaseEditorApp.Services.Logging.Log.Info("[PROJECT] OpenProject started");
                 
-                // Show workspace selection dialog for selecting existing workspace
-                var dialog = new TestCaseEditorApp.MVVM.Views.WorkspaceSelectionDialog(TestCaseEditorApp.MVVM.Views.WorkspaceSelectionDialog.DialogMode.SelectExisting)
-                {
-                    Owner = Application.Current.MainWindow
-                };
-
-                if (dialog.ShowDialog() == true && dialog.SelectedWorkspace != null)
-                {
-                    var workspace = dialog.SelectedWorkspace;
-                    
-                    // Clear existing requirements and set workspace
-                    Requirements.Clear();
-                    CurrentAnythingLLMWorkspaceSlug = workspace.Slug;
-                    
-                    // Reset to first step
-                    SelectedStep = TestCaseGeneratorSteps.FirstOrDefault();
-                    
-                    SetTransientStatus($"📂 Opened project: {workspace.Name}", 4);
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Opened project with workspace slug '{workspace.Slug}'");
-                    
-                    // Optionally load local workspace file
-                    var loadLocal = MessageBox.Show(
-                        "Would you like to load a local workspace file (.tcex.json) with this project?",
-                        "Load Local Workspace",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Question);
-                    
-                    if (loadLocal == MessageBoxResult.Yes)
-                    {
-                        LoadWorkspace();
-                    }
-                }
-                else
-                {
-                    SetTransientStatus("⚠️ Project opening cancelled", 3);
-                }
+                // Show workspace selection modal for selecting existing workspace
+                ShowWorkspaceSelectionModalForOpen();
             }
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[PROJECT] Failed to open project: {ex.Message}");
-                MessageBox.Show(
-                    $"Error loading workspaces: {ex.Message}\n\n" +
-                    "Please check:\n" +
-                    "• AnythingLLM is running and accessible\n" +
-                    "• API key is properly configured\n" +
-                    "• Network connectivity",
-                    "Error", 
-                    MessageBoxButton.OK, 
-                    MessageBoxImage.Error);
+                _notificationService.ShowError($"Error opening project: {ex.Message}");
                 SetTransientStatus("❌ Failed to open project", 3);
             }
         }
@@ -3500,21 +3391,72 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             try
             {
-                // Clear requirements and reset state
+                // Clear all project-related data
                 Requirements.Clear();
                 CurrentAnythingLLMWorkspaceSlug = null;
                 WorkspacePath = null;
+                CurrentWorkspace = null;
+                CurrentRequirement = null;
                 
-                // Reset to first step
+                // Clear imported data
+                WordFilePath = null;
+                LooseTables.Clear();
+                LooseParagraphs.Clear();
+                
+                // Reset application state
+                IsDirty = false;
+                IsBatchAnalyzing = false;
+                
+                // Reset step navigation to first step
                 SelectedStep = TestCaseGeneratorSteps.FirstOrDefault();
                 
+                // Clear any analysis state in step view models
+                if (CurrentStepViewModel is TestCaseGenerator_AssumptionsVM assumptionsVm)
+                {
+                    assumptionsVm.SetCurrentRequirement(null);
+                }
+                
+                // Reset display name to default
+                DisplayName = "Test Case Editor";
+                
+                // Clear status
+                SapStatus = string.Empty;
+                
+                // Reset workspace header if it exists
+                if (_workspaceHeaderViewModel != null)
+                {
+                    _workspaceHeaderViewModel.WorkspaceName = string.Empty;
+                    _workspaceHeaderViewModel.CanReAnalyze = false;
+                    ((AsyncRelayCommand?)_workspaceHeaderViewModel.ReAnalyzeCommand)?.NotifyCanExecuteChanged();
+                }
+                
+                // Refresh command states
+                RefreshCommandStates();
+                
                 SetTransientStatus("📄 Project closed", 3);
-                TestCaseEditorApp.Services.Logging.Log.Info("[PROJECT] Project closed");
+                TestCaseEditorApp.Services.Logging.Log.Info("[PROJECT] Project closed and GUI reset to initial state");
             }
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[PROJECT] Failed to close project: {ex.Message}");
                 SetTransientStatus("❌ Failed to close project", 3);
+            }
+        }
+        
+        private void RefreshCommandStates()
+        {
+            try
+            {
+                // Refresh command states that depend on project state
+                ((RelayCommand?)ExportForChatGptCommand)?.NotifyCanExecuteChanged();
+                ((RelayCommand?)GenerateAnalysisCommandCommand)?.NotifyCanExecuteChanged();
+                ((RelayCommand?)GenerateTestCaseCommandCommand)?.NotifyCanExecuteChanged();
+                ((RelayCommand?)SaveWorkspaceCommand)?.NotifyCanExecuteChanged();
+                ((RelayCommand?)CloseProjectCommand)?.NotifyCanExecuteChanged();
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[PROJECT] Error refreshing command states during close");
             }
         }
 
@@ -3577,6 +3519,232 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// Check if a modal dialog is currently shown
         /// </summary>
         public bool IsModalOpen => ModalViewModel != null;
+
+        /// <summary>
+        /// Show the API key configuration modal
+        /// </summary>
+        public void ShowApiKeyConfigModal()
+        {
+            var viewModel = new ApiKeyConfigViewModel(_notificationService);
+            viewModel.ApiKeyConfigured += OnApiKeyConfigured;
+            viewModel.Cancelled += OnApiKeyConfigCancelled;
+            ShowModal(viewModel, "Configure AnythingLLM API Key");
+        }
+
+        /// <summary>
+        /// Show the workspace selection modal for creating a new project
+        /// </summary>
+        public void ShowWorkspaceSelectionModal()
+        {
+            var viewModel = new WorkspaceSelectionViewModel(_anythingLLMService, _notificationService, WorkspaceSelectionViewModel.SelectionMode.CreateNew);
+            viewModel.WorkspaceSelected += OnWorkspaceSelected;
+            viewModel.Cancelled += OnWorkspaceSelectionCancelled;
+            ShowModal(viewModel, "Create New Project");
+        }
+
+        /// <summary>
+        /// Show the workspace selection modal for opening an existing project
+        /// </summary>
+        public void ShowWorkspaceSelectionModalForOpen()
+        {
+            var viewModel = new WorkspaceSelectionViewModel(_anythingLLMService, _notificationService, WorkspaceSelectionViewModel.SelectionMode.SelectExisting);
+            viewModel.WorkspaceSelected += OnWorkspaceSelected;
+            viewModel.Cancelled += OnWorkspaceSelectionCancelled;
+            ShowModal(viewModel, "Open Existing Project");
+        }
+
+        /// <summary>
+        /// Show the requirement description editor modal
+        /// </summary>
+        public void ShowRequirementDescriptionEditorModal(Requirement requirement)
+        {
+            if (requirement == null) return;
+            
+            var viewModel = new RequirementDescriptionEditorViewModel(requirement, _notificationService);
+            viewModel.RequirementEdited += OnRequirementEdited;
+            viewModel.AnalysisRequested += OnRequirementAnalysisRequested;
+            viewModel.Cancelled += OnRequirementEditCancelled;
+            ShowModal(viewModel, "Edit Requirement Description");
+        }
+
+        /// <summary>
+        /// Show the split text editor modal
+        /// </summary>
+        public void ShowSplitTextEditorModal(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            
+            var viewModel = new SplitTextEditorViewModel(text, _notificationService);
+            viewModel.SplitCompleted += OnTextSplitCompleted;
+            viewModel.Cancelled += OnTextSplitCancelled;
+            ShowModal(viewModel, "Split Text");
+        }
+
+        /// <summary>
+        /// Show the import method selection modal
+        /// </summary>
+        public Task<ImportMethod> ShowImportMethodSelectionModalAsync()
+        {
+            var tcs = new TaskCompletionSource<ImportMethod>();
+            
+            _importMethodViewModel = new ImportMethodSelectionViewModel();
+            _importMethodViewModel.ImportMethodSelected += (sender, e) =>
+            {
+                CloseModal();
+                tcs.SetResult(e.Method);
+            };
+            
+            ShowModal(_importMethodViewModel, "Import Method");
+            return tcs.Task;
+        }
+
+        private void OnApiKeyConfigured(object? sender, ApiKeyConfiguredEventArgs e)
+        {
+            CloseModal();
+            _notificationService.ShowSuccess($"API key configured successfully");
+        }
+
+        private void OnApiKeyConfigCancelled(object? sender, EventArgs e)
+        {
+            CloseModal();
+        }
+
+        private async void OnWorkspaceSelected(object? sender, WorkspaceSelectedEventArgs e)
+        {
+            CloseModal();
+            
+            try
+            {
+                // Find the actual workspace object from the AnythingLLM service
+                var workspaces = await _anythingLLMService.GetWorkspacesAsync().ConfigureAwait(false);
+                var workspace = workspaces?.FirstOrDefault(w => w.Name.Equals(e.WorkspaceName, StringComparison.OrdinalIgnoreCase));
+                
+                if (workspace == null)
+                {
+                    // Use Dispatcher to show error on UI thread
+                    Application.Current.Dispatcher.Invoke(() => 
+                    {
+                        _notificationService.ShowError($"Could not find workspace: {e.WorkspaceName}");
+                    });
+                    return;
+                }
+                
+                // Use Dispatcher for UI operations
+                await Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    // Clear existing requirements and set workspace
+                    Requirements.Clear();
+                    CurrentAnythingLLMWorkspaceSlug = workspace.Slug;
+                    
+                    // Reset to first step
+                    SelectedStep = TestCaseGeneratorSteps.FirstOrDefault();
+                });
+                
+                if (e.WasCreated)
+                {
+                    // New workspace was created - show import options using custom modal
+                    var importMethod = await ShowImportMethodSelectionModalAsync();
+                        
+                    // Execute commands on UI thread
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        switch (importMethod)
+                        {
+                            case ImportMethod.Word: // Word
+                                ImportWordCommand?.Execute(null);
+                                break;
+                            case ImportMethod.Quick: // Quick
+                                QuickImportCommand?.Execute(null);
+                                break;
+                            case ImportMethod.Skip: // Skip or cancelled
+                                break;
+                        }
+                        
+                        SetTransientStatus($"🆕 Created and opened project: {workspace.Name}", 4);
+                    });
+                    
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Created new project with workspace slug '{workspace.Slug}'");
+                }
+                else
+                {
+                    // Existing workspace was selected - run UI operations on UI thread
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        SetTransientStatus($"📂 Opened existing project: {workspace.Name}", 4);
+                    });
+                    
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Opened existing project with workspace slug '{workspace.Slug}'");
+                    
+                    // Automatically load local workspace file if it exists
+                    if (workspace.HasLocalFile && !string.IsNullOrEmpty(workspace.LocalFilePath))
+                    {
+                        await Application.Current.Dispatcher.InvokeAsync(() =>
+                        {
+                            LoadWorkspaceFromPath(workspace.LocalFilePath);
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[PROJECT] Error handling workspace selection");
+                
+                // Show error on UI thread
+                await Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    _notificationService.ShowError($"Error opening project: {ex.Message}");
+                    SetTransientStatus("❌ Failed to open project", 3);
+                });
+            }
+        }
+
+        private void OnWorkspaceSelectionCancelled(object? sender, EventArgs e)
+        {
+            CloseModal();
+        }
+
+        private void OnRequirementEdited(object? sender, RequirementEditedEventArgs e)
+        {
+            CloseModal();
+            _notificationService.ShowSuccess("Requirement updated successfully");
+            
+            // Refresh any dependent views if needed
+            // The requirement is already updated since it's passed by reference
+        }
+
+        private void OnRequirementAnalysisRequested(object? sender, RequirementAnalysisRequestedEventArgs e)
+        {
+            // Close the editor modal first
+            CloseModal();
+            
+            // Request analysis from the analysis service
+            // This would typically be handled by the TestCaseGenerator_AnalysisVM
+            _notificationService.ShowInfo("Analysis requested - please use the main analysis panel");
+        }
+
+        private void OnRequirementEditCancelled(object? sender, EventArgs e)
+        {
+            CloseModal();
+        }
+
+        private void OnTextSplitCompleted(object? sender, TextSplitCompletedEventArgs e)
+        {
+            CloseModal();
+            
+            if (e.SplitResults?.Count > 0)
+            {
+                _notificationService.ShowSuccess($"Text split into {e.SplitResults.Count} parts");
+                
+                // The split results can be handled by the calling code
+                // For now, just show success - integration with specific features
+                // would be done by the components that show the modal
+            }
+        }
+
+        private void OnTextSplitCancelled(object? sender, EventArgs e)
+        {
+            CloseModal();
+        }
 
         // Explicit ITestCaseGenerator_Navigator implementations (map to public ICommand props)
         ICommand? ITestCaseGenerator_Navigator.NextRequirementCommand => this.NextRequirementCommand;

@@ -15,8 +15,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     /// </summary>
     public partial class WorkspaceSelectionViewModel : ObservableObject
     {
+        public enum SelectionMode
+        {
+            CreateNew,
+            SelectExisting
+        }
+
         private readonly AnythingLLMService _anythingLLMService;
         private readonly NotificationService _notificationService;
+        private readonly SelectionMode _mode;
 
         [ObservableProperty]
         private ObservableCollection<AnythingLLMService.Workspace> _workspaces = new();
@@ -31,13 +38,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private bool _isLoading = false;
 
         [ObservableProperty]
-        private string _statusMessage = "Loading workspaces...";
+        private string _statusMessage = "";
 
         [ObservableProperty]
         private bool _isServiceReady = false;
 
         [ObservableProperty]
         private bool _isCreateMode = false;
+
+        /// <summary>
+        /// Whether to show workspace count in status message
+        /// </summary>
+        public bool ShouldShowWorkspaceCount => _mode == SelectionMode.SelectExisting && IsServiceReady;
 
         /// <summary>
         /// Event raised when a workspace is selected or created successfully
@@ -55,15 +67,22 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand CancelCommand { get; }
         public ICommand RefreshCommand { get; }
 
-        public WorkspaceSelectionViewModel(AnythingLLMService anythingLLMService, NotificationService notificationService)
+        public WorkspaceSelectionViewModel(AnythingLLMService anythingLLMService, NotificationService notificationService, SelectionMode mode = SelectionMode.CreateNew)
         {
             _anythingLLMService = anythingLLMService ?? throw new ArgumentNullException(nameof(anythingLLMService));
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
+            _mode = mode;
+
+            // Set initial state based on mode
+            IsCreateMode = (_mode == SelectionMode.CreateNew);
+            StatusMessage = (_mode == SelectionMode.CreateNew) 
+                ? "Enter a name for the new workspace:" 
+                : "Loading workspaces...";
 
             // Initialize commands
             SelectWorkspaceCommand = new AsyncRelayCommand(SelectWorkspaceAsync, () => SelectedWorkspace != null && !IsLoading);
             CreateWorkspaceCommand = new AsyncRelayCommand(CreateWorkspaceAsync, () => !string.IsNullOrEmpty(NewWorkspaceName) && !IsLoading);
-            ToggleCreateModeCommand = new RelayCommand(() => IsCreateMode = !IsCreateMode);
+            ToggleCreateModeCommand = new RelayCommand(() => IsCreateMode = !IsCreateMode, () => _mode == SelectionMode.CreateNew);
             CancelCommand = new RelayCommand(() => Cancelled?.Invoke(this, EventArgs.Empty));
             RefreshCommand = new AsyncRelayCommand(LoadWorkspacesAsync);
 
@@ -135,13 +154,23 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 var workspaces = await _anythingLLMService.GetWorkspacesAsync();
                 if (workspaces != null)
                 {
-                    foreach (var workspace in workspaces)
+                    // Filter workspaces based on mode
+                    var filteredWorkspaces = _mode == SelectionMode.SelectExisting 
+                        ? workspaces.Where(w => w.HasLocalFile).ToList()  // Only show workspaces with local files
+                        : workspaces;  // Show all workspaces for create mode
+                    
+                    foreach (var workspace in filteredWorkspaces)
                     {
                         Workspaces.Add(workspace);
                     }
                 }
 
-                StatusMessage = $"Found {Workspaces.Count} workspace(s)";
+                var workspaceCount = workspaces?.Count ?? 0;
+                var availableCount = Workspaces.Count;
+                
+                StatusMessage = _mode == SelectionMode.SelectExisting 
+                    ? $"Found {availableCount} project(s) with local files (out of {workspaceCount} total)"
+                    : "Enter a name for the new workspace:";
             }
             catch (Exception ex)
             {
@@ -162,11 +191,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             try
             {
                 IsLoading = true;
-                StatusMessage = $"Selecting workspace: {SelectedWorkspace.Name}";
+                StatusMessage = $"Opening project: {SelectedWorkspace.Name}...";
 
-                // Select the workspace in AnythingLLM service
-                // Note: AnythingLLM doesn't have a "set active" method, so we just notify selection
-                await Task.Delay(100); // Simulate async operation
+                // Add a small delay to show the loading state
+                await Task.Delay(500);
+                
+                StatusMessage = "Loading project data...";
+                await Task.Delay(300);
 
                 // Notify success
                 WorkspaceSelected?.Invoke(this, new WorkspaceSelectedEventArgs(SelectedWorkspace.Name, false));

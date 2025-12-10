@@ -140,11 +140,13 @@
                          Height="35"/>
             </Grid>
 
-            <!-- Toggle button -->
+            <!-- Toggle button removed - no mode switching allowed -->
             <Button Grid.Row="2"
                     Command="{Binding ToggleCreateModeCommand}"
                     HorizontalAlignment="Center"
-                    Margin="0,15,0,0">
+                    Margin="0,15,0,0"
+                    Visibility="Collapsed"
+                    IsEnabled="False">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
                         <Setter Property="Content" Value="+ Create New"/>

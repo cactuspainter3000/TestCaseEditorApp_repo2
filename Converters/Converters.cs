@@ -114,4 +114,43 @@ namespace TestCaseEditorApp.Converters
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
             => throw new NotImplementedException();
     }
+
+    /// <summary>
+    /// Converts bool to string based on parameter format: "TrueValue|FalseValue"
+    /// </summary>
+    public class BoolToStringConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (parameter is string param && param.Contains("|"))
+            {
+                var parts = param.Split('|');
+                var trueValue = parts[0];
+                var falseValue = parts.Length > 1 ? parts[1] : string.Empty;
+                
+                return value is bool b && b ? trueValue : falseValue;
+            }
+            
+            return value is bool boolValue && boolValue ? "True" : "False";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Inverts a boolean value
+    /// </summary>
+    public class BoolToInvertedBoolConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return value is bool b ? !b : false;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return value is bool b ? !b : false;
+        }
+    }
 }
