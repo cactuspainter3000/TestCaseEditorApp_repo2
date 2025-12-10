@@ -15,15 +15,20 @@ if ($portTest) {
 # Test 2: Check API connectivity
 Write-Host "`n2. Testing API connectivity..." -ForegroundColor Yellow
 try {
-    $apiKey = "222C5V1-KK3MFY3-G1FFH7D-HN69H6G"
-    $response = Invoke-RestMethod -Uri "http://localhost:3001/api/v1/workspaces" -Headers @{"Authorization"="Bearer $apiKey"} -Method GET -ErrorAction Stop
-    Write-Host "   ✅ API is responding correctly" -ForegroundColor Green
-    Write-Host "   📊 Found $($response.workspaces.Count) workspace(s)" -ForegroundColor Cyan
-    foreach($ws in $response.workspaces) {
-        Write-Host "      • $($ws.name) (slug: $($ws.slug))" -ForegroundColor White
+    $apiKey = $env:ANYTHINGLM_API_KEY
+    if ([string]::IsNullOrEmpty($apiKey)) {
+        Write-Host "   No API key found in environment variable ANYTHINGLM_API_KEY" -ForegroundColor Orange
+        Write-Host "   Skipping API test - set ANYTHINGLM_API_KEY to test API" -ForegroundColor Orange
+    } else {
+        $response = Invoke-RestMethod -Uri "http://localhost:3001/api/v1/workspaces" -Headers @{"Authorization"="Bearer $apiKey"} -Method GET -ErrorAction Stop
+        Write-Host "   API is responding correctly" -ForegroundColor Green
+        Write-Host "   Found $($response.workspaces.Count) workspace(s)" -ForegroundColor Cyan
+        foreach($ws in $response.workspaces) {
+            Write-Host "      • $($ws.name) (slug: $($ws.slug))" -ForegroundColor White
+        }
     }
 } catch {
-    Write-Host "   ❌ API connection failed: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "   API connection failed: $($_.Exception.Message)" -ForegroundColor Red
 }
 
 # Test 3: Check shortcut file existence

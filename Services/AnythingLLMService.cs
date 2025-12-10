@@ -52,7 +52,8 @@ namespace TestCaseEditorApp.Services
 
         public AnythingLLMService(string? baseUrl = null, string? apiKey = null)
         {
-            _apiKey = apiKey ?? "222C5V1-KK3MFY3-G1FFH7D-HN69H6G"; // Hardcode for testing
+            // Try to get API key from user configuration, parameter, or environment
+            _apiKey = apiKey ?? GetUserApiKey();
             
             // Force localhost for local AnythingLLM instance
             _baseUrl = (baseUrl ?? "http://localhost:3001").TrimEnd('/');
