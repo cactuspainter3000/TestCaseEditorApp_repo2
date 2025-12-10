@@ -13,15 +13,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private bool _isVisible;
 
         public ICommand WordImportCommand { get; }
+        public ICommand WordImportNoAnalysisCommand { get; }
+        public ICommand ImportWorkflowCommand { get; }
         public ICommand QuickImportCommand { get; }
-        public ICommand SkipImportCommand { get; }
         public ICommand CloseCommand { get; }
 
         public ImportMethodSelectionViewModel()
         {
             WordImportCommand = new RelayCommand(() => SelectImportMethod(ImportMethod.Word));
+            WordImportNoAnalysisCommand = new RelayCommand(() => SelectImportMethod(ImportMethod.WordNoAnalysis));
+            ImportWorkflowCommand = new RelayCommand(() => SelectImportMethod(ImportMethod.ImportWorkflow));
             QuickImportCommand = new RelayCommand(() => SelectImportMethod(ImportMethod.Quick));
-            SkipImportCommand = new RelayCommand(() => SelectImportMethod(ImportMethod.Skip));
             CloseCommand = new RelayCommand(() => SelectImportMethod(ImportMethod.Skip));
         }
 
@@ -45,6 +47,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     public enum ImportMethod
     {
         Word,
+        WordNoAnalysis,
+        ImportWorkflow,
         Quick,
         Skip
     }

@@ -448,12 +448,41 @@ namespace TestCaseEditorApp.Services
         }
 
         /// <summary>
+        /// Checks if a workspace name already exists
+        /// </summary>
+        public async Task<bool> WorkspaceNameExistsAsync(string name, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var workspaces = await GetWorkspacesAsync(cancellationToken);
+                return workspaces?.Any(w => string.Equals(w.Name, name, StringComparison.OrdinalIgnoreCase)) ?? false;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error checking workspace name existence for '{name}'");
+                // If we can't check, assume it doesn't exist to allow creation attempt
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Creates a new workspace in AnythingLLM
         /// </summary>
         public async Task<Workspace?> CreateWorkspaceAsync(string name, CancellationToken cancellationToken = default)
         {
             try
             {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Attempting to create workspace '{name}'");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] API Key configured: {(!string.IsNullOrEmpty(_apiKey) ? "Yes" : "No")}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Base URL: {_baseUrl}");
+                
+                // Check if workspace name already exists
+                if (await WorkspaceNameExistsAsync(name, cancellationToken))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Cannot create workspace '{name}' - name already exists");
+                    throw new InvalidOperationException($"A workspace with the name '{name}' already exists. Please choose a different name.");
+                }
+
                 var payload = new
                 {
                     name = name
@@ -462,33 +491,20 @@ namespace TestCaseEditorApp.Services
                 var json = JsonSerializer.Serialize(payload);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 
-                using var client = new HttpClient();
-                client.Timeout = TimeSpan.FromSeconds(10);
-                
-                if (!string.IsNullOrEmpty(_apiKey))
-                {
-                    client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
-                }
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Sending payload: {json}");
                 
                 // Use the correct API endpoint based on AnythingLLM documentation
-                string createEndpoint;
-                if (_baseUrl.Contains("localhost"))
-                {
-                    createEndpoint = $"{_baseUrl}/api/v1/workspace/new"; // Local API v1 endpoint
-                }
-                else
-                {
-                    createEndpoint = $"{_baseUrl}/api/v1/workspace/new"; // Cloud API v1 endpoint
-                }
+                string createEndpoint = $"{_baseUrl}/api/v1/workspace/new";
                 
-                Console.WriteLine($"[DEBUG] POST endpoint: {createEndpoint}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] POST endpoint: {createEndpoint}");
                 
-                var response = await client.PostAsync(createEndpoint, content, cancellationToken);
+                var response = await _httpClient.PostAsync(createEndpoint, content, cancellationToken);
                 
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorText = await response.Content.ReadAsStringAsync(cancellationToken);
-                    Console.WriteLine($"[DEBUG] Error response: {errorText}");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Create workspace failed with {response.StatusCode}: {errorText}");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Response headers: {string.Join(", ", response.Headers.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}"))}");
                     return null;
                 }
 
@@ -568,7 +584,12 @@ namespace TestCaseEditorApp.Services
             }
             catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error sending chat message to '{workspaceSlug}'");
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error sending chat message to workspace '{workspaceSlug}'");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Exception type: {ex.GetType().Name}");
+                if (ex.InnerException != null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Inner exception: {ex.InnerException.Message}");
+                }
                 return null;
             }
         }

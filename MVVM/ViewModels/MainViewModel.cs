@@ -78,6 +78,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Navigation VM
         public NavigationViewModel Navigation { get; private set; }
 
+        // Import workflow VM
+        public ImportRequirementsWorkflowViewModel ImportWorkflow { get; private set; }
+        public NewProjectWorkflowViewModel NewProjectWorkflow { get; private set; }
+        
+        // New Project header VM
+        private NewProjectHeaderViewModel? _newProjectHeader;
+
         // --- Core observable collections / properties ---
         private ObservableCollection<Requirement> _requirements = new ObservableCollection<Requirement>();
         public ObservableCollection<Requirement> Requirements => _requirements;
@@ -513,11 +520,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _toastService = toastService ?? throw new ArgumentNullException(nameof(toastService));
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
             
+            // Initialize AnythingLLM service first
+            _anythingLLMService = new AnythingLLMService();
+            
+            // Initialize import workflow
+            ImportWorkflow = new ImportRequirementsWorkflowViewModel();
+            ImportWorkflow.WorkflowCompleted += OnImportRequirementsWorkflowCompleted;
+            ImportWorkflow.WorkflowCancelled += OnImportRequirementsWorkflowCancelled;
+            
+            NewProjectWorkflow = new NewProjectWorkflowViewModel(_anythingLLMService);
+            NewProjectWorkflow.ProjectCreated += OnNewProjectCreated;
+            NewProjectWorkflow.ProjectCancelled += OnNewProjectCancelled;
+            
             // Initialize ChatGPT export service
             _chatGptExportService = new ChatGptExportService();
-            
-            // Initialize AnythingLLM service
-            _anythingLLMService = new AnythingLLMService();
 
             // Initialize header instances
             _testCaseGeneratorHeader = new TestCaseGenerator_HeaderVM(this) { TitleText = "Test Case Creator" };
@@ -841,6 +857,42 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     return;
                 }
 
+                // Import Requirements workflow
+                if (string.Equals(value, "Import", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Don't call CreateAndAssignWorkspaceHeader() as it might trigger SelectedStep changes
+                    // Instead, create a simple header for Import
+                    if (_workspaceHeaderViewModel == null)
+                    {
+                        _workspaceHeaderViewModel = new WorkspaceHeaderViewModel();
+                    }
+                    _workspaceHeaderViewModel.WorkspaceName = "Import Requirements";
+                    ActiveHeader = _workspaceHeaderViewModel;
+                    
+                    // Initialize workflow with current settings
+                    ImportWorkflow.Initialize(AutoAnalyzeOnImport, AutoExportForChatGpt);
+                    CurrentStepViewModel = ImportWorkflow;
+                    return;
+                }
+
+                // New Project workflow - show header with title and main content with workflow
+                if (string.Equals(value, "NewProject", StringComparison.OrdinalIgnoreCase))
+                {
+                    CreateAndAssignNewProjectHeader();
+                    
+                    // Show the full workflow in the main content area
+                    if (NewProjectWorkflow == null)
+                    {
+                        NewProjectWorkflow = new NewProjectWorkflowViewModel(_anythingLLMService);
+                        NewProjectWorkflow.ProjectCreated += OnNewProjectCreated;
+                        NewProjectWorkflow.ProjectCancelled += OnNewProjectCancelled;
+                    }
+                    
+                    NewProjectWorkflow.Initialize();
+                    CurrentStepViewModel = NewProjectWorkflow;
+                    return;
+                }
+
                 // Default to workspace header
                 CreateAndAssignWorkspaceHeader();
             }
@@ -862,6 +914,16 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             try { _workspaceHeaderViewModel.WorkspaceName = CurrentWorkspace?.Name ?? Path.GetFileName(WorkspacePath ?? string.Empty); } catch { }
 
             ActiveHeader = _workspaceHeaderViewModel;
+        }
+
+        private void CreateAndAssignNewProjectHeader()
+        {
+            if (_newProjectHeader == null)
+            {
+                _newProjectHeader = new NewProjectHeaderViewModel();
+            }
+
+            ActiveHeader = _newProjectHeader;
         }
 
         private void CreateAndAssignTestCaseGeneratorHeader()
@@ -2181,24 +2243,48 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             try
             {
-                var defaultFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "TestCaseEditorApp", "Workspaces");
-                Directory.CreateDirectory(defaultFolder);
-
-                var suggested = FileNameHelper.GenerateUniqueFileName(Path.GetFileNameWithoutExtension(path), ".tcex.json");
-
-                TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Showing Create Workspace dialog. defaultFolder={defaultFolder}, suggested={suggested}");
-                var chosen = _file_dialog_show_save_helper(suggested, defaultFolder);
-                TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Create Workspace dialog returned: '{chosen}'");
-
-                if (string.IsNullOrWhiteSpace(chosen))
+                // If WorkspacePath is already set (e.g., from new project workflow), skip the dialog
+                if (string.IsNullOrWhiteSpace(WorkspacePath))
                 {
-                    SetTransientStatus("Import canceled (no workspace name selected).", 2);
-                    _logger?.LogInformation("Import canceled: no workspace name selected.");
-                    return;
-                }
+                    var defaultFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "TestCaseEditorApp", "Workspaces");
+                    Directory.CreateDirectory(defaultFolder);
 
-                WorkspacePath = FileNameHelper.EnsureUniquePath(Path.GetDirectoryName(chosen)!, Path.GetFileName(chosen));
-                TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Set WorkspacePath to: '{WorkspacePath}'");
+                    var suggested = FileNameHelper.GenerateUniqueFileName(Path.GetFileNameWithoutExtension(path), ".tcex.json");
+
+                    // Inform user about the next step
+                    var result = MessageBox.Show(
+                        $"Great! Your document '{Path.GetFileName(path)}' is ready to import.\n\n" +
+                        "Next, choose where to save your new project workspace. This will create a project file (.tcex.json) that contains your imported requirements and any test cases you generate.\n\n" +
+                        "Would you like to proceed?",
+                        "Create New Project Workspace",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Information);
+
+                    if (result != MessageBoxResult.Yes)
+                    {
+                        SetTransientStatus("Import canceled by user.", 2);
+                        _logger?.LogInformation("Import canceled by user at workspace creation step.");
+                        return;
+                    }
+
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Showing Create Workspace dialog. defaultFolder={defaultFolder}, suggested={suggested}");
+                    var chosen = _file_dialog_show_save_helper(suggested, defaultFolder);
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Create Workspace dialog returned: '{chosen}'");
+
+                    if (string.IsNullOrWhiteSpace(chosen))
+                    {
+                        SetTransientStatus("Import canceled (no workspace name selected).", 2);
+                        _logger?.LogInformation("Import canceled: no workspace name selected.");
+                        return;
+                    }
+
+                    WorkspacePath = FileNameHelper.EnsureUniquePath(Path.GetDirectoryName(chosen)!, Path.GetFileName(chosen));
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Set WorkspacePath to: '{WorkspacePath}'");
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Using existing WorkspacePath: '{WorkspacePath}' (from new project workflow)");
+                }
 
                 SetTransientStatus($"Importing {Path.GetFileName(path)}...", 60); // Auto-dismiss after 60s or when next status appears
                 _logger?.LogInformation("Starting import of '{Path}'", path);
@@ -2329,7 +2415,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         private string _file_dialog_show_save_helper(string suggestedFileName, string initialDirectory)
-            => _fileDialog.ShowSaveFile(title: "Create Workspace", suggestedFileName: suggestedFileName, filter: "Test Case Editor Session|*.tcex.json|JSON|*.json|All Files|*.*", defaultExt: ".tcex.json", initialDirectory: initialDirectory) ?? string.Empty;
+            => _fileDialog.ShowSaveFile(title: "Save New Project Workspace", suggestedFileName: suggestedFileName, filter: "Test Case Editor Session|*.tcex.json|JSON|*.json|All Files|*.*", defaultExt: ".tcex.json", initialDirectory: initialDirectory) ?? string.Empty;
 
         private void SetTransientStatus(string message, int seconds = 3, bool blockingError = false)
         {
@@ -2961,7 +3047,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         /// <summary>
-        /// Creates a new project with AnythingLLM workspace integration.
+        /// Creates a new project with comprehensive workflow in main GUI.
         /// </summary>
         private void CreateNewProject()
         {
@@ -2969,8 +3055,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 TestCaseEditorApp.Services.Logging.Log.Info("[PROJECT] CreateNewProject started");
                 
-                // Show workspace selection modal
-                ShowWorkspaceSelectionModal();
+                // Navigate to New Project section and show comprehensive workflow
+                SelectedMenuSection = "NewProject";
             }
             catch (Exception ex)
             {
@@ -3554,8 +3640,76 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         /// <summary>
-        /// Show the requirement description editor modal
+        /// Show the import workflow modal for step-by-step import configuration
         /// </summary>
+        public void ShowImportWorkflow()
+        {
+            var viewModel = new ImportWorkflowViewModel();
+            viewModel.ImportWorkflowCompleted += OnImportWorkflowCompleted;
+            viewModel.ImportWorkflowCancelled += OnImportWorkflowCancelled;
+            viewModel.Show();
+            ShowModal(viewModel, "Import Requirements Document");
+        }
+
+        private void OnImportWorkflowCompleted(object? sender, ImportWorkflowCompletedEventArgs e)
+        {
+            CloseModal();
+            
+            // Configure settings based on user choices
+            AutoAnalyzeOnImport = e.AutoAnalyzeRequirements;
+            AutoExportForChatGpt = e.ExportForChatGpt;
+            
+            // TODO: Implement the actual import with the configured settings
+            // This should use the document path and workspace save path from the args
+            SetTransientStatus($"Import workflow completed. Document: {e.DocumentPath}, Workspace: {e.WorkspaceName}", 3);
+        }
+
+        private void OnImportWorkflowCancelled(object? sender, EventArgs e)
+        {
+            CloseModal();
+            SetTransientStatus("Import workflow cancelled.", 2);
+        }
+
+        private async void OnImportRequirementsWorkflowCompleted(object? sender, RequirementsImportCompletedEventArgs e)
+        {
+            try
+            {
+                // Configure settings based on user choices
+                AutoAnalyzeOnImport = e.AutoAnalyzeEnabled;
+                AutoExportForChatGpt = e.AutoExportEnabled;
+
+                // Set workspace path for saving later
+                WorkspacePath = e.WorkspaceSavePath;
+
+                // Import the requirements from the document
+                if (e.DocumentPath.EndsWith(".docx", StringComparison.OrdinalIgnoreCase))
+                {
+                    await ImportFromPathAsync(e.DocumentPath, replace: true);
+                }
+                else
+                {
+                    SetTransientStatus("Unsupported file format. Please select a .docx file.", blockingError: true);
+                    return;
+                }
+
+                // Navigate back to Requirements view after import
+                SelectedMenuSection = "TestCase";
+                
+                SetTransientStatus($"Successfully imported requirements from {Path.GetFileName(e.DocumentPath)}. Workspace saved as {Path.GetFileName(e.WorkspaceSavePath)}.", 5);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Failed to complete import workflow");
+                SetTransientStatus($"Failed to import requirements: {ex.Message}", blockingError: true);
+            }
+        }
+
+        private void OnImportRequirementsWorkflowCancelled(object? sender, EventArgs e)
+        {
+            // Navigate back to previous section (typically TestCase)
+            SelectedMenuSection = "TestCase";
+            SetTransientStatus("Import workflow cancelled.", 2);
+        }
         public void ShowRequirementDescriptionEditorModal(Requirement requirement)
         {
             if (requirement == null) return;
@@ -3591,7 +3745,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _importMethodViewModel.ImportMethodSelected += (sender, e) =>
             {
                 CloseModal();
-                tcs.SetResult(e.Method);
+                
+                // Handle ImportWorkflow by navigating to Import section
+                if (e.Method == ImportMethod.ImportWorkflow)
+                {
+                    SelectedMenuSection = "Import";
+                    tcs.SetResult(ImportMethod.ImportWorkflow);
+                }
+                else
+                {
+                    tcs.SetResult(e.Method);
+                }
             };
             
             ShowModal(_importMethodViewModel, "Import Method");
@@ -3650,8 +3814,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     {
                         switch (importMethod)
                         {
-                            case ImportMethod.Word: // Word
+                            case ImportMethod.Word: // Word with analysis
+                                AutoAnalyzeOnImport = true;
                                 ImportWordCommand?.Execute(null);
+                                break;
+                            case ImportMethod.WordNoAnalysis: // Word without analysis
+                                AutoAnalyzeOnImport = false;
+                                ImportWordCommand?.Execute(null);
+                                break;
+                            case ImportMethod.ImportWorkflow: // Full workflow
+                                CloseModal(); // Close the import method selection first
+                                ShowImportWorkflow();
                                 break;
                             case ImportMethod.Quick: // Quick
                                 QuickImportCommand?.Execute(null);
@@ -3744,6 +3917,49 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private void OnTextSplitCancelled(object? sender, EventArgs e)
         {
             CloseModal();
+        }
+
+        private async void OnNewProjectCreated(object? sender, NewProjectCompletedEventArgs e)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Starting project creation. WorkspaceName: {e.WorkspaceName}, DocumentPath: {e.DocumentPath}");
+                
+                // Configure settings based on user choices
+                AutoAnalyzeOnImport = e.AutoAnalyzeEnabled;
+                AutoExportForChatGpt = e.AutoExportEnabled;
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Settings configured - AutoAnalyze: {AutoAnalyzeOnImport}, AutoExport: {AutoExportForChatGpt}");
+
+                // Set workspace path BEFORE importing to avoid dialog
+                WorkspacePath = e.ProjectSavePath;
+                TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Workspace path set to: {WorkspacePath}");
+
+                // Import requirements from the selected document
+                TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Importing requirements from: {e.DocumentPath}");
+                await ImportFromPathAsync(e.DocumentPath, replace: true);
+
+                // Save project using the existing path (no dialog)
+                TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Saving project to: {WorkspacePath}");
+                SaveWorkspace(); // Use SaveWorkspace() instead of SaveWorkspaceAsync() to avoid dialog
+
+                // Switch to main workspace view
+                SelectedMenuSection = "Requirements";
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Project creation completed successfully");
+                _notificationService.ShowSuccess($"Project '{e.ProjectName}' created successfully with {Requirements?.Count ?? 0} requirements!");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[PROJECT] Error completing new project creation");
+                _notificationService.ShowError($"Error creating project: {ex.Message}");
+            }
+        }
+
+        private void OnNewProjectCancelled(object? sender, EventArgs e)
+        {
+            // Return to default view
+            SelectedMenuSection = "Requirements";
         }
 
         // Explicit ITestCaseGenerator_Navigator implementations (map to public ICommand props)

@@ -18,8 +18,8 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </UserControl.Resources>
 
-    <Border Style="{StaticResource MenuSectionBorderStyle}">
-        <Grid Background="#252525" Margin="5">
+    <Border Background="#2B2B2B" CornerRadius="4" Margin="0,0,0,8" BorderBrush="{StaticResource Brush.Accent.Primary}" BorderThickness="2">
+        <Grid Background="{StaticResource Brush.Background.Menu}" Margin="5">
             <StackPanel>
 
                 <!-- Test Case Generator header -->
@@ -80,7 +80,7 @@
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel>
-                                        <Grid Style="{StaticResource StepItemGridStyle}" MinHeight="28">
+                                        <Grid MinHeight="28" Background="Transparent">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
@@ -168,7 +168,7 @@
                                     
                                     <!-- Expandable file menu section -->
                                     <Border x:Name="FileMenuExpander" 
-                                            Background="{StaticResource MenuListBackground}"
+                                            Background="#333333"
                                             BorderBrush="#33000000"
                                             BorderThickness="0,1,0,0"
                                             Margin="4,0,4,0"
@@ -274,7 +274,7 @@
                                                 </Button>
                                                 
                                                 <Separator Margin="0,6,0,3"/>
-                                                <TextBlock Text="Auto-Processing" Foreground="{StaticResource Brush.Accent.Primary}" FontWeight="SemiBold" Margin="4,0,0,4"/>
+                                                <TextBlock Text="Auto-Processing" Foreground="DarkOrange" FontWeight="SemiBold" Margin="4,0,0,4"/>
 
                                                 <!-- Toggle to control auto-analysis after import -->
                                                 <Button Command="{Binding DataContext.ToggleAutoAnalyzeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"

@@ -46,10 +46,37 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty]
         private bool _isCreateMode = false;
 
+        [ObservableProperty]
+        private bool _showDuplicateNameOptions = false;
+
+        [ObservableProperty]
+        private string _duplicateWorkspaceName = string.Empty;
+
         /// <summary>
         /// Whether to show workspace count in status message
         /// </summary>
         public bool ShouldShowWorkspaceCount => _mode == SelectionMode.SelectExisting && IsServiceReady;
+
+        /// <summary>
+        /// Whether to show the refresh button (only useful when selecting existing workspaces)
+        /// </summary>
+        public bool ShouldShowRefreshButton => !IsCreateMode && !ShowDuplicateNameOptions;
+
+        /// <summary>
+        /// Called when IsCreateMode changes to update dependent properties
+        /// </summary>
+        partial void OnIsCreateModeChanged(bool value)
+        {
+            OnPropertyChanged(nameof(ShouldShowRefreshButton));
+        }
+
+        /// <summary>
+        /// Called when ShowDuplicateNameOptions changes to update dependent properties
+        /// </summary>
+        partial void OnShowDuplicateNameOptionsChanged(bool value)
+        {
+            OnPropertyChanged(nameof(ShouldShowRefreshButton));
+        }
 
         /// <summary>
         /// Event raised when a workspace is selected or created successfully
@@ -66,6 +93,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand ToggleCreateModeCommand { get; }
         public ICommand CancelCommand { get; }
         public ICommand RefreshCommand { get; }
+        public ICommand OpenExistingWorkspaceCommand { get; }
+        public ICommand CreateWithNewNameCommand { get; }
 
         public WorkspaceSelectionViewModel(AnythingLLMService anythingLLMService, NotificationService notificationService, SelectionMode mode = SelectionMode.CreateNew)
         {
@@ -85,6 +114,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             ToggleCreateModeCommand = new RelayCommand(() => IsCreateMode = !IsCreateMode, () => _mode == SelectionMode.CreateNew);
             CancelCommand = new RelayCommand(() => Cancelled?.Invoke(this, EventArgs.Empty));
             RefreshCommand = new AsyncRelayCommand(LoadWorkspacesAsync);
+            OpenExistingWorkspaceCommand = new AsyncRelayCommand(OpenExistingDuplicateWorkspaceAsync);
+            CreateWithNewNameCommand = new RelayCommand(CreateWithNewName);
 
             // Start initialization
             _ = InitializeAsync();
@@ -221,6 +252,28 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             try
             {
                 IsLoading = true;
+                
+                // First check if workspace name already exists
+                StatusMessage = $"Checking workspace name: {NewWorkspaceName}";
+                
+                var nameExists = await _anythingLLMService.WorkspaceNameExistsAsync(NewWorkspaceName);
+                if (nameExists)
+                {
+                    // Show duplicate name options instead of just an error
+                    ShowDuplicateNameOptions = true;
+                    DuplicateWorkspaceName = NewWorkspaceName;
+                    
+                    // Find and pre-select the existing workspace
+                    var existingWorkspace = Workspaces.FirstOrDefault(w => string.Equals(w.Name, NewWorkspaceName, StringComparison.OrdinalIgnoreCase));
+                    if (existingWorkspace != null)
+                    {
+                        SelectedWorkspace = existingWorkspace;
+                    }
+                    
+                    StatusMessage = $"⚠️ A workspace named '{NewWorkspaceName}' already exists. What would you like to do?";
+                    return;
+                }
+                
                 StatusMessage = $"Creating workspace: {NewWorkspaceName}";
 
                 // Create the workspace
@@ -261,6 +314,53 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         partial void OnNewWorkspaceNameChanged(string value)
         {
             ((AsyncRelayCommand)CreateWorkspaceCommand).NotifyCanExecuteChanged();
+            
+            // Clear any previous error messages when user starts typing a new name
+            if (!string.IsNullOrEmpty(value) && (StatusMessage.Contains("already exists") || ShowDuplicateNameOptions))
+            {
+                StatusMessage = "Enter a name for the new workspace:";
+                ShowDuplicateNameOptions = false;
+                DuplicateWorkspaceName = string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Opens the existing workspace that has the same name
+        /// </summary>
+        private async Task OpenExistingDuplicateWorkspaceAsync()
+        {
+            if (SelectedWorkspace == null) return;
+            
+            try
+            {
+                IsLoading = true;
+                StatusMessage = $"Opening existing workspace: {SelectedWorkspace.Name}";
+                
+                await Task.Delay(500); // Brief delay for UX
+                
+                // Notify that we're selecting the existing workspace
+                WorkspaceSelected?.Invoke(this, new WorkspaceSelectedEventArgs(SelectedWorkspace.Name, false));
+            }
+            catch (Exception ex)
+            {
+                _notificationService.ShowError($"Failed to open workspace: {ex.Message}");
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+        
+        /// <summary>
+        /// Clears the duplicate name scenario and lets user enter a new name
+        /// </summary>
+        private void CreateWithNewName()
+        {
+            ShowDuplicateNameOptions = false;
+            DuplicateWorkspaceName = string.Empty;
+            NewWorkspaceName = string.Empty;
+            SelectedWorkspace = null;
+            StatusMessage = "Enter a name for the new workspace:";
         }
 
         partial void OnIsLoadingChanged(bool value)

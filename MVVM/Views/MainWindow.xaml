@@ -69,6 +69,22 @@
             <views:ImportMethodSelectionView />
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type vm:ImportWorkflowViewModel}">
+            <views:ImportWorkflowView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:ImportRequirementsWorkflowViewModel}">
+            <views:ImportRequirementsWorkflowView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:NewProjectWorkflowViewModel}">
+            <views:NewProjectWorkflowView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:NewProjectHeaderViewModel}">
+            <views:NewProjectHeaderView />
+        </DataTemplate>
+
         <DataTemplate DataType="{x:Type vm:RequirementDescriptionEditorViewModel}">
             <views:RequirementDescriptionEditorView />
         </DataTemplate>
@@ -294,8 +310,8 @@
                 
                 <!-- Modal content container -->
                 <Border Background="#2B2B2B"
-                        BorderBrush="#555555"
-                        BorderThickness="1"
+                        BorderBrush="{StaticResource Brush.Accent.Primary}"
+                        BorderThickness="2"
                         CornerRadius="8"
                         MinWidth="400"
                         MinHeight="200"
@@ -304,6 +320,12 @@
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
                         Margin="50">
+                    <Border.Effect>
+                        <DropShadowEffect Color="{StaticResource Accent.Primary}" 
+                                         BlurRadius="12" 
+                                         ShadowDepth="0" 
+                                         Opacity="0.3"/>
+                    </Border.Effect>
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -313,11 +335,13 @@
                         <!-- Modal header with close button -->
                         <Border Grid.Row="0" 
                                 Background="#333333" 
+                                BorderBrush="{StaticResource Brush.Accent.Primary}"
+                                BorderThickness="0,0,0,2"
                                 CornerRadius="8,8,0,0"
                                 Padding="15,10">
                             <Grid>
                                 <TextBlock Text="{Binding ModalTitle, FallbackValue='Modal Dialog'}" 
-                                          Foreground="White" 
+                                          Foreground="{StaticResource Brush.Accent.Primary}" 
                                           FontSize="16" 
                                           FontWeight="SemiBold"
                                           HorizontalAlignment="Left"
@@ -326,13 +350,48 @@
                                 <Button Content="✕"
                                         HorizontalAlignment="Right"
                                         VerticalAlignment="Center"
-                                        Width="24" Height="24"
+                                        Width="28" Height="28"
                                         Background="Transparent"
-                                        BorderThickness="0"
+                                        BorderThickness="1"
+                                        BorderBrush="Transparent"
                                         Foreground="#CCCCCC"
-                                        FontSize="14"
+                                        FontSize="16"
+                                        FontWeight="Bold"
                                         Command="{Binding CloseModalCommand}"
-                                        ToolTip="Close"/>
+                                        ToolTip="Close"
+                                        Cursor="Hand">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border x:Name="border"
+                                                                Background="{TemplateBinding Background}"
+                                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                                CornerRadius="4"
+                                                                Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center"
+                                                                            VerticalAlignment="Center"
+                                                                            TextElement.Foreground="{TemplateBinding Foreground}"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="border" Property="Background" Value="{StaticResource Brush.Background.Menu.Hover}"/>
+                                                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource Brush.Accent.Primary}"/>
+                                                                <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsPressed" Value="True">
+                                                                <Setter TargetName="border" Property="Background" Value="{StaticResource Brush.Accent.Primary}"/>
+                                                                <Setter Property="Foreground" Value="White"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
                             </Grid>
                         </Border>
                         

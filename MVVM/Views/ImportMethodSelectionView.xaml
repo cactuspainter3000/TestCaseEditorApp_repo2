@@ -83,16 +83,50 @@
 
         <!-- Import Options -->
         <StackPanel Grid.Row="1" Margin="0,0,0,20">
-            <!-- Word Import Option -->
+            <!-- Word Import With Analysis Option -->
             <Button Command="{Binding WordImportCommand}" Style="{StaticResource OptionButton}">
                 <StackPanel Orientation="Horizontal">
                     <Ellipse Width="8" Height="8" Fill="{StaticResource Brush.State.Success}" Margin="0,0,12,0" VerticalAlignment="Center"/>
                     <StackPanel>
-                        <TextBlock Text="Import from Word document with analysis" 
+                        <TextBlock Text="Import Requirements with automatic requirement analysis" 
                                    FontWeight="SemiBold" 
                                    FontSize="{StaticResource FontSize.Body}"
                                    Foreground="{StaticResource Brush.Text.Primary}"/>
-                        <TextBlock Text="Recommended: Analyzes Word documents and extracts requirements automatically" 
+                        <TextBlock Text="Recommended: Analyzes each requirement during import for better test case generation" 
+                                   FontSize="{StaticResource FontSize.Caption}" 
+                                   Foreground="{StaticResource Brush.Text.Tertiary}" 
+                                   Margin="0,4,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </Button>
+
+            <!-- Word Import Without Analysis Option -->
+            <Button Command="{Binding WordImportNoAnalysisCommand}" Style="{StaticResource OptionButton}">
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="8" Height="8" Fill="{StaticResource Brush.State.Info}" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                    <StackPanel>
+                        <TextBlock Text="Import Requirements without automatic requirement analysis" 
+                                   FontWeight="SemiBold" 
+                                   FontSize="{StaticResource FontSize.Body}"
+                                   Foreground="{StaticResource Brush.Text.Primary}"/>
+                        <TextBlock Text="Faster import - requirements can be analyzed individually later if needed" 
+                                   FontSize="{StaticResource FontSize.Caption}" 
+                                   Foreground="{StaticResource Brush.Text.Tertiary}" 
+                                   Margin="0,4,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </Button>
+
+            <!-- Workflow Import Option (New) -->
+            <Button Command="{Binding ImportWorkflowCommand}" Style="{StaticResource OptionButton}">
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="8" Height="8" Fill="{StaticResource Brush.Accent.Primary}" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                    <StackPanel>
+                        <TextBlock Text="Import Requirements (Full Configuration)" 
+                                   FontWeight="SemiBold" 
+                                   FontSize="{StaticResource FontSize.Body}"
+                                   Foreground="{StaticResource Brush.Text.Primary}"/>
+                        <TextBlock Text="Step-by-step import with full control over analysis, ChatGPT export, and workspace location" 
                                    FontSize="{StaticResource FontSize.Caption}" 
                                    Foreground="{StaticResource Brush.Text.Tertiary}" 
                                    Margin="0,4,0,0"/>
@@ -109,24 +143,7 @@
                                    FontWeight="SemiBold" 
                                    FontSize="{StaticResource FontSize.Body}"
                                    Foreground="{StaticResource Brush.Text.Primary}"/>
-                        <TextBlock Text="Fast import for pre-formatted requirements in Decagon format" 
-                                   FontSize="{StaticResource FontSize.Caption}" 
-                                   Foreground="{StaticResource Brush.Text.Tertiary}" 
-                                   Margin="0,4,0,0"/>
-                    </StackPanel>
-                </StackPanel>
-            </Button>
-
-            <!-- Skip Option -->
-            <Button Command="{Binding SkipImportCommand}" Style="{StaticResource OptionButton}">
-                <StackPanel Orientation="Horizontal">
-                    <Ellipse Width="8" Height="8" Fill="{StaticResource Brush.Text.Disabled}" Margin="0,0,12,0" VerticalAlignment="Center"/>
-                    <StackPanel>
-                        <TextBlock Text="Skip import for now" 
-                                   FontWeight="SemiBold" 
-                                   FontSize="{StaticResource FontSize.Body}"
-                                   Foreground="{StaticResource Brush.Text.Primary}"/>
-                        <TextBlock Text="Create empty project - add requirements manually later" 
+                        <TextBlock Text="Fast import for Jama-exported requirements already in Decagon format (no additional analysis)" 
                                    FontSize="{StaticResource FontSize.Caption}" 
                                    Foreground="{StaticResource Brush.Text.Tertiary}" 
                                    Margin="0,4,0,0"/>
