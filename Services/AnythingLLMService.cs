@@ -1,23 +1,54 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
+using System.Net.NetworkInformation;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Win32;
 
 namespace TestCaseEditorApp.Services
 {
     /// <summary>
     /// Service for integrating with AnythingLLM workspaces.
     /// Provides workspace management capabilities for creating and listing AnythingLLM workspaces.
+    /// Includes auto-start functionality for local AnythingLLM instances.
     /// </summary>
     public class AnythingLLMService
     {
+        // Windows API imports for window management
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+        
+        private const int SW_MINIMIZE = 6;
+        private const int SW_HIDE = 0;
+        private const int SW_SHOWMINIMIZED = 2;
+        
         private readonly HttpClient _httpClient;
         private string _baseUrl;
         private readonly string? _apiKey;
+        private Process? _anythingLLMProcess;
+        
+        // Events for status updates
+        public event Action<string>? StatusUpdated;
+        
+        // Auto-start configuration
+        private const int ANYTHINGLM_PORT = 3001;
+        private const int STARTUP_TIMEOUT_SECONDS = 60;
+        
+        // Installation detection cache
+        private static string? _cachedInstallPath;
+        private static string? _cachedShortcutPath;
+        private static bool? _cachedInstallationStatus;
 
         public AnythingLLMService(string? baseUrl = null, string? apiKey = null)
         {
@@ -37,6 +68,182 @@ namespace TestCaseEditorApp.Services
             _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
         }
 
+        /// <summary>
+        /// Gets or sets the user's API key in local configuration
+        /// </summary>
+        public static string? GetUserApiKey()
+        {
+            try
+            {
+                // Try environment variable first
+                var envKey = Environment.GetEnvironmentVariable("ANYTHINGLM_API_KEY");
+                if (!string.IsNullOrEmpty(envKey))
+                    return envKey;
+                
+                // Try user-specific registry location (Windows only)
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    using var key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\TestCaseEditorApp\AnythingLLM");
+                    return key?.GetValue("ApiKey") as string;
+                }
+                
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+        
+        /// <summary>
+        /// Saves the user's API key to local configuration
+        /// </summary>
+        public static bool SetUserApiKey(string apiKey)
+        {
+            try
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    using var key = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\TestCaseEditorApp\AnythingLLM");
+                    key.SetValue("ApiKey", apiKey);
+                    return true;
+                }
+                
+                // For non-Windows platforms, could implement file-based storage here
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// Detects if AnythingLLM is installed on the system
+        /// </summary>
+        public static (bool IsInstalled, string? InstallPath, string? ShortcutPath, string Message) DetectInstallation()
+        {
+            if (_cachedInstallationStatus.HasValue)
+            {
+                return (_cachedInstallationStatus.Value, _cachedInstallPath, _cachedShortcutPath, 
+                       _cachedInstallationStatus.Value ? "AnythingLLM installation detected" : "AnythingLLM not found");
+            }
+            
+            try
+            {
+                // Method 1: Check common installation directories
+                var commonPaths = new[]
+                {
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "AnythingLLM"),
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "AnythingLLM"),
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "AnythingLLM")
+                };
+                
+                foreach (var path in commonPaths)
+                {
+                    if (Directory.Exists(path))
+                    {
+                        var exePath = Directory.GetFiles(path, "AnythingLLM.exe", SearchOption.AllDirectories).FirstOrDefault();
+                        if (exePath != null)
+                        {
+                            _cachedInstallPath = exePath;
+                            break;
+                        }
+                    }
+                }
+                
+                // Method 2: Check Start Menu shortcuts
+                var startMenuPaths = new[]
+                {
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Programs"),
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu), "Programs")
+                };
+                
+                foreach (var startMenuPath in startMenuPaths)
+                {
+                    if (Directory.Exists(startMenuPath))
+                    {
+                        var shortcut = Directory.GetFiles(startMenuPath, "AnythingLLM.lnk", SearchOption.AllDirectories).FirstOrDefault();
+                        if (shortcut != null)
+                        {
+                            _cachedShortcutPath = shortcut;
+                            break;
+                        }
+                    }
+                }
+                
+                // Method 3: Check Windows Registry for uninstall entries
+                if (_cachedInstallPath == null && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    var registryPaths = new[]
+                    {
+                        @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+                        @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
+                    };
+                    
+                    foreach (var regPath in registryPaths)
+                    {
+                        try
+                        {
+                            using var uninstallKey = Registry.LocalMachine.OpenSubKey(regPath);
+                            if (uninstallKey != null)
+                            {
+                                foreach (var subKeyName in uninstallKey.GetSubKeyNames())
+                                {
+                                    using var subKey = uninstallKey.OpenSubKey(subKeyName);
+                                    var displayName = subKey?.GetValue("DisplayName") as string;
+                                    if (displayName?.Contains("AnythingLLM", StringComparison.OrdinalIgnoreCase) == true)
+                                    {
+                                        var installLocation = subKey?.GetValue("InstallLocation") as string;
+                                        if (!string.IsNullOrEmpty(installLocation) && Directory.Exists(installLocation))
+                                        {
+                                            var exePath = Directory.GetFiles(installLocation, "AnythingLLM.exe", SearchOption.AllDirectories).FirstOrDefault();
+                                            if (exePath != null)
+                                            {
+                                                _cachedInstallPath = exePath;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        catch { /* Continue searching */ }
+                        
+                        if (_cachedInstallPath != null) break;
+                    }
+                }
+                
+                var isInstalled = _cachedInstallPath != null || _cachedShortcutPath != null;
+                _cachedInstallationStatus = isInstalled;
+                
+                if (isInstalled)
+                {
+                    return (true, _cachedInstallPath, _cachedShortcutPath, "AnythingLLM installation detected");
+                }
+                else
+                {
+                    return (false, null, null, GetInstallationInstructions());
+                }
+            }
+            catch (Exception ex)
+            {
+                return (false, null, null, $"Error detecting installation: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// Gets installation instructions for AnythingLLM
+        /// </summary>
+        private static string GetInstallationInstructions()
+        {
+            return "AnythingLLM is not installed on this system.\n\n" +
+                   "To use AI features, please install AnythingLLM from:\n" +
+                   "• Official website: https://anythinglm.com\n" +
+                   "• GitHub releases: https://github.com/Mintplex-Labs/anything-llm/releases\n\n" +
+                   "After installation, restart this application to enable AI features.";
+        }
+        
         /// <summary>
         /// Represents a workspace in AnythingLLM
         /// </summary>
@@ -63,11 +270,19 @@ namespace TestCaseEditorApp.Services
         /// </summary>
         public string GetConfigurationStatus()
         {
+            var (isInstalled, installPath, shortcutPath, message) = DetectInstallation();
+            
+            if (!isInstalled)
+            {
+                return $"❌ AnythingLLM not installed. {message}";
+            }
+            
             if (string.IsNullOrEmpty(_apiKey))
             {
-                return $"⚠️ AnythingLLM API key not configured. Using local instance at {_baseUrl}";
+                return $"⚠️ AnythingLLM installed but API key not configured. Please set up your API key.";
             }
-            return $"✅ AnythingLLM API ready for cloud service at {_baseUrl}";
+            
+            return $"✅ AnythingLLM ready at {_baseUrl} (Install: {installPath ?? shortcutPath ?? "detected"})";
         }
 
         /// <summary>
@@ -286,6 +501,204 @@ namespace TestCaseEditorApp.Services
         }
 
         /// <summary>
+        /// Checks if a port is in use (indicating a service is running)
+        /// </summary>
+        private bool IsPortInUse(int port)
+        {
+            try
+            {
+                var tcpListener = new System.Net.Sockets.TcpListener(IPAddress.Loopback, port);
+                tcpListener.Start();
+                tcpListener.Stop();
+                return false; // Port is available
+            }
+            catch
+            {
+                return true; // Port is in use
+            }
+        }
+        
+        /// <summary>
+        /// Checks if AnythingLLM process is already running
+        /// </summary>
+        private bool IsAnythingLLMRunning()
+        {
+            try
+            {
+                var processes = Process.GetProcessesByName("AnythingLLM");
+                return processes.Length > 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// Starts AnythingLLM application and waits for it to be ready
+        /// </summary>
+        public async Task<(bool Success, string Message)> StartAnythingLLMAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                // First check if already running
+                if (IsPortInUse(ANYTHINGLM_PORT))
+                {
+                    OnStatusUpdated("AnythingLLM is already running");
+                    return (true, "AnythingLLM is already running on port 3001");
+                }
+                
+                if (IsAnythingLLMRunning())
+                {
+                    OnStatusUpdated("AnythingLLM process found, waiting for service...");
+                }
+                else
+                {
+                    // Detect AnythingLLM installation
+                    var (isInstalled, installPath, shortcutPath, installMessage) = DetectInstallation();
+                    
+                    if (!isInstalled)
+                    {
+                        return (false, installMessage);
+                    }
+                    
+                    OnStatusUpdated("Starting AnythingLLM application...");
+                    
+                    // Try to start using available methods
+                    ProcessStartInfo? startInfo = null;
+                    
+                    if (!string.IsNullOrEmpty(shortcutPath) && File.Exists(shortcutPath))
+                    {
+                        // Use shortcut if available
+                        startInfo = new ProcessStartInfo
+                        {
+                            FileName = shortcutPath,
+                            UseShellExecute = true,
+                            WindowStyle = ProcessWindowStyle.Minimized
+                        };
+                    }
+                    else if (!string.IsNullOrEmpty(installPath) && File.Exists(installPath))
+                    {
+                        // Use direct executable path
+                        startInfo = new ProcessStartInfo
+                        {
+                            FileName = installPath,
+                            UseShellExecute = true,
+                            WindowStyle = ProcessWindowStyle.Minimized
+                        };
+                    }
+                    
+                    if (startInfo == null)
+                    {
+                        return (false, "AnythingLLM detected but no valid launch method found");
+                    }
+                    
+                    _anythingLLMProcess = Process.Start(startInfo);
+                    
+                    if (_anythingLLMProcess == null)
+                    {
+                        return (false, "Failed to start AnythingLLM process");
+                    }
+                    
+                    OnStatusUpdated("AnythingLLM started, waiting for service initialization...");
+                }
+                
+                // Wait for service to become available
+                var startTime = DateTime.Now;
+                var timeout = TimeSpan.FromSeconds(STARTUP_TIMEOUT_SECONDS);
+                
+                while (DateTime.Now - startTime < timeout)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        return (false, "Startup cancelled by user");
+                    }
+                    
+                    if (await IsServiceAvailableAsync(cancellationToken))
+                    {
+                        // Try to minimize the AnythingLLM window after it's started
+                        _ = Task.Run(() => MinimizeAnythingLLMWindow());
+                        
+                        OnStatusUpdated("AnythingLLM service is ready!");
+                        return (true, "AnythingLLM started successfully and is ready for use");
+                    }
+                    
+                    var elapsed = (int)(DateTime.Now - startTime).TotalSeconds;
+                    OnStatusUpdated($"Waiting for AnythingLLM service... ({elapsed}/{STARTUP_TIMEOUT_SECONDS}s)");
+                    
+                    await Task.Delay(2000, cancellationToken); // Check every 2 seconds
+                }
+                
+                return (false, $"AnythingLLM failed to start within {STARTUP_TIMEOUT_SECONDS} seconds");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnythingLLM] Error starting AnythingLLM");
+                return (false, $"Error starting AnythingLLM: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// Attempts to minimize or hide the AnythingLLM window
+        /// </summary>
+        private void MinimizeAnythingLLMWindow()
+        {
+            try
+            {
+                // Give the application time to fully load
+                Thread.Sleep(5000);
+                
+                var processes = Process.GetProcessesByName("AnythingLLM");
+                foreach (var process in processes)
+                {
+                    if (process.MainWindowHandle != IntPtr.Zero)
+                    {
+                        ShowWindow(process.MainWindowHandle, SW_MINIMIZE);
+                        TestCaseEditorApp.Services.Logging.Log.Info("[AnythingLLM] Window minimized");
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnythingLLM] Error minimizing window");
+            }
+        }
+        
+        /// <summary>
+        /// Ensures AnythingLLM is running and ready, starting it if necessary
+        /// </summary>
+        public async Task<(bool Success, string Message)> EnsureServiceRunningAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                // First try to connect to existing service
+                if (await IsServiceAvailableAsync(cancellationToken))
+                {
+                    return (true, "AnythingLLM service is already running and ready");
+                }
+                
+                // If not available, try to start it
+                OnStatusUpdated("AnythingLLM not detected, attempting to start...");
+                return await StartAnythingLLMAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnythingLLM] Error ensuring service is running");
+                return (false, $"Error ensuring AnythingLLM service: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// Raises the StatusUpdated event
+        /// </summary>
+        private void OnStatusUpdated(string status)
+        {
+            StatusUpdated?.Invoke(status);
+            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] {status}");
+        }
+        
+        /// <summary>
         /// Checks if AnythingLLM service is available and responding
         /// </summary>
         public async Task<bool> IsServiceAvailableAsync(CancellationToken cancellationToken = default)
@@ -378,7 +791,18 @@ namespace TestCaseEditorApp.Services
 
         public void Dispose()
         {
-            _httpClient?.Dispose();
+            try
+            {
+                _httpClient?.Dispose();
+                
+                // Don't kill the AnythingLLM process on dispose as user might want to keep it running
+                // Just clean up our reference
+                _anythingLLMProcess = null;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnythingLLM] Error during disposal");
+            }
         }
 
         // Response DTOs for JSON deserialization
