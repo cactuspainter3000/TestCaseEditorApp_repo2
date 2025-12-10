@@ -210,6 +210,51 @@
                                             </Style>
                                         </Border.Style>
                                         <StackPanel Margin="4,4">
+                                            <!-- Project dropdown items -->
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Id}" Value="project">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                
+                                                <!-- For new projects: create AnythingLLM workspace and import -->
+                                                <Button Command="{Binding DataContext.NewProjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                    <TextBlock Text="🆕 New Project" TextWrapping="Wrap" FontWeight="Bold" />
+                                                </Button>
+                                                
+                                                <Button Command="{Binding DataContext.QuickImportCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                    <TextBlock Text="⚡ Quick Import (Legacy)" TextWrapping="Wrap" />
+                                                </Button>
+                                                
+                                                <Separator Margin="0,3"/>
+                                                
+                                                <!-- For existing projects: resume work -->
+                                                <Button Command="{Binding DataContext.OpenProjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                    <TextBlock Text="📁 Open Project" TextWrapping="Wrap" />
+                                                </Button>
+                                                
+                                                <Separator Margin="0,3"/>
+                                                
+                                                <Button Command="{Binding DataContext.SaveProjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                    <TextBlock Text="💾 Save Project" TextWrapping="Wrap" />
+                                                </Button>
+                                                
+                                                <Button Command="{Binding DataContext.CloseProjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                    <TextBlock Text="❌ Close Project" TextWrapping="Wrap" />
+                                                </Button>
+                                            </StackPanel>
+                                            
                                             <!-- Requirements dropdown items -->
                                             <StackPanel>
                                                 <StackPanel.Style>
@@ -223,27 +268,18 @@
                                                     </Style>
                                                 </StackPanel.Style>
                                                 
-                                                <Button Command="{Binding DataContext.QuickImportCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                <Button Command="{Binding DataContext.ImportAdditionalCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                         Style="{StaticResource SideMenuPopupButtonStyle}">
-                                                    <TextBlock Text="⚡ Quick Import Decagon" TextWrapping="Wrap" FontWeight="Bold" />
+                                                    <TextBlock Text="📥 Import Additional Requirements" TextWrapping="Wrap" FontWeight="Bold" />
                                                 </Button>
                                                 
-                                                <Separator Margin="0,3"/>
-                                                
-                                                <Button Command="{Binding DataContext.ImportWordCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
-                                                    <TextBlock Text="Import New Requirements…" TextWrapping="Wrap" />
-                                                </Button>
-                                                <Button Command="{Binding DataContext.LoadWorkspaceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
-                                                    <TextBlock Text="Import In-Process…" TextWrapping="Wrap" />
-                                                </Button>
+                                                <Separator Margin="0,6,0,3"/>
+                                                <TextBlock Text="Auto-Processing" Foreground="{StaticResource Brush.Accent.Primary}" FontWeight="SemiBold" Margin="4,0,0,4"/>
 
-                                                <!-- Toggle to control auto-analysis after import (styled like other menu buttons) -->
+                                                <!-- Toggle to control auto-analysis after import -->
                                                 <Button Command="{Binding DataContext.ToggleAutoAnalyzeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         Style="{StaticResource SideMenuPopupButtonStyle}"
-                                                        ToolTip="When enabled, automatically run requirement analysis after importing."
-                                                        Margin="0,6,0,0">
+                                                        ToolTip="When enabled, automatically run requirement analysis after importing.">
                                                     <DockPanel>
                                                         <TextBlock Text="Analyze on import" Foreground="White" />
                                                         <TextBlock Text="✔"
@@ -258,8 +294,7 @@
                                                 <!-- Toggle to control auto-export for ChatGPT after import -->
                                                 <Button Command="{Binding DataContext.ToggleAutoExportCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         Style="{StaticResource SideMenuPopupButtonStyle}"
-                                                        ToolTip="When enabled, automatically export requirements for ChatGPT analysis after importing (instead of auto-analyze)."
-                                                        Margin="0,6,0,0">
+                                                        ToolTip="When enabled, automatically export requirements for ChatGPT analysis after importing.">
                                                     <DockPanel>
                                                         <TextBlock Text="Export for ChatGPT" Foreground="White" />
                                                         <TextBlock Text="✔"
@@ -270,25 +305,85 @@
                                                                    Visibility="{Binding DataContext.AutoExportForChatGpt, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
                                                     </DockPanel>
                                                 </Button>
+                                            </StackPanel>
+                                            
+                                            <!-- LLM Learning dropdown items -->
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Id}" Value="llm-learning">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                
+                                                <Button Command="{Binding DataContext.AnalyzeUnanalyzedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                    <TextBlock Text="🔍 Analyze Unanalyzed" TextWrapping="Wrap" FontWeight="Bold" />
+                                                </Button>
+                                                
+                                                <Button Command="{Binding DataContext.ReAnalyzeModifiedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                    <TextBlock Text="🔄 Re-analyze Modified" TextWrapping="Wrap" />
+                                                </Button>
+                                                
+                                                <Separator Margin="0,6,0,3"/>
+                                                <TextBlock Text="Learning Workflow" Foreground="{StaticResource Brush.Accent.Primary}" FontWeight="SemiBold" Margin="4,0,0,4"/>
+
+                                                <!-- Generate learning prompt button -->
+                                                <Button Command="{Binding DataContext.GenerateLearningPromptCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}"
+                                                        ToolTip="Generate learning prompt and copy to clipboard for ChatGPT">
+                                                    <TextBlock Text="📋 Generate Learning Prompt" TextWrapping="Wrap" />
+                                                </Button>
+                                                
+                                                <Button Command="{Binding DataContext.PasteChatGptAnalysisCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}"
+                                                        ToolTip="Paste and import ChatGPT analysis results from clipboard">
+                                                    <TextBlock Text="📥 Paste ChatGPT Analysis" TextWrapping="Wrap" />
+                                                </Button>
+                                                
+                                                <Separator Margin="0,6,0,3"/>
+                                                <TextBlock Text="Advanced Training" Foreground="{StaticResource Brush.Accent.Primary}" FontWeight="SemiBold" Margin="4,0,0,4"/>
+
+                                                <!-- Setup LLM Workspace button -->
+                                                <Button Command="{Binding DataContext.SetupLlmWorkspaceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}"
+                                                        ToolTip="Setup integrated LLM workspace for streamlined communication">
+                                                    <TextBlock Text="🔧 Setup LLM Workspace" TextWrapping="Wrap" />
+                                                </Button>
+                                                
+                                                <Separator Margin="0,3"/>
+                                                <TextBlock Text="Quick Commands" Foreground="{StaticResource Brush.Accent.Primary}" FontWeight="SemiBold" Margin="4,0,0,4"/>
+
+                                                <!-- Generate Analysis Command button -->
+                                                <Button Command="{Binding DataContext.GenerateAnalysisCommandCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}"
+                                                        ToolTip="Generate 'ANALYZE: [requirement]' command for current requirement">
+                                                    <TextBlock Text="🔍 Generate Analysis Command" TextWrapping="Wrap" />
+                                                </Button>
+                                                
+                                                <!-- Generate Test Case Command button -->
+                                                <Button Command="{Binding DataContext.GenerateTestCaseCommandCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}"
+                                                        ToolTip="Generate 'GENERATE TEST CASES: [requirement]' command for current requirement">
+                                                    <TextBlock Text="⚙️ Generate Test Case Command" TextWrapping="Wrap" />
+                                                </Button>
+                                                
+                                                <Separator Margin="0,6,0,3"/>
+                                                <TextBlock Text="Export Options" Foreground="{StaticResource Brush.Accent.Primary}" FontWeight="SemiBold" Margin="4,0,0,4"/>
 
                                                 <!-- Open ChatGPT Export File button -->
                                                 <Button Command="{Binding DataContext.OpenChatGptExportCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         Style="{StaticResource SideMenuPopupButtonStyle}"
-                                                        ToolTip="Open the most recent ChatGPT export file in Notepad"
-                                                        Margin="0,6,0,0">
+                                                        ToolTip="Open the most recent ChatGPT export file in Notepad">
                                                     <DockPanel>
                                                         <TextBlock Text="📝" Foreground="White" Margin="0,0,5,0" />
                                                         <TextBlock Text="Open Export" Foreground="White" />
                                                     </DockPanel>
-                                                </Button>
-
-                                                <Separator Margin="0,3"/>
-
-                                                <Separator Margin="0,4"/>
-
-                                                <Button Command="{Binding DataContext.HelpCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
-                                                    <TextBlock Text="Help" />
                                                 </Button>
                                             </StackPanel>
                                             

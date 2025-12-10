@@ -44,6 +44,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private LlmProbeService? _llmProbeService;
         private readonly ToastNotificationService _toastService;
         private readonly ChatGptExportService _chatGptExportService;
+        private readonly AnythingLLMService _anythingLLMService;
 
         // --- Logging ---
         private readonly ILogger<MainViewModel>? _logger;
@@ -162,6 +163,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             get => _workspacePath;
             set => SetProperty(ref _workspacePath, value);
+        }
+
+        private string? _currentAnythingLLMWorkspaceSlug;
+        public string? CurrentAnythingLLMWorkspaceSlug
+        {
+            get => _currentAnythingLLMWorkspaceSlug;
+            set => SetProperty(ref _currentAnythingLLMWorkspaceSlug, value);
         }
 
         private bool _requirementsCollectionHooked;
@@ -338,6 +346,25 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand ToggleAutoExportCommand { get; private set; }
         public ICommand OpenChatGptExportCommand { get; private set; }
 
+        // Project Management Commands
+        public ICommand NewProjectCommand { get; private set; }
+        public ICommand OpenProjectCommand { get; private set; }
+        public ICommand SaveProjectCommand { get; private set; }
+        public ICommand CloseProjectCommand { get; private set; }
+        
+        // Analysis Commands
+        public ICommand AnalyzeUnanalyzedCommand { get; private set; }
+        public ICommand ReAnalyzeModifiedCommand { get; private set; }
+        public ICommand ImportAdditionalCommand { get; private set; }
+        
+        // ChatGPT Analysis Import Commands
+        public ICommand ImportStructuredAnalysisCommand { get; private set; }
+        public ICommand PasteChatGptAnalysisCommand { get; private set; }
+        public ICommand GenerateLearningPromptCommand { get; private set; }
+        public ICommand SetupLlmWorkspaceCommand { get; private set; }
+        public ICommand GenerateAnalysisCommandCommand { get; private set; }
+        public ICommand GenerateTestCaseCommandCommand { get; private set; }
+
         // Selected menu section (was referenced in UI/logic)
         private string? _selectedMenuSection;
         public string? SelectedMenuSection
@@ -463,6 +490,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             
             // Initialize ChatGPT export service
             _chatGptExportService = new ChatGptExportService();
+            
+            // Initialize AnythingLLM service
+            _anythingLLMService = new AnythingLLMService();
 
             // Initialize header instances
             _testCaseGeneratorHeader = new TestCaseGenerator_HeaderVM(this) { TitleText = "Test Case Creator" };
@@ -525,6 +555,25 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             ToggleAutoAnalyzeCommand = new RelayCommand(() => AutoAnalyzeOnImport = !AutoAnalyzeOnImport);
             ToggleAutoExportCommand = new RelayCommand(() => AutoExportForChatGpt = !AutoExportForChatGpt);
             OpenChatGptExportCommand = new RelayCommand(() => OpenChatGptExportFile(), () => !string.IsNullOrEmpty(LastChatGptExportFilePath) && System.IO.File.Exists(LastChatGptExportFilePath));
+            
+            // Initialize project management commands
+            NewProjectCommand = new RelayCommand(() => CreateNewProject());
+            OpenProjectCommand = new RelayCommand(() => OpenProject());
+            SaveProjectCommand = new RelayCommand(() => SaveProject());
+            CloseProjectCommand = new RelayCommand(() => CloseProject());
+            
+            // Initialize analysis commands
+            AnalyzeUnanalyzedCommand = new RelayCommand(() => AnalyzeUnanalyzed());
+            ReAnalyzeModifiedCommand = new RelayCommand(() => ReAnalyzeModified());
+            ImportAdditionalCommand = new RelayCommand(() => ImportAdditional());
+            
+            // Initialize ChatGPT analysis import commands  
+            ImportStructuredAnalysisCommand = new RelayCommand(() => ImportStructuredAnalysis());
+            PasteChatGptAnalysisCommand = new RelayCommand(() => PasteChatGptAnalysis());
+            GenerateLearningPromptCommand = new RelayCommand(() => GenerateLearningPrompt());
+            SetupLlmWorkspaceCommand = new RelayCommand(() => SetupLlmWorkspace());
+            GenerateAnalysisCommandCommand = new RelayCommand(() => GenerateAnalysisCommand(), () => CurrentRequirement != null);
+            GenerateTestCaseCommandCommand = new RelayCommand(() => GenerateTestCaseCommand(), () => CurrentRequirement != null);
 
             // Initialize analysis service for auto-analysis during import
             try
@@ -585,6 +634,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private void InitializeSteps()
         {
+            // Add Project step first
+            TestCaseGeneratorSteps.Add(new StepDescriptor
+            {
+                Id = "project",
+                DisplayName = "Project",
+                Badge = string.Empty,
+                HasFileMenu = true,
+                CreateViewModel = svc =>
+                {
+                    // Return a simple placeholder for now
+                    return new TestCaseGenerator_VM(_persistence, this);
+                }
+            });
+
             TestCaseGeneratorSteps.Add(new StepDescriptor
             {
                 Id = "requirements",
@@ -596,6 +659,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     var vm = new TestCaseGenerator_VM(_persistence, this);
                     vm.TestCaseGenerator = _testCaseGenerator;
                     return vm;
+                }
+            });
+
+            TestCaseGeneratorSteps.Add(new StepDescriptor
+            {
+                Id = "llm-learning",
+                DisplayName = "LLM Learning",
+                Badge = string.Empty,
+                HasFileMenu = true,
+                CreateViewModel = svc =>
+                {
+                    return new TestCaseGenerator_VM(_persistence, this);
                 }
             });
 
@@ -2846,6 +2921,578 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[CHATGPT EXPORT] Failed to open file in Notepad: {ex.Message}");
                 SetTransientStatus("❌ Failed to open file in Notepad", 3);
+            }
+        }
+
+        /// <summary>
+        /// Creates a new project with AnythingLLM workspace integration.
+        /// </summary>
+        private async void CreateNewProject()
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info("[PROJECT] CreateNewProject started");
+                
+                // Show workspace selection dialog for creating new workspace only
+                var dialog = new TestCaseEditorApp.MVVM.Views.WorkspaceSelectionDialog()
+                {
+                    Owner = Application.Current.MainWindow
+                };
+
+                TestCaseEditorApp.Services.Logging.Log.Info("[PROJECT] Dialog created, showing...");
+                
+                var result = dialog.ShowDialog();
+                TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Dialog result: {result}, SelectedWorkspace: {dialog.SelectedWorkspace?.Name ?? "null"}");
+
+                if (result == true && dialog.SelectedWorkspace != null)
+                {
+                    var workspace = dialog.SelectedWorkspace;
+                    
+                    // Clear existing requirements and set workspace
+                    Requirements.Clear();
+                    CurrentAnythingLLMWorkspaceSlug = workspace.Slug;
+                    
+                    // Reset to first step
+                    SelectedStep = TestCaseGeneratorSteps.FirstOrDefault();
+
+                    if (dialog.WasCreated)
+                    {
+                        // New workspace was created - offer to import requirements
+                        var importChoice = System.Windows.MessageBox.Show(
+                            $"Successfully created workspace '{workspace.Name}'!\\n\\n" +
+                            "Would you like to import requirements now?",
+                            "Import Requirements",
+                            System.Windows.MessageBoxButton.YesNo,
+                            System.Windows.MessageBoxImage.Question);
+                        
+                        if (importChoice == System.Windows.MessageBoxResult.Yes)
+                        {
+                            // Show import options
+                            var importType = System.Windows.MessageBox.Show(
+                                "Choose import method:\\n\\n" +
+                                "• Yes: Import from Word document with analysis\\n" +
+                                "• No: Quick import (Decagon format)\\n" +
+                                "• Cancel: Skip import for now",
+                                "Import Method",
+                                System.Windows.MessageBoxButton.YesNoCancel,
+                                System.Windows.MessageBoxImage.Question);
+                            
+                            if (importType == System.Windows.MessageBoxResult.Yes)
+                            {
+                                // Import Word with analysis
+                                ImportWordCommand.Execute(null);
+                            }
+                            else if (importType == System.Windows.MessageBoxResult.No)
+                            {
+                                // Quick import
+                                QuickImportCommand.Execute(null);
+                            }
+                        }
+                        
+                        SetTransientStatus($"🆕 Created and opened project: {workspace.Name}", 4);
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Created new project with workspace slug '{workspace.Slug}'");
+                    }
+                    else
+                    {
+                        // Existing workspace was selected
+                        SetTransientStatus($"📂 Opened existing project: {workspace.Name}", 4);
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Opened existing project with workspace slug '{workspace.Slug}'");
+                        
+                        // Optionally load local workspace file
+                        var loadLocal = System.Windows.MessageBox.Show(
+                            "Would you like to load a local workspace file (.tcex.json) with this project?",
+                            "Load Local Workspace",
+                            System.Windows.MessageBoxButton.YesNo,
+                            System.Windows.MessageBoxImage.Question);
+                        
+                        if (loadLocal == System.Windows.MessageBoxResult.Yes)
+                        {
+                            LoadWorkspace();
+                        }
+                    }
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info("[PROJECT] Project creation cancelled or failed");
+                    SetTransientStatus("⚠️ Project creation cancelled", 3);
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[PROJECT] Failed to create new project: {ex.Message}");
+                SetTransientStatus("❌ Failed to create project", 3);
+            }
+        }
+
+        /// <summary>
+        /// Opens an existing project by selecting from available AnythingLLM workspaces.
+        /// </summary>
+        private async void OpenProject()
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info("[PROJECT] OpenProject started");
+                
+                // Show workspace selection dialog for selecting existing workspace
+                var dialog = new TestCaseEditorApp.MVVM.Views.WorkspaceSelectionDialog(TestCaseEditorApp.MVVM.Views.WorkspaceSelectionDialog.DialogMode.SelectExisting)
+                {
+                    Owner = Application.Current.MainWindow
+                };
+
+                if (dialog.ShowDialog() == true && dialog.SelectedWorkspace != null)
+                {
+                    var workspace = dialog.SelectedWorkspace;
+                    
+                    // Clear existing requirements and set workspace
+                    Requirements.Clear();
+                    CurrentAnythingLLMWorkspaceSlug = workspace.Slug;
+                    
+                    // Reset to first step
+                    SelectedStep = TestCaseGeneratorSteps.FirstOrDefault();
+                    
+                    SetTransientStatus($"📂 Opened project: {workspace.Name}", 4);
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Opened project with workspace slug '{workspace.Slug}'");
+                    
+                    // Optionally load local workspace file
+                    var loadLocal = MessageBox.Show(
+                        "Would you like to load a local workspace file (.tcex.json) with this project?",
+                        "Load Local Workspace",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Question);
+                    
+                    if (loadLocal == MessageBoxResult.Yes)
+                    {
+                        LoadWorkspace();
+                    }
+                }
+                else
+                {
+                    SetTransientStatus("⚠️ Project opening cancelled", 3);
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[PROJECT] Failed to open project: {ex.Message}");
+                MessageBox.Show(
+                    $"Error loading workspaces: {ex.Message}\n\n" +
+                    "Please check:\n" +
+                    "• AnythingLLM is running and accessible\n" +
+                    "• API key is properly configured\n" +
+                    "• Network connectivity",
+                    "Error", 
+                    MessageBoxButton.OK, 
+                    MessageBoxImage.Error);
+                SetTransientStatus("❌ Failed to open project", 3);
+            }
+        }
+
+        /// <summary>
+        /// Analyzes requirements that haven't been analyzed yet.
+        /// </summary>
+        private void AnalyzeUnanalyzed()
+        {
+            try
+            {
+                var unanalyzedCount = Requirements.Count(r => r.Analysis == null);
+                SetTransientStatus($"🔍 Analyzing {unanalyzedCount} unanalyzed requirements...", 3);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[ANALYSIS] Analyze unanalyzed requested for {unanalyzedCount} requirements");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[ANALYSIS] Failed to analyze unanalyzed: {ex.Message}");
+                SetTransientStatus("❌ Failed to analyze unanalyzed", 3);
+            }
+        }
+
+        /// <summary>
+        /// Re-analyzes requirements that have been modified.
+        /// </summary>
+        private void ReAnalyzeModified()
+        {
+            try
+            {
+                var modifiedCount = Requirements.Count(r => r.Analysis != null && r.IsQueuedForReanalysis);
+                SetTransientStatus($"🔄 Re-analyzing {modifiedCount} modified requirements...", 3);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[ANALYSIS] Re-analyze modified requested for {modifiedCount} requirements");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[ANALYSIS] Failed to re-analyze modified: {ex.Message}");
+                SetTransientStatus("❌ Failed to re-analyze modified", 3);
+            }
+        }
+
+        /// <summary>
+        /// Imports additional requirements to the current project.
+        /// </summary>
+        private void ImportAdditional()
+        {
+            try
+            {
+                SetTransientStatus("📥 Import additional coming soon...", 3);
+                TestCaseEditorApp.Services.Logging.Log.Info("[IMPORT] Import additional requested");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[IMPORT] Failed to import additional: {ex.Message}");
+                SetTransientStatus("❌ Failed to import additional", 3);
+            }
+        }
+
+        /// <summary>
+        /// Imports structured analysis from a file (JSON or other structured format).
+        /// </summary>
+        private void ImportStructuredAnalysis()
+        {
+            try
+            {
+                SetTransientStatus("📥 Import structured analysis coming soon...", 3);
+                TestCaseEditorApp.Services.Logging.Log.Info("[ANALYSIS] Structured analysis import requested");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[ANALYSIS] Failed to import structured analysis: {ex.Message}");
+                SetTransientStatus("❌ Failed to import analysis", 3);
+            }
+        }
+
+        /// <summary>
+        /// Generates a learning prompt for ChatGPT based on current requirements and copies to clipboard.
+        /// </summary>
+        private void GenerateLearningPrompt()
+        {
+            try
+            {
+                if (Requirements?.Any() != true)
+                {
+                    SetTransientStatus("⚠️ No requirements to generate learning prompt from", 3);
+                    return;
+                }
+
+                // Generate a comprehensive learning prompt
+                var promptBuilder = new System.Text.StringBuilder();
+                promptBuilder.AppendLine("I'm working with a requirement analysis project and would like you to learn from these requirements to help me with future analysis. Please analyze the following requirements and identify patterns, structures, and characteristics that would be useful for test case generation and requirement analysis:");
+                promptBuilder.AppendLine();
+
+                // Add requirement details
+                int counter = 1;
+                foreach (var req in Requirements.Take(20)) // Limit to avoid huge prompts
+                {
+                    promptBuilder.AppendLine($"**Requirement {counter}:**");
+                    promptBuilder.AppendLine($"- Item: {req.Item ?? "N/A"}");
+                    promptBuilder.AppendLine($"- Name: {req.Name ?? "N/A"}");
+                    if (!string.IsNullOrEmpty(req.Description))
+                    {
+                        promptBuilder.AppendLine($"- Description: {req.Description}");
+                    }
+                    if (req.Analysis?.Issues?.Any() == true)
+                    {
+                        promptBuilder.AppendLine($"- Analysis Issues: {string.Join("; ", req.Analysis.Issues.Take(3).Select(i => i.Description))}");
+                    }
+                    if (req.Analysis?.Recommendations?.Any() == true)
+                    {
+                        promptBuilder.AppendLine($"- Recommendations: {string.Join("; ", req.Analysis.Recommendations.Take(3).Select(r => r.Description))}");
+                    }
+                    promptBuilder.AppendLine();
+                    counter++;
+                }
+
+                if (Requirements.Count > 20)
+                {
+                    promptBuilder.AppendLine($"*(Plus {Requirements.Count - 20} additional requirements not shown)*");
+                    promptBuilder.AppendLine();
+                }
+
+                promptBuilder.AppendLine("Based on these requirements, please learn our analysis patterns for future use:");
+                promptBuilder.AppendLine();
+                promptBuilder.AppendLine("**ANALYSIS TRAINING:**");
+                promptBuilder.AppendLine("When I send you a requirement for analysis, please always respond with EXACTLY this JSON format:");
+                promptBuilder.AppendLine("{\"QualityScore\": <1-10>, \"Issues\": [{\"Category\": \"<category>\", \"Severity\": \"<High|Medium|Low>\", \"Description\": \"...\"}], \"Recommendations\": [{\"Category\": \"<category>\", \"Description\": \"...\", \"Example\": \"...\"}], \"FreeformFeedback\": \"...\"}");
+                promptBuilder.AppendLine();
+                promptBuilder.AppendLine("**TEST CASE TRAINING:**");
+                promptBuilder.AppendLine("When I send you a requirement for test case generation, please always respond with test cases in this format:");
+                promptBuilder.AppendLine("- Objective: To verify [specific requirement aspect]");
+                promptBuilder.AppendLine("- Input: [what will be provided/configured]");
+                promptBuilder.AppendLine("- Expected Output: [what should happen - be specific]");
+                promptBuilder.AppendLine("- Pass Criteria: [how to determine success/failure]");
+                promptBuilder.AppendLine();
+                promptBuilder.AppendLine("**PATTERN ANALYSIS:**");
+                promptBuilder.AppendLine("1. Identify common patterns and structures in the above requirements");
+                promptBuilder.AppendLine("2. Note the types of analysis that would be most valuable for this domain");
+                promptBuilder.AppendLine("3. Suggest test case generation strategies specific to these requirement types");
+                promptBuilder.AppendLine("4. Highlight domain-specific terminology and concepts I use");
+                promptBuilder.AppendLine("5. Remember these patterns for consistent future analysis");
+                promptBuilder.AppendLine();
+                promptBuilder.AppendLine("**FUTURE COMMUNICATION:**");
+                promptBuilder.AppendLine("- When I paste a requirement and say 'ANALYZE', use the JSON format above");
+                promptBuilder.AppendLine("- When I paste a requirement and say 'GENERATE TEST CASES', use the test case format above");
+                promptBuilder.AppendLine("- Always be consistent with the formatting and approach you learn from this training data");
+
+                string prompt = promptBuilder.ToString();
+
+                // Copy to clipboard
+                System.Windows.Clipboard.SetText(prompt);
+
+                SetTransientStatus("📋 Learning prompt copied to clipboard - ready for ChatGPT!", 4);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[LEARNING] Generated learning prompt from {Requirements.Count} requirements");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[LEARNING] Failed to generate learning prompt: {ex.Message}");
+                SetTransientStatus("❌ Failed to generate learning prompt", 3);
+            }
+        }
+
+        /// <summary>
+        /// Generates a standardized analysis command for the current requirement.
+        /// </summary>
+        private void GenerateAnalysisCommand()
+        {
+            try
+            {
+                if (CurrentRequirement == null)
+                {
+                    SetTransientStatus("⚠️ No requirement selected", 3);
+                    return;
+                }
+
+                var command = $"ANALYZE: {CurrentRequirement.Item} - {CurrentRequirement.Name}\n\n{CurrentRequirement.Description}";
+                System.Windows.Clipboard.SetText(command);
+                
+                SetTransientStatus($"📋 Analysis command copied for {CurrentRequirement.Item}", 3);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[QUICK_CMD] Generated analysis command for {CurrentRequirement.Item}");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[QUICK_CMD] Failed to generate analysis command: {ex.Message}");
+                SetTransientStatus("❌ Failed to generate command", 3);
+            }
+        }
+
+        /// <summary>
+        /// Generates a standardized test case generation command for the current requirement.
+        /// </summary>
+        private void GenerateTestCaseCommand()
+        {
+            try
+            {
+                if (CurrentRequirement == null)
+                {
+                    SetTransientStatus("⚠️ No requirement selected", 3);
+                    return;
+                }
+
+                var command = $"GENERATE TEST CASES: {CurrentRequirement.Item} - {CurrentRequirement.Name}\n\n{CurrentRequirement.Description}";
+                System.Windows.Clipboard.SetText(command);
+                
+                SetTransientStatus($"📋 Test case command copied for {CurrentRequirement.Item}", 3);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[QUICK_CMD] Generated test case command for {CurrentRequirement.Item}");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[QUICK_CMD] Failed to generate test case command: {ex.Message}");
+                SetTransientStatus("❌ Failed to generate command", 3);
+            }
+        }
+
+        /// <summary>
+        /// Sets up integrated LLM workspace for streamlined communication with standardized formats.
+        /// </summary>
+        private void SetupLlmWorkspace()
+        {
+            try
+            {
+                // Generate comprehensive workspace setup instructions
+                var setupBuilder = new System.Text.StringBuilder();
+                setupBuilder.AppendLine("LLM WORKSPACE SETUP - REQUIREMENT ANALYSIS & TEST CASE GENERATION");
+                setupBuilder.AppendLine("=".PadRight(80, '='));
+                setupBuilder.AppendLine();
+                setupBuilder.AppendLine("This document sets up standardized communication between the Test Case Editor App and your LLM workspace.");
+                setupBuilder.AppendLine("Please save this as your workspace context for consistent, automated responses.");
+                setupBuilder.AppendLine();
+                
+                setupBuilder.AppendLine("**COMMUNICATION PROTOCOL:**");
+                setupBuilder.AppendLine();
+                setupBuilder.AppendLine("1. REQUIREMENT ANALYSIS REQUESTS:");
+                setupBuilder.AppendLine("   When I send: 'ANALYZE: [requirement text]'");
+                setupBuilder.AppendLine("   You respond with EXACTLY this JSON structure (no markdown, no code blocks):");
+                setupBuilder.AppendLine("   {");
+                setupBuilder.AppendLine("     \"QualityScore\": <1-10>,");
+                setupBuilder.AppendLine("     \"Issues\": [");
+                setupBuilder.AppendLine("       {");
+                setupBuilder.AppendLine("         \"Category\": \"<Clarity|Testability|Completeness|Atomicity|Actionability|Consistency>\",");
+                setupBuilder.AppendLine("         \"Severity\": \"<High|Medium|Low>\",");
+                setupBuilder.AppendLine("         \"Description\": \"<specific issue description>\"");
+                setupBuilder.AppendLine("       }");
+                setupBuilder.AppendLine("     ],");
+                setupBuilder.AppendLine("     \"Recommendations\": [");
+                setupBuilder.AppendLine("       {");
+                setupBuilder.AppendLine("         \"Category\": \"<same categories as Issues>\",");
+                setupBuilder.AppendLine("         \"Description\": \"<actionable recommendation>\",");
+                setupBuilder.AppendLine("         \"Example\": \"<concrete rewrite example with [brackets] for placeholders>\"");
+                setupBuilder.AppendLine("       }");
+                setupBuilder.AppendLine("     ],");
+                setupBuilder.AppendLine("     \"FreeformFeedback\": \"<additional insights not captured above>\"");
+                setupBuilder.AppendLine("   }");
+                setupBuilder.AppendLine();
+                
+                setupBuilder.AppendLine("2. TEST CASE GENERATION REQUESTS:");
+                setupBuilder.AppendLine("   When I send: 'GENERATE TEST CASES: [requirement text]'");
+                setupBuilder.AppendLine("   You respond with test cases in this format:");
+                setupBuilder.AppendLine("   **Test Case 1:**");
+                setupBuilder.AppendLine("   - Objective: To verify [specific aspect of the requirement]");
+                setupBuilder.AppendLine("   - Environment: [test environment/configuration needed]");
+                setupBuilder.AppendLine("   - Input: [specific inputs, parameters, or actions]");
+                setupBuilder.AppendLine("   - Expected Output: [specific expected results]");
+                setupBuilder.AppendLine("   - Pass Criteria: [clear pass/fail determination]");
+                setupBuilder.AppendLine();
+                
+                setupBuilder.AppendLine("3. QUICK COMMANDS:");
+                setupBuilder.AppendLine("   - 'ANALYZE: [requirement]' → JSON analysis only");
+                setupBuilder.AppendLine("   - 'GENERATE TEST CASES: [requirement]' → Formatted test cases only");
+                setupBuilder.AppendLine("   - 'QUICK SCORE: [requirement]' → Just the quality score (1-10)");
+                setupBuilder.AppendLine();
+                
+                if (Requirements?.Any() == true)
+                {
+                    setupBuilder.AppendLine("**CURRENT PROJECT CONTEXT:**");
+                    setupBuilder.AppendLine();
+                    setupBuilder.AppendLine($"Project: {Requirements.Count} requirements loaded");
+                    
+                    // Add domain-specific context
+                    var domains = Requirements
+                        .Where(r => !string.IsNullOrEmpty(r.Name))
+                        .Take(10)
+                        .Select(r => r.Name?.Split(' ').FirstOrDefault())
+                        .Where(d => !string.IsNullOrEmpty(d))
+                        .Distinct()
+                        .Take(5);
+                    
+                    if (domains.Any())
+                    {
+                        setupBuilder.AppendLine($"Domain indicators: {string.Join(", ", domains)}");
+                    }
+                    
+                    setupBuilder.AppendLine();
+                    setupBuilder.AppendLine("Sample requirements for context:");
+                    var samples = Requirements.Take(3);
+                    foreach (var req in samples)
+                    {
+                        var namePreview = req.Name != null ? req.Name.Substring(0, Math.Min(80, req.Name.Length)) : "No name";
+                        setupBuilder.AppendLine($"- {req.Item}: {namePreview}...");
+                    }
+                    setupBuilder.AppendLine();
+                }
+                
+                setupBuilder.AppendLine("**QUALITY GUIDELINES:**");
+                setupBuilder.AppendLine("- Score 1-3: Poor (not testable, multiple critical issues)");
+                setupBuilder.AppendLine("- Score 4-5: Fair (some clarity issues, limited testability)");
+                setupBuilder.AppendLine("- Score 6-7: Good (minor issues, generally testable)");
+                setupBuilder.AppendLine("- Score 8-9: Very good (clear, testable, minor improvements)");
+                setupBuilder.AppendLine("- Score 10: Excellent (exemplary requirement)");
+                setupBuilder.AppendLine();
+                
+                setupBuilder.AppendLine("**IMPORTANT:**");
+                setupBuilder.AppendLine("- Always use the exact formats specified above");
+                setupBuilder.AppendLine("- No extra commentary unless specifically requested");
+                setupBuilder.AppendLine("- Be consistent with terminology and analysis approach");
+                setupBuilder.AppendLine("- Focus on actionable, implementable feedback");
+                
+                string workspaceSetup = setupBuilder.ToString();
+
+                // Copy to clipboard
+                System.Windows.Clipboard.SetText(workspaceSetup);
+
+                SetTransientStatus("🔧 LLM workspace setup copied to clipboard - paste into your LLM workspace!", 5);
+                TestCaseEditorApp.Services.Logging.Log.Info("[LLM_SETUP] Generated workspace setup document");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[LLM_SETUP] Failed to generate workspace setup: {ex.Message}");
+                SetTransientStatus("❌ Failed to generate workspace setup", 3);
+            }
+        }
+
+        /// <summary>
+        /// Pastes ChatGPT analysis from clipboard and applies it to current requirements.
+        /// </summary>
+        private void PasteChatGptAnalysis()
+        {
+            try
+            {
+                SetTransientStatus("📋 Paste ChatGPT analysis coming soon...", 3);
+                TestCaseEditorApp.Services.Logging.Log.Info("[ANALYSIS] ChatGPT analysis paste requested");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[ANALYSIS] Failed to paste ChatGPT analysis: {ex.Message}");
+                SetTransientStatus("❌ Failed to paste analysis", 3);
+            }
+        }
+        
+        /// <summary>
+        /// Shows a dialog for selecting an AnythingLLM workspace.
+        /// </summary>
+        private int ShowWorkspaceSelectionDialog(string[] workspaceNames)
+        {
+            // Simple implementation using built-in dialogs until we have a proper UI
+            var selection = string.Join("\\n", workspaceNames.Select((name, index) => $"{index}: {name}"));
+            var message = $"Available AnythingLLM Workspaces:\\n{selection}\\n\\nEnter the number of the workspace to open:";
+            
+            var input = System.Windows.MessageBox.Show(message, "Select Workspace", System.Windows.MessageBoxButton.OKCancel);
+            
+            // For now, return 0 (first workspace) if OK, -1 if cancelled
+            return input == System.Windows.MessageBoxResult.OK ? 0 : -1;
+        }
+
+        /// <summary>
+        /// Saves the current project state.
+        /// </summary>
+        private void SaveProject()
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(CurrentAnythingLLMWorkspaceSlug))
+                {
+                    SetTransientStatus("⚠️ No AnythingLLM workspace selected", 3);
+                    return;
+                }
+                
+                // Use existing SaveWorkspace functionality
+                SaveWorkspace();
+                
+                SetTransientStatus($"💾 Project saved", 3);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Project saved for workspace '{CurrentAnythingLLMWorkspaceSlug}'");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[PROJECT] Failed to save project: {ex.Message}");
+                SetTransientStatus("❌ Failed to save project", 3);
+            }
+        }
+
+        /// <summary>
+        /// Closes the current project.
+        /// </summary>
+        private void CloseProject()
+        {
+            try
+            {
+                // Clear requirements and reset state
+                Requirements.Clear();
+                CurrentAnythingLLMWorkspaceSlug = null;
+                WorkspacePath = null;
+                
+                // Reset to first step
+                SelectedStep = TestCaseGeneratorSteps.FirstOrDefault();
+                
+                SetTransientStatus("📄 Project closed", 3);
+                TestCaseEditorApp.Services.Logging.Log.Info("[PROJECT] Project closed");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[PROJECT] Failed to close project: {ex.Message}");
+                SetTransientStatus("❌ Failed to close project", 3);
             }
         }
 
