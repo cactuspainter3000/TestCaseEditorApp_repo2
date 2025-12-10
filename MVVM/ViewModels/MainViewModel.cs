@@ -43,6 +43,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Optional/managed runtime services
         private LlmProbeService? _llmProbeService;
         private readonly ToastNotificationService _toastService;
+        private readonly NotificationService _notificationService;
         private readonly ChatGptExportService _chatGptExportService;
         private readonly AnythingLLMService _anythingLLMService;
 
@@ -83,6 +84,23 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         // Toast notifications collection for UI binding
         public ObservableCollection<ToastNotification> ToastNotifications => _toastService.Toasts;
+
+        // --- Modal overlay system ---
+        private object? _modalViewModel;
+        public object? ModalViewModel
+        {
+            get => _modalViewModel;
+            private set => SetProperty(ref _modalViewModel, value);
+        }
+
+        private string _modalTitle = "Modal Dialog";
+        public string ModalTitle
+        {
+            get => _modalTitle;
+            private set => SetProperty(ref _modalTitle, value);
+        }
+
+        public ICommand CloseModalCommand { get; }
 
         private Requirement? _currentRequirement;
         public Requirement? CurrentRequirement
@@ -455,6 +473,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                   workspaceHeaderViewModel: new WorkspaceHeaderViewModel(),
                   navigationViewModel: new NavigationViewModel(),
                   fileDialog: new NoOpFileDialogService(),
+                  toastService: new ToastNotificationService(System.Windows.Threading.Dispatcher.CurrentDispatcher),
+                  notificationService: new NotificationService(new ToastNotificationService(System.Windows.Threading.Dispatcher.CurrentDispatcher)),
                   services: new SimpleServiceProviderStub(),
                   logger: null,
                   requirementsIndexLogger: null)
@@ -469,6 +489,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             WorkspaceHeaderViewModel workspaceHeaderViewModel,
             NavigationViewModel navigationViewModel,
             IFileDialogService fileDialog,
+            ToastNotificationService toastService,
+            NotificationService notificationService,
             IServiceProvider? services = null,
             ILogger<MainViewModel>? logger = null,
             ILogger<RequirementsIndexViewModel>? requirementsIndexLogger = null)
@@ -485,8 +507,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _logger = logger;
             TitleBar = new TitleBarViewModel();
 
-            // Initialize toast notification service
-            _toastService = new ToastNotificationService(Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher);
+            // Use injected services
+            _toastService = toastService ?? throw new ArgumentNullException(nameof(toastService));
+            _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
             
             // Initialize ChatGPT export service
             _chatGptExportService = new ChatGptExportService();
@@ -561,6 +584,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             OpenProjectCommand = new RelayCommand(() => OpenProject());
             SaveProjectCommand = new RelayCommand(() => SaveProject());
             CloseProjectCommand = new RelayCommand(() => CloseProject());
+            
+            // Initialize modal commands
+            CloseModalCommand = new RelayCommand(() => CloseModal());
             
             // Initialize analysis commands
             AnalyzeUnanalyzedCommand = new RelayCommand(() => AnalyzeUnanalyzed());
@@ -1509,12 +1535,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 TestCaseEditorApp.Services.Logging.Log.Warn($"[QuickImport] Stack trace: {ex.StackTrace}");
                 SetTransientStatus($"Quick Import failed: {ex.Message}", 10);
                 
-                // Also try to show a message box for immediate feedback
-                try
-                {
-                    System.Windows.MessageBox.Show($"Quick Import failed with error:\n\n{ex.Message}\n\nCheck logs for details.", "Quick Import Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-                }
-                catch { /* ignore message box errors */ }
+                // Show error notification instead of message box
+                _notificationService.ShowError($"Quick Import failed: {ex.Message}. Check logs for details.", 10);
             }
         }
 
@@ -1568,7 +1590,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to save workspace: {ex.Message}", "Save error", MessageBoxButton.OK, MessageBoxImage.Error);
+                _notificationService.ShowError($"Failed to save workspace: {ex.Message}", 8);
             }
         }
 
@@ -3528,6 +3550,33 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             catch { }
             _llmProbeService = null;
         }
+
+        // -------------------------
+        // Modal overlay system
+        // -------------------------
+        
+        /// <summary>
+        /// Show a modal dialog with the specified content and title
+        /// </summary>
+        public void ShowModal(object viewModel, string title = "Modal Dialog")
+        {
+            ModalTitle = title;
+            ModalViewModel = viewModel;
+        }
+
+        /// <summary>
+        /// Close the current modal dialog
+        /// </summary>
+        public void CloseModal()
+        {
+            ModalViewModel = null;
+            ModalTitle = "Modal Dialog";
+        }
+
+        /// <summary>
+        /// Check if a modal dialog is currently shown
+        /// </summary>
+        public bool IsModalOpen => ModalViewModel != null;
 
         // Explicit ITestCaseGenerator_Navigator implementations (map to public ICommand props)
         ICommand? ITestCaseGenerator_Navigator.NextRequirementCommand => this.NextRequirementCommand;

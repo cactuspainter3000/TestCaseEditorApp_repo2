@@ -50,8 +50,14 @@ namespace TestCaseEditorApp
                     // Core / persistence services
                     services.AddSingleton<IPersistenceService, JsonPersistenceService>();
 
-                    // Requirement parsing
-                    services.AddSingleton<IRequirementService, RequirementService>();
+                    // Toast notification system
+                    services.AddSingleton<ToastNotificationService>(provider => 
+                        new ToastNotificationService(Application.Current?.Dispatcher ?? System.Windows.Threading.Dispatcher.CurrentDispatcher));
+                    services.AddSingleton<NotificationService>();
+                    
+                    // Requirement parsing - wrap with notification support
+                    services.AddSingleton<RequirementService>(); // Core service
+                    services.AddSingleton<IRequirementService, NotifyingRequirementService>(); // Wrapper with notifications
 
                     // File dialog helper used by the VM
                     services.AddSingleton<IFileDialogService, FileDialogService>();

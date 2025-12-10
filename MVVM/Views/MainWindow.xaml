@@ -263,6 +263,65 @@
                 Grid.Row="6"
                 DataContext="{Binding RequirementsNavigator}"/>
             
+            <!-- Modal overlay system - appears over main content when modal is shown -->
+            <Grid Grid.Row="0" Grid.RowSpan="7" Grid.Column="0" Grid.ColumnSpan="3"
+                  Panel.ZIndex="9998"
+                  Visibility="{Binding ModalViewModel, Converter={StaticResource NullToVisibilityConverter}}">
+                <!-- Semi-transparent overlay background -->
+                <Border Background="#80000000" />
+                
+                <!-- Modal content container -->
+                <Border Background="#2B2B2B"
+                        BorderBrush="#555555"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        MinWidth="400"
+                        MinHeight="200"
+                        MaxWidth="800"
+                        MaxHeight="600"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Margin="50">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- Modal header with close button -->
+                        <Border Grid.Row="0" 
+                                Background="#333333" 
+                                CornerRadius="8,8,0,0"
+                                Padding="15,10">
+                            <Grid>
+                                <TextBlock Text="{Binding ModalTitle, FallbackValue='Modal Dialog'}" 
+                                          Foreground="White" 
+                                          FontSize="16" 
+                                          FontWeight="SemiBold"
+                                          HorizontalAlignment="Left"
+                                          VerticalAlignment="Center"/>
+                                
+                                <Button Content="✕"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Width="24" Height="24"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Foreground="#CCCCCC"
+                                        FontSize="14"
+                                        Command="{Binding CloseModalCommand}"
+                                        ToolTip="Close"/>
+                            </Grid>
+                        </Border>
+                        
+                        <!-- Modal content area -->
+                        <ContentControl Grid.Row="1" 
+                                       Content="{Binding ModalViewModel}" 
+                                       Margin="15"/>
+                    </Grid>
+                </Border>
+            </Grid>
+            
             <!-- Toast notification container - bottom-right corner -->
             <ItemsControl Grid.Row="0" Grid.RowSpan="7" Grid.Column="0" Grid.ColumnSpan="3"
                          ItemsSource="{Binding ToastNotifications}"

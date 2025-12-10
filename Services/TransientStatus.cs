@@ -9,7 +9,9 @@ namespace TestCaseEditorApp.Services
         {
             if (blockingError)
             {
-                MessageBox.Show(message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                // Use NotificationService if available, otherwise fallback to MessageBox
+                var notificationService = new NotificationService(toastService);
+                notificationService.ShowCriticalError(message);
                 return;
             }
 
