@@ -2,47 +2,123 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:conv="clr-namespace:TestCaseEditorApp.Converters">
 
+    <!-- Merge DesignSystem for access to color tokens -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="DesignSystem.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
     <!-- =========================== -->
     <!-- TEXTBOX STYLES              -->
     <!-- =========================== -->
 
+    <!-- Modern Input Style - styled border container with interactive states -->
+    <Style x:Key="ModernInputBorder" TargetType="Border">
+        <Setter Property="Background" Value="#444444"/>
+        <Setter Property="BorderBrush" Value="#555555"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="BorderBrush" Value="#777777"/>
+            </Trigger>
+            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderBrush" Value="#FF8C00"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Modern Input TextBox - transparent background for use inside ModernInputBorder -->
+    <Style x:Key="ModernInputTextBox" TargetType="TextBox">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Foreground" Value="#CCCCCC"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Padding" Value="12,8"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="CaretBrush">
+            <Setter.Value>
+                <SolidColorBrush Color="#FF8C00"/>
+            </Setter.Value>
+        </Setter>
+        <!-- Explicit template to ensure transparent background is respected -->
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                        <ScrollViewer x:Name="PART_ContentHost" 
+                                      Background="Transparent"
+                                      Focusable="False" 
+                                      HorizontalScrollBarVisibility="Hidden" 
+                                      VerticalScrollBarVisibility="Hidden"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Menu Popup TextBox - for dark menu backgrounds -->
     <Style x:Key="MenuPopupTextBoxStyle" TargetType="TextBox">
-        <Setter Property="Foreground" Value="{StaticResource MenuForeground}"/>
-        <Setter Property="Background" Value="#333333"/>
-        <Setter Property="BorderBrush" Value="#444444"/>
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+        <Setter Property="Background" Value="{StaticResource Brush.Background.Menu}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Brush.Border.Default}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="Padding" Value="6,3"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Padding" Value="8,6"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
         <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="CaretBrush">
+            <Setter.Value>
+                <SolidColorBrush Color="#FF8C00"/>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="SelectionBrush">
+            <Setter.Value>
+                <SolidColorBrush Color="#FF8C00"/>
+            </Setter.Value>
+        </Setter>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
                     <Border Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="3"
+                            CornerRadius="{StaticResource Radius.SM}"
                             SnapsToDevicePixels="True">
                         <ScrollViewer x:Name="PART_ContentHost"
                                       Margin="{TemplateBinding Padding}"
-                                      Focusable="False"/>
+                                      Focusable="False"
+                                      Foreground="{TemplateBinding Foreground}"/>
                     </Border>
+                    <ControlTemplate.Resources>
+                        <!-- Force system caret to orange -->
+                        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#FF8C00"/>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFFFFF"/>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="#FF8C00"/>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#FF8C00"/>
+                    </ControlTemplate.Resources>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="BorderBrush" Value="#666666"/>
+                <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent.Primary}"/>
+                <Setter Property="CaretBrush" Value="{StaticResource Brush.Accent.Primary}"/>
             </Trigger>
             <Trigger Property="IsKeyboardFocused" Value="True">
-                <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
-                <Setter Property="Background" Value="#2b2b2b"/>
+                <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent.Primary}"/>
+                <Setter Property="Background" Value="{StaticResource Brush.Background.Menu.Hover}"/>
+                <Setter Property="CaretBrush" Value="{StaticResource Brush.Accent.Primary}"/>
+            </Trigger>
+            <Trigger Property="IsFocused" Value="True">
+                <Setter Property="CaretBrush" Value="{StaticResource Brush.Accent.Primary}"/>
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
-                <Setter Property="Foreground" Value="#999999"/>
-                <Setter Property="Background" Value="#2b2b2b"/>
+                <Setter Property="Foreground" Value="{StaticResource Brush.Text.Disabled}"/>
+                <Setter Property="Background" Value="{StaticResource Brush.Background.Menu.Pressed}"/>
             </Trigger>
         </Style.Triggers>
     </Style>

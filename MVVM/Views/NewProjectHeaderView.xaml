@@ -3,16 +3,100 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
              mc:Ignorable="d"
-             d:DesignHeight="75" d:DesignWidth="800">
+             d:DesignHeight="200" d:DesignWidth="800">
     
-    <Border Background="#2B2B2B" Padding="12">
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-            <TextBlock Text="🚀" FontSize="24" Margin="0,0,12,0" VerticalAlignment="Center"/>
-            <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="{Binding Title}" Foreground="Orange" FontWeight="Bold" FontSize="16"/>
-                <TextBlock Text="{Binding Subtitle}" Foreground="#CCCCCC" FontSize="12"/>
+    <UserControl.Resources>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVis" />
+    </UserControl.Resources>
+    
+    <Border Background="#2B2B2B" Padding="4">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- Left: Title with Icon -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="🚀" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Title}" Foreground="Orange" FontWeight="Bold" FontSize="12"/>
+                    <TextBlock Text="{Binding Subtitle}" Foreground="#CCCCCC" FontSize="9"/>
+                </StackPanel>
             </StackPanel>
-        </StackPanel>
+            
+            <!-- Right: Progress Indicator -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Visibility="{Binding CanProceed, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}">
+                
+                <!-- Step 1: Create Workspace (combines workspace name + creation) -->
+                <Border Background="#333333" CornerRadius="10" Padding="6,3" Margin="0,0,8,0">
+                    <TextBlock FontSize="10" VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="#777777"/>
+                                <Setter Property="Text" Value="1️⃣ Create Workspace"/>
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding HasWorkspaceName}" Value="True"/>
+                                            <Condition Binding="{Binding IsWorkspaceCreated}" Value="True"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <MultiDataTrigger.Setters>
+                                            <Setter Property="Foreground" Value="DarkOrange"/>
+                                            <Setter Property="Text" Value="✅ Create Workspace"/>
+                                        </MultiDataTrigger.Setters>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Border>
+                
+                <!-- Step 2: Select Requirements -->
+                <Border Background="#333333" CornerRadius="10" Padding="6,3" Margin="0,0,8,0">
+                    <TextBlock FontSize="10" VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="#777777"/>
+                                <Setter Property="Text" Value="2️⃣ Select Requirements"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasSelectedDocument}" Value="True">
+                                        <Setter Property="Foreground" Value="DarkOrange"/>
+                                        <Setter Property="Text" Value="✅ Select Requirements"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Border>
+                
+                <!-- Step 3: Set Project Location (combines project name + save path) -->
+                <Border Background="#333333" CornerRadius="10" Padding="6,3">
+                    <TextBlock FontSize="10" VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="#777777"/>
+                                <Setter Property="Text" Value="3️⃣ Set Project Location"/>
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding HasProjectName}" Value="True"/>
+                                            <Condition Binding="{Binding HasProjectSavePath}" Value="True"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <MultiDataTrigger.Setters>
+                                            <Setter Property="Foreground" Value="DarkOrange"/>
+                                            <Setter Property="Text" Value="✅ Set Project Location"/>
+                                        </MultiDataTrigger.Setters>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Border>
+            </StackPanel>
+        </Grid>
     </Border>
 </UserControl>

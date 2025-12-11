@@ -528,7 +528,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             ImportWorkflow.WorkflowCompleted += OnImportRequirementsWorkflowCompleted;
             ImportWorkflow.WorkflowCancelled += OnImportRequirementsWorkflowCancelled;
             
-            NewProjectWorkflow = new NewProjectWorkflowViewModel(_anythingLLMService);
+            NewProjectWorkflow = new NewProjectWorkflowViewModel(_anythingLLMService, _toastService);
             NewProjectWorkflow.ProjectCreated += OnNewProjectCreated;
             NewProjectWorkflow.ProjectCancelled += OnNewProjectCancelled;
             
@@ -660,6 +660,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Populate UI steps (factories create step VMs)
             InitializeSteps();
 
+            // Start with initial state view instead of no content
+            CurrentStepViewModel = InitialStateViewModel;
+
             // Ensure header wiring is consistent
             TryWireDynamicTestCaseGenerator();
             WireHeaderSubscriptions();
@@ -687,8 +690,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 HasFileMenu = true,
                 CreateViewModel = svc =>
                 {
-                    // Return a simple placeholder for now
-                    return new TestCaseGenerator_VM(_persistence, this);
+                    return new ProjectViewModel();
                 }
             });
 
@@ -700,9 +702,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 HasFileMenu = true,
                 CreateViewModel = svc =>
                 {
-                    var vm = new TestCaseGenerator_VM(_persistence, this);
-                    vm.TestCaseGenerator = _testCaseGenerator;
-                    return vm;
+                    return new RequirementsViewModel();
                 }
             });
 
@@ -714,7 +714,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 HasFileMenu = true,
                 CreateViewModel = svc =>
                 {
-                    return new TestCaseGenerator_VM(_persistence, this);
+                    return new LLMLearningViewModel();
                 }
             });
 
@@ -754,7 +754,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 CreateViewModel = svc => new TestCaseGenerator_CreationVM(this)
             });
 
-            SelectedStep = TestCaseGeneratorSteps.FirstOrDefault(s => s.CreateViewModel != null);
+            // Start with no selected step to show initial state
+            SelectedStep = null;
         }
 
         // SelectedStep property
@@ -785,7 +786,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 if (value?.CreateViewModel == null)
                 {
-                    CurrentStepViewModel = null;
+                    CurrentStepViewModel = InitialStateViewModel;
                     return;
                 }
 
@@ -816,7 +817,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 catch (Exception ex)
                 {
                     _logger?.LogWarning(ex, "CreateViewModel failed for step {Step}", value?.Id);
-                    CurrentStepViewModel = null;
+                    CurrentStepViewModel = InitialStateViewModel;
                 }
             }
         }
@@ -829,6 +830,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             set => SetProperty(ref _currentStepViewModel, value);
         }
 
+        // Initial state view model for when no content is loaded
+        private InitialStateViewModel? _initialStateViewModel;
+        private InitialStateViewModel InitialStateViewModel
+        {
+            get
+            {
+                if (_initialStateViewModel == null)
+                {
+                    _initialStateViewModel = new InitialStateViewModel();
+                }
+                return _initialStateViewModel;
+            }
+        }
+
         // -----------------------------
         // Header wiring and helpers
         // -----------------------------
@@ -838,6 +853,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             try
             {
+                // When all sections are collapsed, show initial state
+                if (string.IsNullOrEmpty(value))
+                {
+                    CurrentStepViewModel = InitialStateViewModel;
+                    SelectedStep = null;
+                    ActiveHeader = _workspaceHeaderViewModel;
+                    return;
+                }
+
                 // Treat a few common labels as "Test Case Creator"
                 if (string.Equals(value, "TestCase", StringComparison.OrdinalIgnoreCase)
                     || string.Equals(value, "Test Case Creator", StringComparison.OrdinalIgnoreCase)
@@ -883,7 +907,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     // Show the full workflow in the main content area
                     if (NewProjectWorkflow == null)
                     {
-                        NewProjectWorkflow = new NewProjectWorkflowViewModel(_anythingLLMService);
+                        NewProjectWorkflow = new NewProjectWorkflowViewModel(_anythingLLMService, _toastService);
                         NewProjectWorkflow.ProjectCreated += OnNewProjectCreated;
                         NewProjectWorkflow.ProjectCancelled += OnNewProjectCancelled;
                     }

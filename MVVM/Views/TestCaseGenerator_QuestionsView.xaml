@@ -222,7 +222,7 @@
                                                              Background="Transparent"
                                                              BorderThickness="0"
                                                              Foreground="{StaticResource MenuForeground}"
-                                                             CaretBrush="White"
+                                                             CaretBrush="#FF8C00"
                                                              Padding="8"
                                                              VerticalScrollBarVisibility="Auto"/>
                                                 </Grid>

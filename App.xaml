@@ -4,6 +4,19 @@
              xmlns:conv="clr-namespace:TestCaseEditorApp.MVVM.Converters">
     <Application.Resources>
         <ResourceDictionary>
+            <!-- Global system color overrides for orange caret -->
+            <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="#FF8C00"/>
+            <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#FF8C00"/>
+            
+            <!-- GLOBAL TEXTBOX CARET OVERRIDE - Only sets caret color -->
+            <Style TargetType="TextBox">
+                <Setter Property="CaretBrush">
+                    <Setter.Value>
+                        <SolidColorBrush Color="#FF8C00"/>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            
             <!-- Register converters here so they're available app-wide -->
             <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" CollapseWhenFalse="True" />
 

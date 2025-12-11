@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
              xmlns:controls="clr-namespace:TestCaseEditorApp.Controls"
+             xmlns:localControls="clr-namespace:TestCaseEditorApp.MVVM.Controls"
              xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels" d:DataContext="{d:DesignInstance Type=vm:MainViewModel, IsDesignTimeCreatable=False}"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="200">
@@ -18,18 +19,23 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </UserControl.Resources>
 
-    <Border Background="#2B2B2B" CornerRadius="4" Margin="0,0,0,8" BorderBrush="{StaticResource Brush.Accent.Primary}" BorderThickness="2">
+    <Border Background="#2B2B2B" CornerRadius="4" Margin="0" BorderBrush="{StaticResource Brush.Accent.Primary}" BorderThickness="2">
         <Grid Background="{StaticResource Brush.Background.Menu}" Margin="5">
-            <StackPanel>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            
+            <StackPanel Grid.Row="0">
 
                 <!-- Test Case Generator header -->
                 <ToggleButton x:Name="TestCaseGeneratorToggle"
-                              Style="{StaticResource MenuHeaderToggleStyle}"
+                              Style="{StaticResource ActionToggleButton}"
                               HorizontalAlignment="Stretch"
                               Cursor="Hand"
                               Margin="0,6,0,0"
                               IsChecked="{Binding SelectedMenuSection, Converter={StaticResource SectionSelectedConverter}, ConverterParameter=TestCase, Mode=TwoWay}">
-                    <TextBlock Text="Test Case Generator" Style="{StaticResource MenuHeaderTheme}" FontSize="16" FontWeight="Normal" />
+                    <TextBlock Text="Test Case Generator" FontSize="16" FontWeight="Normal" />
                 </ToggleButton>
 
                 <!-- Animated expanded area -->
@@ -168,7 +174,7 @@
                                     
                                     <!-- Expandable file menu section -->
                                     <Border x:Name="FileMenuExpander" 
-                                            Background="#333333"
+                                            Background="Transparent"
                                             BorderBrush="#33000000"
                                             BorderThickness="0,1,0,0"
                                             Margin="4,0,4,0"
@@ -226,7 +232,7 @@
                                                 <!-- For new projects: create AnythingLLM workspace and import -->
                                                 <Button Command="{Binding DataContext.NewProjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                         Style="{StaticResource SideMenuPopupButtonStyle}">
-                                                    <TextBlock Text="🆕 New Project" TextWrapping="Wrap" FontWeight="Bold" />
+                                                    <TextBlock Text="🆕 New Project" TextWrapping="Wrap" />
                                                 </Button>
                                                 
                                                 <Button Command="{Binding DataContext.QuickImportCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
@@ -234,15 +240,11 @@
                                                     <TextBlock Text="⚡ Quick Import (Legacy)" TextWrapping="Wrap" />
                                                 </Button>
                                                 
-                                                <Separator Margin="0,3"/>
-                                                
                                                 <!-- For existing projects: resume work -->
                                                 <Button Command="{Binding DataContext.OpenProjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                         Style="{StaticResource SideMenuPopupButtonStyle}">
                                                     <TextBlock Text="📁 Open Project" TextWrapping="Wrap" />
                                                 </Button>
-                                                
-                                                <Separator Margin="0,3"/>
                                                 
                                                 <Button Command="{Binding DataContext.SaveProjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                         Style="{StaticResource SideMenuPopupButtonStyle}">
@@ -270,11 +272,10 @@
                                                 
                                                 <Button Command="{Binding DataContext.ImportAdditionalCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                         Style="{StaticResource SideMenuPopupButtonStyle}">
-                                                    <TextBlock Text="📥 Import Additional Requirements" TextWrapping="Wrap" FontWeight="Bold" />
+                                                    <TextBlock Text="📥 Import Additional Requirements" TextWrapping="Wrap" />
                                                 </Button>
                                                 
-                                                <Separator Margin="0,6,0,3"/>
-                                                <TextBlock Text="Auto-Processing" Foreground="DarkOrange" FontWeight="SemiBold" Margin="4,0,0,4"/>
+                                                <localControls:DropdownSectionHeader Icon="⚙️" Header="Auto-Processing" />
 
                                                 <!-- Toggle to control auto-analysis after import -->
                                                 <Button Command="{Binding DataContext.ToggleAutoAnalyzeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -285,26 +286,13 @@
                                                         <TextBlock Text="✔"
                                                                    Foreground="LightGreen"
                                                                    FontWeight="Bold"
-                                                                   Margin="8,0,0,0"
+                                                                   Margin="6,0,0,0"
                                                                    DockPanel.Dock="Right"
                                                                    Visibility="{Binding DataContext.AutoAnalyzeOnImport, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
                                                     </DockPanel>
                                                 </Button>
 
-                                                <!-- Toggle to control auto-export for ChatGPT after import -->
-                                                <Button Command="{Binding DataContext.ToggleAutoExportCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                        Style="{StaticResource SideMenuPopupButtonStyle}"
-                                                        ToolTip="When enabled, automatically export requirements for ChatGPT analysis after importing.">
-                                                    <DockPanel>
-                                                        <TextBlock Text="Export for ChatGPT" Foreground="White" />
-                                                        <TextBlock Text="✔"
-                                                                   Foreground="LightBlue"
-                                                                   FontWeight="Bold"
-                                                                   Margin="8,0,0,0"
-                                                                   DockPanel.Dock="Right"
-                                                                   Visibility="{Binding DataContext.AutoExportForChatGpt, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
-                                                    </DockPanel>
-                                                </Button>
+
                                             </StackPanel>
                                             
                                             <!-- LLM Learning dropdown items -->
@@ -322,7 +310,7 @@
                                                 
                                                 <Button Command="{Binding DataContext.AnalyzeUnanalyzedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                         Style="{StaticResource SideMenuPopupButtonStyle}">
-                                                    <TextBlock Text="🔍 Analyze Unanalyzed" TextWrapping="Wrap" FontWeight="Bold" />
+                                                    <TextBlock Text="🔍 Analyze Unanalyzed" TextWrapping="Wrap" />
                                                 </Button>
                                                 
                                                 <Button Command="{Binding DataContext.ReAnalyzeModifiedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
@@ -330,8 +318,7 @@
                                                     <TextBlock Text="🔄 Re-analyze Modified" TextWrapping="Wrap" />
                                                 </Button>
                                                 
-                                                <Separator Margin="0,6,0,3"/>
-                                                <TextBlock Text="Learning Workflow" Foreground="{StaticResource Brush.Accent.Primary}" FontWeight="SemiBold" Margin="4,0,0,4"/>
+                                                <localControls:DropdownSectionHeader Icon="📚" Header="Learning Workflow" />
 
                                                 <!-- Generate learning prompt button -->
                                                 <Button Command="{Binding DataContext.GenerateLearningPromptCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
@@ -346,8 +333,7 @@
                                                     <TextBlock Text="📥 Paste ChatGPT Analysis" TextWrapping="Wrap" />
                                                 </Button>
                                                 
-                                                <Separator Margin="0,6,0,3"/>
-                                                <TextBlock Text="Advanced Training" Foreground="{StaticResource Brush.Accent.Primary}" FontWeight="SemiBold" Margin="4,0,0,4"/>
+                                                <localControls:DropdownSectionHeader Icon="🎓" Header="Advanced Training" />
 
                                                 <!-- Setup LLM Workspace button -->
                                                 <Button Command="{Binding DataContext.SetupLlmWorkspaceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
@@ -356,8 +342,7 @@
                                                     <TextBlock Text="🔧 Setup LLM Workspace" TextWrapping="Wrap" />
                                                 </Button>
                                                 
-                                                <Separator Margin="0,3"/>
-                                                <TextBlock Text="Quick Commands" Foreground="{StaticResource Brush.Accent.Primary}" FontWeight="SemiBold" Margin="4,0,0,4"/>
+                                                <localControls:DropdownSectionHeader Icon="⚡" Header="Quick Commands" />
 
                                                 <!-- Generate Analysis Command button -->
                                                 <Button Command="{Binding DataContext.GenerateAnalysisCommandCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
@@ -373,15 +358,29 @@
                                                     <TextBlock Text="⚙️ Generate Test Case Command" TextWrapping="Wrap" />
                                                 </Button>
                                                 
-                                                <Separator Margin="0,6,0,3"/>
-                                                <TextBlock Text="Export Options" Foreground="{StaticResource Brush.Accent.Primary}" FontWeight="SemiBold" Margin="4,0,0,4"/>
+                                                <localControls:DropdownSectionHeader Icon="📤" Header="Export Options" />
+
+                                                <!-- Toggle to control auto-export for ChatGPT after import -->
+                                                <Button Command="{Binding DataContext.ToggleAutoExportCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}"
+                                                        ToolTip="When enabled, automatically export requirements for ChatGPT analysis after importing.">
+                                                    <DockPanel>
+                                                        <TextBlock Text="Export for ChatGPT" Foreground="White" />
+                                                        <TextBlock Text="✔"
+                                                                   Foreground="LightBlue"
+                                                                   FontWeight="Bold"
+                                                                   Margin="6,0,0,0"
+                                                                   DockPanel.Dock="Right"
+                                                                   Visibility="{Binding DataContext.AutoExportForChatGpt, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
+                                                    </DockPanel>
+                                                </Button>
 
                                                 <!-- Open ChatGPT Export File button -->
                                                 <Button Command="{Binding DataContext.OpenChatGptExportCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         Style="{StaticResource SideMenuPopupButtonStyle}"
                                                         ToolTip="Open the most recent ChatGPT export file in Notepad">
                                                     <DockPanel>
-                                                        <TextBlock Text="📝" Foreground="White" Margin="0,0,5,0" />
+                                                        <TextBlock Text="📝" Foreground="White" Margin="0,0,4,0" />
                                                         <TextBlock Text="Open Export" Foreground="White" />
                                                     </DockPanel>
                                                 </Button>
@@ -463,12 +462,12 @@
 
                 <!-- Test Flow Generator group -->
                 <ToggleButton x:Name="TestFlowGeneratorToggle"
-                              Style="{StaticResource MenuHeaderToggleStyle}"
+                              Style="{StaticResource ActionToggleButton}"
                               HorizontalAlignment="Stretch"
                               Cursor="Hand"
                               Margin="0,6,0,0"
                               IsChecked="{Binding SelectedMenuSection, Converter={StaticResource SectionSelectedConverter}, ConverterParameter=TestFlow, Mode=TwoWay}">
-                    <TextBlock Text="Test Flow Generator" Style="{StaticResource MenuHeaderTheme}" FontSize="16" FontWeight="Normal" />
+                    <TextBlock Text="Test Flow Generator" FontSize="16" FontWeight="Normal" />
                 </ToggleButton>
 
                 <Border Margin="0,4,0,0" Padding="0" Background="Transparent" ClipToBounds="True">
@@ -502,20 +501,315 @@
                         </Style>
                     </Border.Style>
 
-                    <!-- Inline fallback item template used if your shared StepDescriptorTemplate is not present -->
-                    <ListBox ItemsSource="{Binding TestFlowSteps}"
-                             SelectedItem="{Binding SelectedStep, Mode=TwoWay}"
-                             Background="Transparent"
-                             BorderThickness="0"
-                             SelectionMode="Single"
-                             Margin="0">
+                    <StackPanel>
+                        <!-- Test Flow Steps list -->
+                        <ListBox ItemsSource="{Binding TestFlowSteps}"
+                                 SelectedItem="{Binding SelectedStep, Mode=TwoWay}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 SelectionMode="Single"
+                                 Margin="0">
                         <ListBox.ItemTemplate>
-                            <StaticResource ResourceKey="StepDescriptorTemplate"/>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <Grid MinHeight="28" Background="Transparent">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Left: label + badge -->
+                                        <StackPanel Grid.Column="0" Orientation="Vertical" VerticalAlignment="Center" Margin="8,6,0,6">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock x:Name="TitleText"
+                                                           Text="{Binding DisplayName}"
+                                                           Foreground="#CCCCCC"
+                                                           VerticalAlignment="Center"
+                                                           FontSize="13"
+                                                           FontWeight="Normal"/>
+                                                <TextBlock Text="{Binding Badge}"
+                                                           Foreground="DarkOrange"
+                                                           Margin="8,0,0,0"
+                                                           VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <!-- Right: Chevron toggle button -->
+                                        <ToggleButton Grid.Column="1" 
+                                                      IsChecked="{Binding IsFileMenuExpanded, Mode=TwoWay}"
+                                                      Width="20" Height="20"
+                                                      Margin="0,0,4,0"
+                                                      VerticalAlignment="Center"
+                                                      HorizontalAlignment="Center"
+                                                      Background="Transparent"
+                                                      BorderThickness="0"
+                                                      Cursor="Hand">
+                                            <ToggleButton.Visibility>
+                                                <MultiBinding Converter="{StaticResource AllTrueToVisibilityConverter}">
+                                                    <Binding Path="HasFileMenu" />
+                                                    <Binding Path="IsSelected" RelativeSource="{RelativeSource AncestorType=ListBoxItem}" />
+                                                </MultiBinding>
+                                            </ToggleButton.Visibility>
+                                            <ToggleButton.RenderTransform>
+                                                <RotateTransform x:Name="ChevronRotation" Angle="0" CenterX="10" CenterY="10"/>
+                                            </ToggleButton.RenderTransform>
+                                            <ToggleButton.Style>
+                                                <Style TargetType="ToggleButton">
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="ToggleButton">
+                                                                <Border Background="{TemplateBinding Background}">
+                                                                    <Viewbox Width="12" Height="12" Stretch="Uniform">
+                                                                        <Canvas Width="12" Height="12">
+                                                                            <Path Data="M2,5 L6,9 L10,5"
+                                                                                  Stroke="White"
+                                                                                  StrokeThickness="2"
+                                                                                  StrokeStartLineCap="Round"
+                                                                                  StrokeEndLineCap="Round"
+                                                                                  StrokeLineJoin="Round" />
+                                                                        </Canvas>
+                                                                    </Viewbox>
+                                                                </Border>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsChecked" Value="True">
+                                                            <Trigger.EnterActions>
+                                                                <BeginStoryboard>
+                                                                    <Storyboard>
+                                                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Angle" 
+                                                                                         To="180" Duration="0:0:0.2" />
+                                                                    </Storyboard>
+                                                                </BeginStoryboard>
+                                                            </Trigger.EnterActions>
+                                                            <Trigger.ExitActions>
+                                                                <BeginStoryboard>
+                                                                    <Storyboard>
+                                                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Angle" 
+                                                                                         To="0" Duration="0:0:0.2" />
+                                                                    </Storyboard>
+                                                                </BeginStoryboard>
+                                                            </Trigger.ExitActions>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ToggleButton.Style>
+                                        </ToggleButton>
+                                    </Grid>
+                                    
+                                    <!-- Expandable file menu section for Test Flow -->
+                                    <Border x:Name="TestFlowMenuExpander" 
+                                            Background="Transparent"
+                                            BorderBrush="#33000000"
+                                            BorderThickness="0,1,0,0"
+                                            Margin="4,0,4,0"
+                                            MaxHeight="0"
+                                            Opacity="0">
+                                        <Border.LayoutTransform>
+                                            <ScaleTransform ScaleY="0" />
+                                        </Border.LayoutTransform>
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsFileMenuExpanded}" Value="True">
+                                                        <DataTrigger.EnterActions>
+                                                            <BeginStoryboard>
+                                                                <Storyboard>
+                                                                    <DoubleAnimation Storyboard.TargetProperty="MaxHeight" 
+                                                                                     To="500" Duration="0:0:0.4" />
+                                                                    <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
+                                                                                     To="1" Duration="0:0:0.4" />
+                                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" 
+                                                                                     To="1" Duration="0:0:0.35" />
+                                                                </Storyboard>
+                                                            </BeginStoryboard>
+                                                        </DataTrigger.EnterActions>
+                                                        <DataTrigger.ExitActions>
+                                                            <BeginStoryboard>
+                                                                <Storyboard>
+                                                                    <DoubleAnimation Storyboard.TargetProperty="MaxHeight" 
+                                                                                     To="0" Duration="0:0:0.35" />
+                                                                    <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
+                                                                                     To="0" Duration="0:0:0.35" />
+                                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" 
+                                                                                     To="0" Duration="0:0:0.3" />
+                                                                </Storyboard>
+                                                            </BeginStoryboard>
+                                                        </DataTrigger.ExitActions>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel Margin="4,4">
+                                            <!-- Test Flow specific dropdown items -->
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Id}" Value="test-flow">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                
+                                                <localControls:DropdownSectionHeader Icon="🔄" Header="Flow Operations" />
+                                                
+                                                <Button Command="{Binding DataContext.CreateNewFlowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                    <TextBlock Text="🆕 Create New Flow" TextWrapping="Wrap" />
+                                                </Button>
+                                                
+                                                <Button Command="{Binding DataContext.ValidateFlowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                    <TextBlock Text="✅ Validate Flow" TextWrapping="Wrap" />
+                                                </Button>
+                                                
+                                                <Button Command="{Binding DataContext.ExportFlowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                    <TextBlock Text="📤 Export Flow" TextWrapping="Wrap" />
+                                                </Button>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
+                    
+                    <!-- Static Testing dropdown item -->
+                    <Grid MinHeight="28" Background="Transparent" Margin="0,4,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left: Testing label -->
+                        <StackPanel Grid.Column="0" Orientation="Vertical" VerticalAlignment="Center" Margin="8,6,0,6">
+                            <TextBlock Text="Testing"
+                                       Foreground="#CCCCCC"
+                                       VerticalAlignment="Center"
+                                       FontSize="13"
+                                       FontWeight="Normal"/>
+                        </StackPanel>
+
+                        <!-- Right: Chevron toggle button -->
+                        <ToggleButton x:Name="TestingDropdownToggle"
+                                      Grid.Column="1" 
+                                      Width="20" Height="20"
+                                      Margin="0,0,4,0"
+                                      VerticalAlignment="Center"
+                                      HorizontalAlignment="Center"
+                                      Background="Transparent"
+                                      BorderThickness="0"
+                                      Cursor="Hand">
+                            <ToggleButton.RenderTransform>
+                                <RotateTransform x:Name="TestingChevronRotation" Angle="0" CenterX="10" CenterY="10"/>
+                            </ToggleButton.RenderTransform>
+                            <ToggleButton.Style>
+                                <Style TargetType="ToggleButton">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ToggleButton">
+                                                <Border Background="{TemplateBinding Background}">
+                                                    <Viewbox Width="12" Height="12" Stretch="Uniform">
+                                                        <Canvas Width="12" Height="12">
+                                                            <Path Data="M2,5 L6,9 L10,5"
+                                                                  Stroke="White"
+                                                                  StrokeThickness="2"
+                                                                  StrokeStartLineCap="Round"
+                                                                  StrokeEndLineCap="Round"
+                                                                  StrokeLineJoin="Round" />
+                                                        </Canvas>
+                                                    </Viewbox>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Trigger.EnterActions>
+                                                <BeginStoryboard>
+                                                    <Storyboard>
+                                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Angle" 
+                                                                         To="180" Duration="0:0:0.2" />
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </Trigger.EnterActions>
+                                            <Trigger.ExitActions>
+                                                <BeginStoryboard>
+                                                    <Storyboard>
+                                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Angle" 
+                                                                         To="0" Duration="0:0:0.2" />
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </Trigger.ExitActions>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ToggleButton.Style>
+                        </ToggleButton>
+                    </Grid>
+                    
+                    <!-- Testing dropdown content -->
+                    <Border x:Name="TestingMenuExpander" 
+                            Background="Transparent"
+                            BorderBrush="#33000000"
+                            BorderThickness="0,1,0,0"
+                            Margin="4,0,4,0"
+                            MaxHeight="0"
+                            Opacity="0">
+                        <Border.LayoutTransform>
+                            <ScaleTransform ScaleY="0" />
+                        </Border.LayoutTransform>
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsChecked, ElementName=TestingDropdownToggle}" Value="True">
+                                        <DataTrigger.EnterActions>
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation Storyboard.TargetProperty="MaxHeight" 
+                                                                     To="200" Duration="0:0:0.4" />
+                                                    <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
+                                                                     To="1" Duration="0:0:0.4" />
+                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" 
+                                                                     To="1" Duration="0:0:0.35" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </DataTrigger.EnterActions>
+                                        <DataTrigger.ExitActions>
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation Storyboard.TargetProperty="MaxHeight" 
+                                                                     To="0" Duration="0:0:0.35" />
+                                                    <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
+                                                                     To="0" Duration="0:0:0.35" />
+                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" 
+                                                                     To="0" Duration="0:0:0.3" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </DataTrigger.ExitActions>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel Margin="4,4">
+                            <Button Style="{StaticResource SideMenuPopupButtonStyle}">
+                                <TextBlock Text="🧪 Test Option 1" TextWrapping="Wrap" />
+                            </Button>
+                            <Button Style="{StaticResource SideMenuPopupButtonStyle}">
+                                <TextBlock Text="🔬 Test Option 2" TextWrapping="Wrap" />
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                    </StackPanel>
                 </Border>
 
-                <TextBlock VerticalAlignment="Bottom"
+                <TextBlock Grid.Row="1"
+                           VerticalAlignment="Bottom"
                            Text="{Binding SapStatus}"
                            HorizontalAlignment="Center"
                            Foreground="#CCCCCC"

@@ -70,4 +70,74 @@
         <Setter Property="Foreground" Value="{StaticResource Brush.Text.OnAccent}"/>
     </Style>
 
+    <!-- Dropdown Section Header - for section headers in dropdown menus -->
+    <Style x:Key="DropdownSectionHeader" TargetType="TextBlock" BasedOn="{StaticResource Text.Body}">
+        <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="Margin" Value="4,0,0,4"/>
+        <Setter Property="Cursor" Value="Arrow"/>
+    </Style>
+
+    <!-- Dropdown Section Icon - for icons in dropdown section headers -->
+    <Style x:Key="DropdownSectionIcon" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
+        <Setter Property="Margin" Value="0,0,6,0"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Style.Triggers>
+            <!-- Direct hover on the icon -->
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="#FFB366"/>
+            </Trigger>
+            <!-- Also respond to parent container hover -->
+            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=StackPanel}}" Value="True">
+                <Setter Property="Foreground" Value="#FFB366"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Dropdown Section Text - for text in dropdown section headers -->
+    <Style x:Key="DropdownSectionText" TargetType="TextBlock" BasedOn="{StaticResource Text.Body}">
+        <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="Margin" Value="0,0,0,4"/>
+    </Style>
+
+    <!-- Dropdown Item Text - for clickable dropdown item labels with hover effect -->
+    <Style x:Key="DropdownItemText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="#CCCCCC"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Style.Triggers>
+            <!-- Use EventTrigger for more reliable hover detection -->
+            <EventTrigger RoutedEvent="MouseEnter">
+                <BeginStoryboard>
+                    <Storyboard>
+                        <ColorAnimation Storyboard.TargetProperty="(TextBlock.Foreground).(SolidColorBrush.Color)"
+                                        To="#E6E6E6"
+                                        Duration="0:0:0.1"/>
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+            <EventTrigger RoutedEvent="MouseLeave">
+                <BeginStoryboard>
+                    <Storyboard>
+                        <ColorAnimation Storyboard.TargetProperty="(TextBlock.Foreground).(SolidColorBrush.Color)"
+                                        To="#CCCCCC"
+                                        Duration="0:0:0.1"/>
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Dropdown Section Container - for section headers container -->
+    <Style x:Key="DropdownSectionContainer" TargetType="StackPanel">
+        <Setter Property="Orientation" Value="Horizontal"/>
+        <Setter Property="Margin" Value="4,0,0,4"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+
 </ResourceDictionary>

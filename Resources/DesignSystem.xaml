@@ -58,6 +58,8 @@
     <Color x:Key="Border.Subtle">#11000000</Color>
     <Color x:Key="Border.Default">#444444</Color>
     <Color x:Key="Border.Accent">#FF8C00</Color>
+    <Color x:Key="Border.Hover">#666666</Color>
+    <!-- Subtle grey border for hover states -->
     <Color x:Key="Border.Focus">#66B26A00</Color>
     <!-- Orange with transparency -->
     
@@ -109,6 +111,7 @@
     <SolidColorBrush x:Key="Brush.Border.Default" Color="{StaticResource Border.Default}"/>
     <SolidColorBrush x:Key="Brush.Border.Accent" Color="{StaticResource Border.Accent}"/>
     <SolidColorBrush x:Key="Brush.Border.Focus" Color="{StaticResource Border.Focus}"/>
+    <SolidColorBrush x:Key="Brush.Border.Hover" Color="{StaticResource Border.Hover}"/>
     
     <!-- State Brushes -->
     <SolidColorBrush x:Key="Brush.State.Success" Color="{StaticResource State.Success}"/>

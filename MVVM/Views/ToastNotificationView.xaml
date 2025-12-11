@@ -53,7 +53,7 @@
                         <Setter Property="BorderBrush" Value="#5599CCFF"/>
                     </DataTrigger>
                     <DataTrigger Binding="{Binding Type}" Value="Success">
-                        <Setter Property="BorderBrush" Value="#5500CC66"/>
+                        <Setter Property="BorderBrush" Value="#22666666"/>
                     </DataTrigger>
                     <DataTrigger Binding="{Binding Type}" Value="Warning">
                         <Setter Property="BorderBrush" Value="#66FFA500"/>
@@ -92,7 +92,7 @@
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding Type}" Value="Success">
                                 <Setter Property="Text" Value="✓"/>
-                                <Setter Property="Foreground" Value="#00CC66"/>
+                                <Setter Property="Foreground" Value="#777777"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Type}" Value="Warning">
                                 <Setter Property="Text" Value="⚠"/>

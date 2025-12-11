@@ -51,6 +51,123 @@
             </Border>
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type vm:InitialStateViewModel}">
+            <views:InitialStateView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:ProjectViewModel}">
+            <views:ProjectView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:RequirementsViewModel}">
+            <views:RequirementsView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:LLMLearningViewModel}">
+            <views:LLMLearningView />
+        </DataTemplate>
+
+        <!-- App Icon Style -->
+        <Style x:Key="AppIconStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <!-- Button Container Style with background hover -->
+        <Style x:Key="IconButtonContainer" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="4"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#33FFFFFF"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Header Container Style with hover background -->
+        <Style x:Key="HeaderContainerStyle" TargetType="StackPanel">
+            <Setter Property="Background" Value="Transparent"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#22FFFFFF"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Window Control Button Style with background and color hover -->
+        <Style x:Key="WindowControlButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="38"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource MenuForeground}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Border x:Name="Bd"
+                                    Width="{TemplateBinding Width}"
+                                    Height="{TemplateBinding Height}"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="6"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <Border x:Name="KbdFocus" CornerRadius="8" BorderBrush="{StaticResource FocusRing}" BorderThickness="1" Opacity="0" Margin="-2"/>
+                        </Grid>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource MenuHover}"/>
+                            </Trigger>
+
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource MenuPressed}"/>
+                                <Setter TargetName="Bd" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <TranslateTransform Y="1"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                                <Setter Property="Foreground" Value="{StaticResource DisabledBrush}"/>
+                            </Trigger>
+
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsKeyboardFocused" Value="True"/>
+                                    <Condition Property="IsEnabled" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="KbdFocus" Property="Opacity" Value="1"/>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Window Control Icon Style with orange hover -->
+        <Style x:Key="WindowControlIconStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="DarkOrange"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- DataTemplate for TestCaseGenerator_HeaderVM -->
         <DataTemplate DataType="{x:Type vm:TestCaseGenerator_HeaderVM}">
             <views:TestCaseGenerator_HeaderView />
@@ -139,12 +256,16 @@
             <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
                     Style="{StaticResource ContentBorderStyle}">
                 <Grid HorizontalAlignment="Stretch">
-                    <TextBlock Text="Systems App"
-                               VerticalAlignment="Center"
-                               HorizontalAlignment="Left"
-                               Foreground="DarkOrange"
-                               FontSize="25"
-                               Margin="4,0,0,0"/>
+                    <StackPanel Orientation="Horizontal" 
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Left"
+                                Margin="4,0,0,0">
+                        <!-- App Title -->
+                        <TextBlock Text="Systems App"
+                                   VerticalAlignment="Center"
+                                   Foreground="DarkOrange"
+                                   FontSize="25"/>
+                    </StackPanel>
                     
                     <!-- Save indicator -->
                     <Button HorizontalAlignment="Center"
@@ -227,28 +348,34 @@
 
                             <!-- Minimize -->
                             <Button Grid.Column="0"
-                                    Content="&#xE90F;"
-                                    FontFamily="Segoe MDL2 Assets"
-                                    FontSize="14"
                                     Style="{StaticResource MainWindowButtonControls}"
-                                    Click="ButtonMinimize_Click"/>
+                                    Click="ButtonMinimize_Click">
+                                <TextBlock Text="&#xE90F;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Style="{StaticResource WindowControlIconStyle}"/>
+                            </Button>
 
                             <!-- Maximize/Restore -->
                             <Button Grid.Column="1"
-                                    Content="&#xE923;"
-                                    FontFamily="Segoe MDL2 Assets"
-                                    FontSize="14"
                                     Style="{StaticResource MainWindowButtonControls}"
                                     Click="WindowStateButton_Click"
-                                    Margin="4,0"/>
+                                    Margin="4,0">
+                                <TextBlock Text="&#xE923;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Style="{StaticResource WindowControlIconStyle}"/>
+                            </Button>
 
                             <!-- Close -->
                             <Button Grid.Column="2"
-                                    Content="✕"
-                                    FontSize="14"
                                     Style="{StaticResource MainWindowCloseButton}"
                                     Click="CloseButton_Click"
-                                    Margin="4,0"/>
+                                    Margin="4,0">
+                                <TextBlock Text="✕"
+                                           FontSize="14"
+                                           Style="{StaticResource WindowControlIconStyle}"/>
+                            </Button>
                         </Grid>
                     </DockPanel>
                 </Grid>

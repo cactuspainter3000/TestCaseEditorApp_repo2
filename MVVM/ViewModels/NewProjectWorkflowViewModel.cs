@@ -6,12 +6,15 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using TestCaseEditorApp.Services;
+using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.Utils;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
     public partial class NewProjectWorkflowViewModel : ObservableObject
     {
         private readonly AnythingLLMService _anythingLLMService;
+        private readonly ToastNotificationService _toastService;
         
         [ObservableProperty]
         private string workspaceName = "";
@@ -80,9 +83,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public event EventHandler<NewProjectCompletedEventArgs>? ProjectCreated;
         public event EventHandler? ProjectCancelled;
 
-        public NewProjectWorkflowViewModel(AnythingLLMService anythingLLMService)
+        public NewProjectWorkflowViewModel(AnythingLLMService anythingLLMService, ToastNotificationService toastService)
         {
             _anythingLLMService = anythingLLMService;
+            _toastService = toastService;
             SelectDocumentCommand = new RelayCommand(SelectDocument);
             ChooseProjectSaveLocationCommand = new RelayCommand(ChooseProjectSaveLocation);
             CreateProjectCommand = new RelayCommand(CreateProject);
@@ -131,7 +135,39 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private void UpdateCanProceed()
         {
-            CanProceed = HasWorkspaceName && HasSelectedDocument && HasProjectSavePath && HasProjectName && IsWorkspaceCreated;
+            var oldCanProceed = CanProceed;
+            var newCanProceed = HasWorkspaceName && HasSelectedDocument && HasProjectSavePath && HasProjectName && IsWorkspaceCreated;
+            
+            // Debug logging to help troubleshoot
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[UpdateCanProceed] " +
+                $"HasWorkspaceName={HasWorkspaceName}, " +
+                $"HasSelectedDocument={HasSelectedDocument}, " +
+                $"HasProjectSavePath={HasProjectSavePath}, " +
+                $"HasProjectName={HasProjectName}, " +
+                $"IsWorkspaceCreated={IsWorkspaceCreated}, " +
+                $"CanProceed={newCanProceed}");
+            
+            // Force property change notification
+            CanProceed = newCanProceed;
+            OnPropertyChanged(nameof(CanProceed));
+            
+            // Notify other ViewModels via mediator
+            var workflowState = new ProjectWorkflowState
+            {
+                CanProceed = CanProceed,
+                HasWorkspaceName = HasWorkspaceName,
+                IsWorkspaceCreated = IsWorkspaceCreated,
+                HasSelectedDocument = HasSelectedDocument,
+                HasProjectName = HasProjectName,
+                HasProjectSavePath = HasProjectSavePath
+            };
+            ProjectWorkflowMediator.NotifyWorkflowStateChanged(workflowState);
+                
+            if (oldCanProceed != CanProceed)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[UpdateCanProceed] CanProceed changed from {oldCanProceed} to {CanProceed}");
+                // Removed redundant "Ready to create project!" toast - button state is sufficient feedback
+            }
         }
 
         private void SelectDocument()
@@ -152,6 +188,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     ProjectName = Path.GetFileNameWithoutExtension(dlg.FileName);
                 }
+                
+                // Provide user feedback
+                var fileName = System.IO.Path.GetFileName(dlg.FileName);
+                _toastService.ShowToast($"Requirements document selected: {fileName}", durationSeconds: 3, type: ToastType.Success);
             }
         }
 
@@ -168,6 +208,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             if (dlg.ShowDialog() == true)
             {
                 ProjectSavePath = dlg.FileName;
+                
+                // Provide user feedback
+                var fileName = System.IO.Path.GetFileName(dlg.FileName);
+                _toastService.ShowToast($"Project save location selected: {fileName}", durationSeconds: 3, type: ToastType.Success);
             }
         }
 
@@ -273,24 +317,32 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 }
                 else
                 {
-                    // Create the workspace immediately
-                    WorkspaceValidationMessage = $"Creating workspace '{WorkspaceName}'...";
-                    WorkspaceValidationSuccess = false; // Set to false during creation
-                    HasValidationMessage = true;
+                    // Create the workspace immediately - no validation message during creation
+                    IsValidatingWorkspace = true;
                     
                     try
                     {
                         var createdWorkspace = await _anythingLLMService.CreateWorkspaceAsync(WorkspaceName);
                         if (createdWorkspace != null)
                         {
-                            WorkspaceValidationMessage = $"✅ Workspace '{WorkspaceName}' created successfully! You can now proceed with the remaining steps.";
-                            WorkspaceValidationSuccess = true;
-                            HasValidationMessage = true;
+                            // Clear loading state immediately
+                            IsValidatingWorkspace = false;
+                            
+                            // Show success toast notification
+                            _toastService.ShowToast($"Workspace '{WorkspaceName}' created successfully!", durationSeconds: 4, type: ToastType.Success);
+                            
+                            // Clear validation message UI and update status
+                            WorkspaceValidationMessage = "";
+                            HasValidationMessage = false;
                             HasWorkspaceName = true;
                             IsWorkspaceCreated = true;
+                            
+                            // Update CanProceed status after workspace creation
+                            UpdateCanProceed();
                         }
                         else
                         {
+                            IsValidatingWorkspace = false;
                             WorkspaceValidationMessage = $"Failed to create workspace '{WorkspaceName}'. Please try again.";
                             WorkspaceValidationSuccess = false;
                             HasValidationMessage = true;
@@ -298,6 +350,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     }
                     catch (Exception ex)
                     {
+                        IsValidatingWorkspace = false;
                         WorkspaceValidationMessage = $"Error creating workspace: {ex.Message}";
                         WorkspaceValidationSuccess = false;
                         HasValidationMessage = true;

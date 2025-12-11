@@ -27,6 +27,100 @@
         <Setter Property="FontSize" Value="{StaticResource FontSize.Body}"/>
     </Style>
 
+    <!-- Action Button - unified style with orange text, subtle interactions -->
+    <Style x:Key="ActionButton" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="8,6"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Root"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{StaticResource Radius.SM}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <!-- Mouse over: subtle grey border -->
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Brush.Border.Hover}"/>
+                        </Trigger>
+                        <!-- Mouse down: subtle scale feedback -->
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Root" Property="RenderTransform">
+                                <Setter.Value>
+                                    <ScaleTransform ScaleX="0.96" ScaleY="0.96"/>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter TargetName="Root" Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                        </Trigger>
+                        <!-- Disabled state -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Action ToggleButton - unified style matching ActionButton behavior -->
+    <Style x:Key="ActionToggleButton" TargetType="ToggleButton">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="8,6"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Root"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{StaticResource Radius.SM}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <!-- Mouse over: subtle grey border -->
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Brush.Border.Hover}"/>
+                        </Trigger>
+                        <!-- Mouse down: subtle scale feedback -->
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Root" Property="RenderTransform">
+                                <Setter.Value>
+                                    <ScaleTransform ScaleX="0.96" ScaleY="0.96"/>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter TargetName="Root" Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                        </Trigger>
+                        <!-- Disabled state -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Icon Button - transparent button for icons -->
     <Style x:Key="IconButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>
@@ -96,12 +190,55 @@
         </Setter>
     </Style>
 
-    <!-- Side Menu Popup Button - compact variant for narrow menus -->
-    <Style x:Key="SideMenuPopupButtonStyle" TargetType="Button" BasedOn="{StaticResource MenuPopupButtonStyle}">
-        <Setter Property="MinWidth" Value="0"/>
+    <!-- Side Menu Popup Button - uses subtle styling for dropdown items -->
+    <Style x:Key="SideMenuPopupButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Secondary}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="6,5"/>
+        <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="MinWidth" Value="0"/>
         <Setter Property="Margin" Value="0,1"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Root"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{StaticResource Radius.SM}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <!-- Mouse over: subtle grey border and lighter text -->
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Brush.Border.Hover}"/>
+                            <Setter Property="Foreground" Value="#EEEEEE"/>
+                        </Trigger>
+                        <!-- Mouse down: subtle scale feedback -->
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Root" Property="RenderTransform">
+                                <Setter.Value>
+                                    <ScaleTransform ScaleX="0.96" ScaleY="0.96"/>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter TargetName="Root" Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                        </Trigger>
+                        <!-- Disabled state -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!-- Nav Arrow Button Style - for navigation arrows -->
@@ -224,17 +361,16 @@
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.Accent.Primary}"/>
-                            <Setter Property="Foreground" Value="{StaticResource Brush.Text.OnAccent}"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.Background.Menu.Hover}"/>
+                            <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.Accent.Primary.Pressed}"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.Background.Menu.Pressed}"/>
                             <Setter TargetName="Bd" Property="RenderTransform">
                                 <Setter.Value>
                                     <TranslateTransform Y="1"/>
                                 </Setter.Value>
                             </Setter>
-                            <Setter Property="Foreground" Value="{StaticResource Brush.Text.OnAccent}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.5"/>
