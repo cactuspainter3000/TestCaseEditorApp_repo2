@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
-             xmlns:conv="clr-namespace:TestCaseEditorApp.MVVM.Converters"
+             xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
              d:DataContext="{d:DesignInstance vm:ApiKeyConfigViewModel, IsDesignTimeCreatable=True}"
              mc:Ignorable="d"
              d:DesignHeight="500" d:DesignWidth="600">

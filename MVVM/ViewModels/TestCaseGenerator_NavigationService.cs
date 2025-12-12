@@ -160,6 +160,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         public bool IsBatchAnalyzing => _main.IsBatchAnalyzing;
 
+        /// <summary>
+        /// Show requirement editor using MainViewModel's modal system
+        /// </summary>
+        public void ShowRequirementEditor(Requirement requirement)
+        {
+            _main.ShowRequirementEditor(requirement);
+        }
+
         public void Dispose()
         {
             try { if (_subscribedCollection != null) _subscribedCollection.CollectionChanged -= SubscribedCollection_CollectionChanged; } catch { }

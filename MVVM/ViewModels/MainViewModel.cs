@@ -1796,26 +1796,36 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         public void LoadWorkspaceFromPath(string filePath)
         {
+            TestCaseEditorApp.Services.Logging.Log.Info($"[LoadWorkspace] Starting to load workspace from: {filePath}");
+            
             if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
             {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[LoadWorkspace] Invalid file path or file doesn't exist: {filePath}");
                 SetTransientStatus("Invalid workspace file path.", blockingError: true);
                 return;
             }
 
             WorkspacePath = filePath;
+            TestCaseEditorApp.Services.Logging.Log.Info($"[LoadWorkspace] Set WorkspacePath to: {WorkspacePath}");
+            
             try
             {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[LoadWorkspace] Attempting to load workspace file...");
                 var ws = TestCaseEditorApp.Services.WorkspaceFileManager.Load(WorkspacePath!);
                 if (ws == null)
                 {
+                    TestCaseEditorApp.Services.Logging.Log.Info("[LoadWorkspace] Workspace file loaded but returned null");
                     SetTransientStatus("Failed to load workspace (file empty or invalid).", blockingError: true);
                     return;
                 }
 
+                TestCaseEditorApp.Services.Logging.Log.Info($"[LoadWorkspace] Successfully loaded workspace. Requirements count: {ws.Requirements?.Count ?? 0}");
                 CurrentWorkspace = ws;
                 
                 // Track in recent files
                 try { _recentFilesService?.AddRecentFile(WorkspacePath!); } catch { }
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[LoadWorkspace] Clearing existing requirements and loading new ones...");
                 Requirements.Clear();
                 foreach (var r in ws.Requirements ?? Enumerable.Empty<Requirement>())
                     Requirements.Add(r);
@@ -1829,12 +1839,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 CurrentRequirement = firstFromView ?? Requirements.FirstOrDefault();
                 CurrentSourcePath = ws.SourceDocPath;
-                SetTransientStatus($"Opened workspace: {Path.GetFileName(WorkspacePath)} � {Requirements.Count} requirements", 4);
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[LoadWorkspace] Workspace loading completed successfully. Current requirement: {CurrentRequirement?.GlobalId}");
+                SetTransientStatus($"Opened workspace: {Path.GetFileName(WorkspacePath)} - {Requirements.Count} requirements", 4);
                 HasUnsavedChanges = false;
                 IsDirty = false;
             }
             catch (Exception ex)
             {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[LoadWorkspace] Exception occurred while loading workspace: {ex.Message}");
                 MessageBox.Show($"Failed to load workspace: {ex.Message}", "Load error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -3087,8 +3100,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 TestCaseEditorApp.Services.Logging.Log.Info("[PROJECT] CreateNewProject started");
                 
-                // Navigate to New Project section and show comprehensive workflow
-                SelectedMenuSection = "NewProject";
+                // Show the new project workflow without changing the menu section
+                // This preserves the current side menu state (e.g., keeps Project dropdown open)
+                CreateAndAssignNewProjectHeader();
+                
+                // Show the full workflow in the main content area
+                if (NewProjectWorkflow == null)
+                {
+                    NewProjectWorkflow = new NewProjectWorkflowViewModel(_anythingLLMService, _toastService);
+                    NewProjectWorkflow.ProjectCreated += OnNewProjectCreated;
+                    NewProjectWorkflow.ProjectCancelled += OnNewProjectCancelled;
+                }
+                
+                NewProjectWorkflow.Initialize();
+                CurrentStepViewModel = NewProjectWorkflow;
             }
             catch (Exception ex)
             {
@@ -3803,6 +3828,31 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         /// <summary>
+        /// Implementation of ITestCaseGenerator_Navigator.ShowRequirementEditor
+        /// </summary>
+        public void ShowRequirementEditor(Requirement requirement)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[MainViewModel] ShowRequirementEditor called for {requirement?.Item}");
+                
+                if (requirement == null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn("[MainViewModel] ShowRequirementEditor called with null requirement");
+                    return;
+                }
+                
+                ShowRequirementDescriptionEditorModal(requirement);
+                TestCaseEditorApp.Services.Logging.Log.Debug("[MainViewModel] ShowRequirementDescriptionEditorModal completed");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[MainViewModel] Error in ShowRequirementEditor");
+                _notificationService?.ShowError($"Failed to open requirement editor: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Show the split text editor modal
         /// </summary>
         public void ShowSplitTextEditorModal(string text)
@@ -3858,14 +3908,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             CloseModal();
             
+            TestCaseEditorApp.Services.Logging.Log.Info($"[OnWorkspaceSelected] Workspace selected: {e.WorkspaceName}, WasCreated: {e.WasCreated}");
+            
             try
             {
                 // Find the actual workspace object from the AnythingLLM service
+                TestCaseEditorApp.Services.Logging.Log.Info($"[OnWorkspaceSelected] Getting workspaces from AnythingLLM service...");
                 var workspaces = await _anythingLLMService.GetWorkspacesAsync().ConfigureAwait(false);
                 var workspace = workspaces?.FirstOrDefault(w => w.Name.Equals(e.WorkspaceName, StringComparison.OrdinalIgnoreCase));
                 
                 if (workspace == null)
                 {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[OnWorkspaceSelected] Could not find workspace: {e.WorkspaceName}");
                     // Use Dispatcher to show error on UI thread
                     Application.Current.Dispatcher.Invoke(() => 
                     {
@@ -3874,15 +3928,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     return;
                 }
                 
+                TestCaseEditorApp.Services.Logging.Log.Info($"[OnWorkspaceSelected] Found workspace: {workspace.Name} (Slug: {workspace.Slug}), HasLocalFile: {workspace.HasLocalFile}, LocalFilePath: {workspace.LocalFilePath}");
+                
                 // Use Dispatcher for UI operations
                 await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
-                    // Clear existing requirements and set workspace
-                    Requirements.Clear();
+                    // Set workspace slug but don't clear requirements yet - LoadWorkspaceFromPath will handle that
                     CurrentAnythingLLMWorkspaceSlug = workspace.Slug;
                     
-                    // Reset to Test Case Generator step
-                    SelectedStep = TestCaseGeneratorSteps.LastOrDefault();
+                    // Don't change the selected step - keep current selection (e.g., Project menu)
                 });
                 
                 if (e.WasCreated)
@@ -3921,6 +3975,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 }
                 else
                 {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[OnWorkspaceSelected] Existing workspace selected");
                     // Existing workspace was selected - run UI operations on UI thread
                     await Application.Current.Dispatcher.InvokeAsync(() =>
                     {
@@ -3932,10 +3987,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     // Automatically load local workspace file if it exists
                     if (workspace.HasLocalFile && !string.IsNullOrEmpty(workspace.LocalFilePath))
                     {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[OnWorkspaceSelected] Loading local workspace file: {workspace.LocalFilePath}");
                         await Application.Current.Dispatcher.InvokeAsync(() =>
                         {
                             LoadWorkspaceFromPath(workspace.LocalFilePath);
                         });
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[OnWorkspaceSelected] No local file found for workspace. HasLocalFile: {workspace.HasLocalFile}, LocalFilePath: '{workspace.LocalFilePath}'");
                     }
                 }
             }

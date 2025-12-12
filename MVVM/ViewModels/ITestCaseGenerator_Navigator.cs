@@ -28,5 +28,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         // Batch analysis state (prevents user-initiated analysis during auto-import analysis)
         bool IsBatchAnalyzing { get; }
+        
+        // Modal editing functionality
+        void ShowRequirementEditor(Requirement requirement);
     }
 }

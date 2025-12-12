@@ -20,7 +20,7 @@
         <ScrollViewer.Resources>
             <Style TargetType="ScrollBar" BasedOn="{StaticResource CustomScrollBarStyle}"/>
         </ScrollViewer.Resources>
-        <Grid Margin="12">
+        <Grid Margin="8">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/> <!-- Header -->
                 <RowDefinition Height="Auto"/> <!-- Quality Score -->
@@ -138,7 +138,7 @@
                 </Grid.RowDefinitions>
 
                 <!-- Header -->
-                <DockPanel Grid.Row="0" Margin="0,0,0,20">
+                <DockPanel Grid.Row="0" Margin="0,0,0,12">
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                         <Button Content="Inspect Result"
                                 Click="InspectResult_Click"
@@ -166,12 +166,12 @@
                         Background="{DynamicResource MenuBackground}"
                         BorderBrush="{DynamicResource AccentBrush}"
                         BorderThickness="0,0,0,2"
-                        Padding="16"
-                        Margin="0,0,0,20">
+                        Padding="12"
+                        Margin="0,0,0,12">
                     <StackPanel>
                         <TextBlock Text="Quality Score" 
                                    Style="{StaticResource Text.H3}"
-                                   Margin="0,0,0,8"/>
+                                   Margin="0,0,0,6"/>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding QualityScore}" 
                                        FontSize="32" 
@@ -189,13 +189,13 @@
                 <!-- Issues -->
                 <Border Grid.Row="2" 
                         Background="{DynamicResource MenuBackground}"
-                        Padding="16"
-                        Margin="0,0,0,16"
+                        Padding="12"
+                        Margin="0,0,0,10"
                         Visibility="{Binding HasIssues, Converter={StaticResource BoolToVisibilityConverter}}">
                     <StackPanel>
                         <TextBlock Text="Issues Identified" 
                                    Style="{StaticResource Text.H3}"
-                                   Margin="0,0,0,12"/>
+                                   Margin="0,0,0,8"/>
                         <ItemsControl ItemsSource="{Binding Issues}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -249,13 +249,13 @@
                 <!-- Recommendations -->
                 <Border Grid.Row="3" 
                         Background="{DynamicResource MenuBackground}"
-                        Padding="16"
-                        Margin="0,0,0,16"
+                        Padding="12"
+                        Margin="0,0,0,10"
                         Visibility="{Binding HasRecommendations, Converter={StaticResource BoolToVisibilityConverter}}">
                     <StackPanel>
                         <TextBlock Text="Recommendations" 
                                    Style="{StaticResource Text.H3}"
-                                   Margin="0,0,0,12"/>
+                                   Margin="0,0,0,8"/>
                         <ItemsControl ItemsSource="{Binding Recommendations}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -319,12 +319,12 @@
                 <!-- Freeform Feedback -->
                 <Border Grid.Row="4" 
                         Background="{DynamicResource MenuBackground}"
-                        Padding="16"
+                        Padding="12"
                         Visibility="{Binding HasFreeformFeedback, Converter={StaticResource BoolToVisibilityConverter}}">
                     <StackPanel>
                         <TextBlock Text="Additional Feedback" 
                                    Style="{StaticResource Text.H3}"
-                                   Margin="0,0,0,12"/>
+                                   Margin="0,0,0,8"/>
                         <TextBlock Text="{Binding FreeformFeedback}" 
                                    TextWrapping="Wrap"
                                    FontSize="12"

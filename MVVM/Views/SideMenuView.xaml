@@ -93,7 +93,8 @@
                                             </Grid.ColumnDefinitions>
 
                                         <!-- Left: label + badge -->
-                                        <StackPanel Grid.Column="0" Orientation="Vertical" VerticalAlignment="Center" Margin="8,6,0,6">
+                                        <StackPanel Grid.Column="0" Orientation="Vertical" VerticalAlignment="Center" Margin="8,6,0,6"
+                                                    MouseLeftButtonDown="MainContent_MouseLeftButtonDown" Background="Transparent">
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                 <TextBlock x:Name="TitleText"
                      Text="{Binding DisplayName}"

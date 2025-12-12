@@ -40,12 +40,23 @@ namespace TestCaseEditorApp.Converters
     public class BoolToVisibilityConverter : IValueConverter
     {
         public bool Invert { get; set; } = false;
+        public bool CollapseWhenFalse { get; set; } = true;
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             var isVisible = value is bool b && b;
-            if (Invert) isVisible = !isVisible;
-            return isVisible ? Visibility.Visible : Visibility.Collapsed;
+            
+            // Check for inversion from property or parameter
+            bool shouldInvert = Invert;
+            if (parameter != null && parameter.ToString()?.Equals("Inverted", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                shouldInvert = true;
+            }
+            
+            if (shouldInvert) isVisible = !isVisible;
+            
+            if (isVisible) return Visibility.Visible;
+            return CollapseWhenFalse ? Visibility.Collapsed : Visibility.Hidden;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

@@ -200,7 +200,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 var availableCount = Workspaces.Count;
                 
                 StatusMessage = _mode == SelectionMode.SelectExisting 
-                    ? $"Found {availableCount} project(s) with local files (out of {workspaceCount} total)"
+                    ? ""  // No status message for existing workspace selection
                     : "Enter a name for the new workspace:";
             }
             catch (Exception ex)

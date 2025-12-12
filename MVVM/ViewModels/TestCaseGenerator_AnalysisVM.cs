@@ -108,89 +108,29 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             var requirement = _navigator?.CurrentRequirement;
             if (requirement == null || IsEditWindowOpen) return;
 
-            // Mark that edit window is open and refresh command states
-            IsEditWindowOpen = true;
-            ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
-
-            // Set the description to edit
-            EditedDescription = requirement.Description ?? string.Empty;
-            
-            // Set dynamic window title with requirement info
-            var requirementId = !string.IsNullOrEmpty(requirement.Item) ? requirement.Item : "Unknown";
-            var requirementName = !string.IsNullOrEmpty(requirement.Name) ? requirement.Name : "Untitled";
-            WindowTitle = $"Edit Requirement: {requirementId} - {requirementName}";
-
-            // Create editor window with this ViewModel as DataContext
-            var editorWindow = new Views.RequirementDescriptionEditorWindow
+            try
             {
-                DataContext = this,
-                Owner = System.Windows.Application.Current.MainWindow
-            };
+                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] EditRequirement called");
+                
+                // Mark that edit window is open and refresh command states
+                IsEditWindowOpen = true;
+                ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
 
-            // Create command for Re-Analyze button
-            ReAnalyzeCommand = new AsyncRelayCommand(async () =>
+                // Use the navigator's modal system to show the enhanced editor
+                _navigator?.ShowRequirementEditor(requirement);
+                
+                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] ShowRequirementEditor completed");
+            }
+            catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] ReAnalyze command executing");
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnalysisVM] Error in EditRequirement");
                 
-                // Update requirement description from editor
-                requirement.Description = EditedDescription;
-                var preview = requirement.Description?.Length > 50 
-                    ? requirement.Description.Substring(0, 50) + "..." 
-                    : requirement.Description ?? "";
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Updated description: {preview}");
-                
-                // Check if batch analysis is running
-                if (_navigator?.IsBatchAnalyzing == true)
-                {
-                    // Queue for re-analysis instead of analyzing immediately
-                    requirement.IsQueuedForReanalysis = true;
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Queued requirement {requirement.Item} for re-analysis");
-                    
-                    // Clear existing analysis to show it's outdated
-                    requirement.Analysis = null;
-                    RefreshAnalysisDisplay();
-                    
-                    // Show feedback message
-                    AnalysisStatusMessage = "Queued for re-analysis after batch import completes";
-                    
-                    // Close editor immediately since we're just queuing
-                    editorWindow.Close();
-                    return;
-                }
-                
-                // Show spinner
-                IsAnalyzingInEditor = true;
-                
-                await Task.Delay(100); // Brief delay to ensure UI updates
-                
-                try
-                {
-                    // Run analysis immediately if not in batch mode
-                    await AnalyzeRequirementAsync();
-                    TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Analysis complete");
-                }
-                finally
-                {
-                    IsAnalyzingInEditor = false;
-                    
-                    // Close the editor window after analysis is complete
-                    TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Closing editor window");
-                    editorWindow.Close();
-                }
-            });
-
-            // Show non-modal window
-            editorWindow.Show();
-            
-            // Handle window closing - clear command reference and reset flag
-            editorWindow.Closed += (s, e) =>
-            {
-                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Editor window closed");
-                ReAnalyzeCommand = null;
-                EditedDescription = string.Empty;
+                // Reset state on error
                 IsEditWindowOpen = false;
                 ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
-            };
+                
+                // Don't re-throw to prevent app crash
+            }
         }
 
         /// <summary>

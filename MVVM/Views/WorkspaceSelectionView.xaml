@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
-             xmlns:conv="clr-namespace:TestCaseEditorApp.MVVM.Converters"
+             xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
              d:DataContext="{d:DesignInstance vm:WorkspaceSelectionViewModel, IsDesignTimeCreatable=True}"
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="500">
@@ -16,23 +16,13 @@
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Status message -->
-        <TextBlock Grid.Row="0" 
-                   Text="{Binding StatusMessage}" 
-                   Foreground="DarkOrange" 
-                   FontSize="16"
-                   FontWeight="SemiBold"
-                   Margin="0,0,0,15"
-                   HorizontalAlignment="Center"/>
-
         <!-- Loading indicator -->
-        <ProgressBar Grid.Row="1" 
+        <ProgressBar Grid.Row="0" 
                      Height="4"
                      IsIndeterminate="True"
                      Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"
@@ -41,7 +31,7 @@
                      Background="#333333"/>
 
         <!-- Main content -->
-        <Grid Grid.Row="2" Visibility="{Binding IsServiceReady, Converter={StaticResource BoolToVisibilityConverter}}">
+        <Grid Grid.Row="1" Visibility="{Binding IsServiceReady, Converter={StaticResource BoolToVisibilityConverter}}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
@@ -148,17 +138,12 @@
                             <Button Content="Open Existing" 
                                    Padding="12,6"
                                    Margin="0,0,8,0"
-                                   Background="DarkOrange"
-                                   Foreground="White"
-                                   BorderThickness="0"
+                                   Style="{StaticResource ActionButton}"
                                    Command="{Binding OpenExistingCommand}"/>
                             
                             <Button Content="Choose Different Name" 
                                    Padding="12,6"
-                                   Background="Transparent"
-                                   Foreground="#CCCCCC"
-                                   BorderBrush="#666666"
-                                   BorderThickness="1"
+                                   Style="{StaticResource ActionButton}"
                                    Command="{Binding CreateNewCommand}"/>
                         </StackPanel>
                     </StackPanel>
@@ -167,41 +152,25 @@
         </Grid>
 
         <!-- Action buttons -->
-        <Grid Grid.Row="4" Margin="0,15,0,0">
+        <Grid Grid.Row="3" Margin="0,15,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
             <Button Grid.Column="1" 
-                    Content="Create New" 
+                    Content="Open" 
                     Padding="15,8" 
                     Margin="5,0"
-                    Background="DarkOrange"
-                    Foreground="White"
-                    BorderThickness="0"
-                    Command="{Binding CreateWorkspaceCommand}"/>
+                    Style="{StaticResource ActionButton}"
+                    Command="{Binding SelectWorkspaceCommand}"/>
 
             <Button Grid.Column="2" 
-                    Content="Select" 
-                    Padding="15,8" 
-                    Margin="5,0"
-                    Background="DarkOrange"
-                    Foreground="White"
-                    BorderThickness="0"
-                    IsEnabled="{Binding CanOpenWorkspace}"
-                    Command="{Binding OpenWorkspaceCommand}"/>
-
-            <Button Grid.Column="3" 
                     Content="Cancel" 
                     Padding="15,8" 
                     Margin="5,0"
-                    Background="Transparent"
-                    Foreground="#CCCCCC"
-                    BorderBrush="#666666"
-                    BorderThickness="1"
+                    Style="{StaticResource ActionButton}"
                     Command="{Binding CancelCommand}"/>
         </Grid>
     </Grid>
