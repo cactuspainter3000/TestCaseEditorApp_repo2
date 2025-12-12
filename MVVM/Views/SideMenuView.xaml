@@ -275,21 +275,9 @@
                                                     <TextBlock Text="📥 Import Additional Requirements" TextWrapping="Wrap" />
                                                 </Button>
                                                 
-                                                <localControls:DropdownSectionHeader Icon="⚙️" Header="Auto-Processing" />
-
-                                                <!-- Toggle to control auto-analysis after import -->
-                                                <Button Command="{Binding DataContext.ToggleAutoAnalyzeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                        Style="{StaticResource SideMenuPopupButtonStyle}"
-                                                        ToolTip="When enabled, automatically run requirement analysis after importing.">
-                                                    <DockPanel>
-                                                        <TextBlock Text="Analyze on import" Foreground="White" />
-                                                        <TextBlock Text="✔"
-                                                                   Foreground="LightGreen"
-                                                                   FontWeight="Bold"
-                                                                   Margin="6,0,0,0"
-                                                                   DockPanel.Dock="Right"
-                                                                   Visibility="{Binding DataContext.AutoAnalyzeOnImport, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
-                                                    </DockPanel>
+                                                <Button Command="{Binding DataContext.BatchAnalyzeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                    <TextBlock Text="⚡ Analyze All Requirements" TextWrapping="Wrap" />
                                                 </Button>
 
 

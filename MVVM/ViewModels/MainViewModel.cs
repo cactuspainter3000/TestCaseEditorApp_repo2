@@ -11,6 +11,7 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Helpers;
@@ -383,6 +384,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand AnalyzeUnanalyzedCommand { get; private set; }
         public ICommand ReAnalyzeModifiedCommand { get; private set; }
         public ICommand ImportAdditionalCommand { get; private set; }
+        public ICommand AnalyzeRequirementsCommand { get; private set; }
+        public ICommand BatchAnalyzeCommand { get; private set; }
         
         // ChatGPT Analysis Import Commands
         public ICommand ImportStructuredAnalysisCommand { get; private set; }
@@ -459,6 +462,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     NextRequirementCommand?.NotifyCanExecuteChanged();
                     PreviousRequirementCommand?.NotifyCanExecuteChanged();
                     NextWithoutTestCaseCommand?.NotifyCanExecuteChanged();
+                    
+                    // Notify analysis commands that depend on current requirement
+                    ((RelayCommand?)AnalyzeRequirementsCommand)?.NotifyCanExecuteChanged();
                     
                     // Update workspace header CanReAnalyze state
                     if (_workspaceHeaderViewModel != null)
@@ -610,6 +616,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             AnalyzeUnanalyzedCommand = new RelayCommand(() => AnalyzeUnanalyzed());
             ReAnalyzeModifiedCommand = new RelayCommand(() => ReAnalyzeModified());
             ImportAdditionalCommand = new RelayCommand(() => ImportAdditional());
+            AnalyzeRequirementsCommand = new RelayCommand(() => AnalyzeCurrentRequirement(), () => CurrentRequirement != null);
+            BatchAnalyzeCommand = new RelayCommand(() => BatchAnalyzeAllRequirements(), () => Requirements.Any());
             
             // Initialize ChatGPT analysis import commands  
             ImportStructuredAnalysisCommand = new RelayCommand(() => ImportStructuredAnalysis());
@@ -697,12 +705,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             TestCaseGeneratorSteps.Add(new StepDescriptor
             {
                 Id = "requirements",
-                DisplayName = "Requirements",
+                DisplayName = "Requirement",
                 Badge = string.Empty,
                 HasFileMenu = true,
                 CreateViewModel = svc =>
                 {
-                    return new RequirementsViewModel();
+                    return new RequirementsViewModel(_persistence, this, _testCaseGenerator ?? new TestCaseGenerator_CoreVM());
                 }
             });
 
@@ -3146,6 +3154,53 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         /// <summary>
+        /// Analyzes the currently selected requirement.
+        /// </summary>
+        private void AnalyzeCurrentRequirement()
+        {
+            try
+            {
+                if (CurrentRequirement == null)
+                {
+                    SetTransientStatus("❌ No requirement selected", 3);
+                    return;
+                }
+
+                SetTransientStatus($"🔍 Analyzing requirement: {CurrentRequirement.Item}...", 3);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[ANALYSIS] Analyze current requirement requested: {CurrentRequirement.Item}");
+                
+                // TODO: Implement actual analysis logic for single requirement
+                // This could trigger the LLM analysis for the current requirement
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[ANALYSIS] Failed to analyze current requirement: {ex.Message}");
+                SetTransientStatus("❌ Failed to analyze current requirement", 3);
+            }
+        }
+
+        /// <summary>
+        /// Performs batch analysis on all requirements in the project.
+        /// </summary>
+        private void BatchAnalyzeAllRequirements()
+        {
+            try
+            {
+                var totalCount = Requirements.Count;
+                SetTransientStatus($"⚡ Starting batch analysis of {totalCount} requirements...", 3);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[ANALYSIS] Batch analyze all requested for {totalCount} requirements");
+                
+                // TODO: Implement actual batch analysis logic
+                // This could trigger analysis for all requirements in sequence or parallel
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[ANALYSIS] Failed to batch analyze all requirements: {ex.Message}");
+                SetTransientStatus("❌ Failed to batch analyze all requirements", 3);
+            }
+        }
+
+        /// <summary>
         /// Imports additional requirements to the current project.
         /// </summary>
         private void ImportAdditional()
@@ -3517,8 +3572,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 IsDirty = false;
                 IsBatchAnalyzing = false;
                 
-                // Reset step navigation to first step
-                SelectedStep = TestCaseGeneratorSteps.FirstOrDefault();
+                // Reset step navigation to Test Case Generator step
+                SelectedStep = TestCaseGeneratorSteps.LastOrDefault();
                 
                 // Clear any analysis state in step view models
                 if (CurrentStepViewModel is TestCaseGenerator_AssumptionsVM assumptionsVm)
@@ -3561,6 +3616,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 ((RelayCommand?)ExportForChatGptCommand)?.NotifyCanExecuteChanged();
                 ((RelayCommand?)GenerateAnalysisCommandCommand)?.NotifyCanExecuteChanged();
                 ((RelayCommand?)GenerateTestCaseCommandCommand)?.NotifyCanExecuteChanged();
+                ((RelayCommand?)AnalyzeRequirementsCommand)?.NotifyCanExecuteChanged();
+                ((RelayCommand?)BatchAnalyzeCommand)?.NotifyCanExecuteChanged();
                 ((RelayCommand?)SaveWorkspaceCommand)?.NotifyCanExecuteChanged();
                 ((RelayCommand?)CloseProjectCommand)?.NotifyCanExecuteChanged();
             }
@@ -3824,8 +3881,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     Requirements.Clear();
                     CurrentAnythingLLMWorkspaceSlug = workspace.Slug;
                     
-                    // Reset to first step
-                    SelectedStep = TestCaseGeneratorSteps.FirstOrDefault();
+                    // Reset to Test Case Generator step
+                    SelectedStep = TestCaseGeneratorSteps.LastOrDefault();
                 });
                 
                 if (e.WasCreated)
@@ -3950,10 +4007,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Starting project creation. WorkspaceName: {e.WorkspaceName}, DocumentPath: {e.DocumentPath}");
                 
                 // Configure settings based on user choices
-                AutoAnalyzeOnImport = e.AutoAnalyzeEnabled;
                 AutoExportForChatGpt = e.AutoExportEnabled;
                 
-                TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Settings configured - AutoAnalyze: {AutoAnalyzeOnImport}, AutoExport: {AutoExportForChatGpt}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Settings configured - AutoExport: {AutoExportForChatGpt}");
 
                 // Set workspace path BEFORE importing to avoid dialog
                 WorkspacePath = e.ProjectSavePath;

@@ -221,8 +221,21 @@ namespace TestCaseEditorApp.Services
         {
             try
             {
-                Clipboard.SetText(formattedText);
-                return true;
+                // Ensure clipboard operation runs on UI thread
+                bool success = false;
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    try
+                    {
+                        Clipboard.SetText(formattedText);
+                        success = true;
+                    }
+                    catch (Exception innerEx)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[ChatGptExportService] Clipboard.SetText failed: {innerEx.Message}");
+                    }
+                });
+                return success;
             }
             catch (Exception ex)
             {

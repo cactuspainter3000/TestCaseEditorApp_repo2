@@ -22,22 +22,21 @@
             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock Text="🚀" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
                 <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Title}" Foreground="Orange" FontWeight="Bold" FontSize="12"/>
+                    <TextBlock Text="{Binding Title}" Foreground="DarkOrange" FontWeight="Bold" FontSize="12"/>
                     <TextBlock Text="{Binding Subtitle}" Foreground="#CCCCCC" FontSize="9"/>
                 </StackPanel>
             </StackPanel>
             
-            <!-- Right: Progress Indicator -->
-            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
-                        Visibility="{Binding CanProceed, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}">
+            <!-- Right: Progress Indicator - Always Visible -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                 
                 <!-- Step 1: Create Workspace (combines workspace name + creation) -->
-                <Border Background="#333333" CornerRadius="10" Padding="6,3" Margin="0,0,8,0">
-                    <TextBlock FontSize="10" VerticalAlignment="Center">
+                <Border Background="Transparent" CornerRadius="10" Padding="6,3" Margin="0,0,8,0">
+                    <TextBlock FontSize="10" VerticalAlignment="Center" Text="Create Workspace">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
                                 <Setter Property="Foreground" Value="#777777"/>
-                                <Setter Property="Text" Value="1️⃣ Create Workspace"/>
+                                <Setter Property="FontWeight" Value="Normal"/>
                                 <Style.Triggers>
                                     <MultiDataTrigger>
                                         <MultiDataTrigger.Conditions>
@@ -46,7 +45,7 @@
                                         </MultiDataTrigger.Conditions>
                                         <MultiDataTrigger.Setters>
                                             <Setter Property="Foreground" Value="DarkOrange"/>
-                                            <Setter Property="Text" Value="✅ Create Workspace"/>
+                                            <Setter Property="FontWeight" Value="Bold"/>
                                         </MultiDataTrigger.Setters>
                                     </MultiDataTrigger>
                                 </Style.Triggers>
@@ -56,16 +55,16 @@
                 </Border>
                 
                 <!-- Step 2: Select Requirements -->
-                <Border Background="#333333" CornerRadius="10" Padding="6,3" Margin="0,0,8,0">
-                    <TextBlock FontSize="10" VerticalAlignment="Center">
+                <Border Background="Transparent" CornerRadius="10" Padding="6,3" Margin="0,0,8,0">
+                    <TextBlock FontSize="10" VerticalAlignment="Center" Text="Select Requirements">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
                                 <Setter Property="Foreground" Value="#777777"/>
-                                <Setter Property="Text" Value="2️⃣ Select Requirements"/>
+                                <Setter Property="FontWeight" Value="Normal"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding HasSelectedDocument}" Value="True">
                                         <Setter Property="Foreground" Value="DarkOrange"/>
-                                        <Setter Property="Text" Value="✅ Select Requirements"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
@@ -73,13 +72,13 @@
                     </TextBlock>
                 </Border>
                 
-                <!-- Step 3: Set Project Location (combines project name + save path) -->
-                <Border Background="#333333" CornerRadius="10" Padding="6,3">
-                    <TextBlock FontSize="10" VerticalAlignment="Center">
+                <!-- Step 3: Project Configuration (combines project name + save path) -->
+                <Border Background="Transparent" CornerRadius="10" Padding="6,3">
+                    <TextBlock FontSize="10" VerticalAlignment="Center" Text="Project Configuration">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
                                 <Setter Property="Foreground" Value="#777777"/>
-                                <Setter Property="Text" Value="3️⃣ Set Project Location"/>
+                                <Setter Property="FontWeight" Value="Normal"/>
                                 <Style.Triggers>
                                     <MultiDataTrigger>
                                         <MultiDataTrigger.Conditions>
@@ -88,7 +87,7 @@
                                         </MultiDataTrigger.Conditions>
                                         <MultiDataTrigger.Setters>
                                             <Setter Property="Foreground" Value="DarkOrange"/>
-                                            <Setter Property="Text" Value="✅ Set Project Location"/>
+                                            <Setter Property="FontWeight" Value="Bold"/>
                                         </MultiDataTrigger.Setters>
                                     </MultiDataTrigger>
                                 </Style.Triggers>

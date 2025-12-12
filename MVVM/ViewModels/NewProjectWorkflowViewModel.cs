@@ -26,10 +26,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private string selectedDocumentPath = "";
         
         [ObservableProperty]
-        private bool autoAnalyzeEnabled = true;
-        
-        [ObservableProperty]
-        private bool autoExportEnabled = true;
+        private bool autoExportEnabled = false;
         
         [ObservableProperty]
         private string projectSavePath = "";
@@ -238,7 +235,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 WorkspaceName = WorkspaceName,
                 WorkspaceDescription = WorkspaceDescription,
                 DocumentPath = SelectedDocumentPath,
-                AutoAnalyzeEnabled = AutoAnalyzeEnabled,
                 AutoExportEnabled = AutoExportEnabled,
                 ProjectSavePath = ProjectSavePath,
                 ProjectName = ProjectName
@@ -377,7 +373,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             SelectedDocumentPath = "";
             ProjectSavePath = "";
             ProjectName = "";
-            AutoAnalyzeEnabled = true;
             AutoExportEnabled = true;
         }
     }
@@ -387,7 +382,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public string WorkspaceName { get; set; } = "";
         public string WorkspaceDescription { get; set; } = "";
         public string DocumentPath { get; set; } = "";
-        public bool AutoAnalyzeEnabled { get; set; }
         public bool AutoExportEnabled { get; set; }
         public string ProjectSavePath { get; set; } = "";
         public string ProjectName { get; set; } = "";

@@ -3,81 +3,20 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
+             xmlns:local="clr-namespace:TestCaseEditorApp.MVVM.Views"
              mc:Ignorable="d"
-             d:DesignHeight="600" d:DesignWidth="800">
-    
+             MinHeight="400" MinWidth="800"
+             HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+             d:DesignHeight="600" d:DesignWidth="900"
+             Background="{StaticResource Brush.Background.Menu}"
+             Loaded="UserControl_Loaded">
+
     <UserControl.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/Resources/DesignSystem.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
     </UserControl.Resources>
 
-    <Grid Background="{StaticResource Brush.Background.Menu}">
-        <StackPanel VerticalAlignment="Center" 
-                    HorizontalAlignment="Center" 
-                    MaxWidth="600"
-                    Margin="40">
-            
-            <!-- Requirements header -->
-            <TextBlock Text="Requirements"
-                       FontSize="28"
-                       FontWeight="Light"
-                       Foreground="{StaticResource Brush.Accent.Primary}"
-                       TextAlignment="Center"
-                       Margin="0,0,0,20"/>
-            
-            <!-- Description -->
-            <TextBlock Text="Import, analyze, and manage requirements for test case generation"
-                       FontSize="16"
-                       Foreground="#CCCCCC"
-                       TextAlignment="Center"
-                       TextWrapping="Wrap"
-                       Margin="0,0,0,40"/>
-            
-            <!-- Requirements management section -->
-            <Border Background="#333333"
-                    CornerRadius="8"
-                    Padding="30"
-                    Margin="0,20,0,0">
-                <StackPanel>
-                    <TextBlock Text="Requirements Management"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Foreground="{StaticResource Brush.Accent.Primary}"
-                               Margin="0,0,0,20"/>
-                    
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <TextBlock Text="•" Foreground="#CCCCCC" Margin="0,0,10,0" VerticalAlignment="Top"/>
-                        <TextBlock Text="Import requirements from Word documents, Excel files, or Jama"
-                                   Foreground="#CCCCCC"
-                                   TextWrapping="Wrap"/>
-                    </StackPanel>
-                    
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <TextBlock Text="•" Foreground="#CCCCCC" Margin="0,0,10,0" VerticalAlignment="Top"/>
-                        <TextBlock Text="Automatically analyze requirements for test case generation"
-                                   Foreground="#CCCCCC"
-                                   TextWrapping="Wrap"/>
-                    </StackPanel>
-                    
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <TextBlock Text="•" Foreground="#CCCCCC" Margin="0,0,10,0" VerticalAlignment="Top"/>
-                        <TextBlock Text="Review and edit imported requirements data"
-                                   Foreground="#CCCCCC"
-                                   TextWrapping="Wrap"/>
-                    </StackPanel>
-                    
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="•" Foreground="#CCCCCC" Margin="0,0,10,0" VerticalAlignment="Top"/>
-                        <TextBlock Text="Navigate through requirements and track progress"
-                                   Foreground="#CCCCCC"
-                                   TextWrapping="Wrap"/>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-            
-        </StackPanel>
-    </Grid>
+    <!-- Simply display the TestCaseGenerator_VM through the DataTemplate system -->
+    <ContentControl Content="{Binding TestCaseGeneratorVM}" />
+
 </UserControl>
