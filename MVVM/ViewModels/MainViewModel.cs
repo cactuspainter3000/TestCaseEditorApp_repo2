@@ -58,6 +58,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private TestCaseGenerator_HeaderVM? _testCaseGeneratorHeader;
         private WorkspaceHeaderViewModel? _workspaceHeaderViewModel;
 
+        // Shared ViewModels for menu access (created once, reused)
+        private TestCaseGenerator_QuestionsVM? _questionsViewModel;
+        private TestCaseGenerator_AssumptionsVM? _assumptionsViewModel;
+
+        // Public accessors for shared ViewModels
+        public TestCaseGenerator_QuestionsVM? QuestionsViewModel => _questionsViewModel;
+        public TestCaseGenerator_AssumptionsVM? AssumptionsViewModel => _assumptionsViewModel;
+
         // Active header slot: the UI binds to ActiveHeader (ContentControl Content="{Binding ActiveHeader}")
         private object? _activeHeader;
         public object? ActiveHeader
@@ -728,32 +736,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             TestCaseGeneratorSteps.Add(new StepDescriptor
             {
-                Id = "test-assumptions",
-                DisplayName = "Verification Method Assumptions",
-                Badge = string.Empty,
-                HasFileMenu = false,
-                CreateViewModel = svc =>
-                {
-                    return new TestCaseGenerator_AssumptionsVM(_testCaseGeneratorHeader, this);
-                }
-            });
-
-            TestCaseGeneratorSteps.Add(new StepDescriptor
-            {
-                Id = "clarifying-questions",
-                DisplayName = "Clarifying Questions",
-                Badge = string.Empty,
-                HasFileMenu = false,
-                CreateViewModel = svc =>
-                {
-                    var llm = TestCaseEditorApp.Services.LlmFactory.Create();
-                    return new TestCaseGenerator_QuestionsVM(_persistence, llm, _testCaseGeneratorHeader, this);
-                }
-                
-            });
-
-            TestCaseGeneratorSteps.Add(new StepDescriptor
-            {
                 Id = "testcase-creation",
                 DisplayName = "Test Case Generator",
                 Badge = string.Empty,
@@ -962,6 +944,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             if (_testCaseGeneratorHeader == null)
                 _testCaseGeneratorHeader = new TestCaseGenerator_HeaderVM(this);
+
+            // Create shared ViewModels for menu access
+            if (_questionsViewModel == null)
+            {
+                var llm = TestCaseEditorApp.Services.LlmFactory.Create();
+                _questionsViewModel = new TestCaseGenerator_QuestionsVM(_persistence, llm, _testCaseGeneratorHeader, this);
+            }
+
+            if (_assumptionsViewModel == null)
+            {
+                _assumptionsViewModel = new TestCaseGenerator_AssumptionsVM(_testCaseGeneratorHeader, this);
+            }
 
             var ctx = new TestCaseGenerator_HeaderContext
             {

@@ -26,7 +26,11 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             
-            <StackPanel Grid.Row="0">
+            <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <ScrollViewer.Resources>
+                    <Style TargetType="ScrollBar" BasedOn="{StaticResource CustomScrollBarStyle}"/>
+                </ScrollViewer.Resources>
+                <StackPanel>
 
                 <!-- Test Case Generator header -->
                 <ToggleButton x:Name="TestCaseGeneratorToggle"
@@ -276,11 +280,419 @@
                                                     <TextBlock Text="📥 Import Additional Requirements" TextWrapping="Wrap" />
                                                 </Button>
                                                 
-                                                <Button Command="{Binding DataContext.BatchAnalyzeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
-                                                    <TextBlock Text="⚡ Analyze All Requirements" TextWrapping="Wrap" />
-                                                </Button>
-
+                                                <!-- Analysis CollapsibleMenuItem -->
+                                                <StackPanel>
+                                                    <Button Background="{StaticResource Brush.Background.Menu}" 
+                                                            BorderThickness="0"
+                                                            Padding="8,6"
+                                                            HorizontalAlignment="Stretch"
+                                                            Cursor="Hand"
+                                                            Click="AnalysisHeader_Click">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button">
+                                                                <Setter Property="Template">
+                                                                    <Setter.Value>
+                                                                        <ControlTemplate TargetType="Button">
+                                                                            <Border Background="{TemplateBinding Background}" 
+                                                                                    Padding="{TemplateBinding Padding}">
+                                                                                <ContentPresenter/>
+                                                                            </Border>
+                                                                        </ControlTemplate>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                                <Style.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Background" Value="{StaticResource Brush.Button.Hover}"/>
+                                                                    </Trigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Text="🔬 Analysis"
+                                                                       Grid.Column="0"
+                                                                       Foreground="{StaticResource Brush.Accent.Primary}"
+                                                                       FontSize="13"
+                                                                       FontWeight="Normal"
+                                                                       VerticalAlignment="Center"
+                                                                       Margin="0,0,8,0"/>
+                                                            <TextBlock x:Name="AnalysisChevron"
+                                                                       Grid.Column="1"
+                                                                       Text="⯆"
+                                                                       Foreground="{StaticResource Brush.Accent.Primary}"
+                                                                       FontSize="12"
+                                                                       VerticalAlignment="Center"
+                                                                       RenderTransformOrigin="0.5,0.5">
+                                                                <TextBlock.RenderTransform>
+                                                                    <RotateTransform Angle="0"/>
+                                                                </TextBlock.RenderTransform>
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsAnalysisMenuExpanded}" Value="True">
+                                                                                <DataTrigger.EnterActions>
+                                                                                    <BeginStoryboard>
+                                                                                        <Storyboard>
+                                                                                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Angle" 
+                                                                                                             To="180" Duration="0:0:0.2" />
+                                                                                        </Storyboard>
+                                                                                    </BeginStoryboard>
+                                                                                </DataTrigger.EnterActions>
+                                                                                <DataTrigger.ExitActions>
+                                                                                    <BeginStoryboard>
+                                                                                        <Storyboard>
+                                                                                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Angle" 
+                                                                                                             To="0" Duration="0:0:0.2" />
+                                                                                        </Storyboard>
+                                                                                    </BeginStoryboard>
+                                                                                </DataTrigger.ExitActions>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                        </Grid>
+                                                    </Button>
+                                                    <!-- Analysis menu with proper animation like file menus -->
+                                                    <Border x:Name="AnalysisMenuExpander" 
+                                                            Background="Transparent"
+                                                            BorderBrush="#33000000"
+                                                            BorderThickness="0,1,0,0"
+                                                            Margin="4,0,4,0"
+                                                            MaxHeight="0"
+                                                            Opacity="0">
+                                                        <Border.LayoutTransform>
+                                                            <ScaleTransform ScaleY="0" />
+                                                        </Border.LayoutTransform>
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsAnalysisMenuExpanded}" Value="True">
+                                                                        <DataTrigger.EnterActions>
+                                                                            <BeginStoryboard>
+                                                                                <Storyboard>
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="MaxHeight" 
+                                                                                                     To="300" Duration="0:0:0.4" />
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
+                                                                                                     To="1" Duration="0:0:0.4" />
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" 
+                                                                                                     To="1" Duration="0:0:0.4" />
+                                                                                </Storyboard>
+                                                                            </BeginStoryboard>
+                                                                        </DataTrigger.EnterActions>
+                                                                        <DataTrigger.ExitActions>
+                                                                            <BeginStoryboard>
+                                                                                <Storyboard>
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="MaxHeight" 
+                                                                                                     To="0" Duration="0:0:0.4" />
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
+                                                                                                     To="0" Duration="0:0:0.4" />
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" 
+                                                                                                     To="0" Duration="0:0:0.4" />
+                                                                                </Storyboard>
+                                                                            </BeginStoryboard>
+                                                                        </DataTrigger.ExitActions>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <StackPanel Margin="8">
+                                                            <Button Command="{Binding DataContext.BatchAnalyzeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                                    Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                                <TextBlock Text="⚡ Analyze All Requirements" TextWrapping="Wrap" />
+                                                            </Button>
+                                                            <Button Command="{Binding DataContext.AnalyzeUnanalyzedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                                    Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                                <TextBlock Text="🔍 Analyze Unanalyzed" TextWrapping="Wrap" />
+                                                            </Button>
+                                                            <Button Command="{Binding DataContext.ReAnalyzeModifiedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                                    Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                                <TextBlock Text="🔄 Re-analyze Modified" TextWrapping="Wrap" />
+                                                            </Button>
+                                                            <Button Command="{Binding DataContext.PasteChatGptAnalysisCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                                    Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                                <TextBlock Text="📥 Paste ChatGPT Analysis" TextWrapping="Wrap" />
+                                                            </Button>
+                                                            <Button Command="{Binding DataContext.GenerateAnalysisCommandCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                                    Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                                <TextBlock Text="🔍 Generate Analysis Command" TextWrapping="Wrap" />
+                                                            </Button>
+                                                            <Button Command="{Binding DataContext.ExportForChatGptCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                                    Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                                <TextBlock Text="📝 Export for ChatGPT" TextWrapping="Wrap" />
+                                                            </Button>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </StackPanel>
+                                                
+                                                <!-- Clarifying Questions CollapsibleMenuItem -->
+                                                <StackPanel>
+                                                    <Button Background="{StaticResource Brush.Background.Menu}" 
+                                                            BorderThickness="0"
+                                                            Padding="8,6"
+                                                            HorizontalAlignment="Stretch"
+                                                            Cursor="Hand"
+                                                            Click="QuestionsHeader_Click">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button">
+                                                                <Setter Property="Template">
+                                                                    <Setter.Value>
+                                                                        <ControlTemplate TargetType="Button">
+                                                                            <Border Background="{TemplateBinding Background}" 
+                                                                                    Padding="{TemplateBinding Padding}">
+                                                                                <ContentPresenter/>
+                                                                            </Border>
+                                                                        </ControlTemplate>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                                <Style.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Background" Value="{StaticResource Brush.Button.Hover}"/>
+                                                                    </Trigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Text="❓ Clarifying Questions"
+                                                                       Grid.Column="0"
+                                                                       Foreground="{StaticResource Brush.Accent.Primary}"
+                                                                       FontSize="13"
+                                                                       FontWeight="Normal"
+                                                                       VerticalAlignment="Center"
+                                                                       Margin="0,0,8,0"/>
+                                                            <TextBlock x:Name="QuestionsChevron"
+                                                                       Grid.Column="1"
+                                                                       Text="⯆"
+                                                                       Foreground="{StaticResource Brush.Accent.Primary}"
+                                                                       FontSize="12"
+                                                                       VerticalAlignment="Center"
+                                                                       RenderTransformOrigin="0.5,0.5">
+                                                                <TextBlock.RenderTransform>
+                                                                    <RotateTransform Angle="0"/>
+                                                                </TextBlock.RenderTransform>
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsQuestionsMenuExpanded}" Value="True">
+                                                                                <DataTrigger.EnterActions>
+                                                                                    <BeginStoryboard>
+                                                                                        <Storyboard>
+                                                                                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Angle" 
+                                                                                                             To="180" Duration="0:0:0.2" />
+                                                                                        </Storyboard>
+                                                                                    </BeginStoryboard>
+                                                                                </DataTrigger.EnterActions>
+                                                                                <DataTrigger.ExitActions>
+                                                                                    <BeginStoryboard>
+                                                                                        <Storyboard>
+                                                                                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Angle" 
+                                                                                                             To="0" Duration="0:0:0.2" />
+                                                                                        </Storyboard>
+                                                                                    </BeginStoryboard>
+                                                                                </DataTrigger.ExitActions>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                        </Grid>
+                                                    </Button>
+                                                    <!-- Questions menu with proper animation -->
+                                                    <Border x:Name="QuestionsMenuExpander" 
+                                                            Background="Transparent"
+                                                            BorderBrush="#33000000"
+                                                            BorderThickness="0,1,0,0"
+                                                            Margin="4,0,4,0"
+                                                            MaxHeight="0"
+                                                            Opacity="0">
+                                                        <Border.LayoutTransform>
+                                                            <ScaleTransform ScaleY="0" />
+                                                        </Border.LayoutTransform>
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsQuestionsMenuExpanded}" Value="True">
+                                                                        <DataTrigger.EnterActions>
+                                                                            <BeginStoryboard>
+                                                                                <Storyboard>
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="MaxHeight" 
+                                                                                                     To="200" Duration="0:0:0.4" />
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
+                                                                                                     To="1" Duration="0:0:0.4" />
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" 
+                                                                                                     To="1" Duration="0:0:0.4" />
+                                                                                </Storyboard>
+                                                                            </BeginStoryboard>
+                                                                        </DataTrigger.EnterActions>
+                                                                        <DataTrigger.ExitActions>
+                                                                            <BeginStoryboard>
+                                                                                <Storyboard>
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="MaxHeight" 
+                                                                                                     To="0" Duration="0:0:0.4" />
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
+                                                                                                     To="0" Duration="0:0:0.4" />
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" 
+                                                                                                     To="0" Duration="0:0:0.4" />
+                                                                                </Storyboard>
+                                                                            </BeginStoryboard>
+                                                                        </DataTrigger.ExitActions>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <StackPanel Margin="8">
+                                                            <Button Content="❓ Ask Questions" 
+                                                                    Click="AskQuestions_Click"
+                                                                    Style="{StaticResource SideMenuPopupButtonStyle}"/>
+                                                            <Button Content="📋 Paste from Clipboard" 
+                                                                    Click="PasteFromClipboard_Click"
+                                                                    Style="{StaticResource SideMenuPopupButtonStyle}"/>
+                                                            <Button Content="🔄 Regenerate Questions" 
+                                                                    Click="RegenerateQuestions_Click"
+                                                                    Style="{StaticResource SideMenuPopupButtonStyle}"/>
+                                                            <Button Content="⏭️ Skip Questions" 
+                                                                    Click="SkipQuestions_Click"
+                                                                    Style="{StaticResource SideMenuPopupButtonStyle}"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </StackPanel>
+                                                
+                                                <!-- Verification Method Assumptions CollapsibleMenuItem -->
+                                                <StackPanel>
+                                                    <Button Background="{StaticResource Brush.Background.Menu}" 
+                                                            BorderThickness="0"
+                                                            Padding="8,6"
+                                                            HorizontalAlignment="Stretch"
+                                                            Cursor="Hand"
+                                                            Click="AssumptionsHeader_Click">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button">
+                                                                <Setter Property="Template">
+                                                                    <Setter.Value>
+                                                                        <ControlTemplate TargetType="Button">
+                                                                            <Border Background="{TemplateBinding Background}" 
+                                                                                    Padding="{TemplateBinding Padding}">
+                                                                                <ContentPresenter/>
+                                                                            </Border>
+                                                                        </ControlTemplate>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                                <Style.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Background" Value="{StaticResource Brush.Button.Hover}"/>
+                                                                    </Trigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Text="🔧 Verification Method Assumptions"
+                                                                       Grid.Column="0"
+                                                                       Foreground="{StaticResource Brush.Accent.Primary}"
+                                                                       FontSize="13"
+                                                                       FontWeight="Normal"
+                                                                       VerticalAlignment="Center"
+                                                                       Margin="0,0,8,0"/>
+                                                            <TextBlock x:Name="AssumptionsChevron"
+                                                                       Grid.Column="1"
+                                                                       Text="⯆"
+                                                                       Foreground="{StaticResource Brush.Accent.Primary}"
+                                                                       FontSize="12"
+                                                                       VerticalAlignment="Center"
+                                                                       RenderTransformOrigin="0.5,0.5">
+                                                                <TextBlock.RenderTransform>
+                                                                    <RotateTransform Angle="0"/>
+                                                                </TextBlock.RenderTransform>
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsAssumptionsMenuExpanded}" Value="True">
+                                                                                <DataTrigger.EnterActions>
+                                                                                    <BeginStoryboard>
+                                                                                        <Storyboard>
+                                                                                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Angle" 
+                                                                                                             To="180" Duration="0:0:0.2" />
+                                                                                        </Storyboard>
+                                                                                    </BeginStoryboard>
+                                                                                </DataTrigger.EnterActions>
+                                                                                <DataTrigger.ExitActions>
+                                                                                    <BeginStoryboard>
+                                                                                        <Storyboard>
+                                                                                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Angle" 
+                                                                                                             To="0" Duration="0:0:0.2" />
+                                                                                        </Storyboard>
+                                                                                    </BeginStoryboard>
+                                                                                </DataTrigger.ExitActions>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                        </Grid>
+                                                    </Button>
+                                                    <!-- Assumptions menu with proper animation -->
+                                                    <Border x:Name="AssumptionsMenuExpander" 
+                                                            Background="Transparent"
+                                                            BorderBrush="#33000000"
+                                                            BorderThickness="0,1,0,0"
+                                                            Margin="4,0,4,0"
+                                                            MaxHeight="0"
+                                                            Opacity="0">
+                                                        <Border.LayoutTransform>
+                                                            <ScaleTransform ScaleY="0" />
+                                                        </Border.LayoutTransform>
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsAssumptionsMenuExpanded}" Value="True">
+                                                                        <DataTrigger.EnterActions>
+                                                                            <BeginStoryboard>
+                                                                                <Storyboard>
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="MaxHeight" 
+                                                                                                     To="150" Duration="0:0:0.4" />
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
+                                                                                                     To="1" Duration="0:0:0.4" />
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" 
+                                                                                                     To="1" Duration="0:0:0.4" />
+                                                                                </Storyboard>
+                                                                            </BeginStoryboard>
+                                                                        </DataTrigger.EnterActions>
+                                                                        <DataTrigger.ExitActions>
+                                                                            <BeginStoryboard>
+                                                                                <Storyboard>
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="MaxHeight" 
+                                                                                                     To="0" Duration="0:0:0.4" />
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
+                                                                                                     To="0" Duration="0:0:0.4" />
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" 
+                                                                                                     To="0" Duration="0:0:0.4" />
+                                                                                </Storyboard>
+                                                                            </BeginStoryboard>
+                                                                        </DataTrigger.ExitActions>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <StackPanel Margin="8">
+                                                            <Button Content="🔄 Reset All Assumptions" 
+                                                                    Click="ResetAssumptions_Click"
+                                                                    Style="{StaticResource SideMenuPopupButtonStyle}"/>
+                                                            <Button Content="🧹 Clear Preset Filter" 
+                                                                    Click="ClearPresetFilter_Click"
+                                                                    Style="{StaticResource SideMenuPopupButtonStyle}"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </StackPanel>
 
                                             </StackPanel>
                                             
@@ -297,16 +709,6 @@
                                                     </Style>
                                                 </StackPanel.Style>
                                                 
-                                                <Button Command="{Binding DataContext.AnalyzeUnanalyzedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
-                                                    <TextBlock Text="🔍 Analyze Unanalyzed" TextWrapping="Wrap" />
-                                                </Button>
-                                                
-                                                <Button Command="{Binding DataContext.ReAnalyzeModifiedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
-                                                    <TextBlock Text="🔄 Re-analyze Modified" TextWrapping="Wrap" />
-                                                </Button>
-                                                
                                                 <localControls:DropdownSectionHeader Icon="📚" Header="Learning Workflow" />
 
                                                 <!-- Generate learning prompt button -->
@@ -314,12 +716,6 @@
                                                         Style="{StaticResource SideMenuPopupButtonStyle}"
                                                         ToolTip="Generate learning prompt and copy to clipboard for ChatGPT">
                                                     <TextBlock Text="📋 Generate Learning Prompt" TextWrapping="Wrap" />
-                                                </Button>
-                                                
-                                                <Button Command="{Binding DataContext.PasteChatGptAnalysisCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                        Style="{StaticResource SideMenuPopupButtonStyle}"
-                                                        ToolTip="Paste and import ChatGPT analysis results from clipboard">
-                                                    <TextBlock Text="📥 Paste ChatGPT Analysis" TextWrapping="Wrap" />
                                                 </Button>
                                                 
                                                 <localControls:DropdownSectionHeader Icon="🎓" Header="Advanced Training" />
@@ -333,13 +729,6 @@
                                                 
                                                 <localControls:DropdownSectionHeader Icon="⚡" Header="Quick Commands" />
 
-                                                <!-- Generate Analysis Command button -->
-                                                <Button Command="{Binding DataContext.GenerateAnalysisCommandCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                        Style="{StaticResource SideMenuPopupButtonStyle}"
-                                                        ToolTip="Generate 'ANALYZE: [requirement]' command for current requirement">
-                                                    <TextBlock Text="🔍 Generate Analysis Command" TextWrapping="Wrap" />
-                                                </Button>
-                                                
                                                 <!-- Generate Test Case Command button -->
                                                 <Button Command="{Binding DataContext.GenerateTestCaseCommandCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                         Style="{StaticResource SideMenuPopupButtonStyle}"
@@ -361,16 +750,6 @@
                                                                    Margin="6,0,0,0"
                                                                    DockPanel.Dock="Right"
                                                                    Visibility="{Binding DataContext.AutoExportForChatGpt, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
-                                                    </DockPanel>
-                                                </Button>
-
-                                                <!-- Open ChatGPT Export File button -->
-                                                <Button Command="{Binding DataContext.OpenChatGptExportCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                        Style="{StaticResource SideMenuPopupButtonStyle}"
-                                                        ToolTip="Open the most recent ChatGPT export file in Notepad">
-                                                    <DockPanel>
-                                                        <TextBlock Text="📝" Foreground="White" Margin="0,0,4,0" />
-                                                        <TextBlock Text="Open Export" Foreground="White" />
                                                     </DockPanel>
                                                 </Button>
                                             </StackPanel>
@@ -796,14 +1175,15 @@
                     </Border>
                     </StackPanel>
                 </Border>
-
-                <TextBlock Grid.Row="1"
-                           VerticalAlignment="Bottom"
-                           Text="{Binding SapStatus}"
-                           HorizontalAlignment="Center"
-                           Foreground="#CCCCCC"
-                           Style="{StaticResource MenuHeaderTheme}"/>
             </StackPanel>
+        </ScrollViewer>
+
+        <TextBlock Grid.Row="1"
+                   VerticalAlignment="Bottom"
+                   Text="{Binding SapStatus}"
+                   HorizontalAlignment="Center"
+                   Foreground="#CCCCCC"
+                   Style="{StaticResource MenuHeaderTheme}"/>
         </Grid>
     </Border>
 </UserControl>
