@@ -95,14 +95,6 @@
                                    Foreground="#888888" 
                                    HorizontalAlignment="Center"
                                    Margin="0,0,0,12"/>
-                        <TextBlock Text="Analysis will be performed automatically during import." 
-                                   FontSize="12" 
-                                   Foreground="#AAAAAA" 
-                                   HorizontalAlignment="Center"
-                                   TextWrapping="Wrap"
-                                   MaxWidth="400"
-                                   TextAlignment="Center"
-                                   Margin="0,0,0,8"/>
                         
                         <!-- Batch analyzing hint -->
                         <TextBlock Visibility="{Binding IsBatchAnalyzing, Converter={StaticResource BoolToVisibilityConverter}}"
@@ -119,9 +111,8 @@
                     
                     <Button Content="Analyze Now"
                             Command="{Binding AnalyzeRequirementCommand}"
+                            Style="{StaticResource ActionButton}"
                             HorizontalAlignment="Center"
-                            Padding="20,8"
-                            FontSize="13"
                             Margin="0,12,0,0"/>
                 </StackPanel>
             </StackPanel>

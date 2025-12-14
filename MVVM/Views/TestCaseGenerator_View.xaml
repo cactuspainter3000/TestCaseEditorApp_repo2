@@ -30,7 +30,7 @@
             <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
 
                 <!-- Details pill -->
-                <ToggleButton Style="{StaticResource PillToggleStyle}"
+                <ToggleButton Style="{StaticResource ActionToggleButtonSelected}"
               IsChecked="{Binding IsMetaSelected, Mode=TwoWay}"
               ToolTip="Requirement details and properties">
                     <Grid>
@@ -66,7 +66,7 @@
                 </ToggleButton>
 
                 <!-- Tables pill -->
-                <ToggleButton Style="{StaticResource PillToggleStyle}"
+                <ToggleButton Style="{StaticResource ActionToggleButtonSelected}"
               Margin="8,0,0,0"
               IsChecked="{Binding IsTablesSelected, Mode=TwoWay}"
               ToolTip="{Binding SelectedTableVMs.Count, StringFormat={}{0} tables}">
@@ -102,7 +102,7 @@
                 </ToggleButton>
 
                 <!-- Paragraphs pill -->
-                <ToggleButton Style="{StaticResource PillToggleStyle}"
+                <ToggleButton Style="{StaticResource ActionToggleButtonSelected}"
               Margin="8,0,0,0"
               IsChecked="{Binding IsParagraphsSelected, Mode=TwoWay}"
               ToolTip="{Binding SelectedParagraphVMs.Count, StringFormat={}{0} paragraphs}">
@@ -163,7 +163,7 @@
                     </Border>
                     
                     <!-- The actual pill button (always visible) -->
-                    <ToggleButton Style="{StaticResource PillToggleStyle}"
+                    <ToggleButton Style="{StaticResource ActionToggleButtonSelected}"
                                   Margin="2"
                                   IsChecked="{Binding IsAnalysisSelected, Mode=TwoWay}"
                                   ToolTip="View AI-powered requirement quality analysis">

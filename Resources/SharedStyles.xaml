@@ -108,6 +108,10 @@
 
     <!-- Button style to match the pill appearance (for Select all / Clear all) -->
     <Style x:Key="PillActionButtonStyle" TargetType="Button">
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -116,15 +120,20 @@
                   CornerRadius="{StaticResource Radius.Round}"
                   BorderThickness="0"
                   Padding="8,4"
-                  SnapsToDevicePixels="True">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                  SnapsToDevicePixels="True"
+                  UseLayoutRounding="True">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                        UseLayoutRounding="True"
+                                        SnapsToDevicePixels="True"
+                                        TextOptions.TextRenderingMode="ClearType"
+                                        TextOptions.TextFormattingMode="Display" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="bd" Property="Background" Value="{StaticResource Brush.Background.Overlay.Light}"/>
+                            <Setter Property="Foreground" Value="DarkOrange"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="bd" Property="Background" Value="{StaticResource Brush.Background.Overlay.Medium}"/>
+                            <Setter Property="Foreground" Value="#CC6600"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.5"/>

@@ -39,14 +39,25 @@
             </StackPanel>
         </DockPanel>
 
-        <!-- Hint text -->
+        <!-- Hint text - only show when there are items -->
         <TextBlock Grid.Row="1" 
-                   Text="Click items to exclude irrelevant information from the LLM prompt"
+                   Text="Selected items are included in the Requirement Analysis"
                    Foreground="#888888"
                    FontSize="11"
                    FontStyle="Italic"
                    Margin="8,0,0,12"
-                   HorizontalAlignment="Left"/>
+                   HorizontalAlignment="Left">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Visibility" Value="Visible"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding SelectedParagraphVMs.Count}" Value="0">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
 
         <!-- Supplemental info list -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -137,6 +148,30 @@
                         </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
+
+                <!-- Empty state -->
+                <ItemsControl.Style>
+                    <Style TargetType="ItemsControl">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SelectedParagraphVMs.Count}" Value="0">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ItemsControl">
+                                            <Grid Margin="24">
+                                                <TextBlock Foreground="{DynamicResource DisabledBrush}" 
+                                                           FontStyle="Italic"
+                                                           Text="No supplemental information found for this requirement."
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           TextAlignment="Center"/>
+                                            </Grid>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ItemsControl.Style>
             </ItemsControl>
         </ScrollViewer>
     </Grid>
