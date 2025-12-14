@@ -3,6 +3,7 @@ using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Windows.Input;
+using TestCaseEditorApp.MVVM.Utils;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -17,6 +18,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         public WorkspaceHeaderViewModel()
         {
+            // Subscribe to AnythingLLM status updates via mediator
+            AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusUpdated;
         }
 
         /// <summary>
@@ -45,6 +48,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty] private bool hasUnsavedChanges;
         [ObservableProperty] private string? statusMessage;
         [ObservableProperty] private bool canReAnalyze;
+        
+        // AnythingLLM status properties
+        [ObservableProperty] private bool isAnythingLLMAvailable;
+        [ObservableProperty] private bool isAnythingLLMStarting;
+        [ObservableProperty] private string anythingLLMStatusMessage = "Initializing AnythingLLM...";
 
         // --- Commands (settable so MainViewModel can wire them) ---
         // Exposed as ICommand to allow wiring from MainViewModel.
@@ -111,6 +119,19 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 }
             }
             catch { /* best-effort */ }
+        }
+        
+        /// <summary>
+        /// Handles AnythingLLM status updates from the mediator
+        /// </summary>
+        private void OnAnythingLLMStatusUpdated(AnythingLLMStatus status)
+        {
+            Application.Current?.Dispatcher.BeginInvoke(() =>
+            {
+                IsAnythingLLMAvailable = status.IsAvailable;
+                IsAnythingLLMStarting = status.IsStarting;
+                AnythingLLMStatusMessage = status.StatusMessage;
+            });
         }
     }
 }

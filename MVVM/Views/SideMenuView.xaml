@@ -236,7 +236,8 @@
                                                 
                                                 <!-- For new projects: create AnythingLLM workspace and import -->
                                                 <Button Command="{Binding DataContext.NewProjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}"
+                                                        IsEnabled="{Binding DataContext.IsAnythingLLMAvailable, RelativeSource={RelativeSource AncestorType=UserControl}}">
                                                     <TextBlock Text="🆕 New Project" TextWrapping="Wrap" />
                                                 </Button>
                                                 
@@ -247,7 +248,8 @@
                                                 
                                                 <!-- For existing projects: resume work -->
                                                 <Button Command="{Binding DataContext.OpenProjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                        Style="{StaticResource SideMenuPopupButtonStyle}">
+                                                        Style="{StaticResource SideMenuPopupButtonStyle}"
+                                                        IsEnabled="{Binding DataContext.IsAnythingLLMAvailable, RelativeSource={RelativeSource AncestorType=UserControl}}">
                                                     <TextBlock Text="📁 Open Project" TextWrapping="Wrap" />
                                                 </Button>
                                                 

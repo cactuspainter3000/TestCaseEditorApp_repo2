@@ -208,6 +208,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             set => SetProperty(ref _currentAnythingLLMWorkspaceSlug, value);
         }
 
+        // Static initialization guard to prevent multiple instances from initializing AnythingLLM
+        private static bool _anythingLLMInitializing = false;
+        private static readonly object _initializationLock = new object();
+
+        // AnythingLLM Status Properties - Track LlmConnectionManager with proper notifications
+        [ObservableProperty]
+        private bool isAnythingLLMAvailable;
+        
+        [ObservableProperty]
+        private bool isAnythingLLMStarting;
+        
+        [ObservableProperty]
+        private string anythingLLMStatusMessage = "Initializing AnythingLLM...";
+
         private bool _requirementsCollectionHooked;
         private bool _hasUnsavedChanges;
         public bool HasUnsavedChanges
@@ -578,6 +592,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             Requirements.CollectionChanged += RequirementsOnCollectionChanged;
             _requirementsCollectionHooked = true;
 
+            // Subscribe to AnythingLLM status updates via mediator
+            AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusFromMediator;
+
             // Initialize auto-save timer
             InitializeAutoSave();
 
@@ -683,7 +700,182 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             TryWireDynamicTestCaseGenerator();
             WireHeaderSubscriptions();
 
+            // Check AnythingLLM status on startup and integrate with LlmConnectionManager
+            // Only do this for runtime instances, not design-time
+            if (!System.ComponentModel.DesignerProperties.GetIsInDesignMode(new System.Windows.DependencyObject()))
+            {
+                _ = Task.Run(async () => await InitializeAnythingLLMAsync());
+            }
+
             _logger?.LogDebug("MainViewModel constructed");
+        }
+
+        /// <summary>
+        /// Initializes AnythingLLM connection and updates the LlmConnectionManager with the status.
+        /// This integrates with the existing LLM connection system.
+        /// </summary>
+        private async Task InitializeAnythingLLMAsync()
+        {
+            // Prevent multiple simultaneous initialization attempts across all instances
+            lock (_initializationLock)
+            {
+                if (_anythingLLMInitializing)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info("[STARTUP] AnythingLLM initialization already in progress, skipping duplicate call");
+                    return;
+                }
+                _anythingLLMInitializing = true;
+            }
+            
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info("[STARTUP] Checking AnythingLLM availability...");
+                
+                // Set initial checking status via mediator
+                await Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    var status = new AnythingLLMStatus
+                    {
+                        IsAvailable = false,
+                        IsStarting = true,
+                        StatusMessage = "Checking AnythingLLM service..."
+                    };
+                    AnythingLLMMediator.NotifyStatusUpdated(status);
+                });
+                
+                // Check if AnythingLLM is available
+                bool isAvailable = await _anythingLLMService.IsServiceAvailableAsync();
+                
+                if (isAvailable)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info("[STARTUP] AnythingLLM is available and connected");
+                    
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        var status = new AnythingLLMStatus
+                        {
+                            IsAvailable = true,
+                            IsStarting = false,
+                            StatusMessage = "AnythingLLM is ready"
+                        };
+                        AnythingLLMMediator.NotifyStatusUpdated(status);
+                    });
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info("[STARTUP] AnythingLLM not available, trying to start...");
+                    
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        var status = new AnythingLLMStatus
+                        {
+                            IsAvailable = false,
+                            IsStarting = true,
+                            StatusMessage = "Starting AnythingLLM..."
+                        };
+                        AnythingLLMMediator.NotifyStatusUpdated(status);
+                    });
+                    
+                    // Subscribe to status updates from the service
+                    _anythingLLMService.StatusUpdated += OnAnythingLLMStatusUpdated;
+                    
+                    try
+                    {
+                        // Try to start AnythingLLM
+                        var (success, message) = await _anythingLLMService.EnsureServiceRunningAsync();
+                        
+                        if (success)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info("[STARTUP] AnythingLLM started successfully");
+                            
+                            await Application.Current.Dispatcher.InvokeAsync(() =>
+                            {
+                                var status = new AnythingLLMStatus
+                                {
+                                    IsAvailable = true,
+                                    IsStarting = false,
+                                    StatusMessage = "AnythingLLM is ready"
+                                };
+                                AnythingLLMMediator.NotifyStatusUpdated(status);
+                            });
+                        }
+                        else
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[STARTUP] Failed to start AnythingLLM: {message}");
+                            
+                            await Application.Current.Dispatcher.InvokeAsync(() =>
+                            {
+                                var status = new AnythingLLMStatus
+                                {
+                                    IsAvailable = false,
+                                    IsStarting = false,
+                                    StatusMessage = $"Failed to start AnythingLLM: {message}"
+                                };
+                                AnythingLLMMediator.NotifyStatusUpdated(status);
+                            });
+                        }
+                    }
+                    finally
+                    {
+                        // Unsubscribe from status updates
+                        _anythingLLMService.StatusUpdated -= OnAnythingLLMStatusUpdated;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[STARTUP] Error initializing AnythingLLM");
+                
+                await Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    var status = new AnythingLLMStatus
+                    {
+                        IsAvailable = false,
+                        IsStarting = false,
+                        StatusMessage = $"Error: {ex.Message}"
+                    };
+                    AnythingLLMMediator.NotifyStatusUpdated(status);
+                });
+            }
+            finally
+            {
+                lock (_initializationLock)
+                {
+                    _anythingLLMInitializing = false;
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Handles AnythingLLM status updates from mediator to keep MainViewModel properties in sync
+        /// </summary>
+        private void OnAnythingLLMStatusFromMediator(AnythingLLMStatus status)
+        {
+            Application.Current?.Dispatcher.BeginInvoke(() =>
+            {
+                IsAnythingLLMAvailable = status.IsAvailable;
+                IsAnythingLLMStarting = status.IsStarting;
+                AnythingLLMStatusMessage = status.StatusMessage;
+            });
+        }
+        
+        /// <summary>
+        /// Handles real-time status updates from AnythingLLM service during startup
+        /// </summary>
+        private void OnAnythingLLMStatusUpdated(string statusMessage)
+        {
+            Application.Current.Dispatcher.BeginInvoke(() =>
+            {
+                var status = new AnythingLLMStatus
+                {
+                    IsAvailable = false, // Still starting if we're getting status updates
+                    IsStarting = !string.IsNullOrEmpty(statusMessage) && 
+                               statusMessage != "AnythingLLM — connected" && 
+                               statusMessage != "AnythingLLM — disconnected",
+                    StatusMessage = statusMessage
+                };
+                AnythingLLMMediator.NotifyStatusUpdated(status);
+            });
         }
 
         private void _requirement_service_guard(IRequirementService requirementService, IPersistenceService persistence, WorkspaceHeaderViewModel workspaceHeaderViewModel, NavigationViewModel navigationViewModel, IFileDialogService fileDialog)
@@ -3669,6 +3861,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             try { if (_requirementsNavigator is IDisposable d) d.Dispose(); } catch { }
             try { if (HeaderViewModel is IDisposable hd) hd.Dispose(); } catch { }
             try { UnwireHeaderSubscriptions(); } catch { }
+
+            try
+            {
+                AnythingLLMMediator.StatusUpdated -= OnAnythingLLMStatusFromMediator;
+            }
+            catch { }
 
             try
             {

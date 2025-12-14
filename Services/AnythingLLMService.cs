@@ -45,6 +45,15 @@ namespace TestCaseEditorApp.Services
         private const int ANYTHINGLM_PORT = 3001;
         private const int STARTUP_TIMEOUT_SECONDS = 60;
         
+        // Global startup coordination to prevent multiple instances from starting simultaneously
+        private static bool _globalStartupInProgress = false;
+        private static readonly object _globalStartupLock = new object();
+        
+        // Rate limiting for service availability checks to reduce log spam
+        private static DateTime _lastAvailabilityCheck = DateTime.MinValue;
+        private static bool _lastAvailabilityResult = false;
+        private static readonly TimeSpan _availabilityCheckCooldown = TimeSpan.FromSeconds(2);
+        
         // Installation detection cache
         private static string? _cachedInstallPath;
         private static string? _cachedShortcutPath;
@@ -700,6 +709,9 @@ namespace TestCaseEditorApp.Services
                 // Wait for service to become available
                 var startTime = DateTime.Now;
                 var timeout = TimeSpan.FromSeconds(STARTUP_TIMEOUT_SECONDS);
+                int pollInterval = 1000; // Start with 1 second
+                int pollIncrement = 500;  // Increase by 500ms each time
+                int maxPollInterval = 3000; // Cap at 3 seconds
                 
                 while (DateTime.Now - startTime < timeout)
                 {
@@ -718,9 +730,24 @@ namespace TestCaseEditorApp.Services
                     }
                     
                     var elapsed = (int)(DateTime.Now - startTime).TotalSeconds;
-                    OnStatusUpdated($"Waiting for AnythingLLM service... ({elapsed}/{STARTUP_TIMEOUT_SECONDS}s)");
+                    if (elapsed <= 10) 
+                    {
+                        // More frequent updates in first 10 seconds
+                        OnStatusUpdated($"Waiting for AnythingLLM service... ({elapsed}/{STARTUP_TIMEOUT_SECONDS}s)");
+                    }
+                    else if (elapsed % 5 == 0) 
+                    {
+                        // Less frequent updates after 10 seconds
+                        OnStatusUpdated($"Waiting for AnythingLLM service... ({elapsed}/{STARTUP_TIMEOUT_SECONDS}s)");
+                    }
                     
-                    await Task.Delay(2000, cancellationToken); // Check every 2 seconds
+                    await Task.Delay(pollInterval, cancellationToken);
+                    
+                    // Gradually increase polling interval for efficiency
+                    if (pollInterval < maxPollInterval)
+                    {
+                        pollInterval = Math.Min(pollInterval + pollIncrement, maxPollInterval);
+                    }
                 }
                 
                 return (false, $"AnythingLLM failed to start within {STARTUP_TIMEOUT_SECONDS} seconds");
@@ -772,12 +799,38 @@ namespace TestCaseEditorApp.Services
                     return (true, "AnythingLLM service is already running and ready");
                 }
                 
-                // If not available, try to start it
-                OnStatusUpdated("AnythingLLM not detected, attempting to start...");
-                return await StartAnythingLLMAsync(cancellationToken);
+                // Global coordination to prevent multiple instances from starting simultaneously
+                lock (_globalStartupLock)
+                {
+                    if (_globalStartupInProgress)
+                    {
+                        OnStatusUpdated("AnythingLLM startup already in progress by another instance");
+                        // Return success assuming the other instance will start it
+                        return (true, "AnythingLLM startup delegated to another instance");
+                    }
+                    _globalStartupInProgress = true;
+                }
+                
+                try
+                {
+                    // If not available, try to start it
+                    OnStatusUpdated("AnythingLLM not detected, attempting to start...");
+                    return await StartAnythingLLMAsync(cancellationToken);
+                }
+                finally
+                {
+                    lock (_globalStartupLock)
+                    {
+                        _globalStartupInProgress = false;
+                    }
+                }
             }
             catch (Exception ex)
             {
+                lock (_globalStartupLock)
+                {
+                    _globalStartupInProgress = false;
+                }
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnythingLLM] Error ensuring service is running");
                 return (false, $"Error ensuring AnythingLLM service: {ex.Message}");
             }
@@ -799,49 +852,42 @@ namespace TestCaseEditorApp.Services
         {
             try
             {
-                // Try multiple endpoints to check if AnythingLLM is available
+                // Simple rate limiting to prevent excessive checks from multiple instances
+                var now = DateTime.Now;
+                if (now - _lastAvailabilityCheck < _availabilityCheckCooldown)
+                {
+                    return _lastAvailabilityResult;
+                }
+                
+                // Prioritize endpoints likely to be faster/more reliable
                 var endpoints = new[]
                 {
-                    $"{_baseUrl}/api/v1/workspaces",        // API v1 endpoint (prioritize if we have API key)
-                    $"{_baseUrl}/v1/workspaces",            // Developer API v1 endpoint  
-                    "http://localhost:3001/api/v1/workspaces", // Local API v1 endpoint
-                    "http://localhost:3001/api/workspaces",  // Desktop AnythingLLM endpoint
-                    "http://localhost:3000/api/workspaces",  // Alternative port
-                    $"{_baseUrl}/api/workspaces"            // Simplified API endpoint
+                    "http://localhost:3001/api/v1/workspaces", // Most likely endpoint for desktop AnythingLLM
+                    $"{_baseUrl}/api/v1/workspaces",          // Use existing base URL first
+                    "http://localhost:3001/api/workspaces",   // Alternative desktop endpoint
+                    "http://localhost:3000/api/v1/workspaces" // Alternative port
                 };
+
+                using var client = new HttpClient();
+                client.Timeout = TimeSpan.FromSeconds(3); // Shorter timeout for faster checks
+                
+                // Always try API key first if we have one
+                if (!string.IsNullOrEmpty(_apiKey))
+                {
+                    client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
+                }
 
                 foreach (var endpoint in endpoints)
                 {
                     try
                     {
-                        using var client = new HttpClient();
-                        client.Timeout = TimeSpan.FromSeconds(5); // Short timeout
-                        
-                        // Always try API key first if we have one, regardless of endpoint
-                        if (!string.IsNullOrEmpty(_apiKey))
-                        {
-                            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
-                        }
-
                         var response = await client.GetAsync(endpoint, cancellationToken);
                         
-                        // Accept successful responses and set the correct base URL
+                        // Accept successful responses
                         if (response.IsSuccessStatusCode)
                         {
-                            // Update base URL based on working endpoint, but prefer API versions
-                            if (endpoint.Contains("/v1/workspaces"))
-                            {
-                                if (endpoint.Contains("localhost:3001"))
-                                {
-                                    _baseUrl = "http://localhost:3001";
-                                }
-                                else if (endpoint.Contains("localhost:3000"))
-                                {
-                                    _baseUrl = "http://localhost:3000";
-                                }
-                                // Keep existing _baseUrl if it's already set to something else
-                            }
-                            else if (endpoint.Contains("localhost:3001"))
+                            // Update base URL based on working endpoint
+                            if (endpoint.Contains("localhost:3001"))
                             {
                                 _baseUrl = "http://localhost:3001";
                             }
@@ -851,6 +897,10 @@ namespace TestCaseEditorApp.Services
                             }
                             
                             TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Service available via {endpoint} (status: {response.StatusCode})");
+                            
+                            // Cache result
+                            _lastAvailabilityCheck = now;
+                            _lastAvailabilityResult = true;
                             return true;
                         }
                         // Accept auth errors as "service available"
@@ -858,6 +908,10 @@ namespace TestCaseEditorApp.Services
                                 response.StatusCode == System.Net.HttpStatusCode.Forbidden)
                         {
                             TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Service available but needs auth via {endpoint}");
+                            
+                            // Cache result
+                            _lastAvailabilityCheck = now;
+                            _lastAvailabilityResult = true;
                             return true;
                         }
                     }
@@ -868,12 +922,16 @@ namespace TestCaseEditorApp.Services
                     }
                     catch (TaskCanceledException)
                     {
-                        // Timeout, try next endpoint
+                        // Timeout, try next endpoint  
                         continue;
                     }
                 }
 
                 TestCaseEditorApp.Services.Logging.Log.Info("[AnythingLLM] Service not available - no endpoints responded");
+                
+                // Cache result
+                _lastAvailabilityCheck = now;
+                _lastAvailabilityResult = false;
                 return false;
             }
             catch (Exception ex)

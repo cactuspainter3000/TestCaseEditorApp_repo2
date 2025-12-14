@@ -23,10 +23,24 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty] private bool hasProjectName = false;
         [ObservableProperty] private bool hasProjectSavePath = false;
         
+        // AnythingLLM status properties
+        [ObservableProperty] private bool isAnythingLLMAvailable;
+        [ObservableProperty] private bool isAnythingLLMStarting;
+        [ObservableProperty] private string anythingLLMStatusMessage = "Initializing AnythingLLM...";
+        
         public NewProjectHeaderViewModel()
         {
+            TestCaseEditorApp.Services.Logging.Log.Info("[NewProjectHeaderVM] Constructor called");
+            
             // Subscribe to workflow state changes via mediator
             ProjectWorkflowMediator.WorkflowStateChanged += OnWorkflowStateChanged;
+            
+            // Subscribe to AnythingLLM status updates via mediator
+            AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusUpdated;
+            
+            // Request current AnythingLLM status since we might have missed initial updates
+            TestCaseEditorApp.Services.Logging.Log.Info("[NewProjectHeaderVM] Requesting current AnythingLLM status");
+            AnythingLLMMediator.RequestCurrentStatus();
         }
         
         private void OnWorkflowStateChanged(ProjectWorkflowState state)
@@ -37,6 +51,23 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             HasSelectedDocument = state.HasSelectedDocument;
             HasProjectName = state.HasProjectName;
             HasProjectSavePath = state.HasProjectSavePath;
+        }
+        
+        /// <summary>
+        /// Handles AnythingLLM status updates from the mediator
+        /// </summary>
+        private void OnAnythingLLMStatusUpdated(AnythingLLMStatus status)
+        {
+            TestCaseEditorApp.Services.Logging.Log.Info($"[NewProjectHeaderVM] Received status update: Available={status.IsAvailable}, Starting={status.IsStarting}, Message={status.StatusMessage}");
+            
+            System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
+            {
+                IsAnythingLLMAvailable = status.IsAvailable;
+                IsAnythingLLMStarting = status.IsStarting;
+                AnythingLLMStatusMessage = status.StatusMessage;
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[NewProjectHeaderVM] Properties updated: Available={IsAnythingLLMAvailable}, Starting={IsAnythingLLMStarting}, Message={AnythingLLMStatusMessage}");
+            });
         }
     }
 }
