@@ -32,13 +32,13 @@
             <!-- Description -->
             <TextBlock Text="Manage your test case projects and workspace settings"
                        FontSize="16"
-                       Foreground="#CCCCCC"
+                       Foreground="{StaticResource Brush.Text.Secondary}"
                        TextAlignment="Center"
                        TextWrapping="Wrap"
                        Margin="0,0,0,20"/>
                        
             <!-- AnythingLLM Status Section -->
-            <Border Background="#2D2D30"
+            <Border Background="{StaticResource Brush.Background.Header}"
                     CornerRadius="6"
                     Padding="20,15"
                     Margin="0,0,0,20"
@@ -53,13 +53,13 @@
                             CornerRadius="4">
                         <Border.Style>
                             <Style TargetType="Border">
-                                <Setter Property="Background" Value="#CC6666"/> <!-- Red -->
+                                <Setter Property="Background" Value="{StaticResource Brush.State.Error}"/> <!-- Red -->
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsAnythingLLMStarting}" Value="True">
                                         <Setter Property="Background" Value="Orange"/> <!-- Orange when starting -->
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding IsAnythingLLMAvailable}" Value="True">
-                                        <Setter Property="Background" Value="#66CC66"/> <!-- Green when connected -->
+                                        <Setter Property="Background" Value="{StaticResource Brush.State.Success}"/> <!-- Green when connected -->
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
@@ -91,13 +91,13 @@
                     <!-- Status Message -->
                     <TextBlock Text="{Binding AnythingLLMStatusMessage}"
                               FontSize="14"
-                              Foreground="#CCCCCC"
+                              Foreground="{StaticResource Brush.Text.Secondary}"
                               VerticalAlignment="Center"/>
                 </StackPanel>
             </Border>
             
             <!-- Project management section -->
-            <Border Background="#333333"
+            <Border Background="{StaticResource Brush.Background.Menu.Selected}"
                     CornerRadius="8"
                     Padding="30"
                     Margin="0,20,0,0">
@@ -109,30 +109,30 @@
                                Margin="0,0,0,20"/>
                     
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <TextBlock Text="•" Foreground="#CCCCCC" Margin="0,0,10,0" VerticalAlignment="Top"/>
+                        <TextBlock Text="•" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,10,0" VerticalAlignment="Top"/>
                         <TextBlock Text="Create and manage test case generation projects"
-                                   Foreground="#CCCCCC"
+                                   Foreground="{StaticResource Brush.Text.Secondary}"
                                    TextWrapping="Wrap"/>
                     </StackPanel>
                     
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <TextBlock Text="•" Foreground="#CCCCCC" Margin="0,0,10,0" VerticalAlignment="Top"/>
+                        <TextBlock Text="•" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,10,0" VerticalAlignment="Top"/>
                         <TextBlock Text="Configure workspace settings and preferences"
-                                   Foreground="#CCCCCC"
+                                   Foreground="{StaticResource Brush.Text.Secondary}"
                                    TextWrapping="Wrap"/>
                     </StackPanel>
                     
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <TextBlock Text="•" Foreground="#CCCCCC" Margin="0,0,10,0" VerticalAlignment="Top"/>
+                        <TextBlock Text="•" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,10,0" VerticalAlignment="Top"/>
                         <TextBlock Text="Set up project-specific templates and configurations"
-                                   Foreground="#CCCCCC"
+                                   Foreground="{StaticResource Brush.Text.Secondary}"
                                    TextWrapping="Wrap"/>
                     </StackPanel>
                     
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="•" Foreground="#CCCCCC" Margin="0,0,10,0" VerticalAlignment="Top"/>
+                        <TextBlock Text="•" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,10,0" VerticalAlignment="Top"/>
                         <TextBlock Text="Export and import project settings"
-                                   Foreground="#CCCCCC"
+                                   Foreground="{StaticResource Brush.Text.Secondary}"
                                    TextWrapping="Wrap"/>
                     </StackPanel>
                 </StackPanel>

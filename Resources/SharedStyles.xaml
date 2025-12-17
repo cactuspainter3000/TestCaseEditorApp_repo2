@@ -32,8 +32,8 @@
     <!-- Small reusable UI building blocks -->
     <Style x:Key="MetaChip" TargetType="Border">
         <Setter Property="CornerRadius" Value="10"/>
-        <Setter Property="Background" Value="#F6F8FB"/>
-        <Setter Property="BorderBrush" Value="#D6DFEF"/>
+        <Setter Property="Background" Value="{StaticResource Brush.Background.Card}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Brush.Border.Subtle}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Margin" Value="0,4,6,0"/>
         <Setter Property="Padding" Value="8,2"/>
@@ -133,7 +133,7 @@
                             <Setter Property="Foreground" Value="DarkOrange"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Foreground" Value="#CC6600"/>
+                            <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.5"/>
@@ -164,7 +164,7 @@
     <!-- Popup and menu styles -->
     <Style x:Key="MenuPopupTextBoxStyle" TargetType="TextBox">
         <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
-        <Setter Property="Background" Value="#333333"/>
+        <Setter Property="Background" Value="{StaticResource Brush.Background.Menu}"/>
         <Setter Property="BorderBrush" Value="{StaticResource Brush.Border.Default}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="6,3"/>
@@ -189,22 +189,22 @@
         </Setter>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="BorderBrush" Value="#666666"/>
+                <Setter Property="BorderBrush" Value="{StaticResource Brush.Border.Hover}"/>
             </Trigger>
             <Trigger Property="IsKeyboardFocused" Value="True">
                 <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent.Primary}"/>
-                <Setter Property="Background" Value="#2b2b2b"/>
+                <Setter Property="Background" Value="{StaticResource Brush.Background.Menu.Hover}"/>
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="Foreground" Value="{StaticResource Brush.Text.Tertiary}"/>
-                <Setter Property="Background" Value="#2b2b2b"/>
+                <Setter Property="Background" Value="{StaticResource Brush.Background.Menu.Hover}"/>
             </Trigger>
         </Style.Triggers>
     </Style>
 
     <Style x:Key="MenuPopupComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
         <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
-        <Setter Property="Background" Value="#333333"/>
+        <Setter Property="Background" Value="{StaticResource Brush.Background.Menu}"/>
         <Setter Property="BorderBrush" Value="{StaticResource Brush.Border.Default}"/>
         <Setter Property="Padding" Value="6,3"/>
     </Style>
