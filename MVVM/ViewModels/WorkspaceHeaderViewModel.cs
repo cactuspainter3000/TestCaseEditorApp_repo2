@@ -53,10 +53,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty] private bool isAnythingLLMAvailable;
         [ObservableProperty] private bool isAnythingLLMStarting;
         [ObservableProperty] private string anythingLLMStatusMessage = "Initializing AnythingLLM...";
+        // RAG workspace status properties
+        [ObservableProperty] private bool isRagInitializing = false;
+        [ObservableProperty] private string ragStatusMessage = "";
+        [ObservableProperty] private string? ragWorkspaceName = null;
+
+        // Computed properties for UI visibility
+        public bool CanInitializeRag => !IsRagInitializing && !string.IsNullOrEmpty(WorkspaceName);
 
         // --- Commands (settable so MainViewModel can wire them) ---
         // Exposed as ICommand to allow wiring from MainViewModel.
         public ICommand? ReAnalyzeCommand { get; set; }
+        public ICommand? InitializeRagCommand { get; set; }
         // Exposed as IRelayCommand to allow wiring RelayCommand / AsyncRelayCommand wrappers from MainViewModel.
         //public IRelayCommand? OpenRequirementsCommand { get; set; }
         //public IRelayCommand? OpenRequirementCommand { get; set; } // alternate name used elsewhere

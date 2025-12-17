@@ -39,6 +39,18 @@
                     Margin="0,0,8,0"
                     Visibility="{Binding CanReAnalyze, Converter={StaticResource BoolToVisibilityConverter}}"/>
             
+            <!-- Initialize RAG button -->
+            <Button Content="Initialize RAG"
+                    Command="{Binding InitializeRagCommand}"
+                    ToolTip="Initialize RAG workspace for enhanced AI analysis"
+                    Padding="12,6"
+                    FontSize="12"
+                    Margin="0,0,8,0"
+                    Background="DarkOrange"
+                    Foreground="White"
+                    BorderThickness="0"
+                    Visibility="{Binding CanInitializeRag, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            
             <!-- AnythingLLM Status Display -->
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
                 <!-- Status indicator dot with spinning animation when starting -->
@@ -111,6 +123,45 @@
                         </Style>
                     </TextBlock.Style>
                 </TextBlock>
+            </StackPanel>
+            
+            <!-- RAG Status Display -->
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0"
+                        Visibility="{Binding IsRagInitializing, Converter={StaticResource BoolToVisibilityConverter}}">
+                <!-- RAG indicator dot with spinning animation -->
+                <Border Width="8" Height="8" 
+                        Margin="0,0,6,0"
+                        VerticalAlignment="Center"
+                        CornerRadius="4"
+                        Background="DarkOrange">
+                    
+                    <!-- Spinning animation for RAG initialization -->
+                    <Border Width="6" Height="6" 
+                            Background="White" 
+                            Opacity="0.8"
+                            CornerRadius="3">
+                        <Border.RenderTransform>
+                            <RotateTransform x:Name="RagSpinnerRotate"/>
+                        </Border.RenderTransform>
+                        <Border.Triggers>
+                            <EventTrigger RoutedEvent="Loaded">
+                                <BeginStoryboard>
+                                    <Storyboard RepeatBehavior="Forever">
+                                        <DoubleAnimation Storyboard.TargetName="RagSpinnerRotate"
+                                                       Storyboard.TargetProperty="Angle"
+                                                       From="0" To="360" Duration="0:0:2"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </Border.Triggers>
+                    </Border>
+                </Border>
+                
+                <!-- RAG status text -->
+                <TextBlock Text="{Binding RagStatusMessage}" 
+                          VerticalAlignment="Center" 
+                          FontSize="12"
+                          Foreground="DarkOrange"/>
             </StackPanel>
             
             <!-- Status message display -->
