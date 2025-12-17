@@ -35,9 +35,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     /// </summary>
     public partial class MainViewModel : ObservableObject, IDisposable, ITestCaseGenerator_Navigator
     {
-        // --- Services / collaborators ---
+        // --- Service Layer ---
+        private readonly IApplicationServices _applicationServices;
+        private readonly IViewModelFactory _viewModelFactory;
+        
+        // --- Services / collaborators (for backwards compatibility) ---
         private readonly IRequirementService _requirementService;
-        private readonly IPersistenceService _persistence = new NoOpPersistenceService();
+        private readonly IPersistenceService _persistence;
         private readonly IFileDialogService _fileDialog;
         private readonly IServiceProvider _services;
 
@@ -503,68 +507,103 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // -------------------------
 
         // Simple constructor for design-time / fallback scenarios.
+        // Design-time constructor
         public MainViewModel()
             : this(
-                  requirementService: new NoOpRequirementService(),
-                  persistence: new NoOpPersistenceService(),
-                  workspaceHeaderViewModel: new WorkspaceHeaderViewModel(),
-                  navigationViewModel: new NavigationViewModel(),
-                  fileDialog: new NoOpFileDialogService(),
-                  toastService: new ToastNotificationService(System.Windows.Threading.Dispatcher.CurrentDispatcher),
-                  notificationService: new NotificationService(new ToastNotificationService(System.Windows.Threading.Dispatcher.CurrentDispatcher)),
-                  services: new SimpleServiceProviderStub(),
-                  logger: null,
-                  requirementsIndexLogger: null)
+                  applicationServices: new ApplicationServices(
+                      requirementService: new NoOpRequirementService(),
+                      persistenceService: new NoOpPersistenceService(),
+                      fileDialogService: new NoOpFileDialogService(),
+                      toastService: new ToastNotificationService(System.Windows.Threading.Dispatcher.CurrentDispatcher),
+                      notificationService: new NotificationService(new ToastNotificationService(System.Windows.Threading.Dispatcher.CurrentDispatcher)),
+                      anythingLLMService: new AnythingLLMService(),
+                      chatGptExportService: new ChatGptExportService()
+                  ),
+                  viewModelFactory: new ViewModelFactory(new ApplicationServices(
+                      requirementService: new NoOpRequirementService(),
+                      persistenceService: new NoOpPersistenceService(),
+                      fileDialogService: new NoOpFileDialogService(),
+                      toastService: new ToastNotificationService(System.Windows.Threading.Dispatcher.CurrentDispatcher),
+                      notificationService: new NotificationService(new ToastNotificationService(System.Windows.Threading.Dispatcher.CurrentDispatcher)),
+                      anythingLLMService: new AnythingLLMService(),
+                      chatGptExportService: new ChatGptExportService()
+                  )),
+                  services: new SimpleServiceProviderStub())
         {
             // parameterless delegates to full constructor (no-op services)
         }
 
         // DI-friendly constructor. logger parameters are optional.
         public MainViewModel(
-            IRequirementService requirementService,
-            IPersistenceService persistence,
-            WorkspaceHeaderViewModel workspaceHeaderViewModel,
-            NavigationViewModel navigationViewModel,
-            IFileDialogService fileDialog,
-            ToastNotificationService toastService,
-            NotificationService notificationService,
-            IServiceProvider? services = null,
-            ILogger<MainViewModel>? logger = null,
-            ILogger<RequirementsIndexViewModel>? requirementsIndexLogger = null)
+            IApplicationServices applicationServices,
+            IViewModelFactory viewModelFactory,
+            IServiceProvider? services = null)
         {
-            // Guard required services
-            _requirement_service_guard(requirementService, persistence, workspaceHeaderViewModel, navigationViewModel, fileDialog);
-
-            _requirementService = requirementService;
-            _persistence = persistence;
-            _workspaceHeaderViewModel = workspaceHeaderViewModel;
-            Navigation = navigationViewModel;
-            _fileDialog = fileDialog;
+            // Store core services
+            _applicationServices = applicationServices ?? throw new ArgumentNullException(nameof(applicationServices));
+            _viewModelFactory = viewModelFactory ?? throw new ArgumentNullException(nameof(viewModelFactory));
             _services = services ?? new SimpleServiceProviderStub();
-            _logger = logger;
-            TitleBar = new TitleBarViewModel();
+            
+            // Extract commonly used services for convenience
+            _requirementService = _applicationServices.RequirementService;
+            _persistence = _applicationServices.PersistenceService;
+            _fileDialog = _applicationServices.FileDialogService;
+            _toastService = _applicationServices.ToastService;
+            _notificationService = _applicationServices.NotificationService;
+            _anythingLLMService = _applicationServices.AnythingLLMService;
+            _chatGptExportService = _applicationServices.ChatGptExportService;
+            _logger = _applicationServices.LoggerFactory?.CreateLogger<MainViewModel>();
 
-            // Use injected services
-            _toastService = toastService ?? throw new ArgumentNullException(nameof(toastService));
-            _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
+            // Create ViewModels through factory
+            _workspaceHeaderViewModel = _viewModelFactory.CreateWorkspaceHeaderViewModel();
+            Navigation = _viewModelFactory.CreateNavigationViewModel();
             
-            // Initialize AnythingLLM service first
-            _anythingLLMService = new AnythingLLMService();
+            TitleBar = new TitleBarViewModel();
             
-            // Initialize import workflow
-            ImportWorkflow = new ImportRequirementsWorkflowViewModel();
+            // Initialize workflows with proper event handling
+            ImportWorkflow = _viewModelFactory.CreateImportWorkflowViewModel();
             ImportWorkflow.WorkflowCompleted += OnImportRequirementsWorkflowCompleted;
             ImportWorkflow.WorkflowCancelled += OnImportRequirementsWorkflowCancelled;
             
-            NewProjectWorkflow = new NewProjectWorkflowViewModel(_anythingLLMService, _toastService);
+            NewProjectWorkflow = _viewModelFactory.CreateNewProjectWorkflowViewModel();
             NewProjectWorkflow.ProjectCreated += OnNewProjectCreated;
             NewProjectWorkflow.ProjectCancelled += OnNewProjectCancelled;
-            
-            // Initialize ChatGPT export service
-            _chatGptExportService = new ChatGptExportService();
 
-            // Initialize header instances
-            _testCaseGeneratorHeader = new TestCaseGenerator_HeaderVM(this) { TitleText = "Test Case Creator" };
+            // Initialize header instances through factory
+            _testCaseGeneratorHeader = _viewModelFactory.CreateTestCaseGeneratorHeaderViewModel(this);
+
+            // Complete initialization as in original constructor
+            if (_testCaseGeneratorHeader != null)
+            {
+                _testCaseGeneratorHeader.RequirementDescription = "DIAG: description visible";
+                _testCaseGeneratorHeader.RequirementMethod = "DIAG: method (string)";
+                // If the VM exposes RequirementMethodEnum and you don't know the enum type,
+                // set it via reflection to the first enum value (best-effort):
+                var prop = _testCaseGeneratorHeader.GetType().GetProperty("RequirementMethodEnum");
+                if (prop != null)
+                {
+                    var enumType = prop.PropertyType;
+                    if (enumType.IsEnum)
+                    {
+                        var first = Enum.GetValues(enumType).GetValue(0);
+                        prop.SetValue(_testCaseGeneratorHeader, first);
+                    }
+                }
+                ActiveHeader = _testCaseGeneratorHeader; // ensure it's visible while debugging
+            }
+
+            // Default active header is workspace header
+            ActiveHeader = _workspaceHeaderViewModel;
+
+            // Wire collection change notifications (preserve the ObservableCollection instance)
+            Requirements.CollectionChanged += RequirementsOnCollectionChanged;
+            _requirementsCollectionHooked = true;
+
+            // Subscribe to AnythingLLM status updates via mediator
+            AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusFromMediator;
+
+            // Initialize auto-save timer
+            InitializeAutoSave();
 
             if (_testCaseGeneratorHeader != null)
             {
@@ -675,6 +714,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             ExportSelectedForChatGptCommand = new RelayCommand(() => ExportSelectedRequirementsForChatGpt());
 
             // Create navigator and pass child logger if available
+            var requirementsIndexLogger = _applicationServices.LoggerFactory?.CreateLogger<RequirementsIndexViewModel>();
             _requirementsNavigator = new RequirementsIndexViewModel(
                 Requirements,
                 () => CurrentRequirement,
