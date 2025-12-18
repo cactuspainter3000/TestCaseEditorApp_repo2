@@ -10,7 +10,7 @@ using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
 using TestFlowStep = TestCaseEditorApp.MVVM.Events.TestFlowStep;
 
-namespace TestCaseEditorApp.MVVM.Mediators
+namespace TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators
 {
     /// <summary>
     /// TestFlow domain mediator that handles the entire "Test Flow Generator" menu section.
@@ -33,8 +33,10 @@ namespace TestCaseEditorApp.MVVM.Mediators
         public TestFlowMediator(
             ILogger<TestFlowMediator> logger,
             IDomainUICoordinator uiCoordinator,
-            ITextGenerationService llmService)
-            : base(logger, uiCoordinator, "Test Flow Generator")
+            ITextGenerationService llmService,
+            PerformanceMonitoringService? performanceMonitor = null,
+            EventReplayService? eventReplay = null)
+            : base(logger, uiCoordinator, "Test Flow Generator", performanceMonitor, eventReplay)
         {
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
 

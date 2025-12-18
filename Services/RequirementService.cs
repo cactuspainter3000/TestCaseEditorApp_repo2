@@ -8,7 +8,7 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
-using TestCaseEditorApp.Import;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.MVVM.Models;
 using VMVerMethod = TestCaseEditorApp.MVVM.Models.VerificationMethod;
 // Alias Word table to avoid confusion with Spreadsheet types

@@ -4,13 +4,14 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
+             xmlns:importconv="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Converters"
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="900"
              Background="#2B2B2B">
     
     <UserControl.Resources>
-        <conv:NullToColorConverter x:Key="NullToColorConverter"/>
-        <conv:InvertBoolToVisConverter x:Key="InvertBoolToVisConverter"/>
+        <importconv:NullToColorConverter x:Key="NullToColorConverter"/>
+        <importconv:InvertBoolToVisConverter x:Key="InvertBoolToVisConverter"/>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
     </UserControl.Resources>
     

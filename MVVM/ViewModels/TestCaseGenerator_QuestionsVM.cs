@@ -12,6 +12,7 @@ using System.Windows;
 using System.Windows.Input;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Services;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services.Prompts;
 

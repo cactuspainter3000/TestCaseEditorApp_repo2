@@ -40,6 +40,8 @@ namespace TestCaseEditorApp.MVVM.Utils
         protected readonly ILogger _logger;
         protected readonly IDomainUICoordinator _uiCoordinator;
         protected readonly string _domainName;
+        protected readonly PerformanceMonitoringService? _performanceMonitor;
+        protected readonly EventReplayService? _eventReplay;
         private bool _isDisposed = false;
         
         // Navigation state common to all mediators
@@ -50,12 +52,16 @@ namespace TestCaseEditorApp.MVVM.Utils
         // Registration state for fail-fast validation
         protected bool _isRegistered = false;
         
-        protected BaseDomainMediator(ILogger logger, IDomainUICoordinator uiCoordinator, string domainName)
+        protected BaseDomainMediator(ILogger logger, IDomainUICoordinator uiCoordinator, string domainName, 
+            PerformanceMonitoringService? performanceMonitor = null, EventReplayService? eventReplay = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _uiCoordinator = uiCoordinator ?? throw new ArgumentNullException(nameof(uiCoordinator));
             _domainName = !string.IsNullOrWhiteSpace(domainName) ? domainName : throw new ArgumentException("Domain name cannot be null or empty", nameof(domainName));
-            _logger.LogDebug("Created {MediatorType}", GetType().Name);
+            _performanceMonitor = performanceMonitor;
+            _eventReplay = eventReplay;
+            _logger.LogDebug("Created {MediatorType} with performance monitoring: {HasPerf}, event replay: {HasReplay}", 
+                GetType().Name, performanceMonitor != null, eventReplay != null);
         }
         
         /// <summary>
@@ -106,12 +112,15 @@ namespace TestCaseEditorApp.MVVM.Utils
         }
         
         /// <summary>
-        /// Publish events within this domain with error handling
+        /// Publish events within this domain with error handling and optional replay recording
         /// </summary>
         protected virtual void PublishEvent<T>(T eventData) where T : class
         {
             ValidateNotDisposed();
             ValidateEventType<T>();
+            
+            // Record event for replay debugging
+            _eventReplay?.RecordEvent(eventData, _domainName, GetType().Name);
             
             var eventType = typeof(T);
             if (_subscriptions.ContainsKey(eventType))
@@ -324,6 +333,14 @@ namespace TestCaseEditorApp.MVVM.Utils
                 _logger.LogWarning("Event type {EventType} may not belong to domain {DomainType}", 
                     eventType.Name, eventsType.Name);
             }
+        }
+        
+        /// <summary>
+        /// Track performance of an operation with automatic timing
+        /// </summary>
+        protected virtual IDisposable? TrackPerformance(string operationName)
+        {
+            return _performanceMonitor?.StartOperation(operationName, _domainName);
         }
         
         public virtual void Dispose()

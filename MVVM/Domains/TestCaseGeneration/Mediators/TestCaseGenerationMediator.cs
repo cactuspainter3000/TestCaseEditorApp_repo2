@@ -6,18 +6,18 @@ using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 
-namespace TestCaseEditorApp.MVVM.Mediators
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
 {
     /// <summary>
     /// TestCaseGeneration domain mediator that handles the entire "Test Case Generator" menu section.
     /// Coordinates requirements, assumptions, questions, test case creation, and export workflows
     /// with full UI coordination and cross-domain communication support.
     /// </summary>
-    public class TestCaseGenerationMediator : BaseDomainMediator<TestCaseGenerationEvents>
+    public class TestCaseGenerationMediator : BaseDomainMediator<TestCaseGenerationEvents>, ITestCaseGenerationMediator
     {
         private readonly IRequirementService _requirementService;
         private readonly RequirementAnalysisService _analysisService;
@@ -32,8 +32,10 @@ namespace TestCaseEditorApp.MVVM.Mediators
             IDomainUICoordinator uiCoordinator,
             IRequirementService requirementService,
             RequirementAnalysisService analysisService,
-            ITextGenerationService llmService)
-            : base(logger, uiCoordinator, "Test Case Generator")
+            ITextGenerationService llmService,
+            PerformanceMonitoringService? performanceMonitor = null,
+            EventReplayService? eventReplay = null)
+            : base(logger, uiCoordinator, "Test Case Generator", performanceMonitor, eventReplay)
         {
             _requirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
             _analysisService = analysisService ?? throw new ArgumentNullException(nameof(analysisService));

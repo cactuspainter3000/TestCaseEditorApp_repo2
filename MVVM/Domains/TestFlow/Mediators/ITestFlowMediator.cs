@@ -6,7 +6,7 @@ using TestCaseEditorApp.MVVM.Models;
 using TestFlowStep = TestCaseEditorApp.MVVM.Events.TestFlowStep;
 using TestCaseEditorApp.MVVM.Utils;
 
-namespace TestCaseEditorApp.MVVM.Mediators
+namespace TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators
 {
     /// <summary>
     /// Interface for the Test Flow domain mediator.

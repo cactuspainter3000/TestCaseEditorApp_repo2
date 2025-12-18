@@ -7,7 +7,9 @@ using System.Threading.Tasks;
 using System.Windows;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Views;
-using TestCaseEditorApp.MVVM.Mediators;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
 

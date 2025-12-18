@@ -8,7 +8,9 @@ using TestCaseEditorApp.Services.Prompts;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.ViewModels;
 
-namespace TestCaseEditorApp.Services
+using TestCaseEditorApp.Services;
+
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
 {
     public static class ClarifyingQuestionService
     {

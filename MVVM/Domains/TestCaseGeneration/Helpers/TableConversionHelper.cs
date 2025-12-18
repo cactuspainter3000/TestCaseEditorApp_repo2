@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using EditableDataControl.ViewModels;
 
-namespace TestCaseEditorApp.Helpers
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Helpers
 {
     /// <summary>
     /// Lightweight helpers for cloning and normalizing editable table data

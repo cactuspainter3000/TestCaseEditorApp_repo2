@@ -9,7 +9,7 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Prompts;
 using TestCaseEditorApp.Services.Prompts;
 
-namespace TestCaseEditorApp.Services
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
 {
     /// <summary>
     /// Service for analyzing requirement quality using LLM.

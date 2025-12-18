@@ -4,7 +4,7 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
 
-namespace TestCaseEditorApp.Converters
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Converters
 {
     /// <summary>
     /// Converter that returns different colors based on whether a value is null/empty.

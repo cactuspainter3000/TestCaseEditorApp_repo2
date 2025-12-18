@@ -5,7 +5,7 @@ using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
 
-namespace TestCaseEditorApp.MVVM.Mediators
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
 {
     /// <summary>
     /// Interface for the Test Case Generation domain mediator.
