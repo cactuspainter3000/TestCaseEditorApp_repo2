@@ -7,7 +7,9 @@ using System.Threading.Tasks;
 using System.Windows;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Views;
+using TestCaseEditorApp.MVVM.Mediators;
 using TestCaseEditorApp.Services;
+using TestCaseEditorApp.Services.Prompts;
 
 namespace TestCaseEditorApp
 {
@@ -65,6 +67,13 @@ namespace TestCaseEditorApp
                     // Domain UI coordination
                     services.AddSingleton<IDomainUICoordinator, DomainUICoordinator>();
 
+                    // LLM services (shared infrastructure)
+                    services.AddSingleton<ITextGenerationService>(_ => LlmFactory.Create());
+                    services.AddSingleton<RequirementAnalysisService>();
+
+                    // Domain mediators
+                    services.AddSingleton<ITestCaseGenerationMediator, TestCaseGenerationMediator>();
+
                     // ViewModels and header VM
                     services.AddTransient<TestCaseGenerator_VM>();
                     services.AddSingleton<WorkspaceHeaderViewModel>(); // workspace header shared instance
@@ -81,6 +90,10 @@ namespace TestCaseEditorApp
             try
             {
                 await _host.StartAsync();
+                
+                // Mark domain mediators as registered for fail-fast validation
+                var testCaseGenMediator = _host.Services.GetRequiredService<ITestCaseGenerationMediator>();
+                testCaseGenMediator.MarkAsRegistered();
             }
             catch (Exception ex)
             {

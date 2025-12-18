@@ -50,9 +50,10 @@ namespace TestCaseEditorApp.MVVM.Mediators
         /// </summary>
         bool IsRegistered { get; }
         
-        // ===== NAVIGATION & WORKFLOW =====
-        
         /// <summary>
+        /// Mark this mediator as registered and ready for use (called by DI container)
+        /// </summary>
+        void MarkAsRegistered();
         /// Navigate to the initial step of TestCaseGeneration workflow
         /// </summary>
         void NavigateToInitialStep();
