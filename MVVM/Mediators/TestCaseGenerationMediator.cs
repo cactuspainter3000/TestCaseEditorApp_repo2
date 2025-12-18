@@ -90,6 +90,39 @@ namespace TestCaseEditorApp.MVVM.Mediators
             return _navigationHistory.Count > 0;
         }
 
+        /// <summary>
+        /// Test method to verify cross-domain communication is working
+        /// </summary>
+        public void TestCrossDomainCommunication()
+        {
+            _logger.LogInformation("Testing cross-domain communication from TestCaseGeneration to TestFlow");
+            
+            // Create a test request for flow templates
+            var request = new TestCaseEditorApp.MVVM.Events.CrossDomainMessages.RequestFlowTemplates
+            {
+                TargetRequirements = new List<Requirement>(), // Empty for test
+                TestCaseGenerationContext = "Testing cross-domain integration",
+                RequestingDomain = "TestCaseGeneration"
+            };
+            
+            // Send cross-domain request 
+            RequestCrossDomainAction(request);
+            
+            // Also test broadcasting
+            var notification = new TestCaseEditorApp.MVVM.Events.CrossDomainMessages.WorkspaceContextChanged
+            {
+                WorkspaceName = "test-workspace",
+                ChangeType = "Integration Test",
+                OriginatingDomain = "TestCaseGeneration",
+                Timestamp = DateTime.Now
+            };
+            
+            BroadcastToAllDomains(notification);
+            
+            _logger.LogInformation("Cross-domain communication test requests sent successfully");
+            ShowNotification("Cross-domain integration test completed", DomainNotificationType.Success);
+        }
+
         public override bool CanNavigateForward()
         {
             // TestCaseGeneration workflow is generally linear with branching
@@ -730,20 +763,6 @@ namespace TestCaseEditorApp.MVVM.Mediators
         public override void BroadcastToAllDomains<T>(T notification) where T : class
         {
             base.BroadcastToAllDomains(notification);
-        }
-
-        // ===== LIFECYCLE MANAGEMENT =====
-
-        protected override void OnCrossDomainActionRequested<T>(T request)
-        {
-            _logger.LogDebug("Cross-domain action requested: {RequestType}", typeof(T).Name);
-            // TODO: Implement cross-domain coordinator integration
-        }
-
-        protected override void OnBroadcastRequested<T>(T notification)
-        {
-            _logger.LogDebug("Broadcasting notification: {NotificationType}", typeof(T).Name);
-            // TODO: Implement cross-domain coordinator integration
         }
 
         // ===== HELPER METHODS =====

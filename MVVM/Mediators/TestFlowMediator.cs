@@ -797,18 +797,6 @@ namespace TestCaseEditorApp.MVVM.Mediators
             base.BroadcastToAllDomains(notification);
         }
 
-        protected override void OnCrossDomainActionRequested<T>(T request)
-        {
-            _logger.LogDebug("Cross-domain action requested: {RequestType}", typeof(T).Name);
-            // TODO: Implement cross-domain coordinator integration
-        }
-
-        protected override void OnBroadcastRequested<T>(T notification)
-        {
-            _logger.LogDebug("Broadcasting notification: {NotificationType}", typeof(T).Name);
-            // TODO: Implement cross-domain coordinator integration
-        }
-
         // ===== HELPER METHODS =====
 
         private void InitializeTemplates()
