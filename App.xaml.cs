@@ -73,6 +73,7 @@ namespace TestCaseEditorApp
 
                     // Domain mediators
                     services.AddSingleton<ITestCaseGenerationMediator, TestCaseGenerationMediator>();
+                    services.AddSingleton<ITestFlowMediator, TestFlowMediator>();
 
                     // ViewModels and header VM
                     services.AddTransient<TestCaseGenerator_VM>();
@@ -94,6 +95,9 @@ namespace TestCaseEditorApp
                 // Mark domain mediators as registered for fail-fast validation
                 var testCaseGenMediator = _host.Services.GetRequiredService<ITestCaseGenerationMediator>();
                 testCaseGenMediator.MarkAsRegistered();
+                
+                var testFlowMediator = _host.Services.GetRequiredService<ITestFlowMediator>();
+                testFlowMediator.MarkAsRegistered();
             }
             catch (Exception ex)
             {
