@@ -34,6 +34,7 @@
 **Before implementing any feature, refactoring, or architectural change, verify:**
 
 - [ ] **Domain Alignment**: Does this belong in TestCaseGeneration, TestFlow, or Shared layer?
+- [ ] **File Organization**: Is this in the correct folder (domain-specific vs shared)?
 - [ ] **Fail-Fast Compliance**: Will architectural violations be caught at startup/construction time?
 - [ ] **Mediator Pattern**: Are ViewModels using domain mediators for communication?
 - [ ] **Shared Services**: Is this using shared infrastructure appropriately (not duplicating)?
@@ -92,7 +93,110 @@
 
 ---
 
-## 🔧 Required Implementation Patterns
+## � Code Organization Patterns
+
+### **Domain-Specific Components**
+
+Domain-specific logic should be **co-located** with the domain that owns it:
+
+```
+MVVM/
+  Domains/
+    TestCaseGeneration/
+      Mediators/TestCaseGenerationMediator.cs
+      ViewModels/RequirementsViewModel.cs, TestCaseGeneratorViewModel.cs
+      Services/RequirementAnalysisService.cs, ClarifyingQuestionService.cs
+      Helpers/RequirementImportHelper.cs, TableConversionHelper.cs
+      Converters/ImportWorkflowConverters.cs
+      Events/TestCaseGenerationEvents.cs
+    TestFlow/
+      Mediators/TestFlowMediator.cs
+      ViewModels/TestFlowViewModel.cs
+      Services/TestFlowValidationService.cs
+      Helpers/FlowDiagramHelper.cs
+      Events/TestFlowEvents.cs
+```
+
+### **Shared Infrastructure**
+
+Cross-cutting concerns stay in **root folders** for easy discovery:
+
+```
+Services/           # Shared services used by multiple domains
+  ITextGenerationService.cs, LlmFactory.cs
+  NotificationService.cs, WorkspaceService.cs
+  IDomainUICoordinator.cs, DomainUICoordinator.cs
+
+Converters/         # Generic UI converters (not domain-specific)
+  BoolToAngleConverter.cs, RelativeTimeConverter.cs
+
+Helpers/            # Generic utilities (not domain-specific)
+  FileNameHelper.cs, DialogHelper.cs
+  
+MVVM/
+  Models/           # Shared domain entities
+    Requirement.cs, TestCase.cs, Workspace.cs
+  Utils/            # MVVM infrastructure
+    BaseDomainMediator.cs, BaseDomainViewModel.cs
+```
+
+### **Migration Strategy**
+
+**Current State → Target State:**
+
+1. **Services/RequirementAnalysisService.cs** → `MVVM/Domains/TestCaseGeneration/Services/`
+2. **Services/ClarifyingQuestionService.cs** → `MVVM/Domains/TestCaseGeneration/Services/`
+3. **Helpers/TableConversionHelper.cs** → `MVVM/Domains/TestCaseGeneration/Helpers/`
+4. **Converters/ImportWorkflowConverters.cs** → `MVVM/Domains/TestCaseGeneration/Converters/`
+5. **Import/** folder contents → `MVVM/Domains/TestCaseGeneration/Services/` (rename files appropriately)
+
+**What Stays in Root:**
+- Generic services: NotificationService, WorkspaceService, LlmFactory
+- Generic helpers: FileNameHelper, DialogHelper  
+- Generic converters: BoolToAngleConverter, RelativeTimeConverter
+### **Decision Criteria: Domain-Specific vs Shared**
+
+**Move to Domain Folder If:**
+- ✅ Contains business logic specific to one domain (Requirements, TestCases, etc.)
+- ✅ References domain-specific models or concepts
+- ✅ Used primarily by one domain's ViewModels/Mediators
+- ✅ Contains domain-specific validation or processing rules
+
+**Keep in Shared Folder If:**
+- ✅ Pure utility function with no domain knowledge
+- ✅ Used by multiple domains equally
+- ✅ Infrastructure concern (logging, persistence, UI coordination)
+- ✅ Generic conversion or helper logic
+
+**Examples:**
+```csharp
+// ✅ Domain-specific → TestCaseGeneration/Services/
+public class RequirementAnalysisService 
+{
+    // Contains requirement-specific quality analysis logic
+}
+
+// ✅ Shared → Services/
+public class NotificationService 
+{
+    // Generic notification infrastructure
+}
+
+// ✅ Domain-specific → TestCaseGeneration/Helpers/
+public static class TableConversionHelper
+{
+    // Converts requirement tables to specific formats
+}
+
+// ✅ Shared → Helpers/
+public static class FileNameHelper
+{
+    // Generic file name sanitization
+}
+```
+---
+
+## �🔧 Required Implementation Patterns
 
 ### **ViewModel Creation**
 ```csharp
@@ -170,6 +274,8 @@ public SomeService(ITextGenerationService llmService, ILogger<SomeService> logge
 - Domain-specific code in shared services
 - Shared models containing domain-specific business logic
 - Cross-domain communication without explicit contracts
+- **Domain-specific helpers/services/converters in shared folders**
+- **Shared utilities in domain folders**
 
 ### **Communication Anti-Patterns**
 - Direct ViewModel-to-ViewModel communication
