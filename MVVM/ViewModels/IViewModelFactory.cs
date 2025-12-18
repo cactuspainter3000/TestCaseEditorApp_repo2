@@ -1,4 +1,5 @@
 using TestCaseEditorApp.Services;
+using TestCaseEditorApp.MVVM.Utils;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -8,8 +9,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     /// </summary>
     public interface IViewModelFactory
     {
-        // UI Area ViewModels
+        // Navigation Infrastructure
+        INavigationMediator CreateNavigationMediator();
         IViewAreaCoordinator CreateViewAreaCoordinator();
+        
+        // Content ViewModels
+        object CreateProjectViewModel();
+        object CreateRequirementsViewModel();
+        PlaceholderViewModel CreatePlaceholderViewModel();
         
         // Legacy ViewModels (for backwards compatibility)
         WorkspaceHeaderViewModel CreateWorkspaceHeaderViewModel();

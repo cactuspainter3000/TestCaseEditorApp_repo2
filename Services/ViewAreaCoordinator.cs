@@ -1,91 +1,182 @@
 using System;
 using TestCaseEditorApp.MVVM.ViewModels;
+using TestCaseEditorApp.MVVM.Utils;
 
 namespace TestCaseEditorApp.Services
 {
     /// <summary>
-    /// Default implementation of view area coordination.
-    /// Manages the interaction between side menu, header, and workspace content areas.
+    /// Coordinates view areas using mediator pattern to eliminate circular dependencies.
+    /// REPLACES the 4 competing navigation systems in MainViewModel.
     /// </summary>
     public class ViewAreaCoordinator : IViewAreaCoordinator
     {
         private readonly IViewModelFactory _viewModelFactory;
-        private string _currentSection = "Project";
+        private readonly INavigationMediator _navigationMediator;
 
         public SideMenuViewModel SideMenu { get; }
         public HeaderAreaViewModel HeaderArea { get; }
         public WorkspaceContentViewModel WorkspaceContent { get; }
+        public INavigationMediator NavigationMediator => _navigationMediator;
         
-        public string CurrentSection => _currentSection;
-        public event Action<string>? SectionChanged;
+        // ViewModels for reuse
+        private WorkspaceHeaderViewModel? _workspaceHeader;
+        private TestCaseGenerator_HeaderVM? _testCaseGeneratorHeader;
+        private object? _projectContent;
+        private object? _requirementsContent;
 
-        public ViewAreaCoordinator(IViewModelFactory viewModelFactory)
+        public ViewAreaCoordinator(IViewModelFactory viewModelFactory, INavigationMediator navigationMediator)
         {
             _viewModelFactory = viewModelFactory ?? throw new ArgumentNullException(nameof(viewModelFactory));
+            _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
             
             // Initialize UI area view models
             SideMenu = new SideMenuViewModel();
             HeaderArea = new HeaderAreaViewModel();
             WorkspaceContent = new WorkspaceContentViewModel();
 
-            // Wire up side menu selection changes
-            SideMenu.SectionChanged += OnSideMenuSelectionChanged;
+            // Subscribe to navigation events
+            SetupNavigationHandlers();
         }
-
-        public void NavigateToProject()
+        
+        private void SetupNavigationHandlers()
         {
-            ChangeSection("Project");
-            // TODO: Set appropriate header and content for Project
-        }
-
-        public void NavigateToRequirements()
-        {
-            ChangeSection("Requirements");
-            // TODO: Set appropriate header and content for Requirements
-        }
-
-        public void NavigateToTestCaseGenerator()
-        {
-            ChangeSection("TestCases");
-            // TODO: Set test case generator header and content
-        }
-
-        public void NavigateToTestFlow()
-        {
-            ChangeSection("TestFlow");
-            // TODO: Set test flow header and content
-        }
-
-        public void NavigateToImport()
-        {
-            ChangeSection("Import");
-            // TODO: Set import workflow header and content
-        }
-
-        public void NavigateToNewProject()
-        {
-            ChangeSection("NewProject");
-            // TODO: Set new project workflow header and content
-        }
-
-        private void OnSideMenuSelectionChanged(string? selectedSection)
-        {
-            if (!string.IsNullOrEmpty(selectedSection))
+            // Subscribe to navigation mediator events
+            _navigationMediator.Subscribe<NavigationEvents.SectionChangeRequested>(OnSectionChangeRequested);
+            _navigationMediator.Subscribe<NavigationEvents.StepChangeRequested>(OnStepChangeRequested);
+            
+            // Wire up side menu selection to mediator
+            SideMenu.SectionChanged += (section) => 
             {
-                ChangeSection(selectedSection);
+                if (!string.IsNullOrEmpty(section))
+                {
+                    _navigationMediator.NavigateToSection(section);
+                }
+            };
+        }
+        
+        private void OnSectionChangeRequested(NavigationEvents.SectionChangeRequested request)
+        {
+            // Update side menu selection
+            SideMenu.SelectedSection = request.SectionName;
+            
+            // Route to appropriate handler based on section
+            switch (request.SectionName?.ToLowerInvariant())
+            {
+                case "project": HandleProjectNavigation(request.Context); break;
+                case "requirements": HandleRequirementsNavigation(request.Context); break;
+                case "testcase": 
+                case "test case creator": HandleTestCaseGeneratorNavigation(request.Context); break;
+                case "testflow": HandleTestFlowNavigation(request.Context); break;
+                case "import": HandleImportNavigation(request.Context); break;
+                case "newproject": HandleNewProjectNavigation(request.Context); break;
+                default: HandleDefaultNavigation(request.Context); break;
+            }
+        }
+        
+        private void OnStepChangeRequested(NavigationEvents.StepChangeRequested request)
+        {
+            // Handle step navigation within current section
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Step change requested: {request.StepId}");
+        }
+        
+        // Public navigation methods (implement IViewAreaCoordinator)
+        public void NavigateToProject() => _navigationMediator.NavigateToSection("Project");
+        public void NavigateToRequirements() => _navigationMediator.NavigateToSection("Requirements");
+        public void NavigateToTestCaseGenerator() => _navigationMediator.NavigateToSection("TestCase");
+        public void NavigateToTestFlow() => _navigationMediator.NavigateToSection("TestFlow");
+        public void NavigateToImport() => _navigationMediator.NavigateToSection("Import");
+        public void NavigateToNewProject() => _navigationMediator.NavigateToSection("NewProject");
+        
+        // Private navigation handlers
+        private void HandleProjectNavigation(object? context)
+        {
+            EnsureWorkspaceHeader();
+            _navigationMediator.SetActiveHeader(_workspaceHeader);
+            
+            // Show project content
+            if (_projectContent == null)
+            {
+                _projectContent = _viewModelFactory.CreateProjectViewModel();
+            }
+            _navigationMediator.SetMainContent(_projectContent);
+        }
+
+        private void HandleRequirementsNavigation(object? context)
+        {
+            EnsureWorkspaceHeader();
+            _navigationMediator.SetActiveHeader(_workspaceHeader);
+            
+            // Show requirements content
+            if (_requirementsContent == null)
+            {
+                _requirementsContent = _viewModelFactory.CreateRequirementsViewModel();
+            }
+            _navigationMediator.SetMainContent(_requirementsContent);
+        }
+
+        private void HandleTestCaseGeneratorNavigation(object? context)
+        {
+            EnsureTestCaseGeneratorHeader();
+            _navigationMediator.SetActiveHeader(_testCaseGeneratorHeader);
+            
+            // Show test case generator workflow
+            var testCaseWorkflow = _viewModelFactory.CreatePlaceholderViewModel();
+            _navigationMediator.SetMainContent(testCaseWorkflow);
+        }
+
+        private void HandleTestFlowNavigation(object? context)
+        {
+            EnsureWorkspaceHeader();
+            _navigationMediator.SetActiveHeader(_workspaceHeader);
+            
+            // Show test flow workflow
+            var testFlowWorkflow = _viewModelFactory.CreatePlaceholderViewModel();
+            _navigationMediator.SetMainContent(testFlowWorkflow);
+        }
+
+        private void HandleImportNavigation(object? context)
+        {
+            EnsureWorkspaceHeader();
+            _navigationMediator.SetActiveHeader(_workspaceHeader);
+            
+            // Show import workflow
+            var importWorkflow = _viewModelFactory.CreateImportWorkflowViewModel();
+            _navigationMediator.SetMainContent(importWorkflow);
+        }
+
+        private void HandleNewProjectNavigation(object? context)
+        {
+            EnsureWorkspaceHeader();
+            _navigationMediator.SetActiveHeader(_workspaceHeader);
+            
+            // Show new project workflow  
+            var newProjectWorkflow = _viewModelFactory.CreateNewProjectWorkflowViewModel();
+            _navigationMediator.SetMainContent(newProjectWorkflow);
+        }
+        
+        private void HandleDefaultNavigation(object? context)
+        {
+            EnsureWorkspaceHeader();
+            _navigationMediator.SetActiveHeader(_workspaceHeader);
+            
+            var placeholder = _viewModelFactory.CreatePlaceholderViewModel();
+            _navigationMediator.SetMainContent(placeholder);
+        }
+
+        private void EnsureWorkspaceHeader()
+        {
+            if (_workspaceHeader == null)
+            {
+                _workspaceHeader = _viewModelFactory.CreateWorkspaceHeaderViewModel();
             }
         }
 
-        private void ChangeSection(string newSection)
+        private void EnsureTestCaseGeneratorHeader()
         {
-            if (_currentSection != newSection)
+            if (_testCaseGeneratorHeader == null)
             {
-                _currentSection = newSection;
-                SideMenu.SelectedSection = newSection;
-                SectionChanged?.Invoke(newSection);
-                
-                // Log section change for debugging
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Section changed to: {newSection}");
+                // TODO: Need to pass proper navigator - for now use null
+                _testCaseGeneratorHeader = _viewModelFactory.CreateTestCaseGeneratorHeaderViewModel(null!);
             }
         }
     }

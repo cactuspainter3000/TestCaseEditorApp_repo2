@@ -39,6 +39,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly IApplicationServices _applicationServices;
         private readonly IViewModelFactory _viewModelFactory;
         
+        // --- NEW: Unified Navigation System ---
+        private readonly IViewAreaCoordinator _viewAreaCoordinator;
+        
         // --- Services / collaborators (for backwards compatibility) ---
         private readonly IRequirementService _requirementService;
         private readonly IPersistenceService _persistence;
@@ -70,12 +73,26 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public TestCaseGenerator_QuestionsVM? QuestionsViewModel => _questionsViewModel;
         public TestCaseGenerator_AssumptionsVM? AssumptionsViewModel => _assumptionsViewModel;
 
+        // === UNIFIED NAVIGATION SYSTEM ===
+        // Replace competing navigation properties with ViewAreaCoordinator
+        public IViewAreaCoordinator ViewAreaCoordinator => _viewAreaCoordinator;
+        public INavigationMediator NavigationMediator => _viewAreaCoordinator.NavigationMediator;
+        
+        // LEGACY NAVIGATION SUPPORT (for gradual migration)
+        // These delegate to unified system but maintain compatibility
+        
         // Active header slot: the UI binds to ActiveHeader (ContentControl Content="{Binding ActiveHeader}")
-        private object? _activeHeader;
         public object? ActiveHeader
         {
-            get => _activeHeader;
-            private set => SetProperty(ref _activeHeader, value);
+            get => _viewAreaCoordinator.NavigationMediator.CurrentHeader;
+            private set => _viewAreaCoordinator.NavigationMediator.SetActiveHeader(value);
+        }
+
+        // CurrentStepViewModel - main content area (UNIFIED via mediator)
+        public object? CurrentStepViewModel
+        {
+            get => _viewAreaCoordinator.NavigationMediator.CurrentContent;
+            set => _viewAreaCoordinator.NavigationMediator.SetMainContent(value);
         }
 
         // Backwards-compatible alias used in some places in the codebase
@@ -421,15 +438,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand GenerateAnalysisCommandCommand { get; private set; }
         public ICommand GenerateTestCaseCommandCommand { get; private set; }
 
-        // Selected menu section (was referenced in UI/logic)
-        private string? _selectedMenuSection;
+        // Selected menu section - UNIFIED: delegates to NavigationMediator
         public string? SelectedMenuSection
         {
-            get => _selectedMenuSection;
+            get => _viewAreaCoordinator.NavigationMediator.CurrentSection;
             set
             {
-                if (SetProperty(ref _selectedMenuSection, value))
+                if (_viewAreaCoordinator.NavigationMediator.CurrentSection != value)
                 {
+                    _viewAreaCoordinator.NavigationMediator.NavigateToSection(value ?? "");
+                    OnPropertyChanged(); // Maintain legacy binding compatibility
+                    // TODO: Remove OnSelectedMenuSectionChanged after migration complete
                     OnSelectedMenuSectionChanged(value);
                 }
             }
@@ -544,6 +563,16 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _viewModelFactory = viewModelFactory ?? throw new ArgumentNullException(nameof(viewModelFactory));
             _services = services ?? new SimpleServiceProviderStub();
             
+            // Initialize unified navigation system
+            _viewAreaCoordinator = _viewModelFactory.CreateViewAreaCoordinator();
+            
+            // Subscribe to navigation mediator events to update legacy properties
+            _viewAreaCoordinator.NavigationMediator.Subscribe<NavigationEvents.HeaderChanged>(e => OnPropertyChanged(nameof(ActiveHeader)));
+            _viewAreaCoordinator.NavigationMediator.Subscribe<NavigationEvents.ContentChanged>(e => OnPropertyChanged(nameof(CurrentStepViewModel)));
+            _viewAreaCoordinator.NavigationMediator.Subscribe<NavigationEvents.SectionChanged>(e => OnPropertyChanged(nameof(SelectedMenuSection)));
+            
+            // Subscribe to ViewAreaCoordinator changes to forward property notifications for UI binding
+            
             // Extract commonly used services for convenience
             _requirementService = _applicationServices.RequirementService;
             _persistence = _applicationServices.PersistenceService;
@@ -554,8 +583,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _chatGptExportService = _applicationServices.ChatGptExportService;
             _logger = _applicationServices.LoggerFactory?.CreateLogger<MainViewModel>();
 
-            // Create ViewModels through factory
-            _workspaceHeaderViewModel = _viewModelFactory.CreateWorkspaceHeaderViewModel();
+            // LEGACY: Create ViewModels through factory for backward compatibility
+            _workspaceHeaderViewModel = _viewAreaCoordinator.HeaderArea.ActiveHeader as WorkspaceHeaderViewModel ?? 
+                                       _viewModelFactory.CreateWorkspaceHeaderViewModel();
             Navigation = _viewModelFactory.CreateNavigationViewModel();
             
             TitleBar = new TitleBarViewModel();
@@ -1141,14 +1171,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     CurrentStepViewModel = InitialStateViewModel;
                 }
             }
-        }
-
-        // CurrentStepViewModel explicit backing
-        private object? _currentStepViewModel;
-        public object? CurrentStepViewModel
-        {
-            get => _currentStepViewModel;
-            set => SetProperty(ref _currentStepViewModel, value);
         }
 
         // Initial state view model for when no content is loaded
@@ -3996,6 +4018,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private class NoOpFileDialogService : IFileDialogService
         {
             public string? ShowSaveFile(string title, string suggestedFileName, string filter, string defaultExt, string? initialDirectory = null) => null;
+            public string? ShowOpenFile(string title, string filter, string? initialDirectory = null) => null;
+            public string? ShowFolderDialog(string title, string? initialDirectory = null) => null;
         }
 
         // Dispose/unsubscribe

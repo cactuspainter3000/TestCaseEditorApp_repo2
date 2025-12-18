@@ -7,6 +7,12 @@ namespace TestCaseEditorApp.Services
     {
         /// <summary>Shows a Save dialog and returns the chosen full path, or null if cancelled.</summary>
         string? ShowSaveFile(string title, string suggestedFileName, string filter, string defaultExt, string? initialDirectory = null);
+        
+        /// <summary>Shows an Open dialog and returns the chosen full path, or null if cancelled.</summary>
+        string? ShowOpenFile(string title, string filter, string? initialDirectory = null);
+        
+        /// <summary>Shows a Folder dialog and returns the chosen folder path, or null if cancelled.</summary>
+        string? ShowFolderDialog(string title, string? initialDirectory = null);
     }
 
     public sealed class FileDialogService : IFileDialogService
@@ -25,6 +31,29 @@ namespace TestCaseEditorApp.Services
                 InitialDirectory = initialDirectory ?? string.Empty
             };
             return dlg.ShowDialog() == true ? dlg.FileName : null;
+        }
+        
+        public string? ShowOpenFile(string title, string filter, string? initialDirectory = null)
+        {
+            var dlg = new OpenFileDialog
+            {
+                Title = title,
+                Filter = filter,
+                Multiselect = false,
+                RestoreDirectory = true,
+                InitialDirectory = initialDirectory ?? string.Empty
+            };
+            return dlg.ShowDialog() == true ? dlg.FileName : null;
+        }
+        
+        public string? ShowFolderDialog(string title, string? initialDirectory = null)
+        {
+            var dlg = new Microsoft.Win32.OpenFolderDialog
+            {
+                Title = title,
+                InitialDirectory = initialDirectory ?? string.Empty
+            };
+            return dlg.ShowDialog() == true ? dlg.FolderName : null;
         }
     }
 }

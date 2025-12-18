@@ -87,7 +87,10 @@ To improve AnythingLLM's JSON response consistency, consider adding these exampl
 {
   "QualityScore": 8,
   "Issues": [
-    {
+    {0
+    0
+    0
+    
       "Category": "Clarity", 
       "Severity": "Low",
       "Description": "Minor terminology could be more specific"
