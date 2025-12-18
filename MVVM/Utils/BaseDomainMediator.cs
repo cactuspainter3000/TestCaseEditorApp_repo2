@@ -1,0 +1,239 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.Extensions.Logging;
+
+namespace TestCaseEditorApp.MVVM.Utils
+{
+    /// <summary>
+    /// Base class for all domain-specific mediators.
+    /// Provides common functionality for event publishing/subscription, navigation state management,
+    /// and fail-fast validation to prevent architectural violations.
+    /// </summary>
+    public abstract class BaseDomainMediator<TEvents> : IDisposable where TEvents : class
+    {
+        protected readonly Dictionary<Type, List<Delegate>> _subscriptions = new();
+        protected readonly ILogger _logger;
+        private bool _isDisposed = false;
+        
+        // Navigation state common to all mediators
+        protected string? _currentStep;
+        protected object? _currentViewModel;
+        protected readonly Stack<string> _navigationHistory = new();
+        
+        // Registration state for fail-fast validation
+        protected bool _isRegistered = false;
+        
+        protected BaseDomainMediator(ILogger logger)
+        {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _logger.LogDebug("Created {MediatorType}", GetType().Name);
+        }
+        
+        /// <summary>
+        /// Indicates whether this mediator has been properly registered and initialized.
+        /// Used for fail-fast validation in ViewModels.
+        /// </summary>
+        public virtual bool IsRegistered => _isRegistered;
+        
+        /// <summary>
+        /// Current step/view in this domain's workflow
+        /// </summary>
+        public virtual string? CurrentStep => _currentStep;
+        
+        /// <summary>
+        /// Current ViewModel being displayed for this domain
+        /// </summary>
+        public virtual object? CurrentViewModel => _currentViewModel;
+        
+        /// <summary>
+        /// Subscribe to domain-specific events with strong typing
+        /// </summary>
+        public virtual void Subscribe<T>(Action<T> handler) where T : class
+        {
+            ValidateNotDisposed();
+            ValidateEventType<T>();
+            
+            var eventType = typeof(T);
+            if (!_subscriptions.ContainsKey(eventType))
+                _subscriptions[eventType] = new List<Delegate>();
+                
+            _subscriptions[eventType].Add(handler);
+            _logger.LogDebug("Subscribed to {EventType} in {MediatorType}", eventType.Name, GetType().Name);
+        }
+        
+        /// <summary>
+        /// Unsubscribe from domain-specific events
+        /// </summary>
+        public virtual void Unsubscribe<T>(Action<T> handler) where T : class
+        {
+            ValidateNotDisposed();
+            
+            var eventType = typeof(T);
+            if (_subscriptions.ContainsKey(eventType))
+            {
+                _subscriptions[eventType].Remove(handler);
+                _logger.LogDebug("Unsubscribed from {EventType} in {MediatorType}", eventType.Name, GetType().Name);
+            }
+        }
+        
+        /// <summary>
+        /// Publish events within this domain with error handling
+        /// </summary>
+        protected virtual void PublishEvent<T>(T eventData) where T : class
+        {
+            ValidateNotDisposed();
+            ValidateEventType<T>();
+            
+            var eventType = typeof(T);
+            if (_subscriptions.ContainsKey(eventType))
+            {
+                var handlersToNotify = _subscriptions[eventType].ToList(); // Create snapshot
+                
+                foreach (var handler in handlersToNotify.Cast<Action<T>>())
+                {
+                    try
+                    {
+                        handler(eventData);
+                        _logger.LogDebug("Published {EventType} to handler in {MediatorType}", eventType.Name, GetType().Name);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error publishing {EventType} in {MediatorType}", eventType.Name, GetType().Name);
+                        // Continue to other handlers - don't let one failure break everything
+                    }
+                }
+            }
+            else
+            {
+                _logger.LogDebug("No subscribers for {EventType} in {MediatorType}", eventType.Name, GetType().Name);
+            }
+        }
+        
+        /// <summary>
+        /// Navigate to a step within this domain and track history
+        /// </summary>
+        protected virtual void NavigateToStep(string stepName, object? viewModel = null)
+        {
+            ValidateNotDisposed();
+            
+            if (string.IsNullOrWhiteSpace(stepName))
+                throw new ArgumentException("Step name cannot be null or empty", nameof(stepName));
+            
+            // Track navigation history
+            if (!string.IsNullOrEmpty(_currentStep))
+            {
+                _navigationHistory.Push(_currentStep);
+            }
+            
+            var previousStep = _currentStep;
+            _currentStep = stepName;
+            _currentViewModel = viewModel;
+            
+            _logger.LogDebug("Navigated from {PreviousStep} to {CurrentStep} in {MediatorType}", 
+                previousStep ?? "null", _currentStep, GetType().Name);
+        }
+        
+        /// <summary>
+        /// Navigate back to the previous step in this domain
+        /// </summary>
+        public virtual bool TryNavigateBack()
+        {
+            ValidateNotDisposed();
+            
+            if (_navigationHistory.Count > 0)
+            {
+                var previousStep = _navigationHistory.Pop();
+                var currentStep = _currentStep;
+                _currentStep = previousStep;
+                _currentViewModel = null; // Will be recreated by domain logic
+                
+                _logger.LogDebug("Navigated back from {CurrentStep} to {PreviousStep} in {MediatorType}", 
+                    currentStep, _currentStep, GetType().Name);
+                    
+                return true;
+            }
+            
+            return false;
+        }
+        
+        /// <summary>
+        /// Mark this mediator as registered and ready for use
+        /// </summary>
+        public virtual void MarkAsRegistered()
+        {
+            _isRegistered = true;
+            _logger.LogDebug("{MediatorType} marked as registered", GetType().Name);
+        }
+        
+        /// <summary>
+        /// Request cross-domain communication (handled by DomainCoordinator)
+        /// </summary>
+        public virtual void RequestCrossDomainAction<T>(T request) where T : class
+        {
+            ValidateNotDisposed();
+            
+            _logger.LogDebug("Cross-domain request {RequestType} from {MediatorType}", typeof(T).Name, GetType().Name);
+            OnCrossDomainActionRequested(request);
+        }
+        
+        /// <summary>
+        /// Broadcast notification to all domains (handled by DomainCoordinator)
+        /// </summary>
+        public virtual void BroadcastToAllDomains<T>(T notification) where T : class
+        {
+            ValidateNotDisposed();
+            
+            _logger.LogDebug("Broadcasting {NotificationType} from {MediatorType}", typeof(T).Name, GetType().Name);
+            OnBroadcastRequested(notification);
+        }
+        
+        // Abstract methods that domains must implement
+        public abstract void NavigateToInitialStep();
+        public abstract void NavigateToFinalStep();
+        public abstract bool CanNavigateBack();
+        public abstract bool CanNavigateForward();
+        
+        // Virtual methods for cross-domain communication (override in DomainCoordinator)
+        protected virtual void OnCrossDomainActionRequested<T>(T request) where T : class
+        {
+            _logger.LogWarning("Cross-domain action {RequestType} not handled - DomainCoordinator not configured", typeof(T).Name);
+        }
+        
+        protected virtual void OnBroadcastRequested<T>(T notification) where T : class
+        {
+            _logger.LogWarning("Broadcast {NotificationType} not handled - DomainCoordinator not configured", typeof(T).Name);
+        }
+        
+        // Validation methods
+        private void ValidateNotDisposed()
+        {
+            if (_isDisposed)
+                throw new ObjectDisposedException(GetType().Name, "Cannot use disposed mediator");
+        }
+        
+        private void ValidateEventType<T>() where T : class
+        {
+            // Ensure event type belongs to this domain's event namespace
+            var eventType = typeof(T);
+            var eventsType = typeof(TEvents);
+            
+            if (!eventType.FullName?.StartsWith(eventsType.Namespace ?? "") == true)
+            {
+                _logger.LogWarning("Event type {EventType} may not belong to domain {DomainType}", 
+                    eventType.Name, eventsType.Name);
+            }
+        }
+        
+        public virtual void Dispose()
+        {
+            if (!_isDisposed)
+            {
+                _subscriptions.Clear();
+                _navigationHistory.Clear();
+                _isDisposed = true;
+                _logger.LogDebug("Disposed {MediatorType}", GetType().Name);
+            }
+        }
+    }
+}
