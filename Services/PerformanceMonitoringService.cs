@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Text;
 using Microsoft.Extensions.Logging;
 
 namespace TestCaseEditorApp.Services
@@ -52,6 +54,69 @@ namespace TestCaseEditorApp.Services
                     _logger.LogWarning("[PERF] Slow operation detected: {Operation} took {Duration:F2}s in domain {Domain}", 
                         operationName, duration.TotalSeconds, domainContext);
                 }
+            }
+        }
+        
+        /// <summary>
+        /// Get all performance metrics
+        /// </summary>
+        public IReadOnlyList<PerformanceMetric> GetAllMetrics()
+        {
+            lock (_lock)
+            {
+                return _metrics.Values.ToList();
+            }
+        }
+        
+        /// <summary>
+        /// Clear all performance metrics
+        /// </summary>
+        public void ClearAllMetrics()
+        {
+            lock (_lock)
+            {
+                _metrics.Clear();
+                _logger.LogInformation("All performance metrics cleared");
+            }
+        }
+        
+        /// <summary>
+        /// Generate a summary report of performance metrics
+        /// </summary>
+        public string GenerateSummaryReport()
+        {
+            lock (_lock)
+            {
+                var report = new StringBuilder();
+                report.AppendLine("Performance Metrics Summary");
+                report.AppendLine("=" + new string('=', 30));
+                report.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                report.AppendLine();
+                
+                if (_metrics.Count == 0)
+                {
+                    report.AppendLine("No performance metrics recorded.");
+                    return report.ToString();
+                }
+                
+                var totalOps = _metrics.Values.Sum(m => m.TotalExecutions);
+                var avgSuccessRate = _metrics.Values.Average(m => m.SuccessRate) * 100;
+                
+                report.AppendLine($"Total Operations: {totalOps}");
+                report.AppendLine($"Average Success Rate: {avgSuccessRate:F1}%");
+                report.AppendLine();
+                
+                foreach (var metric in _metrics.Values.OrderByDescending(m => m.TotalExecutions))
+                {
+                    report.AppendLine($"{metric.OperationKey}:");
+                    report.AppendLine($"  Executions: {metric.TotalExecutions}");
+                    report.AppendLine($"  Success Rate: {metric.SuccessRate:P1}");
+                    report.AppendLine($"  Avg Duration: {metric.AverageDuration.TotalMilliseconds:F1}ms");
+                    report.AppendLine($"  Min/Max: {metric.MinDuration.TotalMilliseconds:F1}ms / {metric.MaxDuration.TotalMilliseconds:F1}ms");
+                    report.AppendLine();
+                }
+                
+                return report.ToString();
             }
         }
 

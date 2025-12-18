@@ -12,6 +12,8 @@ using TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
+using TestCaseEditorApp.MVVM.Extensions;
+using TestCaseEditorApp.MVVM.Utils;
 
 namespace TestCaseEditorApp
 {
@@ -76,9 +78,38 @@ namespace TestCaseEditorApp
                     // Domain coordination
                     services.AddSingleton<IDomainCoordinator, DomainCoordinator>();
 
-                    // Domain mediators
-                    services.AddSingleton<ITestCaseGenerationMediator, TestCaseGenerationMediator>();
-                    services.AddSingleton<ITestFlowMediator, TestFlowMediator>();
+                    // Extensibility infrastructure (Phase 7)
+                    services.AddSingleton<IServiceDiscovery, ServiceDiscovery>();
+                    services.AddSingleton<ExtensionManager>();
+                    services.AddSingleton<PerformanceMonitoringService>(); // From Phase 6
+                    services.AddSingleton<EventReplayService>(); // From Phase 6
+
+                    // Domain mediators with advanced services integration
+                    services.AddSingleton<ITestCaseGenerationMediator>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<TestCaseGenerationMediator>>();
+                        var uiCoordinator = provider.GetRequiredService<IDomainUICoordinator>();
+                        var requirementService = provider.GetRequiredService<IRequirementService>();
+                        var analysisService = provider.GetRequiredService<RequirementAnalysisService>();
+                        var llmService = provider.GetRequiredService<ITextGenerationService>();
+                        var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
+                        var eventReplay = provider.GetService<EventReplayService>();
+                        
+                        return new TestCaseGenerationMediator(logger, uiCoordinator, requirementService, 
+                            analysisService, llmService, performanceMonitor, eventReplay);
+                    });
+                    
+                    services.AddSingleton<ITestFlowMediator>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<TestFlowMediator>>();
+                        var uiCoordinator = provider.GetRequiredService<IDomainUICoordinator>();
+                        var llmService = provider.GetRequiredService<ITextGenerationService>();
+                        var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
+                        var eventReplay = provider.GetService<EventReplayService>();
+                        
+                        return new TestFlowMediator(logger, uiCoordinator, llmService,
+                            performanceMonitor, eventReplay);
+                    });
 
                     // ViewModels and header VM
                     services.AddTransient<TestCaseGenerator_VM>();
@@ -97,6 +128,28 @@ namespace TestCaseEditorApp
             {
                 await _host.StartAsync();
                 
+                // Initialize extension system (Phase 7)
+                var extensionManager = _host.Services.GetRequiredService<ExtensionManager>();
+                var logger = _host.Services.GetRequiredService<ILogger<App>>();
+                
+                try
+                {
+                    logger.LogInformation("Initializing extension system...");
+                    var discoveryResult = await extensionManager.DiscoverAndLoadExtensionsAsync();
+                    
+                    logger.LogInformation("Extension discovery completed. Loaded: {LoadedCount}, Errors: {ErrorCount}", 
+                        discoveryResult.LoadedExtensions.Count, discoveryResult.Errors.Count);
+                        
+                    foreach (var error in discoveryResult.Errors)
+                    {
+                        logger.LogWarning("Extension error: {Error}", error);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to initialize extension system - continuing with core functionality");
+                }
+                
                 // Mark domain mediators as registered for fail-fast validation
                 var testCaseGenMediator = _host.Services.GetRequiredService<ITestCaseGenerationMediator>();
                 testCaseGenMediator.MarkAsRegistered();
@@ -110,6 +163,21 @@ namespace TestCaseEditorApp
                 
                 domainCoordinator.RegisterDomainMediator("TestCaseGeneration", testCaseGenMediator);
                 domainCoordinator.RegisterDomainMediator("TestFlow", testFlowMediator);
+                
+                // Register any extension-provided domain mediators
+                foreach (var domainExtension in extensionManager.DomainExtensions.Values)
+                {
+                    try
+                    {
+                        var domainMediator = domainExtension.CreateDomainMediator(_host.Services);
+                        domainCoordinator.RegisterDomainMediator(domainExtension.DomainName, domainMediator);
+                        logger.LogInformation("Registered domain mediator for extension: {DomainName}", domainExtension.DomainName);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Failed to register domain mediator for extension: {DomainName}", domainExtension.DomainName);
+                    }
+                }
             }
             catch (Exception ex)
             {
