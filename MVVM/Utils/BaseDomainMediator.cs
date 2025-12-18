@@ -1,17 +1,40 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.Services;
 
 namespace TestCaseEditorApp.MVVM.Utils
 {
     /// <summary>
+    /// Non-generic base class for static domain coordinator management
+    /// </summary>
+    public abstract class BaseDomainMediatorBase
+    {
+        // Domain coordinator for cross-domain communication (optional)
+        private static IDomainCoordinator? _domainCoordinator;
+        
+        /// <summary>
+        /// Set the domain coordinator for all mediators (called during app startup)
+        /// </summary>
+        public static void SetDomainCoordinator(IDomainCoordinator coordinator)
+        {
+            _domainCoordinator = coordinator;
+        }
+        
+        /// <summary>
+        /// Get the current domain coordinator
+        /// </summary>
+        protected static IDomainCoordinator? GetDomainCoordinator() => _domainCoordinator;
+    }
+
+    /// <summary>
     /// Base class for all domain-specific mediators.
     /// Provides common functionality for event publishing/subscription, navigation state management,
     /// and fail-fast validation to prevent architectural violations.
     /// </summary>
-    public abstract class BaseDomainMediator<TEvents> : IDisposable where TEvents : class
+    public abstract class BaseDomainMediator<TEvents> : BaseDomainMediatorBase, IDisposable where TEvents : class
     {
         protected readonly Dictionary<Type, List<Delegate>> _subscriptions = new();
         protected readonly ILogger _logger;
@@ -239,12 +262,48 @@ namespace TestCaseEditorApp.MVVM.Utils
         // Virtual methods for cross-domain communication (override in DomainCoordinator)
         protected virtual void OnCrossDomainActionRequested<T>(T request) where T : class
         {
-            _logger.LogWarning("Cross-domain action {RequestType} not handled - DomainCoordinator not configured", typeof(T).Name);
+            var domainCoordinator = GetDomainCoordinator();
+            if (domainCoordinator != null)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await domainCoordinator.HandleCrossDomainRequestAsync<object>(request, _domainName);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Cross-domain request failed: {RequestType}", typeof(T).Name);
+                    }
+                });
+            }
+            else
+            {
+                _logger.LogWarning("Cross-domain action {RequestType} not handled - DomainCoordinator not configured", typeof(T).Name);
+            }
         }
         
         protected virtual void OnBroadcastRequested<T>(T notification) where T : class
         {
-            _logger.LogWarning("Broadcast {NotificationType} not handled - DomainCoordinator not configured", typeof(T).Name);
+            var domainCoordinator = GetDomainCoordinator();
+            if (domainCoordinator != null)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await domainCoordinator.BroadcastNotificationAsync(notification, _domainName);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Broadcast failed: {NotificationType}", typeof(T).Name);
+                    }
+                });
+            }
+            else
+            {
+                _logger.LogWarning("Broadcast {NotificationType} not handled - DomainCoordinator not configured", typeof(T).Name);
+            }
         }
         
         // Validation methods

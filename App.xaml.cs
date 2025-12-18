@@ -71,6 +71,9 @@ namespace TestCaseEditorApp
                     services.AddSingleton<ITextGenerationService>(_ => LlmFactory.Create());
                     services.AddSingleton<RequirementAnalysisService>();
 
+                    // Domain coordination
+                    services.AddSingleton<IDomainCoordinator, DomainCoordinator>();
+
                     // Domain mediators
                     services.AddSingleton<ITestCaseGenerationMediator, TestCaseGenerationMediator>();
                     services.AddSingleton<ITestFlowMediator, TestFlowMediator>();
@@ -98,6 +101,13 @@ namespace TestCaseEditorApp
                 
                 var testFlowMediator = _host.Services.GetRequiredService<ITestFlowMediator>();
                 testFlowMediator.MarkAsRegistered();
+                
+                // Set up domain coordinator and register mediators
+                var domainCoordinator = _host.Services.GetRequiredService<IDomainCoordinator>();
+                TestCaseEditorApp.MVVM.Utils.BaseDomainMediatorBase.SetDomainCoordinator(domainCoordinator);
+                
+                domainCoordinator.RegisterDomainMediator("TestCaseGeneration", testCaseGenMediator);
+                domainCoordinator.RegisterDomainMediator("TestFlow", testFlowMediator);
             }
             catch (Exception ex)
             {
