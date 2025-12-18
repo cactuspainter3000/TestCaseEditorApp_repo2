@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using TestCaseEditorApp.Services;
 
 namespace TestCaseEditorApp.MVVM.Utils
 {
@@ -14,6 +15,8 @@ namespace TestCaseEditorApp.MVVM.Utils
     {
         protected readonly Dictionary<Type, List<Delegate>> _subscriptions = new();
         protected readonly ILogger _logger;
+        protected readonly IDomainUICoordinator _uiCoordinator;
+        protected readonly string _domainName;
         private bool _isDisposed = false;
         
         // Navigation state common to all mediators
@@ -24,9 +27,11 @@ namespace TestCaseEditorApp.MVVM.Utils
         // Registration state for fail-fast validation
         protected bool _isRegistered = false;
         
-        protected BaseDomainMediator(ILogger logger)
+        protected BaseDomainMediator(ILogger logger, IDomainUICoordinator uiCoordinator, string domainName)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _uiCoordinator = uiCoordinator ?? throw new ArgumentNullException(nameof(uiCoordinator));
+            _domainName = !string.IsNullOrWhiteSpace(domainName) ? domainName : throw new ArgumentException("Domain name cannot be null or empty", nameof(domainName));
             _logger.LogDebug("Created {MediatorType}", GetType().Name);
         }
         
@@ -165,6 +170,43 @@ namespace TestCaseEditorApp.MVVM.Utils
             _isRegistered = true;
             _logger.LogDebug("{MediatorType} marked as registered", GetType().Name);
         }
+        
+        /// <summary>
+        /// Show progress for this domain with automatic context
+        /// </summary>
+        protected virtual bool ShowProgress(string message, double percentage = 0)
+        {
+            return _uiCoordinator.ShowDomainProgress(_domainName, message, percentage);
+        }
+        
+        /// <summary>
+        /// Update progress for this domain
+        /// </summary>
+        protected virtual bool UpdateProgress(string message, double percentage)
+        {
+            return _uiCoordinator.UpdateDomainProgress(_domainName, message, percentage);
+        }
+        
+        /// <summary>
+        /// Hide progress for this domain
+        /// </summary>
+        protected virtual bool HideProgress()
+        {
+            return _uiCoordinator.HideDomainProgress(_domainName);
+        }
+        
+        /// <summary>
+        /// Show notification for this domain with automatic context
+        /// </summary>
+        protected virtual void ShowNotification(string message, DomainNotificationType type = DomainNotificationType.Info, int durationSeconds = 4)
+        {
+            _uiCoordinator.ShowDomainNotification(_domainName, message, type, durationSeconds);
+        }
+        
+        /// <summary>
+        /// Get the domain name for this mediator
+        /// </summary>
+        public virtual string DomainName => _domainName;
         
         /// <summary>
         /// Request cross-domain communication (handled by DomainCoordinator)

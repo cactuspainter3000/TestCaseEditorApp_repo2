@@ -62,6 +62,9 @@ namespace TestCaseEditorApp
                     // File dialog helper used by the VM
                     services.AddSingleton<IFileDialogService, FileDialogService>();
 
+                    // Domain UI coordination
+                    services.AddSingleton<IDomainUICoordinator, DomainUICoordinator>();
+
                     // ViewModels and header VM
                     services.AddTransient<TestCaseGenerator_VM>();
                     services.AddSingleton<WorkspaceHeaderViewModel>(); // workspace header shared instance

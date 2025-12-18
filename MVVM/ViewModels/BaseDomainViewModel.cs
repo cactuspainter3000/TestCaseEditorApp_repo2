@@ -62,10 +62,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
         
         // Common commands all ViewModels get automatically
-        public IAsyncRelayCommand SaveCommand { get; protected set; }
-        public IRelayCommand CancelCommand { get; protected set; }
-        public IAsyncRelayCommand RefreshCommand { get; protected set; }
-        public IRelayCommand ClearErrorsCommand { get; protected set; }
+        public IAsyncRelayCommand SaveCommand { get; protected set; } = null!;
+        public IRelayCommand CancelCommand { get; protected set; } = null!;
+        public IAsyncRelayCommand RefreshCommand { get; protected set; } = null!;
+        public IRelayCommand ClearErrorsCommand { get; protected set; } = null!;
         
         /// <summary>
         /// Initialize common commands - override to add domain-specific commands
