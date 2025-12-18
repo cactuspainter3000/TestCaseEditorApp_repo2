@@ -168,6 +168,18 @@ MVVM/
 - ✅ Infrastructure concern (logging, persistence, UI coordination)
 - ✅ Generic conversion or helper logic
 
+**Keep as Private Methods in ViewModel If:**
+- ✅ Simple formatting or validation specific to that ViewModel
+- ✅ One-off calculations or transformations
+- ✅ Event handlers and UI state management
+- ✅ Not reusable outside the specific ViewModel context
+
+**Extract as Domain Helper Class If:**
+- ✅ Complex logic that could be unit tested independently
+- ✅ Reusable across multiple ViewModels in the same domain
+- ✅ Pure functions without ViewModel state dependencies
+- ✅ Complex algorithms or data transformations
+
 **Examples:**
 ```csharp
 // ✅ Domain-specific → TestCaseGeneration/Services/
@@ -183,15 +195,79 @@ public class NotificationService
 }
 
 // ✅ Domain-specific → TestCaseGeneration/Helpers/
-public static class TableConversionHelper
+public static class RequirementParsingHelper
 {
-    // Converts requirement tables to specific formats
+    // Complex requirement parsing logic, reusable across ViewModels
+    public static List<string> ExtractTestableComponents(Requirement req) { ... }
 }
 
 // ✅ Shared → Helpers/
 public static class FileNameHelper
 {
     // Generic file name sanitization
+}
+
+// ✅ Stay as private method in ViewModel
+private string GenerateWorkspaceSetupInstructions()
+{
+    // Simple string formatting specific to this ViewModel
+}
+
+// ✅ Stay as private method in ViewModel  
+private void UpdateProgressMessage(string step)
+{
+    // Simple UI state update specific to this ViewModel
+}
+```
+
+**Size Thresholds:**
+- **< 20 lines + ViewModel-specific**: Keep as private method
+- **> 20 lines + reusable**: Extract to helper class
+- **Complex algorithms**: Always extract regardless of size
+- **Cross-ViewModel usage**: Always extract to helper
+
+### **Helper vs Service vs Private Method Decision Tree**
+
+```
+Is it business logic that manages state/persistence/external APIs?
+├─ YES → Service (injected via DI)
+└─ NO → Is it complex computation/transformation?
+    ├─ YES → Is it reusable across ViewModels?
+    │   ├─ YES → Static Helper Class
+    │   └─ NO → Private Method in ViewModel
+    └─ NO → Is it UI-specific formatting?
+        ├─ YES → Private Method in ViewModel  
+        └─ NO → Is it used by multiple domains?
+            ├─ YES → Shared Helper
+            └─ NO → Domain Helper
+```
+
+**Real Examples:**
+```csharp
+// ✅ Service: Manages external APIs and state
+public class RequirementAnalysisService 
+{
+    private readonly ITextGenerationService _llm;
+    public async Task<RequirementAnalysis> AnalyzeAsync(Requirement req) { ... }
+}
+
+// ✅ Domain Helper: Pure computation, reusable
+public static class RequirementValidationHelper
+{
+    public static bool IsTestable(Requirement req) { ... }
+    public static List<string> ExtractKeywords(string text) { ... }
+}
+
+// ✅ Private Method: ViewModel-specific formatting
+private string FormatProgressMessage(int current, int total)
+{
+    return $"Processing {current} of {total} requirements...";
+}
+
+// ✅ Shared Helper: Generic utility
+public static class FileNameHelper
+{
+    public static string SanitizeFileName(string input) { ... }
 }
 ```
 ---
