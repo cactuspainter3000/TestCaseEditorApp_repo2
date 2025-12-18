@@ -27,8 +27,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Core test case generation components
         private TestCaseGenerator_CoreVM? _testCaseGenerator;
         private TestCaseGenerator_HeaderVM? _testCaseGeneratorHeader;
-        private TestCaseGenerator_QuestionsVM? _questionsViewModel;
-        private TestCaseGenerator_AssumptionsVM? _assumptionsViewModel;
 
         // Shared requirements collection
         public ObservableCollection<Requirement> Requirements { get; }
@@ -63,8 +61,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // ViewModels for test case generation workflow
         internal TestCaseGenerator_CoreVM? TestCaseGenerator => _testCaseGenerator;
         public TestCaseGenerator_HeaderVM? TestCaseGeneratorHeader => _testCaseGeneratorHeader;
-        public TestCaseGenerator_QuestionsVM? QuestionsViewModel => _questionsViewModel;
-        public TestCaseGenerator_AssumptionsVM? AssumptionsViewModel => _assumptionsViewModel;
 
         // Commands
         public ICommand GenerateTestCaseCommand { get; }

@@ -59,8 +59,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly ILogger<MainViewModel>? _logger;
 
         // --- Header / navigation / view state ---
-        public TitleBarViewModel TitleBar { get; }
-
         // Strongly-typed header instances
         private TestCaseGenerator_HeaderVM? _testCaseGeneratorHeader;
         private WorkspaceHeaderViewModel? _workspaceHeaderViewModel;
@@ -474,13 +472,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private void UpdateWindowTitle()
         {
-            // Update title bar to show dirty state (asterisk)
-            if (TitleBar != null)
+            // Update workspace header to show dirty state (asterisk)
+            if (_workspaceHeaderViewModel != null)
             {
-                var baseName = string.IsNullOrEmpty(_workspaceHeaderViewModel?.WorkspaceName)
+                var baseName = string.IsNullOrEmpty(_workspaceHeaderViewModel.WorkspaceName)
                     ? "Test Case Editor"
                     : _workspaceHeaderViewModel.WorkspaceName;
-                TitleBar.Title = IsDirty ? $"{baseName} *" : baseName;
+                _workspaceHeaderViewModel.Title = IsDirty ? $"{baseName} *" : baseName;
             }
         }
 
@@ -587,8 +585,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _workspaceHeaderViewModel = _viewAreaCoordinator.HeaderArea.ActiveHeader as WorkspaceHeaderViewModel ?? 
                                        _viewModelFactory.CreateWorkspaceHeaderViewModel();
             Navigation = _viewModelFactory.CreateNavigationViewModel();
-            
-            TitleBar = new TitleBarViewModel();
             
             // Initialize workflows with proper event handling
             ImportWorkflow = _viewModelFactory.CreateImportWorkflowViewModel();
