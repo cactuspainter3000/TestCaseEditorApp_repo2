@@ -1,5 +1,6 @@
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Utils;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -15,7 +16,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         // Content ViewModels
         object CreateProjectViewModel();
-        object CreateRequirementsViewModel();
+        RequirementsViewModel CreateRequirementsViewModel();
         PlaceholderViewModel CreatePlaceholderViewModel();
         
         // Legacy ViewModels (for backwards compatibility)

@@ -8,11 +8,12 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
+using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.Services;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 
-namespace TestCaseEditorApp.MVVM.ViewModels
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
     /// <summary>
     /// Dedicated ViewModel for requirements import and export management.

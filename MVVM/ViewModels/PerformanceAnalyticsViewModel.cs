@@ -119,6 +119,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             try
             {
+                await Task.CompletedTask;
                 var exportData = _performanceMonitor.GenerateSummaryReport();
                 // In a full implementation, this would save to file or copy to clipboard
                 _logger.LogInformation("Performance metrics export requested - {DataLength} characters", exportData.Length);
@@ -210,6 +211,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 }
             }
             
+            await Task.CompletedTask;
             Recommendations = newRecommendations.Take(10).ToList(); // Limit to top 10 recommendations
         }
         

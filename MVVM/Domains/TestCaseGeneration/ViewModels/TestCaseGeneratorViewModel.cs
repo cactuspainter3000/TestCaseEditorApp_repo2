@@ -6,10 +6,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
+using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.Services;
 using Microsoft.Extensions.Logging;
 
-namespace TestCaseEditorApp.MVVM.ViewModels
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
     /// <summary>
     /// Dedicated ViewModel for test case generation and AI/LLM integration.
@@ -281,6 +282,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 
                 // Publish event
                 _navigationMediator.Publish(new TestCaseGeneratorEvents.WorkspaceSetupGenerated(setupInstructions));
+                await Task.CompletedTask;
             }
             catch (Exception ex)
             {
@@ -412,8 +414,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             public StubAnythingLLMService() : base("", "") { }
             
             // Use new method hiding instead of override for non-virtual methods
-            public new async Task<(bool Success, string Message)> TestConnectivityAsync() => (false, "Stub service");
-            public new async Task<AnythingLLMService.Workspace?> CreateWorkspaceAsync(string name, System.Threading.CancellationToken cancellationToken = default) => null;
+            public new async Task<(bool Success, string Message)> TestConnectivityAsync() { await Task.CompletedTask; return (false, "Stub service"); }
+            public new async Task<AnythingLLMService.Workspace?> CreateWorkspaceAsync(string name, System.Threading.CancellationToken cancellationToken = default) { await Task.CompletedTask; return null; }
         }
 
         private class StubNotificationService : NotificationService

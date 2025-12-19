@@ -4,6 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
+        xmlns:tcgvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels"
         xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
         xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models"
         xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
@@ -59,7 +60,7 @@
             <views:ProjectView />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type vm:RequirementsViewModel}">
+        <DataTemplate DataType="{x:Type tcgvm:RequirementsViewModel}">
             <views:RequirementsView />
         </DataTemplate>
 

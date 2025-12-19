@@ -86,7 +86,7 @@ namespace TestCaseEditorApp.MVVM.Extensions
                     if (loadResult.Success)
                     {
                         result.LoadedExtensions.Add(loadResult.Extension!);
-                        _logger.LogInformation("Successfully loaded extension: {ExtensionId}", loadResult.Extension.ExtensionId);
+                        _logger.LogInformation("Successfully loaded extension: {ExtensionId}", loadResult.Extension?.ExtensionId);
                     }
                     else
                     {
@@ -196,6 +196,7 @@ namespace TestCaseEditorApp.MVVM.Extensions
         
         private async Task<List<ExtensionInfo>> DiscoverExtensionsInDirectoryAsync(string directory)
         {
+            await Task.CompletedTask;
             var extensions = new List<ExtensionInfo>();
             
             foreach (var file in Directory.GetFiles(directory, "*.dll"))
@@ -236,6 +237,7 @@ namespace TestCaseEditorApp.MVVM.Extensions
         
         private async Task<ValidationResult> ValidateExtensionDependenciesAsync(IExtensionContract extension)
         {
+            await Task.CompletedTask;
             foreach (var dependency in extension.Dependencies)
             {
                 if (!_loadedExtensions.ContainsKey(dependency))

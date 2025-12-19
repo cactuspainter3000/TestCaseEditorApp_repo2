@@ -586,6 +586,7 @@ namespace TestCaseEditorApp.MVVM.Mediators
                 _logger.LogInformation("Generated {Count} test cases for requirement {RequirementId}", 
                     testCases.Count, requirement.GlobalId);
                 
+                await Task.CompletedTask;
                 return testCases.AsReadOnly();
             }
             catch (Exception ex)
@@ -648,6 +649,7 @@ namespace TestCaseEditorApp.MVVM.Mediators
                 _logger.LogInformation("Test cases validation completed: {IsValid}, Errors: {ErrorCount}", 
                     isValid, validationErrors.Count);
                 
+                await Task.CompletedTask;
                 return isValid;
             }
             catch (Exception ex)

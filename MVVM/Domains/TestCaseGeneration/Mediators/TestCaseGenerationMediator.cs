@@ -543,6 +543,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             
             ShowProgress($"Generating test cases for {requirement.GlobalId}...", 0);
             
+            await Task.CompletedTask;
             var assumptions = GetAssumptions(requirement);
             var questions = _requirementQuestions.TryGetValue(requirement, out var q) ? q : new List<ClarifyingQuestionData>();
             
@@ -650,6 +651,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 _logger.LogInformation("Test cases validation completed: {IsValid}, Errors: {ErrorCount}", 
                     isValid, validationErrors.Count);
                 
+                await Task.CompletedTask;
                 return isValid;
             }
             catch (Exception ex)

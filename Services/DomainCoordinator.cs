@@ -388,6 +388,7 @@ namespace TestCaseEditorApp.Services
         private async Task<CrossDomainMessages.RequirementAnalysisResponse> HandleAnalyzeRequirementsForFlowAsync(
             CrossDomainMessages.AnalyzeRequirementsForFlow request)
         {
+            await Task.CompletedTask;
             var testCaseGenMediator = GetMediator<ITestCaseGenerationMediator>("TestCaseGeneration");
             if (testCaseGenMediator == null)
             {
@@ -485,6 +486,7 @@ namespace TestCaseEditorApp.Services
                     { "generated_test_cases_count", generatedTestCases.Count }
                 };
 
+                await Task.CompletedTask;
                 return new CrossDomainMessages.TestCaseGenerationResponse
                 {
                     Success = true,
@@ -552,6 +554,7 @@ namespace TestCaseEditorApp.Services
                     recommendations.Add("Requirements are high quality - well suited for flow automation");
                 }
 
+                await Task.CompletedTask;
                 return new CrossDomainMessages.RequirementAnalysisResponse
                 {
                     Success = true,

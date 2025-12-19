@@ -4,6 +4,7 @@ using System.Windows.Input;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using CommunityToolkit.Mvvm.Input;
 using System.ComponentModel;
 using Microsoft.Extensions.Logging;
@@ -86,7 +87,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 _applicationServices.LoggerFactory?.CreateLogger(typeof(ProjectViewModel).FullName ?? "ProjectViewModel") as ILogger<ProjectViewModel>);
         }
         
-        public object CreateRequirementsViewModel()
+        public RequirementsViewModel CreateRequirementsViewModel()
         {
             return new RequirementsViewModel(
                 _applicationServices.RequirementService,
@@ -105,7 +106,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Stub navigator for RequirementsViewModel legacy constructor compatibility
         private class StubTestCaseGeneratorNavigator : ITestCaseGenerator_Navigator, INotifyPropertyChanged
         {
-            public event PropertyChangedEventHandler? PropertyChanged;
+    #pragma warning disable CS0067 // Event is never used - this is a stub implementation
+        public event PropertyChangedEventHandler? PropertyChanged;
+#pragma warning restore CS0067
             public ObservableCollection<Requirement> Requirements { get; } = new ObservableCollection<Requirement>();
             public Requirement? CurrentRequirement { get; set; }
             public ICommand NextRequirementCommand { get; } = new RelayCommand(() => { });

@@ -203,6 +203,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators
 
             try
             {
+                await Task.CompletedTask;
                 if (!_availableTemplates.TryGetValue(templateName, out var template))
                 {
                     HideProgress();
@@ -248,6 +249,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators
 
             try
             {
+                await Task.CompletedTask;
                 _currentFlowId = Guid.NewGuid().ToString();
                 _currentConfiguration = new Dictionary<string, object>(configuration ?? new Dictionary<string, object>());
 
@@ -286,6 +288,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators
                 ShowNotification($"Set {_targetRequirements.Count} target requirements", DomainNotificationType.Success);
 
                 _logger.LogInformation("Set {Count} target requirements for flow", _targetRequirements.Count);
+                await Task.CompletedTask;
                 return true;
             }
             catch (Exception ex)
@@ -333,6 +336,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators
                 ShowNotification($"Created step: {stepName}", DomainNotificationType.Success);
 
                 _logger.LogInformation("Created flow step: {StepName} ({StepId})", stepName, step.Id);
+                await Task.CompletedTask;
                 return step;
             }
             catch (Exception ex)
@@ -375,6 +379,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators
                 ShowNotification($"Updated step: {step.Name}", DomainNotificationType.Success);
 
                 _logger.LogInformation("Updated flow step: {StepName} ({StepId})", step.Name, step.Id);
+                await Task.CompletedTask;
                 return true;
             }
             catch (Exception ex)
@@ -426,6 +431,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators
                 ShowNotification($"Removed step: {step.Name}", DomainNotificationType.Success);
 
                 _logger.LogInformation("Removed flow step: {StepName} ({StepId})", step.Name, stepId);
+                await Task.CompletedTask;
                 return true;
             }
             catch (Exception ex)
@@ -479,6 +485,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators
                 ShowNotification($"Connected {fromStep.Name} → {toStep.Name}", DomainNotificationType.Success);
 
                 _logger.LogInformation("Connected flow steps: {FromStep} → {ToStep}", fromStep.Name, toStep.Name);
+                await Task.CompletedTask;
                 return true;
             }
             catch (Exception ex)
@@ -565,6 +572,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators
                 _logger.LogInformation("Flow validation completed for {FlowId}: Valid={IsValid}, Errors={ErrorCount}, Warnings={WarningCount}", 
                     flowId, result.IsValid, result.Errors.Count, result.Warnings.Count);
 
+                await Task.CompletedTask;
                 return result;
             }
             catch (Exception ex)
@@ -687,6 +695,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators
         public async Task<FlowExecutionStatus> GetExecutionStatusAsync(string executionId)
         {
             // Placeholder implementation - in real system would track active executions
+            await Task.CompletedTask;
             return new FlowExecutionStatus
             {
                 ExecutionId = executionId,

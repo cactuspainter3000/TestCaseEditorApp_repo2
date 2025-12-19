@@ -1,6 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
-using TestCaseEditorApp.MVVM.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.Views
 {

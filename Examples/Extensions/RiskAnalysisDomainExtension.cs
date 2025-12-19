@@ -97,6 +97,7 @@ namespace TestCaseEditorApp.Examples.Extensions
         
         public async Task<DomainValidationResult> ValidateCompatibilityAsync(IReadOnlyList<IDomainExtension> existingDomains)
         {
+            await Task.CompletedTask;
             // Check for conflicts with existing domains
             foreach (var domain in existingDomains)
             {

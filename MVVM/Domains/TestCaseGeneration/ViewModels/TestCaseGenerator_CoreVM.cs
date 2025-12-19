@@ -1,14 +1,15 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using EditableDataControl.ViewModels;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.Services;
 using VMVerMethod = TestCaseEditorApp.MVVM.Models.VerificationMethod;
 
-namespace TestCaseEditorApp.MVVM.ViewModels
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
     /// <summary>
     /// TestCaseGenerator_CoreVM

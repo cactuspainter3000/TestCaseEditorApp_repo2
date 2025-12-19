@@ -18,6 +18,7 @@ using TestCaseEditorApp.Helpers;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
@@ -47,7 +48,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         // --- Services / collaborators (for backwards compatibility) ---
         private readonly IRequirementService _requirementService;
-        private readonly IPersistenceService _persistence;
+        private readonly IPersistenceService? _persistence;
         private readonly IFileDialogService _fileDialog;
         private readonly IServiceProvider _services;
 
@@ -1078,7 +1079,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 HasFileMenu = true,
                 CreateViewModel = svc =>
                 {
-                    return new RequirementsViewModel(_persistence, this, _testCaseGenerator ?? new TestCaseGenerator_CoreVM());
+                    return new RequirementsViewModel(_persistence!, this, _testCaseGenerator ?? new TestCaseGenerator_CoreVM());
                 }
             });
 
@@ -1301,7 +1302,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             if (_questionsViewModel == null)
             {
                 var llm = TestCaseEditorApp.Services.LlmFactory.Create();
-                _questionsViewModel = new TestCaseGenerator_QuestionsVM(_persistence, llm, _testCaseGeneratorHeader, this);
+                _questionsViewModel = new TestCaseGenerator_QuestionsVM(_persistence!, llm, _testCaseGeneratorHeader, this);
             }
 
             if (_assumptionsViewModel == null)
