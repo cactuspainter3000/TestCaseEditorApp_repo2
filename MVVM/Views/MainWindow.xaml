@@ -26,7 +26,7 @@
 
         <!-- Put resources directly in Window.Resources (do NOT nest a ResourceDictionary element here) -->
 
-        <DataTemplate DataType="{x:Type vm:TestCaseGenerator_VM}">
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_VM}">
             <views:TestCaseGenerator_View />
         </DataTemplate>
 
@@ -170,7 +170,7 @@
         </Style>
 
         <!-- DataTemplate for TestCaseGenerator_HeaderVM -->
-        <DataTemplate DataType="{x:Type vm:TestCaseGenerator_HeaderVM}">
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_HeaderVM}">
             <views:TestCaseGenerator_HeaderView />
         </DataTemplate>
 

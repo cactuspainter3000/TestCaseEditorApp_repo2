@@ -1,6 +1,7 @@
 using System;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Utils;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 
 namespace TestCaseEditorApp.Services
 {

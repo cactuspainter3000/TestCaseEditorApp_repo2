@@ -6,6 +6,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {

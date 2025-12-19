@@ -7,9 +7,10 @@ using System.Diagnostics;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.ViewModels;
 using CommunityToolkit.Mvvm.Input;
 
-namespace TestCaseEditorApp.MVVM.ViewModels
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
     public class TestCaseGenerator_NavigationVM : ObservableObject, IDisposable
     {

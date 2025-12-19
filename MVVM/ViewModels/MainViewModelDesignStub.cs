@@ -5,6 +5,7 @@
     using System.Windows.Input;
     using System.Windows.Media;
     using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 
     /// <summary>
     /// Design-time stub that provides the properties MainWindow binds to.

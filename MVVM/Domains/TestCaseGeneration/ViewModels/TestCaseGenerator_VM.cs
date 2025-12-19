@@ -9,9 +9,10 @@ using System.Linq;
 using System.Windows.Input;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.Services;
 
-namespace TestCaseEditorApp.MVVM.ViewModels
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
     /// <summary>
     /// ViewModel for the Requirements support pane (Meta / Tables / Paragraphs).

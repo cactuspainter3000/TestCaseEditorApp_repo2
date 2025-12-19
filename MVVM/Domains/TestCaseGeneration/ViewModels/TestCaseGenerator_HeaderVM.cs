@@ -8,9 +8,10 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.Services;
 
-namespace TestCaseEditorApp.MVVM.ViewModels
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
     /// <summary>
     /// Consolidated Header ViewModel for the Test Case Creator area.
