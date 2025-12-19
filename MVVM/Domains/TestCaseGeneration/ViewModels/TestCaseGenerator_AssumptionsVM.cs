@@ -7,8 +7,9 @@ using System.ComponentModel;
 using System.Linq;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
+using TestCaseEditorApp.MVVM.ViewModels;
 
-namespace TestCaseEditorApp.MVVM.ViewModels
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
     /// <summary>
     /// ViewModel for the Verification Method Assumptions tab.

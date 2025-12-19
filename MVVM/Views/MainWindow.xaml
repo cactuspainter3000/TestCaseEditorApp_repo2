@@ -30,7 +30,7 @@
             <views:TestCaseGenerator_View />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type vm:TestCaseGenerator_AssumptionsVM}">
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_AssumptionsVM}">
             <views:TestCaseGenerator_AssumptionsView />
         </DataTemplate>
 
