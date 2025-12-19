@@ -5,6 +5,9 @@ using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.ChatGptExportAnalysis.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.RequirementAnalysisWorkflow.ViewModels;
 using CommunityToolkit.Mvvm.Input;
 using System.ComponentModel;
 using Microsoft.Extensions.Logging;
@@ -123,6 +126,39 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             public void NavigateToTestCaseGeneration() { }
             public void NavigateBack() { }
             public void ShowRequirementEditor(Requirement requirement) { }
+        }
+        
+        // Domain ViewModels - proper DI pattern implementation
+        public WorkspaceManagementVM CreateWorkspaceManagementViewModel()
+        {
+            // Note: This factory method should receive the necessary dependencies
+            // For now, returning null to indicate this needs proper DI setup
+            // TODO: Implement with proper service resolution from IApplicationServices
+            throw new NotImplementedException("WorkspaceManagementVM creation needs proper DI container setup");
+        }
+        
+        public ChatGptExportAnalysisViewModel CreateChatGptExportAnalysisViewModel()
+        {
+            // Note: This factory method should receive the necessary dependencies
+            // For now, returning null to indicate this needs proper DI setup
+            // TODO: Implement with proper service resolution from IApplicationServices
+            throw new NotImplementedException("ChatGptExportAnalysisViewModel creation needs proper DI container setup");
+        }
+        
+        public RequirementAnalysisViewModel CreateRequirementAnalysisWorkflowViewModel()
+        {
+            // Note: This factory method should receive the necessary dependencies
+            // For now, returning null to indicate this needs proper DI setup
+            // TODO: Implement with proper service resolution from IApplicationServices
+            throw new NotImplementedException("RequirementAnalysisViewModel creation needs proper DI container setup");
+        }
+        
+        public RequirementGenerationViewModel CreateRequirementGenerationViewModel()
+        {
+            // Note: This factory method should receive the necessary dependencies
+            // For now, returning null to indicate this needs proper DI setup
+            // TODO: Implement with proper service resolution from IApplicationServices
+            throw new NotImplementedException("RequirementGenerationViewModel creation needs proper DI container setup");
         }
         
         public object CreateTestCaseGeneratorViewModel()

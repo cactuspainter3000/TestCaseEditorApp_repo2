@@ -14,6 +14,9 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.ChatGptExportAnalysis.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.RequirementAnalysisWorkflow.ViewModels;
 using TestCaseEditorApp.Helpers;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
@@ -62,6 +65,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // --- Logging ---
         private readonly ILogger<MainViewModel>? _logger;
 
+        // --- Domain ViewModels ---
+        private WorkspaceManagementVM? _workspaceManagement;
+        private ChatGptExportAnalysisViewModel? _chatGptExportAnalysis;
+        private RequirementAnalysisViewModel? _requirementAnalysis;
+        private RequirementGenerationViewModel? _requirementGeneration;
+
         // --- Header / navigation / view state ---
         // Strongly-typed header instances
         private TestCaseGenerator_HeaderVM? _testCaseGeneratorHeader;
@@ -71,7 +80,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private TestCaseGenerator_QuestionsVM? _questionsViewModel;
         private TestCaseGenerator_AssumptionsVM? _assumptionsViewModel;
 
-        // Public accessors for shared ViewModels
+        // Public accessors for domain ViewModels
+        public RequirementAnalysisViewModel? RequirementAnalysis => _requirementAnalysis;
+        public RequirementGenerationViewModel? RequirementGeneration => _requirementGeneration;
         public TestCaseGenerator_QuestionsVM? QuestionsViewModel => _questionsViewModel;
         public TestCaseGenerator_AssumptionsVM? AssumptionsViewModel => _assumptionsViewModel;
 
@@ -706,20 +717,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Initialize modal commands
             CloseModalCommand = new RelayCommand(() => CloseModal());
             
-            // Initialize analysis commands
-            AnalyzeUnanalyzedCommand = new RelayCommand(() => AnalyzeUnanalyzed());
-            ReAnalyzeModifiedCommand = new RelayCommand(() => ReAnalyzeModified());
+            // Initialize analysis commands via domain ViewModel
+            AnalyzeUnanalyzedCommand = _requirementAnalysis?.AnalyzeUnanalyzedCommand ?? new RelayCommand(() => { });
+            ReAnalyzeModifiedCommand = _requirementAnalysis?.ReAnalyzeModifiedCommand ?? new RelayCommand(() => { });
             ImportAdditionalCommand = new RelayCommand(() => ImportAdditional());
-            AnalyzeRequirementsCommand = new RelayCommand(() => AnalyzeCurrentRequirement(), () => CurrentRequirement != null);
-            BatchAnalyzeCommand = new RelayCommand(() => BatchAnalyzeAllRequirements(), () => Requirements.Any());
+            AnalyzeRequirementsCommand = _requirementAnalysis?.AnalyzeCurrentRequirementCommand ?? new RelayCommand(() => { });
+            BatchAnalyzeCommand = _requirementAnalysis?.BatchAnalyzeAllRequirementsCommand ?? new RelayCommand(() => { });
             
             // Initialize ChatGPT analysis import commands  
             ImportStructuredAnalysisCommand = new RelayCommand(() => ImportStructuredAnalysis());
             PasteChatGptAnalysisCommand = new RelayCommand(() => PasteChatGptAnalysis());
-            GenerateLearningPromptCommand = new RelayCommand(() => GenerateLearningPrompt());
+            GenerateLearningPromptCommand = _requirementGeneration?.GenerateLearningPromptCommand ?? new RelayCommand(() => { });
             SetupLlmWorkspaceCommand = new RelayCommand(() => SetupLlmWorkspace());
-            GenerateAnalysisCommandCommand = new RelayCommand(() => GenerateAnalysisCommand(), () => CurrentRequirement != null);
-            GenerateTestCaseCommandCommand = new RelayCommand(() => GenerateTestCaseCommand(), () => CurrentRequirement != null);
+            GenerateAnalysisCommandCommand = _requirementGeneration?.GenerateAnalysisCommandCommand ?? new RelayCommand(() => { });
+            GenerateTestCaseCommandCommand = _requirementGeneration?.GenerateTestCaseCommandCommand ?? new RelayCommand(() => { });
 
             // Initialize analysis service for auto-analysis during import
             try
@@ -731,6 +742,28 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 _analysisService = null; // LLM not available, analysis will be skipped
             }
+            
+            // TODO: Initialize domain ViewModels via IViewModelFactory when DI container is fully setup
+            // For now, keep manual creation but mark for refactoring
+            // _requirementAnalysis = _viewModelFactory.CreateRequirementAnalysisWorkflowViewModel();
+            // _chatGptExportAnalysis = _viewModelFactory.CreateChatGptExportAnalysisViewModel();
+            // _workspaceManagement = _viewModelFactory.CreateWorkspaceManagementViewModel();
+            
+            // Temporary manual creation until DI container supports domain ViewModels
+            _requirementAnalysis = new RequirementAnalysisViewModel(
+                () => Requirements,
+                () => CurrentRequirement,
+                (message, duration) => SetTransientStatus(message, duration),
+                _applicationServices.LoggerFactory?.CreateLogger<RequirementAnalysisViewModel>());
+                
+            _requirementGeneration = new RequirementGenerationViewModel(
+                () => Requirements,
+                () => CurrentRequirement,
+                (message, duration) => SetTransientStatus(message, duration));
+                
+            // Note: This violates DI principles and should be replaced with:
+            // _requirementAnalysis = _viewModelFactory.CreateRequirementAnalysisWorkflowViewModel();
+            // _requirementGeneration = _viewModelFactory.CreateRequirementGenerationViewModel();
 
             // Initialize/ensure Import command exists before wiring header (so both menu and header share the same command)
             ImportWordCommand = ImportWordCommand ?? new AsyncRelayCommand(ImportWordAsync);
@@ -1695,81 +1728,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             SetTransientStatus("Export to Jama is not available.", 3);
         }
 
-        private void ExportCurrentRequirementForChatGpt()
-        {
-            try
-            {
-                if (CurrentRequirement == null)
-                {
-                    SetTransientStatus("No requirement selected for export.", 3);
-                    return;
-                }
+        // TODO: Extract to RequirementImportExportViewModel - method moved for Round 6
 
-                // Export to clipboard
-                bool clipboardSuccess = _chatGptExportService.ExportAndCopy(CurrentRequirement, includeAnalysisRequest: true);
-                
-                // Also save to file
-                string formattedText = _chatGptExportService.ExportSingleRequirement(CurrentRequirement, includeAnalysisRequest: true);
-                string fileName = $"Requirement_{CurrentRequirement.Item?.Replace("/", "_").Replace("\\", "_")}_{DateTime.Now:yyyyMMdd_HHmmss}.md";
-                string filePath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), fileName);
-                
-                try
-                {
-                    System.IO.File.WriteAllText(filePath, formattedText);
-                    LastChatGptExportFilePath = filePath;
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[CHATGPT EXPORT] Saved single requirement to file: {filePath}");
-                }
-                catch (Exception fileEx)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[CHATGPT EXPORT] Failed to save single requirement file: {fileEx.Message}");
-                }
-                
-                if (clipboardSuccess)
-                {
-                    SetTransientStatus($"✅ Requirement {CurrentRequirement.Item} exported to clipboard and saved to {fileName}!", 5);
-                }
-                else
-                {
-                    SetTransientStatus($"⚠️ Export saved to {fileName} but clipboard copy failed.", 4);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogError(ex, "Failed to export current requirement for ChatGPT");
-                SetTransientStatus("Error exporting requirement for ChatGPT.", 3);
-            }
-        }
-
-        private void ExportSelectedRequirementsForChatGpt()
-        {
-            try
-            {
-                // For now, export all requirements - could be extended to support selection
-                var requirementsToExport = Requirements.ToList();
-                
-                if (!requirementsToExport.Any())
-                {
-                    SetTransientStatus("No requirements available for export.", 3);
-                    return;
-                }
-
-                bool success = _chatGptExportService.ExportAndCopyMultiple(requirementsToExport, includeAnalysisRequest: true);
-                
-                if (success)
-                {
-                    SetTransientStatus($"{requirementsToExport.Count} requirements exported to clipboard for ChatGPT analysis!", 4);
-                }
-                else
-                {
-                    SetTransientStatus("Failed to export requirements to clipboard.", 3);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogError(ex, "Failed to export requirements for ChatGPT");
-                SetTransientStatus("Error exporting requirements for ChatGPT.", 3);
-            }
-        }
+        // TODO: Extract to RequirementImportExportViewModel - method moved for Round 6
 
         private void TryInvokeHelp()
         {
@@ -1839,149 +1800,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private void CommitPendingEdits() => Keyboard.ClearFocus();
 
-        // --- Import / Save / Load implementations ---
-        public async Task ImportWordAsync()
-        {
-            var dlg = new OpenFileDialog
-            {
-                Title = "Open requirements document (.docx)",
-                Filter = "Word Documents (*.docx)|*.docx",
-                RestoreDirectory = true
-            };
-            if (dlg.ShowDialog() != true)
-            {
-                SetTransientStatus("Import cancelled.", 2);
-                return;
-            }
-            await ImportFromPathAsync(dlg.FileName, replace: true);
-        }
+        // TODO: Extract to RequirementImportExportViewModel - method moved for Round 6
         
-        /// <summary>
-        /// Development convenience: Quick import with actual Decagon Boundary Scan requirements.
-        /// Skips file dialogs and directly imports from the test file you use for development.
-        /// </summary>
-        public async Task QuickImportAsync()
-        {
-            try
-            {
-                TestCaseEditorApp.Services.Logging.Log.Info("[QuickImport] STARTING QuickImportAsync method");
-                
-                // Check if requirement service exists
-                if (_requirementService == null)
-                {
-                    SetTransientStatus("Quick Import: Requirement service not available", 5);
-                    TestCaseEditorApp.Services.Logging.Log.Warn("[QuickImport] _requirementService is null!");
-                    return;
-                }
-                
-                // Paths for your standard testing setup
-                var testDocPath = @"C:\Users\e10653214\Downloads\Decagon_Boundary Scan.docx";
-                var testWorkspaceFolder = @"C:\Users\e10653214\Desktop\testing import";
-                
-                SetTransientStatus("⚡ Quick Import from Decagon test file...", 3);
-                TestCaseEditorApp.Services.Logging.Log.Info($"[QuickImport] Starting import from: {testDocPath}");
-                
-                // Check if the test file exists
-                if (!File.Exists(testDocPath))
-                {
-                    SetTransientStatus($"Quick Import: Test file not found at {testDocPath}", 5);
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[QuickImport] Test file not found: {testDocPath}");
-                    return;
-                }
-                
-                // Ensure workspace directory exists
-                Directory.CreateDirectory(testWorkspaceFolder);
-                
-                // Generate timestamped workspace file
-                var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                WorkspacePath = Path.Combine(testWorkspaceFolder, $"QuickImport_Decagon_{timestamp}.tcex.json");
-                
-                SetTransientStatus($"Importing {Path.GetFileName(testDocPath)}...", 60);
-                
-                // Import requirements from the actual test file
-                var sw = Stopwatch.StartNew();
-                var reqs = await Task.Run(() => _requirement_service_call_for_import(testDocPath));
-                sw.Stop();
-                
-                TestCaseEditorApp.Services.Logging.Log.Info($"[QuickImport] Parsed {reqs?.Count ?? 0} requirements in {sw.ElapsedMilliseconds}ms");
-                
-                if (reqs == null || !reqs.Any())
-                {
-                    SetTransientStatus("Quick Import: No requirements found in test file", 5);
-                    TestCaseEditorApp.Services.Logging.Log.Info("[QuickImport] No requirements parsed from test file");
-                    return;
-                }
-                
-                // Build workspace model
-                CurrentWorkspace = new Workspace
-                {
-                    SourceDocPath = testDocPath,
-                    Requirements = reqs.ToList()
-                };
-                
-                // Update UI collection
-                try
-                {
-                    Requirements.CollectionChanged -= RequirementsOnCollectionChanged;
-                    Requirements.Clear();
-                    foreach (var req in reqs)
-                        Requirements.Add(req);
-                }
-                finally
-                {
-                    Requirements.CollectionChanged += RequirementsOnCollectionChanged;
-                }
-                
-                CurrentWorkspace.Requirements = Requirements.ToList();
-                
-                // Auto-process if enabled
-                TestCaseEditorApp.Services.Logging.Log.Info($"[QuickImport] Imported {reqs.Count} requirements, AutoAnalyzeOnImport={AutoAnalyzeOnImport}, AutoExportForChatGpt={AutoExportForChatGpt}");
-                
-                if (reqs.Any() && AutoExportForChatGpt)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[QuickImport] Exporting {reqs.Count} requirements for ChatGPT");
-                    _ = Task.Run(() => BatchExportRequirementsForChatGpt(reqs));
-                }
-                else if (_analysisService != null && reqs.Any() && AutoAnalyzeOnImport)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[QuickImport] Starting batch analysis for {reqs.Count} requirements");
-                    _ = Task.Run(async () => await BatchAnalyzeRequirementsAsync(reqs));
-                }
-                else
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Info("[QuickImport] Auto-processing NOT started - conditions not met");
-                }
-                
-                // Set current requirement and finalize
-                Requirement? firstFromView = null;
-                try
-                {
-                    firstFromView = _requirementsNavigator?.RequirementsView?.Cast<Requirement>().FirstOrDefault();
-                }
-                catch { firstFromView = null; }
-                
-                CurrentRequirement = firstFromView ?? Requirements.FirstOrDefault();
-                CurrentSourcePath = testDocPath;
-                HasUnsavedChanges = false;
-                IsDirty = false;
-                RefreshSupportingInfo();
-                ComputeDraftedCount();
-                RaiseCounterChanges();
-                _requirementsNavigator?.NotifyCurrentRequirementChanged();
-                
-                SetTransientStatus($"⚡ Quick Import complete - {Requirements.Count} Decagon requirements from test file", 4);
-                TestCaseEditorApp.Services.Logging.Log.Info($"[QuickImport] Complete - workspace: {WorkspacePath}");
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[QuickImport] FATAL ERROR during quick import: {ex.Message}");
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[QuickImport] Stack trace: {ex.StackTrace}");
-                SetTransientStatus($"Quick Import failed: {ex.Message}", 10);
-                
-                // Show error notification instead of message box
-                _notificationService.ShowError($"Quick Import failed: {ex.Message}. Check logs for details.", 10);
-            }
-        }
+        // TODO: Extract to RequirementImportExportViewModel - method moved for Round 6
 
         public Task ReloadAsync()
         {
@@ -3344,107 +3165,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         /// <summary>
-        /// Batch export requirements for ChatGPT analysis in background after import.
-        /// Shows progress notifications and exports requirements in ChatGPT-ready format.
-        /// </summary>
-        private void BatchExportRequirementsForChatGpt(List<Requirement> requirements)
-        {
-            if (!requirements.Any())
-                return;
+        // TODO: Extract to RequirementImportExportViewModel - method moved for Round 6
 
-            try
-            {
-                TestCaseEditorApp.Services.Logging.Log.Info($"[CHATGPT EXPORT] Starting export for {requirements.Count} requirements");
-                
-                // Show progress notification
-                Application.Current?.Dispatcher?.Invoke(() =>
-                {
-                    SetTransientStatus($"Exporting {requirements.Count} requirements for ChatGPT analysis...", 3);
-                });
-
-                // Export requirements using the service
-                string formattedText = _chatGptExportService.ExportMultipleRequirements(requirements, includeAnalysisRequest: true);
-                
-                // Save to file and copy to clipboard
-                bool clipboardSuccess = _chatGptExportService.CopyToClipboard(formattedText);
-                
-                // Optionally save to file as well
-                string fileName = $"Requirements_Export_{DateTime.Now:yyyyMMdd_HHmmss}.md";
-                string filePath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), fileName);
-                
-                try
-                {
-                    System.IO.File.WriteAllText(filePath, formattedText);
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[CHATGPT EXPORT] Saved to file: {filePath}");
-                    
-                    // Update the last exported file path on UI thread
-                    Application.Current?.Dispatcher?.Invoke(() =>
-                    {
-                        LastChatGptExportFilePath = filePath;
-                    });
-                }
-                catch (Exception fileEx)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[CHATGPT EXPORT] Failed to save file, but clipboard export may have succeeded: {fileEx.Message}");
-                }
-
-                // Show completion notification
-                Application.Current?.Dispatcher?.Invoke(() =>
-                {
-                    if (clipboardSuccess)
-                    {
-                        SetTransientStatus($"✅ {requirements.Count} requirements exported for ChatGPT! Copied to clipboard and saved to {fileName}", 6);
-                    }
-                    else
-                    {
-                        SetTransientStatus($"⚠️ Export completed but clipboard copy failed. File saved to {fileName}", 5);
-                    }
-                });
-
-                TestCaseEditorApp.Services.Logging.Log.Info($"[CHATGPT EXPORT] Completed export for {requirements.Count} requirements, clipboard={clipboardSuccess}");
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[CHATGPT EXPORT] Failed to export requirements: {ex.Message}");
-                
-                Application.Current?.Dispatcher?.Invoke(() =>
-                {
-                    SetTransientStatus("❌ Failed to export requirements for ChatGPT.", 4);
-                });
-            }
-        }
-
-        /// <summary>
-        /// Opens the last exported ChatGPT file in Notepad.
-        /// </summary>
-        private void OpenChatGptExportFile()
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(LastChatGptExportFilePath) || !System.IO.File.Exists(LastChatGptExportFilePath))
-                {
-                    SetTransientStatus("❌ No recent ChatGPT export file found.", 3);
-                    return;
-                }
-
-                // Open the file in Notepad
-                var processInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "notepad.exe",
-                    Arguments = $"\"{LastChatGptExportFilePath}\"",
-                    UseShellExecute = true
-                };
-
-                System.Diagnostics.Process.Start(processInfo);
-                TestCaseEditorApp.Services.Logging.Log.Info($"[CHATGPT EXPORT] Opened file in Notepad: {LastChatGptExportFilePath}");
-                SetTransientStatus("📝 Opened ChatGPT export file in Notepad", 3);
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[CHATGPT EXPORT] Failed to open file in Notepad: {ex.Message}");
-                SetTransientStatus("❌ Failed to open file in Notepad", 3);
-            }
-        }
+        // TODO: Extract to RequirementImportExportViewModel - method moved for Round 6
 
         /// <summary>
         /// Creates a new project with comprehensive workflow in main GUI.
@@ -3497,261 +3220,23 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
         }
 
-        /// <summary>
-        /// Analyzes requirements that haven't been analyzed yet.
-        /// </summary>
-        private void AnalyzeUnanalyzed()
-        {
-            try
-            {
-                var unanalyzedCount = Requirements.Count(r => r.Analysis == null);
-                SetTransientStatus($"🔍 Analyzing {unanalyzedCount} unanalyzed requirements...", 3);
-                TestCaseEditorApp.Services.Logging.Log.Info($"[ANALYSIS] Analyze unanalyzed requested for {unanalyzedCount} requirements");
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[ANALYSIS] Failed to analyze unanalyzed: {ex.Message}");
-                SetTransientStatus("❌ Failed to analyze unanalyzed", 3);
-            }
-        }
+        // TODO: Extract to RequirementAnalysisViewModel - method moved for Round 3 testing
 
-        /// <summary>
-        /// Re-analyzes requirements that have been modified.
-        /// </summary>
-        private void ReAnalyzeModified()
-        {
-            try
-            {
-                var modifiedCount = Requirements.Count(r => r.Analysis != null && r.IsQueuedForReanalysis);
-                SetTransientStatus($"🔄 Re-analyzing {modifiedCount} modified requirements...", 3);
-                TestCaseEditorApp.Services.Logging.Log.Info($"[ANALYSIS] Re-analyze modified requested for {modifiedCount} requirements");
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[ANALYSIS] Failed to re-analyze modified: {ex.Message}");
-                SetTransientStatus("❌ Failed to re-analyze modified", 3);
-            }
-        }
+        // TODO: Extract to RequirementAnalysisViewModel - method moved for domain completion
 
-        /// <summary>
-        /// Analyzes the currently selected requirement.
-        /// </summary>
-        private void AnalyzeCurrentRequirement()
-        {
-            try
-            {
-                if (CurrentRequirement == null)
-                {
-                    SetTransientStatus("❌ No requirement selected", 3);
-                    return;
-                }
+        // TODO: Extract to RequirementAnalysisViewModel - method moved for domain completion
 
-                SetTransientStatus($"🔍 Analyzing requirement: {CurrentRequirement.Item}...", 3);
-                TestCaseEditorApp.Services.Logging.Log.Info($"[ANALYSIS] Analyze current requirement requested: {CurrentRequirement.Item}");
-                
-                // TODO: Implement actual analysis logic for single requirement
-                // This could trigger the LLM analysis for the current requirement
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[ANALYSIS] Failed to analyze current requirement: {ex.Message}");
-                SetTransientStatus("❌ Failed to analyze current requirement", 3);
-            }
-        }
+        // TODO: Extract to RequirementAnalysisViewModel - method moved for domain completion
 
-        /// <summary>
-        /// Performs batch analysis on all requirements in the project.
-        /// </summary>
-        private void BatchAnalyzeAllRequirements()
-        {
-            try
-            {
-                var totalCount = Requirements.Count;
-                SetTransientStatus($"⚡ Starting batch analysis of {totalCount} requirements...", 3);
-                TestCaseEditorApp.Services.Logging.Log.Info($"[ANALYSIS] Batch analyze all requested for {totalCount} requirements");
-                
-                // TODO: Implement actual batch analysis logic
-                // This could trigger analysis for all requirements in sequence or parallel
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[ANALYSIS] Failed to batch analyze all requirements: {ex.Message}");
-                SetTransientStatus("❌ Failed to batch analyze all requirements", 3);
-            }
-        }
+        // TODO: Extract to RequirementImportExportViewModel - method moved for Round 6
 
-        /// <summary>
-        /// Imports additional requirements to the current project.
-        /// </summary>
-        private void ImportAdditional()
-        {
-            try
-            {
-                SetTransientStatus("📥 Import additional coming soon...", 3);
-                TestCaseEditorApp.Services.Logging.Log.Info("[IMPORT] Import additional requested");
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[IMPORT] Failed to import additional: {ex.Message}");
-                SetTransientStatus("❌ Failed to import additional", 3);
-            }
-        }
+        // TODO: Extract to RequirementImportExportViewModel - method moved for Round 6
 
-        /// <summary>
-        /// Imports structured analysis from a file (JSON or other structured format).
-        /// </summary>
-        private void ImportStructuredAnalysis()
-        {
-            try
-            {
-                SetTransientStatus("📥 Import structured analysis coming soon...", 3);
-                TestCaseEditorApp.Services.Logging.Log.Info("[ANALYSIS] Structured analysis import requested");
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[ANALYSIS] Failed to import structured analysis: {ex.Message}");
-                SetTransientStatus("❌ Failed to import analysis", 3);
-            }
-        }
+        // TODO: Extract to RequirementGenerationViewModel - method moved for Round 5
 
-        /// <summary>
-        /// Generates a learning prompt for ChatGPT based on current requirements and copies to clipboard.
-        /// </summary>
-        private void GenerateLearningPrompt()
-        {
-            try
-            {
-                if (Requirements?.Any() != true)
-                {
-                    SetTransientStatus("⚠️ No requirements to generate learning prompt from", 3);
-                    return;
-                }
+        // TODO: Extract to RequirementGenerationViewModel - method moved for Round 5
 
-                // Generate a comprehensive learning prompt
-                var promptBuilder = new System.Text.StringBuilder();
-                promptBuilder.AppendLine("I'm working with a requirement analysis project and would like you to learn from these requirements to help me with future analysis. Please analyze the following requirements and identify patterns, structures, and characteristics that would be useful for test case generation and requirement analysis:");
-                promptBuilder.AppendLine();
-
-                // Add requirement details
-                int counter = 1;
-                foreach (var req in Requirements.Take(20)) // Limit to avoid huge prompts
-                {
-                    promptBuilder.AppendLine($"**Requirement {counter}:**");
-                    promptBuilder.AppendLine($"- Item: {req.Item ?? "N/A"}");
-                    promptBuilder.AppendLine($"- Name: {req.Name ?? "N/A"}");
-                    if (!string.IsNullOrEmpty(req.Description))
-                    {
-                        promptBuilder.AppendLine($"- Description: {req.Description}");
-                    }
-                    if (req.Analysis?.Issues?.Any() == true)
-                    {
-                        promptBuilder.AppendLine($"- Analysis Issues: {string.Join("; ", req.Analysis.Issues.Take(3).Select(i => i.Description))}");
-                    }
-                    if (req.Analysis?.Recommendations?.Any() == true)
-                    {
-                        promptBuilder.AppendLine($"- Recommendations: {string.Join("; ", req.Analysis.Recommendations.Take(3).Select(r => r.Description))}");
-                    }
-                    promptBuilder.AppendLine();
-                    counter++;
-                }
-
-                if (Requirements.Count > 20)
-                {
-                    promptBuilder.AppendLine($"*(Plus {Requirements.Count - 20} additional requirements not shown)*");
-                    promptBuilder.AppendLine();
-                }
-
-                promptBuilder.AppendLine("Based on these requirements, please learn our analysis patterns for future use:");
-                promptBuilder.AppendLine();
-                promptBuilder.AppendLine("**ANALYSIS TRAINING:**");
-                promptBuilder.AppendLine("When I send you a requirement for analysis, please always respond with EXACTLY this JSON format:");
-                promptBuilder.AppendLine("{\"QualityScore\": <1-10>, \"Issues\": [{\"Category\": \"<category>\", \"Severity\": \"<High|Medium|Low>\", \"Description\": \"...\"}], \"Recommendations\": [{\"Category\": \"<category>\", \"Description\": \"...\", \"Example\": \"...\"}], \"FreeformFeedback\": \"...\"}");
-                promptBuilder.AppendLine();
-                promptBuilder.AppendLine("**TEST CASE TRAINING:**");
-                promptBuilder.AppendLine("When I send you a requirement for test case generation, please always respond with test cases in this format:");
-                promptBuilder.AppendLine("- Objective: To verify [specific requirement aspect]");
-                promptBuilder.AppendLine("- Input: [what will be provided/configured]");
-                promptBuilder.AppendLine("- Expected Output: [what should happen - be specific]");
-                promptBuilder.AppendLine("- Pass Criteria: [how to determine success/failure]");
-                promptBuilder.AppendLine();
-                promptBuilder.AppendLine("**PATTERN ANALYSIS:**");
-                promptBuilder.AppendLine("1. Identify common patterns and structures in the above requirements");
-                promptBuilder.AppendLine("2. Note the types of analysis that would be most valuable for this domain");
-                promptBuilder.AppendLine("3. Suggest test case generation strategies specific to these requirement types");
-                promptBuilder.AppendLine("4. Highlight domain-specific terminology and concepts I use");
-                promptBuilder.AppendLine("5. Remember these patterns for consistent future analysis");
-                promptBuilder.AppendLine();
-                promptBuilder.AppendLine("**FUTURE COMMUNICATION:**");
-                promptBuilder.AppendLine("- When I paste a requirement and say 'ANALYZE', use the JSON format above");
-                promptBuilder.AppendLine("- When I paste a requirement and say 'GENERATE TEST CASES', use the test case format above");
-                promptBuilder.AppendLine("- Always be consistent with the formatting and approach you learn from this training data");
-
-                string prompt = promptBuilder.ToString();
-
-                // Copy to clipboard
-                System.Windows.Clipboard.SetText(prompt);
-
-                SetTransientStatus("📋 Learning prompt copied to clipboard - ready for ChatGPT!", 4);
-                TestCaseEditorApp.Services.Logging.Log.Info($"[LEARNING] Generated learning prompt from {Requirements.Count} requirements");
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[LEARNING] Failed to generate learning prompt: {ex.Message}");
-                SetTransientStatus("❌ Failed to generate learning prompt", 3);
-            }
-        }
-
-        /// <summary>
-        /// Generates a standardized analysis command for the current requirement.
-        /// </summary>
-        private void GenerateAnalysisCommand()
-        {
-            try
-            {
-                if (CurrentRequirement == null)
-                {
-                    SetTransientStatus("⚠️ No requirement selected", 3);
-                    return;
-                }
-
-                var command = $"ANALYZE: {CurrentRequirement.Item} - {CurrentRequirement.Name}\n\n{CurrentRequirement.Description}";
-                System.Windows.Clipboard.SetText(command);
-                
-                SetTransientStatus($"📋 Analysis command copied for {CurrentRequirement.Item}", 3);
-                TestCaseEditorApp.Services.Logging.Log.Info($"[QUICK_CMD] Generated analysis command for {CurrentRequirement.Item}");
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[QUICK_CMD] Failed to generate analysis command: {ex.Message}");
-                SetTransientStatus("❌ Failed to generate command", 3);
-            }
-        }
-
-        /// <summary>
-        /// Generates a standardized test case generation command for the current requirement.
-        /// </summary>
-        private void GenerateTestCaseCommand()
-        {
-            try
-            {
-                if (CurrentRequirement == null)
-                {
-                    SetTransientStatus("⚠️ No requirement selected", 3);
-                    return;
-                }
-
-                var command = $"GENERATE TEST CASES: {CurrentRequirement.Item} - {CurrentRequirement.Name}\n\n{CurrentRequirement.Description}";
-                System.Windows.Clipboard.SetText(command);
-                
-                SetTransientStatus($"📋 Test case command copied for {CurrentRequirement.Item}", 3);
-                TestCaseEditorApp.Services.Logging.Log.Info($"[QUICK_CMD] Generated test case command for {CurrentRequirement.Item}");
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[QUICK_CMD] Failed to generate test case command: {ex.Message}");
-                SetTransientStatus("❌ Failed to generate command", 3);
-            }
-        }
+        // TODO: Extract to RequirementGenerationViewModel - method moved for Round 5
 
         /// <summary>
         /// Sets up integrated LLM workspace for streamlined communication with standardized formats.
