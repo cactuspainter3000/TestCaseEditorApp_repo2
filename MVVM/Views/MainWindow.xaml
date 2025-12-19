@@ -34,11 +34,11 @@
             <views:TestCaseGenerator_AssumptionsView />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type vm:TestCaseGenerator_QuestionsVM}">
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_QuestionsVM}">
             <views:TestCaseGenerator_QuestionsView />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type vm:TestCaseGenerator_CreationVM}">
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_CreationVM}">
             <views:TestCaseGenerator_CreationView />
         </DataTemplate>
 

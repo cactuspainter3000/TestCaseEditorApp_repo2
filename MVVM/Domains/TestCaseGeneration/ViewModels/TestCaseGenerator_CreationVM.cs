@@ -7,8 +7,9 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Input;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.ViewModels;
 
-namespace TestCaseEditorApp.MVVM.ViewModels
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
     public class TestCaseGenerator_CreationVM : ObservableObject, IDisposable
     {

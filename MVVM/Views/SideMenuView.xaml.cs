@@ -7,6 +7,7 @@ using System.Windows.Media;
 using TestCaseEditorApp.Controls;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.Views
 {
