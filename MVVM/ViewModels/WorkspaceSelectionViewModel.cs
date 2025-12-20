@@ -12,6 +12,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     /// <summary>
     /// ViewModel for AnythingLLM workspace selection and creation.
     /// Designed to work within the modal overlay system.
+    /// Part of shared infrastructure - used by both project creation and project opening workflows.
     /// </summary>
     public partial class WorkspaceSelectionViewModel : ObservableObject
     {
@@ -123,10 +124,16 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private async Task InitializeAsync()
         {
+            TestCaseEditorApp.Services.Logging.Log.Info("[WorkspaceSelection] InitializeAsync started");
             await EnsureServiceReadyAsync();
+            TestCaseEditorApp.Services.Logging.Log.Info($"[WorkspaceSelection] Service ready: {IsServiceReady}");
             if (IsServiceReady)
             {
                 await LoadWorkspacesAsync();
+            }
+            else
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn("[WorkspaceSelection] Service not ready, skipping LoadWorkspacesAsync");
             }
         }
 
@@ -136,37 +143,51 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 IsLoading = true;
                 StatusMessage = "Checking AnythingLLM installation...";
+                TestCaseEditorApp.Services.Logging.Log.Info("[WorkspaceSelection] EnsureServiceReadyAsync started");
 
                 // Check if AnythingLLM is installed
                 var (isInstalled, installPath, shortcutPath, installMessage) = AnythingLLMService.DetectInstallation();
+                TestCaseEditorApp.Services.Logging.Log.Info($"[WorkspaceSelection] AnythingLLM installed: {isInstalled}");
                 if (!isInstalled)
                 {
                     _notificationService.ShowInfo(installMessage);
                     StatusMessage = "AnythingLLM not installed";
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[WorkspaceSelection] {installMessage}");
                     return;
                 }
 
                 // Check if API key is configured
                 StatusMessage = "Checking API key...";
                 var apiKey = AnythingLLMService.GetUserApiKey();
+                TestCaseEditorApp.Services.Logging.Log.Info($"[WorkspaceSelection] API key configured: {!string.IsNullOrEmpty(apiKey)}");
                 if (string.IsNullOrEmpty(apiKey))
                 {
-                    StatusMessage = "API key required";
-                    _notificationService.ShowWarning("API key is required to use AnythingLLM features.");
-                    return;
+                    StatusMessage = "API key required - attempting to load workspaces anyway";
+                    _notificationService.ShowWarning("API key is required for full functionality, but attempting to load workspaces.");
+                    TestCaseEditorApp.Services.Logging.Log.Warn("[WorkspaceSelection] API key missing, but continuing");
                 }
 
-                // Start the service
+                // Try to start the service - but don't fail if it doesn't work
                 StatusMessage = "Starting AnythingLLM service...";
-                await _anythingLLMService.EnsureServiceRunningAsync();
+                TestCaseEditorApp.Services.Logging.Log.Info("[WorkspaceSelection] Starting AnythingLLM service");
+                try
+                {
+                    await _anythingLLMService.EnsureServiceRunningAsync();
+                }
+                catch (Exception serviceEx)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[WorkspaceSelection] Service startup failed but continuing: {serviceEx.Message}");
+                }
 
                 IsServiceReady = true;
                 StatusMessage = "Service ready";
+                TestCaseEditorApp.Services.Logging.Log.Info("[WorkspaceSelection] Service ready");
             }
             catch (Exception ex)
             {
                 _notificationService.ShowError($"Failed to initialize AnythingLLM service: {ex.Message}");
                 StatusMessage = $"Initialization failed: {ex.Message}";
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[WorkspaceSelection] Failed to initialize AnythingLLM service");
             }
             finally
             {
@@ -182,16 +203,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 StatusMessage = "Loading workspaces...";
                 Workspaces.Clear();
 
+                TestCaseEditorApp.Services.Logging.Log.Info("[WorkspaceSelection] Starting LoadWorkspacesAsync");
+                
                 var workspaces = await _anythingLLMService.GetWorkspacesAsync();
+                TestCaseEditorApp.Services.Logging.Log.Info($"[WorkspaceSelection] GetWorkspacesAsync returned {workspaces?.Count ?? 0} workspaces");
+                
                 if (workspaces != null)
                 {
-                    // Filter workspaces based on mode
-                    var filteredWorkspaces = _mode == SelectionMode.SelectExisting 
-                        ? workspaces.Where(w => w.HasLocalFile).ToList()  // Only show workspaces with local files
-                        : workspaces;  // Show all workspaces for create mode
-                    
-                    foreach (var workspace in filteredWorkspaces)
+                    // Show all workspaces regardless of mode
+                    // Users should be able to select any AnythingLLM workspace
+                    foreach (var workspace in workspaces)
                     {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[WorkspaceSelection] Adding workspace: {workspace.Name} (Slug: {workspace.Slug})");
                         Workspaces.Add(workspace);
                     }
                 }
@@ -199,14 +222,29 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 var workspaceCount = workspaces?.Count ?? 0;
                 var availableCount = Workspaces.Count;
                 
+                TestCaseEditorApp.Services.Logging.Log.Info($"[WorkspaceSelection] Final workspace count: {availableCount}");
+                
                 StatusMessage = _mode == SelectionMode.SelectExisting 
                     ? ""  // No status message for existing workspace selection
                     : "Enter a name for the new workspace:";
             }
             catch (Exception ex)
             {
-                _notificationService.ShowError($"Failed to load workspaces: {ex.Message}");
-                StatusMessage = "Failed to load workspaces";
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[WorkspaceSelection] LoadWorkspacesAsync failed");
+                var errorMessage = ex.Message;
+                
+                // Provide more helpful error messages based on exception type
+                if (ex.Message.Contains("All API endpoints failed"))
+                {
+                    errorMessage = "Cannot connect to AnythingLLM. Please ensure it's running on http://localhost:3001";
+                }
+                else if (ex.Message.Contains("Unauthorized") || ex.Message.Contains("Forbidden"))
+                {
+                    errorMessage = "Authentication failed. Please check your API key configuration.";
+                }
+                
+                _notificationService.ShowError($"Failed to load workspaces: {errorMessage}");
+                StatusMessage = $"Failed to load workspaces: {errorMessage}";
             }
             finally
             {

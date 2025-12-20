@@ -75,6 +75,8 @@ namespace TestCaseEditorApp
                     // LLM services (shared infrastructure)
                     services.AddSingleton<ITextGenerationService>(_ => LlmFactory.Create());
                     services.AddSingleton<RequirementAnalysisService>();
+                    services.AddSingleton<AnythingLLMService>(provider =>
+                        new AnythingLLMService()); // Let it get baseUrl and apiKey from defaults/user config
 
                     // Domain coordination
                     services.AddSingleton<IDomainCoordinator, DomainCoordinator>();
@@ -115,17 +117,32 @@ namespace TestCaseEditorApp
                     // ViewModels and header VM
                     services.AddTransient<TestCaseGenerator_VM>();
                     services.AddSingleton<WorkspaceHeaderViewModel>(); // workspace header shared instance
-                    services.AddTransient<MainViewModel>();
+                    services.AddTransient<MainViewModel>(provider =>
+                    {
+                        var applicationServices = provider.GetRequiredService<IApplicationServices>();
+                        var viewModelFactory = provider.GetRequiredService<IViewModelFactory>();
+                        var projectManagement = provider.GetRequiredService<ProjectManagementViewModel>();
+                        var llmServiceManagement = provider.GetRequiredService<LLMServiceManagementViewModel>();
+                        var requirementProcessing = provider.GetRequiredService<RequirementProcessingViewModel>();
+                        
+                        return new MainViewModel(applicationServices, viewModelFactory, projectManagement, llmServiceManagement, requirementProcessing, provider);
+                    });
                     services.AddTransient<NavigationViewModel>();
 
                     // New domain ViewModels for consolidation
                     services.AddTransient<ProjectManagementViewModel>();
                     services.AddTransient<UIModalManagementViewModel>();
                     services.AddTransient<LLMServiceManagementViewModel>();
+                    services.AddTransient<RequirementProcessingViewModel>();
                     services.AddTransient<RequirementAnalysisManagementViewModel>();
                     services.AddTransient<WorkspaceManagementViewModel>();
                     // NavigationHeaderManagementViewModel and RequirementImportExportViewModel already exist
                     // ChatGptExportAnalysisViewModel is registered in its domain
+
+                    // Core application services
+                    services.AddSingleton<ChatGptExportService>();
+                    services.AddSingleton<IViewModelFactory, ViewModelFactory>();
+                    services.AddSingleton<IApplicationServices, ApplicationServices>();
 
                     // Views / Windows
                     services.AddTransient<MainWindow>();

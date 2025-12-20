@@ -16,6 +16,7 @@
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -30,8 +31,17 @@
                      Foreground="DarkOrange"
                      Background="#333333"/>
 
+        <!-- Status message -->
+        <TextBlock Grid.Row="1"
+                   Text="{Binding StatusMessage}"
+                   Foreground="#CCCCCC"
+                   FontSize="12"
+                   Margin="0,0,0,10"
+                   TextWrapping="Wrap"
+                   HorizontalAlignment="Center"/>
+
         <!-- Main content -->
-        <Grid Grid.Row="1" Visibility="{Binding IsServiceReady, Converter={StaticResource BoolToVisibilityConverter}}">
+        <Grid Grid.Row="2" Visibility="{Binding IsServiceReady, Converter={StaticResource BoolToVisibilityConverter}}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
@@ -152,21 +162,29 @@
         </Grid>
 
         <!-- Action buttons -->
-        <Grid Grid.Row="3" Margin="0,15,0,0">
+        <Grid Grid.Row="4" Margin="0,15,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
             <Button Grid.Column="1" 
+                    Content="Refresh" 
+                    Padding="15,8" 
+                    Margin="5,0"
+                    Style="{StaticResource ActionButton}"
+                    Command="{Binding RefreshCommand}"/>
+
+            <Button Grid.Column="2" 
                     Content="Open" 
                     Padding="15,8" 
                     Margin="5,0"
                     Style="{StaticResource ActionButton}"
                     Command="{Binding SelectWorkspaceCommand}"/>
 
-            <Button Grid.Column="2" 
+            <Button Grid.Column="3" 
                     Content="Cancel" 
                     Padding="15,8" 
                     Margin="5,0"

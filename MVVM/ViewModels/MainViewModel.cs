@@ -70,6 +70,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private RequirementGenerationViewModel? _requirementGeneration;
         private NavigationHeaderManagementViewModel? _navigationHeaderManagement;
         private ProjectManagementViewModel? _projectManagement;
+        private LLMServiceManagementViewModel? _llmServiceManagement;
+        private RequirementProcessingViewModel? _requirementProcessing;
 
         // --- Header / navigation / view state ---
         // Strongly-typed header instances
@@ -240,7 +242,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         // Static initialization guard to prevent multiple instances from initializing AnythingLLM
-        private static bool _anythingLLMInitializing = false;
+        internal static bool _anythingLLMInitializing = false;
         private static readonly object _initializationLock = new object();
 
         // AnythingLLM Status Properties - Track LlmConnectionManager with proper notifications
@@ -567,6 +569,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             IApplicationServices applicationServices,
             IViewModelFactory viewModelFactory,
             ProjectManagementViewModel? projectManagement = null,
+            LLMServiceManagementViewModel? llmServiceManagement = null,
+            RequirementProcessingViewModel? requirementProcessing = null,
             IServiceProvider? services = null)
         {
             // Store core services
@@ -597,6 +601,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Initialize domain ViewModels
             _projectManagement = projectManagement;
             _projectManagement?.Initialize(this);
+            
+            _llmServiceManagement = llmServiceManagement;
+            _llmServiceManagement?.Initialize(this);
+            
+            _requirementProcessing = requirementProcessing;
+            _requirementProcessing?.Initialize(this);
 
             // LEGACY: Create ViewModels through factory for backward compatibility
             _workspaceHeaderViewModel = _viewAreaCoordinator.HeaderArea.ActiveHeader as WorkspaceHeaderViewModel ?? 
@@ -1739,7 +1749,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // -----------------------------
         // Collection / navigation helpers
         // -----------------------------
-        private void RequirementsOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        internal void RequirementsOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
             OnPropertyChanged(nameof(TotalRequirementsCount));
             OnPropertyChanged(nameof(RequirementPositionDisplay));
@@ -3331,7 +3341,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         public void ShowWorkspaceSelectionModal()
         {
-            var viewModel = new WorkspaceSelectionViewModel(_anythingLLMService, _notificationService, WorkspaceSelectionViewModel.SelectionMode.CreateNew);
+            var anythingLLMService = _services.GetRequiredService<AnythingLLMService>();
+            var notificationService = _services.GetRequiredService<NotificationService>();
+            var viewModel = new WorkspaceSelectionViewModel(anythingLLMService, notificationService, WorkspaceSelectionViewModel.SelectionMode.CreateNew);
             viewModel.WorkspaceSelected += OnWorkspaceSelected;
             viewModel.Cancelled += OnWorkspaceSelectionCancelled;
             ShowModal(viewModel, "Create New Project");
@@ -3342,7 +3354,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         public void ShowWorkspaceSelectionModalForOpen()
         {
-            var viewModel = new WorkspaceSelectionViewModel(_anythingLLMService, _notificationService, WorkspaceSelectionViewModel.SelectionMode.SelectExisting);
+            var anythingLLMService = _services.GetRequiredService<AnythingLLMService>();
+            var notificationService = _services.GetRequiredService<NotificationService>();
+            var viewModel = new WorkspaceSelectionViewModel(anythingLLMService, notificationService, WorkspaceSelectionViewModel.SelectionMode.SelectExisting);
             viewModel.WorkspaceSelected += OnWorkspaceSelected;
             viewModel.Cancelled += OnWorkspaceSelectionCancelled;
             ShowModal(viewModel, "Open Existing Project");
