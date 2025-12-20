@@ -118,6 +118,15 @@ namespace TestCaseEditorApp
                     services.AddTransient<MainViewModel>();
                     services.AddTransient<NavigationViewModel>();
 
+                    // New domain ViewModels for consolidation
+                    services.AddTransient<ProjectManagementViewModel>();
+                    services.AddTransient<UIModalManagementViewModel>();
+                    services.AddTransient<LLMServiceManagementViewModel>();
+                    services.AddTransient<RequirementAnalysisManagementViewModel>();
+                    services.AddTransient<WorkspaceManagementViewModel>();
+                    // NavigationHeaderManagementViewModel and RequirementImportExportViewModel already exist
+                    // ChatGptExportAnalysisViewModel is registered in its domain
+
                     // Views / Windows
                     services.AddTransient<MainWindow>();
 

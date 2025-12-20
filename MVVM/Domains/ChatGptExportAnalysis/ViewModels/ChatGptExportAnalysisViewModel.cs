@@ -74,7 +74,7 @@ namespace TestCaseEditorApp.MVVM.Domains.ChatGptExportAnalysis.ViewModels
         /// <summary>
         /// Exports the current requirement for ChatGPT analysis.
         /// </summary>
-        private void ExportCurrentRequirementForChatGpt()
+        public void ExportCurrentRequirementForChatGpt()
         {
             try
             {
@@ -123,7 +123,7 @@ namespace TestCaseEditorApp.MVVM.Domains.ChatGptExportAnalysis.ViewModels
         /// <summary>
         /// Exports selected/all requirements for ChatGPT analysis.
         /// </summary>
-        private void ExportSelectedRequirementsForChatGpt()
+        public void ExportSelectedRequirementsForChatGpt()
         {
             try
             {
@@ -245,6 +245,57 @@ namespace TestCaseEditorApp.MVVM.Domains.ChatGptExportAnalysis.ViewModels
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[ANALYSIS] Failed to batch analyze all requirements: {ex.Message}");
                 _setTransientStatus?.Invoke("❌ Failed to batch analyze all requirements", 3);
+            }
+        }
+
+        /// <summary>
+        /// Paste ChatGPT analysis functionality - allows importing analysis results from ChatGPT
+        /// </summary>
+        public void PasteChatGptAnalysis()
+        {
+            try
+            {
+                _setTransientStatus?.Invoke("📋 Paste ChatGPT analysis coming soon...", 3);
+                _logger?.LogInformation("ChatGPT analysis paste requested");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Failed to paste ChatGPT analysis");
+                _setTransientStatus?.Invoke("❌ Failed to paste analysis", 3);
+            }
+        }
+
+        /// <summary>
+        /// Get the latest LLM draft text for a requirement
+        /// </summary>
+        public string GetLatestLlmDraftText(Requirement req)
+        {
+            try
+            {
+                // TODO: Implement actual LLM draft text retrieval
+                return string.Empty;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, $"Failed to get latest LLM draft text for requirement {req?.Item}");
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Build strict output from saved requirement data
+        /// </summary>
+        public string BuildStrictOutputFromSaved(Requirement req)
+        {
+            try
+            {
+                // TODO: Implement actual strict output building from saved data
+                return string.Empty;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, $"Failed to build strict output from saved data for requirement {req?.Item}");
+                return string.Empty;
             }
         }
 

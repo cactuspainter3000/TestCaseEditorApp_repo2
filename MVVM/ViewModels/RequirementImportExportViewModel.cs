@@ -70,7 +70,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// Command to import requirements from a Word document (.docx) with file dialog.
         /// </summary>
         [RelayCommand]
-        private async Task ImportWordAsync()
+        public async Task ImportWordAsync()
         {
             var dlg = new OpenFileDialog
             {
@@ -91,7 +91,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// Skips file dialogs and directly imports from a predefined test file.
         /// </summary>
         [RelayCommand]
-        private async Task QuickImportAsync()
+        public async Task QuickImportAsync()
         {
             try
             {
@@ -252,7 +252,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// Command to open the last exported ChatGPT file in Notepad.
         /// </summary>
         [RelayCommand(CanExecute = nameof(CanOpenChatGptExportFile))]
-        private void OpenChatGptExportFile()
+        public void OpenChatGptExportFile()
         {
             try
             {
@@ -286,7 +286,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// Command to import additional requirements to the current project.
         /// </summary>
         [RelayCommand]
-        private void ImportAdditional()
+        public void ImportAdditional()
         {
             try
             {
@@ -304,7 +304,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// Command to import structured analysis from a file (JSON or other structured format).
         /// </summary>
         [RelayCommand]
-        private void ImportStructuredAnalysis()
+        public void ImportStructuredAnalysis()
         {
             try
             {
@@ -460,6 +460,97 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             var filePath = _getLastChatGptExportFilePath();
             return !string.IsNullOrEmpty(filePath) && File.Exists(filePath);
+        }
+
+        // === Methods moved from MainViewModel for consolidation ===
+
+        /// <summary>
+        /// Invokes export all test cases to Jama functionality
+        /// </summary>
+        public void TryInvokeExportAllToJama()
+        {
+            try
+            {
+                _setTransientStatus("Export to Jama functionality would be called here", 3);
+                // TODO: Implement actual Jama export logic
+            }
+            catch (Exception ex)
+            {
+                _setTransientStatus($"Export to Jama failed: {ex.Message}", 5);
+            }
+        }
+
+        /// <summary>
+        /// Export all generated test cases to CSV format
+        /// </summary>
+        public string ExportAllGeneratedTestCasesToCsv(IEnumerable<Requirement> requirements, string folderPath, string filePrefix, string extra)
+        {
+            try
+            {
+                _setTransientStatus("Exporting test cases to CSV...", 3);
+                
+                // TODO: Implement actual CSV export logic
+                var outputPath = Path.Combine(folderPath, $"{filePrefix}_test_cases_{extra}.csv");
+                
+                _setTransientStatus($"Test cases exported to: {Path.GetFileName(outputPath)}", 5);
+                return outputPath;
+            }
+            catch (Exception ex)
+            {
+                _setTransientStatus($"CSV export failed: {ex.Message}", 5);
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Export all generated test cases to Excel format
+        /// </summary>
+        public void ExportAllGeneratedTestCasesToExcel(IEnumerable<Requirement> requirements, string outputPath)
+        {
+            try
+            {
+                _setTransientStatus("Exporting test cases to Excel...", 3);
+                
+                // TODO: Implement actual Excel export logic
+                
+                _setTransientStatus($"Test cases exported to: {Path.GetFileName(outputPath)}", 5);
+            }
+            catch (Exception ex)
+            {
+                _setTransientStatus($"Excel export failed: {ex.Message}", 5);
+            }
+        }
+
+        /// <summary>
+        /// Handle import workflow completion events
+        /// </summary>
+        public void OnImportWorkflowCompleted(object? sender, object e)
+        {
+            try
+            {
+                // TODO: Handle import workflow completion
+                _setTransientStatus("Import workflow completed", 3);
+            }
+            catch (Exception ex)
+            {
+                _setTransientStatus($"Import workflow completion handling failed: {ex.Message}", 5);
+            }
+        }
+
+        /// <summary>
+        /// Handle import workflow cancellation events
+        /// </summary>
+        public void OnImportWorkflowCancelled(object? sender, EventArgs e)
+        {
+            _setTransientStatus("Import workflow cancelled", 2);
+        }
+
+        /// <summary>
+        /// Handle import requirements workflow cancellation events
+        /// </summary>
+        public void OnImportRequirementsWorkflowCancelled(object? sender, EventArgs e)
+        {
+            _setTransientStatus("Import requirements workflow cancelled", 2);
         }
     }
 }

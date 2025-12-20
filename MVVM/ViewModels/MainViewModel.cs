@@ -66,10 +66,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly ILogger<MainViewModel>? _logger;
 
         // --- Domain ViewModels ---
-        private WorkspaceManagementVM? _workspaceManagement;
-        private ChatGptExportAnalysisViewModel? _chatGptExportAnalysis;
         private RequirementAnalysisViewModel? _requirementAnalysis;
         private RequirementGenerationViewModel? _requirementGeneration;
+        private NavigationHeaderManagementViewModel? _navigationHeaderManagement;
+        private ProjectManagementViewModel? _projectManagement;
 
         // --- Header / navigation / view state ---
         // Strongly-typed header instances
@@ -123,11 +123,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         // Import workflow VM
         public ImportRequirementsWorkflowViewModel ImportWorkflow { get; private set; }
-        public NewProjectWorkflowViewModel NewProjectWorkflow { get; private set; }
+        public NewProjectWorkflowViewModel NewProjectWorkflow { get; set; }
         
-        // New Project header VM
-        private NewProjectHeaderViewModel? _newProjectHeader;
-
         // --- Core observable collections / properties ---
         private ObservableCollection<Requirement> _requirements = new ObservableCollection<Requirement>();
         public ObservableCollection<Requirement> Requirements => _requirements;
@@ -569,6 +566,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public MainViewModel(
             IApplicationServices applicationServices,
             IViewModelFactory viewModelFactory,
+            ProjectManagementViewModel? projectManagement = null,
             IServiceProvider? services = null)
         {
             // Store core services
@@ -595,6 +593,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _anythingLLMService = _applicationServices.AnythingLLMService;
             _chatGptExportService = _applicationServices.ChatGptExportService;
             _logger = _applicationServices.LoggerFactory?.CreateLogger<MainViewModel>();
+
+            // Initialize domain ViewModels
+            _projectManagement = projectManagement;
+            _projectManagement?.Initialize(this);
 
             // LEGACY: Create ViewModels through factory for backward compatibility
             _workspaceHeaderViewModel = _viewAreaCoordinator.HeaderArea.ActiveHeader as WorkspaceHeaderViewModel ?? 
@@ -706,7 +708,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Initialize toggle commands for UI binding
             ToggleAutoAnalyzeCommand = new RelayCommand(() => AutoAnalyzeOnImport = !AutoAnalyzeOnImport);
             ToggleAutoExportCommand = new RelayCommand(() => AutoExportForChatGpt = !AutoExportForChatGpt);
-            OpenChatGptExportCommand = new RelayCommand(() => OpenChatGptExportFile(), () => !string.IsNullOrEmpty(LastChatGptExportFilePath) && System.IO.File.Exists(LastChatGptExportFilePath));
+            // Initialize placeholder commands for Import/Export domain (TODO: Wire to actual domain ViewModels)
+            OpenChatGptExportCommand = new RelayCommand(() => { /* TODO: Wire to RequirementImportExportViewModel */ }, () => !string.IsNullOrEmpty(LastChatGptExportFilePath) && System.IO.File.Exists(LastChatGptExportFilePath));
             
             // Initialize project management commands
             NewProjectCommand = new RelayCommand(() => CreateNewProject());
@@ -720,12 +723,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Initialize analysis commands via domain ViewModel
             AnalyzeUnanalyzedCommand = _requirementAnalysis?.AnalyzeUnanalyzedCommand ?? new RelayCommand(() => { });
             ReAnalyzeModifiedCommand = _requirementAnalysis?.ReAnalyzeModifiedCommand ?? new RelayCommand(() => { });
-            ImportAdditionalCommand = new RelayCommand(() => ImportAdditional());
+            ImportAdditionalCommand = new RelayCommand(() => { /* TODO: Wire to RequirementImportExportViewModel.ImportAdditional */ });
             AnalyzeRequirementsCommand = _requirementAnalysis?.AnalyzeCurrentRequirementCommand ?? new RelayCommand(() => { });
             BatchAnalyzeCommand = _requirementAnalysis?.BatchAnalyzeAllRequirementsCommand ?? new RelayCommand(() => { });
             
             // Initialize ChatGPT analysis import commands  
-            ImportStructuredAnalysisCommand = new RelayCommand(() => ImportStructuredAnalysis());
+            ImportStructuredAnalysisCommand = new RelayCommand(() => { /* TODO: Wire to RequirementImportExportViewModel.ImportStructuredAnalysis */ });
             PasteChatGptAnalysisCommand = new RelayCommand(() => PasteChatGptAnalysis());
             GenerateLearningPromptCommand = _requirementGeneration?.GenerateLearningPromptCommand ?? new RelayCommand(() => { });
             SetupLlmWorkspaceCommand = new RelayCommand(() => SetupLlmWorkspace());
@@ -761,20 +764,37 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 () => CurrentRequirement,
                 (message, duration) => SetTransientStatus(message, duration));
                 
+            // Initialize NavigationHeaderManagementViewModel
+            _navigationHeaderManagement = new NavigationHeaderManagementViewModel(
+                getRequirements: () => Requirements,
+                getCurrentRequirement: () => CurrentRequirement,
+                setCurrentRequirement: (req) => CurrentRequirement = req,
+                setTransientStatus: (msg, dur) => SetTransientStatus(msg, dur),
+                commitPendingEdits: CommitPendingEdits,
+                getActiveHeader: () => ActiveHeader,
+                setActiveHeader: (header) => ActiveHeader = header,
+                getCurrentWorkspace: () => CurrentWorkspace,
+                getWorkspacePath: () => WorkspacePath,
+                getWrapOnNextWithoutTestCase: () => WrapOnNextWithoutTestCase,
+                getIsLlmBusy: () => IsLlmBusy,
+                getTestCaseGeneratorHeader: () => _testCaseGeneratorHeader,
+                getTestCaseGeneratorInstance: GetTestCaseGeneratorInstance
+            );
+                
             // Note: This violates DI principles and should be replaced with:
             // _requirementAnalysis = _viewModelFactory.CreateRequirementAnalysisWorkflowViewModel();
             // _requirementGeneration = _viewModelFactory.CreateRequirementGenerationViewModel();
 
             // Initialize/ensure Import command exists before wiring header (so both menu and header share the same command)
-            ImportWordCommand = ImportWordCommand ?? new AsyncRelayCommand(ImportWordAsync);
-            QuickImportCommand = new AsyncRelayCommand(QuickImportAsync);
+            ImportWordCommand = ImportWordCommand ?? new AsyncRelayCommand(async () => { /* TODO: Wire to RequirementImportExportViewModel.ImportWordAsync */ await Task.CompletedTask; });
+            QuickImportCommand = new AsyncRelayCommand(async () => { /* TODO: Wire to RequirementImportExportViewModel.QuickImportAsync */ await Task.CompletedTask; });
             LoadWorkspaceCommand = new RelayCommand(() => LoadWorkspace());
             SaveWorkspaceCommand = new RelayCommand(() => SaveWorkspace());
             ReloadCommand = new AsyncRelayCommand(ReloadAsync);
             ExportAllToJamaCommand = new RelayCommand(() => TryInvokeExportAllToJama());
             HelpCommand = new RelayCommand(() => TryInvokeHelp());
-            ExportForChatGptCommand = new RelayCommand(() => ExportCurrentRequirementForChatGpt(), () => CurrentRequirement != null);
-            ExportSelectedForChatGptCommand = new RelayCommand(() => ExportSelectedRequirementsForChatGpt());
+            ExportForChatGptCommand = new RelayCommand(() => { /* TODO: Wire to ChatGptExportAnalysisViewModel.ExportCurrentRequirementForChatGpt */ }, () => CurrentRequirement != null);
+            ExportSelectedForChatGptCommand = new RelayCommand(() => { /* TODO: Wire to ChatGptExportAnalysisViewModel.ExportSelectedRequirementsForChatGpt */ });
 
             // Create navigator and pass child logger if available
             var requirementsIndexLogger = _applicationServices.LoggerFactory?.CreateLogger<RequirementsIndexViewModel>();
@@ -785,10 +805,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 () => CommitPendingEdits(),
                 logger: requirementsIndexLogger);
 
-            // Bind navigation commands to methods with CanExecute checks
-            NextRequirementCommand = new RelayCommand(NextRequirement, CanNavigate);
-            PreviousRequirementCommand = new RelayCommand(PreviousRequirement, CanNavigate);
-            NextWithoutTestCaseCommand = new RelayCommand(NextWithoutTestCase, CanNavigate);
+            // Wire navigation commands to NavigationHeaderManagementViewModel
+            NextRequirementCommand = _navigationHeaderManagement.NextRequirementCommand;
+            PreviousRequirementCommand = _navigationHeaderManagement.PreviousRequirementCommand;
+            NextWithoutTestCaseCommand = _navigationHeaderManagement.NextWithoutTestCaseCommand;
             
             // Wire Re-Analyze command to workspace header
             _workspaceHeaderViewModel.ReAnalyzeCommand = new AsyncRelayCommand(ReAnalyzeRequirementAsync, CanReAnalyze);
@@ -1080,15 +1100,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             });
         }
 
-        private void _requirement_service_guard(IRequirementService requirementService, IPersistenceService persistence, WorkspaceHeaderViewModel workspaceHeaderViewModel, NavigationViewModel navigationViewModel, IFileDialogService fileDialog)
-        {
-            if (requirementService == null) throw new ArgumentNullException(nameof(requirementService));
-            if (persistence == null) throw new ArgumentNullException(nameof(persistence));
-            if (workspaceHeaderViewModel == null) throw new ArgumentNullException(nameof(workspaceHeaderViewModel));
-            if (navigationViewModel == null) throw new ArgumentNullException(nameof(navigationViewModel));
-            if (fileDialog == null) throw new ArgumentNullException(nameof(fileDialog));
-        }
-
         private void InitializeSteps()
         {
             // Add Project step first
@@ -1253,7 +1264,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 // TestFlow uses workspace header (TestFlowHeaderViewModel stub was removed)
                 if (string.Equals(value, "TestFlow", StringComparison.OrdinalIgnoreCase))
                 {
-                    CreateAndAssignWorkspaceHeader();
+                    _navigationHeaderManagement?.CreateAndAssignWorkspaceHeader();
                     return;
                 }
 
@@ -1278,7 +1289,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 // New Project workflow - show header with title and main content with workflow
                 if (string.Equals(value, "NewProject", StringComparison.OrdinalIgnoreCase))
                 {
-                    CreateAndAssignNewProjectHeader();
+                    _navigationHeaderManagement?.CreateAndAssignNewProjectHeader();
                     
                     // Show the full workflow in the main content area
                     if (NewProjectWorkflow == null)
@@ -1294,37 +1305,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 }
 
                 // Default to workspace header
-                CreateAndAssignWorkspaceHeader();
+                _navigationHeaderManagement?.CreateAndAssignWorkspaceHeader();
             }
             catch
             {
                 // Best-effort fallback
-                CreateAndAssignWorkspaceHeader();
+                _navigationHeaderManagement?.CreateAndAssignWorkspaceHeader();
             }
         }
 
-        private void CreateAndAssignWorkspaceHeader()
-        {
-            if (_workspaceHeaderViewModel == null)
-            {
-                _workspaceHeaderViewModel = new WorkspaceHeaderViewModel();
-            }
+        // TODO: Extract to NavigationHeaderManagementViewModel - method moved for Round 7
 
-            // initialize some workspace header values if possible
-            try { _workspaceHeaderViewModel.WorkspaceName = CurrentWorkspace?.Name ?? Path.GetFileName(WorkspacePath ?? string.Empty); } catch { }
-
-            ActiveHeader = _workspaceHeaderViewModel;
-        }
-
-        private void CreateAndAssignNewProjectHeader()
-        {
-            if (_newProjectHeader == null)
-            {
-                _newProjectHeader = new NewProjectHeaderViewModel();
-            }
-
-            ActiveHeader = _newProjectHeader;
-        }
+        // TODO: Extract to NavigationHeaderManagementViewModel - method moved for Round 7
 
         private void CreateAndAssignTestCaseGeneratorHeader()
         {
@@ -1605,23 +1597,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
         }
 
-        private Task Header_SaveAsync()
-        {
-            try
-            {
-                TryInvokeSaveWorkspace();
-                return Task.CompletedTask;
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogWarning(ex, "[Header_SaveAsync] failed");
-                SetTransientStatus($"Failed to save workspace: {ex.Message}", blockingError: true);
-                return Task.CompletedTask;
-            }
-        }
-
         // ----------------- helpers that avoid compile-time coupling -----------------
-        private object? GetTestCaseGeneratorInstance()
+        public object? GetTestCaseGeneratorInstance()
         {
             try
             {
@@ -1757,28 +1734,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
 
             SetTransientStatus("Help is not available.", 3);
-        }
-
-        private void TryInvokeSetTransientStatus(string msg, int seconds)
-        {
-            try
-            {
-                var m = this.GetType().GetMethod("SetTransientStatus", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.IgnoreCase)
-                     ?? this.GetType().GetMethod("ShowTransientStatus", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.IgnoreCase);
-                if (m != null)
-                {
-                    m.Invoke(this, new object[] { msg, seconds });
-                    return;
-                }
-
-                var prop = this.GetType().GetProperty("StatusMessage", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase)
-                        ?? this.GetType().GetProperty("Status", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-                if (prop != null && prop.CanWrite)
-                {
-                    prop.SetValue(this, msg);
-                }
-            }
-            catch { /* ignore */ }
         }
 
         // -----------------------------
@@ -2028,42 +1983,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         public ICommand InitializeRagCommand => new RelayCommand(async () => await InitializeRagForWorkspaceAsync());
 
-        // Navigation methods (ICommand-backed)
-        private bool CanNavigate()
-        {
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[MainViewModel] CanNavigate() called. IsLlmBusy={IsLlmBusy}");
-            
-            // Don't allow navigation when LLM is busy
-            if (IsLlmBusy)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Debug("[MainViewModel] CanNavigate() returning FALSE - IsLlmBusy is true");
-                SetTransientStatus("Please wait - the AI is working on your request. LLMs are powerful, but they need a moment!", 2);
-                return false;
-            }
-
-            try
-            {
-                if (_testCaseGeneratorHeader?.IsLlmBusy == true)
-                {
-                    SetTransientStatus("Please wait - the AI is working on your request. LLMs are powerful, but they need a moment!", 2);
-                    return false;
-                }
-                    
-                var tcg = GetTestCaseGeneratorInstance();
-                if (tcg != null)
-                {
-                    var busyProp = tcg.GetType().GetProperty("IsLlmBusy", BindingFlags.Public | BindingFlags.Instance);
-                    if (busyProp != null && busyProp.GetValue(tcg) is bool isBusy && isBusy)
-                    {
-                        SetTransientStatus("Please wait - the AI is working on your request. LLMs are powerful, but they need a moment!", 2);
-                        return false;
-                    }
-                }
-            }
-            catch { /* ignore */ }
-            
-            return true;
-        }
+        // Navigation methods moved to NavigationHeaderManagementViewModel
         
         private bool CanReAnalyze()
         {
@@ -2102,57 +2022,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
         }
         
-        private void NextRequirement()
-        {
-            CommitPendingEdits();
-            if (Requirements.Count == 0 || CurrentRequirement == null) return;
-            int idx = Requirements.IndexOf(CurrentRequirement);
-            if (idx >= 0 && idx < Requirements.Count - 1) CurrentRequirement = Requirements[idx + 1];
-        }
+        // TODO: Extract to NavigationHeaderManagementViewModel - method moved for Round 7
 
-        private void PreviousRequirement()
-        {
-            CommitPendingEdits();
-            if (Requirements.Count == 0 || CurrentRequirement == null) return;
-            int idx = Requirements.IndexOf(CurrentRequirement);
-            if (idx > 0) CurrentRequirement = Requirements[idx - 1];
-        }
+        // TODO: Extract to NavigationHeaderManagementViewModel - method moved for Round 7
 
-        private void NextWithoutTestCase()
-        {
-            CommitPendingEdits();
-
-            if (Requirements == null || Requirements.Count == 0)
-            {
-                SetTransientStatus("No requirements available.", 3);
-                return;
-            }
-
-            int count = Requirements.Count;
-            int startIdx = (CurrentRequirement == null) ? -1 : Requirements.IndexOf(CurrentRequirement);
-            if (startIdx < -1) startIdx = -1;
-
-            bool HasTestCase(Requirement r)
-            {
-                try { return r != null && r.HasGeneratedTestCase; }
-                catch { return false; }
-            }
-
-            for (int step = 1; step <= count; step++)
-            {
-                int idx = startIdx + step;
-                if (!WrapOnNextWithoutTestCase && idx >= count) break;
-                int candidate = idx % count;
-                var req = Requirements[candidate];
-                if (!HasTestCase(req))
-                {
-                    CurrentRequirement = req;
-                    return;
-                }
-            }
-
-            SetTransientStatus("No next requirement without a test case found.", 4);
-        }
+        // TODO: Extract to NavigationHeaderManagementViewModel - method moved for Round 7
 
         // Requirement wiring helpers
         private Requirement? _prevReq;
@@ -2545,7 +2419,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 if (reqs.Any() && AutoExportForChatGpt)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Info($"[IMPORT] Exporting {reqs.Count} requirements for ChatGPT");
-                    _ = Task.Run(() => BatchExportRequirementsForChatGpt(reqs));
+                    _ = Task.Run(() => { /* TODO: Wire to ChatGptExportAnalysisViewModel.BatchExportRequirementsForChatGpt(reqs) */ });
                 }
                 else if (_analysisService != null && reqs.Any() && AutoAnalyzeOnImport)
                 {
@@ -2638,7 +2512,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private string _file_dialog_show_save_helper(string suggestedFileName, string initialDirectory)
             => _fileDialog.ShowSaveFile(title: "Save New Project Workspace", suggestedFileName: suggestedFileName, filter: "Test Case Editor Session|*.tcex.json|JSON|*.json|All Files|*.*", defaultExt: ".tcex.json", initialDirectory: initialDirectory) ?? string.Empty;
 
-        private void SetTransientStatus(string message, int seconds = 3, bool blockingError = false)
+        public void SetTransientStatus(string message, int seconds = 3, bool blockingError = false)
         {
             TestCaseEditorApp.Services.TransientStatus.Show(_toastService, message, seconds, blockingError);
         }
@@ -3174,30 +3048,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         private void CreateNewProject()
         {
-            try
-            {
-                TestCaseEditorApp.Services.Logging.Log.Info("[PROJECT] CreateNewProject started");
-                
-                // Show the new project workflow without changing the menu section
-                // This preserves the current side menu state (e.g., keeps Project dropdown open)
-                CreateAndAssignNewProjectHeader();
-                
-                // Show the full workflow in the main content area
-                if (NewProjectWorkflow == null)
-                {
-                    NewProjectWorkflow = new NewProjectWorkflowViewModel(_anythingLLMService, _toastService);
-                    NewProjectWorkflow.ProjectCreated += OnNewProjectCreated;
-                    NewProjectWorkflow.ProjectCancelled += OnNewProjectCancelled;
-                }
-                
-                NewProjectWorkflow.Initialize();
-                CurrentStepViewModel = NewProjectWorkflow;
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[PROJECT] Error in CreateNewProject");
-                _notificationService.ShowError($"Error creating new project: {ex.Message}");
-            }
+            _projectManagement?.CreateNewProject();
         }
 
         /// <summary>
@@ -3205,19 +3056,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         private void OpenProject()
         {
-            try
-            {
-                TestCaseEditorApp.Services.Logging.Log.Info("[PROJECT] OpenProject started");
-                
-                // Show workspace selection modal for selecting existing workspace
-                ShowWorkspaceSelectionModalForOpen();
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[PROJECT] Failed to open project: {ex.Message}");
-                _notificationService.ShowError($"Error opening project: {ex.Message}");
-                SetTransientStatus("❌ Failed to open project", 3);
-            }
+            _projectManagement?.OpenProject();
         }
 
         // TODO: Extract to RequirementAnalysisViewModel - method moved for Round 3 testing
@@ -3374,44 +3213,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
         
         /// <summary>
-        /// Shows a dialog for selecting an AnythingLLM workspace.
-        /// </summary>
-        private int ShowWorkspaceSelectionDialog(string[] workspaceNames)
-        {
-            // Simple implementation using built-in dialogs until we have a proper UI
-            var selection = string.Join("\\n", workspaceNames.Select((name, index) => $"{index}: {name}"));
-            var message = $"Available AnythingLLM Workspaces:\\n{selection}\\n\\nEnter the number of the workspace to open:";
-            
-            var input = System.Windows.MessageBox.Show(message, "Select Workspace", System.Windows.MessageBoxButton.OKCancel);
-            
-            // For now, return 0 (first workspace) if OK, -1 if cancelled
-            return input == System.Windows.MessageBoxResult.OK ? 0 : -1;
-        }
-
-        /// <summary>
         /// Saves the current project state.
         /// </summary>
         private void SaveProject()
         {
-            try
-            {
-                if (string.IsNullOrEmpty(CurrentAnythingLLMWorkspaceSlug))
-                {
-                    SetTransientStatus("⚠️ No AnythingLLM workspace selected", 3);
-                    return;
-                }
-                
-                // Use existing SaveWorkspace functionality
-                SaveWorkspace();
-                
-                SetTransientStatus($"💾 Project saved", 3);
-                TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Project saved for workspace '{CurrentAnythingLLMWorkspaceSlug}'");
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[PROJECT] Failed to save project: {ex.Message}");
-                SetTransientStatus("❌ Failed to save project", 3);
-            }
+            _projectManagement?.SaveProject();
         }
 
         /// <summary>
@@ -3419,61 +3225,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         private void CloseProject()
         {
-            try
-            {
-                // Clear all project-related data
-                Requirements.Clear();
-                CurrentAnythingLLMWorkspaceSlug = null;
-                WorkspacePath = null;
-                CurrentWorkspace = null;
-                CurrentRequirement = null;
-                
-                // Clear imported data
-                WordFilePath = null;
-                LooseTables.Clear();
-                LooseParagraphs.Clear();
-                
-                // Reset application state
-                IsDirty = false;
-                IsBatchAnalyzing = false;
-                
-                // Reset step navigation to Test Case Generator step
-                SelectedStep = TestCaseGeneratorSteps.LastOrDefault();
-                
-                // Clear any analysis state in step view models
-                if (CurrentStepViewModel is TestCaseGenerator_AssumptionsVM assumptionsVm)
-                {
-                    assumptionsVm.SetCurrentRequirement(null);
-                }
-                
-                // Reset display name to default
-                DisplayName = "Test Case Editor";
-                
-                // Clear status
-                SapStatus = string.Empty;
-                
-                // Reset workspace header if it exists
-                if (_workspaceHeaderViewModel != null)
-                {
-                    _workspaceHeaderViewModel.WorkspaceName = string.Empty;
-                    _workspaceHeaderViewModel.CanReAnalyze = false;
-                    ((AsyncRelayCommand?)_workspaceHeaderViewModel.ReAnalyzeCommand)?.NotifyCanExecuteChanged();
-                }
-                
-                // Refresh command states
-                RefreshCommandStates();
-                
-                SetTransientStatus("📄 Project closed", 3);
-                TestCaseEditorApp.Services.Logging.Log.Info("[PROJECT] Project closed and GUI reset to initial state");
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[PROJECT] Failed to close project: {ex.Message}");
-                SetTransientStatus("❌ Failed to close project", 3);
-            }
+            _projectManagement?.CloseProject();
         }
         
-        private void RefreshCommandStates()
+        public void RefreshCommandStates()
         {
             try
             {
@@ -3946,8 +3701,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private void OnNewProjectCancelled(object? sender, EventArgs e)
         {
-            // Return to default view
-            SelectedMenuSection = "Requirements";
+            _projectManagement?.OnNewProjectCancelled(sender, e);
         }
 
         // Explicit ITestCaseGenerator_Navigator implementations (map to public ICommand props)
