@@ -102,7 +102,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public object? ActiveHeader
         {
             get => _viewAreaCoordinator.NavigationMediator.CurrentHeader;
-            private set => _viewAreaCoordinator.NavigationMediator.SetActiveHeader(value);
+            set => _viewAreaCoordinator.NavigationMediator.SetActiveHeader(value);
         }
 
         // CurrentStepViewModel - main content area (UNIFIED via mediator)
@@ -575,6 +575,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             RequirementProcessingViewModel? requirementProcessing = null,
             UIModalManagementViewModel? uiModalManagement = null,
             WorkspaceManagementViewModel? workspaceManagement = null,
+            NavigationHeaderManagementViewModel? navigationHeaderManagement = null,
             IServiceProvider? services = null)
         {
             // Store core services
@@ -617,6 +618,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             
             _workspaceManagement = workspaceManagement;
             _workspaceManagement?.Initialize(this);
+
+            _navigationHeaderManagement = navigationHeaderManagement;
+            _navigationHeaderManagement?.Initialize(this);
 
             // LEGACY: Create ViewModels through factory for backward compatibility
             _workspaceHeaderViewModel = _viewAreaCoordinator.HeaderArea.ActiveHeader as WorkspaceHeaderViewModel ?? 
@@ -784,22 +788,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 () => CurrentRequirement,
                 (message, duration) => SetTransientStatus(message, duration));
                 
-            // Initialize NavigationHeaderManagementViewModel
-            _navigationHeaderManagement = new NavigationHeaderManagementViewModel(
-                getRequirements: () => Requirements,
-                getCurrentRequirement: () => CurrentRequirement,
-                setCurrentRequirement: (req) => CurrentRequirement = req,
-                setTransientStatus: (msg, dur) => SetTransientStatus(msg, dur),
-                commitPendingEdits: CommitPendingEdits,
-                getActiveHeader: () => ActiveHeader,
-                setActiveHeader: (header) => ActiveHeader = header,
-                getCurrentWorkspace: () => CurrentWorkspace,
-                getWorkspacePath: () => WorkspacePath,
-                getWrapOnNextWithoutTestCase: () => WrapOnNextWithoutTestCase,
-                getIsLlmBusy: () => IsLlmBusy,
-                getTestCaseGeneratorHeader: () => _testCaseGeneratorHeader,
-                getTestCaseGeneratorInstance: GetTestCaseGeneratorInstance
-            );
+            // NavigationHeaderManagementViewModel is now injected via DI in constructor
+            // and initialized via _navigationHeaderManagement?.Initialize(this)
                 
             // Note: This violates DI principles and should be replaced with:
             // _requirementAnalysis = _viewModelFactory.CreateRequirementAnalysisWorkflowViewModel();
@@ -1783,7 +1773,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 ? string.Empty
                 : $"{Requirements.IndexOf(CurrentRequirement) + 1} of {Requirements.Count}";
 
-        private void CommitPendingEdits() => Keyboard.ClearFocus();
+        public void CommitPendingEdits() => Keyboard.ClearFocus();
 
         // TODO: Extract to RequirementImportExportViewModel - method moved for Round 6
         

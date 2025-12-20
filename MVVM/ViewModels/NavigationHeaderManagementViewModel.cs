@@ -1,5 +1,8 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
@@ -7,66 +10,42 @@ using System.Linq;
 using System.Reflection;
 using System.Windows.Input;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.Services;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
     /// <summary>
     /// ViewModel responsible for managing navigation between requirements and header lifecycle management.
     /// Handles requirement navigation (next/previous/jump), header creation/assignment, and UI coordination.
+    /// Follows architectural guidelines as shared infrastructure.
     /// </summary>
     public partial class NavigationHeaderManagementViewModel : ObservableObject
     {
-        // Dependencies and function delegates for data access
-        private readonly Action<string, int> _setTransientStatus;
-        private readonly Func<ObservableCollection<Requirement>> _getRequirements;
-        private readonly Func<Requirement?> _getCurrentRequirement;
-        private readonly Action<Requirement?> _setCurrentRequirement;
-        private readonly Action _commitPendingEdits;
+        private readonly ILogger<NavigationHeaderManagementViewModel> _logger;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly NotificationService? _notificationService;
+        private MainViewModel? _mainViewModel;
         
-        // Header management dependencies
-        private readonly Func<object?> _getActiveHeader;
-        private readonly Action<object?> _setActiveHeader;
-        private readonly Func<Workspace?> _getCurrentWorkspace;
-        private readonly Func<string?> _getWorkspacePath;
-        private readonly Func<bool> _getWrapOnNextWithoutTestCase;
-        
-        // LLM state dependencies for CanNavigate logic
-        private readonly Func<bool> _getIsLlmBusy;
-        private readonly Func<object?> _getTestCaseGeneratorHeader;
-        private readonly Func<object?> _getTestCaseGeneratorInstance;
-
-        // Header instances - these would be passed in via DI in a full implementation
+        // Header instances
         private WorkspaceHeaderViewModel? _workspaceHeaderViewModel;
         private NewProjectHeaderViewModel? _newProjectHeader;
 
         public NavigationHeaderManagementViewModel(
-            Func<ObservableCollection<Requirement>> getRequirements,
-            Func<Requirement?> getCurrentRequirement,
-            Action<Requirement?> setCurrentRequirement,
-            Action<string, int> setTransientStatus,
-            Action commitPendingEdits,
-            Func<object?> getActiveHeader,
-            Action<object?> setActiveHeader,
-            Func<Workspace?> getCurrentWorkspace,
-            Func<string?> getWorkspacePath,
-            Func<bool> getWrapOnNextWithoutTestCase,
-            Func<bool> getIsLlmBusy,
-            Func<object?> getTestCaseGeneratorHeader,
-            Func<object?> getTestCaseGeneratorInstance)
+            ILogger<NavigationHeaderManagementViewModel> logger,
+            IServiceProvider serviceProvider,
+            NotificationService? notificationService = null)
         {
-            _getRequirements = getRequirements ?? throw new ArgumentNullException(nameof(getRequirements));
-            _getCurrentRequirement = getCurrentRequirement ?? throw new ArgumentNullException(nameof(getCurrentRequirement));
-            _setCurrentRequirement = setCurrentRequirement ?? throw new ArgumentNullException(nameof(setCurrentRequirement));
-            _setTransientStatus = setTransientStatus ?? throw new ArgumentNullException(nameof(setTransientStatus));
-            _commitPendingEdits = commitPendingEdits ?? throw new ArgumentNullException(nameof(commitPendingEdits));
-            _getActiveHeader = getActiveHeader ?? throw new ArgumentNullException(nameof(getActiveHeader));
-            _setActiveHeader = setActiveHeader ?? throw new ArgumentNullException(nameof(setActiveHeader));
-            _getCurrentWorkspace = getCurrentWorkspace ?? throw new ArgumentNullException(nameof(getCurrentWorkspace));
-            _getWorkspacePath = getWorkspacePath ?? throw new ArgumentNullException(nameof(getWorkspacePath));
-            _getWrapOnNextWithoutTestCase = getWrapOnNextWithoutTestCase ?? throw new ArgumentNullException(nameof(getWrapOnNextWithoutTestCase));
-            _getIsLlmBusy = getIsLlmBusy ?? throw new ArgumentNullException(nameof(getIsLlmBusy));
-            _getTestCaseGeneratorHeader = getTestCaseGeneratorHeader ?? throw new ArgumentNullException(nameof(getTestCaseGeneratorHeader));
-            _getTestCaseGeneratorInstance = getTestCaseGeneratorInstance ?? throw new ArgumentNullException(nameof(getTestCaseGeneratorInstance));
+            _logger = logger;
+            _serviceProvider = serviceProvider;
+            _notificationService = notificationService;
+        }
+
+        /// <summary>
+        /// Set reference to MainViewModel for coordination
+        /// </summary>
+        public void Initialize(MainViewModel mainViewModel)
+        {
+            _mainViewModel = mainViewModel;
         }
 
         /// <summary>
@@ -75,14 +54,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [RelayCommand(CanExecute = nameof(CanNavigate))]
         private void NextRequirement()
         {
-            _commitPendingEdits();
-            var requirements = _getRequirements();
-            var currentRequirement = _getCurrentRequirement();
+            if (_mainViewModel == null) return;
+            
+            _mainViewModel?.CommitPendingEdits();
+            var requirements = _mainViewModel?.Requirements;
+            var currentRequirement = _mainViewModel?.CurrentRequirement;
             
             if (requirements.Count == 0 || currentRequirement == null) return;
             int idx = requirements.IndexOf(currentRequirement);
             if (idx >= 0 && idx < requirements.Count - 1) 
-                _setCurrentRequirement(requirements[idx + 1]);
+            {
+                if (_mainViewModel != null) _mainViewModel.CurrentRequirement = requirements[idx + 1];
+            }
         }
 
         /// <summary>
@@ -91,14 +74,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [RelayCommand(CanExecute = nameof(CanNavigate))]
         private void PreviousRequirement()
         {
-            _commitPendingEdits();
-            var requirements = _getRequirements();
-            var currentRequirement = _getCurrentRequirement();
+            if (_mainViewModel == null) return;
+            
+            _mainViewModel?.CommitPendingEdits();
+            var requirements = _mainViewModel?.Requirements;
+            var currentRequirement = _mainViewModel?.CurrentRequirement;
             
             if (requirements.Count == 0 || currentRequirement == null) return;
             int idx = requirements.IndexOf(currentRequirement);
             if (idx > 0) 
-                _setCurrentRequirement(requirements[idx - 1]);
+            {
+                if (_mainViewModel != null) _mainViewModel.CurrentRequirement = requirements[idx - 1];
+            }
         }
 
         /// <summary>
@@ -107,17 +94,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [RelayCommand(CanExecute = nameof(CanNavigate))]
         private void NextWithoutTestCase()
         {
-            _commitPendingEdits();
-            var requirements = _getRequirements();
+            _mainViewModel?.CommitPendingEdits();
+            var requirements = _mainViewModel?.Requirements;
 
             if (requirements == null || requirements.Count == 0)
             {
-                _setTransientStatus("No requirements available.", 3);
+                _mainViewModel?.SetTransientStatus("No requirements available.", 3);
                 return;
             }
 
             int count = requirements.Count;
-            var currentRequirement = _getCurrentRequirement();
+            var currentRequirement = _mainViewModel?.CurrentRequirement;
             int startIdx = (currentRequirement == null) ? -1 : requirements.IndexOf(currentRequirement);
             if (startIdx < -1) startIdx = -1;
 
@@ -130,17 +117,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             for (int step = 1; step <= count; step++)
             {
                 int idx = startIdx + step;
-                if (!_getWrapOnNextWithoutTestCase() && idx >= count) break;
+                if (!_mainViewModel.WrapOnNextWithoutTestCase && idx >= count) break;
                 int candidate = idx % count;
                 var req = requirements[candidate];
                 if (!HasTestCase(req))
                 {
-                    _setCurrentRequirement(req);
+                    if (_mainViewModel != null) _mainViewModel.CurrentRequirement = req;
                     return;
                 }
             }
 
-            _setTransientStatus("No next requirement without a test case found.", 4);
+            _mainViewModel?.SetTransientStatus("No next requirement without a test case found.", 4);
         }
 
         /// <summary>
@@ -148,6 +135,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         public void CreateAndAssignWorkspaceHeader()
         {
+            if (_mainViewModel == null) return;
+            
             if (_workspaceHeaderViewModel == null)
             {
                 _workspaceHeaderViewModel = new WorkspaceHeaderViewModel();
@@ -156,13 +145,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Initialize some workspace header values if possible
             try 
             { 
-                var currentWorkspace = _getCurrentWorkspace();
-                var workspacePath = _getWorkspacePath();
+                var currentWorkspace = _mainViewModel.CurrentWorkspace;
+                var workspacePath = _mainViewModel.WorkspacePath;
                 _workspaceHeaderViewModel.WorkspaceName = currentWorkspace?.Name ?? Path.GetFileName(workspacePath ?? string.Empty); 
             } 
             catch { }
 
-            _setActiveHeader(_workspaceHeaderViewModel);
+            _mainViewModel.ActiveHeader = _workspaceHeaderViewModel;
         }
 
         /// <summary>
@@ -175,7 +164,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 _newProjectHeader = new NewProjectHeaderViewModel();
             }
 
-            _setActiveHeader(_newProjectHeader);
+            _mainViewModel.ActiveHeader = _newProjectHeader;
         }
 
         /// <summary>
@@ -183,37 +172,37 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         private bool CanNavigate()
         {
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[NavigationHeaderManagementViewModel] CanNavigate() called. IsLlmBusy={_getIsLlmBusy()}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[NavigationHeaderManagementViewModel] CanNavigate() called. IsLlmBusy={_mainViewModel?.IsLlmBusy}");
             
             // Don't allow navigation when LLM is busy
-            var isLlmBusy = _getIsLlmBusy();
+            var isLlmBusy = _mainViewModel?.IsLlmBusy ?? false;
             if (isLlmBusy)
             {
                 TestCaseEditorApp.Services.Logging.Log.Debug("[NavigationHeaderManagementViewModel] CanNavigate() returning FALSE - IsLlmBusy is true");
-                _setTransientStatus("Please wait - the AI is working on your request. LLMs are powerful, but they need a moment!", 2);
+                _mainViewModel?.SetTransientStatus("Please wait - the AI is working on your request. LLMs are powerful, but they need a moment!", 2);
                 return false;
             }
 
             try
             {
-                var testCaseGeneratorHeader = _getTestCaseGeneratorHeader();
+                var testCaseGeneratorHeader = _mainViewModel.TestCaseGeneratorHeader;
                 if (testCaseGeneratorHeader != null)
                 {
                     var isLlmBusyProp = testCaseGeneratorHeader.GetType().GetProperty("IsLlmBusy", BindingFlags.Public | BindingFlags.Instance);
                     if (isLlmBusyProp?.GetValue(testCaseGeneratorHeader) is bool headerIsBusy && headerIsBusy)
                     {
-                        _setTransientStatus("Please wait - the AI is working on your request. LLMs are powerful, but they need a moment!", 2);
+                        _mainViewModel?.SetTransientStatus("Please wait - the AI is working on your request. LLMs are powerful, but they need a moment!", 2);
                         return false;
                     }
                 }
                     
-                var tcg = _getTestCaseGeneratorInstance();
+                var tcg = _mainViewModel.GetTestCaseGeneratorInstance();
                 if (tcg != null)
                 {
                     var busyProp = tcg.GetType().GetProperty("IsLlmBusy", BindingFlags.Public | BindingFlags.Instance);
                     if (busyProp != null && busyProp.GetValue(tcg) is bool isBusy && isBusy)
                     {
-                        _setTransientStatus("Please wait - the AI is working on your request. LLMs are powerful, but they need a moment!", 2);
+                        _mainViewModel?.SetTransientStatus("Please wait - the AI is working on your request. LLMs are powerful, but they need a moment!", 2);
                         return false;
                     }
                 }
@@ -221,8 +210,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             catch { /* ignore */ }
             
             // Also check basic navigation requirements
-            var requirements = _getRequirements();
-            var currentRequirement = _getCurrentRequirement();
+            var requirements = _mainViewModel?.Requirements;
+            var currentRequirement = _mainViewModel?.CurrentRequirement;
             return requirements?.Count > 0 && currentRequirement != null;
         }
 
@@ -260,12 +249,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             try
             {
-                _setTransientStatus($"Selected menu section: {value ?? "None"}", 2);
+                _mainViewModel?.SetTransientStatus($"Selected menu section: {value ?? "None"}", 2);
                 // TODO: Implement actual menu section navigation logic
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Menu section change failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Menu section change failed: {ex.Message}", 3);
             }
         }
 
@@ -277,11 +266,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             try
             {
                 // TODO: Implement test case generator header creation
-                _setTransientStatus("Test case generator header created", 2);
+                _mainViewModel?.SetTransientStatus("Test case generator header created", 2);
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Header creation failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Header creation failed: {ex.Message}", 3);
             }
         }
 
@@ -293,11 +282,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             try
             {
                 // TODO: Implement header subscription wiring
-                _setTransientStatus("Header subscriptions wired", 1);
+                _mainViewModel?.SetTransientStatus("Header subscriptions wired", 1);
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Header wiring failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Header wiring failed: {ex.Message}", 3);
             }
         }
 
@@ -312,7 +301,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Header property change handling failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Header property change handling failed: {ex.Message}", 3);
             }
         }
 
@@ -327,7 +316,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Header unwiring failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Header unwiring failed: {ex.Message}", 3);
             }
         }
 
@@ -342,7 +331,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Requirements collection change handling failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Requirements collection change handling failed: {ex.Message}", 3);
             }
         }
 
@@ -357,7 +346,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Header requirements collection change handling failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Header requirements collection change handling failed: {ex.Message}", 3);
             }
         }
 
@@ -375,7 +364,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Requirement header wiring failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Requirement header wiring failed: {ex.Message}", 3);
             }
         }
 
@@ -393,7 +382,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Requirement header unwiring failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Requirement header unwiring failed: {ex.Message}", 3);
             }
         }
 
@@ -408,7 +397,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Requirement property change handling for header failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Requirement property change handling for header failed: {ex.Message}", 3);
             }
         }
 
@@ -423,7 +412,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Header state update failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Header state update failed: {ex.Message}", 3);
             }
         }
 
@@ -434,12 +423,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             try
             {
-                _setTransientStatus("Opening requirements from header", 2);
+                _mainViewModel?.SetTransientStatus("Opening requirements from header", 2);
                 // TODO: Implement requirements opening logic
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Header open requirements failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Header open requirements failed: {ex.Message}", 3);
             }
         }
 
@@ -450,12 +439,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             try
             {
-                _setTransientStatus("Opening workspace from header", 2);
+                _mainViewModel?.SetTransientStatus("Opening workspace from header", 2);
                 // TODO: Implement workspace opening logic
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Header open workspace failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Header open workspace failed: {ex.Message}", 3);
             }
         }
 
@@ -467,11 +456,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             try
             {
                 // TODO: Implement dynamic test case generator wiring
-                _setTransientStatus("Dynamic test case generator wired", 1);
+                _mainViewModel?.SetTransientStatus("Dynamic test case generator wired", 1);
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Dynamic generator wiring failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Dynamic generator wiring failed: {ex.Message}", 3);
             }
         }
 
@@ -507,7 +496,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Current requirement change handling failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Current requirement change handling failed: {ex.Message}", 3);
             }
         }
 
@@ -521,12 +510,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 // TODO: Implement requirement forwarding to active header
                 if (req != null)
                 {
-                    _setTransientStatus($"Forwarded requirement {req.Item} to header", 1);
+                    _mainViewModel?.SetTransientStatus($"Forwarded requirement {req.Item} to header", 1);
                 }
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Requirement forwarding failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Requirement forwarding failed: {ex.Message}", 3);
             }
         }
 
@@ -548,7 +537,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Old requirement unhooking failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Old requirement unhooking failed: {ex.Message}", 3);
             }
         }
 
@@ -567,7 +556,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"New requirement hooking failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"New requirement hooking failed: {ex.Message}", 3);
             }
         }
 
@@ -582,7 +571,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Pill selection saving failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Pill selection saving failed: {ex.Message}", 3);
             }
         }
 
@@ -597,7 +586,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Step selectability update failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Step selectability update failed: {ex.Message}", 3);
             }
         }
 
@@ -616,7 +605,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Requirement property change handling failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Requirement property change handling failed: {ex.Message}", 3);
             }
         }
 
@@ -636,7 +625,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Requirements collection change handling failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Requirements collection change handling failed: {ex.Message}", 3);
             }
         }
 
@@ -652,7 +641,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Command state refresh failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Command state refresh failed: {ex.Message}", 3);
             }
         }
 
@@ -663,7 +652,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             try
             {
-                var currentReq = _getCurrentRequirement();
+                var currentReq = _mainViewModel?.CurrentRequirement;
                 if (currentReq != null)
                 {
                     BuildSupportingInfoFromRequirement(currentReq);
@@ -671,7 +660,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Supporting info refresh failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Supporting info refresh failed: {ex.Message}", 3);
             }
         }
 
@@ -687,7 +676,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Supporting info building failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Supporting info building failed: {ex.Message}", 3);
             }
         }
 
@@ -699,13 +688,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             try
             {
                 // TODO: Implement drafted count computation
-                var requirements = _getRequirements();
+                var requirements = _mainViewModel?.Requirements;
                 var draftedCount = requirements?.Count(r => !string.IsNullOrEmpty(r.Description)) ?? 0;
                 // Update status display properties
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Drafted count computation failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Drafted count computation failed: {ex.Message}", 3);
             }
         }
 
@@ -721,7 +710,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Counter change notification failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Counter change notification failed: {ex.Message}", 3);
             }
         }
 
@@ -736,7 +725,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"Generator callback wiring failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"Generator callback wiring failed: {ex.Message}", 3);
             }
         }
 
@@ -747,12 +736,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             try
             {
-                _setTransientStatus($"LLM {(connected ? "connected" : "disconnected")}", 2);
+                _mainViewModel?.SetTransientStatus($"LLM {(connected ? "connected" : "disconnected")}", 2);
                 // TODO: Update LLM connection status display properties
             }
             catch (Exception ex)
             {
-                _setTransientStatus($"LLM connection status update failed: {ex.Message}", 3);
+                _mainViewModel?.SetTransientStatus($"LLM connection status update failed: {ex.Message}", 3);
             }
         }
     }

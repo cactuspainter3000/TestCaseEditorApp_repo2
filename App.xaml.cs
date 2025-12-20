@@ -126,8 +126,9 @@ namespace TestCaseEditorApp
                         var requirementProcessing = provider.GetRequiredService<RequirementProcessingViewModel>();
                         var uiModalManagement = provider.GetRequiredService<UIModalManagementViewModel>();
                         var workspaceManagement = provider.GetRequiredService<WorkspaceManagementViewModel>();
+                        var navigationHeaderManagement = provider.GetRequiredService<NavigationHeaderManagementViewModel>();
                         
-                        return new MainViewModel(applicationServices, viewModelFactory, projectManagement, llmServiceManagement, requirementProcessing, uiModalManagement, workspaceManagement, provider);
+                        return new MainViewModel(applicationServices, viewModelFactory, projectManagement, llmServiceManagement, requirementProcessing, uiModalManagement, workspaceManagement, navigationHeaderManagement, provider);
                     });
                     services.AddTransient<NavigationViewModel>();
 
@@ -138,6 +139,7 @@ namespace TestCaseEditorApp
                     services.AddTransient<RequirementProcessingViewModel>();
                     services.AddTransient<RequirementAnalysisManagementViewModel>();
                     services.AddTransient<WorkspaceManagementViewModel>();
+                    services.AddTransient<NavigationHeaderManagementViewModel>();
                     // NavigationHeaderManagementViewModel and RequirementImportExportViewModel already exist
                     // ChatGptExportAnalysisViewModel is registered in its domain
 
