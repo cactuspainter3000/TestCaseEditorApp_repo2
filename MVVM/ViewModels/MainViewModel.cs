@@ -73,6 +73,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private LLMServiceManagementViewModel? _llmServiceManagement;
         private RequirementProcessingViewModel? _requirementProcessing;
         private UIModalManagementViewModel? _uiModalManagement;
+        private WorkspaceManagementViewModel? _workspaceManagement;
 
         // --- Header / navigation / view state ---
         // Strongly-typed header instances
@@ -573,6 +574,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             LLMServiceManagementViewModel? llmServiceManagement = null,
             RequirementProcessingViewModel? requirementProcessing = null,
             UIModalManagementViewModel? uiModalManagement = null,
+            WorkspaceManagementViewModel? workspaceManagement = null,
             IServiceProvider? services = null)
         {
             // Store core services
@@ -613,8 +615,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _uiModalManagement = uiModalManagement;
             _uiModalManagement?.Initialize(this);
             
-            _uiModalManagement = uiModalManagement;
-            _uiModalManagement?.Initialize(this);
+            _workspaceManagement = workspaceManagement;
+            _workspaceManagement?.Initialize(this);
 
             // LEGACY: Create ViewModels through factory for backward compatibility
             _workspaceHeaderViewModel = _viewAreaCoordinator.HeaderArea.ActiveHeader as WorkspaceHeaderViewModel ?? 
@@ -806,8 +808,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Initialize/ensure Import command exists before wiring header (so both menu and header share the same command)
             ImportWordCommand = ImportWordCommand ?? new AsyncRelayCommand(async () => { /* TODO: Wire to RequirementImportExportViewModel.ImportWordAsync */ await Task.CompletedTask; });
             QuickImportCommand = new AsyncRelayCommand(async () => { /* TODO: Wire to RequirementImportExportViewModel.QuickImportAsync */ await Task.CompletedTask; });
-            LoadWorkspaceCommand = new RelayCommand(() => LoadWorkspace());
-            SaveWorkspaceCommand = new RelayCommand(() => SaveWorkspace());
+            LoadWorkspaceCommand = new RelayCommand(() => {
+                if (_workspaceManagement != null)
+                    _workspaceManagement.LoadWorkspace();
+                else
+                    LoadWorkspace();
+            });
+            SaveWorkspaceCommand = new RelayCommand(() => {
+                if (_workspaceManagement != null)
+                    _workspaceManagement.SaveWorkspace();
+                else
+                    SaveWorkspace();
+            });
             ReloadCommand = new AsyncRelayCommand(ReloadAsync);
             ExportAllToJamaCommand = new RelayCommand(() => TryInvokeExportAllToJama());
             HelpCommand = new RelayCommand(() => TryInvokeHelp());

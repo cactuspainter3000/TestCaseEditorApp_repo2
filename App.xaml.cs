@@ -125,8 +125,9 @@ namespace TestCaseEditorApp
                         var llmServiceManagement = provider.GetRequiredService<LLMServiceManagementViewModel>();
                         var requirementProcessing = provider.GetRequiredService<RequirementProcessingViewModel>();
                         var uiModalManagement = provider.GetRequiredService<UIModalManagementViewModel>();
+                        var workspaceManagement = provider.GetRequiredService<WorkspaceManagementViewModel>();
                         
-                        return new MainViewModel(applicationServices, viewModelFactory, projectManagement, llmServiceManagement, requirementProcessing, uiModalManagement, provider);
+                        return new MainViewModel(applicationServices, viewModelFactory, projectManagement, llmServiceManagement, requirementProcessing, uiModalManagement, workspaceManagement, provider);
                     });
                     services.AddTransient<NavigationViewModel>();
 

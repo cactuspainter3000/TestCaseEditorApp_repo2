@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -7,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
+using Microsoft.Win32;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Services;
 using Application = System.Windows.Application;
@@ -15,10 +17,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels;
 
 /// <summary>
 /// Manages workspace operations: initialization, loading, saving, auto-save, and diagnostics
+/// Follows architectural guidelines as shared infrastructure (not domain-specific)
 /// </summary>
 public partial class WorkspaceManagementViewModel : ObservableObject
 {
     private readonly ILogger<WorkspaceManagementViewModel> _logger;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly NotificationService? _notificationService;
     private MainViewModel? _mainViewModel;
     
     // Auto-save functionality
@@ -37,9 +42,17 @@ public partial class WorkspaceManagementViewModel : ObservableObject
     [ObservableProperty]
     private Workspace? _currentWorkspace;
 
-    public WorkspaceManagementViewModel(ILogger<WorkspaceManagementViewModel> logger)
+    [ObservableProperty]
+    private string? _currentSourcePath;
+
+    public WorkspaceManagementViewModel(
+        ILogger<WorkspaceManagementViewModel> logger,
+        IServiceProvider serviceProvider,
+        NotificationService? notificationService = null)
     {
         _logger = logger;
+        _serviceProvider = serviceProvider;
+        _notificationService = notificationService;
     }
 
     /// <summary>
@@ -75,25 +88,15 @@ public partial class WorkspaceManagementViewModel : ObservableObject
     /// </summary>
     public async Task ReloadAsync()
     {
-        _logger.LogInformation("Reloading workspace");
+        await Task.CompletedTask;
         
         if (string.IsNullOrEmpty(WorkspacePath))
         {
-            _logger.LogWarning("No workspace path set for reload");
-            _mainViewModel?.SetTransientStatus("No workspace to reload", 3);
+            _mainViewModel?.SetTransientStatus("No workspace to reload.", 2);
             return;
         }
 
-        try
-        {
-            await LoadWorkspaceFromPathAsync(WorkspacePath);
-            _mainViewModel?.SetTransientStatus("Workspace reloaded successfully", 3);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Failed to reload workspace from: {WorkspacePath}");
-            _mainViewModel?.SetTransientStatus($"Reload failed: {ex.Message}", 5, true);
-        }
+        LoadWorkspaceFromPath(WorkspacePath);
     }
 
     /// <summary>
@@ -101,43 +104,83 @@ public partial class WorkspaceManagementViewModel : ObservableObject
     /// </summary>
     public void SaveWorkspace()
     {
-        _logger.LogInformation("Saving workspace synchronously");
+        _logger.LogInformation($"[SaveWorkspace] Quick save called. WorkspacePath='{WorkspacePath ?? "<null>"}'");
         
+        if (string.IsNullOrWhiteSpace(WorkspacePath))
+        {
+            _logger.LogInformation("[SaveWorkspace] No existing path, delegating to SaveAs");
+            // No existing path, delegate to SaveAs
+            _ = SaveWorkspaceAsync();
+            return;
+        }
+
+        if (_mainViewModel?.Requirements == null || _mainViewModel.Requirements.Count == 0)
+        {
+            _mainViewModel?.SetTransientStatus("Nothing to save.", 2);
+            return;
+        }
+
+        var ws = new Workspace
+        {
+            SourceDocPath = CurrentSourcePath,
+            Requirements = _mainViewModel.Requirements.ToList()
+        };
+
         try
         {
-            if (string.IsNullOrEmpty(WorkspacePath))
+            TestCaseEditorApp.Services.WorkspaceFileManager.Save(WorkspacePath!, ws);
+            LogPostSaveDiagnostics(WorkspacePath!);
+            CurrentWorkspace = ws;
+            IsDirty = false;
+            HasUnsavedChanges = false;
+            
+            // Track in recent files
+            try 
+            { 
+                var recentFilesService = _serviceProvider.GetService<RecentFilesService>();
+                recentFilesService?.AddRecentFile(WorkspacePath!); 
+            } 
+            catch (Exception ex)
             {
-                _logger.LogWarning("No workspace path set for save");
-                _mainViewModel?.SetTransientStatus("No workspace path set - use Save As", 3);
-                return;
+                _logger.LogWarning(ex, "Failed to add file to recent files");
             }
-
-            // Save workspace using WorkspaceFileManager
-            if (CurrentWorkspace != null)
-            {
-                WorkspaceFileManager.Save(WorkspacePath, CurrentWorkspace);
-                HasUnsavedChanges = false;
-                IsDirty = false;
-                
-                LogPostSaveDiagnostics(WorkspacePath);
-                _mainViewModel?.SetTransientStatus($"Workspace saved: {Path.GetFileName(WorkspacePath)}", 3);
-            }
+            
+            _mainViewModel?.SetTransientStatus($"Saved: {Path.GetFileName(WorkspacePath)}", 3);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Failed to save workspace to: {WorkspacePath}");
-            _mainViewModel?.SetTransientStatus($"Save failed: {ex.Message}", 5, true);
+            _notificationService?.ShowError($"Failed to save workspace: {ex.Message}", 8);
         }
     }
 
     /// <summary>
-    /// Save the current workspace asynchronously
+    /// Save As - prompts for location
     /// </summary>
     public async Task SaveWorkspaceAsync()
     {
-        _logger.LogInformation("Saving workspace asynchronously");
+        // Ensure async methods contain an await to satisfy analyzer when method is mostly synchronous
+        await Task.CompletedTask;
         
-        await Task.Run(() => SaveWorkspace());
+        if (_mainViewModel?.Requirements == null || _mainViewModel.Requirements.Count == 0)
+        {
+            _mainViewModel?.SetTransientStatus("Nothing to save.", 2);
+            return;
+        }
+
+        var sfd = new SaveFileDialog
+        {
+            Title = "Save Session As",
+            Filter = "Test Case Editor Session|*.tcex.json",
+            DefaultExt = ".tcex.json",
+            RestoreDirectory = true,
+            InitialDirectory = !string.IsNullOrWhiteSpace(WorkspacePath) ? Path.GetDirectoryName(WorkspacePath) : Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
+        };
+
+        if (sfd.ShowDialog() != true) return;
+
+        WorkspacePath = sfd.FileName;
+        SaveWorkspace(); // Delegate to quick save now that we have a path
     }
 
     /// <summary>
@@ -145,18 +188,18 @@ public partial class WorkspaceManagementViewModel : ObservableObject
     /// </summary>
     public void LoadWorkspace()
     {
-        _logger.LogInformation("Loading workspace with file dialog");
-        
-        try
+        var ofd = new OpenFileDialog
         {
-            // TODO: Show file dialog to select workspace file
-            _mainViewModel?.SetTransientStatus("Load workspace dialog would open here", 3);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to show load workspace dialog");
-            _mainViewModel?.SetTransientStatus($"Failed to show load dialog: {ex.Message}", 5, true);
-        }
+            Title = "Open Saved Session",
+            Filter = "Test Case Editor Session|*.tcex.json",
+            DefaultExt = ".tcex.json",
+            RestoreDirectory = true,
+            InitialDirectory = !string.IsNullOrWhiteSpace(WorkspacePath) ? Path.GetDirectoryName(WorkspacePath) : Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
+        };
+
+        if (ofd.ShowDialog() != true) return;
+
+        LoadWorkspaceFromPath(ofd.FileName);
     }
 
     /// <summary>
@@ -164,70 +207,71 @@ public partial class WorkspaceManagementViewModel : ObservableObject
     /// </summary>
     public void LoadWorkspaceFromPath(string filePath)
     {
-        _logger.LogInformation($"Loading workspace from path: {filePath}");
+        _logger.LogInformation($"[LoadWorkspace] Starting to load workspace from: {filePath}");
         
-        Task.Run(async () => await LoadWorkspaceFromPathAsync(filePath));
-    }
+        if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+        {
+            _logger.LogInformation($"[LoadWorkspace] Invalid file path or file doesn't exist: {filePath}");
+            _mainViewModel?.SetTransientStatus("Invalid workspace file path.", blockingError: true);
+            return;
+        }
 
-    /// <summary>
-    /// Load workspace from specific file path asynchronously
-    /// </summary>
-    public async Task LoadWorkspaceFromPathAsync(string filePath)
-    {
+        WorkspacePath = filePath;
+        _logger.LogInformation($"[LoadWorkspace] Set WorkspacePath to: {WorkspacePath}");
+
         try
         {
-            if (!File.Exists(filePath))
-            {
-                _logger.LogWarning($"Workspace file not found: {filePath}");
-                Application.Current?.Dispatcher?.Invoke(() =>
-                {
-                    _mainViewModel?.SetTransientStatus("Workspace file not found", 5, true);
-                });
-                return;
-            }
-
-            // Load workspace using WorkspaceFileManager
-            var workspace = await Task.Run(() => WorkspaceFileManager.Load(filePath));
-            
+            var workspace = TestCaseEditorApp.Services.WorkspaceFileManager.Load(filePath);
             if (workspace == null)
             {
-                _logger.LogWarning($"Failed to load workspace from: {filePath}");
-                Application.Current?.Dispatcher?.Invoke(() =>
-                {
-                    _mainViewModel?.SetTransientStatus("Invalid workspace file", 5, true);
-                });
+                _logger.LogWarning($"[LoadWorkspace] Failed to load workspace from: {filePath}");
+                _mainViewModel?.SetTransientStatus("Failed to load workspace file.", blockingError: true);
                 return;
             }
+            
+            _logger.LogInformation($"[LoadWorkspace] Successfully loaded workspace with {workspace.Requirements?.Count ?? 0} requirements");
 
-            Application.Current?.Dispatcher?.Invoke(() =>
+            CurrentWorkspace = workspace;
+            CurrentSourcePath = workspace.SourceDocPath;
+
+            // Clear existing requirements and load from workspace
+            if (_mainViewModel?.Requirements != null)
             {
-                CurrentWorkspace = workspace;
-                WorkspacePath = filePath;
-                HasUnsavedChanges = false;
-                IsDirty = false;
-
-                // Update MainViewModel requirements collection
-                if (_mainViewModel?.Requirements != null)
+                _mainViewModel.Requirements.Clear();
+                if (workspace.Requirements != null)
                 {
-                    _mainViewModel.Requirements.Clear();
-                    foreach (var req in workspace.Requirements ?? Enumerable.Empty<Requirement>())
+                    foreach (var req in workspace.Requirements)
                     {
                         _mainViewModel.Requirements.Add(req);
                     }
                 }
+            }
 
-                _mainViewModel?.SetTransientStatus($"Loaded workspace: {Path.GetFileName(filePath)}", 3);
-            });
+            IsDirty = false;
+            HasUnsavedChanges = false;
+            
+            // Track in recent files
+            try 
+            { 
+                var recentFilesService = _serviceProvider.GetService<RecentFilesService>();
+                recentFilesService?.AddRecentFile(filePath); 
+            } 
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to add file to recent files");
+            }
+            
+            _mainViewModel?.SetTransientStatus($"Loaded: {Path.GetFileName(filePath)}", 3);
+            _logger.LogInformation($"[LoadWorkspace] Successfully completed loading workspace from: {filePath}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Failed to load workspace from: {filePath}");
-            Application.Current?.Dispatcher?.Invoke(() =>
-            {
-                _mainViewModel?.SetTransientStatus($"Load failed: {ex.Message}", 5, true);
-            });
+            _logger.LogError(ex, $"[LoadWorkspace] Failed to load workspace from: {filePath}");
+            _notificationService?.ShowError($"Failed to load workspace: {ex.Message}", 8);
         }
     }
+
+
 
     /// <summary>
     /// Invoke save workspace operation with error handling
@@ -319,37 +363,46 @@ public partial class WorkspaceManagementViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Log diagnostics information after saving
+    /// Log diagnostic information after saving workspace
     /// </summary>
-    public void LogPostSaveDiagnostics(string path)
+    private void LogPostSaveDiagnostics(string savedPath)
     {
         try
         {
-            if (File.Exists(path))
+            var fileInfo = new FileInfo(savedPath);
+            if (fileInfo.Exists)
             {
-                var fileInfo = new FileInfo(path);
-                _logger.LogInformation($"Workspace saved successfully - File: {path}, Size: {fileInfo.Length} bytes, Modified: {fileInfo.LastWriteTime}");
-                
-                // Log requirements count if available
-                if (CurrentWorkspace?.Requirements != null)
-                {
-                    _logger.LogInformation($"Workspace contains {CurrentWorkspace.Requirements.Count} requirements");
-                }
+                _logger.LogInformation($"[SaveWorkspace] File confirmed saved at: {fileInfo.FullName}");
+                _logger.LogInformation($"[SaveWorkspace] File size: {fileInfo.Length} bytes");
+                _logger.LogInformation($"[SaveWorkspace] File modified: {fileInfo.LastWriteTime}");
+            }
+            else
+            {
+                _logger.LogWarning($"[SaveWorkspace] File not found after save attempt: {savedPath}");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to log post-save diagnostics");
+            _logger.LogWarning(ex, $"[SaveWorkspace] Error during post-save diagnostics for: {savedPath}");
         }
     }
 
     /// <summary>
-    /// Mark workspace as having unsaved changes
+    /// Mark workspace as dirty (has unsaved changes)
+    /// </summary>
+    public void MarkDirty()
+    {
+        IsDirty = true;
+        HasUnsavedChanges = true;
+        _logger.LogDebug("Workspace marked as dirty");
+    }
+
+    /// <summary>
+    /// Mark workspace as having unsaved changes (legacy method name)
     /// </summary>
     public void MarkAsChanged()
     {
-        HasUnsavedChanges = true;
-        IsDirty = true;
+        MarkDirty();
     }
 
     /// <summary>
