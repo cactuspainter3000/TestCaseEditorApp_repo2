@@ -72,6 +72,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private ProjectManagementViewModel? _projectManagement;
         private LLMServiceManagementViewModel? _llmServiceManagement;
         private RequirementProcessingViewModel? _requirementProcessing;
+        private UIModalManagementViewModel? _uiModalManagement;
 
         // --- Header / navigation / view state ---
         // Strongly-typed header instances
@@ -571,6 +572,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             ProjectManagementViewModel? projectManagement = null,
             LLMServiceManagementViewModel? llmServiceManagement = null,
             RequirementProcessingViewModel? requirementProcessing = null,
+            UIModalManagementViewModel? uiModalManagement = null,
             IServiceProvider? services = null)
         {
             // Store core services
@@ -607,6 +609,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             
             _requirementProcessing = requirementProcessing;
             _requirementProcessing?.Initialize(this);
+            
+            _uiModalManagement = uiModalManagement;
+            _uiModalManagement?.Initialize(this);
+            
+            _uiModalManagement = uiModalManagement;
+            _uiModalManagement?.Initialize(this);
 
             // LEGACY: Create ViewModels through factory for backward compatibility
             _workspaceHeaderViewModel = _viewAreaCoordinator.HeaderArea.ActiveHeader as WorkspaceHeaderViewModel ?? 

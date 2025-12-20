@@ -1,16 +1,21 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.Services;
 
 namespace TestCaseEditorApp.MVVM.ViewModels;
 
 /// <summary>
 /// Manages all modal dialog operations and UI coordination
+/// Follows architectural guidelines with proper dependency injection
 /// </summary>
 public partial class UIModalManagementViewModel : ObservableObject
 {
     private readonly ILogger<UIModalManagementViewModel> _logger;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly NotificationService? _notificationService;
     private MainViewModel? _mainViewModel;
 
     [ObservableProperty]
@@ -22,9 +27,14 @@ public partial class UIModalManagementViewModel : ObservableObject
     [ObservableProperty]
     private bool _isModalVisible;
 
-    public UIModalManagementViewModel(ILogger<UIModalManagementViewModel> logger)
+    public UIModalManagementViewModel(
+        ILogger<UIModalManagementViewModel> logger, 
+        IServiceProvider serviceProvider,
+        NotificationService? notificationService = null)
     {
         _logger = logger;
+        _serviceProvider = serviceProvider;
+        _notificationService = notificationService;
     }
 
     /// <summary>
@@ -59,94 +69,12 @@ public partial class UIModalManagementViewModel : ObservableObject
         IsModalVisible = false;
     }
 
-    /// <summary>
-    /// Shows the API key configuration modal
-    /// </summary>
-    public void ShowApiKeyConfigModal()
-    {
-        _logger.LogInformation("Showing API key configuration modal");
-        
-        // Create API key configuration view model
-        var apiKeyVM = new object(); // TODO: Replace with actual API key VM
-        ShowModal(apiKeyVM, "API Key Configuration");
-    }
 
-    /// <summary>
-    /// Shows workspace selection modal for new workspace creation
-    /// </summary>
-    public void ShowWorkspaceSelectionModal()
-    {
-        _logger.LogInformation("Showing workspace selection modal for new workspace");
-        
-        // Create workspace selection view model
-        var workspaceVM = new object(); // TODO: Replace with actual workspace selection VM
-        ShowModal(workspaceVM, "Select Workspace Location");
-    }
-
-    /// <summary>
-    /// Shows workspace selection modal for opening existing workspace
-    /// </summary>
-    public void ShowWorkspaceSelectionModalForOpen()
-    {
-        _logger.LogInformation("Showing workspace selection modal for opening workspace");
-        
-        // Create workspace selection view model for opening
-        var workspaceVM = new object(); // TODO: Replace with actual workspace selection VM
-        ShowModal(workspaceVM, "Open Workspace");
-    }
-
-    /// <summary>
-    /// Shows the import workflow modal
-    /// </summary>
-    public void ShowImportWorkflow()
-    {
-        _logger.LogInformation("Showing import workflow modal");
-        
-        // Create import workflow view model
-        var importVM = new object(); // TODO: Replace with actual import workflow VM
-        ShowModal(importVM, "Import Requirements");
-    }
-
-    /// <summary>
-    /// Shows requirement description editor modal
-    /// </summary>
-    public void ShowRequirementDescriptionEditorModal(Requirement requirement)
-    {
-        _logger.LogInformation($"Showing requirement description editor for requirement: {requirement?.Item}");
-        
-        // Create requirement editor view model
-        var reqEditorVM = new object(); // TODO: Replace with actual requirement editor VM
-        ShowModal(reqEditorVM, "Edit Requirement Description");
-    }
-
-    /// <summary>
-    /// Shows requirement editor modal
-    /// </summary>
-    public void ShowRequirementEditor(Requirement requirement)
-    {
-        _logger.LogInformation($"Showing requirement editor for requirement: {requirement?.Item}");
-        
-        // Create requirement editor view model
-        var reqEditorVM = new object(); // TODO: Replace with actual requirement editor VM
-        ShowModal(reqEditorVM, "Edit Requirement");
-    }
-
-    /// <summary>
-    /// Shows text splitting editor modal
-    /// </summary>
-    public void ShowSplitTextEditorModal(string text)
-    {
-        _logger.LogInformation("Showing split text editor modal");
-        
-        // Create text split editor view model
-        var textSplitVM = new object(); // TODO: Replace with actual text split VM
-        ShowModal(textSplitVM, "Split Text");
-    }
 
     /// <summary>
     /// Handles API key configuration completion
     /// </summary>
-    public void OnApiKeyConfigured(object? sender, object e)
+    public void OnApiKeyConfigured(object? sender, ApiKeyConfiguredEventArgs e)
     {
         _logger.LogInformation("API key configuration completed");
         CloseModal();
@@ -173,7 +101,7 @@ public partial class UIModalManagementViewModel : ObservableObject
     /// <summary>
     /// Handles requirement editing completion
     /// </summary>
-    public void OnRequirementEdited(object? sender, object e)
+    public void OnRequirementEdited(object? sender, RequirementEditedEventArgs e)
     {
         _logger.LogInformation("Requirement editing completed");
         CloseModal();
@@ -191,7 +119,7 @@ public partial class UIModalManagementViewModel : ObservableObject
     /// <summary>
     /// Handles text splitting completion
     /// </summary>
-    public void OnTextSplitCompleted(object? sender, object e)
+    public void OnTextSplitCompleted(object? sender, TextSplitCompletedEventArgs e)
     {
         _logger.LogInformation("Text splitting completed");
         CloseModal();
@@ -204,6 +132,115 @@ public partial class UIModalManagementViewModel : ObservableObject
     {
         _logger.LogInformation("Text splitting cancelled");
         CloseModal();
+    }
+
+    /// <summary>
+    /// Shows API key configuration modal
+    /// </summary>
+    public void ShowApiKeyConfigModal()
+    {
+        _logger.LogInformation("Showing API key config modal");
+        var notificationService = _serviceProvider.GetRequiredService<NotificationService>();
+        var viewModel = new ApiKeyConfigViewModel(notificationService);
+        viewModel.ApiKeyConfigured += OnApiKeyConfigured;
+        viewModel.Cancelled += OnApiKeyConfigCancelled;
+        ShowModal(viewModel, "Configure AnythingLLM API Key");
+    }
+
+    /// <summary>
+    /// Shows workspace selection modal for creating new project
+    /// </summary>
+    public void ShowWorkspaceSelectionModal()
+    {
+        _logger.LogInformation("Showing workspace selection modal for new project");
+        var anythingLLMService = _serviceProvider.GetRequiredService<AnythingLLMService>();
+        var notificationService = _serviceProvider.GetRequiredService<NotificationService>();
+        var viewModel = new WorkspaceSelectionViewModel(anythingLLMService, notificationService, WorkspaceSelectionViewModel.SelectionMode.CreateNew);
+        // Note: Event handlers will be connected through MainViewModel delegation
+        viewModel.Cancelled += OnWorkspaceSelectionCancelled;
+        ShowModal(viewModel, "Create New Project");
+    }
+
+    /// <summary>
+    /// Shows workspace selection modal for opening existing project
+    /// </summary>
+    public void ShowWorkspaceSelectionModalForOpen()
+    {
+        _logger.LogInformation("Showing workspace selection modal for opening project");
+        var anythingLLMService = _serviceProvider.GetRequiredService<AnythingLLMService>();
+        var notificationService = _serviceProvider.GetRequiredService<NotificationService>();
+        var viewModel = new WorkspaceSelectionViewModel(anythingLLMService, notificationService, WorkspaceSelectionViewModel.SelectionMode.SelectExisting);
+        // Note: Event handlers will be connected through MainViewModel delegation
+        viewModel.Cancelled += OnWorkspaceSelectionCancelled;
+        ShowModal(viewModel, "Open Existing Project");
+    }
+
+    /// <summary>
+    /// Shows import workflow modal
+    /// </summary>
+    public void ShowImportWorkflow()
+    {
+        _logger.LogInformation("Showing import workflow modal");
+        var viewModel = new ImportWorkflowViewModel();
+        // Note: Event handlers will be connected through MainViewModel delegation
+        viewModel.Show();
+        ShowModal(viewModel, "Import Requirements Document");
+    }
+
+    /// <summary>
+    /// Shows requirement description editor modal
+    /// </summary>
+    public void ShowRequirementDescriptionEditorModal(Requirement requirement)
+    {
+        if (requirement == null)
+        {
+            _logger.LogWarning("ShowRequirementDescriptionEditorModal called with null requirement");
+            return;
+        }
+
+        _logger.LogInformation($"Showing requirement description editor for {requirement.Item}");
+        var notificationService = _serviceProvider.GetRequiredService<NotificationService>();
+        var viewModel = new RequirementDescriptionEditorViewModel(requirement, notificationService);
+        viewModel.RequirementEdited += OnRequirementEdited;
+        viewModel.Cancelled += OnRequirementEditCancelled;
+        ShowModal(viewModel, "Edit Requirement Description");
+    }
+
+    /// <summary>
+    /// Shows requirement editor modal
+    /// </summary>
+    public void ShowRequirementEditor(Requirement requirement)
+    {
+        _logger.LogInformation($"ShowRequirementEditor called for {requirement?.Item}");
+        
+        if (requirement == null)
+        {
+            _logger.LogWarning("ShowRequirementEditor called with null requirement");
+            return;
+        }
+
+        // Implementation would go here - this seems to be a placeholder in MainViewModel
+        // For now, delegate to the requirement description editor
+        ShowRequirementDescriptionEditorModal(requirement);
+    }
+
+    /// <summary>
+    /// Shows split text editor modal
+    /// </summary>
+    public void ShowSplitTextEditorModal(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            _logger.LogWarning("ShowSplitTextEditorModal called with null or empty text");
+            return;
+        }
+
+        _logger.LogInformation($"Showing split text editor for text (length: {text.Length})");
+        var notificationService = _serviceProvider.GetRequiredService<NotificationService>();
+        var viewModel = new SplitTextEditorViewModel(text, notificationService);
+        viewModel.SplitCompleted += OnTextSplitCompleted;
+        viewModel.Cancelled += OnTextSplitCancelled;
+        ShowModal(viewModel, "Split Text Editor");
     }
 
     /// <summary>
