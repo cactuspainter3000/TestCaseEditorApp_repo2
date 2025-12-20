@@ -69,6 +69,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private RequirementAnalysisViewModel? _requirementAnalysis;
         private RequirementGenerationViewModel? _requirementGeneration;
         private NavigationHeaderManagementViewModel? _navigationHeaderManagement;
+        private RequirementAnalysisManagementViewModel? _requirementAnalysisManagement;
         private ProjectManagementViewModel? _projectManagement;
         private LLMServiceManagementViewModel? _llmServiceManagement;
         private RequirementProcessingViewModel? _requirementProcessing;
@@ -576,6 +577,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             UIModalManagementViewModel? uiModalManagement = null,
             WorkspaceManagementViewModel? workspaceManagement = null,
             NavigationHeaderManagementViewModel? navigationHeaderManagement = null,
+            RequirementAnalysisManagementViewModel? requirementAnalysisManagement = null,
             IServiceProvider? services = null)
         {
             // Store core services
@@ -621,6 +623,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             _navigationHeaderManagement = navigationHeaderManagement;
             _navigationHeaderManagement?.Initialize(this);
+            
+            _requirementAnalysisManagement = requirementAnalysisManagement;
+            _requirementAnalysisManagement?.Initialize(this);
 
             // LEGACY: Create ViewModels through factory for backward compatibility
             _workspaceHeaderViewModel = _viewAreaCoordinator.HeaderArea.ActiveHeader as WorkspaceHeaderViewModel ?? 
@@ -745,11 +750,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             CloseModalCommand = new RelayCommand(() => CloseModal());
             
             // Initialize analysis commands via domain ViewModel
-            AnalyzeUnanalyzedCommand = _requirementAnalysis?.AnalyzeUnanalyzedCommand ?? new RelayCommand(() => { });
-            ReAnalyzeModifiedCommand = _requirementAnalysis?.ReAnalyzeModifiedCommand ?? new RelayCommand(() => { });
+            AnalyzeUnanalyzedCommand = _requirementAnalysisManagement?.AnalyzeUnanalyzedCommand ?? new RelayCommand(() => { });
+            ReAnalyzeModifiedCommand = _requirementAnalysisManagement?.ReAnalyzeModifiedCommand ?? new RelayCommand(() => { });
             ImportAdditionalCommand = new RelayCommand(() => { /* TODO: Wire to RequirementImportExportViewModel.ImportAdditional */ });
-            AnalyzeRequirementsCommand = _requirementAnalysis?.AnalyzeCurrentRequirementCommand ?? new RelayCommand(() => { });
-            BatchAnalyzeCommand = _requirementAnalysis?.BatchAnalyzeAllRequirementsCommand ?? new RelayCommand(() => { });
+            AnalyzeRequirementsCommand = _requirementAnalysisManagement?.AnalyzeCurrentRequirementCommand ?? new RelayCommand(() => { });
+            BatchAnalyzeCommand = _requirementAnalysisManagement?.BatchAnalyzeAllRequirementsCommand ?? new RelayCommand(() => { });
             
             // Initialize ChatGPT analysis import commands  
             ImportStructuredAnalysisCommand = new RelayCommand(() => { /* TODO: Wire to RequirementImportExportViewModel.ImportStructuredAnalysis */ });
@@ -764,6 +769,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 var llmService = LlmFactory.Create();
                 _analysisService = new RequirementAnalysisService(llmService);
+                
+                // Set analysis service on domain ViewModel
+                _requirementAnalysisManagement?.SetAnalysisService(_analysisService);
             }
             catch
             {
@@ -2007,7 +2015,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         private bool CanReAnalyze()
         {
-            return CurrentRequirement != null && !IsLlmBusy;
+            return _requirementAnalysisManagement?.CanReAnalyze() ?? (CurrentRequirement != null && !IsLlmBusy);
         }
         
         private async Task ReAnalyzeRequirementAsync()

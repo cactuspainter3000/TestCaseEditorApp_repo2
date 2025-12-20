@@ -31,18 +31,84 @@ public partial class RequirementAnalysisManagementViewModel : ObservableObject
     [ObservableProperty]
     private bool _isBatchAnalyzing;
 
+    // Commands  
+    public ICommand AnalyzeUnanalyzedCommand { get; }
+    public ICommand ReAnalyzeModifiedCommand { get; }
+    public ICommand AnalyzeCurrentRequirementCommand { get; }
+    public ICommand BatchAnalyzeAllRequirementsCommand { get; }
+
     public RequirementAnalysisManagementViewModel(ILogger<RequirementAnalysisManagementViewModel> logger)
     {
         _logger = logger;
+        
+        // Initialize commands
+        AnalyzeUnanalyzedCommand = new AsyncRelayCommand(AnalyzeUnanalyzedAsync);
+        ReAnalyzeModifiedCommand = new AsyncRelayCommand(ReAnalyzeModifiedAsync);
+        AnalyzeCurrentRequirementCommand = new AsyncRelayCommand(ReAnalyzeRequirementAsync, CanReAnalyze);
+        BatchAnalyzeAllRequirementsCommand = new AsyncRelayCommand(BatchAnalyzeAllAsync);
     }
 
     /// <summary>
     /// Initialize the ViewModel with MainViewModel reference for coordination
     /// </summary>
-    public void Initialize(MainViewModel mainViewModel, object analysisService)
+    public void Initialize(MainViewModel mainViewModel)
     {
         _mainViewModel = mainViewModel;
+        
+        // Get analysis service from MainViewModel or create new one
+        // This will be set when MainViewModel initializes the analysis service
+    }
+
+    /// <summary>
+    /// Sets the analysis service instance for requirement analysis operations
+    /// </summary>
+    public void SetAnalysisService(object analysisService)
+    {
         _analysisService = analysisService;
+    }
+
+    /// <summary>
+    /// Analyzes unanalyzed requirements
+    /// </summary>
+    private async Task AnalyzeUnanalyzedAsync()
+    {
+        if (_mainViewModel?.Requirements == null) return;
+        
+        var unanalyzed = _mainViewModel.Requirements.Where(r => r.Analysis == null).ToList();
+        if (unanalyzed.Any())
+        {
+            await BatchAnalyzeRequirementsAsync(unanalyzed);
+        }
+    }
+
+    /// <summary>
+    /// Re-analyzes modified requirements
+    /// </summary>
+    private async Task ReAnalyzeModifiedAsync()
+    {
+        if (_mainViewModel?.Requirements == null) return;
+        
+        // For now, re-analyze requirements that have been analyzed but may need updating
+        // In future, could add modification tracking to Requirements
+        var analyzed = _mainViewModel.Requirements.Where(r => r.Analysis?.IsAnalyzed == true).ToList();
+        if (analyzed.Any())
+        {
+            await BatchAnalyzeRequirementsAsync(analyzed);
+        }
+    }
+
+    /// <summary>
+    /// Batch analyzes all requirements
+    /// </summary>
+    private async Task BatchAnalyzeAllAsync()
+    {
+        if (_mainViewModel?.Requirements == null) return;
+        
+        var allRequirements = _mainViewModel.Requirements.ToList();
+        if (allRequirements.Any())
+        {
+            await BatchAnalyzeRequirementsAsync(allRequirements);
+        }
     }
 
     /// <summary>
@@ -51,6 +117,14 @@ public partial class RequirementAnalysisManagementViewModel : ObservableObject
     public bool CanReAnalyze()
     {
         return _mainViewModel?.CurrentRequirement != null && !_mainViewModel.IsLlmBusy;
+    }
+
+    /// <summary>
+    /// Gets the TestCaseGenerator instance from the MainViewModel
+    /// </summary>
+    private object? GetTestCaseGeneratorInstance()
+    {
+        return _mainViewModel?.GetTestCaseGeneratorInstance();
     }
 
     /// <summary>
@@ -211,22 +285,6 @@ public partial class RequirementAnalysisManagementViewModel : ObservableObject
     public void OnRequirementEditCancelled(object? sender, EventArgs e)
     {
         _logger.LogInformation("Requirement editing cancelled");
-    }
-
-    /// <summary>
-    /// Get TestCaseGenerator instance from MainViewModel
-    /// </summary>
-    private object GetTestCaseGeneratorInstance()
-    {
-        try
-        {
-            return _mainViewModel?.GetTestCaseGeneratorInstance();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to get TestCaseGenerator instance");
-            return null;
-        }
     }
 
     /// <summary>
