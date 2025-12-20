@@ -8,6 +8,7 @@ using System.Diagnostics;
 using Microsoft.Win32;
 using System.Windows;
 using System.IO;
+using System.ComponentModel;
 using TestCaseEditorApp.Helpers;
 
 namespace TestCaseEditorApp.MVVM.ViewModels;
@@ -536,5 +537,122 @@ public partial class RequirementProcessingViewModel : ObservableObject
         }
 
         await Task.CompletedTask;
+    }
+
+    // === Methods extracted from MainViewModel for requirement processing ===
+    
+    private Requirement? _prevReq;
+
+    /// <summary>
+    /// Unhook events from old requirement during navigation
+    /// </summary>
+    public void UnhookOldRequirement()
+    {
+        try
+        {
+            if (_prevReq != null) 
+            {
+                _prevReq.PropertyChanged -= CurrentRequirement_PropertyChanged;
+                _logger.LogDebug("Unhooked events from requirement: {Item}", _prevReq.Item);
+            }
+            _prevReq = null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to unhook old requirement");
+        }
+    }
+
+    /// <summary>
+    /// Hook events to new requirement during navigation
+    /// </summary>
+    public void HookNewRequirement(Requirement? r)
+    {
+        try
+        {
+            if (r != null) 
+            { 
+                _prevReq = r; 
+                _prevReq.PropertyChanged += CurrentRequirement_PropertyChanged;
+                _logger.LogDebug("Hooked events to requirement: {Item}", r.Item);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to hook new requirement");
+        }
+    }
+
+    /// <summary>
+    /// Handle property changes on current requirement
+    /// </summary>
+    public void CurrentRequirement_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        try
+        {
+            // Update test case step selectability for any property change that might affect test cases
+            UpdateTestCaseStepSelectability();
+            
+            if (string.IsNullOrEmpty(e?.PropertyName) ||
+                e.PropertyName == nameof(Requirement.Description) ||
+                e.PropertyName == nameof(Requirement.Method) ||
+                e.PropertyName == nameof(Requirement.GeneratedTestCases))
+            {
+                try
+                {
+                    if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() == true)
+                    {
+                        ForwardRequirementToActiveHeader();
+                    }
+                    else
+                    {
+                        System.Windows.Application.Current?.Dispatcher?.Invoke(() => ForwardRequirementToActiveHeader());
+                    }
+                }
+                catch
+                {
+                    // best-effort - swallow exceptions
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to handle requirement property change");
+        }
+    }
+
+    /// <summary>
+    /// Update test case step selectability based on current requirement state
+    /// </summary>
+    private void UpdateTestCaseStepSelectability()
+    {
+        try
+        {
+            // For now, log that this would update step selectability
+            // The MainViewModel method is private, so we need a different approach
+            _logger.LogDebug("Would update test case step selectability");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update test case step selectability");
+        }
+    }
+
+    /// <summary>
+    /// Forward current requirement to active header
+    /// </summary>
+    private void ForwardRequirementToActiveHeader()
+    {
+        try
+        {
+            // For now, log that this would forward requirement
+            // The MainViewModel method is private, so we need a different approach  
+            var currentRequirement = _mainViewModel?.CurrentRequirement;
+            _logger.LogDebug("Would forward requirement {Item} to active header", currentRequirement?.Item);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to forward requirement to active header");
+        }
     }
 }

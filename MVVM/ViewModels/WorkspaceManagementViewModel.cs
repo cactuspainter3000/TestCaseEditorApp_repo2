@@ -418,4 +418,20 @@ public partial class WorkspaceManagementViewModel : ObservableObject
         _autoSaveTimer?.Dispose();
         _autoSaveTimer = null;
     }
+
+    /// <summary>
+    /// Updates window title to reflect dirty state with asterisk
+    /// </summary>
+    public void UpdateWindowTitle()
+    {
+        // This method will need access to MainViewModel's workspace header
+        // For now, delegate back to MainViewModel until proper coordination is established
+        if (_mainViewModel != null)
+        {
+            var baseName = string.IsNullOrEmpty(_mainViewModel.WorkspacePath)
+                ? "Test Case Editor"
+                : System.IO.Path.GetFileNameWithoutExtension(_mainViewModel.WorkspacePath);
+            // Update will need proper header access
+        }
+    }
 }

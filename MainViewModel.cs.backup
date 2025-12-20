@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -75,7 +75,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private RequirementProcessingViewModel? _requirementProcessing;
         private UIModalManagementViewModel? _uiModalManagement;
         private WorkspaceManagementViewModel? _workspaceManagement;
-        private RequirementImportExportViewModel? _requirementImportExport;
 
         // --- Header / navigation / view state ---
         // Strongly-typed header instances
@@ -778,34 +777,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 () => CurrentRequirement,
                 (message, duration) => SetTransientStatus(message, duration));
                 
-            _requirementImportExport = new RequirementImportExportViewModel(
-                () => Requirements,                                    // getRequirements
-                () => CurrentRequirement,                             // getCurrentRequirement  
-                () => Requirements,                                   // getRequirementsCollection
-                (message, duration, blockingError) => SetTransientStatus(message, duration, blockingError), // setTransientStatus
-                _requirementService,                                  // requirementService
-                _chatGptExportService,                               // chatGptExportService
-                _fileDialog,                                         // fileDialog
-                () => WorkspacePath,                                 // getWorkspacePath
-                path => WorkspacePath = path,                        // setWorkspacePath
-                () => LastChatGptExportFilePath,                     // getLastChatGptExportFilePath
-                path => LastChatGptExportFilePath = path,            // setLastChatGptExportFilePath
-                () => AutoAnalyzeOnImport,                           // getAutoAnalyzeOnImport
-                () => AutoExportForChatGpt,                          // getAutoExportForChatGpt
-                () => CurrentWorkspace,                              // getCurrentWorkspace
-                workspace => CurrentWorkspace = workspace,           // setCurrentWorkspace
-                () => HasUnsavedChanges,                            // getHasUnsavedChanges
-                value => HasUnsavedChanges = value,                 // setHasUnsavedChanges
-                () => IsDirty,                                      // getIsDirty
-                value => IsDirty = value,                          // setIsDirty
-                req => CurrentRequirement = req,                   // setCurrentRequirement
-                async requirements => await BatchAnalyzeRequirementsAsync(requirements), // batchAnalyzeRequirements
-                () => SaveSessionAuto(),                           // saveSessionAuto
-                () => RefreshSupportingInfo(),                     // refreshSupportingInfo
-                () => ComputeDraftedCount(),                       // computeDraftedCount
-                () => RaiseCounterChanges(),                       // raiseCounterChanges
-                status => StatusMessage = status);                 // setStatus
-                
             // NavigationHeaderManagementViewModel is now injected via DI in constructor
             // and initialized via _navigationHeaderManagement?.Initialize(this)
                 
@@ -844,9 +815,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 logger: requirementsIndexLogger);
 
             // Wire navigation commands to NavigationHeaderManagementViewModel
-            NextRequirementCommand = _navigationHeaderManagement?.NextRequirementCommand ?? new RelayCommand(() => { });
-            PreviousRequirementCommand = _navigationHeaderManagement?.PreviousRequirementCommand ?? new RelayCommand(() => { });
-            NextWithoutTestCaseCommand = _navigationHeaderManagement?.NextWithoutTestCaseCommand ?? new RelayCommand(() => { });
+            NextRequirementCommand = _navigationHeaderManagement.NextRequirementCommand;
+            PreviousRequirementCommand = _navigationHeaderManagement.PreviousRequirementCommand;
+            NextWithoutTestCaseCommand = _navigationHeaderManagement.NextWithoutTestCaseCommand;
             
             // Wire Re-Analyze command to workspace header
             _workspaceHeaderViewModel.ReAnalyzeCommand = new AsyncRelayCommand(ReAnalyzeRequirementAsync, CanReAnalyze);
@@ -1130,8 +1101,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     IsAvailable = false, // Still starting if we're getting status updates
                     IsStarting = !string.IsNullOrEmpty(statusMessage) && 
-                               statusMessage != "AnythingLLM â€” connected" && 
-                               statusMessage != "AnythingLLM â€” disconnected",
+                               statusMessage != "AnythingLLM — connected" && 
+                               statusMessage != "AnythingLLM — disconnected",
                     StatusMessage = statusMessage
                 };
                 AnythingLLMMediator.NotifyStatusUpdated(status);
@@ -2345,7 +2316,214 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
         }
 
-        // [DUPLICATE REMOVED] - RequirementsOnCollectionChanged, RefreshSupportingInfo, ComputeDraftedCount already exist
+        public void RequirementsOnCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            HasUnsavedChanges = true;
+            IsDirty = true;
+        }
+
+        private void RefreshSupportingInfo()
+        {
+            if (CurrentRequirement != null) BuildSupportingInfoFromRequirement(CurrentRequirement);
+        }
+
+        public void ComputeDraftedCount() { /* app-specific */ }
+
+                        SetTransientStatus($"Opened workspace: {Path.GetFileName(WorkspacePath)}  {Requirements.Count} requirements", 4);
+                        _requirementsNavigator?.NotifyCurrentRequirementChanged();
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        SetTransientStatus($"Failed to load workspace: {ex.Message}", blockingError: true);
+                        return;
+                    }
+                }
+            }
+            catch { /* best-effort only */ }
+
+
+
+            try
+            {
+                // If WorkspacePath is already set (e.g., from new project workflow), skip the dialog
+                if (string.IsNullOrWhiteSpace(WorkspacePath))
+                {
+                    var defaultFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "TestCaseEditorApp", "Workspaces");
+                    Directory.CreateDirectory(defaultFolder);
+
+                    var suggested = FileNameHelper.GenerateUniqueFileName(Path.GetFileNameWithoutExtension(path), ".tcex.json");
+
+                    // Inform user about the next step
+                    var result = MessageBox.Show(
+                        $"Great! Your document '{Path.GetFileName(path)}' is ready to import.\n\n" +
+                        "Next, choose where to save your new project workspace. This will create a project file (.tcex.json) that contains your imported requirements and any test cases you generate.\n\n" +
+                        "Would you like to proceed?",
+                        "Create New Project Workspace",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Information);
+
+                    if (result != MessageBoxResult.Yes)
+                    {
+                        SetTransientStatus("Import canceled by user.", 2);
+                        _logger?.LogInformation("Import canceled by user at workspace creation step.");
+                        return;
+                    }
+
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Showing Create Workspace dialog. defaultFolder={defaultFolder}, suggested={suggested}");
+                    var chosen = _file_dialog_show_save_helper(suggested, defaultFolder);
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Create Workspace dialog returned: '{chosen}'");
+
+                    if (string.IsNullOrWhiteSpace(chosen))
+                    {
+                        SetTransientStatus("Import canceled (no workspace name selected).", 2);
+                        _logger?.LogInformation("Import canceled: no workspace name selected.");
+                        return;
+                    }
+
+                    WorkspacePath = FileNameHelper.EnsureUniquePath(Path.GetDirectoryName(chosen)!, Path.GetFileName(chosen));
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Set WorkspacePath to: '{WorkspacePath}'");
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Using existing WorkspacePath: '{WorkspacePath}' (from new project workflow)");
+                }
+
+                SetTransientStatus($"Importing {Path.GetFileName(path)}...", 60); // Auto-dismiss after 60s or when next status appears
+                _logger?.LogInformation("Starting import of '{Path}'", path);
+
+                var sw = Stopwatch.StartNew();
+
+                var reqs = await Task.Run(() => _requirement_service_call_for_import(path));
+                _logger?.LogInformation("Parser returned {Count} requirement(s)", reqs?.Count ?? 0);
+
+                sw.Stop();
+
+                // Build workspace model (guard reqs if null)
+                CurrentWorkspace = new Workspace
+                {
+                    SourceDocPath = path,
+                    Requirements = reqs?.ToList() ?? new List<Requirement>()
+                };
+
+                // Update UI-bound collection: preserve existing ObservableCollection instance
+                reqs = reqs ?? new List<Requirement>();
+                try
+                {
+                    Requirements.CollectionChanged -= RequirementsOnCollectionChanged;
+                    Requirements.Clear();
+                    foreach (var r in reqs) Requirements.Add(r);
+                }
+                finally
+                {
+                    Requirements.CollectionChanged += RequirementsOnCollectionChanged;
+                }
+
+                CurrentWorkspace.Requirements = Requirements.ToList();
+
+                // Auto-process requirements if enabled
+                TestCaseEditorApp.Services.Logging.Log.Info($"[IMPORT] Checking auto-processing: _analysisService={_analysisService != null}, reqs.Any()={reqs.Any()}, AutoAnalyzeOnImport={AutoAnalyzeOnImport}, AutoExportForChatGpt={AutoExportForChatGpt}");
+                
+                if (reqs.Any() && AutoExportForChatGpt)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[IMPORT] Exporting {reqs.Count} requirements for ChatGPT");
+                    _ = Task.Run(() => { /* TODO: Wire to ChatGptExportAnalysisViewModel.BatchExportRequirementsForChatGpt(reqs) */ });
+                }
+                else if (_analysisService != null && reqs.Any() && AutoAnalyzeOnImport)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[IMPORT] Starting batch analysis for {reqs.Count} requirements");
+                    _ = Task.Run(async () => await BatchAnalyzeRequirementsAsync(reqs));
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info("[IMPORT] Auto-processing NOT started - conditions not met");
+                }
+
+                // Track in recent files
+                try { _recentFilesService?.AddRecentFile(WorkspacePath!); } catch { }
+
+                Requirement? firstFromView = null;
+                try
+                {
+                    firstFromView = _requirementsNavigator?.RequirementsView?.Cast<Requirement>().FirstOrDefault();
+                }
+                catch { firstFromView = null; }
+
+                CurrentRequirement = firstFromView ?? Requirements.FirstOrDefault();
+                HasUnsavedChanges = false;
+                IsDirty = false;
+                RefreshSupportingInfo();
+
+                ComputeDraftedCount();
+                RaiseCounterChanges();
+
+                _requirementsNavigator?.NotifyCurrentRequirementChanged();
+
+                SetTransientStatus($"Workspace created - {Requirements?.Count ?? 0} requirement(s)", 6);
+                _logger?.LogInformation("final status: {StatusMessage}", StatusMessage);
+            }
+            catch (Exception ex)
+            {
+                SaveSessionAuto();
+                Status = "Import failed: " + ex.Message;
+                _logger?.LogError(ex, "Exception during import");
+            }
+        }
+
+        // Wrap requirement service call so it's easy to adapt if your real interface differs.
+        private List<Requirement> _requirement_service_call_for_import(string path)
+        {
+            // Try both parsing methods and use the one that returns results
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[Import] _requirement_service_call_for_import called with path: {path}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[Import] _requirementService is null: {_requirementService == null}");
+                
+                if (_requirementService == null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn("[Import] _requirementService is null - cannot import");
+                    return new List<Requirement>();
+                }
+                
+                // First try the Jama All Data parser
+                TestCaseEditorApp.Services.Logging.Log.Info("[Import] Trying Jama All Data parser...");
+                var jamaResults = _requirementService?.ImportRequirementsFromJamaAllDataDocx(path) ?? new List<Requirement>();
+                TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Jama parser returned {jamaResults.Count} requirements");
+                
+                if (jamaResults.Count > 0)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Successfully parsed {jamaResults.Count} requirements using Jama All Data parser");
+                    return jamaResults;
+                }
+                
+                // If that didn't work, try the regular Word parser
+                TestCaseEditorApp.Services.Logging.Log.Info("[Import] Trying regular Word parser...");
+                var wordResults = _requirementService?.ImportRequirementsFromWord(path) ?? new List<Requirement>();
+                TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Word parser returned {wordResults.Count} requirements");
+                
+                if (wordResults.Count > 0)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[Import] Successfully parsed {wordResults.Count} requirements using Word parser");
+                    return wordResults;
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[Import] No requirements found with either parser for file: {path}");
+                return new List<Requirement>();
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[Import] Error during import: {ex.Message}");
+                return new List<Requirement>();
+            }
+        }
+
+        private string _file_dialog_show_save_helper(string suggestedFileName, string initialDirectory)
+            => _fileDialog.ShowSaveFile(title: "Save New Project Workspace", suggestedFileName: suggestedFileName, filter: "Test Case Editor Session|*.tcex.json|JSON|*.json|All Files|*.*", defaultExt: ".tcex.json", initialDirectory: initialDirectory) ?? string.Empty;
+
+        public void SetTransientStatus(string message, int seconds = 3, bool blockingError = false)
+        {
+            TestCaseEditorApp.Services.TransientStatus.Show(_toastService, message, seconds, blockingError);
+        }
 
         private void InitializeAutoSave()
         {
@@ -2369,7 +2547,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Helper properties / methods
         private IPersistenceService WorkspaceService => _persistence;
 
-        // [DUPLICATE REMOVED] - SaveSessionAuto already exists
+        private void SaveSessionAuto()
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(WorkspacePath) && WorkspaceService != null && CurrentWorkspace != null)
+                    TestCaseEditorApp.Services.WorkspaceFileManager.Save(WorkspacePath!, CurrentWorkspace);
+            }
+            catch (Exception ex) { _logger?.LogDebug(ex, "[SaveSessionAuto] failed"); }
+        }
 
         // Diagnostic helper: probe post-save artifacts so we can tell whether the
         // workspace file, meta file, marker file, audit logs or temp copies exist
@@ -2386,7 +2572,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
         }
 
-        // [DUPLICATE REMOVED] - RefreshSupportingInfo already exists
+        private void RefreshSupportingInfo()
+        {
+            if (CurrentRequirement != null) BuildSupportingInfoFromRequirement(CurrentRequirement);
+        }
 
         private void BuildSupportingInfoFromRequirement(Requirement req)
         {
@@ -2412,7 +2601,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             catch (Exception ex) { _logger?.LogDebug(ex, "[BuildSupportingInfoFromRequirement] failed"); }
         }
 
-        // [DUPLICATE REMOVED] - ComputeDraftedCount and RaiseCounterChanges already exist
+        private void ComputeDraftedCount() { /* app-specific */ }
+        private void RaiseCounterChanges() { /* app-specific */ }
         private void WireGeneratorCallbacks() { /* wire generator events if needed */ }
 
         private string? FormatSupportingNotes(Requirement req) => req?.Description;
@@ -2440,26 +2630,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                                        .FirstOrDefault() ?? description;
             firstLine = firstLine.Trim();
             if (firstLine.Length <= maxLength) return firstLine;
-            return firstLine.Substring(0, maxLength).Trim() + "ï¿½";
-        }
-
-        /// <summary>
-        /// Sets a transient status message that appears temporarily in the UI.
-        /// Uses the ToastNotificationService for user notifications.
-        /// </summary>
-        /// <param name="message">Message to display</param>
-        /// <param name="durationSeconds">Duration in seconds (default 3)</param>
-        /// <param name="blockingError">If true, shows as blocking error dialog</param>
-        internal void SetTransientStatus(string message, int durationSeconds = 3, bool blockingError = false)
-        {
-            try
-            {
-                TestCaseEditorApp.Services.TransientStatus.Show(_toastService, message, durationSeconds, blockingError);
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogWarning(ex, "Failed to set transient status: {Message}", message);
-            }
+            return firstLine.Substring(0, maxLength).Trim() + "�";
         }
 
         /// <summary>
@@ -2468,7 +2639,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// Thread-safe with duplicate prevention.
         /// </summary>
         // TODO: EXTRACT TO RequirementAnalysisViewModel - massive method delegation
-        // [DUPLICATE REMOVED] - BatchAnalyzeRequirementsAsync already exists
+        private async Task BatchAnalyzeRequirementsAsync(List<Requirement> requirements)
+        {
+            if (_requirementAnalysis != null)
+            {
+                await _requirementAnalysis.BatchAnalyzeRequirementsAsync(requirements);
+            }
+        }
 
         /// <summary>
         // TODO: Extract to RequirementImportExportViewModel - method moved for Round 6
@@ -2875,7 +3052,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                                 break;
                         }
                         
-                        SetTransientStatus($"ðŸ†• Created and opened project: {workspace.Name}", 4);
+                        SetTransientStatus($"🆕 Created and opened project: {workspace.Name}", 4);
                     });
                     
                     TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Created new project with workspace slug '{workspace.Slug}'");
@@ -2886,7 +3063,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     // Existing workspace was selected - run UI operations on UI thread
                     await Application.Current.Dispatcher.InvokeAsync(() =>
                     {
-                        SetTransientStatus($"ðŸ“‚ Opened existing project: {workspace.Name}", 4);
+                        SetTransientStatus($"📂 Opened existing project: {workspace.Name}", 4);
                     });
                     
                     TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Opened existing project with workspace slug '{workspace.Slug}'");
@@ -2914,7 +3091,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
                     _notificationService.ShowError($"Error opening project: {ex.Message}");
-                    SetTransientStatus("âŒ Failed to open project", 3);
+                    SetTransientStatus("❌ Failed to open project", 3);
                 });
             }
         }

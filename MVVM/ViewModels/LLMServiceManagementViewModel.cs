@@ -201,52 +201,84 @@ public partial class LLMServiceManagementViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Handles AnythingLLM status updates from mediator to keep MainViewModel properties in sync
+    /// Initialize AnythingLLM service and update status
+    /// </summary>
+    public async Task InitializeAnythingLLMAsync()
+    {
+        _logger.LogInformation("Initializing AnythingLLM service");
+        
+        try
+        {
+            bool isAvailable = await _anythingLLMService.IsServiceAvailableAsync();
+            
+            if (isAvailable)
+            {
+                _logger.LogInformation("AnythingLLM is available and connected");
+                IsLlmConnected = true;
+                LlmStatus = "Connected";
+            }
+            else
+            {
+                _logger.LogInformation("AnythingLLM not available, trying to start...");
+                var (success, message) = await _anythingLLMService.EnsureServiceRunningAsync();
+                
+                if (success)
+                {
+                    _logger.LogInformation("AnythingLLM started successfully");
+                    IsLlmConnected = true;
+                    LlmStatus = "Connected";
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to start AnythingLLM: {Message}", message);
+                    IsLlmConnected = false;
+                    LlmStatus = $"Failed: {message}";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error initializing AnythingLLM");
+            IsLlmConnected = false;
+            LlmStatus = $"Error: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Handle LLM status updates from mediator
     /// </summary>
     public void OnAnythingLLMStatusFromMediator(AnythingLLMStatus status)
     {
         Application.Current?.Dispatcher.BeginInvoke(() =>
         {
-            if (_mainViewModel != null)
-            {
-                _mainViewModel.IsAnythingLLMAvailable = status.IsAvailable;
-                _mainViewModel.IsAnythingLLMStarting = status.IsStarting;
-                _mainViewModel.AnythingLLMStatusMessage = status.StatusMessage;
-            }
+            IsLlmConnected = status.IsAvailable;
+            LlmStatus = status.StatusMessage;
+            _logger.LogDebug("LLM status updated: {Status}", status.StatusMessage);
         });
     }
 
     /// <summary>
-    /// Handles real-time status updates from AnythingLLM service during startup
+    /// Handle real-time status updates from AnythingLLM service
     /// </summary>
     public void OnAnythingLLMStatusUpdated(string statusMessage)
     {
-        _logger.LogInformation($"AnythingLLM status updated: {statusMessage}");
-        
-        LlmStatus = statusMessage;
-        
-        // Update connection state based on status message
-        IsLlmConnected = !string.IsNullOrEmpty(statusMessage) && 
-                        !statusMessage.Contains("failed", StringComparison.OrdinalIgnoreCase) &&
-                        !statusMessage.Contains("error", StringComparison.OrdinalIgnoreCase) &&
-                        !statusMessage.Contains("disconnected", StringComparison.OrdinalIgnoreCase);
-        
-        Application.Current.Dispatcher.BeginInvoke(() =>
+        Application.Current?.Dispatcher.BeginInvoke(() =>
         {
-            var status = new AnythingLLMStatus
-            {
-                IsAvailable = false, // Still starting if we're getting status updates
-                IsStarting = !string.IsNullOrEmpty(statusMessage) && 
-                           statusMessage != "AnythingLLM — connected" && 
-                           statusMessage != "AnythingLLM — disconnected",
-                StatusMessage = statusMessage
-            };
-            AnythingLLMMediator.NotifyStatusUpdated(status);
+            LlmStatus = statusMessage;
+            IsLlmConnected = statusMessage.Contains("connected");
+            _logger.LogDebug("LLM service status: {Status}", statusMessage);
         });
-        
-        _mainViewModel?.SetTransientStatus(statusMessage);
     }
 
+    /// <summary>
+    /// Set LLM connection status
+    /// </summary>
+    public void SetLlmConnection(bool connected)
+    {
+        IsLlmConnected = connected;
+        LlmStatus = connected ? "Connected" : "Disconnected";
+        _logger.LogInformation("LLM connection set to: {Connected}", connected);
+    }
     /// <summary>
     /// Set the current AnythingLLM workspace slug
     /// </summary>
@@ -316,5 +348,25 @@ public partial class LLMServiceManagementViewModel : ObservableObject
         LlmStatus = IsLlmConnected ? "LLM service enabled" : "LLM service disabled";
         
         _mainViewModel?.SetTransientStatus($"LLM service {(IsLlmConnected ? "enabled" : "disabled")}");
+    }
+
+    /// <summary>
+    /// Sets up integrated LLM workspace for streamlined communication with standardized formats.
+    /// </summary>
+    public void SetupLlmWorkspace()
+    {
+        try
+        {
+            _logger.LogInformation("Setting up LLM workspace configuration");
+            _mainViewModel?.SetTransientStatus("🔧 LLM workspace setup functionality coming soon...", 3);
+            
+            // TODO: Implement full LLM workspace setup logic here
+            // This method was extracted from MainViewModel and needs to be properly implemented
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to setup LLM workspace: {Message}", ex.Message);
+            _mainViewModel?.SetTransientStatus("❌ Failed to generate workspace setup", 3);
+        }
     }
 }

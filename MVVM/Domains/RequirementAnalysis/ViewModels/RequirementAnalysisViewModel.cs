@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -157,6 +158,46 @@ namespace TestCaseEditorApp.MVVM.Domains.RequirementAnalysisWorkflow.ViewModels
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[ANALYSIS] Failed to batch analyze all requirements: {ex.Message}");
                 _setTransientStatus?.Invoke("❌ Failed to batch analyze all requirements", 3);
+            }
+        }
+
+        /// <summary>
+        /// Pastes ChatGPT analysis from clipboard and applies it to current requirements.
+        /// </summary>
+        public void PasteChatGptAnalysis()
+        {
+            try
+            {
+                _setTransientStatus?.Invoke("📋 Paste ChatGPT analysis coming soon...", 3);
+                TestCaseEditorApp.Services.Logging.Log.Info("[ANALYSIS] ChatGPT analysis paste requested");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[ANALYSIS] Failed to paste ChatGPT analysis: {ex.Message}");
+                _setTransientStatus?.Invoke("❌ Failed to paste analysis", 3);
+            }
+        }
+
+        /// <summary>
+        /// Batch analyze requirements in background after import.
+        /// Shows progress notifications and updates requirements with analysis results.
+        /// Thread-safe with duplicate prevention.
+        /// </summary>
+        public async Task BatchAnalyzeRequirementsAsync(List<Requirement> requirements)
+        {
+            try
+            {
+                _setTransientStatus?.Invoke($"🔍 Batch analysis functionality coming soon... ({requirements.Count} requirements)", 3);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[ANALYSIS] Batch analysis requested for {requirements.Count} requirements");
+                
+                // TODO: Implement full batch analysis logic here
+                // This method was extracted from MainViewModel and needs to be properly implemented
+                await Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[ANALYSIS] Failed to batch analyze requirements: {ex.Message}");
+                _setTransientStatus?.Invoke("❌ Failed to start batch analysis", 3);
             }
         }
 

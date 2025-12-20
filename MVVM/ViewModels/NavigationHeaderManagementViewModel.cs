@@ -744,5 +744,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 _mainViewModel?.SetTransientStatus($"LLM connection status update failed: {ex.Message}", 3);
             }
         }
+
+        /// <summary>
+        /// Initialize test case generator steps - moved from MainViewModel
+        /// </summary>
+        public void InitializeSteps()
+        {
+            if (_mainViewModel?.TestCaseGeneratorSteps == null) return;
+
+            // For now, just log that this method was called
+            // The actual implementation will be added back once MainViewModel is properly coordinated
+            _mainViewModel?.SetTransientStatus("InitializeSteps called", 1);
+        }
     }
 }
