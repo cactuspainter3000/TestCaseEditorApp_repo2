@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Utils;
@@ -89,6 +90,64 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // These methods provide backwards compatibility while legacy ViewModels are
         // migrated to use proper domain mediators for UI feedback.
         // ============================================================================
+        
+        /// <summary>
+        /// TEMPORARY: Bridge property for legacy ViewModels that need workspace dirty tracking.
+        /// TODO: Remove after migrating to WorkspaceManagement mediator.
+        /// </summary>
+        public bool IsDirty
+        {
+            get
+            {
+                // For now, return false as a safe default.
+                // In the future, this should be handled by WorkspaceManagement mediator.
+                return false;
+            }
+            set
+            {
+                // Log the dirty state change but don't store it in MainViewModel
+                _logger?.LogDebug("Workspace dirty state: {IsDirty}", value);
+                // TODO: Delegate to WorkspaceManagement mediator
+            }
+        }
+        
+        /// <summary>
+        /// TEMPORARY: Bridge properties for legacy Views that access TestCaseGeneration ViewModels.
+        /// TODO: Remove after migrating to TestCaseGeneration mediator events.
+        /// </summary>
+        public object? QuestionsViewModel 
+        { 
+            get 
+            {
+                _logger?.LogDebug("DEPRECATED: QuestionsViewModel accessed - should use TestCaseGeneration mediator");
+                return null; // Return null to avoid NullReferenceExceptions
+            }
+        }
+        
+        /// <summary>
+        /// TEMPORARY: Bridge properties for legacy Views that access TestCaseGeneration ViewModels.
+        /// TODO: Remove after migrating to TestCaseGeneration mediator events.
+        /// </summary>
+        public object? AssumptionsViewModel 
+        { 
+            get 
+            {
+                _logger?.LogDebug("DEPRECATED: AssumptionsViewModel accessed - should use TestCaseGeneration mediator");
+                return null; // Return null to avoid NullReferenceExceptions  
+            }
+        }
+        
+        /// <summary>
+        /// TEMPORARY: Bridge collection for legacy ViewModels that access Requirements.
+        /// TODO: Remove after migrating to TestCaseGeneration mediator.
+        /// </summary>
+        public ObservableCollection<object> Requirements { get; } = new();
+        
+        /// <summary>
+        /// TEMPORARY: Bridge property for TestCaseGenerator workflow steps.
+        /// TODO: Remove after migrating to TestCaseGeneration mediator.
+        /// </summary>
+        public ObservableCollection<object> TestCaseGeneratorSteps { get; } = new();
         
         /// <summary>
         /// TEMPORARY: Bridge method for legacy ViewModels that need UI feedback.
