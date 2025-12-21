@@ -465,6 +465,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private async Task LoadWorkspaceDirectlyAsync(string path)
         {
+            await Task.CompletedTask;
             try
             {
                 var ws = TestCaseEditorApp.Services.WorkspaceFileManager.Load(path);
@@ -535,6 +536,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private async Task EnsureWorkspacePathAsync(string path)
         {
+            await Task.CompletedTask;
             // If WorkspacePath is already set (e.g., from new project workflow), skip the dialog
             if (string.IsNullOrWhiteSpace(_getWorkspacePath()))
             {
@@ -621,6 +623,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private async Task HandleAutoProcessingAsync(List<Requirement> reqs)
         {
+            await Task.CompletedTask;
             TestCaseEditorApp.Services.Logging.Log.Info($"[IMPORT] Checking auto-processing: reqs.Any()={reqs.Any()}, AutoAnalyzeOnImport={_getAutoAnalyzeOnImport()}, AutoExportForChatGpt={_getAutoExportForChatGpt()}");
 
             if (reqs.Any() && _getAutoExportForChatGpt())

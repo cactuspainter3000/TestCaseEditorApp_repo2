@@ -8,9 +8,11 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Windows;
 using System.Windows.Input;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Services;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -45,7 +47,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         public void Initialize(MainViewModel mainViewModel)
         {
-            _mainViewModel = mainViewModel;
+            _mainViewModel = mainViewModel!;
         }
 
         /// <summary>
@@ -80,7 +82,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             var requirements = _mainViewModel?.Requirements;
             var currentRequirement = _mainViewModel?.CurrentRequirement;
             
-            if (requirements.Count == 0 || currentRequirement == null) return;
+            if (requirements?.Count == 0 || currentRequirement == null) return;
             int idx = requirements.IndexOf(currentRequirement);
             if (idx > 0) 
             {
@@ -117,7 +119,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             for (int step = 1; step <= count; step++)
             {
                 int idx = startIdx + step;
-                if (!_mainViewModel.WrapOnNextWithoutTestCase && idx >= count) break;
+                if (!(_mainViewModel?.WrapOnNextWithoutTestCase ?? false) && idx >= count) break;
                 int candidate = idx % count;
                 var req = requirements[candidate];
                 if (!HasTestCase(req))
@@ -164,7 +166,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 _newProjectHeader = new NewProjectHeaderViewModel();
             }
 
-            _mainViewModel.ActiveHeader = _newProjectHeader;
+            if (_mainViewModel != null) _mainViewModel.ActiveHeader = _newProjectHeader;
         }
 
         /// <summary>
@@ -185,7 +187,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             try
             {
-                var testCaseGeneratorHeader = _mainViewModel.TestCaseGeneratorHeader;
+                var testCaseGeneratorHeader = _mainViewModel?.TestCaseGeneratorHeader;
                 if (testCaseGeneratorHeader != null)
                 {
                     var isLlmBusyProp = testCaseGeneratorHeader.GetType().GetProperty("IsLlmBusy", BindingFlags.Public | BindingFlags.Instance);
@@ -487,6 +489,84 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 
                 // Forward requirement to active header
                 ForwardRequirementToActiveHeader(newValue);
+                
+                // Refresh supporting info
+                RefreshSupportingInfo();
+                
+                // Update command states
+                RefreshCommandStates();
+            }
+            catch (Exception ex)
+            {
+                _mainViewModel?.SetTransientStatus($"Current requirement change handling failed: {ex.Message}", 3);
+            }
+        }
+        
+        /// <summary>
+        /// Handle current requirement navigation changes with full context - new overload
+        /// </summary>
+        public void OnCurrentRequirementChanged(Requirement? newValue, Requirement? previousValue, object? currentStepViewModel, 
+            WorkspaceHeaderViewModel? workspaceHeaderViewModel, RequirementsIndexViewModel? requirementsNavigator, 
+            bool isLlmBusy, RelayCommand? exportForChatGptCommand)
+        {
+            try
+            {
+                // Log the change
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[CurrentRequirement] set -> Item='{newValue?.Item ?? "<null>"}' Name='{newValue?.Name ?? "<null>"}' Method='{newValue?.Method}' ActiveHeader={_mainViewModel?.ActiveHeader?.GetType().Name ?? "<null>"}");
+                
+                // Save assumptions from previous requirement BEFORE switching
+                if (currentStepViewModel is TestCaseGenerator_AssumptionsVM currentAssumptionsVm && previousValue != null)
+                {
+                    currentAssumptionsVm.SaveAllAssumptionsData();
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[CurrentRequirement] Saved assumptions before switching requirement");
+                }
+                
+                // Update AssumptionsVM with new requirement for pill persistence FIRST
+                // This must happen before OnCurrentRequirementChanged so pills load from correct requirement
+                if (currentStepViewModel is TestCaseGenerator_AssumptionsVM assumptionsVm)
+                {
+                    assumptionsVm.SetCurrentRequirement(newValue);
+                    assumptionsVm.LoadPillsForRequirement(newValue);
+                }
+
+                // Unhook old requirement events
+                UnhookOldRequirement();
+                
+                // Hook new requirement events
+                HookNewRequirement(newValue);
+                
+                // Update workspace header CanReAnalyze state
+                if (workspaceHeaderViewModel != null)
+                {
+                    workspaceHeaderViewModel.CanReAnalyze = (newValue != null && !isLlmBusy);
+                    ((AsyncRelayCommand?)workspaceHeaderViewModel.ReAnalyzeCommand)?.NotifyCanExecuteChanged();
+                }
+                
+                // Update ChatGPT export command state
+                exportForChatGptCommand?.NotifyCanExecuteChanged();
+
+                // Defensive final step: always forward to header(s)
+                try
+                {
+                    if (Application.Current?.Dispatcher?.CheckAccess() == true)
+                    {
+                        ForwardRequirementToActiveHeader(newValue);
+                        
+                        // Update test case step selectability based on new requirement
+                        UpdateTestCaseStepSelectability();
+                    }
+                    else
+                    {
+                        Application.Current?.Dispatcher?.Invoke(() => 
+                        {
+                            ForwardRequirementToActiveHeader(newValue);
+                            UpdateTestCaseStepSelectability();
+                        });
+                    }
+                }
+                catch { /* swallow */ }
+
+                try { requirementsNavigator?.NotifyCurrentRequirementChanged(); } catch { }
                 
                 // Refresh supporting info
                 RefreshSupportingInfo();

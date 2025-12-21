@@ -5,6 +5,8 @@ using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
 using System.Windows;
+using System.IO;
+using System.Linq;
 
 namespace TestCaseEditorApp.MVVM.ViewModels;
 
@@ -61,6 +63,98 @@ public partial class LLMServiceManagementViewModel : ObservableObject
             _logger.LogError(ex, "Failed to initialize RAG");
             LlmStatus = "RAG initialization failed";
             _mainViewModel?.SetTransientStatus($"RAG initialization failed: {ex.Message}", 5, true);
+        }
+    }
+
+    /// <summary>
+    /// Initialize RAG workspace for a specific project workspace - full implementation from MainViewModel
+    /// </summary>
+    public async Task InitializeRagForWorkspaceAsync(object? currentWorkspace, string workspacePath, WorkspaceHeaderViewModel? workspaceHeaderViewModel, Action<string, int, bool>? setTransientStatus)
+    {
+        try
+        {
+            // Generate workspace name based on the current workspace
+            var workspaceName = Path.GetFileNameWithoutExtension(workspacePath) ?? "Requirements Workspace";
+            
+            // Update header with RAG status
+            if (workspaceHeaderViewModel != null)
+            {
+                workspaceHeaderViewModel.IsRagInitializing = true;
+                workspaceHeaderViewModel.RagStatusMessage = "Initializing RAG workspace...";
+                workspaceHeaderViewModel.RagWorkspaceName = workspaceName;
+            }
+
+            TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Initializing RAG for workspace: {workspaceName}");
+
+            // Check if AnythingLLM service is available
+            if (!await _anythingLLMService.IsServiceAvailableAsync())
+            {
+                if (workspaceHeaderViewModel != null)
+                {
+                    workspaceHeaderViewModel.RagStatusMessage = "AnythingLLM service not available";
+                    workspaceHeaderViewModel.IsRagInitializing = false;
+                }
+                TestCaseEditorApp.Services.Logging.Log.Warn("[RAG] AnythingLLM service not available for RAG initialization");
+                return;
+            }
+
+            // Check if workspace already exists
+            var existingWorkspaces = await _anythingLLMService.GetWorkspacesAsync();
+            var existingWorkspace = existingWorkspaces.FirstOrDefault(w => 
+                string.Equals(w.Name, workspaceName, StringComparison.OrdinalIgnoreCase));
+
+            if (existingWorkspace != null)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Found existing workspace: {existingWorkspace.Name}");
+                if (workspaceHeaderViewModel != null)
+                {
+                    workspaceHeaderViewModel.RagStatusMessage = "RAG workspace ready";
+                    workspaceHeaderViewModel.IsRagInitializing = false;
+                }
+            }
+            else
+            {
+                // Create new workspace
+                if (workspaceHeaderViewModel != null)
+                {
+                    workspaceHeaderViewModel.RagStatusMessage = "Creating RAG workspace...";
+                }
+
+                var newWorkspace = await _anythingLLMService.CreateWorkspaceAsync(workspaceName);
+                if (newWorkspace != null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Created new workspace: {newWorkspace.Name}");
+                    if (workspaceHeaderViewModel != null)
+                    {
+                        workspaceHeaderViewModel.RagStatusMessage = "RAG workspace created successfully";
+                    }
+                    
+                    // Show success message in status
+                    setTransientStatus?.Invoke($"RAG workspace '{workspaceName}' initialized for enhanced AI analysis", 5, false);
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] Failed to create workspace: {workspaceName}");
+                    if (workspaceHeaderViewModel != null)
+                    {
+                        workspaceHeaderViewModel.RagStatusMessage = "Failed to create RAG workspace";
+                    }
+                }
+                
+                if (workspaceHeaderViewModel != null)
+                {
+                    workspaceHeaderViewModel.IsRagInitializing = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            TestCaseEditorApp.Services.Logging.Log.Error(ex, "[RAG] Error during RAG workspace initialization");
+            if (workspaceHeaderViewModel != null)
+            {
+                workspaceHeaderViewModel.RagStatusMessage = "RAG initialization failed";
+                workspaceHeaderViewModel.IsRagInitializing = false;
+            }
         }
     }
 

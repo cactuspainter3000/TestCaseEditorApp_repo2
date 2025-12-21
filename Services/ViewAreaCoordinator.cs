@@ -2,6 +2,7 @@ using System;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 
 namespace TestCaseEditorApp.Services
 {
@@ -13,6 +14,7 @@ namespace TestCaseEditorApp.Services
     {
         private readonly IViewModelFactory _viewModelFactory;
         private readonly INavigationMediator _navigationMediator;
+        private readonly IWorkspaceManagementMediator _workspaceManagementMediator;
 
         public SideMenuViewModel SideMenu { get; }
         public HeaderAreaViewModel HeaderArea { get; }
@@ -25,13 +27,14 @@ namespace TestCaseEditorApp.Services
         private object? _projectContent;
         private object? _requirementsContent;
 
-        public ViewAreaCoordinator(IViewModelFactory viewModelFactory, INavigationMediator navigationMediator)
+        public ViewAreaCoordinator(IViewModelFactory viewModelFactory, INavigationMediator navigationMediator, IWorkspaceManagementMediator workspaceManagementMediator)
         {
             _viewModelFactory = viewModelFactory ?? throw new ArgumentNullException(nameof(viewModelFactory));
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
+            _workspaceManagementMediator = workspaceManagementMediator ?? throw new ArgumentNullException(nameof(workspaceManagementMediator));
             
-            // Initialize UI area view models
-            SideMenu = new SideMenuViewModel();
+            // Initialize UI area view models with proper dependencies
+            SideMenu = new SideMenuViewModel(_workspaceManagementMediator);
             HeaderArea = new HeaderAreaViewModel();
             WorkspaceContent = new WorkspaceContentViewModel();
 

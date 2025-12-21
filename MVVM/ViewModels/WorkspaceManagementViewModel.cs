@@ -11,6 +11,7 @@ using System.Timers;
 using Microsoft.Win32;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Services;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using Application = System.Windows.Application;
 
 namespace TestCaseEditorApp.MVVM.ViewModels;
@@ -73,7 +74,53 @@ public partial class WorkspaceManagementViewModel : ObservableObject
         
         try
         {
-            // TODO: Implement actual workspace step initialization logic
+            // Add Project step first
+            _mainViewModel?.TestCaseGeneratorSteps.Add(new StepDescriptor
+            {
+                Id = "project",
+                DisplayName = "Project",
+                Badge = string.Empty,
+                HasFileMenu = true,
+                CreateViewModel = svc =>
+                {
+                    return new ProjectViewModel();
+                }
+            });
+
+            _mainViewModel?.TestCaseGeneratorSteps.Add(new StepDescriptor
+            {
+                Id = "requirements",
+                DisplayName = "Requirement",
+                Badge = string.Empty,
+                HasFileMenu = true,
+                CreateViewModel = svc => new RequirementsViewModel(
+                    new TestCaseEditorApp.Services.NoOpPersistenceService(), 
+                    _mainViewModel, 
+                    new TestCaseGenerator_CoreVM())
+            });
+
+            _mainViewModel?.TestCaseGeneratorSteps.Add(new StepDescriptor
+            {
+                Id = "llm-learning",
+                DisplayName = "LLM Learning",
+                Badge = string.Empty,
+                HasFileMenu = true,
+                CreateViewModel = svc =>
+                {
+                    return new LLMLearningViewModel();
+                }
+            });
+
+            _mainViewModel?.TestCaseGeneratorSteps.Add(new StepDescriptor
+            {
+                Id = "testcase-creation",
+                DisplayName = "Test Case Generator",
+                Badge = string.Empty,
+                HasFileMenu = true,
+                IsSelectable = true,  // Allow selection when test cases exist
+                CreateViewModel = svc => new TestCaseGenerator_CreationVM(_mainViewModel)
+            });
+            
             _mainViewModel?.SetTransientStatus("Workspace steps initialized", 2);
         }
         catch (Exception ex)

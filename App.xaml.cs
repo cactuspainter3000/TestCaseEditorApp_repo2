@@ -10,6 +10,7 @@ using TestCaseEditorApp.MVVM.Views;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators;
+using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
@@ -114,6 +115,21 @@ namespace TestCaseEditorApp
                             performanceMonitor, eventReplay);
                     });
 
+                    services.AddSingleton<IWorkspaceManagementMediator>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<WorkspaceManagementMediator>>();
+                        var uiCoordinator = provider.GetRequiredService<IDomainUICoordinator>();
+                        var persistenceService = provider.GetRequiredService<IPersistenceService>();
+                        var fileDialogService = provider.GetRequiredService<IFileDialogService>();
+                        var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
+                        var notificationService = provider.GetRequiredService<NotificationService>();
+                        var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
+                        var eventReplay = provider.GetService<EventReplayService>();
+                        
+                        return new WorkspaceManagementMediator(logger, uiCoordinator, persistenceService, 
+                            fileDialogService, anythingLLMService, notificationService, performanceMonitor, eventReplay);
+                    });
+
                     // ViewModels and header VM
                     services.AddTransient<TestCaseGenerator_VM>();
                     services.AddSingleton<WorkspaceHeaderViewModel>(); // workspace header shared instance
@@ -121,7 +137,7 @@ namespace TestCaseEditorApp
                     {
                         var applicationServices = provider.GetRequiredService<IApplicationServices>();
                         var viewModelFactory = provider.GetRequiredService<IViewModelFactory>();
-                        var projectManagement = provider.GetRequiredService<ProjectManagementViewModel>();
+                        var workspaceManagementMediator = provider.GetRequiredService<IWorkspaceManagementMediator>();
                         var llmServiceManagement = provider.GetRequiredService<LLMServiceManagementViewModel>();
                         var requirementProcessing = provider.GetRequiredService<RequirementProcessingViewModel>();
                         var uiModalManagement = provider.GetRequiredService<UIModalManagementViewModel>();
@@ -129,12 +145,11 @@ namespace TestCaseEditorApp
                         var navigationHeaderManagement = provider.GetRequiredService<NavigationHeaderManagementViewModel>();
                         var requirementAnalysisManagement = provider.GetRequiredService<RequirementAnalysisManagementViewModel>();
                         
-                        return new MainViewModel(applicationServices, viewModelFactory, projectManagement, llmServiceManagement, requirementProcessing, uiModalManagement, workspaceManagement, navigationHeaderManagement, requirementAnalysisManagement, provider);
+                        return new MainViewModel(applicationServices, viewModelFactory, workspaceManagementMediator, llmServiceManagement, requirementProcessing, uiModalManagement, workspaceManagement, navigationHeaderManagement, requirementAnalysisManagement, provider);
                     });
                     services.AddTransient<NavigationViewModel>();
 
                     // New domain ViewModels for consolidation
-                    services.AddTransient<ProjectManagementViewModel>();
                     services.AddTransient<UIModalManagementViewModel>();
                     services.AddTransient<LLMServiceManagementViewModel>();
                     services.AddTransient<RequirementProcessingViewModel>();
@@ -146,7 +161,12 @@ namespace TestCaseEditorApp
 
                     // Core application services
                     services.AddSingleton<ChatGptExportService>();
-                    services.AddSingleton<IViewModelFactory, ViewModelFactory>();
+                    services.AddSingleton<IViewModelFactory>(provider =>
+                    {
+                        var applicationServices = provider.GetRequiredService<IApplicationServices>();
+                        var workspaceManagementMediator = provider.GetRequiredService<IWorkspaceManagementMediator>();
+                        return new ViewModelFactory(applicationServices, workspaceManagementMediator);
+                    });
                     services.AddSingleton<IApplicationServices, ApplicationServices>();
 
                     // Views / Windows
@@ -188,6 +208,9 @@ namespace TestCaseEditorApp
                 
                 var testFlowMediator = _host.Services.GetRequiredService<ITestFlowMediator>();
                 testFlowMediator.MarkAsRegistered();
+                
+                var workspaceManagementMediator = _host.Services.GetRequiredService<IWorkspaceManagementMediator>();
+                workspaceManagementMediator.MarkAsRegistered();
                 
                 // Set up domain coordinator and register mediators
                 var domainCoordinator = _host.Services.GetRequiredService<IDomainCoordinator>();

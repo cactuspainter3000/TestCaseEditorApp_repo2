@@ -400,7 +400,8 @@
             </Border>
 
             <!-- Left menu section: Test Case / Test Flow, with one-open-at-a-time behavior -->
-            <views:SideMenuView Grid.Column="0" Grid.Row="2" Grid.RowSpan="5" />
+            <views:SideMenuView Grid.Column="0" Grid.Row="2" Grid.RowSpan="5" 
+                               DataContext="{Binding ViewAreaCoordinator.SideMenu}"/>
 
             <!-- Content area -->
             <Border Grid.Column="2" Grid.Row="4" Style="{StaticResource ContentBorderStyle}">

@@ -6,6 +6,7 @@ using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 using TestCaseEditorApp.MVVM.Domains.ChatGptExportAnalysis.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.RequirementAnalysisWorkflow.ViewModels;
 using CommunityToolkit.Mvvm.Input;
@@ -21,10 +22,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     public class ViewModelFactory : IViewModelFactory
     {
         private readonly IApplicationServices _applicationServices;
+        private readonly IWorkspaceManagementMediator? _workspaceManagementMediator;
 
-        public ViewModelFactory(IApplicationServices applicationServices)
+        public ViewModelFactory(IApplicationServices applicationServices, IWorkspaceManagementMediator? workspaceManagementMediator = null)
         {
             _applicationServices = applicationServices ?? throw new ArgumentNullException(nameof(applicationServices));
+            _workspaceManagementMediator = workspaceManagementMediator;
         }
 
         public INavigationMediator CreateNavigationMediator()
@@ -37,7 +40,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public IViewAreaCoordinator CreateViewAreaCoordinator()
         {
             var navigationMediator = CreateNavigationMediator();
-            return new ViewAreaCoordinator(this, navigationMediator);
+            return new ViewAreaCoordinator(this, navigationMediator, _workspaceManagementMediator!);
         }
 
         public WorkspaceHeaderViewModel CreateWorkspaceHeaderViewModel()

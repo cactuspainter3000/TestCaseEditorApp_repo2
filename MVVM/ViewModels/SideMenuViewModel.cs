@@ -1,7 +1,11 @@
 using System;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using System.Windows.Input;
+using System.Threading.Tasks;
+using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -11,15 +15,63 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     /// </summary>
     public partial class SideMenuViewModel : ObservableObject
     {
+        private readonly IWorkspaceManagementMediator? _workspaceManagementMediator;
+
         [ObservableProperty]
         private string? selectedSection;
 
         [ObservableProperty]
         private ObservableCollection<MenuItemViewModel> menuItems = new();
 
-        public SideMenuViewModel()
+        // Project Management Commands
+        public ICommand NewProjectCommand { get; private set; } = null!;
+        public ICommand OpenProjectCommand { get; private set; } = null!;
+        public ICommand SaveProjectCommand { get; private set; } = null!;
+        public ICommand QuickImportCommand { get; private set; } = null!;
+
+        // Availability properties
+        [ObservableProperty]
+        private bool isAnythingLLMAvailable = true;
+
+        public SideMenuViewModel(IWorkspaceManagementMediator? workspaceManagementMediator = null)
         {
+            _workspaceManagementMediator = workspaceManagementMediator;
+            InitializeCommands();
             InitializeMenuItems();
+        }
+
+        private void InitializeCommands()
+        {
+            NewProjectCommand = new AsyncRelayCommand(CreateNewProjectAsync);
+            OpenProjectCommand = new AsyncRelayCommand(OpenProjectAsync);
+            SaveProjectCommand = new RelayCommand(() => { /* TODO: Implement save */ });
+            QuickImportCommand = new RelayCommand(() => { /* TODO: Implement quick import */ });
+        }
+
+        private async Task CreateNewProjectAsync()
+        {
+            Console.WriteLine("*** SideMenuViewModel.CreateNewProject called! ***");
+            if (_workspaceManagementMediator != null)
+            {
+                await _workspaceManagementMediator.CreateNewProjectAsync();
+            }
+            else
+            {
+                Console.WriteLine("*** WorkspaceManagementMediator is null in SideMenuViewModel! ***");
+            }
+        }
+
+        private async Task OpenProjectAsync()
+        {
+            Console.WriteLine("*** SideMenuViewModel.OpenProject called! ***");
+            if (_workspaceManagementMediator != null)
+            {
+                await _workspaceManagementMediator.OpenProjectAsync();
+            }
+            else
+            {
+                Console.WriteLine("*** WorkspaceManagementMediator is null in SideMenuViewModel! ***");
+            }
         }
 
         private void InitializeMenuItems()
