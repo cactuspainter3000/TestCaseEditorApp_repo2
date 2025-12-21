@@ -62,7 +62,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             var requirements = _mainViewModel?.Requirements;
             var currentRequirement = _mainViewModel?.CurrentRequirement;
             
-            if (requirements.Count == 0 || currentRequirement == null) return;
+            if (requirements?.Count == 0 || currentRequirement == null) return;
             int idx = requirements.IndexOf(currentRequirement);
             if (idx >= 0 && idx < requirements.Count - 1) 
             {

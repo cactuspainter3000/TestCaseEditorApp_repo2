@@ -135,17 +135,10 @@ namespace TestCaseEditorApp
                     services.AddSingleton<WorkspaceHeaderViewModel>(); // workspace header shared instance
                     services.AddTransient<MainViewModel>(provider =>
                     {
-                        var applicationServices = provider.GetRequiredService<IApplicationServices>();
                         var viewModelFactory = provider.GetRequiredService<IViewModelFactory>();
-                        var workspaceManagementMediator = provider.GetRequiredService<IWorkspaceManagementMediator>();
-                        var llmServiceManagement = provider.GetRequiredService<LLMServiceManagementViewModel>();
-                        var requirementProcessing = provider.GetRequiredService<RequirementProcessingViewModel>();
-                        var uiModalManagement = provider.GetRequiredService<UIModalManagementViewModel>();
-                        var workspaceManagement = provider.GetRequiredService<WorkspaceManagementViewModel>();
-                        var navigationHeaderManagement = provider.GetRequiredService<NavigationHeaderManagementViewModel>();
-                        var requirementAnalysisManagement = provider.GetRequiredService<RequirementAnalysisManagementViewModel>();
+                        var logger = provider.GetService<ILogger<MainViewModel>>();
                         
-                        return new MainViewModel(applicationServices, viewModelFactory, workspaceManagementMediator, llmServiceManagement, requirementProcessing, uiModalManagement, workspaceManagement, navigationHeaderManagement, requirementAnalysisManagement, provider);
+                        return new MainViewModel(viewModelFactory, logger);
                     });
                     services.AddTransient<NavigationViewModel>();
 
@@ -275,8 +268,19 @@ namespace TestCaseEditorApp
                 // Fallback: if MainWindow ctor expects a MainViewModel, resolve the VM and construct manually.
                 try
                 {
-                    var vm = _host.Services.GetService<MainViewModel>() ?? new MainViewModel();
-                    mainWindow = new MainWindow(vm);
+                    var viewModelFactory = _host.Services.GetService<IViewModelFactory>();
+                    var logger = _host.Services.GetService<ILogger<MainViewModel>>();
+                    var vm = _host.Services.GetService<MainViewModel>() ?? 
+                             (viewModelFactory != null ? new MainViewModel(viewModelFactory, logger) : null);
+                    
+                    if (vm != null)
+                    {
+                        mainWindow = new MainWindow(vm);
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Unable to resolve MainViewModel or its dependencies");
+                    }
                 }
                 catch (Exception fallbackEx)
                 {

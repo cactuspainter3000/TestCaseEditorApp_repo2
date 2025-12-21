@@ -23,11 +23,10 @@ namespace TestCaseEditorApp.MVVM.Views
             InitializeComponent();
             
             // Set DataContext early to avoid binding warnings during startup
-            // Prefer DI-provided DataContext. Fall back to App.ServiceProvider if available, then to a parameterless VM.
+            // Prefer DI-provided DataContext. Fall back to App.ServiceProvider if available.
             if (DataContext == null && !System.ComponentModel.DesignerProperties.GetIsInDesignMode(this))
             {
-                DataContext = App.ServiceProvider?.GetService(typeof(MainViewModel)) as MainViewModel
-                   ?? new MainViewModel();
+                DataContext = App.ServiceProvider?.GetService(typeof(MainViewModel)) as MainViewModel;
             }
         }
 
@@ -83,8 +82,7 @@ namespace TestCaseEditorApp.MVVM.Views
             // DataContext should already be set in constructor, but ensure it's not null
             if (DataContext == null)
             {
-                DataContext = App.ServiceProvider?.GetService(typeof(MainViewModel)) as MainViewModel
-                   ?? new MainViewModel();
+                DataContext = App.ServiceProvider?.GetService(typeof(MainViewModel)) as MainViewModel;
             }
 
             var vm = DataContext;

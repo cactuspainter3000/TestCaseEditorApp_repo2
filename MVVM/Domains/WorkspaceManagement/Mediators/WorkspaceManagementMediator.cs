@@ -75,6 +75,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
 
         public async Task CreateNewProjectAsync()
         {
+            await Task.CompletedTask;
             try
             {
                 ShowProgress("Initiating new project creation...", 0);
@@ -105,6 +106,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
 
         public async Task OpenProjectAsync()
         {
+            await Task.CompletedTask;
             try
             {
                 ShowProgress("Initiating project opening...", 0);
@@ -185,6 +187,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
 
         public async Task CloseProjectAsync()
         {
+            await Task.CompletedTask;
             try
             {
                 if (_currentWorkspaceInfo == null)
