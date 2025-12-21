@@ -58,12 +58,13 @@ public partial class ProjectManagementViewModel : ObservableObject
             // Show the full workflow in the main content area
             if (_mainViewModel?.NewProjectWorkflow == null && _anythingLLMService != null && _toastService != null && _mainViewModel != null)
             {
-                _mainViewModel.NewProjectWorkflow = new NewProjectWorkflowViewModel(_anythingLLMService, _toastService);
-                _mainViewModel.NewProjectWorkflow.ProjectCreated += OnNewProjectCreated;
-                _mainViewModel.NewProjectWorkflow.ProjectCancelled += OnNewProjectCancelled;
+                var workflow = new NewProjectWorkflowViewModel(_anythingLLMService, _toastService);
+                _mainViewModel.NewProjectWorkflow = workflow;
+                workflow.ProjectCreated += OnNewProjectCreated;
+                workflow.ProjectCancelled += OnNewProjectCancelled;
             }
             
-            _mainViewModel?.NewProjectWorkflow?.Initialize();
+            (_mainViewModel?.NewProjectWorkflow as NewProjectWorkflowViewModel)?.Initialize();
             if (_mainViewModel != null && _mainViewModel.NewProjectWorkflow != null)
             {
                 _mainViewModel.CurrentStepViewModel = _mainViewModel.NewProjectWorkflow;

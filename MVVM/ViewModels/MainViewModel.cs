@@ -35,7 +35,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly ILogger<MainViewModel>? _logger;
         
         // TEMPORARY bridge fields - will be removed after domain migration
-        public bool _anythingLLMInitializing; // Made public for legacy access
+        public static bool _anythingLLMInitializing; // Made static for cross-instance coordination
         
         /// <summary>
         /// TEMPORARY: Bridge property for AnythingLLM initialization status.
@@ -192,7 +192,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// TEMPORARY: Bridge property for TestCaseGenerator workflow steps.
         /// TODO: Remove after migrating to TestCaseGeneration mediator.
         /// </summary>
-        public ObservableCollection<object> TestCaseGeneratorSteps { get; } = new();
+        public ObservableCollection<TestCaseEditorApp.MVVM.Models.StepDescriptor> TestCaseGeneratorSteps { get; } = new();
         
         // Navigation Commands - TEMPORARY bridge implementation
         private RelayCommand? _nextRequirementCommand;
@@ -312,7 +312,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// TEMPORARY: Bridge property for current workspace access.
         /// TODO: Remove after migrating to WorkspaceManagement mediator.
         /// </summary>
-        public object? CurrentWorkspace 
+        public dynamic? CurrentWorkspace 
         { 
             get => _currentWorkspace;
             set 
@@ -375,13 +375,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// TEMPORARY: Bridge property for loose tables collection.
         /// TODO: Remove after migrating to WorkspaceManagement mediator.
         /// </summary>
-        public object? LooseTables { get; } = null;
+        public System.Collections.IList? LooseTables { get; } = new System.Collections.Generic.List<object>();
         
         /// <summary>
         /// TEMPORARY: Bridge property for loose paragraphs collection.
         /// TODO: Remove after migrating to WorkspaceManagement mediator.
         /// </summary>
-        public object? LooseParagraphs { get; } = null;
+        public System.Collections.IList? LooseParagraphs { get; } = new System.Collections.Generic.List<object>();
         
         private string _displayName = string.Empty;
         /// <summary>
@@ -627,7 +627,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// TEMPORARY: Bridge property for requirements navigator.
         /// TODO: Remove after migrating to TestCaseGeneration mediator.
         /// </summary>
-        public object? RequirementsNavigator => this; // Return self since MainViewModel implements ITestCaseGenerator_Navigator
+        public dynamic? RequirementsNavigator => this; // Return self since MainViewModel implements ITestCaseGenerator_Navigator
         
         /// <summary>
         /// TEMPORARY: Bridge method for legacy ViewModels that need UI feedback.
