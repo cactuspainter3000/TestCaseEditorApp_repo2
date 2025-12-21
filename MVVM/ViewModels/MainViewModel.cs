@@ -35,7 +35,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly ILogger<MainViewModel>? _logger;
         
         // TEMPORARY bridge fields - will be removed after domain migration
-        private bool _anythingLLMInitializing;
+        public bool _anythingLLMInitializing; // Made public for legacy access
+        
+        /// <summary>
+        /// TEMPORARY: Bridge property for AnythingLLM initialization status.
+        /// TODO: Remove after migrating to LLM service mediator.
+        /// </summary>
+        public bool AnythingLLMInitializing 
+        { 
+            get => _anythingLLMInitializing;
+            set => SetProperty(ref _anythingLLMInitializing, value);
+        }
         
         // === 4-WORKSPACE PROPERTIES ===
         // All UI areas are managed by ViewAreaCoordinator
@@ -343,6 +353,58 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
         }
         
+        private string _wordFilePath = string.Empty;
+        /// <summary>
+        /// TEMPORARY: Bridge property for Word file path access.
+        /// TODO: Remove after migrating to WorkspaceManagement mediator.
+        /// </summary>
+        public string WordFilePath 
+        { 
+            get => _wordFilePath;
+            set 
+            {
+                if (SetProperty(ref _wordFilePath, value))
+                {
+                    _logger?.LogDebug("BRIDGE: WordFilePath changed to {Path}", value);
+                    // TODO: Delegate to WorkspaceManagement mediator
+                }
+            }
+        }
+        
+        /// <summary>
+        /// TEMPORARY: Bridge property for loose tables collection.
+        /// TODO: Remove after migrating to WorkspaceManagement mediator.
+        /// </summary>
+        public object? LooseTables { get; } = null;
+        
+        /// <summary>
+        /// TEMPORARY: Bridge property for loose paragraphs collection.
+        /// TODO: Remove after migrating to WorkspaceManagement mediator.
+        /// </summary>
+        public object? LooseParagraphs { get; } = null;
+        
+        private string _displayName = string.Empty;
+        /// <summary>
+        /// TEMPORARY: Bridge property for display name.
+        /// TODO: Remove after migrating to WorkspaceManagement mediator.
+        /// </summary>
+        public string DisplayName 
+        { 
+            get => _displayName;
+            set => SetProperty(ref _displayName, value);
+        }
+        
+        private string _sapStatus = string.Empty;
+        /// <summary>
+        /// TEMPORARY: Bridge property for SAP status.
+        /// TODO: Remove after migrating to WorkspaceManagement mediator.
+        /// </summary>
+        public string SapStatus 
+        { 
+            get => _sapStatus;
+            set => SetProperty(ref _sapStatus, value);
+        }
+        
         private object? _activeHeader;
         /// <summary>
         /// TEMPORARY: Bridge property for active header access.
@@ -430,7 +492,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// TEMPORARY: Bridge method for workspace selection handling.
         /// TODO: Remove after migrating to WorkspaceManagement mediator.
         /// </summary>
-        public void OnWorkspaceSelected(object workspace)
+        public void OnWorkspaceSelected(object sender, object e)
         {
             _logger?.LogDebug("BRIDGE: OnWorkspaceSelected called");
             // TODO: Delegate to WorkspaceManagement mediator
@@ -440,7 +502,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// TEMPORARY: Bridge method for import workflow completion.
         /// TODO: Remove after migrating to WorkspaceManagement mediator.
         /// </summary>
-        public void OnImportWorkflowCompleted()
+        public void OnImportWorkflowCompleted(object sender, object e)
         {
             _logger?.LogDebug("BRIDGE: OnImportWorkflowCompleted called");
             // TODO: Delegate to WorkspaceManagement mediator
@@ -450,7 +512,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// TEMPORARY: Bridge method for import workflow cancellation.
         /// TODO: Remove after migrating to WorkspaceManagement mediator.
         /// </summary>
-        public void OnImportWorkflowCancelled()
+        public void OnImportWorkflowCancelled(object sender, object e)
         {
             _logger?.LogDebug("BRIDGE: OnImportWorkflowCancelled called");
             // TODO: Delegate to WorkspaceManagement mediator
@@ -460,7 +522,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// TEMPORARY: Bridge method for requirement editing.
         /// TODO: Remove after migrating to TestCaseGeneration mediator.
         /// </summary>
-        public void OnRequirementEdited(object requirement)
+        public void OnRequirementEdited(object sender, object e)
         {
             _logger?.LogDebug("BRIDGE: OnRequirementEdited called");
             // TODO: Delegate to TestCaseGeneration mediator
@@ -470,11 +532,102 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// TEMPORARY: Bridge method for requirement analysis request.
         /// TODO: Remove after migrating to TestCaseGeneration mediator.
         /// </summary>
-        public void OnRequirementAnalysisRequested(object requirement)
+        public void OnRequirementAnalysisRequested(object sender, object e)
         {
             _logger?.LogDebug("BRIDGE: OnRequirementAnalysisRequested called");
             // TODO: Delegate to TestCaseGeneration mediator
         }
+        
+        /// <summary>
+        /// TEMPORARY: Bridge method for workspace selection modal.
+        /// TODO: Remove after migrating to WorkspaceManagement mediator.
+        /// </summary>
+        public void ShowWorkspaceSelectionModalForOpen()
+        {
+            _logger?.LogDebug("BRIDGE: ShowWorkspaceSelectionModalForOpen called");
+            // TODO: Delegate to WorkspaceManagement mediator
+        }
+        
+        /// <summary>
+        /// TEMPORARY: Bridge method for saving workspace.
+        /// TODO: Remove after migrating to WorkspaceManagement mediator.
+        /// </summary>
+        public void SaveWorkspace()
+        {
+            _logger?.LogDebug("BRIDGE: SaveWorkspace called");
+            // TODO: Delegate to WorkspaceManagement mediator
+        }
+        
+        private object? _selectedMenuSection;
+        /// <summary>
+        /// TEMPORARY: Bridge property for selected menu section.
+        /// TODO: Remove after migrating to navigation mediator.
+        /// </summary>
+        public object? SelectedMenuSection 
+        { 
+            get => _selectedMenuSection;
+            set => SetProperty(ref _selectedMenuSection, value);
+        }
+        
+        private object? _selectedStep;
+        /// <summary>
+        /// TEMPORARY: Bridge property for selected step.
+        /// TODO: Remove after migrating to TestCaseGeneration mediator.
+        /// </summary>
+        public object? SelectedStep 
+        { 
+            get => _selectedStep;
+            set => SetProperty(ref _selectedStep, value);
+        }
+        
+        private bool _hasUnsavedChanges;
+        /// <summary>
+        /// TEMPORARY: Bridge property for unsaved changes tracking.
+        /// TODO: Remove after migrating to WorkspaceManagement mediator.
+        /// </summary>
+        public bool HasUnsavedChanges 
+        { 
+            get => _hasUnsavedChanges;
+            set => SetProperty(ref _hasUnsavedChanges, value);
+        }
+        
+        /// <summary>
+        /// TEMPORARY: Bridge method for requirements collection changed event.
+        /// TODO: Remove after migrating to TestCaseGeneration mediator.
+        /// </summary>
+        public void RequirementsOnCollectionChanged(object sender, object e)
+        {
+            _logger?.LogDebug("BRIDGE: RequirementsOnCollectionChanged called");
+            // TODO: Delegate to TestCaseGeneration mediator
+        }
+        
+        private bool _autoAnalyzeOnImport;
+        /// <summary>
+        /// TEMPORARY: Bridge property for auto analyze on import setting.
+        /// TODO: Remove after migrating to TestCaseGeneration mediator.
+        /// </summary>
+        public bool AutoAnalyzeOnImport 
+        { 
+            get => _autoAnalyzeOnImport;
+            set => SetProperty(ref _autoAnalyzeOnImport, value);
+        }
+        
+        private bool _autoExportForChatGpt;
+        /// <summary>
+        /// TEMPORARY: Bridge property for auto export for ChatGPT setting.
+        /// TODO: Remove after migrating to TestCaseGeneration mediator.
+        /// </summary>
+        public bool AutoExportForChatGpt 
+        { 
+            get => _autoExportForChatGpt;
+            set => SetProperty(ref _autoExportForChatGpt, value);
+        }
+        
+        /// <summary>
+        /// TEMPORARY: Bridge property for requirements navigator.
+        /// TODO: Remove after migrating to TestCaseGeneration mediator.
+        /// </summary>
+        public object? RequirementsNavigator => this; // Return self since MainViewModel implements ITestCaseGenerator_Navigator
         
         /// <summary>
         /// TEMPORARY: Bridge method for legacy ViewModels that need UI feedback.
