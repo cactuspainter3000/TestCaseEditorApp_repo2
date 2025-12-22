@@ -268,10 +268,7 @@ namespace TestCaseEditorApp
                 // Fallback: if MainWindow ctor expects a MainViewModel, resolve the VM and construct manually.
                 try
                 {
-                    var viewModelFactory = _host.Services.GetService<IViewModelFactory>();
-                    var logger = _host.Services.GetService<ILogger<MainViewModel>>();
-                    var vm = _host.Services.GetService<MainViewModel>() ?? 
-                             (viewModelFactory != null ? new MainViewModel(viewModelFactory, logger) : null);
+                    var vm = _host.Services.GetService<MainViewModel>();
                     
                     if (vm != null)
                     {

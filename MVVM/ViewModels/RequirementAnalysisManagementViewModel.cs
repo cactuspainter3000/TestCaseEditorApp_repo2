@@ -116,7 +116,9 @@ public partial class RequirementAnalysisManagementViewModel : ObservableObject
     /// </summary>
     public bool CanReAnalyze()
     {
-        return _mainViewModel?.CurrentRequirement != null && !_mainViewModel.IsLlmBusy;
+        // TODO: Replace with proper domain coordination
+        // return _mainViewModel?.CurrentRequirement != null && !_mainViewModel.IsLlmBusy;
+        return false; // Disabled pending domain coordination
     }
 
     /// <summary>
@@ -124,7 +126,9 @@ public partial class RequirementAnalysisManagementViewModel : ObservableObject
     /// </summary>
     private object? GetTestCaseGeneratorInstance()
     {
-        return _mainViewModel?.GetTestCaseGeneratorInstance();
+        // TODO: Replace with proper domain coordination
+        // return _mainViewModel?.GetTestCaseGeneratorInstance();
+        return null; // Disabled pending domain coordination
     }
 
     /// <summary>
@@ -167,7 +171,7 @@ public partial class RequirementAnalysisManagementViewModel : ObservableObject
             var analyzeCommandProp = analysisVm.GetType().GetProperty("AnalyzeRequirementCommand", BindingFlags.Public | BindingFlags.Instance);
             if (analyzeCommandProp?.GetValue(analysisVm) is ICommand analyzeCommand && analyzeCommand.CanExecute(null))
             {
-                _logger.LogInformation($"Executing re-analysis for requirement: {_mainViewModel?.CurrentRequirement?.Item}");
+                // _logger.LogInformation($"Executing re-analysis for requirement: {_mainViewModel?.CurrentRequirement?.Item}");
                 analyzeCommand.Execute(null);
             }
             else
@@ -178,7 +182,7 @@ public partial class RequirementAnalysisManagementViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "Re-analysis failed");
-            _mainViewModel?.SetTransientStatus($"Re-analysis failed: {ex.Message}", 5, true);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Re-analysis failed: {ex.Message}", 5, true);
         }
     }
 
@@ -226,7 +230,7 @@ public partial class RequirementAnalysisManagementViewModel : ObservableObject
                 _logger.LogInformation("No requirements need analysis - batch analysis complete");
                 Application.Current?.Dispatcher?.Invoke(() =>
                 {
-                    _mainViewModel?.SetTransientStatus("All requirements already analyzed", 3);
+                    // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("All requirements already analyzed", 3);
                 });
                 return;
             }
@@ -238,7 +242,7 @@ public partial class RequirementAnalysisManagementViewModel : ObservableObject
             _logger.LogError(ex, "Batch analysis failed");
             Application.Current?.Dispatcher?.Invoke(() =>
             {
-                _mainViewModel?.SetTransientStatus($"Batch analysis failed: {ex.Message}", 5, true);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Batch analysis failed: {ex.Message}", 5, true);
             });
         }
         finally
@@ -252,7 +256,7 @@ public partial class RequirementAnalysisManagementViewModel : ObservableObject
             Application.Current?.Dispatcher?.Invoke(() =>
             {
                 IsBatchAnalyzing = false;
-                _mainViewModel?.SetTransientStatus("Batch analysis completed", 3);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("Batch analysis completed", 3);
             });
         }
     }
@@ -296,7 +300,9 @@ public partial class RequirementAnalysisManagementViewModel : ObservableObject
         try
         {
             // Try to get UI display order from requirements navigator
-            var requirementsView = _mainViewModel?.RequirementsNavigator?.RequirementsView;
+            // TODO: Replace with proper domain coordination
+            // var requirementsView = _mainViewModel?.RequirementsNavigator?.RequirementsView;
+            var requirementsView = (object?)null; // Disabled pending domain coordination
             if (requirementsView != null)
             {
                 foreach (Requirement req in requirementsView)

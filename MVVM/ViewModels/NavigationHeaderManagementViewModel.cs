@@ -56,6 +56,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [RelayCommand(CanExecute = nameof(CanNavigate))]
         private void NextRequirement()
         {
+            // TODO: Replace with proper domain coordination via TestCaseGenerationMediator
+            // This method needs to coordinate requirement navigation through the domain mediator
+            /*
             if (_mainViewModel == null) return;
             
             _mainViewModel?.CommitPendingEdits();
@@ -68,6 +71,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 if (_mainViewModel != null) _mainViewModel.CurrentRequirement = requirements[idx + 1];
             }
+            */
+            
+            _logger.LogWarning("NextRequirement: Method disabled pending domain mediator refactoring");
         }
 
         /// <summary>
@@ -76,6 +82,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [RelayCommand(CanExecute = nameof(CanNavigate))]
         private void PreviousRequirement()
         {
+            // TODO: Replace with proper domain coordination via TestCaseGenerationMediator
+            /*
             if (_mainViewModel == null) return;
             
             _mainViewModel?.CommitPendingEdits();
@@ -88,6 +96,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 if (_mainViewModel != null) _mainViewModel.CurrentRequirement = requirements[idx - 1];
             }
+            */
+            
+            _logger.LogWarning("PreviousRequirement: Method disabled pending domain mediator refactoring");
         }
 
         /// <summary>
@@ -96,6 +107,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [RelayCommand(CanExecute = nameof(CanNavigate))]
         private void NextWithoutTestCase()
         {
+            // TODO: Replace with proper domain coordination via TestCaseGenerationMediator
+            /*
             _mainViewModel?.CommitPendingEdits();
             var requirements = _mainViewModel?.Requirements;
 
@@ -129,7 +142,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 }
             }
 
-            _mainViewModel?.SetTransientStatus("No next requirement without a test case found.", 4);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("No next requirement without a test case found.", 4);
+            */
+            
+            _logger.LogWarning("NextWithoutTestCase: Method disabled pending domain mediator refactoring");
         }
 
         /// <summary>
@@ -174,47 +190,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         private bool CanNavigate()
         {
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[NavigationHeaderManagementViewModel] CanNavigate() called. IsLlmBusy={_mainViewModel?.IsLlmBusy}");
-            
-            // Don't allow navigation when LLM is busy
-            var isLlmBusy = _mainViewModel?.IsLlmBusy ?? false;
-            if (isLlmBusy)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Debug("[NavigationHeaderManagementViewModel] CanNavigate() returning FALSE - IsLlmBusy is true");
-                _mainViewModel?.SetTransientStatus("Please wait - the AI is working on your request. LLMs are powerful, but they need a moment!", 2);
-                return false;
-            }
-
-            try
-            {
-                var testCaseGeneratorHeader = _mainViewModel?.TestCaseGeneratorHeader;
-                if (testCaseGeneratorHeader != null)
-                {
-                    var isLlmBusyProp = testCaseGeneratorHeader.GetType().GetProperty("IsLlmBusy", BindingFlags.Public | BindingFlags.Instance);
-                    if (isLlmBusyProp?.GetValue(testCaseGeneratorHeader) is bool headerIsBusy && headerIsBusy)
-                    {
-                        _mainViewModel?.SetTransientStatus("Please wait - the AI is working on your request. LLMs are powerful, but they need a moment!", 2);
-                        return false;
-                    }
-                }
-                    
-                var tcg = _mainViewModel.GetTestCaseGeneratorInstance();
-                if (tcg != null)
-                {
-                    var busyProp = tcg.GetType().GetProperty("IsLlmBusy", BindingFlags.Public | BindingFlags.Instance);
-                    if (busyProp != null && busyProp.GetValue(tcg) is bool isBusy && isBusy)
-                    {
-                        _mainViewModel?.SetTransientStatus("Please wait - the AI is working on your request. LLMs are powerful, but they need a moment!", 2);
-                        return false;
-                    }
-                }
-            }
-            catch { /* ignore */ }
-            
-            // Also check basic navigation requirements
-            var requirements = _mainViewModel?.Requirements;
-            var currentRequirement = _mainViewModel?.CurrentRequirement;
-            return requirements?.Count > 0 && currentRequirement != null;
+            // TODO: Replace with proper domain coordination via TestCaseGenerationMediator
+            // This method needs to check LLM busy state and navigation requirements through domain coordination
+            _logger.LogDebug("CanNavigate: Method disabled pending domain mediator refactoring");
+            return false; // Disable navigation until proper domain coordination is implemented
         }
 
         /// <summary>
@@ -251,12 +230,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             try
             {
-                _mainViewModel?.SetTransientStatus($"Selected menu section: {value ?? "None"}", 2);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Selected menu section: {value ?? "None"}", 2);
                 // TODO: Implement actual menu section navigation logic
             }
             catch (Exception ex)
             {
-                _mainViewModel?.SetTransientStatus($"Menu section change failed: {ex.Message}", 3);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Menu section change failed: {ex.Message}", 3);
             }
         }
 
@@ -268,11 +247,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             try
             {
                 // TODO: Implement test case generator header creation
-                _mainViewModel?.SetTransientStatus("Test case generator header created", 2);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("Test case generator header created", 2);
             }
             catch (Exception ex)
             {
-                _mainViewModel?.SetTransientStatus($"Header creation failed: {ex.Message}", 3);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Header creation failed: {ex.Message}", 3);
             }
         }
 
@@ -284,11 +263,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             try
             {
                 // TODO: Implement header subscription wiring
-                _mainViewModel?.SetTransientStatus("Header subscriptions wired", 1);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("Header subscriptions wired", 1);
             }
             catch (Exception ex)
             {
-                _mainViewModel?.SetTransientStatus($"Header wiring failed: {ex.Message}", 3);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Header wiring failed: {ex.Message}", 3);
             }
         }
 
@@ -303,7 +282,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _mainViewModel?.SetTransientStatus($"Header property change handling failed: {ex.Message}", 3);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Header property change handling failed: {ex.Message}", 3);
             }
         }
 
@@ -318,7 +297,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _mainViewModel?.SetTransientStatus($"Header unwiring failed: {ex.Message}", 3);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Header unwiring failed: {ex.Message}", 3);
             }
         }
 
@@ -348,7 +327,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _mainViewModel?.SetTransientStatus($"Header requirements collection change handling failed: {ex.Message}", 3);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Header requirements collection change handling failed: {ex.Message}", 3);
             }
         }
 

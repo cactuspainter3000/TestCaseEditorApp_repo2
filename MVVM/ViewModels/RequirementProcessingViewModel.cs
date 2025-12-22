@@ -93,7 +93,7 @@ public partial class RequirementProcessingViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Failed to load requirements from file: {filePath}");
-            _mainViewModel?.SetTransientStatus($"Failed to load requirements: {ex.Message}", 5, true);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Failed to load requirements: {ex.Message}", 5, true);
         }
         finally
         {
@@ -146,7 +146,7 @@ public partial class RequirementProcessingViewModel : ObservableObject
             await HandleLoadedRequirements(requirements, path);
             
             _logger.LogWarning("CSV processing not yet implemented");
-            _mainViewModel?.SetTransientStatus("CSV processing not yet implemented", 3);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("CSV processing not yet implemented", 3);
         }
         catch (Exception ex)
         {
@@ -177,7 +177,7 @@ public partial class RequirementProcessingViewModel : ObservableObject
             await HandleLoadedRequirements(requirements, path);
             
             _logger.LogWarning("Excel processing not yet implemented");
-            _mainViewModel?.SetTransientStatus("Excel processing not yet implemented", 3);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("Excel processing not yet implemented", 3);
         }
         catch (Exception ex)
         {
@@ -223,6 +223,9 @@ public partial class RequirementProcessingViewModel : ObservableObject
     /// </summary>
     public async Task HandleLoadedRequirements(List<Requirement> requirements, string sourcePath)
     {
+        // TODO: Replace with proper domain coordination via TestCaseGenerationMediator
+        // This method needs to coordinate requirement loading through domain mediator
+        /*
         if (_mainViewModel == null)
         {
             _logger.LogError("MainViewModel not initialized for handling loaded requirements");
@@ -278,6 +281,10 @@ public partial class RequirementProcessingViewModel : ObservableObject
             _logger.LogError(ex, "Failed to handle loaded requirements");
             _mainViewModel?.SetTransientStatus($"Failed to update workspace: {ex.Message}", 5, true);
         }
+        */
+        
+        _logger.LogWarning($"HandleLoadedRequirements: Method disabled pending domain mediator refactoring. Would process {requirements.Count} requirements from {sourcePath}");
+        await Task.CompletedTask;
     }
 
     /// <summary>
@@ -367,7 +374,8 @@ public partial class RequirementProcessingViewModel : ObservableObject
                 return;
             }
 
-            _mainViewModel.WorkspacePath = path;
+            // TODO: Replace with proper domain coordination
+            // _mainViewModel.WorkspacePath = path;
             _mainViewModel.CurrentWorkspace = workspace;
 
             // Replace the observable collection contents
@@ -408,9 +416,11 @@ public partial class RequirementProcessingViewModel : ObservableObject
         if (_mainViewModel == null) return;
 
         // If WorkspacePath is already set, skip the dialog
-        if (!string.IsNullOrWhiteSpace(_mainViewModel.WorkspacePath))
+        // TODO: Replace with proper domain coordination
+        // if (!string.IsNullOrWhiteSpace(_mainViewModel.WorkspacePath))
+        if (false) // Disabled pending domain coordination
         {
-            _logger.LogInformation($"Using existing WorkspacePath: '{_mainViewModel.WorkspacePath}'");
+            // _logger.LogInformation($"Using existing WorkspacePath: '{_mainViewModel.WorkspacePath}'");
             return;
         }
 
@@ -449,7 +459,8 @@ public partial class RequirementProcessingViewModel : ObservableObject
             return;
         }
 
-        _mainViewModel.WorkspacePath = FileNameHelper.EnsureUniquePath(Path.GetDirectoryName(workspacePath)!, Path.GetFileName(workspacePath));
+        // TODO: Replace with proper domain coordination
+        // _mainViewModel.WorkspacePath = FileNameHelper.EnsureUniquePath(Path.GetDirectoryName(workspacePath)!, Path.GetFileName(workspacePath));
         _logger.LogInformation($"Set WorkspacePath to: '{_mainViewModel.WorkspacePath}'");
 
         await Task.CompletedTask;

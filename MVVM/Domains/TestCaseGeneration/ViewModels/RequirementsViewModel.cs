@@ -12,6 +12,7 @@ using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.Services;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
@@ -75,7 +76,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             INavigationMediator navigationMediator,
             ObservableCollection<Requirement> requirements,
             IPersistenceService persistence,
-            ITestCaseGenerator_Navigator navigator,
+            ITestCaseGenerationMediator testCaseGenerationMediator,
             object? testCaseGenerator = null,
             ILogger<RequirementsViewModel>? logger = null)
         {
@@ -89,7 +90,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             _logger = logger;
 
             // Legacy support - create TestCaseGenerator_VM for existing RequirementsView
-            TestCaseGeneratorVM = new TestCaseGenerator_VM(persistence, navigator);
+            var testCaseGeneratorVMLogger = new LoggerFactory().CreateLogger<TestCaseGenerator_VM>();
+            TestCaseGeneratorVM = new TestCaseGenerator_VM(testCaseGenerationMediator, persistence, testCaseGeneratorVMLogger);
             if (testCaseGenerator is TestCaseGenerator_CoreVM coreVm)
             {
                 TestCaseGeneratorVM.TestCaseGenerator = coreVm;
@@ -119,7 +121,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// <summary>
         /// Legacy constructor for compatibility (minimal functionality)
         /// </summary>
-        public RequirementsViewModel(IPersistenceService persistence, ITestCaseGenerator_Navigator navigator, object? testCaseGenerator) 
+        public RequirementsViewModel(IPersistenceService persistence, ITestCaseGenerationMediator mediator, object? testCaseGenerator) 
             : this(
                 new StubRequirementService(),
                 new StubFileDialogService(),
@@ -128,7 +130,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 new StubNavigationMediator(),
                 new ObservableCollection<Requirement>(),
                 persistence,
-                navigator,
+                mediator,
                 testCaseGenerator,
                 null)
         {

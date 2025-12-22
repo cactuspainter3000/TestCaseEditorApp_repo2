@@ -93,7 +93,7 @@ public partial class ProjectManagementViewModel : ObservableObject
         {
             _logger.LogError(ex, $"Failed to open project: {ex.Message}");
             _notificationService?.ShowError($"Error opening project: {ex.Message}");
-            _mainViewModel?.SetTransientStatus("❌ Failed to open project", 3);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("❌ Failed to open project", 3);
         }
     }
 
@@ -106,20 +106,20 @@ public partial class ProjectManagementViewModel : ObservableObject
         {
             if (string.IsNullOrEmpty(_mainViewModel?.CurrentAnythingLLMWorkspaceSlug))
             {
-                _mainViewModel?.SetTransientStatus("⚠️ No AnythingLLM workspace selected", 3);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("⚠️ No AnythingLLM workspace selected", 3);
                 return;
             }
             
             // Use existing SaveWorkspace functionality
             _mainViewModel?.SaveWorkspace();
             
-            _mainViewModel?.SetTransientStatus($"💾 Project saved", 3);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"💾 Project saved", 3);
             _logger.LogInformation($"Project saved for workspace '{_mainViewModel?.CurrentAnythingLLMWorkspaceSlug}'");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Failed to save project: {ex.Message}");
-            _mainViewModel?.SetTransientStatus("❌ Failed to save project", 3);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("❌ Failed to save project", 3);
         }
     }
 
@@ -145,11 +145,11 @@ public partial class ProjectManagementViewModel : ObservableObject
             _mainViewModel.LooseParagraphs.Clear();
             
             // Reset basic state
-            _mainViewModel.IsDirty = false;
+            // TODO: Replace with proper domain coordination: _mainViewModel.IsDirty = false;
             _mainViewModel.DisplayName = "Test Case Editor";
             _mainViewModel.SapStatus = string.Empty;
             
-            _mainViewModel.SetTransientStatus("📄 Project closed", 3);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel.SetTransientStatus("📄 Project closed", 3);
             _logger.LogInformation("Project closed and GUI reset to initial state");
         }
         catch (Exception ex)

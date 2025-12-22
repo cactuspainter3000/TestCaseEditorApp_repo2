@@ -56,13 +56,13 @@ public partial class LLMServiceManagementViewModel : ObservableObject
             await Task.Delay(500); // Simulate initialization time
             
             LlmStatus = "RAG ready";
-            _mainViewModel?.SetTransientStatus("RAG initialized successfully");
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("RAG initialized successfully");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to initialize RAG");
             LlmStatus = "RAG initialization failed";
-            _mainViewModel?.SetTransientStatus($"RAG initialization failed: {ex.Message}", 5, true);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"RAG initialization failed: {ex.Message}", 5, true);
         }
     }
 
@@ -130,7 +130,7 @@ public partial class LLMServiceManagementViewModel : ObservableObject
                     }
                     
                     // Show success message in status
-                    setTransientStatus?.Invoke($"RAG workspace '{workspaceName}' initialized for enhanced AI analysis", 5, false);
+                    // TODO: Replace with proper domain UI coordinator: setTransientStatus?.Invoke($"RAG workspace '{workspaceName}' initialized for enhanced AI analysis", 5, false);
                 }
                 else
                 {
@@ -398,7 +398,7 @@ public partial class LLMServiceManagementViewModel : ObservableObject
         IsLlmConnected = false;
         LlmStatus = $"Connection error: {exception.Message}";
         
-        _mainViewModel?.SetTransientStatus($"AnythingLLM connection error: {exception.Message}", 5, true);
+        // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"AnythingLLM connection error: {exception.Message}", 5, true);
     }
 
     /// <summary>
@@ -420,14 +420,14 @@ public partial class LLMServiceManagementViewModel : ObservableObject
             
             IsLlmConnected = true;
             LlmStatus = "LLM service ready";
-            _mainViewModel?.SetTransientStatus("LLM service prepared and ready");
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("LLM service prepared and ready");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to prepare LLM service");
             IsLlmConnected = false;
             LlmStatus = "Failed to prepare LLM service";
-            _mainViewModel?.SetTransientStatus($"Failed to prepare LLM service: {ex.Message}", 5, true);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Failed to prepare LLM service: {ex.Message}", 5, true);
         }
     }
 
@@ -441,7 +441,7 @@ public partial class LLMServiceManagementViewModel : ObservableObject
         IsLlmConnected = !IsLlmConnected;
         LlmStatus = IsLlmConnected ? "LLM service enabled" : "LLM service disabled";
         
-        _mainViewModel?.SetTransientStatus($"LLM service {(IsLlmConnected ? "enabled" : "disabled")}");
+        // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"LLM service {(IsLlmConnected ? "enabled" : "disabled")}");
     }
 
     /// <summary>
@@ -452,7 +452,7 @@ public partial class LLMServiceManagementViewModel : ObservableObject
         try
         {
             _logger.LogInformation("Setting up LLM workspace configuration");
-            _mainViewModel?.SetTransientStatus("🔧 LLM workspace setup functionality coming soon...", 3);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("🔧 LLM workspace setup functionality coming soon...", 3);
             
             // TODO: Implement full LLM workspace setup logic here
             // This method was extracted from MainViewModel and needs to be properly implemented
@@ -460,7 +460,7 @@ public partial class LLMServiceManagementViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to setup LLM workspace: {Message}", ex.Message);
-            _mainViewModel?.SetTransientStatus("❌ Failed to generate workspace setup", 3);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("❌ Failed to generate workspace setup", 3);
         }
     }
 }

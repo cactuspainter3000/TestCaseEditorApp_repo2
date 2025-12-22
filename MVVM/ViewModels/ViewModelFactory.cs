@@ -5,6 +5,7 @@ using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 using TestCaseEditorApp.MVVM.Domains.ChatGptExportAnalysis.ViewModels;
@@ -66,12 +67,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 _applicationServices.ToastService);
         }
 
-        public TestCaseGenerator_HeaderVM CreateTestCaseGeneratorHeaderViewModel(ITestCaseGenerator_Navigator navigator)
+        public TestCaseGenerator_HeaderVM CreateTestCaseGeneratorHeaderViewModel(ITestCaseGenerationMediator mediator)
         {
-            // The TestCaseGenerator_HeaderVM constructor expects MainViewModel, not ITestCaseGenerator_Navigator
-            // Cast the navigator back to MainViewModel for now (this will be improved in further refactoring)
-            var mainVm = navigator as MainViewModel;
-            return new TestCaseGenerator_HeaderVM(mainVm) 
+            // Use null MainViewModel for now - HeaderVM should be migrated to use mediator
+            return new TestCaseGenerator_HeaderVM(null) 
             { 
                 TitleText = "Test Case Creator" 
             };
@@ -95,40 +94,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         public RequirementsViewModel CreateRequirementsViewModel()
         {
-            return new RequirementsViewModel(
-                _applicationServices.RequirementService,
-                _applicationServices.FileDialogService,
-                _applicationServices.ChatGptExportService,
-                _applicationServices.NotificationService,
-                CreateNavigationMediator(),
-                new System.Collections.ObjectModel.ObservableCollection<Requirement>(), // Shared requirements will be injected later
-                _applicationServices.PersistenceService,
-                // Legacy navigator support - will be handled by the mediator eventually
-                new StubTestCaseGeneratorNavigator(),
-                null, // TestCaseGenerator_CoreVM will be set separately
-                _applicationServices.LoggerFactory?.CreateLogger(typeof(RequirementsViewModel).FullName ?? "RequirementsViewModel") as ILogger<RequirementsViewModel>);
-        }
-        
-        // Stub navigator for RequirementsViewModel legacy constructor compatibility
-        private class StubTestCaseGeneratorNavigator : ITestCaseGenerator_Navigator, INotifyPropertyChanged
-        {
-    #pragma warning disable CS0067 // Event is never used - this is a stub implementation
-        public event PropertyChangedEventHandler? PropertyChanged;
-#pragma warning restore CS0067
-            public ObservableCollection<Requirement> Requirements { get; } = new ObservableCollection<Requirement>();
-            public Requirement? CurrentRequirement { get; set; }
-            public ICommand NextRequirementCommand { get; } = new RelayCommand(() => { });
-            public ICommand PreviousRequirementCommand { get; } = new RelayCommand(() => { });
-            public ICommand NextWithoutTestCaseCommand { get; } = new RelayCommand(() => { });
-            public string RequirementPositionDisplay => "0/0";
-            public bool WrapOnNextWithoutTestCase { get; set; }
-            public bool IsLlmBusy { get; set; }
-            public bool IsBatchAnalyzing { get; set; }
-            
-            public void NavigateToRequirement(Requirement requirement) { }
-            public void NavigateToTestCaseGeneration() { }
-            public void NavigateBack() { }
-            public void ShowRequirementEditor(Requirement requirement) { }
+            // TODO: Create proper mediator when all required services are available
+            throw new NotImplementedException("RequirementsViewModel creation needs proper DI setup with all required services");
         }
         
         // Domain ViewModels - proper DI pattern implementation

@@ -240,18 +240,20 @@ namespace TestCaseEditorApp.MVVM.Views
 
         private void NavigateToQuestionsStepAndExecute(System.Action<TestCaseGenerator_QuestionsVM> action)
         {
-            if (DataContext is MainViewModel mainVm && mainVm.QuestionsViewModel != null)
-            {
-                action(mainVm.QuestionsViewModel);
-            }
+            // TODO: Replace with proper workspace coordination
+            // if (DataContext is MainViewModel mainVm && mainVm.QuestionsViewModel != null)
+            // {
+            //     action(mainVm.QuestionsViewModel);
+            // }
         }
 
         private void NavigateToAssumptionsStepAndExecute(System.Action<TestCaseGenerator_AssumptionsVM> action)
         {
-            if (DataContext is MainViewModel mainVm && mainVm.AssumptionsViewModel != null)
-            {
-                action(mainVm.AssumptionsViewModel);
-            }
+            // TODO: Replace with proper workspace coordination
+            // if (DataContext is MainViewModel mainVm && mainVm.AssumptionsViewModel != null)
+            // {
+            //     action(mainVm.AssumptionsViewModel);
+            // }
         }
     }
 }

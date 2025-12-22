@@ -7,38 +7,58 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
-using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
+
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Events;
+using Microsoft.Extensions.Logging;
+using TestCaseEditorApp.MVVM.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
     /// <summary>
     /// ViewModel for displaying and managing LLM-powered requirement analysis.
+    /// Refactored to use domain mediator instead of bridge interface.
     /// </summary>
-    public partial class TestCaseGenerator_AnalysisVM : ObservableObject
+    public partial class TestCaseGenerator_AnalysisVM : BaseDomainViewModel
     {
-        private readonly ITestCaseGenerator_Navigator? _navigator;
+        private new readonly ITestCaseGenerationMediator _mediator;
         private readonly ITextGenerationService? _llmService;
         private RequirementAnalysisService? _analysisService;
+        private Requirement? _currentRequirement;
         
         // Track if edit window is currently open to prevent multiple instances
         [ObservableProperty]
         private bool _isEditWindowOpen = false;
         
         // Expose batch analyzing state for UI binding
-        public bool IsBatchAnalyzing => _navigator?.IsBatchAnalyzing ?? false;
+        public bool IsBatchAnalyzing => false; // TODO: Get from mediator state when available
 
-        public TestCaseGenerator_AnalysisVM(ITestCaseGenerator_Navigator? navigator = null, ITextGenerationService? llmService = null)
+        /// <summary>
+        /// Gets the quality score of the current requirement's analysis
+        /// </summary>
+        public int AnalysisQualityScore => CurrentRequirement?.Analysis?.QualityScore ?? 0;
+
+        /// <summary>
+        /// Current requirement for analysis
+        /// </summary>
+        public Requirement? CurrentRequirement
         {
-            _navigator = navigator;
+            get => _currentRequirement;
+            private set => SetProperty(ref _currentRequirement, value);
+        }
+
+        public TestCaseGenerator_AnalysisVM(ITestCaseGenerationMediator mediator, ILogger<TestCaseGenerator_AnalysisVM> logger, ITextGenerationService? llmService = null)
+            : base(mediator, logger)
+        {
+            _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _llmService = llmService;
 
-            if (_navigator != null)
-            {
-                _navigator.PropertyChanged += Navigator_PropertyChanged;
-            }
+            // Subscribe to domain events
+            _mediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
+            _mediator.Subscribe<TestCaseGenerationEvents.RequirementAnalyzed>(OnRequirementAnalyzed);
 
             // Subscribe to mediator for analysis updates
             AnalysisMediator.AnalysisUpdated += OnAnalysisUpdated;
@@ -46,40 +66,52 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             AnalyzeRequirementCommand = new AsyncRelayCommand(AnalyzeRequirementAsync, CanAnalyzeRequirement);
             EditRequirementCommand = new RelayCommand(EditRequirement, CanEditRequirement);
 
+            Title = "Requirement Analysis";
             // Initial load
             RefreshAnalysisDisplay();
         }
 
-        private void Navigator_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        // ===== DOMAIN EVENT HANDLERS =====
+        
+        /// <summary>
+        /// Handle requirement selection from mediator
+        /// </summary>
+        private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected e)
         {
-            if (e.PropertyName == nameof(ITestCaseGenerator_Navigator.CurrentRequirement))
+            CurrentRequirement = e.Requirement;
+            RefreshAnalysisDisplay();
+            OnPropertyChanged(nameof(HasAnalysis));
+            OnPropertyChanged(nameof(AnalysisQualityScore));
+            
+            // Update command states
+            ((AsyncRelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
+            ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
+        }
+        
+        /// <summary>
+        /// Handle requirement analysis completion from mediator
+        /// </summary>
+        private void OnRequirementAnalyzed(TestCaseGenerationEvents.RequirementAnalyzed e)
+        {
+            if (ReferenceEquals(CurrentRequirement, e.Requirement))
             {
                 RefreshAnalysisDisplay();
-                ((AsyncRelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
-                ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
-            }
-            else if (e.PropertyName == nameof(ITestCaseGenerator_Navigator.IsBatchAnalyzing))
-            {
-                OnPropertyChanged(nameof(IsBatchAnalyzing));
-                ((AsyncRelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
-            }
-            else if (e.PropertyName == nameof(ITestCaseGenerator_Navigator.Requirements))
-            {
-                // Requirements collection updated - refresh if current requirement's analysis changed
-                RefreshAnalysisDisplay();
+                OnPropertyChanged(nameof(HasAnalysis));
+                OnPropertyChanged(nameof(AnalysisQualityScore));
             }
         }
 
         private void OnAnalysisUpdated(Requirement requirement)
         {
-            TestCaseEditorApp.Services.Logging.Log.Info($"[AnalysisVM] OnAnalysisUpdated fired for: {requirement.Item}");
-            TestCaseEditorApp.Services.Logging.Log.Info($"[AnalysisVM] Current requirement: {_navigator?.CurrentRequirement?.Item}");
-            TestCaseEditorApp.Services.Logging.Log.Info($"[AnalysisVM] Analysis IsAnalyzed: {requirement.Analysis?.IsAnalyzed}, Score: {requirement.Analysis?.QualityScore}");
+            _logger.LogDebug("OnAnalysisUpdated fired for: {RequirementId}", requirement.Item);
+            _logger.LogDebug("Current requirement: {CurrentId}", CurrentRequirement?.Item);
+            _logger.LogDebug("Analysis IsAnalyzed: {IsAnalyzed}, Score: {Score}", 
+                requirement.Analysis?.IsAnalyzed, requirement.Analysis?.QualityScore);
             
             // Only refresh if this is the currently displayed requirement
-            if (_navigator?.CurrentRequirement?.Item == requirement.Item)
+            if (CurrentRequirement?.Item == requirement.Item)
             {
-                TestCaseEditorApp.Services.Logging.Log.Info($"[AnalysisVM] Match found! Refreshing display for {requirement.Item}");
+                _logger.LogDebug("Match found! Refreshing display for {RequirementId}", requirement.Item);
                 System.Windows.Application.Current?.Dispatcher?.Invoke(() =>
                 {
                     RefreshAnalysisDisplay();
@@ -97,17 +129,17 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         private bool CanAnalyzeRequirement()
         {
-            return _navigator?.CurrentRequirement != null && !IsAnalyzing && !IsBatchAnalyzing;
+            return CurrentRequirement != null && !IsAnalyzing && !IsBatchAnalyzing;
         }
 
         private bool CanEditRequirement()
         {
-            return _navigator?.CurrentRequirement != null && !IsAnalyzing && !IsEditWindowOpen;
+            return CurrentRequirement != null && !IsAnalyzing && !IsEditWindowOpen;
         }
 
         private void EditRequirement()
         {
-            var requirement = _navigator?.CurrentRequirement;
+            var requirement = CurrentRequirement;
             if (requirement == null || IsEditWindowOpen) return;
 
             try
@@ -118,8 +150,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 IsEditWindowOpen = true;
                 ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
 
-                // Use the navigator's modal system to show the enhanced editor
-                _navigator?.ShowRequirementEditor(requirement);
+                // Note: Requirement editor functionality should be accessed via UI coordinator/mediator
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnalysisVM] Edit requirement requested for: {requirement.Item}");
                 
                 TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] ShowRequirementEditor completed");
             }
@@ -141,7 +173,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// </summary>
         public string InspectAnalysisPrompt()
         {
-            var requirement = _navigator?.CurrentRequirement;
+            var requirement = CurrentRequirement;
             if (requirement == null)
                 return "No current requirement selected.";
 
@@ -180,7 +212,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// </summary>
         public string InspectLastAnalysisResult()
         {
-            var requirement = _navigator?.CurrentRequirement;
+            var requirement = CurrentRequirement;
             if (requirement?.Analysis == null)
                 return "No analysis result available.";
 
@@ -217,7 +249,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         private async Task AnalyzeRequirementAsync()
         {
-            var requirement = _navigator?.CurrentRequirement;
+            var requirement = CurrentRequirement;
             if (requirement == null) return;
 
             TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] AnalyzeRequirementAsync started");
@@ -226,12 +258,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             try
             {
                 // Set busy flag to prevent navigation
-                if (_navigator != null)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Setting IsLlmBusy = true");
-                    _navigator.IsLlmBusy = true;
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] IsLlmBusy is now: {_navigator.IsLlmBusy}");
-                }
+                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Setting IsLlmBusy = true");
+                // Note: LLM busy state should be managed via mediator events
 
                 // Clear existing analysis and show spinner
                 HasAnalysis = false;
@@ -256,11 +284,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 requirement.Analysis = analysis;
 
                 // Mark workspace dirty when analysis is completed
-                if (_navigator is MainViewModel mainVm)
-                {
-                    mainVm.IsDirty = true;
-                    TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Analysis completed - marked workspace dirty");
-                }
+                // Note: Workspace dirty state should be managed via mediator events
+                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Analysis completed - should mark workspace dirty");
 
                 // Refresh display
                 RefreshAnalysisDisplay();
@@ -268,7 +293,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 // Single UI refresh to avoid duplicate displays
                 OnPropertyChanged(nameof(Recommendations));
                 OnPropertyChanged(nameof(HasAnalysis));
-                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] UI refresh for analysis results");                if (analysis.IsAnalyzed)
+                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] UI refresh for analysis results");
+                
+                if (analysis.IsAnalyzed)
                 {
                     AnalysisStatusMessage = $"Analysis complete. Quality score: {analysis.QualityScore}/10";
                 }
@@ -287,12 +314,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 IsAnalyzing = false;
                 
                 // Clear busy flag
-                if (_navigator != null)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Setting IsLlmBusy = false");
-                    _navigator.IsLlmBusy = false;
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] IsLlmBusy is now: {_navigator.IsLlmBusy}");
-                }
+                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Setting IsLlmBusy = false");
+                // Note: LLM busy state should be managed via mediator events
 
                 // Clear status message after a delay
                 await Task.Delay(3000);
@@ -302,10 +325,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         private void RefreshAnalysisDisplay()
         {
-            var analysis = _navigator?.CurrentRequirement?.Analysis;
+            var analysis = CurrentRequirement?.Analysis;
             var isBatchRunning = IsBatchAnalyzing;
             
-            TestCaseEditorApp.Services.Logging.Log.Info($"[AnalysisVM] RefreshAnalysisDisplay called. CurrentReq: {_navigator?.CurrentRequirement?.Item}, HasAnalysis: {analysis?.IsAnalyzed}, Score: {analysis?.QualityScore}, IsBatchAnalyzing: {isBatchRunning}");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[AnalysisVM] RefreshAnalysisDisplay called. CurrentReq: {CurrentRequirement?.Item}, HasAnalysis: {analysis?.IsAnalyzed}, Score: {analysis?.QualityScore}, IsBatchAnalyzing: {isBatchRunning}");
 
             if (analysis?.IsAnalyzed == true)
             {
@@ -349,7 +372,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 if (isBatchRunning && !IsAnalyzing)
                 {
                     IsAnalyzing = true;
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnalysisVM] Setting IsAnalyzing=true for batch analysis on requirement without analysis: {_navigator?.CurrentRequirement?.Item}");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnalysisVM] Setting IsAnalyzing=true for batch analysis on requirement without analysis: {CurrentRequirement?.Item}");
                 }
             }
 
@@ -424,5 +447,21 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                    normalized == "n/a";
         }
         public bool HasNoAnalysis => !HasAnalysis;
+
+        // ===== ABSTRACT METHOD IMPLEMENTATIONS =====
+        
+        protected override bool CanSave() => false; // Analysis doesn't save directly
+        protected override async Task SaveAsync() => await Task.CompletedTask;
+        protected override bool CanRefresh() => true;
+        protected override async Task RefreshAsync()
+        {
+            RefreshAnalysisDisplay();
+            await Task.CompletedTask;
+        }
+        protected override bool CanCancel() => IsAnalyzing;
+        protected override void Cancel()
+        {
+            // TODO: Cancel analysis operation if running
+        }
     }
 }

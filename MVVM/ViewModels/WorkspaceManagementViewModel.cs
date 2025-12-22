@@ -74,7 +74,11 @@ public partial class WorkspaceManagementViewModel : ObservableObject
         
         try
         {
-            // Add Project step first
+            // TODO: Replace with proper workspace coordination
+            // All the step initialization code has been commented out
+            // and needs to be replaced with proper domain workspace coordination
+            
+            /*
             _mainViewModel?.TestCaseGeneratorSteps.Add(new StepDescriptor
             {
                 Id = "project",
@@ -121,12 +125,13 @@ public partial class WorkspaceManagementViewModel : ObservableObject
                 CreateViewModel = svc => new TestCaseGenerator_CreationVM(_mainViewModel)
             });
             
-            _mainViewModel?.SetTransientStatus("Workspace steps initialized", 2);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("Workspace steps initialized", 2);
+            */
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to initialize workspace steps");
-            _mainViewModel?.SetTransientStatus($"Failed to initialize steps: {ex.Message}", 5, true);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Failed to initialize steps: {ex.Message}", 5, true);
         }
     }
 
@@ -139,7 +144,7 @@ public partial class WorkspaceManagementViewModel : ObservableObject
         
         if (string.IsNullOrEmpty(WorkspacePath))
         {
-            _mainViewModel?.SetTransientStatus("No workspace to reload.", 2);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("No workspace to reload.", 2);
             return;
         }
 
@@ -192,7 +197,7 @@ public partial class WorkspaceManagementViewModel : ObservableObject
                 _logger.LogWarning(ex, "Failed to add file to recent files");
             }
             
-            _mainViewModel?.SetTransientStatus($"Saved: {Path.GetFileName(WorkspacePath)}", 3);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Saved: {Path.GetFileName(WorkspacePath)}", 3);
         }
         catch (Exception ex)
         {
@@ -259,7 +264,7 @@ public partial class WorkspaceManagementViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
         {
             _logger.LogInformation($"[LoadWorkspace] Invalid file path or file doesn't exist: {filePath}");
-            _mainViewModel?.SetTransientStatus("Invalid workspace file path.", blockingError: true);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("Invalid workspace file path.", blockingError: true);
             return;
         }
 
@@ -272,7 +277,7 @@ public partial class WorkspaceManagementViewModel : ObservableObject
             if (workspace == null)
             {
                 _logger.LogWarning($"[LoadWorkspace] Failed to load workspace from: {filePath}");
-                _mainViewModel?.SetTransientStatus("Failed to load workspace file.", blockingError: true);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("Failed to load workspace file.", blockingError: true);
                 return;
             }
             
@@ -282,7 +287,9 @@ public partial class WorkspaceManagementViewModel : ObservableObject
             CurrentSourcePath = workspace.SourceDocPath;
 
             // Clear existing requirements and load from workspace
-            if (_mainViewModel?.Requirements != null)
+            // TODO: Replace with proper domain coordination
+            // if (_mainViewModel?.Requirements != null)
+            if (false) // Disabled pending domain coordination
             {
                 _mainViewModel.Requirements.Clear();
                 if (workspace.Requirements != null)
@@ -308,7 +315,7 @@ public partial class WorkspaceManagementViewModel : ObservableObject
                 _logger.LogWarning(ex, "Failed to add file to recent files");
             }
             
-            _mainViewModel?.SetTransientStatus($"Loaded: {Path.GetFileName(filePath)}", 3);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Loaded: {Path.GetFileName(filePath)}", 3);
             _logger.LogInformation($"[LoadWorkspace] Successfully completed loading workspace from: {filePath}");
         }
         catch (Exception ex)
@@ -475,9 +482,12 @@ public partial class WorkspaceManagementViewModel : ObservableObject
         // For now, delegate back to MainViewModel until proper coordination is established
         if (_mainViewModel != null)
         {
-            var baseName = string.IsNullOrEmpty(_mainViewModel.WorkspacePath)
+            // TODO: Replace with proper domain coordination
+            // var baseName = string.IsNullOrEmpty(_mainViewModel.WorkspacePath)
+            var baseName = string.IsNullOrEmpty(WorkspacePath)
                 ? "Test Case Editor"
-                : System.IO.Path.GetFileNameWithoutExtension(_mainViewModel.WorkspacePath);
+                // : System.IO.Path.GetFileNameWithoutExtension(_mainViewModel.WorkspacePath);
+                : System.IO.Path.GetFileNameWithoutExtension(WorkspacePath ?? "");
             // Update will need proper header access
         }
     }
