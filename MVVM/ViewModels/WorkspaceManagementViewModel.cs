@@ -76,6 +76,11 @@ public partial class WorkspaceManagementViewModel : ObservableObject
         // TODO: Replace with proper domain coordination
         _logger.LogWarning("InitializeSteps: Method disabled - architectural violation removed");
         return; // Disabled until proper domain coordination is implemented
+    }
+
+    /// <summary>
+    /// Asynchronously reload the workspace from the current file path
+    }
             
             /*
             _mainViewModel?.TestCaseGeneratorSteps.Add(new StepDescriptor

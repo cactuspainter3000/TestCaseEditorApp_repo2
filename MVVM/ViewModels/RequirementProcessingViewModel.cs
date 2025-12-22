@@ -21,7 +21,7 @@ public partial class RequirementProcessingViewModel : ObservableObject
     private readonly ILogger<RequirementProcessingViewModel> _logger;
     private readonly IRequirementService _requirementService;
     private readonly IFileDialogService _fileDialog;
-    private MainViewModel? _mainViewModel;
+    private MainViewModel? _mainViewModel; // TODO: REMOVE - architectural violation
 
     [ObservableProperty]
     private bool _isProcessing;
@@ -129,7 +129,7 @@ public partial class RequirementProcessingViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Failed to process Word file: {path}");
-            _mainViewModel?.SetTransientStatus($"Word processing failed: {ex.Message}", 5, true);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($\"Word processing failed: {ex.Message}\", 5, true);
         }
         finally
         {
@@ -160,7 +160,7 @@ public partial class RequirementProcessingViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Failed to process CSV file: {path}");
-            _mainViewModel?.SetTransientStatus($"CSV processing failed: {ex.Message}", 5, true);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"CSV processing failed: {ex.Message}", 5, true);
         }
         finally
         {
@@ -191,7 +191,7 @@ public partial class RequirementProcessingViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Failed to process Excel file: {path}");
-            _mainViewModel?.SetTransientStatus($"Excel processing failed: {ex.Message}", 5, true);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Excel processing failed: {ex.Message}", 5, true);
         }
         finally
         {
@@ -218,7 +218,7 @@ public partial class RequirementProcessingViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Failed to process DOCX file: {path}");
-            _mainViewModel?.SetTransientStatus($"DOCX processing failed: {ex.Message}", 5, true);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"DOCX processing failed: {ex.Message}", 5, true);
         }
         finally
         {
@@ -280,7 +280,7 @@ public partial class RequirementProcessingViewModel : ObservableObject
             _mainViewModel.HasUnsavedChanges = false;
             _mainViewModel.IsDirty = false;
 
-            _mainViewModel?.SetTransientStatus($"Loaded {requirements.Count} requirements", 4);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Loaded {requirements.Count} requirements", 4);
             
             // Auto-processing logic
             await ProcessAutoActions(requirements);
@@ -288,7 +288,7 @@ public partial class RequirementProcessingViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to handle loaded requirements");
-            _mainViewModel?.SetTransientStatus($"Failed to update workspace: {ex.Message}", 5, true);
+            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Failed to update workspace: {ex.Message}", 5, true);
         }
         */
         
