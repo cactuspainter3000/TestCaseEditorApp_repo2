@@ -19,7 +19,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels;
 public partial class RequirementAnalysisManagementViewModel : ObservableObject
 {
     private readonly ILogger<RequirementAnalysisManagementViewModel> _logger;
-    private MainViewModel? _mainViewModel;
+    // private MainViewModel? _mainViewModel; // REMOVED - architectural violation
     private object? _analysisService;
     
     // Batch analysis synchronization
@@ -48,12 +48,12 @@ public partial class RequirementAnalysisManagementViewModel : ObservableObject
         BatchAnalyzeAllRequirementsCommand = new AsyncRelayCommand(BatchAnalyzeAllAsync);
     }
 
-    /// <summary>
-    /// Initialize the ViewModel with MainViewModel reference for coordination
-    /// </summary>
     public void Initialize(MainViewModel mainViewModel)
     {
-        _mainViewModel = mainViewModel;
+        // TODO: Replace with proper domain coordination
+        _logger.LogWarning("Initialize: Method disabled - architectural violation removed");
+        return; // Disabled until proper domain coordination is implemented
+        // _mainViewModel = mainViewModel; // REMOVED
         
         // Get analysis service from MainViewModel or create new one
         // This will be set when MainViewModel initializes the analysis service
@@ -70,45 +70,60 @@ public partial class RequirementAnalysisManagementViewModel : ObservableObject
     /// <summary>
     /// Analyzes unanalyzed requirements
     /// </summary>
-    private async Task AnalyzeUnanalyzedAsync()
+    private Task AnalyzeUnanalyzedAsync()
     {
+        // TODO: Replace with proper domain coordination
+        _logger.LogWarning("AnalyzeUnanalyzedAsync: Method disabled - architectural violation removed");
+        return Task.CompletedTask; // Disabled until proper domain coordination is implemented
+        /*
         if (_mainViewModel?.Requirements == null) return;
         
-        var unanalyzed = _mainViewModel.Requirements.Where(r => r.Analysis == null).ToList();
+        var unanalyzed = // _mainViewModel.Requirements.Where(r => r.Analysis == null).ToList();
         if (unanalyzed.Any())
         {
             await BatchAnalyzeRequirementsAsync(unanalyzed);
         }
+        */
     }
 
     /// <summary>
     /// Re-analyzes modified requirements
     /// </summary>
-    private async Task ReAnalyzeModifiedAsync()
+    private Task ReAnalyzeModifiedAsync()
     {
+        // TODO: Replace with proper domain coordination
+        _logger.LogWarning("ReAnalyzeModifiedAsync: Method disabled - architectural violation removed");
+        return Task.CompletedTask; // Disabled until proper domain coordination is implemented
+        /*
         if (_mainViewModel?.Requirements == null) return;
         
         // For now, re-analyze requirements that have been analyzed but may need updating
         // In future, could add modification tracking to Requirements
-        var analyzed = _mainViewModel.Requirements.Where(r => r.Analysis?.IsAnalyzed == true).ToList();
+        var analyzed = // _mainViewModel.Requirements.Where(r => r.Analysis?.IsAnalyzed == true).ToList();
         if (analyzed.Any())
         {
             await BatchAnalyzeRequirementsAsync(analyzed);
         }
+        */
     }
 
     /// <summary>
     /// Batch analyzes all requirements
     /// </summary>
-    private async Task BatchAnalyzeAllAsync()
+    private Task BatchAnalyzeAllAsync()
     {
+        // TODO: Replace with proper domain coordination
+        _logger.LogWarning("BatchAnalyzeAllAsync: Method disabled - architectural violation removed");
+        return Task.CompletedTask; // Disabled until proper domain coordination is implemented
+        /*
         if (_mainViewModel?.Requirements == null) return;
         
-        var allRequirements = _mainViewModel.Requirements.ToList();
+        var allRequirements = // _mainViewModel.Requirements.ToList();
         if (allRequirements.Any())
         {
             await BatchAnalyzeRequirementsAsync(allRequirements);
         }
+        */
     }
 
     /// <summary>
@@ -117,7 +132,7 @@ public partial class RequirementAnalysisManagementViewModel : ObservableObject
     public bool CanReAnalyze()
     {
         // TODO: Replace with proper domain coordination
-        // return _mainViewModel?.CurrentRequirement != null && !_mainViewModel.IsLlmBusy;
+        // return _mainViewModel?.CurrentRequirement != null && !// _mainViewModel.IsLlmBusy;
         return false; // Disabled pending domain coordination
     }
 
@@ -303,13 +318,14 @@ public partial class RequirementAnalysisManagementViewModel : ObservableObject
             // TODO: Replace with proper domain coordination
             // var requirementsView = _mainViewModel?.RequirementsNavigator?.RequirementsView;
             var requirementsView = (object?)null; // Disabled pending domain coordination
-            if (requirementsView != null)
+            if (requirementsView != null && requirementsView is IEnumerable<Requirement> requirementsList)
             {
-                foreach (Requirement req in requirementsView)
+                foreach (Requirement req in requirementsList)
                 {
-                    if (requirements.Contains(req))
+                    // TODO: Fix requirements collection access
+                    // if (requirements.Contains(req))
                     {
-                        orderedRequirements.Add(req);
+                        // orderedRequirements.Add(req);
                     }
                 }
                 _logger.LogInformation($"Using UI display order: [{string.Join(", ", orderedRequirements.Select(r => r.Item))}]");
@@ -402,7 +418,7 @@ public partial class RequirementAnalysisManagementViewModel : ObservableObject
                 
                 Application.Current?.Dispatcher?.Invoke(() =>
                 {
-                    _mainViewModel?.SetTransientStatus(progressMessage, 300); // Long timeout for analysis
+                    // TODO: Replace with domain coordinator - _mainViewModel?.SetTransientStatus(progressMessage, 300); // Long timeout for analysis
                 });
 
                 // TODO: Implement actual requirement analysis logic here

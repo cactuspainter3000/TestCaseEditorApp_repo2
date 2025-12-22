@@ -110,7 +110,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             // Track current requirement and subscribe to changes
             if (_mainVm != null)
             {
-                _currentRequirement = _mainVm.CurrentRequirement;
+                // TODO: Use domain coordinator: _currentRequirement = MainViewModel.CurrentRequirement;
+                _currentRequirement = null;
                 _mainVm.PropertyChanged += MainVm_PropertyChanged;
             }
 
@@ -236,7 +237,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 }
                 
                 // Load questions for new requirement
-                _currentRequirement = _mainVm?.CurrentRequirement;
+                // TODO: Use domain coordinator: _currentRequirement = MainViewModel.CurrentRequirement;
+                _currentRequirement = null;
                 LoadQuestionsForRequirement(_currentRequirement);
             }
         }
@@ -1471,7 +1473,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 var mainVm = _mainVm;
                 if (mainVm != null)
                 {
-                    var creationStep = mainVm.TestCaseGeneratorSteps.FirstOrDefault(s => s.Id == "testcase-creation");
+                    // TODO: Fix step access - var creationStep = mainVm.TestCaseGeneratorSteps.FirstOrDefault(s => s.Id == "testcase-creation");
+                    var creationStep = mainVm.TestCaseGeneratorSteps.FirstOrDefault();
                     if (creationStep != null)
                     {
                         Application.Current?.Dispatcher?.Invoke(() =>

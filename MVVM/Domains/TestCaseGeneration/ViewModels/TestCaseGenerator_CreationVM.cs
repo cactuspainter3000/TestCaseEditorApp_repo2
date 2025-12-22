@@ -296,7 +296,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 }).ToList();
                 
                 // Update requirement's GeneratedTestCases
-                CurrentRequirement.GeneratedTestCases = testCases;
+                CurrentRequirement.GeneratedTestCases = new ObservableCollection<TestCase>(testCases);
                 
                 // Notify mediator of requirement update
                 _mediator.UpdateRequirement(CurrentRequirement, new[] { "GeneratedTestCases" });

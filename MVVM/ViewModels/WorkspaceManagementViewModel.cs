@@ -80,63 +80,12 @@ public partial class WorkspaceManagementViewModel : ObservableObject
 
     /// <summary>
     /// Asynchronously reload the workspace from the current file path
-    }
-            
-            /*
-            _mainViewModel?.TestCaseGeneratorSteps.Add(new StepDescriptor
-            {
-                Id = "project",
-                DisplayName = "Project",
-                Badge = string.Empty,
-                HasFileMenu = true,
-                CreateViewModel = svc =>
-                {
-                    return new ProjectViewModel();
-                }
-            });
-
-            _mainViewModel?.TestCaseGeneratorSteps.Add(new StepDescriptor
-            {
-                Id = "requirements",
-                DisplayName = "Requirement",
-                Badge = string.Empty,
-                HasFileMenu = true,
-                CreateViewModel = svc => new RequirementsViewModel(
-                    new TestCaseEditorApp.Services.NoOpPersistenceService(), 
-                    _mainViewModel, 
-                    new TestCaseGenerator_CoreVM())
-            });
-
-            _mainViewModel?.TestCaseGeneratorSteps.Add(new StepDescriptor
-            {
-                Id = "llm-learning",
-                DisplayName = "LLM Learning",
-                Badge = string.Empty,
-                HasFileMenu = true,
-                CreateViewModel = svc =>
-                {
-                    return new LLMLearningViewModel();
-                }
-            });
-
-            _mainViewModel?.TestCaseGeneratorSteps.Add(new StepDescriptor
-            {
-                Id = "testcase-creation",
-                DisplayName = "Test Case Generator",
-                Badge = string.Empty,
-                HasFileMenu = true,
-                IsSelectable = true,  // Allow selection when test cases exist
-                CreateViewModel = svc => new TestCaseGenerator_CreationVM(_mainViewModel)
-            });
-            
-            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("Workspace steps initialized", 2);
-            */
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to initialize workspace steps");
-            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Failed to initialize steps: {ex.Message}", 5, true);
-        }
+    /// </summary>
+    public async Task ReloadWorkspaceAsync()
+    {
+        // TODO: Replace with proper domain coordination
+        _logger.LogWarning("ReloadWorkspaceAsync: Method disabled - architectural violation removed");
+        await Task.CompletedTask; // Disabled until proper domain coordination is implemented
     }
 
     /// <summary>
@@ -164,41 +113,6 @@ public partial class WorkspaceManagementViewModel : ObservableObject
         // This method needs access to Requirements collection and UI feedback through domain coordination
         _logger.LogWarning("SaveWorkspace: Method disabled - architectural violation removed");
         return; // Disabled until proper domain coordination is implemented
-
-        // TODO: Use domain mediator for requirements coordination:
-        /*
-        var ws = new Workspace
-        {
-            SourceDocPath = CurrentSourcePath,
-            Requirements = _mainViewModel.Requirements.ToList()
-        };
-
-        try
-        {
-            TestCaseEditorApp.Services.WorkspaceFileManager.Save(WorkspacePath!, ws);
-            LogPostSaveDiagnostics(WorkspacePath!);
-            CurrentWorkspace = ws;
-            IsDirty = false;
-            HasUnsavedChanges = false;
-            
-            // Track in recent files
-            try 
-            { 
-                var recentFilesService = _serviceProvider.GetService<RecentFilesService>();
-                recentFilesService?.AddRecentFile(WorkspacePath!); 
-            } 
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to add file to recent files");
-            }
-            
-            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Saved: {Path.GetFileName(WorkspacePath)}", 3);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Failed to save workspace to: {WorkspacePath}");
-            _notificationService?.ShowError($"Failed to save workspace: {ex.Message}", 8);
-        }
     }
 
     /// <summary>
@@ -210,25 +124,6 @@ public partial class WorkspaceManagementViewModel : ObservableObject
         // This method needs to access Requirements collection and show status through domain coordination
         await Task.CompletedTask;
         _logger.LogDebug("SaveWorkspaceAsync: Method disabled pending domain mediator refactoring");
-        return; // Disable until proper domain coordination is implemented
-        
-        /*
-        // OLD IMPLEMENTATION - Replace with domain coordination
-        */
-
-        var sfd = new SaveFileDialog
-        {
-            Title = "Save Session As",
-            Filter = "Test Case Editor Session|*.tcex.json",
-            DefaultExt = ".tcex.json",
-            RestoreDirectory = true,
-            InitialDirectory = !string.IsNullOrWhiteSpace(WorkspacePath) ? Path.GetDirectoryName(WorkspacePath) : Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
-        };
-
-        if (sfd.ShowDialog() != true) return;
-
-        WorkspacePath = sfd.FileName;
-        SaveWorkspace(); // Delegate to quick save now that we have a path
     }
 
     /// <summary>
@@ -282,20 +177,8 @@ public partial class WorkspaceManagementViewModel : ObservableObject
             CurrentWorkspace = workspace;
             CurrentSourcePath = workspace.SourceDocPath;
 
-            // Clear existing requirements and load from workspace
-            // TODO: Replace with proper domain coordination
-            // if (_mainViewModel?.Requirements != null)
-            if (false) // Disabled pending domain coordination
-            {
-                _mainViewModel.Requirements.Clear();
-                if (workspace.Requirements != null)
-                {
-                    foreach (var req in workspace.Requirements)
-                    {
-                        _mainViewModel.Requirements.Add(req);
-                    }
-                }
-            }
+            // TODO: Replace with proper domain coordination for requirements loading
+            // Original code disabled: if (_mainViewModel?.Requirements != null) { ... }
 
             IsDirty = false;
             HasUnsavedChanges = false;
@@ -337,7 +220,7 @@ public partial class WorkspaceManagementViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "TryInvokeSaveWorkspace failed");
-            _mainViewModel?.SetTransientStatus($"Save operation failed: {ex.Message}", 5, true);
+            // TODO: Use domain coordinator for status updates
         }
     }
 
@@ -355,7 +238,7 @@ public partial class WorkspaceManagementViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "TryInvokeLoadWorkspace failed");
-            _mainViewModel?.SetTransientStatus($"Load operation failed: {ex.Message}", 5, true);
+            // TODO: Use domain coordinator for status updates
         }
     }
 
@@ -403,7 +286,7 @@ public partial class WorkspaceManagementViewModel : ObservableObject
             
             Application.Current?.Dispatcher?.Invoke(() =>
             {
-                _mainViewModel?.SetTransientStatus("Auto-saved", 1);
+                // TODO: Use domain coordinator for status updates
             });
         }
         catch (Exception ex)
@@ -475,16 +358,10 @@ public partial class WorkspaceManagementViewModel : ObservableObject
     public void UpdateWindowTitle()
     {
         // This method will need access to MainViewModel's workspace header
-        // For now, delegate back to MainViewModel until proper coordination is established
-        if (_mainViewModel != null)
-        {
-            // TODO: Replace with proper domain coordination
-            // var baseName = string.IsNullOrEmpty(_mainViewModel.WorkspacePath)
-            var baseName = string.IsNullOrEmpty(WorkspacePath)
-                ? "Test Case Editor"
-                // : System.IO.Path.GetFileNameWithoutExtension(_mainViewModel.WorkspacePath);
-                : System.IO.Path.GetFileNameWithoutExtension(WorkspacePath ?? "");
-            // Update will need proper header access
-        }
+        // TODO: Replace with proper domain coordination
+        var baseName = string.IsNullOrEmpty(WorkspacePath)
+            ? "Test Case Editor"
+            : System.IO.Path.GetFileNameWithoutExtension(WorkspacePath ?? "");
+        // Update will need proper header access
     }
 }

@@ -15,7 +15,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels;
 public partial class ProjectManagementViewModel : ObservableObject
 {
     private readonly ILogger<ProjectManagementViewModel> _logger;
-    private MainViewModel? _mainViewModel; // TODO: REMOVE - architectural violation
+    // Removed unused field - pending domain coordinator implementation: private MainViewModel? _mainViewModel;
     private readonly IViewModelFactory? _viewModelFactory;
     private readonly AnythingLLMService? _anythingLLMService;
     private readonly ToastNotificationService? _toastService;
@@ -54,51 +54,24 @@ public partial class ProjectManagementViewModel : ObservableObject
         _logger.LogWarning("CreateNewProject: Method disabled - architectural violation removed");
         return; // Disabled until proper domain coordination is implemented
     }
-            
-            // Note: Navigation header reset will be handled by the NavigationHeaderManagementViewModel
-            // _mainViewModel?.NavigationHeaderManagement?.CreateAndAssignNewProjectHeader();
-            
-            // Show the full workflow in the main content area
-            if (_mainViewModel?.NewProjectWorkflow == null && _anythingLLMService != null && _toastService != null && _mainViewModel != null)
-            {
-                var workflow = new NewProjectWorkflowViewModel(_anythingLLMService, _toastService);
-                _mainViewModel.NewProjectWorkflow = workflow;
-                workflow.ProjectCreated += OnNewProjectCreated;
-                workflow.ProjectCancelled += OnNewProjectCancelled;
-            }
-            
-            (_mainViewModel?.NewProjectWorkflow as NewProjectWorkflowViewModel)?.Initialize();
-            if (_mainViewModel != null && _mainViewModel.NewProjectWorkflow != null)
-            {
-                _mainViewModel.CurrentStepViewModel = _mainViewModel.NewProjectWorkflow;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in CreateNewProject");
-            _notificationService?.ShowError($"Error creating new project: {ex.Message}");
-        }
-    }
 
     /// <summary>
     /// Opens an existing project by selecting from available AnythingLLM workspaces
+    /// <summary>
+    /// Opens a project
     /// </summary>
     public void OpenProject()
     {
         // TODO: Replace with proper domain coordination
-        _logger.LogWarning("SaveProject: Method disabled - architectural violation removed");
+        _logger.LogWarning("OpenProject: Method disabled - architectural violation removed");
         return; // Disabled until proper domain coordination is implemented
     }
-            
-            // Show workspace selection modal for selecting existing workspace
-            _mainViewModel?.ShowWorkspaceSelectionModalForOpen();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Failed to open project: {ex.Message}");
-            _notificationService?.ShowError($"Error opening project: {ex.Message}");
-            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("❌ Failed to open project", 3);
-        }
+
+    public void OpenExistingProject()
+    {
+        // TODO: Replace with proper domain coordination
+        _logger.LogWarning("OpenExistingProject: Method disabled - architectural violation removed");
+        return; // Disabled until proper domain coordination is implemented
     }
 
     /// <summary>
@@ -106,6 +79,10 @@ public partial class ProjectManagementViewModel : ObservableObject
     /// </summary>
     public void SaveProject()
     {
+        // TODO: Replace with proper domain coordination
+        _logger.LogWarning("SaveProject: Method disabled - architectural violation removed");
+        return; // Disabled until proper domain coordination is implemented
+        /*
         try
         {
             if (string.IsNullOrEmpty(_mainViewModel?.CurrentAnythingLLMWorkspaceSlug))
@@ -125,6 +102,7 @@ public partial class ProjectManagementViewModel : ObservableObject
             _logger.LogError(ex, $"Failed to save project: {ex.Message}");
             // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("❌ Failed to save project", 3);
         }
+        */
     }
 
     /// <summary>
@@ -132,6 +110,10 @@ public partial class ProjectManagementViewModel : ObservableObject
     /// </summary>
     public void CloseProject()
     {
+        // TODO: Replace with proper domain coordination
+        _logger.LogWarning("CloseProject: Method disabled - architectural violation removed");
+        return; // Disabled until proper domain coordination is implemented
+        /*
         try
         {
             if (_mainViewModel == null) return;
@@ -160,6 +142,7 @@ public partial class ProjectManagementViewModel : ObservableObject
         {
             _logger.LogError(ex, $"Failed to close project: {ex.Message}");
         }
+        */
     }
 
     /// <summary>
@@ -167,11 +150,16 @@ public partial class ProjectManagementViewModel : ObservableObject
     /// </summary>
     public void OnNewProjectCancelled(object? sender, EventArgs e)
     {
+        // TODO: Replace with proper domain coordination
+        _logger.LogWarning("OnNewProjectCancelled: Method disabled - architectural violation removed");
+        return; // Disabled until proper domain coordination is implemented
+        /*
         // Return to default view
         if (_mainViewModel != null)
         {
             _mainViewModel.SelectedMenuSection = "Requirements";
         }
+        */
     }
 
     /// <summary>

@@ -16,7 +16,7 @@ public partial class UIModalManagementViewModel : ObservableObject
     private readonly ILogger<UIModalManagementViewModel> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly NotificationService? _notificationService;
-    private MainViewModel? _mainViewModel;
+    // private MainViewModel? _mainViewModel; // REMOVED - architectural violation
 
     [ObservableProperty]
     private object? _currentModal;
@@ -37,12 +37,12 @@ public partial class UIModalManagementViewModel : ObservableObject
         _notificationService = notificationService;
     }
 
-    /// <summary>
-    /// Set reference to MainViewModel for coordination
-    /// </summary>
     public void Initialize(MainViewModel mainViewModel)
     {
-        _mainViewModel = mainViewModel;
+        // TODO: Replace with proper domain coordination
+        _logger.LogWarning("Initialize: Method disabled - architectural violation removed");
+        return; // Disabled until proper domain coordination is implemented
+        // _mainViewModel = mainViewModel; // REMOVED
     }
 
     /// <summary>
@@ -156,11 +156,14 @@ public partial class UIModalManagementViewModel : ObservableObject
         var notificationService = _serviceProvider.GetRequiredService<NotificationService>();
         var viewModel = new WorkspaceSelectionViewModel(anythingLLMService, notificationService, WorkspaceSelectionViewModel.SelectionMode.CreateNew);
         
+        // TODO: Replace with proper domain coordination: _mainViewModel.OnWorkspaceSelected
+        /*
         // Connect event handlers through MainViewModel if available
         if (_mainViewModel != null)
         {
             viewModel.WorkspaceSelected += _mainViewModel.OnWorkspaceSelected;
         }
+        */
         viewModel.Cancelled += OnWorkspaceSelectionCancelled;
         ShowModal(viewModel, "Create New Project");
     }
@@ -175,11 +178,14 @@ public partial class UIModalManagementViewModel : ObservableObject
         var notificationService = _serviceProvider.GetRequiredService<NotificationService>();
         var viewModel = new WorkspaceSelectionViewModel(anythingLLMService, notificationService, WorkspaceSelectionViewModel.SelectionMode.SelectExisting);
         
+        // TODO: Replace with proper domain coordination: _mainViewModel.OnWorkspaceSelected
+        /*
         // Connect event handlers through MainViewModel if available
         if (_mainViewModel != null)
         {
             viewModel.WorkspaceSelected += _mainViewModel.OnWorkspaceSelected;
         }
+        */
         viewModel.Cancelled += OnWorkspaceSelectionCancelled;
         ShowModal(viewModel, "Open Existing Project");
     }
@@ -192,12 +198,15 @@ public partial class UIModalManagementViewModel : ObservableObject
         _logger.LogInformation("Showing import workflow modal");
         var viewModel = new ImportWorkflowViewModel();
         
+        // TODO: Replace with proper domain coordination: _mainViewModel.OnImportWorkflowCompleted, _mainViewModel.OnImportWorkflowCancelled
+        /*
         // Connect event handlers through MainViewModel if available
         if (_mainViewModel != null)
         {
             viewModel.ImportWorkflowCompleted += _mainViewModel.OnImportWorkflowCompleted;
             viewModel.ImportWorkflowCancelled += _mainViewModel.OnImportWorkflowCancelled;
         }
+        */
         viewModel.Show();
         ShowModal(viewModel, "Import Requirements Document");
     }
@@ -217,12 +226,15 @@ public partial class UIModalManagementViewModel : ObservableObject
         var notificationService = _serviceProvider.GetRequiredService<NotificationService>();
         var viewModel = new RequirementDescriptionEditorViewModel(requirement, notificationService);
         
+        // TODO: Replace with proper domain coordination: _mainViewModel.OnRequirementEdited, _mainViewModel.OnRequirementAnalysisRequested
+        /*
         // Connect event handlers through MainViewModel if available
         if (_mainViewModel != null)
         {
             viewModel.RequirementEdited += _mainViewModel.OnRequirementEdited;
             viewModel.AnalysisRequested += _mainViewModel.OnRequirementAnalysisRequested;
         }
+        */
         viewModel.Cancelled += OnRequirementEditCancelled;
         ShowModal(viewModel, "Edit Requirement Description");
     }

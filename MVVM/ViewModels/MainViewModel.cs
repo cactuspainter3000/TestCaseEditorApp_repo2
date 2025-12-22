@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
+using TestCaseEditorApp.MVVM.Models;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -82,6 +83,49 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// Access to ViewAreaCoordinator for components that need unified navigation
         /// </summary>
         public IViewAreaCoordinator ViewAreaCoordinator => _viewAreaCoordinator;
+
+        // === TEMPORARY COMPATIBILITY STUBS ===
+        // These properties temporarily satisfy legacy ViewModels during architectural transition
+        // TODO: Remove once all ViewModels use proper domain coordination
+
+        public static bool _anythingLLMInitializing { get; set; } = false;
+        public static Requirement? CurrentRequirement { get; set; }
+        public bool IsDirty { get; set; } = false;
+        public bool HasUnsavedChanges { get; set; } = false;
+        public bool AutoAnalyzeOnImport { get; set; } = false;
+        public bool AutoExportForChatGpt { get; set; } = false;
+        public bool IsBatchAnalyzing { get; set; } = false;
+        public string? CurrentAnythingLLMWorkspaceSlug { get; set; }
+        public string? WorkspacePath { get; set; }
+        public object? CurrentWorkspace { get; set; }
+        public string? WordFilePath { get; set; }
+        public string DisplayName { get; set; } = "Test Case Editor";
+        public string SapStatus { get; set; } = string.Empty;
+        public string SelectedMenuSection { get; set; } = "Requirements";
+        public object? SelectedStep { get; set; }
+        public object? CurrentStepViewModel { get; set; }
+        
+        // Collections
+        public System.Collections.ObjectModel.ObservableCollection<object> Requirements { get; } = new();
+        public System.Collections.ObjectModel.ObservableCollection<object> LooseTables { get; } = new();
+        public System.Collections.ObjectModel.ObservableCollection<object> LooseParagraphs { get; } = new();
+        public System.Collections.ObjectModel.ObservableCollection<object> TestCaseGeneratorSteps { get; } = new();
+
+        // Methods
+        public void SetTransientStatus(string message, int duration, bool isError = false) 
+        { 
+            _logger?.LogInformation("SetTransientStatus (stub): {Message}", message);
+        }
+        
+        public void SaveWorkspace() 
+        { 
+            _logger?.LogInformation("SaveWorkspace (stub): Method called");
+        }
+        
+        public void RequirementsOnCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) 
+        { 
+            _logger?.LogInformation("RequirementsOnCollectionChanged (stub): Method called");
+        }
 
         /// <summary>
         /// Dispose pattern implementation

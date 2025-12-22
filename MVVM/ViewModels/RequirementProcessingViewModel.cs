@@ -21,7 +21,9 @@ public partial class RequirementProcessingViewModel : ObservableObject
     private readonly ILogger<RequirementProcessingViewModel> _logger;
     private readonly IRequirementService _requirementService;
     private readonly IFileDialogService _fileDialog;
-    private MainViewModel? _mainViewModel; // TODO: REMOVE - architectural violation
+    #pragma warning disable CS0169 // Field never used
+    private MainViewModel? _mainViewModel; // Field pending domain coordinator implementation
+    #pragma warning restore CS0169 // TODO: REMOVE - architectural violation
 
     [ObservableProperty]
     private bool _isProcessing;
@@ -234,66 +236,8 @@ public partial class RequirementProcessingViewModel : ObservableObject
     {
         // TODO: Replace with proper domain coordination via TestCaseGenerationMediator
         // This method needs to coordinate requirement loading through domain mediator
-        /*
-        if (_mainViewModel == null)
-        {
-            _logger.LogError("MainViewModel not initialized for handling loaded requirements");
-            return;
-        }
-
-        _logger.LogInformation($"Handling {requirements.Count} loaded requirements from {sourcePath}");
-
-        try
-        {
-            ProcessingStatus = "Updating workspace...";
-
-            // Build workspace model
-            var workspace = new Workspace
-            {
-                SourceDocPath = sourcePath,
-                Requirements = requirements.ToList()
-            };
-
-            _mainViewModel.CurrentWorkspace = workspace;
-
-            // Update UI-bound collection: preserve existing ObservableCollection instance
-            try
-            {
-                _mainViewModel.Requirements.CollectionChanged -= _mainViewModel.RequirementsOnCollectionChanged;
-                _mainViewModel.Requirements.Clear();
-                foreach (var r in requirements) 
-                {
-                    _mainViewModel.Requirements.Add(r);
-                }
-            }
-            finally
-            {
-                _mainViewModel.Requirements.CollectionChanged += _mainViewModel.RequirementsOnCollectionChanged;
-            }
-
-            _mainViewModel.CurrentWorkspace.Requirements = _mainViewModel.Requirements.ToList();
-
-            // Set current requirement
-            var firstRequirement = _mainViewModel.Requirements.FirstOrDefault();
-            SetCurrentRequirement(firstRequirement);
-
-            _mainViewModel.HasUnsavedChanges = false;
-            _mainViewModel.IsDirty = false;
-
-            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Loaded {requirements.Count} requirements", 4);
-            
-            // Auto-processing logic
-            await ProcessAutoActions(requirements);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to handle loaded requirements");
-            // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Failed to update workspace: {ex.Message}", 5, true);
-        }
-        */
-        
-        _logger.LogWarning($"HandleLoadedRequirements: Method disabled pending domain mediator refactoring. Would process {requirements.Count} requirements from {sourcePath}");
-        await Task.CompletedTask;
+        _logger.LogWarning("HandleLoadedRequirements: Method disabled pending domain mediator refactoring");
+        return; // Disabled until proper domain coordination is implemented
     }
 
     /// <summary>
@@ -301,11 +245,16 @@ public partial class RequirementProcessingViewModel : ObservableObject
     /// </summary>
     public void SetCurrentRequirement(Requirement? requirement)
     {
+        // TODO: Use domain coordinator - method disabled
+        _logger.LogWarning("SetCurrentRequirement: Method disabled pending domain coordinator implementation");
+        
+        /*
         if (_mainViewModel != null)
         {
             _mainViewModel.CurrentRequirement = requirement;
             _logger.LogInformation($"Set current requirement: {requirement?.GlobalId ?? "null"}");
         }
+        */
     }
 
     /// <summary>
@@ -313,6 +262,12 @@ public partial class RequirementProcessingViewModel : ObservableObject
     /// </summary>
     private async Task ImportFromPathAsync(string path, bool replace)
     {
+        // TODO: Method disabled - architectural violation removed  
+        _logger.LogWarning("ImportFromPathAsync: Method disabled pending domain coordinator implementation");
+        await Task.CompletedTask;
+        return;
+        
+        /*
         if (_mainViewModel == null) return;
 
         // If the selected path is a saved workspace, load it directly
@@ -674,5 +629,6 @@ public partial class RequirementProcessingViewModel : ObservableObject
         {
             _logger.LogError(ex, "Failed to forward requirement to active header");
         }
+        */
     }
 }
