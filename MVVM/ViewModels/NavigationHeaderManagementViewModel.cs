@@ -114,7 +114,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             if (requirements == null || requirements.Count == 0)
             {
-                _mainViewModel?.SetTransientStatus("No requirements available.", 3);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("No requirements available.", 3);
                 return;
             }
 
@@ -345,7 +345,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _mainViewModel?.SetTransientStatus($"Requirement header wiring failed: {ex.Message}", 3);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Requirement header wiring failed: {ex.Message}", 3);
             }
         }
 
@@ -363,7 +363,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _mainViewModel?.SetTransientStatus($"Requirement header unwiring failed: {ex.Message}", 3);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Requirement header unwiring failed: {ex.Message}", 3);
             }
         }
 
@@ -378,7 +378,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _mainViewModel?.SetTransientStatus($"Requirement property change handling for header failed: {ex.Message}", 3);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Requirement property change handling for header failed: {ex.Message}", 3);
             }
         }
 
@@ -393,7 +393,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _mainViewModel?.SetTransientStatus($"Header state update failed: {ex.Message}", 3);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Header state update failed: {ex.Message}", 3);
             }
         }
 
@@ -404,12 +404,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             try
             {
-                _mainViewModel?.SetTransientStatus("Opening requirements from header", 2);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("Opening requirements from header", 2);
                 // TODO: Implement requirements opening logic
             }
             catch (Exception ex)
             {
-                _mainViewModel?.SetTransientStatus($"Header open requirements failed: {ex.Message}", 3);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Header open requirements failed: {ex.Message}", 3);
             }
         }
 
@@ -420,12 +420,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             try
             {
-                _mainViewModel?.SetTransientStatus("Opening workspace from header", 2);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("Opening workspace from header", 2);
                 // TODO: Implement workspace opening logic
             }
             catch (Exception ex)
             {
-                _mainViewModel?.SetTransientStatus($"Header open workspace failed: {ex.Message}", 3);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Header open workspace failed: {ex.Message}", 3);
             }
         }
 
@@ -437,11 +437,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             try
             {
                 // TODO: Implement dynamic test case generator wiring
-                _mainViewModel?.SetTransientStatus("Dynamic test case generator wired", 1);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus("Dynamic test case generator wired", 1);
             }
             catch (Exception ex)
             {
-                _mainViewModel?.SetTransientStatus($"Dynamic generator wiring failed: {ex.Message}", 3);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Dynamic generator wiring failed: {ex.Message}", 3);
             }
         }
 
@@ -569,12 +569,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 // TODO: Implement requirement forwarding to active header
                 if (req != null)
                 {
-                    _mainViewModel?.SetTransientStatus($"Forwarded requirement {req.Item} to header", 1);
+                    // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Forwarded requirement {req.Item} to header", 1);
                 }
             }
             catch (Exception ex)
             {
-                _mainViewModel?.SetTransientStatus($"Requirement forwarding failed: {ex.Message}", 3);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Requirement header wiring failed: {ex.Message}", 3);
             }
         }
 
@@ -596,7 +596,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _mainViewModel?.SetTransientStatus($"Old requirement unhooking failed: {ex.Message}", 3);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Old requirement unhooking failed: {ex.Message}", 3);
             }
         }
 
@@ -615,7 +615,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _mainViewModel?.SetTransientStatus($"New requirement hooking failed: {ex.Message}", 3);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"New requirement hooking failed: {ex.Message}", 3);
             }
         }
 
@@ -630,7 +630,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                _mainViewModel?.SetTransientStatus($"Pill selection saving failed: {ex.Message}", 3);
+                // TODO: Replace with proper domain UI coordinator: _mainViewModel?.SetTransientStatus($"Pill selection saving failed: {ex.Message}", 3);
             }
         }
 

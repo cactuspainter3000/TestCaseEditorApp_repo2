@@ -15,7 +15,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels;
 public partial class ProjectManagementViewModel : ObservableObject
 {
     private readonly ILogger<ProjectManagementViewModel> _logger;
-    private MainViewModel? _mainViewModel;
+    private MainViewModel? _mainViewModel; // TODO: REMOVE - architectural violation
     private readonly IViewModelFactory? _viewModelFactory;
     private readonly AnythingLLMService? _anythingLLMService;
     private readonly ToastNotificationService? _toastService;
@@ -40,7 +40,9 @@ public partial class ProjectManagementViewModel : ObservableObject
     /// </summary>
     public void Initialize(MainViewModel mainViewModel)
     {
-        _mainViewModel = mainViewModel;
+        // TODO: Replace with proper domain mediator injection
+        _logger.LogWarning("Initialize: Method disabled pending domain mediator refactoring");
+        // _mainViewModel = mainViewModel; // Disabled - causes architectural violations
     }
 
     /// <summary>
@@ -48,9 +50,10 @@ public partial class ProjectManagementViewModel : ObservableObject
     /// </summary>
     public void CreateNewProject()
     {
-        try
-        {
-            _logger.LogInformation("CreateNewProject started");
+        // TODO: Replace with proper domain coordination
+        _logger.LogWarning("CreateNewProject: Method disabled - architectural violation removed");
+        return; // Disabled until proper domain coordination is implemented
+    }
             
             // Note: Navigation header reset will be handled by the NavigationHeaderManagementViewModel
             // _mainViewModel?.NavigationHeaderManagement?.CreateAndAssignNewProjectHeader();
@@ -82,9 +85,10 @@ public partial class ProjectManagementViewModel : ObservableObject
     /// </summary>
     public void OpenProject()
     {
-        try
-        {
-            _logger.LogInformation("OpenProject started");
+        // TODO: Replace with proper domain coordination
+        _logger.LogWarning("SaveProject: Method disabled - architectural violation removed");
+        return; // Disabled until proper domain coordination is implemented
+    }
             
             // Show workspace selection modal for selecting existing workspace
             _mainViewModel?.ShowWorkspaceSelectionModalForOpen();

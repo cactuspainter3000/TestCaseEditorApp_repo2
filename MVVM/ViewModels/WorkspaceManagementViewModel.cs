@@ -25,7 +25,8 @@ public partial class WorkspaceManagementViewModel : ObservableObject
     private readonly ILogger<WorkspaceManagementViewModel> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly NotificationService? _notificationService;
-    private MainViewModel? _mainViewModel;
+    // TODO: Replace MainViewModel dependency with domain coordinators
+    // private MainViewModel? _mainViewModel; // REMOVED - architectural violation
     
     // Auto-save functionality
     private System.Timers.Timer? _autoSaveTimer;
@@ -61,7 +62,9 @@ public partial class WorkspaceManagementViewModel : ObservableObject
     /// </summary>
     public void Initialize(MainViewModel mainViewModel)
     {
-        _mainViewModel = mainViewModel;
+        // TODO: Replace with proper domain mediator injection - architectural violation removed
+        _logger.LogWarning("Initialize: Method disabled - this ViewModel should not reference MainViewModel");
+        // _mainViewModel = mainViewModel; // REMOVED
         InitializeAutoSave();
     }
 
@@ -70,13 +73,9 @@ public partial class WorkspaceManagementViewModel : ObservableObject
     /// </summary>
     public void InitializeSteps()
     {
-        _logger.LogInformation("Initializing workspace steps");
-        
-        try
-        {
-            // TODO: Replace with proper workspace coordination
-            // All the step initialization code has been commented out
-            // and needs to be replaced with proper domain workspace coordination
+        // TODO: Replace with proper domain coordination
+        _logger.LogWarning("InitializeSteps: Method disabled - architectural violation removed");
+        return; // Disabled until proper domain coordination is implemented
             
             /*
             _mainViewModel?.TestCaseGeneratorSteps.Add(new StepDescriptor
@@ -156,22 +155,13 @@ public partial class WorkspaceManagementViewModel : ObservableObject
     /// </summary>
     public void SaveWorkspace()
     {
-        _logger.LogInformation($"[SaveWorkspace] Quick save called. WorkspacePath='{WorkspacePath ?? "<null>"}'");
-        
-        if (string.IsNullOrWhiteSpace(WorkspacePath))
-        {
-            _logger.LogInformation("[SaveWorkspace] No existing path, delegating to SaveAs");
-            // No existing path, delegate to SaveAs
-            _ = SaveWorkspaceAsync();
-            return;
-        }
+        // TODO: Replace with proper domain coordination via TestCaseGenerationMediator
+        // This method needs access to Requirements collection and UI feedback through domain coordination
+        _logger.LogWarning("SaveWorkspace: Method disabled - architectural violation removed");
+        return; // Disabled until proper domain coordination is implemented
 
-        if (_mainViewModel?.Requirements == null || _mainViewModel.Requirements.Count == 0)
-        {
-            _mainViewModel?.SetTransientStatus("Nothing to save.", 2);
-            return;
-        }
-
+        // TODO: Use domain mediator for requirements coordination:
+        /*
         var ws = new Workspace
         {
             SourceDocPath = CurrentSourcePath,
@@ -211,14 +201,15 @@ public partial class WorkspaceManagementViewModel : ObservableObject
     /// </summary>
     public async Task SaveWorkspaceAsync()
     {
-        // Ensure async methods contain an await to satisfy analyzer when method is mostly synchronous
+        // TODO: Replace with proper domain coordination via TestCaseGenerationMediator
+        // This method needs to access Requirements collection and show status through domain coordination
         await Task.CompletedTask;
+        _logger.LogDebug("SaveWorkspaceAsync: Method disabled pending domain mediator refactoring");
+        return; // Disable until proper domain coordination is implemented
         
-        if (_mainViewModel?.Requirements == null || _mainViewModel.Requirements.Count == 0)
-        {
-            _mainViewModel?.SetTransientStatus("Nothing to save.", 2);
-            return;
-        }
+        /*
+        // OLD IMPLEMENTATION - Replace with domain coordination
+        */
 
         var sfd = new SaveFileDialog
         {

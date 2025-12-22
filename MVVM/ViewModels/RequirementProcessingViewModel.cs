@@ -44,8 +44,11 @@ public partial class RequirementProcessingViewModel : ObservableObject
     /// </summary>
     public void Initialize(MainViewModel mainViewModel)
     {
-        _mainViewModel = mainViewModel ?? throw new ArgumentNullException(nameof(mainViewModel));
-        _logger.LogInformation("RequirementProcessingViewModel initialized with MainViewModel reference");
+        // TODO: Replace with proper domain mediator injection
+        // This ViewModel should not directly reference MainViewModel
+        _logger.LogWarning("Initialize: Method disabled pending domain mediator refactoring");
+        // _mainViewModel = mainViewModel ?? throw new ArgumentNullException(nameof(mainViewModel)); // Disabled
+        // _logger.LogInformation("RequirementProcessingViewModel initialized with MainViewModel reference");
     }
 
     /// <summary>
@@ -53,6 +56,12 @@ public partial class RequirementProcessingViewModel : ObservableObject
     /// </summary>
     public async Task ProcessRequirementsAsync(string path, bool replace = true)
     {
+        // TODO: Replace with proper domain coordination via TestCaseGenerationMediator
+        await Task.CompletedTask;
+        _logger.LogWarning("ProcessRequirementsAsync: Method disabled pending domain mediator refactoring");
+        return; // Disable until proper domain coordination is implemented
+        
+        /*
         if (_mainViewModel == null)
         {
             _logger.LogError("MainViewModel not initialized");
