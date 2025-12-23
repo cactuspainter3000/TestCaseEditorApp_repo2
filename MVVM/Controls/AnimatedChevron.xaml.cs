@@ -32,11 +32,11 @@ namespace TestCaseEditorApp.MVVM.Controls
         }
 
         /// <summary>
-        /// Gets or sets the chevron symbol to display (default: "▶").
+        /// Gets or sets the chevron symbol to display (default: "▼").
         /// </summary>
         public static readonly DependencyProperty ChevronSymbolProperty =
             DependencyProperty.Register("ChevronSymbol", typeof(string), typeof(AnimatedChevron), 
-                new PropertyMetadata("▶"));
+                new PropertyMetadata("▼"));
 
         public string ChevronSymbol
         {
@@ -45,11 +45,11 @@ namespace TestCaseEditorApp.MVVM.Controls
         }
 
         /// <summary>
-        /// Gets or sets the chevron font size (default: 12).
+        /// Gets or sets the chevron font size (default: 14).
         /// </summary>
         public static readonly DependencyProperty ChevronSizeProperty =
             DependencyProperty.Register("ChevronSize", typeof(double), typeof(AnimatedChevron), 
-                new PropertyMetadata(12.0));
+                new PropertyMetadata(14.0));
 
         public double ChevronSize
         {
@@ -58,11 +58,11 @@ namespace TestCaseEditorApp.MVVM.Controls
         }
 
         /// <summary>
-        /// Gets or sets the chevron margin (default: 8,0,0,0).
+        /// Gets or sets the chevron margin (default: 8,0,4,0).
         /// </summary>
         public static readonly DependencyProperty ChevronMarginProperty =
             DependencyProperty.Register("ChevronMargin", typeof(Thickness), typeof(AnimatedChevron), 
-                new PropertyMetadata(new Thickness(8, 0, 0, 0)));
+                new PropertyMetadata(new Thickness(8, 0, 4, 0)));
 
         public Thickness ChevronMargin
         {

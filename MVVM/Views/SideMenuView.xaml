@@ -48,10 +48,7 @@
                         <TextBlock Grid.Column="0" Text="Test Case Generator" FontSize="16" FontWeight="Normal" HorizontalAlignment="Left" />
                         <!-- Chevron for main header -->
                         <localControls:AnimatedChevron Grid.Column="1" 
-                                                       IsExpanded="{Binding IsChecked, ElementName=TestCaseGeneratorToggle}"
-                                                       ChevronSymbol="▼"
-                                                       ChevronSize="14"
-                                                       ChevronMargin="8,0,4,0"/>
+                                                       IsExpanded="{Binding IsChecked, ElementName=TestCaseGeneratorToggle}"/>
                     </Grid>
                 </ToggleButton>
 
@@ -145,7 +142,6 @@
                                         <!-- Visible chevron overlay -->
                                         <localControls:AnimatedChevron Grid.Column="1"
                                                                        IsExpanded="{Binding IsFileMenuExpanded}"
-                                                                       ChevronSymbol="▼"
                                                                        ChevronSize="12"
                                                                        ChevronMargin="0,0,4,0"
                                                                        VerticalAlignment="Center"
@@ -448,10 +444,7 @@
                         <TextBlock Grid.Column="0" Text="Test Flow Generator" FontSize="16" FontWeight="Normal" HorizontalAlignment="Left" />
                         <!-- Chevron for main header -->
                         <localControls:AnimatedChevron Grid.Column="1" 
-                                                       IsExpanded="{Binding IsChecked, ElementName=TestFlowGeneratorToggle}"
-                                                       ChevronSymbol="▼"
-                                                       ChevronSize="14"
-                                                       ChevronMargin="8,0,4,0"/>
+                                                       IsExpanded="{Binding IsChecked, ElementName=TestFlowGeneratorToggle}"/>
                     </Grid>
                 </ToggleButton>
 
@@ -752,141 +745,39 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Hierarchical Menu Test Section -->
-                <StackPanel Margin="4,8,4,4">
-                    <ToggleButton Name="HierarchicalTestToggle" Style="{StaticResource ActionToggleButton}">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="⚡ Hierarchical Test" FontSize="16" FontWeight="Normal" HorizontalAlignment="Left"/>
-                            <localControls:AnimatedChevron Grid.Column="1" 
-                                                           IsExpanded="{Binding IsChecked, ElementName=HierarchicalTestToggle}"
-                                                           ChevronSymbol="▶"
-                                                           ChevronSize="14"
-                                                           ChevronMargin="8,0,0,0"/>
-                        </Grid>
-                    </ToggleButton>
-
-                    <!-- Hierarchical Test Content -->
-                    <Border x:Name="HierarchicalTestExpander" 
-                            Background="Transparent"
-                            BorderBrush="#33000000"
-                            BorderThickness="0,1,0,0"
-                            Margin="4,0,4,0"
-                            MaxHeight="0"
-                            Opacity="0">
-                        <Border.LayoutTransform>
-                            <ScaleTransform ScaleY="0" />
-                        </Border.LayoutTransform>
-                        <Border.Style>
-                            <Style TargetType="Border">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsChecked, ElementName=HierarchicalTestToggle}" Value="True">
-                                        <DataTrigger.EnterActions>
-                                            <BeginStoryboard>
-                                                <Storyboard>
-                                                    <DoubleAnimation Storyboard.TargetProperty="MaxHeight" 
-                                                                     To="300" Duration="0:0:0.35" />
-                                                    <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
-                                                                     To="1" Duration="0:0:0.35" />
-                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" 
-                                                                     To="1" Duration="0:0:0.35" />
-                                                </Storyboard>
-                                            </BeginStoryboard>
-                                        </DataTrigger.EnterActions>
-                                        <DataTrigger.ExitActions>
-                                            <BeginStoryboard>
-                                                <Storyboard>
-                                                    <DoubleAnimation Storyboard.TargetProperty="MaxHeight" 
-                                                                     To="0" Duration="0:0:0.30" />
-                                                    <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
-                                                                     To="0" Duration="0:0:0.30" />
-                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" 
-                                                                     To="0" Duration="0:0:0.30" />
-                                                </Storyboard>
-                                            </BeginStoryboard>
-                                        </DataTrigger.ExitActions>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Border.Style>
-
+                <!-- Hierarchical Menu Test Section - Using NEW CollapsibleSection Component -->
+                <localControls:CollapsibleSection HeaderText="⚡ Hierarchical Test" 
+                                                 HeaderMargin="4,8,4,4"
+                                                 ContentMargin="4,0,4,0"
+                                                 ChevronMargin="8,0,0,0">
+                    <localControls:CollapsibleSection.SectionContent>
                         <!-- Nested hierarchical structure for testing -->
                         <StackPanel Margin="4,4">
-                            <!-- Level 1: Main Category -->
-                            <ToggleButton Name="TestCategoryToggle" Style="{StaticResource ActionToggleButton}" Background="#2A2A35" Margin="0,2">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="📂 Test Category" FontSize="14" FontWeight="SemiBold"/>
-                                    <localControls:AnimatedChevron Grid.Column="1" 
-                                                                   IsExpanded="{Binding IsChecked, ElementName=TestCategoryToggle}"
-                                                                   ChevronSymbol="▶"
-                                                                   ChevronSize="12"
-                                                                   ChevronMargin="8,0,0,0"/>
-                                </Grid>
-                            </ToggleButton>
-
-                            <!-- Level 2: Sub-items (collapsible) -->
-                            <Border x:Name="TestSubItemsExpander" 
-                                    Background="Transparent"
-                                    Margin="12,0,0,0"
-                                    MaxHeight="0"
-                                    Opacity="0">
-                                <Border.LayoutTransform>
-                                    <ScaleTransform ScaleY="0" />
-                                </Border.LayoutTransform>
-                                <Border.Style>
-                                    <Style TargetType="Border">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsChecked, ElementName=TestCategoryToggle}" Value="True">
-                                                <DataTrigger.EnterActions>
-                                                    <BeginStoryboard>
-                                                        <Storyboard>
-                                                            <DoubleAnimation Storyboard.TargetProperty="MaxHeight" 
-                                                                             To="150" Duration="0:0:0.25" />
-                                                            <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
-                                                                             To="1" Duration="0:0:0.25" />
-                                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" 
-                                                                             To="1" Duration="0:0:0.25" />
-                                                        </Storyboard>
-                                                    </BeginStoryboard>
-                                                </DataTrigger.EnterActions>
-                                                <DataTrigger.ExitActions>
-                                                    <BeginStoryboard>
-                                                        <Storyboard>
-                                                            <DoubleAnimation Storyboard.TargetProperty="MaxHeight" 
-                                                                             To="0" Duration="0:0:0.20" />
-                                                            <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
-                                                                             To="0" Duration="0:0:0.20" />
-                                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" 
-                                                                             To="0" Duration="0:0:0.20" />
-                                                        </Storyboard>
-                                                    </BeginStoryboard>
-                                                </DataTrigger.ExitActions>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Border.Style>
-                                <StackPanel>
-                                    <Button Style="{StaticResource SideMenuPopupButtonStyle}" Background="#1E1E28">
-                                        <TextBlock Text="  🔹 Sub-item 1" TextWrapping="Wrap" />
-                                    </Button>
-                                    <Button Style="{StaticResource SideMenuPopupButtonStyle}" Background="#1E1E28">
-                                        <TextBlock Text="  🔹 Sub-item 2" TextWrapping="Wrap" />
-                                    </Button>
-                                    <Button Style="{StaticResource SideMenuPopupButtonStyle}" Background="#1E1E28">
-                                        <TextBlock Text="  🔹 Sub-item 3" TextWrapping="Wrap" />
-                                    </Button>
-                                </StackPanel>
-                            </Border>
+                            <!-- Level 1: Main Category - Using ANOTHER CollapsibleSection -->
+                            <localControls:CollapsibleSection HeaderText="📂 Test Category"
+                                                             HeaderFontSize="14" 
+                                                             HeaderFontWeight="SemiBold"
+                                                             HeaderMargin="0,2,0,0"
+                                                             ContentMargin="12,0,0,0"
+                                                             ChevronSize="12"
+                                                             ChevronMargin="8,0,0,0">
+                                <localControls:CollapsibleSection.SectionContent>
+                                    <StackPanel>
+                                        <Button Style="{StaticResource SideMenuPopupButtonStyle}" Background="#1E1E28">
+                                            <TextBlock Text="  🔹 Sub-item 1" TextWrapping="Wrap" />
+                                        </Button>
+                                        <Button Style="{StaticResource SideMenuPopupButtonStyle}" Background="#1E1E28">
+                                            <TextBlock Text="  🔹 Sub-item 2" TextWrapping="Wrap" />
+                                        </Button>
+                                        <Button Style="{StaticResource SideMenuPopupButtonStyle}" Background="#1E1E28">
+                                            <TextBlock Text="  🔹 Sub-item 3" TextWrapping="Wrap" />
+                                        </Button>
+                                    </StackPanel>
+                                </localControls:CollapsibleSection.SectionContent>
+                            </localControls:CollapsibleSection>
                         </StackPanel>
-                    </Border>
-                </StackPanel>
+                    </localControls:CollapsibleSection.SectionContent>
+                </localControls:CollapsibleSection>
 
                 <TextBlock Grid.Row="1"
                            VerticalAlignment="Bottom"
