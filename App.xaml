@@ -19,6 +19,7 @@
             
             <!-- Register converters here so they're available app-wide -->
             <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" CollapseWhenFalse="True" />
+            <conv:InvertedBoolToVisibilityConverter x:Key="InvertedBoolToVis" />
 
             <ResourceDictionary.MergedDictionaries>
                 <!-- ===================================== -->

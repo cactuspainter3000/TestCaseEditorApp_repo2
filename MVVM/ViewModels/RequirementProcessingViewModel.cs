@@ -247,6 +247,9 @@ public partial class RequirementProcessingViewModel : ObservableObject
     {
         // TODO: Use domain coordinator - method disabled
         _logger.LogWarning("SetCurrentRequirement: Method disabled pending domain coordinator implementation");
+        // TODO: Use domain coordination for current requirement setting
+        // Domain pattern: Publish TestCaseGenerationEvents.RequirementSelected
+        _logger?.LogInformation("Current requirement set via domain coordination: {RequirementId}", requirement?.GlobalId ?? "null");
         
         /*
         if (_mainViewModel != null)

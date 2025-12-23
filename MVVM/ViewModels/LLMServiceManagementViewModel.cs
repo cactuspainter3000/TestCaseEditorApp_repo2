@@ -18,7 +18,10 @@ public partial class LLMServiceManagementViewModel : ObservableObject
     private readonly ILogger<LLMServiceManagementViewModel> _logger;
     private readonly AnythingLLMService _anythingLLMService;
     private MainViewModel? _mainViewModel;
-    private readonly object _initializationLock = new object();
+    
+    // Static initialization tracking across all instances
+    private static bool _anythingLLMInitializing = false;
+    private static readonly object _initializationLock = new();
 
     [ObservableProperty]
     private bool _isLlmConnected;
@@ -167,12 +170,12 @@ public partial class LLMServiceManagementViewModel : ObservableObject
         // Prevent multiple simultaneous initialization attempts across all instances
         lock (_initializationLock)
         {
-            if (MainViewModel._anythingLLMInitializing == true)
+            if (_anythingLLMInitializing == true)
             {
                 _logger.LogInformation("[STARTUP] AnythingLLM initialization already in progress, skipping duplicate call");
                 return;
             }
-            MainViewModel._anythingLLMInitializing = true;
+            _anythingLLMInitializing = true;
         }
         
         try
@@ -289,7 +292,7 @@ public partial class LLMServiceManagementViewModel : ObservableObject
         {
             lock (_initializationLock)
             {
-                MainViewModel._anythingLLMInitializing = false;
+                _anythingLLMInitializing = false;
             }
         }
     }

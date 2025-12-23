@@ -24,6 +24,21 @@ namespace TestCaseEditorApp.MVVM.Views
             DropDownManager.CloseOpenPopup();
         }
 
+        private void MenuItemGrid_Click(object sender, MouseButtonEventArgs e)
+        {
+            // Get the data context (the step item)
+            if (sender is FrameworkElement element && element.DataContext is StepDescriptor step)
+            {
+                // Check if this item has a file menu
+                if (step.HasFileMenu)
+                {
+                    // Toggle the dropdown
+                    step.IsFileMenuExpanded = !step.IsFileMenuExpanded;
+                    e.Handled = true; // Prevent further event propagation
+                }
+            }
+        }
+
         private void MainContent_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             // Get the data context (the step item)

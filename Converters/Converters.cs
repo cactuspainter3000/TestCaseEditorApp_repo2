@@ -63,6 +63,19 @@ namespace TestCaseEditorApp.Converters
             => throw new NotImplementedException();
     }
 
+    /// <summary>Inverted bool to visibility converter - true=hidden, false=visible</summary>
+    public class InvertedBoolToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is not bool isVisible) return Visibility.Collapsed;
+            return !isVisible ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
+    }
+
     public class NullOrEmptyToVisibilityConverter : IValueConverter
     {
         public bool Invert { get; set; } = false;

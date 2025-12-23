@@ -26,6 +26,93 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         // Workflow state
         private readonly Dictionary<Requirement, List<string>> _requirementAssumptions = new();
         private readonly Dictionary<Requirement, List<ClarifyingQuestionData>> _requirementQuestions = new();
+        
+        // Domain state management - replaces MainViewModel dependencies
+        private Requirement? _currentRequirement;
+        private bool _isDirty = false;
+        private bool _isBatchAnalyzing = false;
+        private object? _selectedStep;
+        private object? _currentStepViewModel;
+        
+        public Requirement? CurrentRequirement 
+        { 
+            get => _currentRequirement; 
+            set 
+            { 
+                if (_currentRequirement != value) 
+                { 
+                    _currentRequirement = value;
+                    PublishEvent(new TestCaseGenerationEvents.RequirementChanged 
+                    { 
+                        Requirement = value, 
+                        ChangedBy = "Domain State Management" 
+                    });
+                    _logger.LogDebug("Current requirement changed to: {RequirementId}", value?.GlobalId ?? "null");
+                }
+            } 
+        }
+        
+        public bool IsDirty 
+        { 
+            get => _isDirty; 
+            set 
+            { 
+                if (_isDirty != value) 
+                { 
+                    _isDirty = value;
+                    PublishEvent(new TestCaseGenerationEvents.WorkflowStateChanged 
+                    { 
+                        PropertyName = nameof(IsDirty), 
+                        NewValue = value 
+                    });
+                    _logger.LogDebug("IsDirty changed to: {IsDirty}", value);
+                }
+            } 
+        }
+        
+        public bool IsBatchAnalyzing 
+        { 
+            get => _isBatchAnalyzing; 
+            set 
+            { 
+                if (_isBatchAnalyzing != value) 
+                { 
+                    _isBatchAnalyzing = value;
+                    PublishEvent(new TestCaseGenerationEvents.WorkflowStateChanged 
+                    { 
+                        PropertyName = nameof(IsBatchAnalyzing), 
+                        NewValue = value 
+                    });
+                    _logger.LogDebug("IsBatchAnalyzing changed to: {IsBatchAnalyzing}", value);
+                }
+            } 
+        }
+        
+        public object? SelectedStep 
+        { 
+            get => _selectedStep; 
+            set 
+            { 
+                if (_selectedStep != value) 
+                { 
+                    _selectedStep = value;
+                    _logger.LogDebug("SelectedStep changed");
+                }
+            } 
+        }
+        
+        public object? CurrentStepViewModel 
+        { 
+            get => _currentStepViewModel; 
+            set 
+            { 
+                if (_currentStepViewModel != value) 
+                { 
+                    _currentStepViewModel = value;
+                    _logger.LogDebug("CurrentStepViewModel changed");
+                }
+            } 
+        }
 
         public TestCaseGenerationMediator(
             ILogger<TestCaseGenerationMediator> logger,

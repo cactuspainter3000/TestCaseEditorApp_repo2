@@ -1,6 +1,8 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
@@ -68,6 +70,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Initialize unified navigation system - this is the ONLY responsibility
             _viewAreaCoordinator = _viewModelFactory.CreateViewAreaCoordinator();
             
+            // Initialize commands
+            SaveWorkspaceCommand = new RelayCommand(() => { /* TODO: Implement save workspace */ });
+            
             // Subscribe to navigation events for UI property binding notifications
             _viewAreaCoordinator.NavigationMediator.Subscribe<NavigationEvents.HeaderChanged>(
                 e => OnPropertyChanged(nameof(HeaderWorkspace)));
@@ -84,49 +89,58 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         public IViewAreaCoordinator ViewAreaCoordinator => _viewAreaCoordinator;
 
-        // === TEMPORARY COMPATIBILITY STUBS ===
-        // These properties temporarily satisfy legacy ViewModels during architectural transition
-        // TODO: Remove once all ViewModels use proper domain coordination
-
-        public static bool _anythingLLMInitializing { get; set; } = false;
-        public static Requirement? CurrentRequirement { get; set; }
-        public bool IsDirty { get; set; } = false;
-        public bool HasUnsavedChanges { get; set; } = false;
-        public bool AutoAnalyzeOnImport { get; set; } = false;
-        public bool AutoExportForChatGpt { get; set; } = false;
-        public bool IsBatchAnalyzing { get; set; } = false;
-        public string? CurrentAnythingLLMWorkspaceSlug { get; set; }
-        public string? WorkspacePath { get; set; }
-        public object? CurrentWorkspace { get; set; }
-        public string? WordFilePath { get; set; }
-        public string DisplayName { get; set; } = "Test Case Editor";
-        public string SapStatus { get; set; } = string.Empty;
-        public string SelectedMenuSection { get; set; } = "Requirements";
-        public object? SelectedStep { get; set; }
-        public object? CurrentStepViewModel { get; set; }
+        // === UI-BOUND PROPERTIES ===
+        // Properties needed for UI data binding - kept minimal and focused
         
-        // Collections
+        public string DisplayName { get; set; } = "Test Case Editor";
+        public string SelectedMenuSection { get; set; } = "Requirements";
+        
+        // === MISSING PROPERTIES FOR UI BINDING ===
+        // These properties are bound to in XAML but were missing from the ViewModel
+        
+        [ObservableProperty]
+        private ICommand? saveWorkspaceCommand;
+        
+        [ObservableProperty]
+        private string? workspacePath;
+        
+        [ObservableProperty]
+        private object? activeHeader;
+        
+        [ObservableProperty]
+        private bool isLlmBusy;
+        
+        [ObservableProperty]
+        private object? requirementsNavigator;
+        
+        [ObservableProperty]
+        private System.Collections.ObjectModel.ObservableCollection<object> toastNotifications = new();
+
+        // === LEGACY PROPERTIES (TO BE REMOVED) ===
+        // These properties are still actively used and need migration to domain coordination
+        // TODO: Migrate these usages to proper domain patterns
+        
+        public static Requirement? CurrentRequirement { get; set; } // Used by TestCaseGenerator_QuestionsVM
+        public bool IsDirty { get; set; } = false; // Used by multiple Generator ViewModels
+        public bool IsBatchAnalyzing { get; set; } = false; // Used by TestCaseGenerator_QuestionsVM
+        public string? CurrentAnythingLLMWorkspaceSlug { get; set; } // Used by LLMServiceManagementViewModel
+        public object? SelectedStep { get; set; } // Used by TestCaseGenerator_QuestionsVM
+        public object? CurrentStepViewModel { get; set; } // Used by TestCaseGenerator_QuestionsVM
+
+        // Collections for UI binding
         public System.Collections.ObjectModel.ObservableCollection<object> Requirements { get; } = new();
         public System.Collections.ObjectModel.ObservableCollection<object> LooseTables { get; } = new();
         public System.Collections.ObjectModel.ObservableCollection<object> LooseParagraphs { get; } = new();
         public System.Collections.ObjectModel.ObservableCollection<object> TestCaseGeneratorSteps { get; } = new();
 
-        // Methods
-        public void SetTransientStatus(string message, int duration, bool isError = false) 
-        { 
-            _logger?.LogInformation("SetTransientStatus (stub): {Message}", message);
-        }
-        
-        public void SaveWorkspace() 
-        { 
-            _logger?.LogInformation("SaveWorkspace (stub): Method called");
-        }
-        
-        public void RequirementsOnCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) 
-        { 
-            _logger?.LogInformation("RequirementsOnCollectionChanged (stub): Method called");
-        }
+        // Modal properties - ensure no modal is shown on startup
+        public object? ModalViewModel => null; // Always null to hide modal
+        public string ModalTitle => string.Empty; // Empty to avoid fallback text
+        public System.Windows.Input.ICommand? CloseModalCommand => null; // No command needed since modal never shows
 
+        // === SIMPLE CONTAINER METHODS ===
+        // MainViewModel keeps only essential functionality as a workspace container
+        
         /// <summary>
         /// Dispose pattern implementation
         /// </summary>

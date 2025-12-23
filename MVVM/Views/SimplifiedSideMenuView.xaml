@@ -1,0 +1,34 @@
+<UserControl x:Class="TestCaseEditorApp.MVVM.Views.SimplifiedSideMenuView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:localControls="clr-namespace:TestCaseEditorApp.MVVM.Controls"
+             xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels" 
+             d:DataContext="{d:DesignInstance Type=vm:SideMenuViewModel, IsDesignTimeCreatable=False}"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="200">
+
+    <Border Background="{DynamicResource Brush.Background.Menu}" 
+            BorderBrush="{DynamicResource Brush.Border.Default}" 
+            BorderThickness="1" 
+            CornerRadius="{DynamicResource Radius.SM}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            
+            <!-- THE ENTIRE MENU IS JUST THIS ONE CONTROL! -->
+            <localControls:HierarchicalMenuControl Grid.Row="0" 
+                                                  MenuItems="{Binding HierarchicalMenuItems}"/>
+            
+            <TextBlock Grid.Row="1"
+                       VerticalAlignment="Bottom"
+                       Text="{Binding SapStatus}"
+                       HorizontalAlignment="Center"
+                       Style="{DynamicResource Text.Caption}"
+                       Margin="0,10,0,5"/>
+        </Grid>
+    </Border>
+</UserControl>

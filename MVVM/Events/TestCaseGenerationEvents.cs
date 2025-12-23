@@ -260,5 +260,25 @@ namespace TestCaseEditorApp.MVVM.Events
             public int TotalSearched { get; set; }
             public DateTime Timestamp { get; set; } = DateTime.Now;
         }
+        
+        /// <summary>
+        /// Fired when the current requirement changes in domain state
+        /// </summary>
+        public class RequirementChanged
+        {
+            public Requirement? Requirement { get; set; }
+            public string ChangedBy { get; set; } = string.Empty;
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
+        
+        /// <summary>
+        /// Fired when workflow state properties change (IsDirty, IsBatchAnalyzing, etc.)
+        /// </summary>
+        public class WorkflowStateChanged
+        {
+            public string PropertyName { get; set; } = string.Empty;
+            public object? NewValue { get; set; }
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
     }
 }

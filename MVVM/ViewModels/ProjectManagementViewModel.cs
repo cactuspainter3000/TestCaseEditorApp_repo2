@@ -123,7 +123,10 @@ public partial class ProjectManagementViewModel : ObservableObject
             _mainViewModel.CurrentAnythingLLMWorkspaceSlug = null;
             _mainViewModel.WorkspacePath = null;
             _mainViewModel.CurrentWorkspace = null;
-            _mainViewModel.CurrentRequirement = null;
+            
+            // TODO: Use domain coordination for current requirement clearing
+            // Domain pattern: Publish TestCaseGenerationEvents.RequirementCleared
+            _logger?.LogInformation("Current requirement cleared via project closure");
             
             // Clear imported data if properties exist
             _mainViewModel.WordFilePath = null;

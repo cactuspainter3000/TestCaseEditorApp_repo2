@@ -169,5 +169,32 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         /// Broadcast notification to all domains
         /// </summary>
         void BroadcastToAllDomains<T>(T notification) where T : class;
+        
+        // ===== DOMAIN STATE MANAGEMENT =====
+        
+        /// <summary>
+        /// Current requirement selected in the domain workflow
+        /// </summary>
+        Requirement? CurrentRequirement { get; set; }
+        
+        /// <summary>
+        /// Indicates if the domain has unsaved changes
+        /// </summary>
+        bool IsDirty { get; set; }
+        
+        /// <summary>
+        /// Indicates if batch analysis is in progress
+        /// </summary>
+        bool IsBatchAnalyzing { get; set; }
+        
+        /// <summary>
+        /// Current step in the workflow
+        /// </summary>
+        object? SelectedStep { get; set; }
+        
+        /// <summary>
+        /// Current step's view model
+        /// </summary>
+        object? CurrentStepViewModel { get; set; }
     }
 }
