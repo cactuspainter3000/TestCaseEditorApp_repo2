@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Events;
+using TestCaseEditorApp.MVVM.Models.DataDrivenMenu;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -28,6 +29,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty]
         private ObservableCollection<StepDescriptor> testCaseGeneratorSteps = new();
         
+        // === DATA-DRIVEN MENU SYSTEM ===
+        // New data-driven approach that replaces hardcoded XAML
+        [ObservableProperty]
+        private MenuSection? testCaseGeneratorMenuSection;
+        
         // === NEW DATA-DRIVEN APPROACH ===
         // Single collection that defines the entire menu hierarchy
         [ObservableProperty]
@@ -35,6 +41,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         // Project Management Commands
         public ICommand NewProjectCommand { get; private set; } = null!;
+        public ICommand TestClickCommand { get; private set; } = null!;
         public ICommand OpenProjectCommand { get; private set; } = null!;
         public ICommand SaveProjectCommand { get; private set; } = null!;
         public ICommand QuickImportCommand { get; private set; } = null!;
@@ -48,6 +55,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand CloseProjectCommand { get; private set; } = null!;
         public ICommand BatchAnalyzeCommand { get; private set; } = null!;
         public ICommand AnalyzeUnanalyzedCommand { get; private set; } = null!;
+        public ICommand ReAnalyzeModifiedCommand { get; private set; } = null!;
+        public ICommand GenerateLearningPromptCommand { get; private set; } = null!;
+        public ICommand PasteChatGptAnalysisCommand { get; private set; } = null!;
+        public ICommand SetupLlmWorkspaceCommand { get; private set; } = null!;
+        public ICommand GenerateAnalysisCommandCommand { get; private set; } = null!;
+        public ICommand GenerateTestCaseCommandCommand { get; private set; } = null!;
+        public ICommand ToggleAutoExportCommand { get; private set; } = null!;
+        public ICommand OpenChatGptExportCommand { get; private set; } = null!;
+        public ICommand ExportAllToJamaCommand { get; private set; } = null!;
         public ICommand ExportForChatGptCommand { get; private set; } = null!;
         public ICommand DemoStateManagementCommand { get; private set; } = null!;
 
@@ -69,6 +85,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         [ObservableProperty]
         private object? selectedStep;
+        
+        [ObservableProperty]
+        private bool autoExportForChatGpt = false;
 
         public SideMenuViewModel(IWorkspaceManagementMediator? workspaceManagementMediator = null)
         {
@@ -76,12 +95,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             InitializeCommands();
             InitializeMenuItems();
             InitializeTestCaseGeneratorSteps();
+            InitializeDataDrivenTestCaseGenerator(); // NEW: Data-driven menu
             InitializeHierarchicalMenu(); // NEW: Data-driven menu
         }
 
         private void InitializeCommands()
         {
             NewProjectCommand = new AsyncRelayCommand(CreateNewProjectAsync);
+            TestClickCommand = new RelayCommand(() => System.Windows.MessageBox.Show("Test button clicked!", "Data-Driven Test"));
             OpenProjectCommand = new AsyncRelayCommand(OpenProjectAsync);
             SaveProjectCommand = new RelayCommand(() => { /* TODO: Implement save */ });
             QuickImportCommand = new RelayCommand(() => { /* TODO: Implement quick import */ });
@@ -93,6 +114,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             CloseProjectCommand = new RelayCommand(() => { /* TODO: Implement close project */ });
             BatchAnalyzeCommand = new RelayCommand(() => { /* TODO: Implement batch analyze */ });
             AnalyzeUnanalyzedCommand = new RelayCommand(() => { /* TODO: Implement analyze unanalyzed */ });
+            ReAnalyzeModifiedCommand = new RelayCommand(() => { /* TODO: Implement re-analyze modified */ });
+            GenerateLearningPromptCommand = new RelayCommand(() => { /* TODO: Implement generate learning prompt */ });
+            PasteChatGptAnalysisCommand = new RelayCommand(() => { /* TODO: Implement paste ChatGPT analysis */ });
+            SetupLlmWorkspaceCommand = new RelayCommand(() => { /* TODO: Implement setup LLM workspace */ });
+            GenerateAnalysisCommandCommand = new RelayCommand(() => { /* TODO: Implement generate analysis command */ });
+            GenerateTestCaseCommandCommand = new RelayCommand(() => { /* TODO: Implement generate test case command */ });
+            ToggleAutoExportCommand = new RelayCommand(() => AutoExportForChatGpt = !AutoExportForChatGpt);
+            OpenChatGptExportCommand = new RelayCommand(() => { /* TODO: Implement open ChatGPT export */ });
+            ExportAllToJamaCommand = new RelayCommand(() => { /* TODO: Implement export all to Jama */ });
             ExportForChatGptCommand = new AsyncRelayCommand(ExportForChatGptAsync);
             
             // Demo command for testing state management
@@ -123,6 +153,49 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 Console.WriteLine("*** WorkspaceManagementMediator is null in SideMenuViewModel! ***");
             }
+        }
+
+        // ===============================================
+        // REUSABLE HELPER METHODS - Copy these anywhere!
+        // ===============================================
+        
+        /// <summary>
+        /// Creates a simple menu button - 1 line instead of 6
+        /// </summary>
+        private static MenuAction CreateButton(string id, string icon, string text, ICommand? command, string tooltip, int level = 2)
+        {
+            var button = MenuAction.Create(id, icon, text, command, tooltip);
+            button.Level = level;
+            return button;
+        }
+        
+        /// <summary>
+        /// Creates a dropdown menu with children - handles all the setup automatically
+        /// </summary>
+        private static MenuAction CreateDropdown(string id, string icon, string text, string tooltip, params MenuAction[] children)
+        {
+            return CreateDropdownWithLevel(id, icon, text, tooltip, 1, children);
+        }
+        
+        /// <summary>
+        /// Creates a dropdown menu with children and specific level - handles all the setup automatically
+        /// </summary>
+        private static MenuAction CreateDropdownWithLevel(string id, string icon, string text, string tooltip, int level, params MenuAction[] children)
+        {
+            var dropdown = MenuAction.Create(id, icon, text, null, tooltip);
+            dropdown.IsDropdown = true;
+            dropdown.IsExpanded = false;
+            dropdown.Level = level;
+            
+            foreach (var child in children)
+            {
+                // Ensure child level is always higher than parent level
+                if (child.Level <= level)
+                    child.Level = level + 1;
+                dropdown.AddChild(child);
+            }
+            
+            return dropdown;
         }
 
         private void InitializeMenuItems()
@@ -229,8 +302,35 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             HierarchicalMenuItems.Add(testCaseGenerator);
             HierarchicalMenuItems.Add(testFlowGenerator);
             
+            // Level 1: TEST - Data-Driven Test Flow Pattern (Primary header)
+            var testFlowPattern = MenuHierarchyItem.CreateSection("🧪 Data-Driven Test Flow", 1, true,
+                // Level 2: Flow Steps (simulating ListBox items)
+                CreateFlowStepSection("Flow Step 1", "Ready", true,
+                    CreateActionWithId("flow.create", "🆕 Create New Flow", "🆕", null, true),
+                    CreateActionWithId("flow.validate", "✅ Validate Flow", "✅", null, true),
+                    CreateActionWithId("flow.export", "📤 Export Flow", "📤", null, true)
+                ),
+                
+                CreateFlowStepSection("Flow Step 2", "2", false),
+                
+                CreateFlowStepSection("Testing Options", "", true,
+                    CreateActionWithId("test.option1", "🧪 Test Option 1", "🧪", null, true),
+                    CreateActionWithId("test.option2", "🔬 Test Option 2", "🔬", null, true)
+                )
+            );
+            
+            HierarchicalMenuItems.Add(testFlowPattern);
+            
             // Subscribe to state change events
             SubscribeToStateEvents();
+        }
+        
+        private MenuHierarchyItem CreateFlowStepSection(string title, string badge, bool isExpandable, params MenuHierarchyItem[] children)
+        {
+            var section = MenuHierarchyItem.CreateSection(title, 2, isExpandable, children);
+            section.Badge = badge;
+            section.StatusIcon = "";
+            return section;
         }
         
         /// <summary>
@@ -411,6 +511,70 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 item.Badge = badge;
             }
+        }
+        
+        /// <summary>
+        /// Initialize data-driven Test Case Generator with proper hierarchical structure
+        /// </summary>
+        private void InitializeDataDrivenTestCaseGenerator()
+        {
+            TestCaseGeneratorMenuSection = MenuSection.Create(
+                id: "test-case-generator-data-driven",
+                headerIcon: "🧪",
+                headerText: "Test Case Generator"
+            );
+
+            // Create the main Test Case Generator dropdown with all sections as children
+            var mainTestCaseGeneratorDropdown = CreateDropdownWithLevel("test-case-generator-main", "🧪", "Test Case Generator", "Test case generation workflow", 0,
+                
+                // === PROJECT DROPDOWN (as sub-item) ===
+                CreateDropdown("project", "📁", "Project", "Project management options",
+                    CreateButton("new-project", "🆕", "New Project", NewProjectCommand, "Create a new test case generation project"),
+                    CreateButton("quick-import", "⚡", "Quick Import (Legacy)", QuickImportCommand, "Quick import legacy format"),
+                    CreateButton("open-project", "📁", "Open Project", OpenProjectCommand, "Load an existing project"),
+                    CreateButton("save-project", "💾", "Save Project", SaveProjectCommand, "Save current project"),
+                    CreateButton("close-project", "❌", "Close Project", CloseProjectCommand, "Close current project")
+                ),
+
+                // === REQUIREMENTS DROPDOWN (as sub-item) ===
+                CreateDropdown("requirements", "📋", "Requirements", "Requirements management options",
+                    CreateButton("import-additional", "📥", "Import Additional Requirements", ImportAdditionalCommand, "Import additional requirements"),
+                    CreateButton("batch-analyze", "⚡", "Analyze All Requirements", BatchAnalyzeCommand, "Analyze all requirements")
+                ),
+
+                // === LLM LEARNING DROPDOWN (as sub-item) ===
+                CreateDropdown("llm-learning", "🧠", "LLM Learning", "LLM learning and training options",
+                    CreateButton("analyze-unanalyzed", "🔍", "Analyze Unanalyzed", AnalyzeUnanalyzedCommand, "Analyze unanalyzed requirements"),
+                    CreateButton("reanalyze-modified", "🔄", "Re-analyze Modified", ReAnalyzeModifiedCommand, "Re-analyze modified requirements"),
+                    CreateButton("generate-learning-prompt", "📋", "Generate Learning Prompt", GenerateLearningPromptCommand, "Generate learning prompt and copy to clipboard"),
+                    CreateButton("paste-chatgpt-analysis", "📥", "Paste ChatGPT Analysis", PasteChatGptAnalysisCommand, "Paste and import ChatGPT analysis results"),
+                    CreateButton("setup-llm-workspace", "🔧", "Setup LLM Workspace", SetupLlmWorkspaceCommand, "Setup integrated LLM workspace"),
+                    CreateButton("generate-analysis-command", "🔍", "Generate Analysis Command", GenerateAnalysisCommandCommand, "Generate analysis command for current requirement"),
+                    CreateButton("generate-testcase-command", "⚙️", "Generate Test Case Command", GenerateTestCaseCommandCommand, "Generate test case command for current requirement"),
+                    CreateButton("toggle-auto-export", "📤", "Export for ChatGPT", ToggleAutoExportCommand, "Toggle auto-export for ChatGPT analysis"),
+                    CreateButton("open-chatgpt-export", "📝", "Open Export", OpenChatGptExportCommand, "Open the most recent ChatGPT export file")
+                ),
+
+                // === TEST CASE CREATION DROPDOWN (as sub-item) ===
+                CreateDropdown("testcase-creation", "⚙️", "Test Case Creation", "Test case generation options",
+                    CreateButton("export-to-jama", "📋", "Export to Jama…", ExportAllToJamaCommand, "Export all test cases to Jama")
+                )
+            );
+
+            TestCaseGeneratorMenuSection.AddItem(mainTestCaseGeneratorDropdown);
+
+            System.Diagnostics.Debug.WriteLine($"[SideMenuViewModel] Data-driven TestCaseGenerator initialized with hierarchical structure: 1 main dropdown containing {mainTestCaseGeneratorDropdown.Children.Count} sub-sections");
+        }
+
+        /// <summary>
+        /// Creates a test dropdown item to demonstrate expand/collapse functionality
+        /// </summary>
+        private MenuAction CreateTestDropdownItem()
+        {
+            var dropdownItem = MenuAction.Create("test.dropdown", "📁", "Test Dropdown", null, "Click chevron to expand/collapse");
+            dropdownItem.IsDropdown = true;
+            dropdownItem.IsExpanded = false;
+            return dropdownItem;
         }
 
         partial void OnSelectedSectionChanged(string? value)

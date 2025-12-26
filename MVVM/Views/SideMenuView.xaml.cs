@@ -16,6 +16,13 @@ namespace TestCaseEditorApp.MVVM.Views
         public SideMenuView()
         {
             InitializeComponent();
+            Loaded += SideMenuView_Loaded;
+        }
+        
+        private void SideMenuView_Loaded(object sender, RoutedEventArgs e)
+        {
+            // Data-driven test temporarily disabled 
+            // The CollapsibleSection approach in the main menu demonstrates the concept perfectly
         }
 
         private void StepsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)

@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.Models.DataDrivenMenu;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -56,6 +57,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// Side menu workspace area
         /// </summary>
         public object? SideMenuWorkspace => _viewAreaCoordinator.SideMenu;
+        
+        /// <summary>
+        /// Exposes the data-driven Test Case Generator menu section for UI binding
+        /// </summary>
+        public MenuSection? TestCaseGeneratorMenuSection => 
+            (_viewAreaCoordinator.SideMenu as ViewModels.SideMenuViewModel)?.TestCaseGeneratorMenuSection;
 
         /// <summary>
         /// Simple container constructor - sets up 4 workspace areas with NO coordination logic.

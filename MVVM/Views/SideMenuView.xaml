@@ -6,18 +6,26 @@
              xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
              xmlns:controls="clr-namespace:TestCaseEditorApp.Controls"
              xmlns:localControls="clr-namespace:TestCaseEditorApp.MVVM.Controls"
+             xmlns:dataDrivenMenu="clr-namespace:TestCaseEditorApp.MVVM.Controls.DataDrivenMenu"
              xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels" d:DataContext="{d:DesignInstance Type=vm:MainViewModel, IsDesignTimeCreatable=False}"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="200">
 
     
 
-        <!-- Local resources: converters only -->
     <UserControl.Resources>
-        <conv:SectionSelectedConverter x:Key="SectionSelectedConverter" />
-        <conv:AllTrueToVisibilityConverter x:Key="AllTrueToVisibilityConverter" />
-        <BooleanToVisibilityConverter x:Key="BoolToVis" />
-        <conv:BoolToAngleConverter x:Key="BoolToAngleConverter" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Include MenuAction templates for ContentPresenter -->
+                <ResourceDictionary Source="../Controls/DataDrivenMenu/MenuContentTemplates.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            
+            <!-- Local converters -->
+            <conv:SectionSelectedConverter x:Key="SectionSelectedConverter" />
+            <conv:AllTrueToVisibilityConverter x:Key="AllTrueToVisibilityConverter" />
+            <BooleanToVisibilityConverter x:Key="BoolToVis" />
+            <conv:BoolToAngleConverter x:Key="BoolToAngleConverter" />
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <Border Background="#2B2B2B" CornerRadius="4" Margin="0" BorderBrush="{StaticResource Brush.Accent.Primary}" BorderThickness="2">
@@ -27,7 +35,7 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             
-            <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Visible">
                 <ScrollViewer.Resources>
                     <Style TargetType="ScrollBar" BasedOn="{StaticResource CustomScrollBarStyle}" />
                 </ScrollViewer.Resources>
@@ -745,39 +753,42 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Hierarchical Menu Test Section - Using NEW CollapsibleSection Component -->
-                <localControls:CollapsibleSection HeaderText="⚡ Hierarchical Test" 
-                                                 HeaderMargin="4,8,4,4"
-                                                 ContentMargin="4,0,4,0"
-                                                 ChevronMargin="8,0,0,0">
-                    <localControls:CollapsibleSection.SectionContent>
-                        <!-- Nested hierarchical structure for testing -->
-                        <StackPanel Margin="4,4">
-                            <!-- Level 1: Main Category - Using ANOTHER CollapsibleSection -->
-                            <localControls:CollapsibleSection HeaderText="📂 Test Category"
-                                                             HeaderFontSize="14" 
-                                                             HeaderFontWeight="SemiBold"
-                                                             HeaderMargin="0,2,0,0"
-                                                             ContentMargin="12,0,0,0"
-                                                             ChevronSize="12"
-                                                             ChevronMargin="8,0,0,0">
-                                <localControls:CollapsibleSection.SectionContent>
-                                    <StackPanel>
-                                        <Button Style="{StaticResource SideMenuPopupButtonStyle}" Background="#1E1E28">
-                                            <TextBlock Text="  🔹 Sub-item 1" TextWrapping="Wrap" />
-                                        </Button>
-                                        <Button Style="{StaticResource SideMenuPopupButtonStyle}" Background="#1E1E28">
-                                            <TextBlock Text="  🔹 Sub-item 2" TextWrapping="Wrap" />
-                                        </Button>
-                                        <Button Style="{StaticResource SideMenuPopupButtonStyle}" Background="#1E1E28">
-                                            <TextBlock Text="  🔹 Sub-item 3" TextWrapping="Wrap" />
-                                        </Button>
-                                    </StackPanel>
-                                </localControls:CollapsibleSection.SectionContent>
-                            </localControls:CollapsibleSection>
-                        </StackPanel>
-                    </localControls:CollapsibleSection.SectionContent>
-                </localControls:CollapsibleSection>
+
+                <!-- =============================== -->
+                <!-- DATA-DRIVEN MENU TEST SECTION -->
+                <!-- =============================== -->
+                <Border Background="{StaticResource Brush.Background.Menu}" 
+                        BorderBrush="{DynamicResource HeaderAccentBrush}" 
+                        BorderThickness="2" 
+                        CornerRadius="4" 
+                        Margin="4,8,4,0">
+                    <StackPanel Margin="8">
+                        <!-- Data-driven menu with scrollbar to match original menu -->
+                        <ScrollViewer VerticalScrollBarVisibility="Visible"
+                                     HorizontalScrollBarVisibility="Disabled"
+                                     MaxHeight="400">
+                            <ScrollViewer.Resources>
+                                <Style TargetType="ScrollBar" BasedOn="{StaticResource CustomScrollBarStyle}" />
+                            </ScrollViewer.Resources>
+                            <ItemsControl ItemsSource="{Binding TestCaseGeneratorMenuSection.Items}"
+                                         Margin="0,4,0,0">
+                                <ItemsControl.Resources>
+                                    <ResourceDictionary>
+                                        <ResourceDictionary.MergedDictionaries>
+                                            <ResourceDictionary Source="/MVVM/Controls/DataDrivenMenu/MenuContentTemplates.xaml"/>
+                                        </ResourceDictionary.MergedDictionaries>
+                                    </ResourceDictionary>
+                                </ItemsControl.Resources>
+                                
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Vertical"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </StackPanel>
+                </Border>
 
                 <TextBlock Grid.Row="1"
                            VerticalAlignment="Bottom"

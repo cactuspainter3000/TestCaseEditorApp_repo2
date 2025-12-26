@@ -8,30 +8,46 @@
              d:DesignHeight="300" d:DesignWidth="250">
     
     <StackPanel>
-        <!-- Header with integrated chevron -->
-        <ToggleButton x:Name="SectionToggle"
-                      Style="{StaticResource ActionToggleButton}"
-                      HorizontalAlignment="Stretch"
-                      Cursor="Hand"
-                      Margin="{Binding HeaderMargin, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                      IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" 
-                           Text="{Binding HeaderText, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+        <!-- Header using EXACT existing dropdown pattern -->
+        <Grid MinHeight="28" 
+              Background="Transparent"
+              Margin="{Binding HeaderMargin, RelativeSource={RelativeSource AncestorType=UserControl}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Left: Header text (exactly like existing pattern) -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,6,0,6">
+                <TextBlock Text="{Binding HeaderText, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                           Foreground="#CCCCCC"
+                           VerticalAlignment="Center"
                            FontSize="{Binding HeaderFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                           FontWeight="{Binding HeaderFontWeight, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                           HorizontalAlignment="Left" />
-                <!-- Unified chevron -->
-                <localControls:AnimatedChevron Grid.Column="1" 
-                                               IsExpanded="{Binding IsChecked, ElementName=SectionToggle}"
-                                               ChevronSize="{Binding ChevronSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                               ChevronMargin="{Binding ChevronMargin, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-            </Grid>
-        </ToggleButton>
+                           FontWeight="{Binding HeaderFontWeight, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+            </StackPanel>
+
+            <!-- Right: Invisible toggle button (exactly like existing pattern) -->
+            <ToggleButton Grid.Column="1" 
+                          x:Name="SectionToggle"
+                          IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"
+                          Width="20" Height="20"
+                          Margin="0,0,4,0"
+                          VerticalAlignment="Center"
+                          HorizontalAlignment="Center"
+                          Background="Transparent"
+                          BorderThickness="0"
+                          Cursor="Hand"
+                          Opacity="0" />
+                          
+            <!-- Visible chevron overlay (exactly like existing pattern) -->
+            <localControls:AnimatedChevron Grid.Column="1"
+                                           IsExpanded="{Binding IsChecked, ElementName=SectionToggle}"
+                                           ChevronSize="{Binding ChevronSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                           ChevronMargin="{Binding ChevronMargin, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Center"
+                                           IsHitTestVisible="False" />
+        </Grid>
 
         <!-- Animated collapsible content area -->
         <Border Margin="{Binding ContentMargin, RelativeSource={RelativeSource AncestorType=UserControl}}" 
