@@ -8,6 +8,10 @@
     <DataTemplate DataType="{x:Type vm:WorkspaceHeaderViewModel}">
         <views:WorkspaceHeaderView />
     </DataTemplate>
+    
+    <DataTemplate DataType="{x:Type vm:TestCaseGeneratorViewModel}">
+        <views:TestCaseGenerator_View />
+    </DataTemplate>
 
     <Style x:Key="IconButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>

@@ -134,8 +134,8 @@ namespace TestCaseEditorApp.Services
             EnsureTestCaseGeneratorHeader();
             _navigationMediator.SetActiveHeader(_testCaseGeneratorHeader);
             
-            // Show test case generator workflow
-            var testCaseWorkflow = _viewModelFactory.CreatePlaceholderViewModel();
+            // Show test case generator workflow with AnythingLLM integration
+            var testCaseWorkflow = _viewModelFactory.CreateTestCaseGeneratorViewModel();
             _navigationMediator.SetMainContent(testCaseWorkflow);
         }
 

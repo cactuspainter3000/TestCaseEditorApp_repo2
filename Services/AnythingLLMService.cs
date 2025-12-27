@@ -12,6 +12,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Win32;
+using TestCaseEditorApp.MVVM.Utils;
 
 namespace TestCaseEditorApp.Services
 {
@@ -793,22 +794,52 @@ namespace TestCaseEditorApp.Services
         {
             try
             {
+                // Immediately signal that we're checking/starting AnythingLLM
+                OnStatusUpdated("Checking AnythingLLM status...");
+                
                 // First try to connect to existing service
                 if (await IsServiceAvailableAsync(cancellationToken))
                 {
+                    OnStatusUpdated("AnythingLLM service is ready!");
                     return (true, "AnythingLLM service is already running and ready");
                 }
                 
                 // Global coordination to prevent multiple instances from starting simultaneously
+                bool shouldStartup = false;
                 lock (_globalStartupLock)
                 {
-                    if (_globalStartupInProgress)
+                    if (!_globalStartupInProgress)
                     {
-                        OnStatusUpdated("AnythingLLM startup already in progress by another instance");
-                        // Return success assuming the other instance will start it
-                        return (true, "AnythingLLM startup delegated to another instance");
+                        _globalStartupInProgress = true;
+                        shouldStartup = true;
                     }
-                    _globalStartupInProgress = true;
+                }
+                
+                // If another instance is starting, wait for it to complete
+                if (!shouldStartup)
+                {
+                    OnStatusUpdated("AnythingLLM startup already in progress, waiting...");
+                    int waitCount = 0;
+                    while (_globalStartupInProgress && waitCount < 60) // Wait up to 60 seconds
+                    {
+                        await Task.Delay(1000, cancellationToken);
+                        waitCount++;
+                        
+                        // Check if service became available
+                        if (await IsServiceAvailableAsync(cancellationToken))
+                        {
+                            OnStatusUpdated("AnythingLLM service is now ready");
+                            return (true, "AnythingLLM service started successfully");
+                        }
+                        
+                        if (waitCount % 5 == 0) // Update every 5 seconds
+                        {
+                            OnStatusUpdated($"Waiting for AnythingLLM startup... ({waitCount}/60s)");
+                        }
+                    }
+                    
+                    // If still not available, return error
+                    return (false, "Timeout waiting for AnythingLLM startup by another instance");
                 }
                 
                 try
@@ -843,6 +874,15 @@ namespace TestCaseEditorApp.Services
         {
             StatusUpdated?.Invoke(status);
             TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] {status}");
+            
+            // Publish status via mediator for cross-cutting concerns (spinner, status indicators)
+            var anythingLLMStatus = new AnythingLLMStatus
+            {
+                IsAvailable = status.Contains("ready") || status.Contains("already running"),
+                IsStarting = status.Contains("Starting") || status.Contains("waiting") || status.Contains("Checking"),
+                StatusMessage = status
+            };
+            AnythingLLMMediator.NotifyStatusUpdated(anythingLLMStatus);
         }
         
         /// <summary>

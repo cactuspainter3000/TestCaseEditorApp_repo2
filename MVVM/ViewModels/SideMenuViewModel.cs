@@ -48,6 +48,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand SaveProjectCommand { get; private set; } = null!;
         public ICommand QuickImportCommand { get; private set; } = null!;
         public ICommand ProjectNavigationCommand { get; private set; } = null!;
+        public ICommand TestCaseGeneratorNavigationCommand { get; private set; } = null!;
 
         // Requirements Management Commands
         public ICommand ImportAdditionalCommand { get; private set; } = null!;
@@ -111,6 +112,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             SaveProjectCommand = new RelayCommand(() => { /* TODO: Implement save */ });
             QuickImportCommand = new RelayCommand(() => { /* TODO: Implement quick import */ });
             ProjectNavigationCommand = new RelayCommand(NavigateToProject);
+            TestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToTestCaseGenerator);
+            TestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToTestCaseGenerator);
             
             // Requirements commands
             ImportAdditionalCommand = new RelayCommand(() => { /* TODO: Implement import additional */ });
@@ -152,6 +155,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             if (_navigationMediator != null)
             {
                 _navigationMediator.NavigateToSection("Project");
+            }
+        }
+        
+        private void NavigateToTestCaseGenerator()
+        {
+            Console.WriteLine("*** SideMenuViewModel.NavigateToTestCaseGenerator called! ***");
+            if (_navigationMediator != null)
+            {
+                _navigationMediator.NavigateToSection("TestCase");
             }
             else
             {
@@ -593,7 +605,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             TestCaseGeneratorMenuSection.AddItem(mainTestCaseGeneratorDropdown);
 
-            // Set command on Project dropdown after creation
+            // Set commands after creation
+            mainTestCaseGeneratorDropdown.Command = TestCaseGeneratorNavigationCommand; // Navigate when clicked
             var projectDropdown = mainTestCaseGeneratorDropdown.Children.FirstOrDefault(x => x.Id == "project") as MenuAction;
             if (projectDropdown != null)
             {
