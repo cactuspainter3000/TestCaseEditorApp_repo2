@@ -1,0 +1,95 @@
+using System;
+using System.Collections.ObjectModel;
+using System.Threading.Tasks;
+using System.Windows.Input;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using TestCaseEditorApp.MVVM.Utils;
+using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
+using TestCaseEditorApp.MVVM.Models.DataDrivenMenu;
+
+namespace TestCaseEditorApp.MVVM.ViewModels
+{
+    /// <summary>
+    /// ViewModel for the new side menu using the mediator architecture.
+    /// Handles navigation commands and communicates via mediators.
+    /// </summary>
+    public partial class NewSideMenuViewModel : ObservableObject
+    {
+        private readonly INavigationMediator _navigationMediator;
+        private readonly IWorkspaceManagementMediator _workspaceManagementMediator;
+
+        [ObservableProperty]
+        private MenuSection? testCaseGeneratorMenuSection;
+
+        [ObservableProperty]
+        private string? sapStatus = "Systems App v2.0";
+
+        // Navigation Commands
+        public ICommand ProjectNavigationCommand { get; private set; } = null!;
+        public ICommand NewProjectCommand { get; private set; } = null!;
+        public ICommand OpenProjectCommand { get; private set; } = null!;
+
+        public NewSideMenuViewModel(INavigationMediator navigationMediator, IWorkspaceManagementMediator workspaceManagementMediator)
+        {
+            _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
+            _workspaceManagementMediator = workspaceManagementMediator ?? throw new ArgumentNullException(nameof(workspaceManagementMediator));
+
+            InitializeCommands();
+            InitializeMenu();
+        }
+
+        private void InitializeCommands()
+        {
+            ProjectNavigationCommand = new RelayCommand(NavigateToProject);
+            NewProjectCommand = new AsyncRelayCommand(CreateNewProjectAsync);
+            OpenProjectCommand = new AsyncRelayCommand(OpenProjectAsync);
+        }
+
+        private void InitializeMenu()
+        {
+            // Create the data-driven menu structure
+            TestCaseGeneratorMenuSection = new MenuSection
+            {
+                Id = "testcase-generator",
+                Text = "Test Case Generator",
+                Icon = "🧪",
+                Items = new ObservableCollection<MenuContentItem>
+                {
+                    new MenuAction
+                    {
+                        Id = "project",
+                        Text = "Project",
+                        Icon = "📁",
+                        Command = ProjectNavigationCommand,
+                        IsDropdown = true,
+                        Children = new ObservableCollection<MenuContentItem>
+                        {
+                            new MenuAction { Id = "project.new", Text = "New Project", Icon = "🗂️", Command = NewProjectCommand },
+                            new MenuAction { Id = "project.open", Text = "Open Project", Icon = "📂", Command = OpenProjectCommand }
+                        }
+                    }
+                }
+            };
+        }
+
+        private void NavigateToProject()
+        {
+            Console.WriteLine("*** NewSideMenuViewModel.NavigateToProject called! ***");
+            var projectViewModel = new ProjectViewModel();
+            _navigationMediator.SetMainContent(projectViewModel);
+        }
+
+        private async Task CreateNewProjectAsync()
+        {
+            Console.WriteLine("*** NewSideMenuViewModel.CreateNewProject called! ***");
+            await _workspaceManagementMediator.CreateNewProjectAsync();
+        }
+
+        private async Task OpenProjectAsync()
+        {
+            Console.WriteLine("*** NewSideMenuViewModel.OpenProject called! ***");
+            await _workspaceManagementMediator.OpenProjectAsync();
+        }
+    }
+}
