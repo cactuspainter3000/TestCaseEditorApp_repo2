@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
+using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 using TestCaseEditorApp.Services;
 using Microsoft.Extensions.Logging;
 
@@ -25,6 +26,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly NotificationService _notificationService;
         private readonly INavigationMediator _navigationMediator;
         private readonly AnythingLLMService _anythingLLMService;
+        private readonly IWorkspaceManagementMediator _workspaceMediator;
         private readonly ILogger<ProjectViewModel>? _logger;
         
         // Current workspace state
@@ -78,6 +80,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             INavigationMediator navigationMediator,
             ObservableCollection<Requirement> requirements,
             AnythingLLMService anythingLLMService,
+            IWorkspaceManagementMediator workspaceMediator,
             ILogger<ProjectViewModel>? logger = null)
         {
             // Store dependencies
@@ -87,16 +90,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
             Requirements = requirements ?? throw new ArgumentNullException(nameof(requirements));
             _anythingLLMService = anythingLLMService ?? throw new ArgumentNullException(nameof(anythingLLMService));
+            _workspaceMediator = workspaceMediator ?? throw new ArgumentNullException(nameof(workspaceMediator));
             _logger = logger;
             
-            TestCaseEditorApp.Services.Logging.Log.Info("[ProjectViewModel] Constructor called with full dependencies including AnythingLLMService");
+            TestCaseEditorApp.Services.Logging.Log.Info("[ProjectViewModel] Constructor called with full dependencies including AnythingLLMService and WorkspaceManagementMediator");
             
             // Initialize commands
             SaveWorkspaceCommand = new RelayCommand(SaveWorkspace, () => HasUnsavedChanges);
             SaveWorkspaceAsCommand = new AsyncRelayCommand(SaveWorkspaceAsync);
             LoadWorkspaceCommand = new RelayCommand(LoadWorkspace);
-            NewProjectCommand = new RelayCommand(CreateNewProject);
-            OpenProjectCommand = new RelayCommand(OpenExistingProject);
+            NewProjectCommand = new RelayCommand(() => _workspaceMediator.CreateNewProjectAsync());
+            OpenProjectCommand = new RelayCommand(() => _workspaceMediator.OpenProjectAsync());
             
             // Setup property change monitoring
             Requirements.CollectionChanged += (s, e) => MarkDirty();
@@ -114,6 +118,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             new StubNavigationMediator(),
             new ObservableCollection<Requirement>(),
             new AnythingLLMService(), // Use real service even in legacy constructor
+            new StubWorkspaceManagementMediator(),
             null)
         {
             TestCaseEditorApp.Services.Logging.Log.Info("[ProjectViewModel] Legacy constructor called - limited functionality");
@@ -463,6 +468,38 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             public void Subscribe<T>(Action<T> handler) where T : class { }
             public void Unsubscribe<T>(Action<T> handler) where T : class { }
             public void Publish<T>(T navigationEvent) where T : class { }
+        }
+        
+        private class StubWorkspaceManagementMediator : IWorkspaceManagementMediator
+        {
+            public string CurrentStep => "ProjectSelection";
+            public object? CurrentViewModel => null;
+            public bool IsRegistered => true;
+            public string DomainName => "Workspace Management";
+            public void MarkAsRegistered() { }
+            public void RequestCrossDomainAction<T>(T request) where T : class { }
+            public void BroadcastToAllDomains<T>(T notification) where T : class { }
+            public void NavigateToInitialStep() { }
+            public void NavigateToFinalStep() { }
+            public void NavigateToStep(string stepName, object? context = null) { }
+            public bool CanNavigateBack() => false;
+            public bool CanNavigateForward() => false;
+            public async Task CreateNewProjectAsync() => await Task.CompletedTask;
+            public async Task OpenProjectAsync() => await Task.CompletedTask;
+            public async Task SaveProjectAsync() => await Task.CompletedTask;
+            public async Task CloseProjectAsync() => await Task.CompletedTask;
+            public void ShowWorkspaceSelectionForOpen() { }
+            public void ShowWorkspaceSelectionForNew() { }
+            public async Task OnWorkspaceSelectedAsync(string workspaceSlug, string workspaceName, bool isNewProject) => await Task.CompletedTask;
+            public WorkspaceInfo? GetCurrentWorkspaceInfo() => null;
+            public bool HasUnsavedChanges() => false;
+            public void ShowProgress(string message, double percentage = 0) { /* no-op */ }
+            public void UpdateProgress(string message, double percentage) { /* no-op */ }
+            public void HideProgress() { /* no-op */ }
+            public void ShowNotification(string message, DomainNotificationType type = DomainNotificationType.Info) { /* no-op */ }
+            public void Subscribe<T>(Action<T> handler) where T : class { /* no-op */ }
+            public void Unsubscribe<T>(Action<T> handler) where T : class { /* no-op */ }
+            public void PublishEvent<T>(T eventData) where T : class { /* no-op */ }
         }
         
         #endregion

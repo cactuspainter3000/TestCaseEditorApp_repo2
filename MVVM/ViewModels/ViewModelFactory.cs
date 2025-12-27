@@ -90,6 +90,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 CreateNavigationMediator(),
                 new System.Collections.ObjectModel.ObservableCollection<Requirement>(), // Shared requirements will be injected later
                 _applicationServices.AnythingLLMService,
+                _workspaceManagementMediator ?? throw new InvalidOperationException("WorkspaceManagementMediator is required for ProjectViewModel"),
                 _applicationServices.LoggerFactory?.CreateLogger(typeof(ProjectViewModel).FullName ?? "ProjectViewModel") as ILogger<ProjectViewModel>);
         }
         
