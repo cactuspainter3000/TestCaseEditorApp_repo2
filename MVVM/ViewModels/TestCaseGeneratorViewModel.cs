@@ -111,6 +111,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             
             // Request current status
             Task.Run(() => AnythingLLMMediator.RequestCurrentStatus());
+            
+            // Initialize AnythingLLM service when Test Case Generator loads (async, non-blocking)
+            Task.Run(async () => 
+            {
+                try 
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info("[TestCaseGeneratorViewModel] Initiating AnythingLLM startup for test case generation");
+                    await _anythingLLMService.EnsureServiceRunningAsync();
+                } 
+                catch (Exception ex) 
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error(ex, "[TestCaseGeneratorViewModel] Failed to initialize AnythingLLM");
+                }
+            });
         }
 
         /// <summary>

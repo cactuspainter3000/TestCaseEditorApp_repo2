@@ -104,20 +104,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Subscribe to AnythingLLM status updates via mediator
             AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusUpdated;
             AnythingLLMMediator.RequestCurrentStatus();
-            
-            // Initialize AnythingLLM service (async, non-blocking)
-            Task.Run(async () => 
-            {
-                try 
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Info("[ProjectViewModel] Initiating AnythingLLM startup");
-                    await _anythingLLMService.EnsureServiceRunningAsync();
-                } 
-                catch (Exception ex) 
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Error(ex, "[ProjectViewModel] Failed to initialize AnythingLLM");
-                }
-            });
         }
         
         // Legacy constructor for compatibility (minimal functionality)
