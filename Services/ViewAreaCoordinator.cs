@@ -34,12 +34,15 @@ namespace TestCaseEditorApp.Services
             _workspaceManagementMediator = workspaceManagementMediator ?? throw new ArgumentNullException(nameof(workspaceManagementMediator));
             
             // Initialize UI area view models with proper dependencies
-            SideMenu = new SideMenuViewModel(_workspaceManagementMediator);
+            SideMenu = new SideMenuViewModel(_workspaceManagementMediator, _navigationMediator);
             HeaderArea = new HeaderAreaViewModel();
             WorkspaceContent = new WorkspaceContentViewModel();
 
             // Subscribe to navigation events
             SetupNavigationHandlers();
+            
+            // Set initial workspace content
+            SetInitialContent();
         }
         
         private void SetupNavigationHandlers()
@@ -47,6 +50,7 @@ namespace TestCaseEditorApp.Services
             // Subscribe to navigation mediator events
             _navigationMediator.Subscribe<NavigationEvents.SectionChangeRequested>(OnSectionChangeRequested);
             _navigationMediator.Subscribe<NavigationEvents.StepChangeRequested>(OnStepChangeRequested);
+            _navigationMediator.Subscribe<NavigationEvents.ContentChanged>(OnContentChanged);
             
             // Wire up side menu selection to mediator
             SideMenu.SectionChanged += (section) => 
@@ -81,6 +85,13 @@ namespace TestCaseEditorApp.Services
         {
             // Handle step navigation within current section
             TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Step change requested: {request.StepId}");
+        }
+        
+        private void OnContentChanged(NavigationEvents.ContentChanged contentChanged)
+        {
+            // Update the workspace content when mediator publishes content changes
+            WorkspaceContent.CurrentContent = contentChanged.ContentViewModel;
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Content updated to: {contentChanged.ContentViewModel?.GetType().Name ?? "<null>"}");
         }
         
         // Public navigation methods (implement IViewAreaCoordinator)
@@ -182,6 +193,13 @@ namespace TestCaseEditorApp.Services
                 // TODO: Need to pass proper navigator - for now use null
                 _testCaseGeneratorHeader = _viewModelFactory.CreateTestCaseGeneratorHeaderViewModel(null!);
             }
+        }
+        
+        private void SetInitialContent()
+        {
+            // Use the mediator to publish initial content - views will be subscribed to this
+            var initialStateViewModel = new InitialStateViewModel();
+            _navigationMediator.SetMainContent(initialStateViewModel);
         }
     }
 }

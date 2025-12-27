@@ -1,0 +1,63 @@
+<UserControl x:Class="TestCaseEditorApp.MVVM.Views.NewSideMenuView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels" 
+             d:DataContext="{d:DesignInstance Type=vm:SideMenuViewModel, IsDesignTimeCreatable=False}"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="200">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Include MenuAction templates for ContentPresenter -->
+                <ResourceDictionary Source="../Controls/DataDrivenMenu/MenuContentTemplates.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Border Background="{StaticResource Brush.Background.Menu}" 
+            BorderBrush="{DynamicResource HeaderAccentBrush}" 
+            BorderThickness="2" 
+            CornerRadius="4" 
+            Margin="4,8,4,0">
+        <Grid Margin="8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            
+            <!-- Data-driven menu with scrollbar to match original menu -->
+            <ScrollViewer Grid.Row="0"
+                         VerticalScrollBarVisibility="Visible"
+                         HorizontalScrollBarVisibility="Disabled">
+                <ScrollViewer.Resources>
+                    <Style TargetType="ScrollBar" BasedOn="{StaticResource CustomScrollBarStyle}" />
+                </ScrollViewer.Resources>
+                <ItemsControl ItemsSource="{Binding TestCaseGeneratorMenuSection.Items}"
+                             Margin="0,4,0,0">
+                    <ItemsControl.Resources>
+                        <ResourceDictionary>
+                            <ResourceDictionary.MergedDictionaries>
+                                <ResourceDictionary Source="/MVVM/Controls/DataDrivenMenu/MenuContentTemplates.xaml"/>
+                            </ResourceDictionary.MergedDictionaries>
+                        </ResourceDictionary>
+                    </ItemsControl.Resources>
+                    
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Vertical"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </ScrollViewer>
+            
+            <TextBlock Grid.Row="1"
+                       Text="{Binding SapStatus}"
+                       HorizontalAlignment="Center"
+                       Foreground="#CCCCCC"
+                       Style="{StaticResource MenuHeaderTheme}"/>
+        </Grid>
+    </Border>
+</UserControl>

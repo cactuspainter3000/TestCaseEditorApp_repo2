@@ -394,13 +394,13 @@
 
                     <Grid Grid.ColumnSpan="4" Margin="0">
                         <!-- Header content rendered via the HeaderViewModel (DataTemplate or UserControl) -->
-                        <ContentControl Content="{Binding ActiveHeader}" />
+                        <ContentControl Content="{Binding HeaderWorkspace}" />
                     </Grid>
                 </Grid>
             </Border>
 
             <!-- Left menu section: Test Case / Test Flow, with one-open-at-a-time behavior -->
-            <views:SideMenuView Grid.Column="0" Grid.Row="2" Grid.RowSpan="5" 
+            <views:NewSideMenuView Grid.Column="0" Grid.Row="2" Grid.RowSpan="5" 
                                DataContext="{Binding ViewAreaCoordinator.SideMenu}"/>
 
             <!-- Content area -->
@@ -419,7 +419,7 @@
                     </Grid.RowDefinitions>
 
                     <ContentControl Grid.Row="1" Grid.ColumnSpan="4" Margin="6"
-                                    Content="{Binding CurrentStepViewModel}" />
+                                    Content="{Binding MainWorkspace}" />
                 </Grid>
             </Border>
 

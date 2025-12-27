@@ -297,6 +297,51 @@ await mediator.RequestCrossDomainAction(
     });
 ```
 
+### **Side Menu Command Integration**
+
+**Adding Commands to Data-Driven Menu Items:**
+
+1. **Create Command Property** in SideMenuViewModel:
+```csharp
+public ICommand MyNavigationCommand { get; private set; } = null!;
+```
+
+2. **Initialize Command** with mediator access:
+```csharp
+private void InitializeCommands()
+{
+    MyNavigationCommand = new RelayCommand(NavigateToMySection);
+}
+
+private void NavigateToMySection()
+{
+    if (_navigationMediator != null)
+    {
+        var viewModel = new MyViewModel();
+        _navigationMediator.SetMainContent(viewModel);
+    }
+}
+```
+
+3. **Assign Command to Menu Item** after creation:
+```csharp
+// In InitializeDataDrivenTestCaseGenerator()
+var myDropdown = CreateDropdown("my-section", "📋", "My Section", "Description", 
+    // ... child items
+);
+
+// Set command after creation
+myDropdown.Command = MyNavigationCommand;
+```
+
+**✅ CRITICAL**: The dropdown template (`MenuContentTemplates.xaml`) must include command binding:
+```xml
+<ToggleButton Command="{Binding Command}"
+              CommandParameter="{Binding CommandParameter}" />
+```
+
+**✅ This enables both expand/collapse AND navigation from a single click**
+
 ---
 
 ## 🚨 Architectural Red Flags
@@ -327,6 +372,6 @@ You’ll know the architecture is working when:
 
 ---
 
-*Last Updated: December 18, 2025 — Fail-Fast Mediator Rules & Event Purity Integrated*
+*Last Updated: December 27, 2025 — Side Menu Command Integration Pattern Added*
 
 ---

@@ -9,6 +9,7 @@ using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Models.DataDrivenMenu;
+using TestCaseEditorApp.MVVM.Utils;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -19,6 +20,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     public partial class SideMenuViewModel : ObservableObject
     {
         private readonly IWorkspaceManagementMediator? _workspaceManagementMediator;
+        private readonly INavigationMediator? _navigationMediator;
 
         [ObservableProperty]
         private string? selectedSection;
@@ -45,6 +47,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand OpenProjectCommand { get; private set; } = null!;
         public ICommand SaveProjectCommand { get; private set; } = null!;
         public ICommand QuickImportCommand { get; private set; } = null!;
+        public ICommand ProjectNavigationCommand { get; private set; } = null!;
 
         // Requirements Management Commands
         public ICommand ImportAdditionalCommand { get; private set; } = null!;
@@ -89,9 +92,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty]
         private bool autoExportForChatGpt = false;
 
-        public SideMenuViewModel(IWorkspaceManagementMediator? workspaceManagementMediator = null)
+        public SideMenuViewModel(IWorkspaceManagementMediator? workspaceManagementMediator = null, INavigationMediator? navigationMediator = null)
         {
             _workspaceManagementMediator = workspaceManagementMediator;
+            _navigationMediator = navigationMediator;
             InitializeCommands();
             InitializeMenuItems();
             InitializeTestCaseGeneratorSteps();
@@ -106,6 +110,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             OpenProjectCommand = new AsyncRelayCommand(OpenProjectAsync);
             SaveProjectCommand = new RelayCommand(() => { /* TODO: Implement save */ });
             QuickImportCommand = new RelayCommand(() => { /* TODO: Implement quick import */ });
+            ProjectNavigationCommand = new RelayCommand(NavigateToProject);
             
             // Requirements commands
             ImportAdditionalCommand = new RelayCommand(() => { /* TODO: Implement import additional */ });
@@ -141,7 +146,19 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 Console.WriteLine("*** WorkspaceManagementMediator is null in SideMenuViewModel! ***");
             }
         }
-
+        private void NavigateToProject()
+        {
+            Console.WriteLine("*** SideMenuViewModel.NavigateToProject called! ***");
+            if (_navigationMediator != null)
+            {
+                var projectViewModel = new ProjectViewModel();
+                _navigationMediator.SetMainContent(projectViewModel);
+            }
+            else
+            {
+                Console.WriteLine("*** NavigationMediator is null in SideMenuViewModel! ***");
+            }
+        }
         private async Task OpenProjectAsync()
         {
             Console.WriteLine("*** SideMenuViewModel.OpenProject called! ***");
@@ -189,10 +206,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             
             foreach (var child in children)
             {
-                // Ensure child level is always higher than parent level
-                if (child.Level <= level)
-                    child.Level = level + 1;
                 dropdown.AddChild(child);
+                child.Level = level + 1;
             }
             
             return dropdown;
@@ -251,13 +266,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Level 1: Test Case Generator (Primary header)
             var testCaseGenerator = MenuHierarchyItem.CreateSection("Test Case Generator", 1, true,
                 // Level 2: Project (Secondary header)
-                MenuHierarchyItem.CreateSection("Project", 2, true,
-                    CreateActionWithId("project.new", "🗂️ New Project", "🗂️", NewProjectCommand),
-                    CreateActionWithId("project.quickimport", "⚡ Quick Import (Legacy)", "⚡", QuickImportCommand),
-                    CreateActionWithId("project.open", "📂 Open Project", "📂", OpenProjectCommand),
-                    CreateActionWithId("project.save", "💾 Save Project", "💾", SaveProjectCommand, false), // Disabled by default
-                    CreateActionWithId("project.close", "❌ Close Project", "❌", CloseProjectCommand, false) // Disabled by default
-                ),
+                CreateProjectSectionWithCommand(),
                 
                 // Level 2: Requirement (Secondary header)
                 MenuHierarchyItem.CreateSection("Requirement", 2, true,
@@ -293,6 +302,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Level 1: Test Flow Generator (Primary header)
             var testFlowGenerator = MenuHierarchyItem.CreateSection("Test Flow Generator", 1, true,
                 // Add test flow items here when needed
+                MenuHierarchyItem.CreateSection("Flow Design", 2, true,
+                    CreateActionWithId("flow.create", "🆕 Create New Flow", "🆕", null, false),
+                    CreateActionWithId("flow.validate", "✅ Validate Flow", "✅", null, false),
+                    CreateActionWithId("flow.export", "📤 Export Flow", "📤", null, false)
+                ),
                 MenuHierarchyItem.CreateSection("Testing", 2, true,
                     CreateActionWithId("testing.option1", "🧪 Test Option 1", "🧪", null, false),
                     CreateActionWithId("testing.option2", "🔬 Test Option 2", "🔬", null, false)
@@ -356,6 +370,23 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 Tag = id
             };
             return item;
+        }
+        
+        /// <summary>
+        /// Creates the Project section with RelayCommand attached to notify mediators
+        /// </summary>
+        private MenuHierarchyItem CreateProjectSectionWithCommand()
+        {
+            var projectSection = MenuHierarchyItem.CreateSection("Project", 2, true,
+                CreateActionWithId("project.new", "🗂️ New Project", "🗂️", NewProjectCommand),
+                CreateActionWithId("project.quickimport", "⚡ Quick Import (Legacy)", "⚡", QuickImportCommand),
+                CreateActionWithId("project.open", "📂 Open Project", "📂", OpenProjectCommand),
+                CreateActionWithId("project.save", "💾 Save Project", "💾", SaveProjectCommand, false),
+                CreateActionWithId("project.close", "❌ Close Project", "❌", CloseProjectCommand, false)
+            );
+            
+            projectSection.Command = ProjectNavigationCommand;
+            return projectSection;
         }
         
         /// <summary>
@@ -562,6 +593,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             );
 
             TestCaseGeneratorMenuSection.AddItem(mainTestCaseGeneratorDropdown);
+
+            // Set command on Project dropdown after creation
+            var projectDropdown = mainTestCaseGeneratorDropdown.Children.FirstOrDefault(x => x.Id == "project") as MenuAction;
+            if (projectDropdown != null)
+            {
+                projectDropdown.Command = ProjectNavigationCommand;
+            }
 
             System.Diagnostics.Debug.WriteLine($"[SideMenuViewModel] Data-driven TestCaseGenerator initialized with hierarchical structure: 1 main dropdown containing {mainTestCaseGeneratorDropdown.Children.Count} sub-sections");
         }
