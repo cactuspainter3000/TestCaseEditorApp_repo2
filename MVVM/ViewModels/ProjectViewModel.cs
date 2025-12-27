@@ -24,6 +24,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly IFileDialogService _fileDialog;
         private readonly NotificationService _notificationService;
         private readonly INavigationMediator _navigationMediator;
+        private readonly AnythingLLMService _anythingLLMService;
         private readonly ILogger<ProjectViewModel>? _logger;
         
         // Current workspace state
@@ -76,6 +77,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             NotificationService notificationService,
             INavigationMediator navigationMediator,
             ObservableCollection<Requirement> requirements,
+            AnythingLLMService anythingLLMService,
             ILogger<ProjectViewModel>? logger = null)
         {
             // Store dependencies
@@ -84,9 +86,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
             Requirements = requirements ?? throw new ArgumentNullException(nameof(requirements));
+            _anythingLLMService = anythingLLMService ?? throw new ArgumentNullException(nameof(anythingLLMService));
             _logger = logger;
             
-            TestCaseEditorApp.Services.Logging.Log.Info("[ProjectViewModel] Constructor called with full dependencies");
+            TestCaseEditorApp.Services.Logging.Log.Info("[ProjectViewModel] Constructor called with full dependencies including AnythingLLMService");
             
             // Initialize commands
             SaveWorkspaceCommand = new RelayCommand(SaveWorkspace, () => HasUnsavedChanges);
@@ -101,6 +104,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Subscribe to AnythingLLM status updates via mediator
             AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusUpdated;
             AnythingLLMMediator.RequestCurrentStatus();
+            
+            // Initialize AnythingLLM service (async, non-blocking)
+            Task.Run(async () => 
+            {
+                try 
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info("[ProjectViewModel] Initiating AnythingLLM startup");
+                    await _anythingLLMService.EnsureServiceRunningAsync();
+                } 
+                catch (Exception ex) 
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error(ex, "[ProjectViewModel] Failed to initialize AnythingLLM");
+                }
+            });
         }
         
         // Legacy constructor for compatibility (minimal functionality)
@@ -110,6 +127,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             new StubNotificationService(),
             new StubNavigationMediator(),
             new ObservableCollection<Requirement>(),
+            new AnythingLLMService(), // Use real service even in legacy constructor
             null)
         {
             TestCaseEditorApp.Services.Logging.Log.Info("[ProjectViewModel] Legacy constructor called - limited functionality");

@@ -89,6 +89,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 _applicationServices.NotificationService,
                 CreateNavigationMediator(),
                 new System.Collections.ObjectModel.ObservableCollection<Requirement>(), // Shared requirements will be injected later
+                _applicationServices.AnythingLLMService,
                 _applicationServices.LoggerFactory?.CreateLogger(typeof(ProjectViewModel).FullName ?? "ProjectViewModel") as ILogger<ProjectViewModel>);
         }
         
