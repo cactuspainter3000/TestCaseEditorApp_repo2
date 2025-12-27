@@ -151,8 +151,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             Console.WriteLine("*** SideMenuViewModel.NavigateToProject called! ***");
             if (_navigationMediator != null)
             {
-                var projectViewModel = new ProjectViewModel();
-                _navigationMediator.SetMainContent(projectViewModel);
+                _navigationMediator.NavigateToSection("Project");
             }
             else
             {
