@@ -26,6 +26,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             
             <!-- Data-driven menu with scrollbar to match original menu -->
@@ -53,7 +54,15 @@
                 </ItemsControl>
             </ScrollViewer>
             
-            <TextBlock Grid.Row="1"
+            <!-- Simple Test Button -->
+            <Button Grid.Row="1"
+                    Click="TestAnythingLLM_Click"
+                    Background="#FF00AA00"
+                    Foreground="White"
+                    Margin="4,8,4,4"
+                    Content="🔗 Test AnythingLLM"/>
+            
+            <TextBlock Grid.Row="2"
                        Text="{Binding SapStatus}"
                        HorizontalAlignment="Center"
                        Foreground="#CCCCCC"

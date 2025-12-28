@@ -78,6 +78,7 @@ namespace TestCaseEditorApp
                     services.AddSingleton<RequirementAnalysisService>();
                     services.AddSingleton<AnythingLLMService>(provider =>
                         new AnythingLLMService()); // Let it get baseUrl and apiKey from defaults/user config
+                    services.AddSingleton<TestCaseAnythingLLMService>();
 
                     // Domain coordination
                     services.AddSingleton<IDomainCoordinator, DomainCoordinator>();
