@@ -14,12 +14,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
     /// <summary>
     /// Dedicated ViewModel for test case generation and AI/LLM integration.
-    /// Handles all test case generation workflows and AnythingLLM integration.
+    /// Handles all test case generation workflows.
     /// </summary>
     public partial class TestCaseGeneratorViewModel : ObservableObject
     {
         // Service dependencies
-        private readonly AnythingLLMService _anythingLLMService;
         private readonly ChatGptExportService _chatGptExportService;
         private readonly NotificationService _notificationService;
         private readonly INavigationMediator _navigationMediator;
@@ -31,19 +30,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         // Shared requirements collection
         public ObservableCollection<Requirement> Requirements { get; }
-
-        // AnythingLLM Status Properties
-        [ObservableProperty]
-        private bool _isAnythingLLMAvailable;
-        
-        [ObservableProperty]
-        private bool _isAnythingLLMStarting;
-        
-        [ObservableProperty]
-        private string _anythingLLMStatusMessage = "Initializing AnythingLLM...";
-        
-        [ObservableProperty]
-        private string? _currentAnythingLLMWorkspaceSlug;
 
         // LLM Busy Status
         [ObservableProperty]
@@ -68,14 +54,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         public ICommand GenerateAnalysisCommand { get; }
         public ICommand GenerateLearningPromptCommand { get; }
         public ICommand SetupLlmWorkspaceCommand { get; }
-        public ICommand ConnectAnythingLLMCommand { get; }
-        public ICommand CreateAnythingLLMWorkspaceCommand { get; }
 
         /// <summary>
         /// Main constructor with dependency injection
         /// </summary>
         public TestCaseGeneratorViewModel(
-            AnythingLLMService anythingLLMService,
             ChatGptExportService chatGptExportService,
             NotificationService notificationService,
             INavigationMediator navigationMediator,
@@ -83,7 +66,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             ILogger<TestCaseGeneratorViewModel>? logger = null)
         {
             // Store dependencies
-            _anythingLLMService = anythingLLMService ?? throw new ArgumentNullException(nameof(anythingLLMService));
             _chatGptExportService = chatGptExportService ?? throw new ArgumentNullException(nameof(chatGptExportService));
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
@@ -100,24 +82,15 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             GenerateAnalysisCommand = new RelayCommand(ExecuteGenerateAnalysisCommand, () => CurrentRequirement != null);
             GenerateLearningPromptCommand = new RelayCommand(ExecuteGenerateLearningPrompt, () => CurrentRequirement != null);
             SetupLlmWorkspaceCommand = new AsyncRelayCommand(SetupLlmWorkspaceAsync);
-            ConnectAnythingLLMCommand = new AsyncRelayCommand(ConnectAnythingLLMAsync);
-            CreateAnythingLLMWorkspaceCommand = new AsyncRelayCommand(CreateAnythingLLMWorkspaceAsync);
 
             // Monitor property changes
             PropertyChanged += OnPropertyChanged;
-            
-            // Subscribe to AnythingLLM status updates
-            AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusUpdated;
-            
-            // Request current status
-            Task.Run(() => AnythingLLMMediator.RequestCurrentStatus());
         }
 
         /// <summary>
         /// Legacy constructor for compatibility (minimal functionality)
         /// </summary>
         public TestCaseGeneratorViewModel() : this(
-            new StubAnythingLLMService(),
             new ChatGptExportService(), // Use real service since it doesn't need dependencies
             new StubNotificationService(),
             new StubNavigationMediator(),
@@ -160,22 +133,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                     ((RelayCommand)GenerateAnalysisCommand).NotifyCanExecuteChanged();
                     ((RelayCommand)GenerateLearningPromptCommand).NotifyCanExecuteChanged();
                     break;
-            }
-        }
-
-        private void OnAnythingLLMStatusUpdated(AnythingLLMStatus status)
-        {
-            try
-            {
-                IsAnythingLLMAvailable = status.IsAvailable;
-                IsAnythingLLMStarting = status.IsStarting;
-                AnythingLLMStatusMessage = status.StatusMessage;
-                
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[TestCaseGeneratorViewModel] AnythingLLM status updated - Available: {status.IsAvailable}, Starting: {status.IsStarting}, Message: {status.StatusMessage}");
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[TestCaseGeneratorViewModel] Error handling AnythingLLM status update");
             }
         }
 
@@ -288,75 +245,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, "[TestCaseGenerator] Failed to setup LLM workspace");
                 _notificationService.ShowError("❌ Failed to setup LLM workspace", 5);
-            }
-            finally
-            {
-                IsLlmBusy = false;
-            }
-        }
-
-        /// <summary>
-        /// Connect to AnythingLLM service
-        /// </summary>
-        private async Task ConnectAnythingLLMAsync()
-        {
-            try
-            {
-                _notificationService.ShowInfo("Connecting to AnythingLLM...");
-                IsLlmBusy = true;
-
-                var (success, message) = await _anythingLLMService.TestConnectivityAsync();
-                
-                if (success)
-                {
-                    _notificationService.ShowSuccess($"✅ Connected to AnythingLLM: {message}", 5);
-                }
-                else
-                {
-                    _notificationService.ShowError($"❌ AnythingLLM connection failed: {message}", 8);
-                }
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[TestCaseGenerator] Failed to connect to AnythingLLM");
-                _notificationService.ShowError("❌ Failed to connect to AnythingLLM", 5);
-            }
-            finally
-            {
-                IsLlmBusy = false;
-            }
-        }
-
-        /// <summary>
-        /// Create new AnythingLLM workspace
-        /// </summary>
-        private async Task CreateAnythingLLMWorkspaceAsync()
-        {
-            try
-            {
-                _notificationService.ShowInfo("Creating AnythingLLM workspace...");
-                IsLlmBusy = true;
-
-                // Generate workspace name based on current project or timestamp
-                var workspaceName = $"TestCaseEditor_{DateTime.Now:yyyyMMdd_HHmmss}";
-                
-                var workspace = await _anythingLLMService.CreateWorkspaceAsync(workspaceName);
-                
-                if (workspace != null)
-                {
-                    CurrentAnythingLLMWorkspaceSlug = workspace.Slug;
-                    _notificationService.ShowSuccess($"✅ Created AnythingLLM workspace: {workspace.Name}", 6);
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[TestCaseGenerator] Created AnythingLLM workspace: {workspace.Name} ({workspace.Slug})");
-                }
-                else
-                {
-                    _notificationService.ShowError("❌ Failed to create AnythingLLM workspace", 5);
-                }
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[TestCaseGenerator] Failed to create AnythingLLM workspace");
-                _notificationService.ShowError("❌ Failed to create AnythingLLM workspace", 5);
             }
             finally
             {
