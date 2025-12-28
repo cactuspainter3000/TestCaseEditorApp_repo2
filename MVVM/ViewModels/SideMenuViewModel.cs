@@ -164,13 +164,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             Console.WriteLine("*** SideMenuViewModel.NavigateToTestCaseGenerator called! ***");
             
-            // Launch AnythingLLM when navigating to Test Case Generator
-            var service = App.ServiceProvider?.GetService<TestCaseAnythingLLMService>();
-            if (service != null)
-            {
-                await service.ConnectAsync();
-            }
-            
+            // Navigate to splash screen first
             if (_navigationMediator != null)
             {
                 _navigationMediator.NavigateToSection("TestCase");
@@ -178,6 +172,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             else
             {
                 Console.WriteLine("*** NavigationMediator is null in SideMenuViewModel! ***");
+            }
+            
+            // Then launch AnythingLLM in background
+            var service = App.ServiceProvider?.GetService<TestCaseAnythingLLMService>();
+            if (service != null)
+            {
+                await service.ConnectAsync();
             }
         }
         private async Task OpenProjectAsync()

@@ -143,5 +143,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 new System.Collections.ObjectModel.ObservableCollection<Requirement>(), // Shared requirements will be injected later
                 _applicationServices.LoggerFactory?.CreateLogger(typeof(TestCaseGeneratorViewModel).FullName ?? "TestCaseGeneratorViewModel") as ILogger<TestCaseGeneratorViewModel>);
         }
+
+        public object CreateTestCaseGeneratorSplashScreenViewModel()
+        {
+            return new TestCaseGeneratorSplashScreenViewModel();
+        }
     }
 }

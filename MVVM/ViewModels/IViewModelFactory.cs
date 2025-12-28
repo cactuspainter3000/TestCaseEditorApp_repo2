@@ -30,6 +30,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         NewProjectWorkflowViewModel CreateNewProjectWorkflowViewModel();
         TestCaseGenerator_HeaderVM CreateTestCaseGeneratorHeaderViewModel(ITestCaseGenerationMediator mediator);
         object CreateTestCaseGeneratorViewModel();
+        object CreateTestCaseGeneratorSplashScreenViewModel();
         
         // Domain ViewModels (proper DI approach)
         WorkspaceManagementVM CreateWorkspaceManagementViewModel();

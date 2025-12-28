@@ -12,6 +12,10 @@
     <DataTemplate DataType="{x:Type vm:TestCaseGeneratorViewModel}">
         <views:TestCaseGenerator_View />
     </DataTemplate>
+    
+    <DataTemplate DataType="{x:Type vm:TestCaseGeneratorSplashScreenViewModel}">
+        <views:TestCaseGeneratorSplashScreen />
+    </DataTemplate>
 
     <Style x:Key="IconButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>
