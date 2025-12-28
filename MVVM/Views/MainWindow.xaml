@@ -27,7 +27,7 @@
         <!-- Put resources directly in Window.Resources (do NOT nest a ResourceDictionary element here) -->
 
         <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_VM}">
-            <views:TestCaseGenerator_View />
+            <views:TestCaseGeneratorRequirements_View />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_AssumptionsVM}">

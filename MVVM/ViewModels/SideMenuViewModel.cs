@@ -51,6 +51,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand QuickImportCommand { get; private set; } = null!;
         public ICommand ProjectNavigationCommand { get; private set; } = null!;
         public ICommand TestCaseGeneratorNavigationCommand { get; private set; } = null!;
+        public ICommand RequirementsNavigationCommand { get; private set; } = null!;
 
         // Requirements Management Commands
         public ICommand ImportAdditionalCommand { get; private set; } = null!;
@@ -116,6 +117,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             ProjectNavigationCommand = new RelayCommand(NavigateToProject);
             TestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToTestCaseGenerator);
             TestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToTestCaseGenerator);
+            RequirementsNavigationCommand = new RelayCommand(NavigateToRequirements);
             
             // Requirements commands
             ImportAdditionalCommand = new RelayCommand(() => { /* TODO: Implement import additional */ });
@@ -179,6 +181,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             if (service != null)
             {
                 await service.ConnectAsync();
+            }
+        }
+        
+        private void NavigateToRequirements()
+        {
+            Console.WriteLine("*** SideMenuViewModel.NavigateToRequirements called! ***");
+            
+            if (_navigationMediator != null)
+            {
+                _navigationMediator.NavigateToSection("Requirements");
+            }
+            else
+            {
+                Console.WriteLine("*** NavigationMediator is null in SideMenuViewModel! ***");
             }
         }
         private async Task OpenProjectAsync()
@@ -622,6 +638,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             if (projectDropdown != null)
             {
                 projectDropdown.Command = ProjectNavigationCommand;
+            }
+            var requirementsDropdown = mainTestCaseGeneratorDropdown.Children.FirstOrDefault(x => x.Id == "requirements") as MenuAction;
+            if (requirementsDropdown != null)
+            {
+                requirementsDropdown.Command = RequirementsNavigationCommand;
             }
 
             System.Diagnostics.Debug.WriteLine($"[SideMenuViewModel] Data-driven TestCaseGenerator initialized with hierarchical structure: 1 main dropdown containing {mainTestCaseGeneratorDropdown.Children.Count} sub-sections");

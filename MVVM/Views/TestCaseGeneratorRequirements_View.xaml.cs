@@ -6,14 +6,14 @@ using System.Windows.Media.Animation;
 
 namespace TestCaseEditorApp.MVVM.Views
 {
-    public partial class TestCaseGenerator_View : UserControl
+    public partial class TestCaseGeneratorRequirements_View : UserControl
     {
-        public TestCaseGenerator_View()
+        public TestCaseGeneratorRequirements_View()
         {
             InitializeComponent();
 
             // keep unloaded hookup if needed for cleanup; not strictly required now
-            Unloaded += TestCaseGenerator_View_Unloaded;
+            Unloaded += TestCaseGeneratorRequirements_View_Unloaded;
         }
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e)
