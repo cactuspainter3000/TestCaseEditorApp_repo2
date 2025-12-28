@@ -64,7 +64,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             return new NewProjectWorkflowViewModel(
                 _applicationServices.AnythingLLMService, 
-                _applicationServices.ToastService);
+                _applicationServices.ToastService,
+                _workspaceManagementMediator);
         }
 
         public TestCaseGenerator_HeaderVM CreateTestCaseGeneratorHeaderViewModel(ITestCaseGenerationMediator mediator)

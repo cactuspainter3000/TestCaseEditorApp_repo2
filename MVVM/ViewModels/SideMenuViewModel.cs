@@ -52,6 +52,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand ProjectNavigationCommand { get; private set; } = null!;
         public ICommand TestCaseGeneratorNavigationCommand { get; private set; } = null!;
         public ICommand RequirementsNavigationCommand { get; private set; } = null!;
+        public ICommand NewProjectNavigationCommand { get; private set; } = null!;
 
         // Requirements Management Commands
         public ICommand ImportAdditionalCommand { get; private set; } = null!;
@@ -118,6 +119,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             TestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToTestCaseGenerator);
             TestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToTestCaseGenerator);
             RequirementsNavigationCommand = new RelayCommand(NavigateToRequirements);
+            NewProjectNavigationCommand = new RelayCommand(NavigateToNewProject);
             
             // Requirements commands
             ImportAdditionalCommand = new RelayCommand(() => { /* TODO: Implement import additional */ });
@@ -197,6 +199,21 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 Console.WriteLine("*** NavigationMediator is null in SideMenuViewModel! ***");
             }
         }
+        
+        private void NavigateToNewProject()
+        {
+            Console.WriteLine("*** SideMenuViewModel.NavigateToNewProject called! ***");
+            
+            if (_navigationMediator != null)
+            {
+                _navigationMediator.NavigateToSection("NewProject");
+            }
+            else
+            {
+                Console.WriteLine("*** NavigationMediator is null in SideMenuViewModel! ***");
+            }
+        }
+        
         private async Task OpenProjectAsync()
         {
             Console.WriteLine("*** SideMenuViewModel.OpenProject called! ***");
@@ -598,7 +615,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 
                 // === PROJECT DROPDOWN (as sub-item) ===
                 CreateDropdown("project", "📁", "Project", "Project management options",
-                    CreateButton("new-project", "🆕", "New Project", NewProjectCommand, "Create a new test case generation project"),
+                    CreateButton("new-project", "🆕", "New Project", NewProjectNavigationCommand, "Create a new test case generation project"),
                     CreateButton("quick-import", "⚡", "Quick Import (Legacy)", QuickImportCommand, "Quick import legacy format"),
                     CreateButton("open-project", "📁", "Open Project", OpenProjectCommand, "Load an existing project"),
                     CreateButton("save-project", "💾", "Save Project", SaveProjectCommand, "Save current project"),

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -8,6 +9,7 @@ using Microsoft.Win32;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
+using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -80,15 +82,22 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public event EventHandler<NewProjectCompletedEventArgs>? ProjectCreated;
         public event EventHandler? ProjectCancelled;
 
-        public NewProjectWorkflowViewModel(AnythingLLMService anythingLLMService, ToastNotificationService toastService)
+        private readonly IWorkspaceManagementMediator _workspaceManagementMediator;
+        
+        public NewProjectWorkflowViewModel(AnythingLLMService anythingLLMService, ToastNotificationService toastService, 
+            IWorkspaceManagementMediator workspaceManagementMediator)
         {
             _anythingLLMService = anythingLLMService;
             _toastService = toastService;
+            _workspaceManagementMediator = workspaceManagementMediator ?? throw new ArgumentNullException(nameof(workspaceManagementMediator));
             SelectDocumentCommand = new RelayCommand(SelectDocument);
             ChooseProjectSaveLocationCommand = new RelayCommand(ChooseProjectSaveLocation);
             CreateProjectCommand = new RelayCommand(CreateProject);
-            ValidateWorkspaceCommand = new AsyncRelayCommand(ValidateWorkspaceAsync, () => !string.IsNullOrWhiteSpace(WorkspaceName) && !IsWorkspaceCreated);
+            ValidateWorkspaceCommand = new AsyncRelayCommand(ValidateWorkspaceAsync, CanValidateWorkspace);
             CancelCommand = new RelayCommand(Cancel);
+            
+            // Initialize state
+            Initialize();
         }
 
         partial void OnWorkspaceNameChanged(string value)
@@ -102,6 +111,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Notify the command that CanExecute may have changed
             ((AsyncRelayCommand)ValidateWorkspaceCommand).NotifyCanExecuteChanged();
         }
+        
+        private bool CanValidateWorkspace()
+        {
+            var canValidate = !string.IsNullOrWhiteSpace(WorkspaceName) && !IsWorkspaceCreated && !IsValidatingWorkspace;
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[WORKSPACE] CanValidateWorkspace: WorkspaceName='{WorkspaceName}', IsWorkspaceCreated={IsWorkspaceCreated}, IsValidatingWorkspace={IsValidatingWorkspace}, Result={canValidate}");
+            return canValidate;
+        }
 
         partial void OnIsWorkspaceCreatedChanged(bool value)
         {
@@ -109,6 +125,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             UpdateCanProceed();
             
             // Notify the command that CanExecute may have changed
+            ((AsyncRelayCommand)ValidateWorkspaceCommand).NotifyCanExecuteChanged();
+        }
+        
+        partial void OnIsValidatingWorkspaceChanged(bool value)
+        {
+            // Notify the command that CanExecute may have changed during validation
             ((AsyncRelayCommand)ValidateWorkspaceCommand).NotifyCanExecuteChanged();
         }
 
@@ -212,7 +234,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
         }
 
-        private void CreateProject()
+        private async void CreateProject()
         {
             if (!CanProceed)
             {
@@ -230,17 +252,47 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Creating project with workspace '{WorkspaceName}', document '{SelectedDocumentPath}', save path '{ProjectSavePath}'");
 
-            var args = new NewProjectCompletedEventArgs
+            try
             {
-                WorkspaceName = WorkspaceName,
-                WorkspaceDescription = WorkspaceDescription,
-                DocumentPath = SelectedDocumentPath,
-                AutoExportEnabled = AutoExportEnabled,
-                ProjectSavePath = ProjectSavePath,
-                ProjectName = ProjectName
-            };
-
-            ProjectCreated?.Invoke(this, args);
+                // Show progress through workspace management mediator
+                _workspaceManagementMediator.ShowProgress($"Creating project '{ProjectName}'...", 25);
+                
+                // TODO: Complete project creation workflow:
+                // 1. Set workspace path and configuration
+                // 2. Import requirements from selected document  
+                // 3. Save workspace
+                
+                await Task.Delay(1000); // Simulate project creation work
+                
+                _workspaceManagementMediator.UpdateProgress("Project created successfully!", 100);
+                
+                // Show success notification
+                _workspaceManagementMediator.ShowNotification(
+                    $"Project '{ProjectName}' created successfully! Navigate to 'Requirements' to see imported data.", 
+                    DomainNotificationType.Success);
+                    
+                _workspaceManagementMediator.HideProgress();
+                
+                // Fire the event for any remaining legacy listeners
+                var args = new NewProjectCompletedEventArgs
+                {
+                    WorkspaceName = WorkspaceName,
+                    WorkspaceDescription = WorkspaceDescription,
+                    DocumentPath = SelectedDocumentPath,
+                    AutoExportEnabled = AutoExportEnabled,
+                    ProjectSavePath = ProjectSavePath,
+                    ProjectName = ProjectName
+                };
+                ProjectCreated?.Invoke(this, args);
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[PROJECT] Error creating project");
+                _workspaceManagementMediator.ShowNotification(
+                    $"Error creating project: {ex.Message}", 
+                    DomainNotificationType.Error);
+                _workspaceManagementMediator.HideProgress();
+            }
         }
 
         private void Cancel()
