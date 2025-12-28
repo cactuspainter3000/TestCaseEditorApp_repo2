@@ -10,6 +10,8 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Models.DataDrivenMenu;
 using TestCaseEditorApp.MVVM.Utils;
+using TestCaseEditorApp.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -158,9 +160,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
         }
         
-        private void NavigateToTestCaseGenerator()
+        private async void NavigateToTestCaseGenerator()
         {
             Console.WriteLine("*** SideMenuViewModel.NavigateToTestCaseGenerator called! ***");
+            
+            // Launch AnythingLLM when navigating to Test Case Generator
+            var service = App.ServiceProvider?.GetService<TestCaseAnythingLLMService>();
+            if (service != null)
+            {
+                await service.ConnectAsync();
+            }
+            
             if (_navigationMediator != null)
             {
                 _navigationMediator.NavigateToSection("TestCase");
