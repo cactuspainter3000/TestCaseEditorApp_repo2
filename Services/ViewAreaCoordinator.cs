@@ -3,6 +3,7 @@ using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 
 namespace TestCaseEditorApp.Services
 {
@@ -15,6 +16,7 @@ namespace TestCaseEditorApp.Services
         private readonly IViewModelFactory _viewModelFactory;
         private readonly INavigationMediator _navigationMediator;
         private readonly IWorkspaceManagementMediator _workspaceManagementMediator;
+        private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
 
         public SideMenuViewModel SideMenu { get; }
         public HeaderAreaViewModel HeaderArea { get; }
@@ -27,11 +29,13 @@ namespace TestCaseEditorApp.Services
         private object? _projectContent;
         private object? _requirementsContent;
 
-        public ViewAreaCoordinator(IViewModelFactory viewModelFactory, INavigationMediator navigationMediator, IWorkspaceManagementMediator workspaceManagementMediator)
+        public ViewAreaCoordinator(IViewModelFactory viewModelFactory, INavigationMediator navigationMediator, 
+            IWorkspaceManagementMediator workspaceManagementMediator, ITestCaseGenerationMediator testCaseGenerationMediator)
         {
             _viewModelFactory = viewModelFactory ?? throw new ArgumentNullException(nameof(viewModelFactory));
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
             _workspaceManagementMediator = workspaceManagementMediator ?? throw new ArgumentNullException(nameof(workspaceManagementMediator));
+            _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
             
             // Initialize UI area view models with proper dependencies
             SideMenu = new SideMenuViewModel(_workspaceManagementMediator, _navigationMediator);
@@ -107,6 +111,7 @@ namespace TestCaseEditorApp.Services
         {
             EnsureWorkspaceHeader();
             _navigationMediator.SetActiveHeader(_workspaceHeader);
+            HeaderArea.ShowWorkspaceHeader(_workspaceHeader);
             
             // Show project content
             if (_projectContent == null)
@@ -120,6 +125,7 @@ namespace TestCaseEditorApp.Services
         {
             EnsureTestCaseGeneratorHeader();
             _navigationMediator.SetActiveHeader(_testCaseGeneratorHeader);
+            HeaderArea.ShowTestCaseGeneratorHeader(_testCaseGeneratorHeader);
             
             // Show test case generator requirements view (not splash screen)
             var testCaseGeneratorView = _viewModelFactory.CreateTestCaseGeneratorViewModel();
@@ -130,6 +136,7 @@ namespace TestCaseEditorApp.Services
         {
             EnsureTestCaseGeneratorHeader();
             _navigationMediator.SetActiveHeader(_testCaseGeneratorHeader);
+            HeaderArea.ShowTestCaseGeneratorHeader(_testCaseGeneratorHeader);
             
             // Show test case generator splash screen
             var testCaseWorkflow = _viewModelFactory.CreateTestCaseGeneratorSplashScreenViewModel();
@@ -140,6 +147,7 @@ namespace TestCaseEditorApp.Services
         {
             EnsureWorkspaceHeader();
             _navigationMediator.SetActiveHeader(_workspaceHeader);
+            HeaderArea.ShowWorkspaceHeader(_workspaceHeader);
             
             // Show test flow workflow
             var testFlowWorkflow = _viewModelFactory.CreatePlaceholderViewModel();
@@ -150,6 +158,7 @@ namespace TestCaseEditorApp.Services
         {
             EnsureWorkspaceHeader();
             _navigationMediator.SetActiveHeader(_workspaceHeader);
+            HeaderArea.ShowWorkspaceHeader(_workspaceHeader);
             
             // Show import workflow
             var importWorkflow = _viewModelFactory.CreateImportWorkflowViewModel();
@@ -160,6 +169,7 @@ namespace TestCaseEditorApp.Services
         {
             EnsureWorkspaceHeader();
             _navigationMediator.SetActiveHeader(_workspaceHeader);
+            HeaderArea.ShowWorkspaceHeader(_workspaceHeader);
             
             // Show new project workflow  
             var newProjectWorkflow = _viewModelFactory.CreateNewProjectWorkflowViewModel();
@@ -170,6 +180,7 @@ namespace TestCaseEditorApp.Services
         {
             EnsureWorkspaceHeader();
             _navigationMediator.SetActiveHeader(_workspaceHeader);
+            HeaderArea.ShowWorkspaceHeader(_workspaceHeader);
             
             var placeholder = _viewModelFactory.CreatePlaceholderViewModel();
             _navigationMediator.SetMainContent(placeholder);
@@ -187,8 +198,7 @@ namespace TestCaseEditorApp.Services
         {
             if (_testCaseGeneratorHeader == null)
             {
-                // TODO: Need to pass proper navigator - for now use null
-                _testCaseGeneratorHeader = _viewModelFactory.CreateTestCaseGeneratorHeaderViewModel(null!);
+                _testCaseGeneratorHeader = _viewModelFactory.CreateTestCaseGeneratorHeaderViewModel(_testCaseGenerationMediator);
             }
         }
         

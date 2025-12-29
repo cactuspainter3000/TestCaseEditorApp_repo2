@@ -159,7 +159,8 @@ namespace TestCaseEditorApp
                     {
                         var applicationServices = provider.GetRequiredService<IApplicationServices>();
                         var workspaceManagementMediator = provider.GetRequiredService<IWorkspaceManagementMediator>();
-                        return new ViewModelFactory(applicationServices, workspaceManagementMediator);
+                        var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
+                        return new ViewModelFactory(applicationServices, workspaceManagementMediator, testCaseGenerationMediator);
                     });
                     services.AddSingleton<IApplicationServices, ApplicationServices>();
 

@@ -24,11 +24,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     {
         private readonly IApplicationServices _applicationServices;
         private readonly IWorkspaceManagementMediator? _workspaceManagementMediator;
+        private readonly ITestCaseGenerationMediator? _testCaseGenerationMediator;
 
-        public ViewModelFactory(IApplicationServices applicationServices, IWorkspaceManagementMediator? workspaceManagementMediator = null)
+        public ViewModelFactory(IApplicationServices applicationServices, IWorkspaceManagementMediator? workspaceManagementMediator = null, 
+            ITestCaseGenerationMediator? testCaseGenerationMediator = null)
         {
             _applicationServices = applicationServices ?? throw new ArgumentNullException(nameof(applicationServices));
             _workspaceManagementMediator = workspaceManagementMediator;
+            _testCaseGenerationMediator = testCaseGenerationMediator;
         }
 
         public INavigationMediator CreateNavigationMediator()
@@ -41,7 +44,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public IViewAreaCoordinator CreateViewAreaCoordinator()
         {
             var navigationMediator = CreateNavigationMediator();
-            return new ViewAreaCoordinator(this, navigationMediator, _workspaceManagementMediator!);
+            return new ViewAreaCoordinator(this, navigationMediator, _workspaceManagementMediator!, _testCaseGenerationMediator!);
         }
 
         public WorkspaceHeaderViewModel CreateWorkspaceHeaderViewModel()
