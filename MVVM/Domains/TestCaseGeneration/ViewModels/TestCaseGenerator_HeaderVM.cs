@@ -10,15 +10,17 @@ using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.Services;
+using TestCaseEditorApp.MVVM.Mediators;
+using TestCaseEditorApp.MVVM.Utils;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
     /// <summary>
     /// Consolidated Header ViewModel for the Test Case Creator area.
     /// Merged from 5 partial files into one cohesive class.
-    /// Exposes state, commands, and LLM connection tracking.
+    /// Exposes state, commands, and AnythingLLM connection tracking via mediator pattern.
     /// </summary>
-    public partial class TestCaseGenerator_HeaderVM : ObservableObject
+    public partial class TestCaseGenerator_HeaderVM : ObservableObject, IDisposable
     {
         private readonly MainViewModel? _mainVm;
         private bool _isLoadingRequirement = false;
@@ -26,6 +28,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         // ==================== State Properties ====================
         
         [ObservableProperty] private string titleText = "Create Test Case";
+        
+        // AnythingLLM status tracking - follows same pattern as SideMenuViewModel
         [ObservableProperty] private bool isLlmConnected;
         [ObservableProperty] private bool isLlmBusy;
         [ObservableProperty] private string? workspaceName = "Workspace";
@@ -76,35 +80,56 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         public IRelayCommand? NewTestCaseCommand { get; set; }
         public IRelayCommand? RemoveTestCaseCommand { get; set; }
 
-        // ==================== Computed Properties ====================
+        // ==================== Computed Properties (LLM Status) ====================
         
-        public string OllamaStatusMessage =>
-            IsLlmBusy ? "LLM — busy"
-            : IsLlmConnected ? "Ollama — connected"
-            : "Ollama — disconnected";
+        public string AnythingLLMStatusMessage =>
+            IsLlmBusy ? "AnythingLLM — busy"
+            : IsLlmConnected ? "AnythingLLM — connected"
+            : "AnythingLLM — disconnected";
 
-        public Brush OllamaStatusColor =>
+        public Brush AnythingLLMStatusColor =>
             IsLlmBusy ? Brushes.Yellow
             : IsLlmConnected ? Brushes.LimeGreen
             : Brushes.Gray;
+            
+        // Legacy property for backward compatibility
+        public string OllamaStatusMessage => AnythingLLMStatusMessage;
+        public Brush OllamaStatusColor => AnythingLLMStatusColor;
 
         // ==================== Constructor ====================
         
         public TestCaseGenerator_HeaderVM(MainViewModel? mainVm = null) 
         {
             _mainVm = mainVm;
+            
+            // Subscribe to AnythingLLM status updates (follows same pattern as SideMenuViewModel)
+            AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusUpdated;
+            
+            // Request current status in case it was already set before we subscribed
+            AnythingLLMMediator.RequestCurrentStatus();
         }
 
         // ==================== Property Change Handlers ====================
         
+        private void OnAnythingLLMStatusUpdated(AnythingLLMStatus status)
+        {
+            IsLlmConnected = status.IsAvailable;
+            IsLlmBusy = status.IsStarting;
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[HEADER] AnythingLLM status updated - Connected: {IsLlmConnected}, Busy: {IsLlmBusy}");
+        }
+        
         partial void OnIsLlmBusyChanged(bool oldValue, bool newValue)
         {
+            OnPropertyChanged(nameof(AnythingLLMStatusMessage));
+            OnPropertyChanged(nameof(AnythingLLMStatusColor));
             OnPropertyChanged(nameof(OllamaStatusMessage));
             OnPropertyChanged(nameof(OllamaStatusColor));
         }
 
         partial void OnIsLlmConnectedChanged(bool oldValue, bool newValue)
         {
+            OnPropertyChanged(nameof(AnythingLLMStatusMessage));
+            OnPropertyChanged(nameof(AnythingLLMStatusColor));
             OnPropertyChanged(nameof(OllamaStatusMessage));
             OnPropertyChanged(nameof(OllamaStatusColor));
         }
@@ -212,41 +237,20 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 _isLoadingRequirement = false;
             }
         }
-
-        // ==================== LLM Connection Management ====================
+        // ==================== Disposal ====================
+        
+        public void Dispose()
+        {
+            // Unsubscribe from AnythingLLM status updates
+            AnythingLLMMediator.StatusUpdated -= OnAnythingLLMStatusUpdated;
+        }
         
         /// <summary>
-        /// Subscribe to the process-wide LlmConnectionManager and reflect its state.
-        /// Call this after constructing the header VM (e.g., from MainViewModel).
-        /// </summary>
-        public void AttachConnectionManager()
-        {
-            // Initialize from current global state
-            IsLlmConnected = LlmConnectionManager.IsConnected;
-
-            // Subscribe for future changes
-            LlmConnectionManager.ConnectionChanged += OnGlobalConnectionChanged;
-        }
-
-        private void OnGlobalConnectionChanged(bool connected)
-        {
-            // Marshal to UI thread if necessary
-            var disp = Application.Current?.Dispatcher;
-            void apply() => IsLlmConnected = connected;
-
-            if (disp != null && !disp.CheckAccess())
-                disp.Invoke(apply);
-            else
-                apply();
-        }
-
-        /// <summary>
-        /// Call on dispose / when the header VM is no longer used.
+        /// Legacy method for backward compatibility
         /// </summary>
         public void DetachConnectionManager()
         {
-            try { LlmConnectionManager.ConnectionChanged -= OnGlobalConnectionChanged; } 
-            catch { /* best effort */ }
+            Dispose();
         }
     }
 }
