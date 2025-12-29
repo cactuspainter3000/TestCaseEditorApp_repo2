@@ -1,5 +1,7 @@
 using System;
+using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events;
@@ -108,22 +110,100 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
 
         public async Task OpenProjectAsync()
         {
-            await Task.CompletedTask;
             try
             {
-                ShowProgress("Initiating project opening...", 0);
+                ShowProgress("Opening project...", 0);
                 
                 _logger.LogInformation("Starting project opening workflow");
                 
-                PublishEvent(new WorkspaceManagementEvents.ProjectOpenStarted());
+                // Show file dialog to select .tcex.json file
+                var selectedPath = _fileDialogService.ShowOpenFile(
+                    title: "Open Test Case Editor Project",
+                    filter: "Test Case Editor Session|*.tcex.json|JSON Files|*.json|All Files|*.*"
+                );
                 
-                // Show workspace selection modal for existing project
-                ShowWorkspaceSelectionForOpen();
+                if (string.IsNullOrWhiteSpace(selectedPath))
+                {
+                    _logger.LogInformation("User cancelled project opening dialog");
+                    HideProgress();
+                    return;
+                }
                 
+                ShowProgress("Loading project file...", 25);
+                
+                // Validate file exists
+                if (!File.Exists(selectedPath))
+                {
+                    ShowNotification("Selected project file does not exist.", DomainNotificationType.Error);
+                    HideProgress();
+                    return;
+                }
+                
+                ShowProgress("Reading workspace data...", 50);
+                
+                // Load workspace using existing service
+                var workspace = TestCaseEditorApp.Services.WorkspaceFileManager.Load(selectedPath);
+                if (workspace == null)
+                {
+                    ShowNotification("Failed to load project file. The file may be corrupted or invalid.", DomainNotificationType.Error);
+                    HideProgress();
+                    return;
+                }
+                
+                ShowProgress("Setting up project...", 75);
+                
+                // Extract project name from file path
+                var projectName = System.IO.Path.GetFileNameWithoutExtension(selectedPath);
+                // Remove .tcex extension if present
+                if (projectName.EndsWith(".tcex", StringComparison.OrdinalIgnoreCase))
+                {
+                    projectName = System.IO.Path.GetFileNameWithoutExtension(projectName);
+                }
+                
+                // Broadcast project status via ProjectStatusMediator (same pattern as project creation)
+                ProjectStatusMediator.NotifyProjectStatusUpdated(new ProjectStatus
+                {
+                    IsProjectOpen = true,
+                    ProjectName = projectName,
+                    TestCaseCount = workspace.Requirements?.SelectMany(r => r.GeneratedTestCases ?? new ObservableCollection<TestCase>()).Count() ?? 0
+                });
+                
+                ShowProgress("Finalizing project setup...", 90);
+                
+                // Publish domain event
+                PublishEvent(new WorkspaceManagementEvents.ProjectOpened 
+                { 
+                    WorkspacePath = selectedPath,
+                    WorkspaceName = projectName,
+                    Workspace = workspace
+                });
+                
+                // Store workspace info for future operations
+                _currentWorkspaceInfo = new WorkspaceInfo
+                {
+                    Name = projectName,
+                    Path = selectedPath,
+                    LastModified = DateTime.Now
+                };
+                
+                ShowProgress("Project opened successfully!", 100);
+                
+                // Show success notification
+                ShowNotification(
+                    $"Project '{projectName}' opened successfully! {workspace.Requirements?.Count ?? 0} requirements loaded.", 
+                    DomainNotificationType.Success);
+                
+                // Navigate to the project workspace
+                NavigateToStep("ProjectActive", _currentWorkspaceInfo);
+                
+                await Task.Delay(500); // Brief delay to show completion
+                HideProgress();
+                
+                _logger.LogInformation("Project opened successfully: {ProjectName} from {FilePath}", projectName, selectedPath);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to start project opening");
+                _logger.LogError(ex, "Failed to open project");
                 
                 PublishEvent(new WorkspaceManagementEvents.ProjectOperationError 
                 { 
