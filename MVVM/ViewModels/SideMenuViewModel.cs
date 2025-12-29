@@ -23,6 +23,21 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     {
         private readonly IWorkspaceManagementMediator? _workspaceManagementMediator;
         private readonly INavigationMediator? _navigationMediator;
+        
+        // AnythingLLM status tracking
+        private bool _isAnythingLLMReady = false;
+        public bool IsAnythingLLMReady
+        {
+            get => _isAnythingLLMReady;
+            private set
+            {
+                if (SetProperty(ref _isAnythingLLMReady, value))
+                {
+                    // Update command availability when status changes
+                    UpdateProjectCommandsAvailability();
+                }
+            }
+        }
 
         [ObservableProperty]
         private string? selectedSection;
@@ -101,25 +116,32 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             _workspaceManagementMediator = workspaceManagementMediator;
             _navigationMediator = navigationMediator;
+            
+            // Subscribe to AnythingLLM status updates
+            AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusUpdated;
+            
             InitializeCommands();
             InitializeMenuItems();
             InitializeTestCaseGeneratorSteps();
             InitializeDataDrivenTestCaseGenerator(); // NEW: Data-driven menu
             InitializeHierarchicalMenu(); // NEW: Data-driven menu
+            
+            // Request current status in case it was already set before we subscribed
+            AnythingLLMMediator.RequestCurrentStatus();
         }
 
         private void InitializeCommands()
         {
-            NewProjectCommand = new AsyncRelayCommand(CreateNewProjectAsync);
+            NewProjectCommand = new AsyncRelayCommand(CreateNewProjectAsync, CanExecuteProjectCommands);
             TestClickCommand = new RelayCommand(() => System.Windows.MessageBox.Show("Test button clicked!", "Data-Driven Test"));
-            OpenProjectCommand = new AsyncRelayCommand(OpenProjectAsync);
+            OpenProjectCommand = new AsyncRelayCommand(OpenProjectAsync, CanExecuteProjectCommands);
             SaveProjectCommand = new RelayCommand(() => { /* TODO: Implement save */ });
             QuickImportCommand = new RelayCommand(() => { /* TODO: Implement quick import */ });
             ProjectNavigationCommand = new RelayCommand(NavigateToProject);
             TestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToTestCaseGenerator);
             TestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToTestCaseGenerator);
             RequirementsNavigationCommand = new RelayCommand(NavigateToRequirements);
-            NewProjectNavigationCommand = new RelayCommand(NavigateToNewProject);
+            NewProjectNavigationCommand = new RelayCommand(NavigateToNewProject, CanExecuteProjectCommands);
             
             // Requirements commands
             ImportAdditionalCommand = new RelayCommand(() => { /* TODO: Implement import additional */ });
@@ -213,6 +235,29 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 Console.WriteLine("*** NavigationMediator is null in SideMenuViewModel! ***");
             }
         }
+        
+        #region AnythingLLM Status Handling
+        
+        private void OnAnythingLLMStatusUpdated(AnythingLLMStatus status)
+        {
+            IsAnythingLLMReady = status.IsAvailable && !status.IsStarting;
+            TestCaseEditorApp.Services.Logging.Log.Info($"[MENU] AnythingLLM status updated - Ready: {IsAnythingLLMReady}, Available: {status.IsAvailable}, Starting: {status.IsStarting}");
+        }
+        
+        private bool CanExecuteProjectCommands()
+        {
+            return IsAnythingLLMReady;
+        }
+        
+        private void UpdateProjectCommandsAvailability()
+        {
+            // Notify commands that their CanExecute state may have changed
+            ((AsyncRelayCommand)NewProjectCommand).NotifyCanExecuteChanged();
+            ((AsyncRelayCommand)OpenProjectCommand).NotifyCanExecuteChanged();
+            ((RelayCommand)NewProjectNavigationCommand).NotifyCanExecuteChanged();
+        }
+        
+        #endregion
         
         private async Task OpenProjectAsync()
         {
