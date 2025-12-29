@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -28,6 +29,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         // Workflow state
         private readonly Dictionary<Requirement, List<string>> _requirementAssumptions = new();
         private readonly Dictionary<Requirement, List<ClarifyingQuestionData>> _requirementQuestions = new();
+        
+        // Requirements collection for UI binding
+        private readonly ObservableCollection<Requirement> _requirements = new();
         
         // Domain state management - replaces MainViewModel dependencies
         private Requirement? _currentRequirement;
@@ -74,6 +78,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 }
             } 
         }
+        
+        /// <summary>
+        /// Requirements collection for UI binding across the domain
+        /// </summary>
+        public ObservableCollection<Requirement> Requirements => _requirements;
         
         public bool IsBatchAnalyzing 
         { 
@@ -917,7 +926,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         /// </summary>
         public void HandleBroadcastNotification<T>(T notification) where T : class
         {
-            _logger.LogDebug("Received broadcast notification: {NotificationType}", typeof(T).Name);
+            _logger.LogInformation("🔔 Received broadcast notification: {NotificationType}", typeof(T).Name);
             
             // Handle workspace management events
             if (notification is WorkspaceManagementEvents.ProjectCreated projectCreated)
@@ -929,10 +938,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             }
             else if (notification is WorkspaceManagementEvents.ProjectOpened projectOpened)
             {
-                _logger.LogInformation("HandleBroadcast: ProjectOpened - WorkspaceName: {WorkspaceName}, HeaderViewModel: {HeaderViewModel}", 
+                _logger.LogInformation("🚀 HandleBroadcast: ProjectOpened - WorkspaceName: {WorkspaceName}, HeaderViewModel: {HeaderViewModel}", 
                     projectOpened.WorkspaceName, _headerViewModel?.GetType().Name ?? "NULL");
                 _headerViewModel?.UpdateProjectStatus(projectOpened.WorkspaceName, true);
                 _logger.LogDebug("Updated header with project opened: {ProjectName}", projectOpened.WorkspaceName);
+                
+                // Load requirements for the opened project
+                _logger.LogInformation("🔄 About to load requirements for project: {ProjectName}", projectOpened.WorkspaceName);
+                LoadProjectRequirements(projectOpened.WorkspaceName, projectOpened.Workspace);
             }
             else if (notification is WorkspaceManagementEvents.ProjectClosed)
             {
@@ -944,6 +957,51 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             else
             {
                 _logger.LogDebug("Broadcast notification not handled: {NotificationType}", typeof(T).Name);
+            }
+        }
+        
+        /// <summary>
+        /// Loads requirements for the specified project with UI thread safety
+        /// </summary>
+        private void LoadProjectRequirements(string projectName, Workspace? workspace)
+        {
+            try
+            {
+                _logger.LogInformation("📋 Loading requirements for project: {ProjectName}", projectName);
+                
+                // Get actual requirements from the loaded workspace
+                var actualRequirements = workspace?.Requirements?.ToList() ?? new List<Requirement>();
+                
+                _logger.LogInformation("✅ Found {Count} actual requirements in workspace", actualRequirements.Count);
+                
+                // Update the Requirements collection on UI thread using Dispatcher.Invoke
+                _logger.LogInformation("🧵 Updating UI on dispatcher thread...");
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                {
+                    _logger.LogInformation("🔄 Clearing existing requirements collection...");
+                    _requirements.Clear();
+                    
+                    _logger.LogInformation("➕ Adding {Count} real requirements to collection...", actualRequirements.Count);
+                    foreach (var requirement in actualRequirements)
+                    {
+                        _requirements.Add(requirement);
+                    }
+                    
+                    _logger.LogInformation("✅ Loaded {Count} requirements for project {ProjectName} - Collection now has {ActualCount} items", 
+                        actualRequirements.Count, projectName, _requirements.Count);
+                    
+                    // Publish event to notify NavigationVM that requirements collection has changed
+                    PublishEvent(new TestCaseGenerationEvents.RequirementsCollectionChanged 
+                    { 
+                        AffectedRequirements = actualRequirements, 
+                        Action = "ProjectOpened",
+                        NewCount = actualRequirements.Count
+                    });
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading requirements for project {ProjectName}", projectName);
             }
         }
     }

@@ -89,6 +89,16 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             return new PlaceholderViewModel("Content coming soon...");
         }
+
+        public TestCaseGenerator_NavigationVM CreateRequirementsNavigationViewModel()
+        {
+            if (_testCaseGenerationMediator == null)
+                throw new InvalidOperationException("TestCaseGenerationMediator is required for navigation ViewModel");
+            
+            return new TestCaseGenerator_NavigationVM(
+                _testCaseGenerationMediator,
+                _applicationServices.LoggerFactory?.CreateLogger<TestCaseGenerator_NavigationVM>());
+        }
         
         public object CreateProjectViewModel()
         {

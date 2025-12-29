@@ -83,14 +83,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         protected virtual void InitializeValidation()
         {
-            // Subscribe to property changes for validation
-            PropertyChanged += (sender, e) =>
-            {
-                if (e.PropertyName != null && !string.IsNullOrEmpty(e.PropertyName))
-                {
-                    ValidateProperty(e.PropertyName, GetType().GetProperty(e.PropertyName)?.GetValue(this));
-                }
-            };
+            // Disable automatic property validation to prevent stack overflow
+            // The PropertyChanged event was causing infinite loops when validation properties
+            // (HasErrors, ErrorMessage) were updated, which triggered more PropertyChanged events
+            // TODO: Implement safer validation approach if needed
+            
+            // PropertyChanged += (sender, e) =>
+            // {
+            //     if (e.PropertyName != null && !string.IsNullOrEmpty(e.PropertyName))
+            //     {
+            //         ValidateProperty(e.PropertyName, GetType().GetProperty(e.PropertyName)?.GetValue(this));
+            //     }
+            // };
         }
         
         // Abstract methods that domains must implement

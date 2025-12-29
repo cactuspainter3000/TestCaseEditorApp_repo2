@@ -23,6 +23,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         RequirementsViewModel CreateRequirementsViewModel();
         PlaceholderViewModel CreatePlaceholderViewModel();
         
+        // Navigation ViewModels
+        TestCaseGenerator_NavigationVM CreateRequirementsNavigationViewModel();
+        
         // Legacy ViewModels (for backwards compatibility)
         WorkspaceHeaderViewModel CreateWorkspaceHeaderViewModel();
         NavigationViewModel CreateNavigationViewModel();

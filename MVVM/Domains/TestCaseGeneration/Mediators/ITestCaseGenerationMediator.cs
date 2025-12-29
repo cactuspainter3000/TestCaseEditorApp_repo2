@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Models;
@@ -50,6 +51,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         /// Whether this mediator is properly registered and ready
         /// </summary>
         bool IsRegistered { get; }
+        
+        /// <summary>
+        /// Requirements collection for UI binding across the domain
+        /// </summary>
+        ObservableCollection<Requirement> Requirements { get; }
         
         /// <summary>
         /// Mark this mediator as registered and ready for use (called by DI container)

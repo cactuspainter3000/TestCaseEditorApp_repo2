@@ -171,12 +171,18 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 ShowProgress("Finalizing project setup...", 90);
                 
                 // Publish domain event
-                PublishEvent(new WorkspaceManagementEvents.ProjectOpened 
+                var projectOpenedEvent = new WorkspaceManagementEvents.ProjectOpened 
                 { 
                     WorkspacePath = selectedPath,
                     WorkspaceName = projectName,
                     Workspace = workspace
-                });
+                };
+                
+                PublishEvent(projectOpenedEvent);
+                
+                // Broadcast to other domains for cross-domain coordination
+                _logger.LogInformation("📡 Broadcasting ProjectOpened event to other domains: {ProjectName}", projectName);
+                BroadcastToAllDomains(projectOpenedEvent);
                 
                 // Store workspace info for future operations
                 _currentWorkspaceInfo = new WorkspaceInfo
@@ -530,13 +536,19 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
             // TODO: Load actual workspace data
             var workspace = new Workspace { Name = workspaceName };
             
-            PublishEvent(new WorkspaceManagementEvents.ProjectOpened 
+            var projectOpenedEvent = new WorkspaceManagementEvents.ProjectOpened 
             { 
                 WorkspacePath = _currentWorkspaceInfo.Path,
                 WorkspaceName = workspaceName,
                 AnythingLLMWorkspaceSlug = workspaceSlug,
                 Workspace = workspace
-            });
+            };
+            
+            PublishEvent(projectOpenedEvent);
+            
+            // Broadcast to other domains for cross-domain coordination
+            _logger.LogInformation("📡 Broadcasting ProjectOpened event (AnythingLLM) to other domains: {ProjectName}", workspaceName);
+            BroadcastToAllDomains(projectOpenedEvent);
             
             ShowNotification($"Project '{workspaceName}' opened successfully", DomainNotificationType.Success);
             HideProgress();

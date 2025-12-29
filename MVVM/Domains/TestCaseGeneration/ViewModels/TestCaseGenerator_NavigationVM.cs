@@ -58,6 +58,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         public ObservableCollection<Requirement> Requirements => _requirements;
 
         /// <summary>
+        /// Requirements view for UI binding (ComboBox binds to this property)
+        /// </summary>
+        public ObservableCollection<Requirement> RequirementsView => _mediator.Requirements;
+
+        /// <summary>
         /// Currently selected requirement
         /// </summary>
         public Requirement? SelectedRequirement
@@ -67,8 +72,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             {
                 if (SetProperty(ref _selectedRequirement, value))
                 {
-                    // Update index
-                    _selectedRequirementIndex = value != null ? _requirements.IndexOf(value) : -1;
+                    // Update index using mediator's requirements collection
+                    _selectedRequirementIndex = value != null ? _mediator.Requirements.IndexOf(value) : -1;
                     
                     // Notify mediator of selection
                     if (value != null)
@@ -95,10 +100,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             {
                 if (SetProperty(ref _selectedRequirementIndex, value))
                 {
-                    // Update selected requirement
-                    if (value >= 0 && value < _requirements.Count)
+                    // Update selected requirement using mediator's requirements collection
+                    if (value >= 0 && value < _mediator.Requirements.Count)
                     {
-                        SelectedRequirement = _requirements[value];
+                        SelectedRequirement = _mediator.Requirements[value];
                     }
                     else
                     {
@@ -115,7 +120,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         {
             get
             {
-                var total = _requirements.Count;
+                var total = _mediator.Requirements.Count;
                 var pos = (_selectedRequirementIndex >= 0 && total > 0) ? (_selectedRequirementIndex + 1).ToString() : "—";
                 return $"{pos} / {total}";
             }
@@ -147,12 +152,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         public ICommand PreviousRequirementCommand => _previousCommand ??= new RelayCommand(
             () =>
             {
-                if (_requirements.Count == 0 || _selectedRequirementIndex <= 0) return;
+                if (_mediator.Requirements.Count == 0 || _selectedRequirementIndex <= 0) return;
                 
                 var newIndex = _selectedRequirementIndex - 1;
-                SelectedRequirement = _requirements[newIndex];
+                SelectedRequirement = _mediator.Requirements[newIndex];
             },
-            () => _requirements.Count > 0 && _selectedRequirementIndex > 0);
+            () => _mediator.Requirements.Count > 0 && _selectedRequirementIndex > 0);
 
         /// <summary>
         /// Command to navigate to next requirement
@@ -160,12 +165,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         public ICommand NextRequirementCommand => _nextCommand ??= new RelayCommand(
             () =>
             {
-                if (_requirements.Count == 0 || _selectedRequirementIndex >= _requirements.Count - 1) return;
+                if (_mediator.Requirements.Count == 0 || _selectedRequirementIndex >= _mediator.Requirements.Count - 1) return;
                 
                 var newIndex = _selectedRequirementIndex + 1;
-                SelectedRequirement = _requirements[newIndex];
+                SelectedRequirement = _mediator.Requirements[newIndex];
             },
-            () => _requirements.Count > 0 && _selectedRequirementIndex < _requirements.Count - 1);
+            () => _mediator.Requirements.Count > 0 && _selectedRequirementIndex < _mediator.Requirements.Count - 1);
 
         /// <summary>
         /// Command to navigate to next requirement without test cases
@@ -173,15 +178,15 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         public ICommand NextWithoutTestCaseCommand => _nextWithoutTestCaseCommand ??= new RelayCommand(
             () =>
             {
-                if (_requirements.Count == 0) return;
+                if (_mediator.Requirements.Count == 0) return;
                 
                 var startIndex = _selectedRequirementIndex >= 0 ? _selectedRequirementIndex + 1 : 0;
                 
                 // Find next requirement without test cases
-                for (int i = 0; i < _requirements.Count; i++)
+                for (int i = 0; i < _mediator.Requirements.Count; i++)
                 {
-                    var index = (startIndex + i) % _requirements.Count;
-                    var requirement = _requirements[index];
+                    var index = (startIndex + i) % _mediator.Requirements.Count;
+                    var requirement = _mediator.Requirements[index];
                     
                     // Check if requirement has test cases
                     if (requirement.GeneratedTestCases == null || !requirement.GeneratedTestCases.Any())
@@ -195,7 +200,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                         break;
                 }
             },
-            () => _requirements.Count > 0);
+            () => _mediator.Requirements.Count > 0);
 
         /// <summary>
         /// Command to search for requirements
@@ -259,11 +264,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// </summary>
         private void OnRequirementsCollectionChanged(TestCaseGenerationEvents.RequirementsCollectionChanged e)
         {
-            _logger.LogDebug("Requirements collection changed: {Action}, Count: {Count}", e.Action, e.NewCount);
+            _logger.LogDebug("Requirements collection changed: {Action}, Count: {Count}", e.Action, e.AffectedRequirements?.Count ?? 0);
             
-            // For now, keep local collection empty until we can properly sync with mediator state
-            // TODO: Implement proper requirements state sync when mediator provides requirements access
-            
+            // Notify UI that RequirementsView has updated (it's bound to mediator's Requirements collection)
+            OnPropertyChanged(nameof(RequirementsView));
             OnPropertyChanged(nameof(Requirements));
             OnPropertyChanged(nameof(RequirementPositionDisplay));
             RefreshNavCommands();

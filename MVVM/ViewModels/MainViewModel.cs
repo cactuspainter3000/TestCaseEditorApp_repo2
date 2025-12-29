@@ -77,6 +77,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Initialize unified navigation system - this is the ONLY responsibility
             _viewAreaCoordinator = _viewModelFactory.CreateViewAreaCoordinator();
             
+            // Initialize the requirements navigator for UI binding
+            RequirementsNavigator = _viewModelFactory.CreateRequirementsNavigationViewModel();
+            
             // Initialize commands
             SaveWorkspaceCommand = new RelayCommand(() => { /* TODO: Implement save workspace */ });
             
