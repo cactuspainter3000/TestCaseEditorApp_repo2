@@ -79,6 +79,9 @@ namespace TestCaseEditorApp
                     services.AddSingleton<AnythingLLMService>(provider =>
                         new AnythingLLMService()); // Let it get baseUrl and apiKey from defaults/user config
                     services.AddSingleton<TestCaseAnythingLLMService>();
+                    
+                    // Generic service monitoring
+                    services.AddSingleton<GenericServiceMonitor>();
 
                     // Domain coordination
                     services.AddSingleton<IDomainCoordinator, DomainCoordinator>();
@@ -228,6 +231,22 @@ namespace TestCaseEditorApp
                         logger.LogError(ex, "Failed to register domain mediator for extension: {DomainName}", domainExtension.DomainName);
                     }
                 }
+                
+                // Set up service monitoring
+                var serviceMonitor = _host.Services.GetRequiredService<GenericServiceMonitor>();
+                
+                // Configure AnythingLLM monitoring
+                serviceMonitor.AddService(new ServiceMonitorConfig
+                {
+                    Name = "AnythingLLM",
+                    Endpoint = "http://localhost:3001/api/system/status",
+                    CheckInterval = TimeSpan.FromSeconds(10),
+                    Type = ServiceType.AnythingLLM
+                });
+                
+                // Start monitoring all configured services
+                serviceMonitor.StartAll();
+                logger.LogInformation("Service monitoring started for AnythingLLM");
             }
             catch (Exception ex)
             {
