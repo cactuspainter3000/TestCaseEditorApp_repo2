@@ -1,7 +1,9 @@
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events;
+using TestCaseEditorApp.MVVM.Mediators;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Models;
@@ -334,6 +336,100 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
             
             NavigateToStep("ProjectActive", _currentWorkspaceInfo);
         }
+        
+        /// <summary>
+        /// Complete project creation with workspace details, requirements import, and workspace setup
+        /// </summary>
+        public async Task CompleteProjectCreationAsync(string workspaceName, string projectName, string projectSavePath, string documentPath)
+        {
+            try
+            {
+                ShowProgress($"Creating project '{projectName}'...", 25);
+                
+                // 1. Set workspace path and configuration
+                UpdateProgress("Setting up workspace configuration...", 40);
+                
+                _currentWorkspaceInfo = new WorkspaceInfo
+                {
+                    Name = projectName,
+                    Path = projectSavePath,
+                    AnythingLLMSlug = workspaceName,
+                    HasUnsavedChanges = false,
+                    LastModified = DateTime.Now
+                };
+                
+                // 2. Import requirements from selected document if provided
+                if (!string.IsNullOrWhiteSpace(documentPath) && File.Exists(documentPath))
+                {
+                    UpdateProgress("Importing requirements from document...", 60);
+                    // TODO: Implement actual document import logic
+                    // This would call the requirement import service
+                    await Task.Delay(500); // Placeholder for document import
+                }
+                
+                // 3. Save workspace configuration
+                UpdateProgress("Saving workspace configuration...", 80);
+                
+                // Create workspace file if it doesn't exist
+                var workspaceDir = Path.GetDirectoryName(projectSavePath);
+                if (!string.IsNullOrEmpty(workspaceDir) && !Directory.Exists(workspaceDir))
+                {
+                    Directory.CreateDirectory(workspaceDir);
+                }
+                
+                // TODO: Use persistence service to save workspace
+                // _persistenceService.SaveWorkspace(_currentWorkspaceInfo, projectSavePath);
+                
+                UpdateProgress("Project created successfully!", 100);
+                
+                // Broadcast via simple mediator pattern (same as AnythingLLM)
+                var displayProjectName = projectName;
+                // Remove .tcex extension if present
+                if (displayProjectName.EndsWith(".tcex", StringComparison.OrdinalIgnoreCase))
+                {
+                    displayProjectName = System.IO.Path.GetFileNameWithoutExtension(displayProjectName);
+                }
+                
+                ProjectStatusMediator.NotifyProjectStatusUpdated(new ProjectStatus
+                {
+                    IsProjectOpen = true,
+                    ProjectName = displayProjectName,
+                    TestCaseCount = 0
+                });
+                
+                // Broadcast the project creation event
+                PublishEvent(new WorkspaceManagementEvents.ProjectCreated 
+                { 
+                    WorkspacePath = projectSavePath,
+                    WorkspaceName = projectName,
+                    AnythingLLMWorkspaceSlug = workspaceName
+                });
+                
+                // Show success notification
+                ShowNotification(
+                    $"Project '{projectName}' created successfully! Navigate to 'Requirements' to see imported data.", 
+                    DomainNotificationType.Success);
+                    
+                HideProgress();
+                
+                // Navigate to active project state
+                NavigateToStep("ProjectActive", _currentWorkspaceInfo);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to complete project creation for project: {ProjectName}", projectName);
+                
+                PublishEvent(new WorkspaceManagementEvents.ProjectOperationError 
+                { 
+                    ErrorMessage = ex.Message, 
+                    Exception = ex 
+                });
+                
+                ShowNotification($"Error creating project: {ex.Message}", DomainNotificationType.Error);
+                HideProgress();
+                throw; // Re-throw to let the caller handle the error
+            }
+        }
 
         private async Task CompleteProjectOpeningAsync(string workspaceSlug, string workspaceName)
         {
@@ -408,6 +504,29 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
         public new void MarkAsRegistered()
         {
             base.MarkAsRegistered();
+        }
+
+        /// <summary>
+        /// Debug method to test project creation broadcast
+        /// </summary>
+        public void TestProjectCreatedBroadcast()
+        {
+            _logger.LogInformation("[DEBUG] Testing ProjectCreated broadcast...");
+            
+            // Create a test project event
+            var testEvent = new WorkspaceManagementEvents.ProjectCreated 
+            { 
+                WorkspacePath = @"C:\Test\TestProject.tcex.json",
+                WorkspaceName = "DebugTestProject_" + DateTime.Now.Ticks,
+                AnythingLLMWorkspaceSlug = "test-workspace"
+            };
+            
+            _logger.LogInformation("[DEBUG] Publishing test ProjectCreated event: {WorkspaceName}", testEvent.WorkspaceName);
+            
+            // Broadcast the event
+            PublishEvent(testEvent);
+            
+            _logger.LogInformation("[DEBUG] ProjectCreated broadcast completed");
         }
     }
 

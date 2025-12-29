@@ -162,6 +162,11 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
         /// Show notification with domain context
         /// </summary>
         void ShowNotification(string message, DomainNotificationType type = DomainNotificationType.Info);
+        
+        /// <summary>
+        /// Complete project creation with workspace details and document import
+        /// </summary>
+        Task CompleteProjectCreationAsync(string workspaceName, string projectName, string projectSavePath, string documentPath);
     }
     
     /// <summary>

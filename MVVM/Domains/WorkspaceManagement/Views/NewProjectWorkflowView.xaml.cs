@@ -1,6 +1,6 @@
 using System.Windows.Controls;
 
-namespace TestCaseEditorApp.MVVM.Views
+namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Views
 {
     public partial class NewProjectWorkflowView : UserControl
     {

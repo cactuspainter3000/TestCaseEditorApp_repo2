@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
 {
@@ -196,5 +197,17 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         /// Current step's view model
         /// </summary>
         object? CurrentStepViewModel { get; set; }
+        
+        // ===== HEADER INTEGRATION =====
+        
+        /// <summary>
+        /// Set the header ViewModel for project status updates
+        /// </summary>
+        void SetHeaderViewModel(TestCaseGenerator_HeaderVM headerViewModel);
+        
+        /// <summary>
+        /// Handle broadcast notifications from other domains
+        /// </summary>
+        void HandleBroadcastNotification<T>(T notification) where T : class;
     }
 }

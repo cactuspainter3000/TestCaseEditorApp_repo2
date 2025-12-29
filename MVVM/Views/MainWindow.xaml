@@ -5,7 +5,9 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
         xmlns:tcgvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels"
+        xmlns:wmvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels"
         xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
+        xmlns:wmviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Views"
         xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models"
         xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
         Height="665" Width="1200"
@@ -195,8 +197,8 @@
             <views:ImportRequirementsWorkflowView />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type vm:NewProjectWorkflowViewModel}">
-            <views:NewProjectWorkflowView />
+        <DataTemplate DataType="{x:Type wmvm:NewProjectWorkflowViewModel}">
+            <wmviews:NewProjectWorkflowView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:NewProjectHeaderViewModel}">

@@ -598,10 +598,30 @@ namespace TestCaseEditorApp.Services
 
         private async Task BroadcastToMediatorAsync<T>(string domainName, object mediator, T notification) where T : class
         {
-            // Simulate delivery to mediator
-            await Task.Delay(1); // Placeholder for actual delivery mechanism
-            _logger.LogDebug("Delivered broadcast to {DomainName}: {NotificationType}", 
-                domainName, typeof(T).Name);
+            try
+            {
+                // Use reflection to call HandleBroadcastNotification method on the mediator
+                var method = mediator.GetType().GetMethod("HandleBroadcastNotification");
+                if (method != null)
+                {
+                    var genericMethod = method.MakeGenericMethod(typeof(T));
+                    genericMethod.Invoke(mediator, new object[] { notification });
+                    
+                    _logger.LogDebug("Delivered broadcast to {DomainName}: {NotificationType}", 
+                        domainName, typeof(T).Name);
+                }
+                else
+                {
+                    _logger.LogDebug("Mediator {DomainName} does not handle broadcast notifications", domainName);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to deliver broadcast to {DomainName}: {NotificationType}", 
+                    domainName, typeof(T).Name);
+            }
+            
+            await Task.CompletedTask;
         }
 
         private string GetRespondingDomain(string requestType)

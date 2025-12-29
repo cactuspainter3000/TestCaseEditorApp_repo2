@@ -7,6 +7,8 @@ using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
 
@@ -31,6 +33,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         private Requirement? _currentRequirement;
         private bool _isDirty = false;
         private bool _isBatchAnalyzing = false;
+        
+        // Header ViewModel integration for project status updates
+        private TestCaseGenerator_HeaderVM? _headerViewModel;
         private object? _selectedStep;
         private object? _currentStepViewModel;
         
@@ -894,6 +899,52 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             }
 
             return questions;
+        }
+        
+        /// <summary>
+        /// Set the header ViewModel for project status updates
+        /// Called from ViewModelFactory during initialization
+        /// </summary>
+        public void SetHeaderViewModel(TestCaseGenerator_HeaderVM headerViewModel)
+        {
+            _headerViewModel = headerViewModel ?? throw new ArgumentNullException(nameof(headerViewModel));
+            _logger.LogDebug("Header ViewModel set for TestCaseGenerationMediator");
+        }
+        
+        /// <summary>
+        /// Handle broadcast notifications from other domains
+        /// This is called by DomainCoordinator when other domains broadcast events
+        /// </summary>
+        public void HandleBroadcastNotification<T>(T notification) where T : class
+        {
+            _logger.LogDebug("Received broadcast notification: {NotificationType}", typeof(T).Name);
+            
+            // Handle workspace management events
+            if (notification is WorkspaceManagementEvents.ProjectCreated projectCreated)
+            {
+                _logger.LogInformation("HandleBroadcast: ProjectCreated - WorkspaceName: {WorkspaceName}, HeaderViewModel: {HeaderViewModel}", 
+                    projectCreated.WorkspaceName, _headerViewModel?.GetType().Name ?? "NULL");
+                _headerViewModel?.UpdateProjectStatus(projectCreated.WorkspaceName, true);
+                _logger.LogDebug("Updated header with project created: {ProjectName}", projectCreated.WorkspaceName);
+            }
+            else if (notification is WorkspaceManagementEvents.ProjectOpened projectOpened)
+            {
+                _logger.LogInformation("HandleBroadcast: ProjectOpened - WorkspaceName: {WorkspaceName}, HeaderViewModel: {HeaderViewModel}", 
+                    projectOpened.WorkspaceName, _headerViewModel?.GetType().Name ?? "NULL");
+                _headerViewModel?.UpdateProjectStatus(projectOpened.WorkspaceName, true);
+                _logger.LogDebug("Updated header with project opened: {ProjectName}", projectOpened.WorkspaceName);
+            }
+            else if (notification is WorkspaceManagementEvents.ProjectClosed)
+            {
+                _logger.LogInformation("HandleBroadcast: ProjectClosed - HeaderViewModel: {HeaderViewModel}", 
+                    _headerViewModel?.GetType().Name ?? "NULL");
+                _headerViewModel?.UpdateProjectStatus(null, false);
+                _logger.LogDebug("Updated header with project closed");
+            }
+            else
+            {
+                _logger.LogDebug("Broadcast notification not handled: {NotificationType}", typeof(T).Name);
+            }
         }
     }
 }

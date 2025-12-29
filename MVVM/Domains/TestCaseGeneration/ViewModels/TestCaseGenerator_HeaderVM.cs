@@ -12,6 +12,7 @@ using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Mediators;
 using TestCaseEditorApp.MVVM.Utils;
+using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
@@ -37,6 +38,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         [ObservableProperty] private int requirementsWithTestCasesCount;
         [ObservableProperty] private string? statusHint;
         [ObservableProperty] private string? currentRequirementSummary;
+        
+        // Project status properties
+        [ObservableProperty] private string projectName = "No Project";
+        [ObservableProperty] private bool isProjectLoaded = false;
         
         // Requirement fields for the current requirement
         [ObservableProperty] private string requirementDescription = string.Empty;
@@ -105,8 +110,39 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             // Subscribe to AnythingLLM status updates (follows same pattern as SideMenuViewModel)
             AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusUpdated;
             
+            // Subscribe to Project status updates using the same pattern
+            ProjectStatusMediator.ProjectStatusUpdated += OnProjectStatusUpdated;
+            
             // Request current status in case it was already set before we subscribed
             AnythingLLMMediator.RequestCurrentStatus();
+            ProjectStatusMediator.RequestCurrentStatus();
+        }
+
+        // ==================== Project Status Updates ====================
+        
+        /// <summary>
+        /// Update project status from workspace management events
+        /// This method is called by the TestCaseGenerationMediator when it receives workspace events
+        /// </summary>
+        public void UpdateProjectStatus(string? workspaceName, bool isProjectOpen)
+        {
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[TestCaseGenerator_HeaderVM] UpdateProjectStatus called: workspaceName={workspaceName ?? "NULL"}, isProjectOpen={isProjectOpen}");
+                
+            Application.Current?.Dispatcher.BeginInvoke(() =>
+            {
+                if (isProjectOpen && !string.IsNullOrWhiteSpace(workspaceName))
+                {
+                    ProjectName = System.IO.Path.GetFileNameWithoutExtension(workspaceName);
+                    IsProjectLoaded = true;
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[TestCaseGenerator_HeaderVM] Project status updated: ProjectName={ProjectName}, IsProjectLoaded={IsProjectLoaded}");
+                }
+                else
+                {
+                    ProjectName = "No Project";
+                    IsProjectLoaded = false;
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[TestCaseGenerator_HeaderVM] Project cleared: ProjectName={ProjectName}, IsProjectLoaded={IsProjectLoaded}");
+                }
+            });
         }
 
         // ==================== Property Change Handlers ====================
@@ -116,6 +152,19 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             IsLlmConnected = status.IsAvailable;
             IsLlmBusy = status.IsStarting;
             TestCaseEditorApp.Services.Logging.Log.Debug($"[HEADER] AnythingLLM status updated - Connected: {IsLlmConnected}, Busy: {IsLlmBusy}");
+        }
+        
+        /// <summary>
+        /// Handles Project status updates from the mediator (same pattern as AnythingLLM)
+        /// </summary>
+        private void OnProjectStatusUpdated(ProjectStatus status)
+        {
+            Application.Current?.Dispatcher.BeginInvoke(() =>
+            {
+                ProjectName = status.ProjectName;
+                IsProjectLoaded = status.IsProjectOpen;
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[HEADER] Project status updated via mediator - Name: {ProjectName}, Loaded: {IsProjectLoaded}");
+            });
         }
         
         partial void OnIsLlmBusyChanged(bool oldValue, bool newValue)
@@ -243,6 +292,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         {
             // Unsubscribe from AnythingLLM status updates
             AnythingLLMMediator.StatusUpdated -= OnAnythingLLMStatusUpdated;
+            
+            // Unsubscribe from Project status updates
+            ProjectStatusMediator.ProjectStatusUpdated -= OnProjectStatusUpdated;
         }
         
         /// <summary>

@@ -11,7 +11,7 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 
-namespace TestCaseEditorApp.MVVM.ViewModels
+namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
 {
     public partial class NewProjectWorkflowViewModel : ObservableObject
     {
@@ -57,6 +57,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         [ObservableProperty]
         private bool isWorkspaceCreated = false;
+        
+        [ObservableProperty]
+        private bool isProjectCreated = false;
 
         // Step tracking
         [ObservableProperty]
@@ -70,6 +73,47 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         [ObservableProperty]
         private bool hasProjectName = false;
+        
+        // Computed properties for smart button UX
+        public string CreateProjectButtonText
+        {
+            get
+            {
+                if (!HasWorkspaceName)
+                    return "⚠️ Create AnythingLLM Workspace First";
+                if (!IsWorkspaceCreated)
+                    return "⚠️ Workspace Not Validated";
+                if (!HasSelectedDocument)
+                    return "⚠️ Select Requirements Document";
+                if (!HasProjectName)
+                    return "⚠️ Enter Project Name";
+                if (!HasProjectSavePath)
+                    return "⚠️ Choose Save Location";
+                if (IsProjectCreated)
+                    return "✅ Project Created";
+                return "🚀 Create Project";
+            }
+        }
+        
+        public string CreateProjectButtonTooltip
+        {
+            get
+            {
+                if (!HasWorkspaceName)
+                    return "First create an AnythingLLM workspace above";
+                if (!IsWorkspaceCreated)
+                    return "Click 'Create Workspace' to validate your workspace setup";
+                if (!HasSelectedDocument)
+                    return "Select a Word document containing your requirements";
+                if (!HasProjectName)
+                    return "Enter a name for your new project";
+                if (!HasProjectSavePath)
+                    return "Choose where to save your project file";
+                if (IsProjectCreated)
+                    return "Project has been successfully created!";
+                return "All prerequisites met - ready to create project!";
+            }
+        }
 
         // Commands
         public ICommand SelectDocumentCommand { get; }
@@ -138,18 +182,31 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             HasSelectedDocument = !string.IsNullOrWhiteSpace(value) && File.Exists(value);
             UpdateCanProceed();
+            OnPropertyChanged(nameof(CreateProjectButtonText));
+            OnPropertyChanged(nameof(CreateProjectButtonTooltip));
         }
 
         partial void OnProjectSavePathChanged(string value)
         {
             HasProjectSavePath = !string.IsNullOrWhiteSpace(value);
             UpdateCanProceed();
+            OnPropertyChanged(nameof(CreateProjectButtonText));
+            OnPropertyChanged(nameof(CreateProjectButtonTooltip));
         }
 
         partial void OnProjectNameChanged(string value)
         {
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[NewProjectWorkflowViewModel] ProjectName changed: new='{value}'");
             HasProjectName = !string.IsNullOrWhiteSpace(value);
             UpdateCanProceed();
+            OnPropertyChanged(nameof(CreateProjectButtonText));
+            OnPropertyChanged(nameof(CreateProjectButtonTooltip));
+        }
+
+        partial void OnIsProjectCreatedChanged(bool value)
+        {
+            OnPropertyChanged(nameof(CreateProjectButtonText));
+            OnPropertyChanged(nameof(CreateProjectButtonTooltip));
         }
 
         private void UpdateCanProceed()
@@ -169,6 +226,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Force property change notification
             CanProceed = newCanProceed;
             OnPropertyChanged(nameof(CanProceed));
+            OnPropertyChanged(nameof(CreateProjectButtonText));
+            OnPropertyChanged(nameof(CreateProjectButtonTooltip));
             
             // Notify other ViewModels via mediator
             var workflowState = new ProjectWorkflowState
@@ -211,6 +270,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 // Provide user feedback
                 var fileName = System.IO.Path.GetFileName(dlg.FileName);
                 _toastService.ShowToast($"Requirements document selected: {fileName}", durationSeconds: 3, type: ToastType.Success);
+                
+                // Update button text
+                OnPropertyChanged(nameof(CreateProjectButtonText));
+                OnPropertyChanged(nameof(CreateProjectButtonTooltip));
             }
         }
 
@@ -227,6 +290,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             if (dlg.ShowDialog() == true)
             {
                 ProjectSavePath = dlg.FileName;
+                
+                // Extract project name from chosen filename if user changed it
+                var chosenName = Path.GetFileNameWithoutExtension(dlg.FileName);
+                if (!string.IsNullOrWhiteSpace(chosenName))
+                {
+                    ProjectName = chosenName;
+                }
                 
                 // Provide user feedback
                 var fileName = System.IO.Path.GetFileName(dlg.FileName);
@@ -254,24 +324,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             try
             {
-                // Show progress through workspace management mediator
-                _workspaceManagementMediator.ShowProgress($"Creating project '{ProjectName}'...", 25);
+                // Call the workspace management mediator to complete the project creation
+                await _workspaceManagementMediator.CompleteProjectCreationAsync(WorkspaceName, ProjectName, ProjectSavePath, SelectedDocumentPath);
                 
-                // TODO: Complete project creation workflow:
-                // 1. Set workspace path and configuration
-                // 2. Import requirements from selected document  
-                // 3. Save workspace
-                
-                await Task.Delay(1000); // Simulate project creation work
-                
-                _workspaceManagementMediator.UpdateProgress("Project created successfully!", 100);
-                
-                // Show success notification
-                _workspaceManagementMediator.ShowNotification(
-                    $"Project '{ProjectName}' created successfully! Navigate to 'Requirements' to see imported data.", 
-                    DomainNotificationType.Success);
-                    
-                _workspaceManagementMediator.HideProgress();
+                // Mark project as created successfully
+                IsProjectCreated = true;
                 
                 // Fire the event for any remaining legacy listeners
                 var args = new NewProjectCompletedEventArgs
@@ -387,6 +444,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                             
                             // Update CanProceed status after workspace creation
                             UpdateCanProceed();
+                            OnPropertyChanged(nameof(CreateProjectButtonText));
+                            OnPropertyChanged(nameof(CreateProjectButtonTooltip));
                         }
                         else
                         {
@@ -426,6 +485,22 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             ProjectSavePath = "";
             ProjectName = "";
             AutoExportEnabled = true;
+        }
+
+        /// <summary>
+        /// Debug method to test project name binding
+        /// </summary>
+        public void TestProjectNameBinding()
+        {
+            TestCaseEditorApp.Services.Logging.Log.Debug("[DEBUG] Testing ProjectName binding...");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[DEBUG] Current ProjectName: '{ProjectName}'");
+            
+            // Test programmatic change
+            ProjectName = "Test_Project_" + DateTime.Now.Ticks;
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[DEBUG] After programmatic change: '{ProjectName}'");
+            
+            // Verify property change notification
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[DEBUG] HasProjectName: {HasProjectName}");
         }
     }
 

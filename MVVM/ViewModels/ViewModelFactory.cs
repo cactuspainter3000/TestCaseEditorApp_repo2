@@ -74,10 +74,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public TestCaseGenerator_HeaderVM CreateTestCaseGeneratorHeaderViewModel(ITestCaseGenerationMediator mediator)
         {
             // Use null MainViewModel for now - HeaderVM should be migrated to use mediator
-            return new TestCaseGenerator_HeaderVM(null) 
+            var headerVM = new TestCaseGenerator_HeaderVM(null) 
             { 
                 TitleText = "Test Case Creator" 
             };
+            
+            // Link header VM to mediator for project status updates
+            mediator.SetHeaderViewModel(headerVM);
+            
+            return headerVM;
         }
         
         public PlaceholderViewModel CreatePlaceholderViewModel()
