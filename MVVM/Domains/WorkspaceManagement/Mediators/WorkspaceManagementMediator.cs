@@ -160,13 +160,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                     projectName = System.IO.Path.GetFileNameWithoutExtension(projectName);
                 }
                 
-                // Broadcast project status via ProjectStatusMediator (same pattern as project creation)
-                ProjectStatusMediator.NotifyProjectStatusUpdated(new ProjectStatus
-                {
-                    IsProjectOpen = true,
-                    ProjectName = projectName,
-                    TestCaseCount = workspace.Requirements?.SelectMany(r => r.GeneratedTestCases ?? new ObservableCollection<TestCase>()).Count() ?? 0
-                });
+                // Project status will be communicated via cross-domain events below
                 
                 ShowProgress("Finalizing project setup...", 90);
                 
@@ -476,12 +470,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                     displayProjectName = System.IO.Path.GetFileNameWithoutExtension(displayProjectName);
                 }
                 
-                ProjectStatusMediator.NotifyProjectStatusUpdated(new ProjectStatus
-                {
-                    IsProjectOpen = true,
-                    ProjectName = displayProjectName,
-                    TestCaseCount = 0
-                });
+                // Project status will be communicated via cross-domain events below
                 
                 // Broadcast the project creation event
                 PublishEvent(new WorkspaceManagementEvents.ProjectCreated 

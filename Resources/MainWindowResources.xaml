@@ -1,6 +1,7 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
+                    xmlns:tcgvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels"
                     xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
                     xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
                     xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models">
@@ -9,7 +10,7 @@
         <views:WorkspaceHeaderView />
     </DataTemplate>
     
-    <DataTemplate DataType="{x:Type vm:TestCaseGeneratorViewModel}">
+    <DataTemplate DataType="{x:Type tcgvm:TestCaseGeneratorViewModel}">
         <views:TestCaseGeneratorRequirements_View />
     </DataTemplate>
     

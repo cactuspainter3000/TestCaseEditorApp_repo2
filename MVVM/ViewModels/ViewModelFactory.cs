@@ -155,7 +155,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public object CreateTestCaseGeneratorViewModel()
         {
             return new TestCaseGeneratorViewModel(
-                _applicationServices.AnythingLLMService,
                 _applicationServices.ChatGptExportService,
                 _applicationServices.NotificationService,
                 CreateNavigationMediator(),

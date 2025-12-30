@@ -110,12 +110,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             // Subscribe to AnythingLLM status updates (follows same pattern as SideMenuViewModel)
             AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusUpdated;
             
-            // Subscribe to Project status updates using the same pattern
-            ProjectStatusMediator.ProjectStatusUpdated += OnProjectStatusUpdated;
-            
             // Request current status in case it was already set before we subscribed
             AnythingLLMMediator.RequestCurrentStatus();
-            ProjectStatusMediator.RequestCurrentStatus();
         }
 
         // ==================== Project Status Updates ====================
@@ -152,19 +148,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             IsLlmConnected = status.IsAvailable;
             IsLlmBusy = status.IsStarting;
             TestCaseEditorApp.Services.Logging.Log.Debug($"[HEADER] AnythingLLM status updated - Connected: {IsLlmConnected}, Busy: {IsLlmBusy}");
-        }
-        
-        /// <summary>
-        /// Handles Project status updates from the mediator (same pattern as AnythingLLM)
-        /// </summary>
-        private void OnProjectStatusUpdated(ProjectStatus status)
-        {
-            Application.Current?.Dispatcher.BeginInvoke(() =>
-            {
-                ProjectName = status.ProjectName;
-                IsProjectLoaded = status.IsProjectOpen;
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[HEADER] Project status updated via mediator - Name: {ProjectName}, Loaded: {IsProjectLoaded}");
-            });
         }
         
         partial void OnIsLlmBusyChanged(bool oldValue, bool newValue)
@@ -292,9 +275,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         {
             // Unsubscribe from AnythingLLM status updates
             AnythingLLMMediator.StatusUpdated -= OnAnythingLLMStatusUpdated;
-            
-            // Unsubscribe from Project status updates
-            ProjectStatusMediator.ProjectStatusUpdated -= OnProjectStatusUpdated;
         }
         
         /// <summary>
