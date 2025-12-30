@@ -63,5 +63,15 @@ namespace TestCaseEditorApp.MVVM.Utils
                 NewSection = newSection;
             }
         }
+        
+        public class NavigationCleared
+        {
+            public string? PreviousSection { get; }
+            
+            public NavigationCleared(string? previousSection)
+            {
+                PreviousSection = previousSection;
+            }
+        }
     }
 }

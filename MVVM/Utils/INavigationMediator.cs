@@ -29,6 +29,11 @@ namespace TestCaseEditorApp.MVVM.Utils
         void SetMainContent(object? contentViewModel);
         
         /// <summary>
+        /// Clear all navigation state and return to initial state
+        /// </summary>
+        void ClearNavigationState();
+        
+        /// <summary>
         /// Subscribe to navigation events
         /// </summary>
         void Subscribe<T>(Action<T> handler) where T : class;

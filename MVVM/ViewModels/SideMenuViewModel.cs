@@ -75,7 +75,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // === MISSING COMMANDS FOR UI BINDING ===
         // These commands are bound to in XAML but were missing from the ViewModel
         
-        public ICommand CloseProjectCommand { get; private set; } = null!;
+        public ICommand UnloadProjectCommand { get; private set; } = null!;
         public ICommand BatchAnalyzeCommand { get; private set; } = null!;
         public ICommand AnalyzeUnanalyzedCommand { get; private set; } = null!;
         public ICommand ReAnalyzeModifiedCommand { get; private set; } = null!;
@@ -147,7 +147,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             ImportAdditionalCommand = new RelayCommand(() => { /* TODO: Implement import additional */ });
             
             // Initialize missing commands
-            CloseProjectCommand = new RelayCommand(() => { /* TODO: Implement close project */ });
+            UnloadProjectCommand = new AsyncRelayCommand(UnloadProjectAsync);
             BatchAnalyzeCommand = new RelayCommand(() => { /* TODO: Implement batch analyze */ });
             AnalyzeUnanalyzedCommand = new RelayCommand(() => { /* TODO: Implement analyze unanalyzed */ });
             ReAnalyzeModifiedCommand = new RelayCommand(() => { /* TODO: Implement re-analyze modified */ });
@@ -171,6 +171,22 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             if (_workspaceManagementMediator != null)
             {
                 await _workspaceManagementMediator.CreateNewProjectAsync();
+            }
+            else
+            {
+                Console.WriteLine("*** WorkspaceManagementMediator is null in SideMenuViewModel! ***");
+            }
+        }
+        
+        /// <summary>
+        /// Unload the current project
+        /// </summary>
+        private async Task UnloadProjectAsync()
+        {
+            Console.WriteLine("*** SideMenuViewModel.UnloadProject called! ***");
+            if (_workspaceManagementMediator != null)
+            {
+                await _workspaceManagementMediator.CloseProjectAsync();
             }
             else
             {
@@ -254,6 +270,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Notify commands that their CanExecute state may have changed
             ((AsyncRelayCommand)NewProjectCommand).NotifyCanExecuteChanged();
             ((AsyncRelayCommand)OpenProjectCommand).NotifyCanExecuteChanged();
+            ((AsyncRelayCommand)UnloadProjectCommand).NotifyCanExecuteChanged();
             ((RelayCommand)NewProjectNavigationCommand).NotifyCanExecuteChanged();
         }
         
@@ -482,7 +499,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 CreateActionWithId("project.quickimport", "⚡ Quick Import (Legacy)", "⚡", QuickImportCommand),
                 CreateActionWithId("project.open", "📂 Open Project", "📂", OpenProjectCommand),
                 CreateActionWithId("project.save", "💾 Save Project", "💾", SaveProjectCommand, false),
-                CreateActionWithId("project.close", "❌ Close Project", "❌", CloseProjectCommand, false)
+                CreateActionWithId("project.unload", "📤 Unload Project", "📤", UnloadProjectCommand, false)
             );
             
             projectSection.Command = ProjectNavigationCommand;
@@ -664,7 +681,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     CreateButton("quick-import", "⚡", "Quick Import (Legacy)", QuickImportCommand, "Quick import legacy format"),
                     CreateButton("open-project", "📁", "Open Project", OpenProjectCommand, "Load an existing project"),
                     CreateButton("save-project", "💾", "Save Project", SaveProjectCommand, "Save current project"),
-                    CreateButton("close-project", "❌", "Close Project", CloseProjectCommand, "Close current project")
+                    CreateButton("unload-project", "📤", "Unload Project", UnloadProjectCommand, "Unload current project")
                 ),
 
                 // === REQUIREMENTS DROPDOWN (as sub-item) ===

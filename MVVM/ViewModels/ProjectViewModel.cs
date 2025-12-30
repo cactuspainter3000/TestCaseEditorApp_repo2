@@ -469,6 +469,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             public void NavigateToStep(string stepId, object? context = null) { }
             public void SetActiveHeader(object? headerViewModel) { }
             public void SetMainContent(object? contentViewModel) { }
+            public void ClearNavigationState() { }
             public void Subscribe<T>(Action<T> handler) where T : class { }
             public void Unsubscribe<T>(Action<T> handler) where T : class { }
             public void Publish<T>(T navigationEvent) where T : class { }

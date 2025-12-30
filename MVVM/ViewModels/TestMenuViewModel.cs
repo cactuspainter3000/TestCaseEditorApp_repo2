@@ -79,7 +79,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                                 },
                                 new MenuHierarchyItem
                                 {
-                                    Title = "❌ Close Project",
+                                    Title = "📤 Unload Project",
                                     Level = 3,
                                     IsExpandable = false,
                                     Command = TestActionCommand

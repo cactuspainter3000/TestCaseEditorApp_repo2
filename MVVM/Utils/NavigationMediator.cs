@@ -72,6 +72,25 @@ namespace TestCaseEditorApp.MVVM.Utils
             }
         }
         
+        /// <summary>
+        /// Clear all navigation state and return to initial state
+        /// </summary>
+        public void ClearNavigationState()
+        {
+            _logger?.LogInformation("Clearing navigation state");
+            
+            var previousSection = _currentSection;
+            _currentSection = null;
+            _currentHeader = null;
+            _currentContent = null;
+            
+            // Publish clear events
+            Publish(new NavigationEvents.NavigationCleared(previousSection));
+            Publish(new NavigationEvents.HeaderChanged(null));
+            Publish(new NavigationEvents.ContentChanged(null));
+            Publish(new NavigationEvents.SectionChanged(previousSection, null));
+        }
+        
         public void Subscribe<T>(Action<T> handler) where T : class
         {
             var eventType = typeof(T);

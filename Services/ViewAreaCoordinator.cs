@@ -3,6 +3,7 @@ using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
+using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 
 namespace TestCaseEditorApp.Services
@@ -57,6 +58,9 @@ namespace TestCaseEditorApp.Services
             _navigationMediator.Subscribe<NavigationEvents.StepChangeRequested>(OnStepChangeRequested);
             _navigationMediator.Subscribe<NavigationEvents.ContentChanged>(OnContentChanged);
             
+            // Subscribe to workspace management events
+            _workspaceManagementMediator.Subscribe<WorkspaceManagementEvents.ProjectClosed>(OnProjectClosed);
+            
             // Wire up side menu selection to mediator
             SideMenu.SectionChanged += (section) => 
             {
@@ -97,6 +101,16 @@ namespace TestCaseEditorApp.Services
             // Update the workspace content when mediator publishes content changes
             WorkspaceContent.CurrentContent = contentChanged.ContentViewModel;
             TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Content updated to: {contentChanged.ContentViewModel?.GetType().Name ?? "<null>"}");
+        }
+        
+        private void OnProjectClosed(WorkspaceManagementEvents.ProjectClosed projectClosed)
+        {
+            // Clear navigation state when project is closed/unloaded
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Project closed: {projectClosed.WorkspacePath}");
+            _navigationMediator.ClearNavigationState();
+            
+            // Navigate to initial/empty state
+            HandleDefaultNavigation(null);
         }
         
         // Public navigation methods (implement IViewAreaCoordinator)

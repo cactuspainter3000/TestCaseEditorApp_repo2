@@ -264,11 +264,20 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// </summary>
         private void OnRequirementsCollectionChanged(TestCaseGenerationEvents.RequirementsCollectionChanged e)
         {
-            _logger.LogDebug("Requirements collection changed: {Action}, Count: {Count}", e.Action, e.AffectedRequirements?.Count ?? 0);
+            _logger.LogDebug("Requirements collection changed: {Action}, Count: {Count}", e.Action, e.NewCount);
+            
+            // If collection was cleared, clear selection
+            if (e.Action == "Clear" || e.NewCount == 0)
+            {
+                _selectedRequirement = null;
+                _selectedRequirementIndex = -1;
+            }
             
             // Notify UI that RequirementsView has updated (it's bound to mediator's Requirements collection)
             OnPropertyChanged(nameof(RequirementsView));
             OnPropertyChanged(nameof(Requirements));
+            OnPropertyChanged(nameof(SelectedRequirement));
+            OnPropertyChanged(nameof(SelectedRequirementIndex));
             OnPropertyChanged(nameof(RequirementPositionDisplay));
             RefreshNavCommands();
         }

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Threading;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Models;
@@ -959,7 +961,21 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 _logger.LogInformation("HandleBroadcast: ProjectClosed - HeaderViewModel: {HeaderViewModel}", 
                     _headerViewModel?.GetType().Name ?? "NULL");
                 _headerViewModel?.UpdateProjectStatus(null, false);
-                _logger.LogDebug("Updated header with project closed");
+                
+                // Clear requirements collection when project is closed (on UI thread)
+                _logger.LogInformation("🔄 Clearing requirements collection on project close...");
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    _requirements.Clear();
+                    PublishEvent(new TestCaseGenerationEvents.RequirementsCollectionChanged
+                    {
+                        Action = "Clear",
+                        AffectedRequirements = new List<Requirement>(),
+                        NewCount = 0
+                    });
+                });
+                
+                _logger.LogDebug("Updated header with project closed and cleared requirements");
             }
             else if (notification is TestCaseEditorApp.MVVM.Events.CrossDomainMessages.ImportRequirementsRequest importRequest)
             {

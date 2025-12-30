@@ -438,10 +438,16 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 var workspacePath = _currentWorkspaceInfo.Path;
                 _currentWorkspaceInfo = null;
                 
-                PublishEvent(new WorkspaceManagementEvents.ProjectClosed 
+                var projectClosedEvent = new WorkspaceManagementEvents.ProjectClosed 
                 { 
                     WorkspacePath = workspacePath 
-                });
+                };
+                
+                PublishEvent(projectClosedEvent);
+                
+                // Broadcast to other domains for cross-domain coordination
+                _logger.LogInformation("📡 Broadcasting ProjectClosed event to other domains: {WorkspacePath}", workspacePath);
+                BroadcastToAllDomains(projectClosedEvent);
                 
                 ShowNotification("Project closed", DomainNotificationType.Info);
                 HideProgress();

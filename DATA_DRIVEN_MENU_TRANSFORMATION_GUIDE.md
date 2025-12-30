@@ -183,7 +183,7 @@ public class ConditionalGroup : MenuContentItem
 
 **Simple Actions** (Pattern A):
 ```
-🆕 New Project, ⚡ Quick Import, 📁 Open Project, 💾 Save Project, ❌ Close Project
+🆕 New Project, ⚡ Quick Import, 📁 Open Project, 💾 Save Project, 📤 Unload Project
 📥 Import Additional Requirements, ⚡ Analyze All Requirements
 🔍 Analyze Unanalyzed, 🔄 Re-analyze Modified, etc.
 ```
