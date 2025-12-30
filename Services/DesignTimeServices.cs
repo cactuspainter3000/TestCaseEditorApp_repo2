@@ -39,6 +39,10 @@ namespace TestCaseEditorApp.Services
             public T? Load<T>(string keyOrPath) => default;
             public void Save(string path, Workspace workspace) { }
             public bool Exists(string path) => false;
+            public string[] GetAvailableBackups(string filePath) => Array.Empty<string>();
+            public void RestoreFromBackup(string filePath, string backupPath) { }
+            public bool CanUndo(string filePath) => false;
+            public void UndoLastSave(string filePath) { }
         }
 
         /// <summary>

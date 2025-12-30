@@ -1,6 +1,7 @@
 using System;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Utils;
+using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 
 namespace TestCaseEditorApp.Services
 {
@@ -16,6 +17,9 @@ namespace TestCaseEditorApp.Services
         HeaderAreaViewModel HeaderArea { get; }
         WorkspaceContentViewModel WorkspaceContent { get; }
         INavigationMediator NavigationMediator { get; }
+        
+        // Domain Mediators (for command access)
+        IWorkspaceManagementMediator WorkspaceManagement { get; }
 
         // Navigation Methods
         void NavigateToProject();

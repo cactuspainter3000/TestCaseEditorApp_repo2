@@ -22,6 +22,7 @@ namespace TestCaseEditorApp.Services
         public HeaderAreaViewModel HeaderArea { get; }
         public WorkspaceContentViewModel WorkspaceContent { get; }
         public INavigationMediator NavigationMediator => _navigationMediator;
+        public IWorkspaceManagementMediator WorkspaceManagement => _workspaceManagementMediator;
         
         // ViewModels for reuse
         private WorkspaceHeaderViewModel? _workspaceHeader;

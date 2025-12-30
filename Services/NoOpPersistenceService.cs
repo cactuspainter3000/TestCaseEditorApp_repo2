@@ -19,5 +19,9 @@ namespace TestCaseEditorApp.Services
 
         // Existence check
         public bool Exists(string path) => false;
-    }
+        // Backup/Undo functionality (no-op)
+        public string[] GetAvailableBackups(string filePath) => Array.Empty<string>();
+        public void RestoreFromBackup(string filePath, string backupPath) { /* no-op */ }
+        public bool CanUndo(string filePath) => false;
+        public void UndoLastSave(string filePath) { /* no-op */ }    }
 }

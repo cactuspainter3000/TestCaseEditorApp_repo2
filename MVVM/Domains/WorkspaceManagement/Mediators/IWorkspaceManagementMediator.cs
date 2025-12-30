@@ -112,6 +112,16 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
         Task SaveProjectAsync();
         
         /// <summary>
+        /// Undo the last save operation by restoring from backup
+        /// </summary>
+        Task UndoLastSaveAsync();
+        
+        /// <summary>
+        /// Check if undo is available for the current project
+        /// </summary>
+        bool CanUndoLastSave();
+        
+        /// <summary>
         /// Close the current project
         /// </summary>
         Task CloseProjectAsync();

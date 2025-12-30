@@ -332,6 +332,90 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
             }
         }
 
+        /// <summary>
+        /// Undo the last save operation by restoring from the most recent backup
+        /// </summary>
+        public async Task UndoLastSaveAsync()
+        {
+            await Task.CompletedTask;
+            try
+            {
+                if (_currentWorkspaceInfo == null)
+                {
+                    ShowNotification("No project is currently open", DomainNotificationType.Warning);
+                    return;
+                }
+
+                ShowProgress("Checking for available backups...", 10);
+
+                if (!_persistenceService.CanUndo(_currentWorkspaceInfo.Path))
+                {
+                    ShowNotification("No backups available to undo", DomainNotificationType.Info);
+                    HideProgress();
+                    return;
+                }
+
+                ShowProgress("Restoring from backup...", 50);
+
+                // Perform the undo operation
+                _persistenceService.UndoLastSave(_currentWorkspaceInfo.Path);
+
+                ShowProgress("Reloading project data...", 75);
+
+                // Reload the workspace to refresh UI
+                var restoredWorkspace = TestCaseEditorApp.Services.WorkspaceFileManager.Load(_currentWorkspaceInfo.Path);
+                if (restoredWorkspace != null)
+                {
+                    // Update workspace modified time
+                    _currentWorkspaceInfo.LastModified = DateTime.Now;
+                    _currentWorkspaceInfo.HasUnsavedChanges = false;
+
+                    // Broadcast workspace reload event to update all UI
+                    PublishEvent(new WorkspaceManagementEvents.ProjectOpened
+                    {
+                        Workspace = restoredWorkspace,
+                        WorkspacePath = _currentWorkspaceInfo.Path,
+                        WorkspaceName = _currentWorkspaceInfo.Name
+                    });
+
+                    ShowProgress("Undo completed successfully", 100);
+                    await Task.Delay(500); // Brief pause to show completion
+
+                    ShowNotification("Successfully undid last save operation", DomainNotificationType.Success);
+                    HideProgress();
+
+                    _logger.LogInformation("Successfully undid last save for project: {WorkspacePath}", _currentWorkspaceInfo.Path);
+                }
+                else
+                {
+                    ShowNotification("Failed to reload workspace after undo", DomainNotificationType.Error);
+                    HideProgress();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to undo last save");
+                
+                PublishEvent(new WorkspaceManagementEvents.ProjectOperationError 
+                { 
+                    Operation = "UndoLastSave", 
+                    ErrorMessage = ex.Message, 
+                    Exception = ex 
+                });
+                
+                ShowNotification($"Error undoing last save: {ex.Message}", DomainNotificationType.Error);
+                HideProgress();
+            }
+        }
+
+        /// <summary>
+        /// Check if undo is available for the current project
+        /// </summary>
+        public bool CanUndoLastSave()
+        {
+            return _currentWorkspaceInfo != null && _persistenceService.CanUndo(_currentWorkspaceInfo.Path);
+        }
+
         public async Task CloseProjectAsync()
         {
             await Task.CompletedTask;

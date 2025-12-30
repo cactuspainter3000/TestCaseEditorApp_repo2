@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -8,6 +9,8 @@ using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Models.DataDrivenMenu;
+using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
+using System.Runtime.CompilerServices;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -82,6 +85,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             
             // Initialize commands
             SaveWorkspaceCommand = new RelayCommand(() => { /* TODO: Implement save workspace */ });
+            UndoLastSaveCommand = new RelayCommand(async () => await ExecuteUndoLastSaveAsync(), () => CanUndoLastSave);
+            
+            // Initialize undo state
+            CanUndoLastSave = false;
             
             // Subscribe to navigation events for UI property binding notifications
             _viewAreaCoordinator.NavigationMediator.Subscribe<NavigationEvents.HeaderChanged>(
@@ -110,6 +117,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         [ObservableProperty]
         private ICommand? saveWorkspaceCommand;
+        
+        [ObservableProperty]
+        private ICommand? undoLastSaveCommand;
+        
+        [ObservableProperty]
+        private bool canUndoLastSave;
         
         [ObservableProperty]
         private string? workspacePath;
@@ -159,6 +172,46 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Simple container has minimal cleanup
             _logger?.LogInformation("MainViewModel disposing");
             GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Execute undo last save operation via workspace management mediator
+        /// </summary>
+        private async Task ExecuteUndoLastSaveAsync()
+        {
+            try
+            {
+                var workspaceMediator = _viewAreaCoordinator?.WorkspaceManagement;
+                if (workspaceMediator != null)
+                {
+                    await workspaceMediator.UndoLastSaveAsync();
+                    
+                    // Update undo availability after operation
+                    CanUndoLastSave = workspaceMediator.CanUndoLastSave();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Failed to execute undo last save from MainViewModel");
+                // The workspace mediator will handle user notifications
+            }
+        }
+
+        /// <summary>
+        /// Update undo state when workspace changes
+        /// </summary>
+        public void UpdateUndoState()
+        {
+            try
+            {
+                var workspaceMediator = _viewAreaCoordinator?.WorkspaceManagement;
+                CanUndoLastSave = workspaceMediator?.CanUndoLastSave() ?? false;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Failed to update undo state");
+                CanUndoLastSave = false;
+            }
         }
     }
 }

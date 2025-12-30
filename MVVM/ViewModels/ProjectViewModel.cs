@@ -421,6 +421,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             public void Save<T>(string key, T value) { }
             public T? Load<T>(string key) => default;
             public bool Exists(string key) => false;
+            public string[] GetAvailableBackups(string filePath) => Array.Empty<string>();
+            public void RestoreFromBackup(string filePath, string backupPath) { }
+            public bool CanUndo(string filePath) => false;
+            public void UndoLastSave(string filePath) { }
         }
         
         private class StubFileDialogService : IFileDialogService
@@ -488,6 +492,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             public async Task OpenProjectAsync() => await Task.CompletedTask;
             public async Task SaveProjectAsync() => await Task.CompletedTask;
             public async Task CloseProjectAsync() => await Task.CompletedTask;
+            public async Task UndoLastSaveAsync() => await Task.CompletedTask;
+            public bool CanUndoLastSave() => false;
             public void ShowWorkspaceSelectionForOpen() { }
             public void ShowWorkspaceSelectionForNew() { }
             public async Task OnWorkspaceSelectedAsync(string workspaceSlug, string workspaceName, bool isNewProject) => await Task.CompletedTask;

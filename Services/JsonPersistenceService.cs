@@ -205,5 +205,29 @@
             
             TestCaseEditorApp.Services.Logging.Log.Debug($"[JsonPersistence] Restored from backup: {backupPath} -> {filePath}");
         }
+
+        /// <summary>
+        /// Check if undo is available (has backups)
+        /// </summary>
+        public bool CanUndo(string filePath)
+        {
+            var backups = GetAvailableBackups(filePath);
+            return backups.Length > 0;
+        }
+
+        /// <summary>
+        /// Undo last save by restoring from most recent backup
+        /// </summary>
+        public void UndoLastSave(string filePath)
+        {
+            var backups = GetAvailableBackups(filePath);
+            if (backups.Length == 0)
+                throw new InvalidOperationException("No backups available to restore from");
+
+            var mostRecentBackup = backups[0]; // Already sorted by newest first
+            RestoreFromBackup(filePath, mostRecentBackup);
+            
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[JsonPersistence] Undid last save using backup: {mostRecentBackup}");
+        }
     }
 }
