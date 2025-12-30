@@ -451,8 +451,6 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 {
                     UpdateProgress("Importing requirements from document...", 60);
                     
-                    // Import requirements directly using the requirement service
-                    _logger.LogInformation("📤 Importing requirements from document: {DocumentPath}", documentPath);
                     try
                     {
                         // Default to Jama parser for .docx files since most of our documents are from Jama
@@ -471,30 +469,9 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                                 importedRequirements = await Task.Run(() => requirementService.ImportRequirementsFromWord(documentPath));
                             }
                             
-                            _logger.LogInformation("✅ Successfully imported {Count} requirements", importedRequirements.Count);
-                            
-                            // Validation: Check for suspicious import counts
-                            if (importedRequirements.Count > 40)
-                            {
-                                _logger.LogWarning("⚠️ Large import detected: {Count} requirements. Checking for duplicates...", importedRequirements.Count);
-                                var duplicateIds = importedRequirements.GroupBy(r => r.Item)
-                                    .Where(g => !string.IsNullOrEmpty(g.Key) && g.Count() > 1)
-                                    .Select(g => new { Id = g.Key, Count = g.Count() })
-                                    .ToList();
-                                    
-                                if (duplicateIds.Any())
-                                {
-                                    var duplicateInfo = string.Join(", ", duplicateIds.Select(d => $"{d.Id}({d.Count}x)"));
-                                    ShowNotification($"⚠️ Duplicate requirements detected: {duplicateInfo}. Consider using Jama parser for version history filtering.", DomainNotificationType.Warning);
-                                }
-                                
-                                ShowNotification($"ℹ️ Large import: {importedRequirements.Count} requirements loaded", DomainNotificationType.Info);
-                            }
-                            
                             // Broadcast imported requirements to TestCaseGenerationMediator for UI sync
                             if (importedRequirements.Count > 0)
                             {
-                                _logger.LogInformation("📤 Broadcasting imported requirements to TestCaseGeneration domain");
                                 BroadcastToAllDomains(new TestCaseGenerationEvents.RequirementsImported
                                 {
                                     Requirements = importedRequirements,
@@ -600,8 +577,6 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
         {
             try
             {
-                _logger.LogInformation("🔍 CreateNewProjectWithWarningAsync called - documentPath: '{DocumentPath}'", documentPath);
-                
                 // Check if a project is currently open
                 if (_currentWorkspaceInfo != null)
                 {

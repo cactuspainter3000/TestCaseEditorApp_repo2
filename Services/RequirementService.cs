@@ -33,8 +33,7 @@ namespace TestCaseEditorApp.Services
             {
                 EnsureDocx(path);
 
-                // Use the overload to enable debug dumps for this import only
-                return JamaAllDataDocxParser.Parse(path, debugDump: true);
+                return JamaAllDataDocxParser.Parse(path, debugDump: false);
             }
             catch (NotSupportedException nse)
             {
@@ -58,12 +57,7 @@ namespace TestCaseEditorApp.Services
             }
         }
 
-        public List<Requirement> ImportRequirementsFromWord(string path)
-        {
-            var requirements = ParseDocxRequirements(path);
-            ValidateImportResults(requirements, path, "Word");
-            return requirements;
-        }
+        public List<Requirement> ImportRequirementsFromWord(string path) => ParseDocxRequirements(path);
 
         private static void EnsureDocx(string path)
         {
@@ -176,13 +170,8 @@ namespace TestCaseEditorApp.Services
                                     
                                 if (existingReq != null)
                                 {
-                                    System.Diagnostics.Debug.WriteLine($"🔍 DUPLICATE ID: {candidate.Item} - '{candidate.Name}' (existing: '{existingReq.Name}') - SKIPPING");
                                     // Skip duplicate requirement ID
                                     continue;
-                                }
-                                else
-                                {
-                                    System.Diagnostics.Debug.WriteLine($"🔍 NEW REQ: {candidate.Item} - '{candidate.Name}'");
                                 }
                                 
                                 requirements.Add(candidate);
@@ -274,33 +263,7 @@ namespace TestCaseEditorApp.Services
             return true;
         }
         
-        /// <summary>
-        /// Validates import results and logs warnings for suspicious patterns
-        /// </summary>
-        private static void ValidateImportResults(List<Requirement> requirements, string path, string parserType)
-        {
-            var fileName = System.IO.Path.GetFileName(path);
-            
-            // Check for large imports that might indicate version history inclusion
-            if (requirements.Count > 40)
-            {
-                System.Diagnostics.Debug.WriteLine($"⚠️ Large import detected: {requirements.Count} requirements from '{fileName}' using {parserType} parser");
-                
-                // Check for duplicate IDs which suggest version history
-                var duplicateIds = requirements.GroupBy(r => r.Item)
-                    .Where(g => !string.IsNullOrEmpty(g.Key) && g.Count() > 1)
-                    .Select(g => new { Id = g.Key, Count = g.Count() })
-                    .ToList();
-                    
-                if (duplicateIds.Any())
-                {
-                    var duplicateInfo = string.Join(", ", duplicateIds.Select(d => $"{d.Id}({d.Count}x)"));
-                    System.Diagnostics.Debug.WriteLine($"⚠️ Duplicate IDs found: {duplicateInfo} - Consider using Jama parser for better filtering");
-                }
-            }
-            
-            System.Diagnostics.Debug.WriteLine($"✅ Import validation complete: {requirements.Count} requirements from {parserType} parser");
-        }
+
 
         // Extracts header, description, and metadata only. Defers ALL loose content to AssignLooseContentBetweenRequirements.
         private void ExtractRequirementInfo(Body body, Requirement requirement, ref int index)
