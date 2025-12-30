@@ -57,6 +57,7 @@ namespace TestCaseEditorApp
                 {
                     // Core / persistence services
                     services.AddSingleton<IPersistenceService, JsonPersistenceService>();
+                    services.AddSingleton<IWorkspaceValidationService, WorkspaceValidationService>();
 
                     // Toast notification system
                     services.AddSingleton<ToastNotificationService>(provider => 

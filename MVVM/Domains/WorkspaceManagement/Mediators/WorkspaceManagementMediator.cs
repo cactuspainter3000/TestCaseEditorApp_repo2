@@ -9,8 +9,8 @@ using Microsoft.Extensions.DependencyInjection;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events;
 using TestCaseEditorApp.MVVM.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
-using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
+using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Events;
 
@@ -258,16 +258,47 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                     SaveCount = 1 // Will be incremented in future versions
                 };
                 
-                UpdateProgress("Saving workspace data...", 75);
+                // 3. Validate workspace data before save
+                var validationService = App.ServiceProvider?.GetService<IWorkspaceValidationService>();
+                if (validationService != null)
+                {
+                    UpdateProgress("Validating workspace data...", 50);
+                    var validationResult = validationService.ValidateWorkspace(workspace);
+                    
+                    if (!validationResult.IsValid)
+                    {
+                        var errorMsg = $"Validation failed: {validationResult.ErrorMessage}";
+                        _logger.LogWarning("Workspace validation failed: {Error}", validationResult.ErrorMessage);
+                        
+                        PublishEvent(new WorkspaceManagementEvents.ProjectOperationError
+                        {
+                            Operation = "SaveProject",
+                            ErrorMessage = errorMsg,
+                            Exception = new InvalidOperationException(validationResult.ErrorMessage)
+                        });
+                        
+                        ShowNotification(errorMsg, DomainNotificationType.Error);
+                        HideProgress();
+                        return;
+                    }
+                    
+                    if (validationResult.Severity == ValidationSeverity.Warning)
+                    {
+                        _logger.LogWarning("Workspace validation warning: {Warning}", validationResult.ErrorMessage);
+                        ShowNotification($"Warning: {validationResult.ErrorMessage}", DomainNotificationType.Warning);
+                    }
+                }
                 
-                // 3. Create workspace directory if it doesn't exist
+                UpdateProgress("Saving workspace data...", 85);
+                
+                // 4. Create workspace directory if it doesn't exist
                 var workspaceDir = Path.GetDirectoryName(_currentWorkspaceInfo.Path);
                 if (!string.IsNullOrEmpty(workspaceDir) && !Directory.Exists(workspaceDir))
                 {
                     Directory.CreateDirectory(workspaceDir);
                 }
                 
-                // 4. Save workspace file using persistence service
+                // 5. Save workspace file using persistence service
                 _persistenceService.Save(_currentWorkspaceInfo.Path, workspace);
                 _logger.LogInformation("💾 Workspace file saved: {WorkspacePath}", _currentWorkspaceInfo.Path);
                 
