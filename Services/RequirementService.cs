@@ -162,7 +162,26 @@ namespace TestCaseEditorApp.Services
                             ExtractRequirementInfo(body, candidate, ref i);
 
                             if (!string.IsNullOrEmpty(candidate.Item) || !string.IsNullOrEmpty(candidate.Name))
+                            {
+                                // 🔍 Check for duplicate requirement IDs (ignore name variations for baselines)
+                                var existingReq = requirements.FirstOrDefault(r => 
+                                    !string.IsNullOrEmpty(r.Item) && 
+                                    !string.IsNullOrEmpty(candidate.Item) && 
+                                    r.Item.Equals(candidate.Item, StringComparison.OrdinalIgnoreCase));
+                                    
+                                if (existingReq != null)
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"🔍 DUPLICATE ID: {candidate.Item} - '{candidate.Name}' (existing: '{existingReq.Name}') - SKIPPING");
+                                    // Skip duplicate requirement ID
+                                    continue;
+                                }
+                                else
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"🔍 NEW REQ: {candidate.Item} - '{candidate.Name}'");
+                                }
+                                
                                 requirements.Add(candidate);
+                            }
 
                             continue;
                         }
@@ -444,6 +463,23 @@ namespace TestCaseEditorApp.Services
         private static bool IsRequirementHeaderText(string text)
         {
             if (string.IsNullOrWhiteSpace(text)) return false;
+            
+            // Skip version history entries that contain date patterns and "Baselines"
+            if (text.Contains("Baselines:", StringComparison.OrdinalIgnoreCase))
+            {
+                // Check if this looks like a version history entry with dates
+                if (System.Text.RegularExpressions.Regex.IsMatch(text, @"\d{1,2}/\d{1,2}/\d{4}|\d{4}-\d{2}-\d{2}"))
+                {
+                    return false; // Skip version history entries
+                }
+            }
+            
+            // Skip entries that start with version numbers like "#1:", "#2:", etc.
+            if (System.Text.RegularExpressions.Regex.IsMatch(text, @"^\s*#\d+\s*:"))
+            {
+                return false; // Skip version history entries
+            }
+            
             if (text.Contains("StdTestReq-", StringComparison.OrdinalIgnoreCase)) return true;
             return ReqRcTokenRegex.IsMatch(text);
         }

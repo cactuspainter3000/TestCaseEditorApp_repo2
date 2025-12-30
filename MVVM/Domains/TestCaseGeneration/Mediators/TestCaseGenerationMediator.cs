@@ -935,6 +935,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                     projectCreated.WorkspaceName, _headerViewModel?.GetType().Name ?? "NULL");
                 _headerViewModel?.UpdateProjectStatus(projectCreated.WorkspaceName, true);
                 _logger.LogDebug("Updated header with project created: {ProjectName}", projectCreated.WorkspaceName);
+                
+                // Load requirements for the created project if workspace data is available
+                if (projectCreated.Workspace != null)
+                {
+                    _logger.LogInformation("🔄 About to load requirements for created project: {ProjectName}", projectCreated.WorkspaceName);
+                    LoadProjectRequirements(projectCreated.WorkspaceName, projectCreated.Workspace);
+                }
             }
             else if (notification is WorkspaceManagementEvents.ProjectOpened projectOpened)
             {
@@ -953,6 +960,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                     _headerViewModel?.GetType().Name ?? "NULL");
                 _headerViewModel?.UpdateProjectStatus(null, false);
                 _logger.LogDebug("Updated header with project closed");
+            }
+            else if (notification is TestCaseEditorApp.MVVM.Events.CrossDomainMessages.ImportRequirementsRequest importRequest)
+            {
+                _logger.LogInformation("📥 HandleBroadcast: ImportRequirementsRequest - DocumentPath: {DocumentPath}", 
+                    importRequest.DocumentPath);
+                HandleImportRequirementsRequest(importRequest);
             }
             else
             {
@@ -1002,6 +1015,70 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading requirements for project {ProjectName}", projectName);
+            }
+        }
+
+        /// <summary>
+        /// Handle import requirements request from workspace management
+        /// </summary>
+        private async void HandleImportRequirementsRequest(TestCaseEditorApp.MVVM.Events.CrossDomainMessages.ImportRequirementsRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("🔄 Processing import request for document: {DocumentPath}", request.DocumentPath);
+
+                if (string.IsNullOrWhiteSpace(request.DocumentPath) || !System.IO.File.Exists(request.DocumentPath))
+                {
+                    _logger.LogWarning("❌ Document path is invalid or file does not exist: {DocumentPath}", request.DocumentPath);
+                    return;
+                }
+
+                // Import requirements using the requirement service
+                List<Requirement> importedRequirements;
+                if (request.PreferJamaParser)
+                {
+                    _logger.LogInformation("📋 Using Jama parser for import");
+                    importedRequirements = await Task.Run(() => _requirementService.ImportRequirementsFromJamaAllDataDocx(request.DocumentPath));
+                }
+                else
+                {
+                    _logger.LogInformation("📋 Using standard Word parser for import");
+                    importedRequirements = await Task.Run(() => _requirementService.ImportRequirementsFromWord(request.DocumentPath));
+                }
+
+                if (importedRequirements.Count > 0)
+                {
+                    _logger.LogInformation("✅ Successfully imported {Count} requirements", importedRequirements.Count);
+
+                    // Update requirements collection on UI thread
+                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        _requirements.Clear();
+                        foreach (var requirement in importedRequirements)
+                        {
+                            _requirements.Add(requirement);
+                        }
+                    });
+
+                    // Publish import event
+                    PublishEvent(new TestCaseGenerationEvents.RequirementsImported
+                    {
+                        Requirements = importedRequirements,
+                        SourceFile = request.DocumentPath,
+                        ImportType = request.PreferJamaParser ? "Jama" : "Word",
+                        ImportTime = TimeSpan.Zero // Placeholder for now
+                    });
+
+                    _logger.LogInformation("📤 Published RequirementsImported event with {Count} requirements", importedRequirements.Count);
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ No requirements found in document: {DocumentPath}", request.DocumentPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Failed to import requirements from document: {DocumentPath}", request.DocumentPath);
             }
         }
     }

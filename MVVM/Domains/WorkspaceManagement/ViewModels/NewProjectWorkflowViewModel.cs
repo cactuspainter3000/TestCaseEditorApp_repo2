@@ -212,6 +212,8 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
         private void UpdateCanProceed()
         {
             var oldCanProceed = CanProceed;
+            
+            // All required fields must be filled - allow even if project is open (user will get warning dialog)
             var newCanProceed = HasWorkspaceName && HasSelectedDocument && HasProjectSavePath && HasProjectName && IsWorkspaceCreated;
             
             // Debug logging to help troubleshoot
@@ -279,27 +281,20 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
 
         private void ChooseProjectSaveLocation()
         {
-            var dlg = new SaveFileDialog
+            var result = _workspaceManagementMediator.ShowSaveProjectDialog(ProjectName);
+            
+            if (result.Success)
             {
-                Title = "Save Project As",
-                Filter = "Test Case Editor Project (*.tcex.json)|*.tcex.json|JSON Files (*.json)|*.json|All Files (*.*)|*.*",
-                DefaultExt = ".tcex.json",
-                FileName = string.IsNullOrWhiteSpace(ProjectName) ? "New Project.tcex.json" : $"{ProjectName}.tcex.json"
-            };
-
-            if (dlg.ShowDialog() == true)
-            {
-                ProjectSavePath = dlg.FileName;
+                ProjectSavePath = result.FilePath;
                 
-                // Extract project name from chosen filename if user changed it
-                var chosenName = Path.GetFileNameWithoutExtension(dlg.FileName);
-                if (!string.IsNullOrWhiteSpace(chosenName))
+                // Update project name if user changed it via filename
+                if (!string.IsNullOrWhiteSpace(result.ProjectName))
                 {
-                    ProjectName = chosenName;
+                    ProjectName = result.ProjectName;
                 }
                 
                 // Provide user feedback
-                var fileName = System.IO.Path.GetFileName(dlg.FileName);
+                var fileName = Path.GetFileName(result.FilePath);
                 _toastService.ShowToast($"Project save location selected: {fileName}", durationSeconds: 3, type: ToastType.Success);
             }
         }
@@ -324,8 +319,11 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
 
             try
             {
-                // Call the workspace management mediator to complete the project creation
-                await _workspaceManagementMediator.CompleteProjectCreationAsync(WorkspaceName, ProjectName, ProjectSavePath, SelectedDocumentPath);
+                // Debug: Log the parameters being passed
+                TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Calling CreateNewProjectWithWarningAsync with documentPath: '{SelectedDocumentPath}'");
+                
+                // Call the workspace management mediator to complete the project creation with proper warning handling
+                await _workspaceManagementMediator.CreateNewProjectWithWarningAsync(WorkspaceName, ProjectName, ProjectSavePath, SelectedDocumentPath);
                 
                 // Mark project as created successfully
                 IsProjectCreated = true;

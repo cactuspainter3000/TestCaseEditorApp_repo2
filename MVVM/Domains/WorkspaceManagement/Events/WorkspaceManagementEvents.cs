@@ -37,6 +37,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events
             public string WorkspacePath { get; set; } = string.Empty;
             public string WorkspaceName { get; set; } = string.Empty;
             public string? AnythingLLMWorkspaceSlug { get; set; }
+            public Workspace? Workspace { get; set; }
             public DateTime Timestamp { get; set; } = DateTime.Now;
         }
         

@@ -185,5 +185,19 @@ namespace TestCaseEditorApp.MVVM.Events
             public Dictionary<string, object> NavigationContext { get; set; } = new();
             public DateTime Timestamp { get; set; } = DateTime.Now;
         }
+
+        // ===== WORKSPACE MANAGEMENT → TESTCASE GENERATION REQUESTS =====
+
+        /// <summary>
+        /// Request to import requirements from a document
+        /// </summary>
+        public class ImportRequirementsRequest
+        {
+            public string DocumentPath { get; set; } = string.Empty;
+            public string RequestingDomain { get; set; } = "WorkspaceManagement";
+            public bool PreferJamaParser { get; set; } = false;
+            public string? ProjectName { get; set; }
+            public DateTime RequestTimestamp { get; set; } = DateTime.Now;
+        }
     }
 }

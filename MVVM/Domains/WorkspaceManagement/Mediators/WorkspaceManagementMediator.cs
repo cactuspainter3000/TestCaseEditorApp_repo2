@@ -3,12 +3,15 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events;
 using TestCaseEditorApp.MVVM.Mediators;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.Events;
 
 namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
 {
@@ -424,6 +427,9 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
         {
             try
             {
+                _logger.LogInformation("🔍 CompleteProjectCreationAsync called - documentPath: '{DocumentPath}', exists: {Exists}", 
+                    documentPath, !string.IsNullOrWhiteSpace(documentPath) && File.Exists(documentPath));
+                
                 ShowProgress($"Creating project '{projectName}'...", 25);
                 
                 // 1. Set workspace path and configuration
@@ -438,51 +444,114 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                     LastModified = DateTime.Now
                 };
                 
-                // 2. Import requirements from selected document if provided
+                // 2. Import requirements first, then create workspace
+                List<Requirement> importedRequirements = new();
+                
                 if (!string.IsNullOrWhiteSpace(documentPath) && File.Exists(documentPath))
                 {
                     UpdateProgress("Importing requirements from document...", 60);
-                    // TODO: Implement actual document import logic
-                    // This would call the requirement import service
-                    await Task.Delay(500); // Placeholder for document import
+                    
+                    // Import requirements directly using the requirement service
+                    _logger.LogInformation("📤 Importing requirements from document: {DocumentPath}", documentPath);
+                    try
+                    {
+                        // Default to Jama parser for .docx files since most of our documents are from Jama
+                        // The Jama parser has better filtering for version history and baselines
+                        var preferJamaParser = documentPath.EndsWith(".docx", StringComparison.OrdinalIgnoreCase);
+                        var requirementService = App.ServiceProvider?.GetService<IRequirementService>();
+                        
+                        if (requirementService != null)
+                        {
+                            if (preferJamaParser)
+                            {
+                                importedRequirements = await Task.Run(() => requirementService.ImportRequirementsFromJamaAllDataDocx(documentPath));
+                            }
+                            else
+                            {
+                                importedRequirements = await Task.Run(() => requirementService.ImportRequirementsFromWord(documentPath));
+                            }
+                            
+                            _logger.LogInformation("✅ Successfully imported {Count} requirements", importedRequirements.Count);
+                            
+                            // Broadcast imported requirements to TestCaseGenerationMediator for UI sync
+                            if (importedRequirements.Count > 0)
+                            {
+                                _logger.LogInformation("📤 Broadcasting imported requirements to TestCaseGeneration domain");
+                                BroadcastToAllDomains(new TestCaseGenerationEvents.RequirementsImported
+                                {
+                                    Requirements = importedRequirements,
+                                    SourceFile = documentPath,
+                                    ImportType = preferJamaParser ? "Jama" : "Word",
+                                    ImportTime = TimeSpan.Zero
+                                });
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogWarning("❌ Could not get RequirementService from DI container");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "❌ Error importing requirements from {DocumentPath}", documentPath);
+                        ShowNotification($"Error importing requirements: {ex.Message}", DomainNotificationType.Warning);
+                    }
                 }
                 
-                // 3. Save workspace configuration
+                // 3. Create workspace object with imported requirements
+                var workspace = new Workspace
+                {
+                    Name = projectName,
+                    Version = Workspace.SchemaVersion,
+                    CreatedBy = Environment.UserName,
+                    CreatedUtc = DateTime.UtcNow,
+                    LastSavedUtc = DateTime.UtcNow,
+                    SaveCount = 0,
+                    SourceDocPath = documentPath,
+                    Requirements = importedRequirements
+                };
+
+                // 4. Save workspace configuration
                 UpdateProgress("Saving workspace configuration...", 80);
                 
-                // Create workspace file if it doesn't exist
+                // Create workspace directory if it doesn't exist
                 var workspaceDir = Path.GetDirectoryName(projectSavePath);
                 if (!string.IsNullOrEmpty(workspaceDir) && !Directory.Exists(workspaceDir))
                 {
                     Directory.CreateDirectory(workspaceDir);
                 }
                 
-                // TODO: Use persistence service to save workspace
-                // _persistenceService.SaveWorkspace(_currentWorkspaceInfo, projectSavePath);
+                // Save workspace file
+                _persistenceService.Save(projectSavePath, workspace);
+                _logger.LogInformation("💾 Workspace file saved: {ProjectSavePath}", projectSavePath);
                 
                 UpdateProgress("Project created successfully!", 100);
                 
-                // Broadcast via simple mediator pattern (same as AnythingLLM)
+                // Extract display project name
                 var displayProjectName = projectName;
-                // Remove .tcex extension if present
                 if (displayProjectName.EndsWith(".tcex", StringComparison.OrdinalIgnoreCase))
                 {
                     displayProjectName = System.IO.Path.GetFileNameWithoutExtension(displayProjectName);
                 }
                 
-                // Project status will be communicated via cross-domain events below
-                
-                // Broadcast the project creation event
-                PublishEvent(new WorkspaceManagementEvents.ProjectCreated 
+                // 5. Broadcast the project creation event with workspace data
+                var projectCreatedEvent = new WorkspaceManagementEvents.ProjectCreated 
                 { 
                     WorkspacePath = projectSavePath,
-                    WorkspaceName = projectName,
-                    AnythingLLMWorkspaceSlug = workspaceName
-                });
+                    WorkspaceName = displayProjectName,
+                    AnythingLLMWorkspaceSlug = workspaceName,
+                    Workspace = workspace
+                };
+                
+                PublishEvent(projectCreatedEvent);
+                
+                // Broadcast to other domains for cross-domain coordination
+                _logger.LogInformation("📡 Broadcasting ProjectCreated event to other domains: {ProjectName}", displayProjectName);
+                BroadcastToAllDomains(projectCreatedEvent);
                 
                 // Show success notification
                 ShowNotification(
-                    $"Project '{projectName}' created successfully! Navigate to 'Requirements' to see imported data.", 
+                    $"Project '{displayProjectName}' created successfully! Navigate to 'Requirements' to see imported data.", 
                     DomainNotificationType.Success);
                     
                 HideProgress();
@@ -503,6 +572,127 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 ShowNotification($"Error creating project: {ex.Message}", DomainNotificationType.Error);
                 HideProgress();
                 throw; // Re-throw to let the caller handle the error
+            }
+        }
+        
+        /// <summary>
+        /// Create a new project with proper warning if another project is currently open
+        /// </summary>
+        public async Task CreateNewProjectWithWarningAsync(string workspaceName, string projectName, string projectSavePath, string documentPath)
+        {
+            try
+            {
+                _logger.LogInformation("🔍 CreateNewProjectWithWarningAsync called - documentPath: '{DocumentPath}'", documentPath);
+                
+                // Check if a project is currently open
+                if (_currentWorkspaceInfo != null)
+                {
+                    string message = $"You currently have project '{_currentWorkspaceInfo.Name}' open.";
+                    if (_currentWorkspaceInfo.HasUnsavedChanges)
+                    {
+                        message += " Creating a new project will close the current project and any unsaved changes will be lost.";
+                    }
+                    else
+                    {
+                        message += " Creating a new project will close the current project.";
+                    }
+                    message += "\n\nDo you want to continue?";
+                    
+                    // Use proper domain UI coordination for warning dialog
+                    var continueCreation = await RequestUserConfirmation(message, "Project Already Open");
+                    if (!continueCreation)
+                    {
+                        ShowNotification("Project creation cancelled.", DomainNotificationType.Info);
+                        return;
+                    }
+                }
+                
+                // Proceed with project creation
+                await CompleteProjectCreationAsync(workspaceName, projectName, projectSavePath, documentPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create new project with warning: {ProjectName}", projectName);
+                
+                PublishEvent(new WorkspaceManagementEvents.ProjectOperationError 
+                { 
+                    ErrorMessage = ex.Message, 
+                    Exception = ex 
+                });
+                
+                ShowNotification($"Error creating project: {ex.Message}", DomainNotificationType.Error);
+                throw;
+            }
+        }
+        
+        /// <summary>
+        /// Request user confirmation via domain UI coordinator
+        /// </summary>
+        private async Task<bool> RequestUserConfirmation(string message, string title)
+        {
+            // This would ideally use the domain UI coordinator for proper dialog handling
+            // For now, we'll use a simple approach that maintains the architecture
+            var tcs = new TaskCompletionSource<bool>();
+            
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                var result = System.Windows.MessageBox.Show(message, title, 
+                    System.Windows.MessageBoxButton.YesNo, 
+                    System.Windows.MessageBoxImage.Warning);
+                
+                tcs.SetResult(result == System.Windows.MessageBoxResult.Yes);
+            });
+            
+            return await tcs.Task;
+        }
+        
+        /// <summary>
+        /// Show save file dialog with protection against overwriting currently open project
+        /// </summary>
+        public (bool Success, string FilePath, string ProjectName) ShowSaveProjectDialog(string currentProjectName)
+        {
+            try
+            {
+                var dlg = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title = "Save Project As",
+                    Filter = "Test Case Editor Project (*.tcex.json)|*.tcex.json|JSON Files (*.json)|*.json|All Files (*.*)|*.*",
+                    DefaultExt = ".tcex.json",
+                    FileName = string.IsNullOrWhiteSpace(currentProjectName) ? "New Project.tcex.json" : $"{currentProjectName}.tcex.json"
+                };
+
+                if (dlg.ShowDialog() == true)
+                {
+                    var selectedPath = dlg.FileName;
+                    
+                    // Check if user is trying to overwrite the currently open project
+                    if (_currentWorkspaceInfo != null && 
+                        string.Equals(selectedPath, _currentWorkspaceInfo.Path, StringComparison.OrdinalIgnoreCase))
+                    {
+                        var message = $"You cannot save the new project to '{Path.GetFileName(selectedPath)}' because it is the currently open project.\n\n" +
+                                     "Please choose a different filename or location.";
+                        
+                        ShowNotification(message, DomainNotificationType.Warning);
+                        
+                        // Recursively show the dialog again until user picks a different file or cancels
+                        return ShowSaveProjectDialog(currentProjectName);
+                    }
+                    
+                    // Extract project name from chosen filename
+                    var chosenName = Path.GetFileNameWithoutExtension(selectedPath);
+                    var projectName = string.IsNullOrWhiteSpace(chosenName) ? "New Project" : chosenName;
+                    
+                    _logger.LogInformation("Project save location selected: {FilePath}, Project name: {ProjectName}", selectedPath, projectName);
+                    return (true, selectedPath, projectName);
+                }
+                
+                return (false, string.Empty, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error showing save project dialog");
+                ShowNotification($"Error showing save dialog: {ex.Message}", DomainNotificationType.Error);
+                return (false, string.Empty, string.Empty);
             }
         }
 
@@ -587,28 +777,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
             base.MarkAsRegistered();
         }
 
-        /// <summary>
-        /// Debug method to test project creation broadcast
-        /// </summary>
-        public void TestProjectCreatedBroadcast()
-        {
-            _logger.LogInformation("[DEBUG] Testing ProjectCreated broadcast...");
-            
-            // Create a test project event
-            var testEvent = new WorkspaceManagementEvents.ProjectCreated 
-            { 
-                WorkspacePath = @"C:\Test\TestProject.tcex.json",
-                WorkspaceName = "DebugTestProject_" + DateTime.Now.Ticks,
-                AnythingLLMWorkspaceSlug = "test-workspace"
-            };
-            
-            _logger.LogInformation("[DEBUG] Publishing test ProjectCreated event: {WorkspaceName}", testEvent.WorkspaceName);
-            
-            // Broadcast the event
-            PublishEvent(testEvent);
-            
-            _logger.LogInformation("[DEBUG] ProjectCreated broadcast completed");
-        }
+
     }
 
     /// <summary>
