@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events;
 using TestCaseEditorApp.MVVM.Mediators;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Models;
@@ -239,8 +240,38 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                     WorkspacePath = _currentWorkspaceInfo.Path 
                 });
                 
-                // TODO: Implement actual save logic through persistence service
-                await Task.Delay(100); // Placeholder for save operation
+                // 1. Get current requirements from TestCaseGeneration domain
+                var testCaseMediator = App.ServiceProvider?.GetService<ITestCaseGenerationMediator>();
+                var currentRequirements = testCaseMediator?.Requirements?.ToList() ?? new List<Requirement>();
+                
+                _logger.LogInformation("Gathering current workspace data - found {RequirementCount} requirements", currentRequirements.Count);
+                
+                // 2. Build current workspace object with all data
+                var workspace = new Workspace
+                {
+                    Name = _currentWorkspaceInfo.Name,
+                    Requirements = currentRequirements,
+                    Version = Workspace.SchemaVersion,
+                    CreatedBy = Environment.UserName,
+                    CreatedUtc = DateTime.UtcNow,
+                    LastSavedUtc = DateTime.UtcNow,
+                    SaveCount = 1 // Will be incremented in future versions
+                };
+                
+                UpdateProgress("Saving workspace data...", 75);
+                
+                // 3. Create workspace directory if it doesn't exist
+                var workspaceDir = Path.GetDirectoryName(_currentWorkspaceInfo.Path);
+                if (!string.IsNullOrEmpty(workspaceDir) && !Directory.Exists(workspaceDir))
+                {
+                    Directory.CreateDirectory(workspaceDir);
+                }
+                
+                // 4. Save workspace file using persistence service
+                _persistenceService.Save(_currentWorkspaceInfo.Path, workspace);
+                _logger.LogInformation("💾 Workspace file saved: {WorkspacePath}", _currentWorkspaceInfo.Path);
+                
+                UpdateProgress("Save completed", 100);
                 
                 _currentWorkspaceInfo.HasUnsavedChanges = false;
                 _currentWorkspaceInfo.LastModified = DateTime.Now;
