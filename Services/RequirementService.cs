@@ -58,7 +58,12 @@ namespace TestCaseEditorApp.Services
             }
         }
 
-        public List<Requirement> ImportRequirementsFromWord(string path) => ParseDocxRequirements(path);
+        public List<Requirement> ImportRequirementsFromWord(string path)
+        {
+            var requirements = ParseDocxRequirements(path);
+            ValidateImportResults(requirements, path, "Word");
+            return requirements;
+        }
 
         private static void EnsureDocx(string path)
         {
@@ -268,6 +273,34 @@ namespace TestCaseEditorApp.Services
             requirement.ConsumedElements.Add(table);
             return true;
         }
+        
+        /// <summary>
+        /// Validates import results and logs warnings for suspicious patterns
+        /// </summary>
+        private static void ValidateImportResults(List<Requirement> requirements, string path, string parserType)
+        {
+            var fileName = System.IO.Path.GetFileName(path);
+            
+            // Check for large imports that might indicate version history inclusion
+            if (requirements.Count > 40)
+            {
+                System.Diagnostics.Debug.WriteLine($"⚠️ Large import detected: {requirements.Count} requirements from '{fileName}' using {parserType} parser");
+                
+                // Check for duplicate IDs which suggest version history
+                var duplicateIds = requirements.GroupBy(r => r.Item)
+                    .Where(g => !string.IsNullOrEmpty(g.Key) && g.Count() > 1)
+                    .Select(g => new { Id = g.Key, Count = g.Count() })
+                    .ToList();
+                    
+                if (duplicateIds.Any())
+                {
+                    var duplicateInfo = string.Join(", ", duplicateIds.Select(d => $"{d.Id}({d.Count}x)"));
+                    System.Diagnostics.Debug.WriteLine($"⚠️ Duplicate IDs found: {duplicateInfo} - Consider using Jama parser for better filtering");
+                }
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"✅ Import validation complete: {requirements.Count} requirements from {parserType} parser");
+        }
 
         // Extracts header, description, and metadata only. Defers ALL loose content to AssignLooseContentBetweenRequirements.
         private void ExtractRequirementInfo(Body body, Requirement requirement, ref int index)
@@ -464,20 +497,33 @@ namespace TestCaseEditorApp.Services
         {
             if (string.IsNullOrWhiteSpace(text)) return false;
             
-            // Skip version history entries that contain date patterns and "Baselines"
+            // Enhanced version history filtering
+            // Pattern 1: Baselines with dates
             if (text.Contains("Baselines:", StringComparison.OrdinalIgnoreCase))
             {
-                // Check if this looks like a version history entry with dates
                 if (System.Text.RegularExpressions.Regex.IsMatch(text, @"\d{1,2}/\d{1,2}/\d{4}|\d{4}-\d{2}-\d{2}"))
                 {
                     return false; // Skip version history entries
                 }
             }
             
-            // Skip entries that start with version numbers like "#1:", "#2:", etc.
+            // Pattern 2: Version numbers like "#1:", "#2:", etc.
             if (System.Text.RegularExpressions.Regex.IsMatch(text, @"^\s*#\d+\s*:"))
             {
                 return false; // Skip version history entries
+            }
+            
+            // Pattern 3: Common version history indicators
+            var versionIndicators = new[] { "Version:", "Modified:", "Created:", "Last Modified:", "Baseline:" };
+            if (versionIndicators.Any(indicator => text.Contains(indicator, StringComparison.OrdinalIgnoreCase)))
+            {
+                return false; // Skip version metadata entries
+            }
+            
+            // Pattern 4: Date-only lines that often appear in version history
+            if (System.Text.RegularExpressions.Regex.IsMatch(text, @"^\s*\d{1,2}/\d{1,2}/\d{4}\s*$|^\s*\d{4}-\d{2}-\d{2}\s*$"))
+            {
+                return false; // Skip standalone date entries
             }
             
             if (text.Contains("StdTestReq-", StringComparison.OrdinalIgnoreCase)) return true;
