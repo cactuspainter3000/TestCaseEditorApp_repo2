@@ -1020,4 +1020,74 @@ SideMenuViewModel → ViewAreaCoordinator → WorkspaceManagementMediator → IP
 
 ---
 
-*Last Updated: December 29, 2025*
+## 🚀 **Requirements Import & Parser Selection**
+*Completed: December 30, 2025*
+
+### **Problem & Resolution**
+**Issue**: Document importing 66 requirements instead of expected 31
+**Root Cause**: Wrong parser being used due to filename-based selection logic
+**Solution**: Use file extension-based parser selection
+
+### **Critical Learning: Document Formats & Parser Selection**
+
+**Jama Documents Contain Version History**
+- Jama export includes baseline + version history entries for each requirement
+- Same requirement ID appears multiple times (current + historical versions)
+- Generic Word parser treats each entry as separate requirement → duplicates
+- **Jama parser** has specialized filtering logic to exclude version history
+
+**Parser Selection Logic**
+```csharp
+// ❌ BROKEN: Filename-based detection
+var preferJamaParser = documentPath.ToLowerInvariant().Contains("jama");
+
+// ✅ WORKING: Extension-based detection  
+var preferJamaParser = documentPath.EndsWith(".docx", StringComparison.OrdinalIgnoreCase);
+```
+
+**Why Extension-Based Works Better**:
+- Most requirements documents are Jama exports (.docx format)
+- Jama parser handles version history filtering correctly
+- Filename patterns unreliable (users rename files)
+- Fallback to generic parser still available for non-Jama documents
+
+### **Debugging Methodology That Worked**
+
+**1. Data Flow Tracing**
+- Added debug logging at each step: import → mediator → UI
+- Tracked requirement counts through pipeline
+- Identified exact point where duplicates appeared
+
+**2. Parser Investigation**
+- Tested both parsers on same document
+- Compared output requirement counts
+- Discovered version history entries in Jama documents
+
+**3. Clean Validation**
+- Removed debug code after fix confirmed working
+- Verified tests pass and build succeeds
+- Documented learning for future reference
+
+### **Implementation Pattern: Document Import**
+```csharp
+// In WorkspaceManagementMediator.CompleteProjectCreationAsync()
+var preferJamaParser = documentPath.EndsWith(".docx", StringComparison.OrdinalIgnoreCase);
+if (preferJamaParser)
+{
+    importedRequirements = await Task.Run(() => requirementService.ImportRequirementsFromJamaAllDataDocx(documentPath));
+}
+else  
+{
+    importedRequirements = await Task.Run(() => requirementService.ImportRequirementsFromWord(documentPath));
+}
+```
+
+**Key Success Factors**:
+- ✅ Default to Jama parser for .docx files (most common case)
+- ✅ Preserve fallback option for non-Jama documents
+- ✅ Parser handles version history filtering automatically
+- ✅ No UI changes needed - fix at service layer
+
+---
+
+*Last Updated: December 30, 2025*

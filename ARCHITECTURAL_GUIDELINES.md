@@ -403,6 +403,40 @@ myDropdown.Command = MyNavigationCommand;
 🟡 **YELLOW FLAG**: "Let's build alongside the old system"  
 ✅ **GREEN LIGHT**: "Let's implement the new architecture pattern completely"
 
+### **Document Parser Selection**
+
+**Pattern**: Use file extension for format detection, not filename patterns
+
+```csharp
+// In WorkspaceManagementMediator
+var preferJamaParser = documentPath.EndsWith(".docx", StringComparison.OrdinalIgnoreCase);
+
+if (preferJamaParser)
+{
+    // Jama parser handles version history filtering
+    importedRequirements = await Task.Run(() => 
+        requirementService.ImportRequirementsFromJamaAllDataDocx(documentPath));
+}
+else
+{
+    // Generic parser for other document types
+    importedRequirements = await Task.Run(() => 
+        requirementService.ImportRequirementsFromWord(documentPath));
+}
+```
+
+**Why This Works**:
+- Extension-based detection is more reliable than filename patterns
+- Jama parser has specialized logic for filtering version history entries
+- Most `.docx` requirements documents are Jama exports
+- Preserves fallback for non-Jama documents
+
+**Critical**: Jama documents contain version history entries that create duplicate requirements if processed by generic parsers.
+
+---
+
+## 🎓 Migration Lessons & Commitment Patterns
+
 ### **Hard-Learned Rules**
 
 1. **Don't Mix Architectural Patterns**: Static mediators + Domain mediators = confusion
@@ -410,6 +444,7 @@ myDropdown.Command = MyNavigationCommand;
 3. **Trace Data Flow End-to-End**: Source → Transport → Destination → UI binding
 4. **UI Thread Safety from Day One**: Cross-domain updates need `Dispatcher.Invoke`
 5. **Validate Early**: Constructor injection with null checks prevents "works on my machine"
+6. **Parser Selection Matters**: Wrong document parser can cause data duplication issues
 
 ### **Migration Success Indicators**
 
@@ -419,12 +454,14 @@ myDropdown.Command = MyNavigationCommand;
 - Dependency injection chains are complete
 - No mixed old/new patterns exist
 - Build succeeds and features work without "quirks"
+- Document imports work consistently regardless of filename
 
 ❌ **Warning signs of migration trouble:**
 - "Almost working" features that need constant tweaking
 - Threading issues appearing during cross-domain communication
 - Confusion about which communication pattern to use
 - Complex workarounds to make old patterns work with new ones
+- Inconsistent data imports from same documents
 
 ---
 
@@ -441,6 +478,6 @@ You’ll know the architecture is working when:
 
 ---
 
-*Last Updated: December 29, 2025 — Migration Lessons and Full Architectural Commitment Pattern Added*
+*Last Updated: December 30, 2025 — Document Parser Selection Pattern & Requirements Import Lessons Added*
 
 ---
