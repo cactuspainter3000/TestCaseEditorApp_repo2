@@ -83,13 +83,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Initialize the requirements navigator for UI binding
             RequirementsNavigator = _viewModelFactory.CreateRequirementsNavigationViewModel();
             
-            // Initialize commands
-            SaveWorkspaceCommand = new RelayCommand(() => { /* TODO: Implement save workspace */ });
-            UndoLastSaveCommand = new RelayCommand(async () => await ExecuteUndoLastSaveAsync(), () => CanUndoLastSave);
-            
-            // Initialize undo state
-            CanUndoLastSave = false;
-            
             // Subscribe to navigation events for UI property binding notifications
             _viewAreaCoordinator.NavigationMediator.Subscribe<NavigationEvents.HeaderChanged>(
                 e => OnPropertyChanged(nameof(HeaderWorkspace)));
@@ -114,15 +107,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         // === MISSING PROPERTIES FOR UI BINDING ===
         // These properties are bound to in XAML but were missing from the ViewModel
-        
-        [ObservableProperty]
-        private ICommand? saveWorkspaceCommand;
-        
-        [ObservableProperty]
-        private ICommand? undoLastSaveCommand;
-        
-        [ObservableProperty]
-        private bool canUndoLastSave;
         
         [ObservableProperty]
         private string? workspacePath;
@@ -175,43 +159,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         /// <summary>
-        /// Execute undo last save operation via workspace management mediator
+        /// Simple container pattern - workspace functionality handled by domain ViewModels
         /// </summary>
-        private async Task ExecuteUndoLastSaveAsync()
-        {
-            try
-            {
-                var workspaceMediator = _viewAreaCoordinator?.WorkspaceManagement;
-                if (workspaceMediator != null)
-                {
-                    await workspaceMediator.UndoLastSaveAsync();
-                    
-                    // Update undo availability after operation
-                    CanUndoLastSave = workspaceMediator.CanUndoLastSave();
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogError(ex, "Failed to execute undo last save from MainViewModel");
-                // The workspace mediator will handle user notifications
-            }
-        }
-
-        /// <summary>
-        /// Update undo state when workspace changes
-        /// </summary>
-        public void UpdateUndoState()
-        {
-            try
-            {
-                var workspaceMediator = _viewAreaCoordinator?.WorkspaceManagement;
-                CanUndoLastSave = workspaceMediator?.CanUndoLastSave() ?? false;
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogError(ex, "Failed to update undo state");
-                CanUndoLastSave = false;
-            }
-        }
     }
 }

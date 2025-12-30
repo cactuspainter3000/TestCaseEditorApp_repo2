@@ -193,6 +193,9 @@ namespace TestCaseEditorApp.Services
             {
                 _workspaceHeader = _viewModelFactory.CreateWorkspaceHeaderViewModel();
             }
+            
+            // Update save status from workspace management mediator
+            _workspaceHeader.UpdateSaveStatus(_workspaceManagementMediator);
         }
 
         private void EnsureTestCaseGeneratorHeader()

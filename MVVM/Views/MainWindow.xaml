@@ -277,7 +277,7 @@
                             BorderThickness="0"
                             Padding="8,4"
                             Cursor="Hand"
-                            Command="{Binding SaveWorkspaceCommand}"
+                            Command="{Binding HeaderWorkspace.DataContext.SaveWorkspaceCommand}"
                             ToolTip="Click to save workspace">
                         <Button.Style>
                             <Style TargetType="Button">
@@ -294,10 +294,10 @@
                                     </Setter.Value>
                                 </Setter>
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding WorkspacePath}" Value="{x:Null}">
+                                    <DataTrigger Binding="{Binding HeaderWorkspace.DataContext.WorkspaceFilePath}" Value="{x:Null}">
                                         <Setter Property="Visibility" Value="Collapsed"/>
                                     </DataTrigger>
-                                    <DataTrigger Binding="{Binding WorkspacePath}" Value="">
+                                    <DataTrigger Binding="{Binding HeaderWorkspace.DataContext.WorkspaceFilePath}" Value="">
                                         <Setter Property="Visibility" Value="Collapsed"/>
                                     </DataTrigger>
                                     <Trigger Property="IsMouseOver" Value="True">
@@ -316,7 +316,7 @@
                                         <Setter Property="Text" Value="&#xE74E;"/> <!-- Save icon -->
                                         <Setter Property="Foreground" Value="#4CAF50"/> <!-- Green = Saved -->
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsDirty}" Value="True">
+                                            <DataTrigger Binding="{Binding HeaderWorkspace.DataContext.IsDirty}" Value="True">
                                                 <Setter Property="Text" Value="&#xE734;"/> <!-- Warning icon -->
                                                 <Setter Property="Foreground" Value="#FF9800"/> <!-- Orange = Unsaved -->
                                             </DataTrigger>
@@ -331,7 +331,7 @@
                                     <Style TargetType="TextBlock">
                                         <Setter Property="Text" Value="Saved"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsDirty}" Value="True">
+                                            <DataTrigger Binding="{Binding HeaderWorkspace.DataContext.IsDirty}" Value="True">
                                                 <Setter Property="Text" Value="Unsaved changes"/>
                                             </DataTrigger>
                                         </Style.Triggers>
@@ -348,10 +348,10 @@
                             BorderThickness="0"
                             Padding="8,4"
                             Cursor="Hand"
-                            Command="{Binding UndoLastSaveCommand}"
+                            Command="{Binding HeaderWorkspace.DataContext.UndoLastSaveCommand}"
                             ToolTip="Undo last save operation"
                             Margin="8,0,0,0"
-                            Visibility="{Binding CanUndoLastSave, Converter={StaticResource BoolToVisibilityConverter}}">
+                            Visibility="{Binding HeaderWorkspace.DataContext.CanUndoLastSave, Converter={StaticResource BoolToVisibilityConverter}}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock FontFamily="Segoe MDL2 Assets"
                                        FontSize="16"

@@ -49,7 +49,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         public WorkspaceHeaderViewModel CreateWorkspaceHeaderViewModel()
         {
-            return new WorkspaceHeaderViewModel();
+            var headerViewModel = new WorkspaceHeaderViewModel();
+            
+            // Wire up save commands (proper domain location per architecture)
+            if (_workspaceManagementMediator != null)
+            {
+                headerViewModel.SaveWorkspaceCommand = new RelayCommand(async () => await _workspaceManagementMediator.SaveProjectAsync());
+                headerViewModel.UndoLastSaveCommand = new RelayCommand(
+                    async () => await _workspaceManagementMediator.UndoLastSaveAsync(), 
+                    () => _workspaceManagementMediator.CanUndoLastSave());
+            }
+            
+            return headerViewModel;
         }
 
         public NavigationViewModel CreateNavigationViewModel()
