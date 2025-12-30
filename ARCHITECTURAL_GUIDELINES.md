@@ -359,6 +359,75 @@ myDropdown.Command = MyNavigationCommand;
 
 ---
 
+## 🚨 **Critical Migration Lessons (Hard-Won Knowledge)**
+
+> **Context**: Lessons learned from requirements navigation refactoring and other architectural migrations.
+> **Purpose**: Prevent future "harrowing" migration experiences by committing to architectural patterns upfront.
+
+### **The Migration Trap: Why Hybrid Approaches Fail**
+
+**❌ WHAT DOESN'T WORK (Tried and Failed):**
+
+1. **Keeping Legacy for Reference**
+   - Creates confusion about which pattern is "correct"
+   - Developers copy old patterns instead of new ones
+   - Mixed architectures are harder to debug than either pure approach
+
+2. **Gradual/Systematic Migration** 
+   - Hybrid old/new communication creates architectural debt
+   - Incomplete dependency chains break at runtime
+   - Threading issues from mixed patterns
+   - "Almost working" code that's harder to fix than starting fresh
+
+3. **Side-by-Side Implementation**
+   - Maintaining two systems simultaneously
+   - Complex cutover processes
+   - Duplicate effort that doesn't reduce risk
+
+### **✅ WHAT ACTUALLY WORKS: Full Architectural Commitment**
+
+**The Pattern That Succeeds:**
+```markdown
+1. **Understand the new architecture fully** (study domain mediator patterns)
+2. **Implement the new pattern completely** (don't try to preserve legacy)
+3. **Follow dependency injection chains end-to-end** (MainViewModel → ViewModelFactory → Domain ViewModels → Mediators)
+4. **Test cross-domain communication early** (BroadcastToAllDomains, UI thread marshaling)
+5. **Delete legacy code completely** (no mixed patterns)
+```
+
+### **Migration Decision Framework**
+
+**When facing legacy code that needs refactoring:**
+
+🔴 **RED FLAG**: "Let's keep the old code and gradually migrate"
+🟡 **YELLOW FLAG**: "Let's build alongside the old system"  
+✅ **GREEN LIGHT**: "Let's implement the new architecture pattern completely"
+
+### **Hard-Learned Rules**
+
+1. **Don't Mix Architectural Patterns**: Static mediators + Domain mediators = confusion
+2. **Complete the DI Chain**: Missing links cause runtime failures that are hard to debug
+3. **Trace Data Flow End-to-End**: Source → Transport → Destination → UI binding
+4. **UI Thread Safety from Day One**: Cross-domain updates need `Dispatcher.Invoke`
+5. **Validate Early**: Constructor injection with null checks prevents "works on my machine"
+
+### **Migration Success Indicators**
+
+✅ **You're on the right track when:**
+- New code follows domain patterns naturally
+- Cross-domain communication works immediately  
+- Dependency injection chains are complete
+- No mixed old/new patterns exist
+- Build succeeds and features work without "quirks"
+
+❌ **Warning signs of migration trouble:**
+- "Almost working" features that need constant tweaking
+- Threading issues appearing during cross-domain communication
+- Confusion about which communication pattern to use
+- Complex workarounds to make old patterns work with new ones
+
+---
+
 ## 🎯 Success Metrics
 
 You’ll know the architecture is working when:
@@ -372,6 +441,6 @@ You’ll know the architecture is working when:
 
 ---
 
-*Last Updated: December 27, 2025 — Side Menu Command Integration Pattern Added*
+*Last Updated: December 29, 2025 — Migration Lessons and Full Architectural Commitment Pattern Added*
 
 ---
