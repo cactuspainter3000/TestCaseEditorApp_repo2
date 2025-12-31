@@ -12,6 +12,7 @@ using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.ViewModels;
+using TestCaseEditorApp.MVVM.Views;
 using TestCaseEditorApp.MVVM.Events;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.Services;
@@ -26,6 +27,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
     {
         private new readonly ITestCaseGenerationMediator _mediator;
         private readonly IPersistenceService _persistence;
+        private readonly ITextEditingDialogService _textEditingDialogService;
 
         // Optional lightweight providers
         private readonly Func<Requirement?, IEnumerable<LooseTableViewModel>>? _tableProvider;
@@ -44,6 +46,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         public TestCaseGenerator_VM(
             ITestCaseGenerationMediator mediator,
             IPersistenceService persistence,
+            ITextEditingDialogService textEditingDialogService,
             ILogger<TestCaseGenerator_VM> logger,
             Func<Requirement?, IEnumerable<LooseTableViewModel>>? tableProvider = null,
             Func<Requirement?, IEnumerable<string>>? paragraphProvider = null)
@@ -51,6 +54,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
+            _textEditingDialogService = textEditingDialogService ?? throw new ArgumentNullException(nameof(textEditingDialogService));
             _tableProvider = tableProvider;
             _paragraphProvider = paragraphProvider;
 
@@ -68,7 +72,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             SelectAllParagraphsCommand = new RelayCommand(SelectAllParagraphs, () => SelectedParagraphVMs?.Any() == true);
             ClearAllParagraphsCommand = new RelayCommand(ClearAllParagraphs, () => SelectedParagraphVMs?.Any() == true);
             ToggleParagraphCommand = new RelayCommand<ParagraphViewModel>(ToggleParagraph);
-            EditSupplementalInfoCommand = new RelayCommand(EditSupplementalInfo, () => SelectedParagraphVMs?.Any() == true);
+            EditSupplementalInfoCommand = new RelayCommand(EditSupplementalInfo, () => SelectedParagraphVMs?.Any(p => p.IsSelected) == true);
 
             // routed parent-level commands (act on visible view)
             SelectAllVisibleCommand = new RelayCommand(SelectAllVisible, CanSelectAllVisible);
@@ -283,10 +287,82 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             if (para != null) para.IsSelected = !para.IsSelected;
         }
 
-        private void EditSupplementalInfo()
+        private async void EditSupplementalInfo()
         {
-            // TODO: Implement supplemental info editing via mediator
-            _logger.LogDebug("EditSupplementalInfo requested - not yet implemented");
+            var selectedParagraphs = SelectedParagraphVMs?.Where(p => p.IsSelected).ToList();
+            if (selectedParagraphs?.Any() != true)
+            {
+                _logger.LogWarning("No supplemental information selected for editing");
+                return;
+            }
+
+            try
+            {
+                _logger.LogDebug("Opening supplemental info editor...");
+
+                // Convert selected paragraphs to text for editing
+                var currentText = string.Join(" ||| ", selectedParagraphs.Select(p => p.Text));
+                
+                // Show dialog using injected service (follows architecture guidelines)
+                var editedText = await _textEditingDialogService.ShowSupplementalInfoEditDialog(
+                    "Edit Supplemental Information", 
+                    currentText);
+
+                if (editedText != null)
+                {
+                    // Convert edited text back to individual paragraphs
+                    var editedItems = editedText.Split(new[] { " ||| " }, StringSplitOptions.None)
+                                                .Select(s => s.Trim())
+                                                .Where(s => !string.IsNullOrEmpty(s))
+                                                .ToList();
+
+                    // Get selected indices for replacement
+                    var selectedIndices = new List<int>();
+                    for (int i = 0; i < SelectedParagraphVMs.Count; i++)
+                    {
+                        if (SelectedParagraphVMs[i].IsSelected)
+                        {
+                            selectedIndices.Add(i);
+                        }
+                    }
+
+                    // Remove selected paragraphs in reverse order to maintain indices
+                    for (int i = selectedIndices.Count - 1; i >= 0; i--)
+                    {
+                        var index = selectedIndices[i];
+                        var para = SelectedParagraphVMs[index];
+                        para.PropertyChanged -= ParagraphViewModel_PropertyChanged;
+                        SelectedParagraphVMs.RemoveAt(index);
+                    }
+
+                    // Insert new paragraphs at the first selected position
+                    int insertIndex = selectedIndices.Any() ? selectedIndices[0] : SelectedParagraphVMs.Count;
+                    for (int i = 0; i < editedItems.Count; i++)
+                    {
+                        var newPara = new ParagraphViewModel(editedItems[i]) { IncludeInPrompt = true };
+                        newPara.PropertyChanged += ParagraphViewModel_PropertyChanged;
+                        SelectedParagraphVMs.Insert(insertIndex + i, newPara);
+                    }
+
+                    // Persist changes to the requirement's LooseContent
+                    if (SelectedRequirement?.LooseContent != null)
+                    {
+                        var allParagraphs = SelectedParagraphVMs.Select(p => p.Text).ToList();
+                        SelectedRequirement.LooseContent.Paragraphs = allParagraphs;
+                        _logger.LogDebug("Updated requirement LooseContent with {Count} paragraphs", allParagraphs.Count);
+                    }
+
+                    _logger.LogDebug("Successfully updated {Count} supplemental information items", editedItems.Count);
+                }
+                else
+                {
+                    _logger.LogDebug("User cancelled supplemental info editing");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error editing supplemental information");
+            }
         }
 
         private void SelectAllVisible()
@@ -320,6 +396,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         private void RefreshSupportContent()
         {
+            // Unwire events from existing paragraphs before clearing
+            foreach (var para in SelectedParagraphVMs)
+            {
+                para.PropertyChanged -= ParagraphViewModel_PropertyChanged;
+            }
+            
             SelectedTableVMs.Clear();
             SelectedParagraphVMs.Clear();
 
@@ -344,7 +426,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 try
                 {
                     var paras = _paragraphProvider.Invoke(SelectedRequirement) ?? Enumerable.Empty<string>();
-                    foreach (var p in paras) SelectedParagraphVMs.Add(new ParagraphViewModel(p));
+                    foreach (var p in paras) 
+                    {
+                        var paraVM = new ParagraphViewModel(p);
+                        paraVM.PropertyChanged += ParagraphViewModel_PropertyChanged;
+                        SelectedParagraphVMs.Add(paraVM);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -374,8 +461,19 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 try { paras = provider.GetLooseParagraphsForRequirement(SelectedRequirement) ?? Enumerable.Empty<string>(); }
                 catch (Exception ex) { _logger.LogDebug(ex, "provider.GetLooseParagraphsForRequirement failed"); }
 
+                // Unwire events from existing paragraphs before clearing
+                foreach (var para in SelectedParagraphVMs)
+                {
+                    para.PropertyChanged -= ParagraphViewModel_PropertyChanged;
+                }
+
                 SelectedParagraphVMs.Clear();
-                foreach (var p in paras) SelectedParagraphVMs.Add(new ParagraphViewModel(p));
+                foreach (var p in paras) 
+                {
+                    var paraVM = new ParagraphViewModel(p);
+                    paraVM.PropertyChanged += ParagraphViewModel_PropertyChanged;
+                    SelectedParagraphVMs.Add(paraVM);
+                }
             }
             catch (Exception ex)
             {
@@ -442,15 +540,46 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         private void SelectedParagraphVMs_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
+            // Handle wiring/unwiring PropertyChanged for paragraph selection changes
+            if (e.OldItems != null)
+            {
+                foreach (ParagraphViewModel para in e.OldItems)
+                {
+                    para.PropertyChanged -= ParagraphViewModel_PropertyChanged;
+                }
+            }
+            
+            if (e.NewItems != null)
+            {
+                foreach (ParagraphViewModel para in e.NewItems)
+                {
+                    para.PropertyChanged += ParagraphViewModel_PropertyChanged;
+                }
+            }
+            
             OnPropertyChanged(nameof(HasParagraphs));
             OnPropertyChanged(nameof(BulkActionsVisible));
             try
             {
+                ((RelayCommand)SelectAllParagraphsCommand).NotifyCanExecuteChanged();
+                ((RelayCommand)ClearAllParagraphsCommand).NotifyCanExecuteChanged();
                 ((RelayCommand)SelectAllVisibleCommand).NotifyCanExecuteChanged();
                 ((RelayCommand)ClearAllVisibleCommand).NotifyCanExecuteChanged();
                 ((RelayCommand)EditSupplementalInfoCommand).NotifyCanExecuteChanged();
             }
             catch { }
+        }
+
+        private void ParagraphViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ParagraphViewModel.IsSelected))
+            {
+                try
+                {
+                    ((RelayCommand)EditSupplementalInfoCommand).NotifyCanExecuteChanged();
+                }
+                catch { }
+            }
         }
 
         // ===== META CHIPS =====

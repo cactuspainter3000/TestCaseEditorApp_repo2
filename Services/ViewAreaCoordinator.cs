@@ -142,9 +142,9 @@ namespace TestCaseEditorApp.Services
             _navigationMediator.SetActiveHeader(_testCaseGeneratorHeader);
             HeaderArea.ShowTestCaseGeneratorHeader(_testCaseGeneratorHeader);
             
-            // Show test case generator requirements view (not splash screen)
-            var testCaseGeneratorView = _viewModelFactory.CreateTestCaseGeneratorViewModel();
-            _navigationMediator.SetMainContent(testCaseGeneratorView);
+            // Show dedicated requirements workspace view
+            var requirementsWorkspace = _viewModelFactory.CreateRequirementsWorkspaceViewModel();
+            _navigationMediator.SetMainContent(requirementsWorkspace);
         }
 
         private void HandleTestCaseGeneratorNavigation(object? context)

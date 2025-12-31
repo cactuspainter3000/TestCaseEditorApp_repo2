@@ -91,7 +91,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
             // Legacy support - create TestCaseGenerator_VM for existing RequirementsView
             var testCaseGeneratorVMLogger = new LoggerFactory().CreateLogger<TestCaseGenerator_VM>();
-            TestCaseGeneratorVM = new TestCaseGenerator_VM(testCaseGenerationMediator, persistence, testCaseGeneratorVMLogger);
+            TestCaseGeneratorVM = new TestCaseGenerator_VM(
+                testCaseGenerationMediator, 
+                persistence, 
+                new StubTextEditingDialogService(),
+                testCaseGeneratorVMLogger);
             if (testCaseGenerator is TestCaseGenerator_CoreVM coreVm)
             {
                 TestCaseGeneratorVM.TestCaseGenerator = coreVm;
@@ -459,6 +463,15 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             public string? ShowOpenFile(string title, string filter, string? initialDirectory = null) => null;
             public string? ShowSaveFile(string title, string suggestedFileName, string filter, string defaultExt, string? initialDirectory = null) => null;
             public string? ShowFolderDialog(string title, string? initialDirectory = null) => null;
+        }
+
+        private class StubTextEditingDialogService : ITextEditingDialogService
+        {
+            public Task<string?> ShowSupplementalInfoEditDialog(string title, string currentText, string separator = " ||| ")
+            {
+                // Return null to simulate cancellation in legacy/stub scenario
+                return Task.FromResult<string?>(null);
+            }
         }
 
         private class StubNotificationService : NotificationService

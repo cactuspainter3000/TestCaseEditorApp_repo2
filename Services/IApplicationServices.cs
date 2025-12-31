@@ -12,6 +12,7 @@ namespace TestCaseEditorApp.Services
         IRequirementService RequirementService { get; }
         IPersistenceService PersistenceService { get; }
         IFileDialogService FileDialogService { get; }
+        ITextEditingDialogService TextEditingDialogService { get; }
         
         // Notification and UI services
         ToastNotificationService ToastService { get; }

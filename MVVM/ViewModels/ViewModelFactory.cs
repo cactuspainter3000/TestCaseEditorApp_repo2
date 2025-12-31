@@ -130,6 +130,26 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             throw new NotImplementedException("RequirementsViewModel creation needs proper DI setup with all required services");
         }
         
+        public RequirementsWorkspaceViewModel CreateRequirementsWorkspaceViewModel()
+        {
+            if (_testCaseGenerationMediator == null)
+                throw new InvalidOperationException("TestCaseGenerationMediator is required for RequirementsWorkspaceViewModel");
+            
+            // Create the TestCaseGenerator_VM that contains the requirements UI logic
+            var testCaseGeneratorVMLogger = _applicationServices.LoggerFactory?.CreateLogger<TestCaseGenerator_VM>();
+            var testCaseGeneratorVM = new TestCaseGenerator_VM(
+                _testCaseGenerationMediator, 
+                _applicationServices.PersistenceService, 
+                _applicationServices.TextEditingDialogService,
+                testCaseGeneratorVMLogger!);
+            
+            // Set up the CoreVM for handling tables and paragraphs
+            testCaseGeneratorVM.TestCaseGenerator = new TestCaseGenerator_CoreVM();
+            
+            var logger = _applicationServices.LoggerFactory?.CreateLogger<RequirementsWorkspaceViewModel>();
+            return new RequirementsWorkspaceViewModel(_testCaseGenerationMediator, testCaseGeneratorVM, logger!);
+        }
+        
         // Domain ViewModels - proper DI pattern implementation
         public WorkspaceManagementVM CreateWorkspaceManagementViewModel()
         {

@@ -21,6 +21,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Content ViewModels
         object CreateProjectViewModel();
         RequirementsViewModel CreateRequirementsViewModel();
+        RequirementsWorkspaceViewModel CreateRequirementsWorkspaceViewModel();
         PlaceholderViewModel CreatePlaceholderViewModel();
         
         // Navigation ViewModels

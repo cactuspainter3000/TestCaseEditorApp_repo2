@@ -74,6 +74,18 @@
                                 BorderThickness="0,0,0,1"
                                 CornerRadius="4"
                                 Cursor="Hand">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Style.Triggers>
+                                        <!-- Highlight border when selected -->
+                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                            <Setter Property="BorderThickness" Value="2"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                            <Setter Property="Background" Value="{DynamicResource FocusRing}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
                             <Border.InputBindings>
                                 <MouseBinding MouseAction="LeftClick" 
                                             Command="{Binding DataContext.ToggleParagraphCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
@@ -93,32 +105,81 @@
                                          Margin="0,2,12,0"
                                          VerticalAlignment="Top">
                                     <Canvas Width="24" Height="24">
-                                        <!-- Solid circle when included -->
+                                        <!-- Selection ring (outer circle when selected) -->
                                         <Ellipse Width="24" Height="24" 
-                                                Fill="{DynamicResource AccentBrush}">
+                                                Stroke="{DynamicResource AccentBrush}"
+                                                StrokeThickness="3"
+                                                Fill="Transparent">
                                             <Ellipse.Style>
                                                 <Style TargetType="Ellipse">
                                                     <Setter Property="Visibility" Value="Collapsed"/>
                                                     <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IncludeInPrompt}" Value="True">
+                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                                             <Setter Property="Visibility" Value="Visible"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </Ellipse.Style>
                                         </Ellipse>
+                                        <!-- Inner circle for prompt inclusion (smaller when selected) -->
+                                        <!-- Solid circle when included -->
+                                        <Ellipse Width="18" Height="18" 
+                                                Canvas.Left="3" Canvas.Top="3"
+                                                Fill="{DynamicResource AccentBrush}">
+                                            <Ellipse.Style>
+                                                <Style TargetType="Ellipse">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Setter Property="Width" Value="24"/>
+                                                    <Setter Property="Height" Value="24"/>
+                                                    <Setter Property="Canvas.Left" Value="0"/>
+                                                    <Setter Property="Canvas.Top" Value="0"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IncludeInPrompt}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                        <!-- Make inner circle smaller when selected -->
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding IncludeInPrompt}" Value="True"/>
+                                                                <Condition Binding="{Binding IsSelected}" Value="True"/>
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Width" Value="18"/>
+                                                            <Setter Property="Height" Value="18"/>
+                                                            <Setter Property="Canvas.Left" Value="3"/>
+                                                            <Setter Property="Canvas.Top" Value="3"/>
+                                                        </MultiDataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Ellipse.Style>
+                                        </Ellipse>
                                         <!-- Outline circle when excluded -->
-                                        <Ellipse Width="24" Height="24" 
+                                        <Ellipse Width="18" Height="18" 
+                                                Canvas.Left="3" Canvas.Top="3"
                                                 Stroke="{DynamicResource AccentBrush}"
                                                 StrokeThickness="2"
                                                 Fill="Transparent">
                                             <Ellipse.Style>
                                                 <Style TargetType="Ellipse">
                                                     <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Setter Property="Width" Value="24"/>
+                                                    <Setter Property="Height" Value="24"/>
+                                                    <Setter Property="Canvas.Left" Value="0"/>
+                                                    <Setter Property="Canvas.Top" Value="0"/>
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IncludeInPrompt}" Value="False">
                                                             <Setter Property="Visibility" Value="Visible"/>
                                                         </DataTrigger>
+                                                        <!-- Make inner circle smaller when selected -->
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding IncludeInPrompt}" Value="False"/>
+                                                                <Condition Binding="{Binding IsSelected}" Value="True"/>
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Width" Value="18"/>
+                                                            <Setter Property="Height" Value="18"/>
+                                                            <Setter Property="Canvas.Left" Value="3"/>
+                                                            <Setter Property="Canvas.Top" Value="3"/>
+                                                        </MultiDataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </Ellipse.Style>

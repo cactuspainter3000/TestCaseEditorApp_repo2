@@ -70,6 +70,9 @@ namespace TestCaseEditorApp
 
                     // File dialog helper used by the VM
                     services.AddSingleton<IFileDialogService, FileDialogService>();
+                    
+                    // Text editing dialog service for architectural compliance
+                    services.AddSingleton<ITextEditingDialogService, TextEditingDialogService>();
 
                     // Domain UI coordination
                     services.AddSingleton<IDomainUICoordinator, DomainUICoordinator>();

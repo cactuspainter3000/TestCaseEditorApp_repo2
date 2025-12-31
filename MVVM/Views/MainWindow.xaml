@@ -7,6 +7,7 @@
         xmlns:tcgvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels"
         xmlns:wmvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels"
         xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
+        xmlns:tcgviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views"
         xmlns:wmviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Views"
         xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models"
         xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
@@ -64,6 +65,10 @@
 
         <DataTemplate DataType="{x:Type tcgvm:RequirementsViewModel}">
             <views:RequirementsView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type tcgvm:RequirementsWorkspaceViewModel}">
+            <tcgviews:RequirementsWorkspaceView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:LLMLearningViewModel}">
