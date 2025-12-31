@@ -346,41 +346,33 @@
                         </StackPanel>
                     </Button>
                     
-                    <!-- Undo last save button -->
-                    <Button HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Padding="8,4"
-                            Cursor="Hand"
-                            Command="{Binding HeaderWorkspace.DataContext.UndoLastSaveCommand}"
-                            ToolTip="Undo last save operation"
-                            Margin="8,0,0,0"
-                            Visibility="{Binding HeaderWorkspace.DataContext.CanUndoLastSave, Converter={StaticResource BoolToVisibilityConverter}}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock FontFamily="Segoe MDL2 Assets"
-                                       FontSize="16"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,6,0"
-                                       Text="&#xE7A7;"
-                                       Foreground="#FF9800"/>
-                            <TextBlock VerticalAlignment="Center"
-                                       FontSize="13"
-                                       Text="Undo"
-                                       Foreground="#CCCCCC"/>
-                        </StackPanel>
-                    </Button>
-                    
-                    <DockPanel Width="150" HorizontalAlignment="Right" Margin="3">
+                    <DockPanel HorizontalAlignment="Right" Margin="3">
+                        
                         <Grid VerticalAlignment="Center" HorizontalAlignment="Right">
                             <Grid.ColumnDefinitions>
+                                <!-- Undo button -->
+                                <ColumnDefinition Width="Auto"/>
+                                <!-- Minimize, Maximize, Close -->
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <!-- Minimize -->
+                            <!-- Undo last save button - integrated with window controls -->
                             <Button Grid.Column="0"
+                                    Style="{StaticResource MainWindowButtonControls}"
+                                    Command="{Binding HeaderWorkspace.DataContext.UndoLastSaveCommand}"
+                                    Visibility="{Binding HeaderWorkspace.DataContext.CanUndoLastSave, Converter={StaticResource BoolToVisibilityConverter}}"
+                                    ToolTip="Undo last save operation"
+                                    Margin="0,0,8,0">
+                                <TextBlock Text="&#xE7A7;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Style="{StaticResource WindowControlIconStyle}"/>
+                            </Button>
+
+                            <!-- Minimize -->
+                            <Button Grid.Column="1"
                                     Style="{StaticResource MainWindowButtonControls}"
                                     Click="ButtonMinimize_Click">
                                 <TextBlock Text="&#xE90F;"
@@ -390,7 +382,7 @@
                             </Button>
 
                             <!-- Maximize/Restore -->
-                            <Button Grid.Column="1"
+                            <Button Grid.Column="2"
                                     Style="{StaticResource MainWindowButtonControls}"
                                     Click="WindowStateButton_Click"
                                     Margin="4,0">
@@ -401,7 +393,7 @@
                             </Button>
 
                             <!-- Close -->
-                            <Button Grid.Column="2"
+                            <Button Grid.Column="3"
                                     Style="{StaticResource MainWindowCloseButton}"
                                     Click="CloseButton_Click"
                                     Margin="4,0">

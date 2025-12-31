@@ -63,7 +63,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand TestClickCommand { get; private set; } = null!;
         public ICommand OpenProjectCommand { get; private set; } = null!;
         public ICommand SaveProjectCommand { get; private set; } = null!;
-        public ICommand QuickImportCommand { get; private set; } = null!;
+
         public ICommand ProjectNavigationCommand { get; private set; } = null!;
         public ICommand TestCaseGeneratorNavigationCommand { get; private set; } = null!;
         public ICommand RequirementsNavigationCommand { get; private set; } = null!;
@@ -136,7 +136,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             TestClickCommand = new RelayCommand(() => System.Windows.MessageBox.Show("Test button clicked!", "Data-Driven Test"));
             OpenProjectCommand = new AsyncRelayCommand(OpenProjectAsync, CanExecuteProjectCommands);
             SaveProjectCommand = new RelayCommand(() => { /* TODO: Implement save */ });
-            QuickImportCommand = new RelayCommand(() => { /* TODO: Implement quick import */ });
             ProjectNavigationCommand = new RelayCommand(NavigateToProject);
             TestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToTestCaseGenerator);
             TestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToTestCaseGenerator);
@@ -496,7 +495,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             var projectSection = MenuHierarchyItem.CreateSection("Project", 2, true,
                 CreateActionWithId("project.new", "🗂️ New Project", "🗂️", NewProjectCommand),
-                CreateActionWithId("project.quickimport", "⚡ Quick Import (Legacy)", "⚡", QuickImportCommand),
                 CreateActionWithId("project.open", "📂 Open Project", "📂", OpenProjectCommand),
                 CreateActionWithId("project.save", "💾 Save Project", "💾", SaveProjectCommand, false),
                 CreateActionWithId("project.unload", "📤 Unload Project", "📤", UnloadProjectCommand, false)
@@ -678,7 +676,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 // === PROJECT DROPDOWN (as sub-item) ===
                 CreateDropdown("project", "📁", "Project", "Project management options",
                     CreateButton("new-project", "🆕", "New Project", NewProjectNavigationCommand, "Create a new test case generation project"),
-                    CreateButton("quick-import", "⚡", "Quick Import (Legacy)", QuickImportCommand, "Quick import legacy format"),
                     CreateButton("open-project", "📁", "Open Project", OpenProjectCommand, "Load an existing project"),
                     CreateButton("save-project", "💾", "Save Project", SaveProjectCommand, "Save current project"),
                     CreateButton("unload-project", "📤", "Unload Project", UnloadProjectCommand, "Unload current project")

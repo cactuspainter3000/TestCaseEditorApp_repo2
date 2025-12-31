@@ -1,97 +1,147 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Models.DataDrivenMenu;
+using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.Events;
+using System.Linq;
+using System.Windows.Input;
+using Microsoft.Extensions.Logging;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
     public partial class NavigationViewModel : ObservableObject
     {
-        public NavigationViewModel()
-        {
-            // Example items using Segoe MDL2 glyph codepoints
-            NavigationItems = new ObservableCollection<NavigationItem>
-            {
-                new NavigationItem("home", "Home", "\uE10F"),
-                new NavigationItem("requirements", "Requirements", "\uE8A5"),
-                new NavigationItem("tests", "Tests", "\uE7C3"),
-                new NavigationItem("settings", "Settings", "\uE713")
-            };
-
-            _history = new System.Collections.Generic.List<string>();
-            SelectedItem = NavigationItems.FirstOrDefault();
-            UpdateIndexCounters();
-        }
-
-        private readonly System.Collections.Generic.List<string> _history;
-        private int _historyIndex = -1;
+        private readonly ITestCaseGenerationMediator? _mediator;
+        private readonly ILogger<NavigationViewModel>? _logger;
 
         [ObservableProperty]
-        private ObservableCollection<NavigationItem> navigationItems;
+        private MenuAction? requirementsDropdown;
 
         [ObservableProperty]
-        private NavigationItem? selectedItem;
+        private Requirement? selectedRequirement;
 
-        partial void OnSelectedItemChanged(NavigationItem? oldValue, NavigationItem? newValue)
-        {
-            // Whenever SelectedItem is changed (from UI selection or programmatically), update index counters.
-            UpdateIndexCounters();
-        }
+        [ObservableProperty]
+        private ObservableCollection<Requirement> requirements = new();
 
         [ObservableProperty]
         private string? searchText;
 
-        public bool CanGoBack => _historyIndex > 0;
-        public bool CanGoForward => _historyIndex >= 0 && _historyIndex < _history.Count - 1;
-
-        // New: expose 1-based current index and total count for the UI indicator
         [ObservableProperty]
         private int currentIndex;
 
         [ObservableProperty]
         private int totalCount;
 
-        public event EventHandler<string?>? NavigationRequested;
-
-        [RelayCommand(CanExecute = nameof(CanGoBack))]
-        private void GoBack()
+        public NavigationViewModel()
         {
-            if (!CanGoBack) return;
-            _historyIndex--;
-            var id = _history[_historyIndex];
-            SelectById(id);
-            GoBackCommand.NotifyCanExecuteChanged();
-            GoForwardCommand.NotifyCanExecuteChanged();
+            InitializeDropdown();
         }
 
-        [RelayCommand(CanExecute = nameof(CanGoForward))]
-        private void GoForward()
+        public NavigationViewModel(ITestCaseGenerationMediator mediator, ILogger<NavigationViewModel> logger)
         {
-            if (!CanGoForward) return;
-            _historyIndex++;
-            var id = _history[_historyIndex];
-            SelectById(id);
-            GoBackCommand.NotifyCanExecuteChanged();
-            GoForwardCommand.NotifyCanExecuteChanged();
+            _mediator = mediator;
+            _logger = logger;
+            InitializeDropdown();
+            
+            // Subscribe to requirement changes from the mediator
+            if (_mediator != null)
+            {
+                _mediator.Subscribe<TestCaseGenerationEvents.RequirementsImported>(OnRequirementsImported);
+            }
+        }
+
+        private void InitializeDropdown()
+        {
+            RequirementsDropdown = new MenuAction
+            {
+                Id = "requirements-nav",
+                Text = "No requirements loaded",
+                Icon = "📋",
+                IsDropdown = true,
+                IsExpanded = false,
+                Children = new ObservableCollection<MenuContentItem>()
+            };
+            
+            UpdateIndexCounters();
+        }
+
+        private void OnRequirementsImported(TestCaseGenerationEvents.RequirementsImported evt)
+        {
+            UpdateRequirements(evt.Requirements);
+        }
+
+        /// <summary>
+        /// Update the dropdown with current requirements
+        /// </summary>
+        public void UpdateRequirements(IEnumerable<Requirement> newRequirements)
+        {
+            Requirements.Clear();
+            RequirementsDropdown!.Children.Clear();
+
+            if (newRequirements?.Any() == true)
+            {
+                foreach (var req in newRequirements)
+                {
+                    Requirements.Add(req);
+                    RequirementsDropdown.Children.Add(new MenuAction
+                    {
+                        Id = $"req-{req.GlobalId}",
+                        Text = $"{req.Item} — {req.Name}",
+                        Icon = "📄",
+                        Command = new RelayCommand(() => SelectRequirement(req)),
+                        Level = 1
+                    });
+                }
+                
+                RequirementsDropdown.Text = $"Requirements ({Requirements.Count})";
+                SelectedRequirement = Requirements.FirstOrDefault();
+                TotalCount = Requirements.Count;
+                CurrentIndex = SelectedRequirement != null ? 1 : 0;
+            }
+            else
+            {
+                RequirementsDropdown.Text = "No requirements loaded";
+                SelectedRequirement = null;
+                TotalCount = 0;
+                CurrentIndex = 0;
+            }
+        }
+
+        private void SelectRequirement(Requirement requirement)
+        {
+            SelectedRequirement = requirement;
+            RequirementsDropdown!.IsExpanded = false;
+            
+            // Update position indicator
+            var index = Requirements.IndexOf(requirement);
+            CurrentIndex = index >= 0 ? index + 1 : 0;
+            
+            _logger?.LogDebug("Selected requirement: {RequirementName} (position {Index}/{Total})", 
+                requirement.Name, CurrentIndex, TotalCount);
         }
 
         [RelayCommand]
-        private void Navigate(NavigationItem? item)
+        private void PreviousRequirement()
         {
-            if (item is null) return;
+            if (Requirements.Count == 0) return;
+            
+            var currentIndex = SelectedRequirement != null ? Requirements.IndexOf(SelectedRequirement) : -1;
+            var newIndex = currentIndex <= 0 ? Requirements.Count - 1 : currentIndex - 1;
+            
+            SelectRequirement(Requirements[newIndex]);
+        }
 
-            if (_historyIndex < _history.Count - 1)
-                _history.RemoveRange(_historyIndex + 1, _history.Count - _historyIndex - 1);
-
-            _history.Add(item.Id);
-            _historyIndex = _history.Count - 1;
-
-            SelectedItem = item;
-            NavigationRequested?.Invoke(this, item.Id);
-
-            GoBackCommand.NotifyCanExecuteChanged();
-            GoForwardCommand.NotifyCanExecuteChanged();
-            UpdateIndexCounters();
+        [RelayCommand]
+        private void NextRequirement()
+        {
+            if (Requirements.Count == 0) return;
+            
+            var currentIndex = SelectedRequirement != null ? Requirements.IndexOf(SelectedRequirement) : -1;
+            var newIndex = currentIndex >= Requirements.Count - 1 ? 0 : currentIndex + 1;
+            
+            SelectRequirement(Requirements[newIndex]);
         }
 
         [RelayCommand]
@@ -100,41 +150,21 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             if (string.IsNullOrWhiteSpace(SearchText)) return;
 
             var q = SearchText!.Trim();
-            var found = NavigationItems.FirstOrDefault(n => n.Title.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0
-                                                         || n.Id.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0);
-            if (found != null) Navigate(found);
-        }
-
-        public void SelectById(string id)
-        {
-            var item = NavigationItems.FirstOrDefault(i => i.Id == id);
-            if (item != null)
+            var found = Requirements.FirstOrDefault(r => 
+                r.Name.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                r.Item.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                r.GlobalId.ToString().Contains(q));
+                
+            if (found != null) 
             {
-                SelectedItem = item;
-                NavigationRequested?.Invoke(this, item.Id);
-                UpdateIndexCounters();
+                SelectRequirement(found);
             }
         }
 
         private void UpdateIndexCounters()
         {
-            // TotalCount is simple
-            TotalCount = NavigationItems?.Count ?? 0;
-
-            // CurrentIndex is 1-based index of SelectedItem in NavigationItems; zero if none selected
-            if (SelectedItem is null || NavigationItems is null || NavigationItems.Count == 0)
-            {
-                CurrentIndex = 0;
-            }
-            else
-            {
-                var idx = NavigationItems.IndexOf(SelectedItem);
-                CurrentIndex = (idx >= 0) ? (idx + 1) : 0;
-            }
+            TotalCount = Requirements.Count;
+            CurrentIndex = SelectedRequirement != null ? Requirements.IndexOf(SelectedRequirement) + 1 : 0;
         }
-
-        // NEW: adapter that holds the requirements navigation VM for binding in the NavigationView.
-        // Set this from MainViewModel after you create the shared TestCaseGenerator_NavigationService.
-        public TestCaseGenerator_NavigationVM? RequirementsNav { get; set; }
     }
 }

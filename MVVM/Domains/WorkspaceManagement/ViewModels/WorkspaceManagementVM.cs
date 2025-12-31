@@ -174,7 +174,6 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
         {
             // Import Commands
             ImportWordCommand = new AsyncRelayCommand(ImportWordAsync);
-            QuickImportCommand = new AsyncRelayCommand(QuickImportAsync);
             ImportAdditionalCommand = new AsyncRelayCommand(ImportAdditionalAsync);
             ImportStructuredAnalysisCommand = new AsyncRelayCommand(ImportStructuredAnalysisAsync);
 
@@ -237,53 +236,6 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
                 return;
             }
             await ImportFromPathAsync(dlg.FileName, replace: true);
-        }
-
-        /// <summary>
-        /// Development convenience: Quick import with actual Decagon Boundary Scan requirements.
-        /// Skips file dialogs and directly imports from the test file you use for development.
-        /// </summary>
-        public async Task QuickImportAsync()
-        {
-            try
-            {
-                TestCaseEditorApp.Services.Logging.Log.Info("[QuickImport] STARTING QuickImportAsync method");
-                
-                // Check if requirement service exists
-                if (_requirementService == null)
-                {
-                    SetTransientStatus("Quick Import: Requirement service not available", 5);
-                    TestCaseEditorApp.Services.Logging.Log.Warn("[QuickImport] _requirementService is null!");
-                    return;
-                }
-                
-                // Paths for your standard testing setup
-                var testDocPath = @"C:\Users\e10653214\Downloads\Decagon_Boundary Scan.docx";
-                
-                SetTransientStatus("⚡ Quick Import from Decagon test file...", 3);
-                TestCaseEditorApp.Services.Logging.Log.Info($"[QuickImport] Starting import from: {testDocPath}");
-                
-                // Check if the test file exists
-                if (!File.Exists(testDocPath))
-                {
-                    SetTransientStatus($"Quick Import: Test file not found at {testDocPath}", 5);
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[QuickImport] Test file not found: {testDocPath}");
-                    return;
-                }
-
-                // Clear existing requirements first (replace mode)
-                Requirements.Clear();
-                
-                // Perform the import
-                await ImportFromPathAsync(testDocPath, replace: true);
-                
-                TestCaseEditorApp.Services.Logging.Log.Info("[QuickImport] QuickImportAsync completed successfully");
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[QuickImport] Exception in QuickImportAsync: {ex.Message}");
-                SetTransientStatus($"Quick Import failed: {ex.Message}", 5);
-            }
         }
 
         /// <summary>

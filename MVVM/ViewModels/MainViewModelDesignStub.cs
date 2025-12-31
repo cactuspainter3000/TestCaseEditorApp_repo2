@@ -38,19 +38,6 @@ using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 
             // Ensure Navigation is available for designer bindings (Navigation.RequirementsNav etc.)
             Navigation = new NavigationViewModel();
-
-            // Try to create a design-time RequirementsNav instance without requiring a parameterless ctor.
-            // Use Activator.CreateInstance to avoid compile-time constructor matching errors.
-            try
-            {
-                // Pass a single null argument (will be mapped to the ITestCaseGenerator_Navigator parameter if present).
-                var created = Activator.CreateInstance(typeof(TestCaseGenerator_NavigationVM), new object?[] { null }) as TestCaseGenerator_NavigationVM;
-                Navigation.RequirementsNav = created;
-            }
-            catch
-            {
-                // ignore if TestCaseGenerator_NavigationVM requires non-null services or throws in ctor
-            }
         }
 
         // Bound from Window.Title

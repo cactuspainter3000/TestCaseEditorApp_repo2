@@ -133,23 +133,6 @@
                     </StackPanel>
                 </StackPanel>
             </Button>
-
-            <!-- Quick Import Option -->
-            <Button Command="{Binding QuickImportCommand}" Style="{StaticResource OptionButton}">
-                <StackPanel Orientation="Horizontal">
-                    <Ellipse Width="8" Height="8" Fill="{StaticResource Brush.State.Warning}" Margin="0,0,12,0" VerticalAlignment="Center"/>
-                    <StackPanel>
-                        <TextBlock Text="Quick import (Decagon format)" 
-                                   FontWeight="SemiBold" 
-                                   FontSize="{StaticResource FontSize.Body}"
-                                   Foreground="{StaticResource Brush.Text.Primary}"/>
-                        <TextBlock Text="Fast import for Jama-exported requirements already in Decagon format (no additional analysis)" 
-                                   FontSize="{StaticResource FontSize.Caption}" 
-                                   Foreground="{StaticResource Brush.Text.Tertiary}" 
-                                   Margin="0,4,0,0"/>
-                    </StackPanel>
-                </StackPanel>
-            </Button>
         </StackPanel>
 
         <!-- Spacer -->

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.Models.DataDrivenMenu;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
@@ -24,6 +25,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         private Requirement? _selectedRequirement;
         private string? _searchQuery;
         private bool _wrapOnNextWithoutTestCase = false;
+        private MenuAction? _requirementsDropdown;
         
         // Commands
         private RelayCommand? _previousCommand;
@@ -46,11 +48,23 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             _mediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
             _mediator.Subscribe<TestCaseGenerationEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
             
+            // Initialize the dropdown
+            InitializeDropdown();
+            
             Title = "Requirements Navigation";
             _logger.LogDebug("TestCaseGenerator_NavigationVM created with mediator");
         }
 
         // ===== PROPERTIES =====
+        
+        /// <summary>
+        /// Requirements dropdown for data-driven menu system
+        /// </summary>
+        public MenuAction? RequirementsDropdown
+        {
+            get => _requirementsDropdown;
+            private set => SetProperty(ref _requirementsDropdown, value);
+        }
         
         /// <summary>
         /// Requirements collection (local copy to avoid bridge dependencies)
@@ -142,6 +156,67 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         { 
             get => _searchQuery; 
             set => SetProperty(ref _searchQuery, value); 
+        }
+
+        // ===== DROPDOWN INITIALIZATION =====
+
+        private void InitializeDropdown()
+        {
+            RequirementsDropdown = new MenuAction
+            {
+                Id = "requirements-nav",
+                Text = "No requirements loaded",
+                Icon = "📋",
+                IsDropdown = true,
+                IsExpanded = false,
+                Children = new ObservableCollection<MenuContentItem>()
+            };
+            
+            UpdateDropdownFromRequirements();
+        }
+
+        private void UpdateDropdownFromRequirements()
+        {
+            if (RequirementsDropdown?.Children == null) return;
+
+            RequirementsDropdown.Children.Clear();
+
+            var requirements = _mediator.Requirements;
+            if (requirements?.Any() == true)
+            {
+                foreach (var req in requirements)
+                {
+                    RequirementsDropdown.Children.Add(new MenuAction
+                    {
+                        Id = $"req-{req.GlobalId}",
+                        Text = $"{req.Item} — {req.Name}",
+                        Icon = "📄",
+                        Command = new RelayCommand(() => SelectRequirement(req)),
+                        Level = 1
+                    });
+                }
+                
+                // Show selected requirement name, or first requirement if none selected
+                var selectedReq = _selectedRequirement ?? requirements.FirstOrDefault();
+                RequirementsDropdown.Text = selectedReq != null 
+                    ? $"{selectedReq.Item} — {selectedReq.Name}"
+                    : "No requirement selected";
+            }
+            else
+            {
+                RequirementsDropdown.Text = "No requirements loaded";
+            }
+        }
+
+        private void SelectRequirement(Requirement requirement)
+        {
+            SelectedRequirement = requirement;
+            if (RequirementsDropdown != null)
+            {
+                RequirementsDropdown.IsExpanded = false;
+                // Update dropdown text to show selected requirement
+                RequirementsDropdown.Text = $"{requirement.Item} — {requirement.Name}";
+            }
         }
 
         // ===== NAVIGATION COMMANDS =====
@@ -250,12 +325,18 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 _selectedRequirement = e.Requirement;
                 _selectedRequirementIndex = _requirements.IndexOf(e.Requirement);
                 
+                // Update dropdown text to show selected requirement
+                if (RequirementsDropdown != null && e.Requirement != null)
+                {
+                    RequirementsDropdown.Text = $"{e.Requirement.Item} — {e.Requirement.Name}";
+                }
+                
                 OnPropertyChanged(nameof(SelectedRequirement));
                 OnPropertyChanged(nameof(SelectedRequirementIndex));
                 OnPropertyChanged(nameof(RequirementPositionDisplay));
                 RefreshNavCommands();
                 
-                _logger.LogDebug("Navigation updated for requirement: {RequirementId}", e.Requirement.GlobalId);
+                _logger.LogDebug("Navigation updated for requirement: {RequirementId}", e.Requirement?.GlobalId ?? "null");
             }
         }
 
@@ -272,6 +353,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 _selectedRequirement = null;
                 _selectedRequirementIndex = -1;
             }
+            
+            // Update the dropdown with new requirements
+            UpdateDropdownFromRequirements();
             
             // Notify UI that RequirementsView has updated (it's bound to mediator's Requirements collection)
             OnPropertyChanged(nameof(RequirementsView));

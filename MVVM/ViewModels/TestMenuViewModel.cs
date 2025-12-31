@@ -58,13 +58,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                                 },
                                 new MenuHierarchyItem
                                 {
-                                    Title = "⚡ Quick Import (Legacy)",
-                                    Level = 3,
-                                    IsExpandable = false,
-                                    Command = TestActionCommand
-                                },
-                                new MenuHierarchyItem
-                                {
                                     Title = "📁 Open Project",
                                     Level = 3,
                                     IsExpandable = false,

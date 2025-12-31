@@ -65,7 +65,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         public NavigationViewModel CreateNavigationViewModel()
         {
-            return new NavigationViewModel();
+            if (_testCaseGenerationMediator == null)
+                throw new InvalidOperationException("TestCaseGenerationMediator is required for NavigationViewModel");
+                
+            var logger = _applicationServices.LoggerFactory?.CreateLogger<NavigationViewModel>();
+            return new NavigationViewModel(_testCaseGenerationMediator, logger!);
         }
 
         public ImportRequirementsWorkflowViewModel CreateImportWorkflowViewModel()

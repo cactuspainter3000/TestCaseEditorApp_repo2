@@ -21,8 +21,8 @@
             BorderBrush="{DynamicResource HeaderAccentBrush}" 
             BorderThickness="2" 
             CornerRadius="4" 
-            Margin="4,8,4,0">
-        <Grid Margin="8">
+            Margin="0">
+        <Grid Margin="6">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>

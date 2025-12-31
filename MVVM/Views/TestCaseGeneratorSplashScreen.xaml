@@ -6,44 +6,45 @@
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="600">
     
-    <Grid Background="{StaticResource Brush.Background.Card}">
+    <Grid>
         <Border Background="{StaticResource Brush.Background.Menu}" 
-                BorderBrush="{DynamicResource HeaderAccentBrush}" 
-                BorderThickness="2" 
-                CornerRadius="8" 
-                Margin="40">
+                BorderBrush="{StaticResource CardBorderBrush}" 
+                BorderThickness="1" 
+                CornerRadius="6" 
+                Margin="20">
             
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="60">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="40">
                 
-                <!-- Icon -->
-                <TextBlock Text="🧪" 
-                           FontSize="72" 
+                <!-- Icon - more subtle -->
+                <TextBlock Text="📋" 
+                           FontSize="32" 
+                           HorizontalAlignment="Center" 
+                           Opacity="0.6"
+                           Margin="0,0,0,16"/>
+                
+                <!-- Title - smaller and less bold -->
+                <TextBlock Text="Test Case Generator" 
+                           FontSize="20" 
+                           FontWeight="SemiBold" 
+                           Foreground="{StaticResource MenuForeground}"
+                           HorizontalAlignment="Center" 
+                           Margin="0,0,0,8"/>
+                
+                <!-- Subtitle - more subtle -->
+                <TextBlock Text="AI-Powered Test Case Generation" 
+                           FontSize="13" 
+                           Foreground="#999999"
                            HorizontalAlignment="Center" 
                            Margin="0,0,0,20"/>
                 
-                <!-- Title -->
-                <TextBlock Text="Test Case Generator" 
-                           FontSize="28" 
-                           FontWeight="Bold" 
-                           Foreground="{DynamicResource HeaderAccentBrush}"
-                           HorizontalAlignment="Center" 
-                           Margin="0,0,0,10"/>
-                
-                <!-- Subtitle -->
-                <TextBlock Text="AI-Powered Test Case Generation" 
-                           FontSize="16" 
-                           Foreground="#CCCCCC"
-                           HorizontalAlignment="Center" 
-                           Margin="0,0,0,30"/>
-                
                 <!-- Description -->
                 <TextBlock Text="{Binding Description}" 
-                           FontSize="14" 
-                           Foreground="#AAAAAA"
+                           FontSize="12" 
+                           Foreground="#888888"
                            TextWrapping="Wrap"
                            TextAlignment="Center"
-                           MaxWidth="400"
-                           LineHeight="22"/>
+                           MaxWidth="360"
+                           LineHeight="18"/>
                 
             </StackPanel>
         </Border>

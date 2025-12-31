@@ -69,29 +69,19 @@
                         AutomationProperties.Name="Next Requirement"/>
             </Grid>
 
-            <!-- ComboBox (use the CardComboBoxStyle; do NOT override Background here so the template/style controls it) -->
-            <ComboBox x:Name="NavigatorCombo"
-                      Grid.Column="2"
-                      Margin="8,0,8,0"
-                      ItemsSource="{Binding RequirementsView}"
-                      SelectedItem="{Binding SelectedRequirement, Mode=TwoWay}"
-                      SelectedIndex="{Binding SelectedRequirementIndex, Mode=TwoWay}"
-                      MaxWidth="420"
-                      MinWidth="120"
-                      Style="{StaticResource CardComboBoxStyle}"
-                      BorderBrush="{DynamicResource CardBorderBrush}"
-                      Padding="6,2"
-                      Grid.ColumnSpan="2"
-                      IsEnabled="{Binding DataContext.IsLlmBusy, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InvertBoolConverter}}">
-
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource Brush.Text.Primary}">
-                            <Run Text="{Binding Item}" /><Run Text=" — " /><Run Text="{Binding Name}" />
-                        </TextBlock>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
+            <!-- ComboBox replaced with data-driven dropdown -->
+            <Grid Grid.Column="2" Margin="8,0,8,0" Grid.ColumnSpan="2" MaxWidth="420" MinWidth="120">
+                <Grid.Resources>
+                    <ResourceDictionary>
+                        <ResourceDictionary.MergedDictionaries>
+                            <ResourceDictionary Source="/MVVM/Controls/DataDrivenMenu/MenuContentTemplates.xaml"/>
+                        </ResourceDictionary.MergedDictionaries>
+                    </ResourceDictionary>
+                </Grid.Resources>
+                
+                <ContentPresenter Content="{Binding RequirementsDropdown}" 
+                                 IsEnabled="{Binding DataContext.IsLlmBusy, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InvertBoolConverter}}"/>
+            </Grid>
 
             <TextBox Grid.Column="4"
                      Margin="8,0,8,0"
