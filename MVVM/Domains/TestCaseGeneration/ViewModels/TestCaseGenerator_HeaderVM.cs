@@ -87,6 +87,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         [ObservableProperty] private bool isDirty;
         [ObservableProperty] private bool canUndoLastSave;
 
+        // Expose this ViewModel as DataContext for XAML binding compatibility
+        public object DataContext => this;
+
         // Optional view-scoped actions
         public IRelayCommand? NewTestCaseCommand { get; set; }
         public IRelayCommand? RemoveTestCaseCommand { get; set; }
