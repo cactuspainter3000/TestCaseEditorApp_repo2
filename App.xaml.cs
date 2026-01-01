@@ -77,6 +77,9 @@ namespace TestCaseEditorApp
                     // Domain UI coordination
                     services.AddSingleton<IDomainUICoordinator, DomainUICoordinator>();
 
+                    // Requirement data scrubber (shared infrastructure)
+                    services.AddScoped<IRequirementDataScrubber, RequirementDataScrubber>();
+
                     // LLM services (shared infrastructure)
                     services.AddSingleton<ITextGenerationService>(_ => LlmFactory.Create());
                     services.AddSingleton<RequirementAnalysisService>();

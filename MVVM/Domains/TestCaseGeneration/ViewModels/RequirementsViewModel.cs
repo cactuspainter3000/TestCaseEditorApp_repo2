@@ -28,6 +28,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         private readonly ChatGptExportService _chatGptExportService;
         private readonly NotificationService _notificationService;
         private readonly INavigationMediator _navigationMediator;
+        private readonly IRequirementDataScrubber _requirementDataScrubber;
         private readonly ILogger<RequirementsViewModel>? _logger;
         
         // Legacy support for existing RequirementsView
@@ -59,6 +60,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         // Commands
         public ICommand ImportFromWordCommand { get; }
         public ICommand ImportFromJamaCommand { get; }
+        public ICommand ImportAdditionalCommand { get; }
         public ICommand ExportForChatGptCommand { get; }
         public ICommand ExportSelectedForChatGptCommand { get; }
         public ICommand ExportAllToJamaCommand { get; }
@@ -77,6 +79,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             ObservableCollection<Requirement> requirements,
             IPersistenceService persistence,
             ITestCaseGenerationMediator testCaseGenerationMediator,
+            IRequirementDataScrubber requirementDataScrubber,
             object? testCaseGenerator = null,
             ILogger<RequirementsViewModel>? logger = null)
         {
@@ -87,6 +90,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
             Requirements = requirements ?? throw new ArgumentNullException(nameof(requirements));
+            _requirementDataScrubber = requirementDataScrubber ?? throw new ArgumentNullException(nameof(requirementDataScrubber));
             _logger = logger;
 
             // Legacy support - create TestCaseGenerator_VM for existing RequirementsView
@@ -106,6 +110,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             // Initialize commands
             ImportFromWordCommand = new AsyncRelayCommand(ImportFromWordAsync);
             ImportFromJamaCommand = new AsyncRelayCommand(ImportFromJamaAsync);
+            ImportAdditionalCommand = new AsyncRelayCommand(ImportAdditionalAsync);
             ExportForChatGptCommand = new RelayCommand(ExportCurrentRequirementForChatGpt, () => CurrentRequirement != null);
             ExportSelectedForChatGptCommand = new RelayCommand(ExportSelectedRequirementsForChatGpt);
             ExportAllToJamaCommand = new RelayCommand(TryInvokeExportAllToJama);
@@ -135,6 +140,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 new ObservableCollection<Requirement>(),
                 persistence,
                 mediator,
+                new StubRequirementDataScrubber(),
                 testCaseGenerator,
                 null)
         {
@@ -224,6 +230,33 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         }
 
         /// <summary>
+        /// Import additional requirements to append to existing collection
+        /// </summary>
+        private async Task ImportAdditionalAsync()
+        {
+            try
+            {
+                var path = _fileDialogService.ShowOpenFile(
+                    title: "Import Additional Requirements",
+                    filter: "Word Documents|*.docx;*.doc|All Files|*.*");
+
+                if (string.IsNullOrEmpty(path))
+                    return;
+
+                _logger?.LogInformation("Importing additional requirements from: {Path}", path);
+                _notificationService.ShowInfo("Importing additional requirements...");
+
+                var importedRequirements = await Task.Run(() => ImportRequirementsFromFile(path));
+                await ProcessAdditionalImportedRequirements(importedRequirements, Path.GetFileName(path));
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Failed to import additional requirements");
+                _notificationService.ShowError($"Additional import failed: {ex.Message}", 8);
+            }
+        }
+
+        /// <summary>
         /// Core import logic that tries both parsers and returns results
         /// </summary>
         private List<Requirement> ImportRequirementsFromFile(string path, bool preferJamaParser = false)
@@ -286,7 +319,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         }
 
         /// <summary>
-        /// Process imported requirements and add to collection
+        /// Process imported requirements through scrubber and update collection
         /// </summary>
         private async Task ProcessImportedRequirements(List<Requirement> importedRequirements, string fileName)
         {
@@ -296,25 +329,167 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 return;
             }
 
-            // Clear existing requirements and add new ones
-            Requirements.Clear();
-            foreach (var requirement in importedRequirements)
+            var context = new ImportContext
             {
-                Requirements.Add(requirement);
+                FileName = fileName,
+                ImportType = ImportType.Replace,
+                Source = DetectImportSource(fileName)
+            };
+
+            var scrubberResult = await _requirementDataScrubber.ProcessRequirementsAsync(
+                importedRequirements, 
+                Requirements.ToList(), 
+                context);
+
+            await HandleScrubberResults(scrubberResult, isAdditional: false);
+        }
+
+        /// <summary>
+        /// Process additional imported requirements for append operation
+        /// </summary>
+        private async Task ProcessAdditionalImportedRequirements(List<Requirement> newRequirements, string fileName)
+        {
+            if (newRequirements.Count == 0)
+            {
+                _notificationService.ShowWarning("No requirements found in the selected file.", 5);
+                return;
             }
 
-            _notificationService.ShowSuccess($"Successfully imported {importedRequirements.Count} requirements from {fileName}!", 6);
-            _logger?.LogInformation("Successfully imported {Count} requirements from {FileName}", importedRequirements.Count, fileName);
+            var context = new ImportContext
+            {
+                FileName = fileName,
+                ImportType = ImportType.Additional,
+                Source = DetectImportSource(fileName)
+            };
 
-            // Trigger auto-export if enabled
+            var scrubberResult = await _requirementDataScrubber.ProcessRequirementsAsync(
+                newRequirements, 
+                Requirements.ToList(), 
+                context);
+
+            await HandleScrubberResults(scrubberResult, isAdditional: true);
+        }
+
+        /// <summary>
+        /// Handle the results from the scrubber and update the UI appropriately
+        /// </summary>
+        private async Task HandleScrubberResults(ScrubberResult result, bool isAdditional)
+        {
+            // Show validation issues if any
+            if (result.ValidationIssues.Any())
+            {
+                var warningCount = result.ValidationIssues.Count(i => i.Type == IssueType.Warning);
+                var errorCount = result.ValidationIssues.Count(i => i.Type == IssueType.Error);
+                
+                if (errorCount > 0)
+                {
+                    _notificationService.ShowWarning($"Found {errorCount} errors and {warningCount} warnings during import.", 6);
+                }
+                else if (warningCount > 0)
+                {
+                    _notificationService.ShowInfo($"Import completed with {warningCount} warnings.", 5);
+                }
+            }
+
+            // Update the requirements collection
+            if (isAdditional)
+            {
+                // Append mode - add to existing collection
+                foreach (var req in result.CleanRequirements)
+                {
+                    Requirements.Add(req);
+                }
+            }
+            else
+            {
+                // Replace mode - clear and add
+                Requirements.Clear();
+                foreach (var req in result.CleanRequirements)
+                {
+                    Requirements.Add(req);
+                }
+            }
+
+            // Show success notification with scrubber statistics
+            ShowImportSuccessNotification(result, isAdditional);
+
+            // Trigger auto-export if enabled and we have requirements
             if (AutoExportForChatGpt && Requirements.Any())
             {
                 await Task.Delay(1000); // Brief delay to let UI update
                 ExportSelectedRequirementsForChatGpt();
             }
 
-            // Publish import event via mediator
-            _navigationMediator.Publish(new RequirementsEvents.RequirementsImported(importedRequirements, fileName));
+            // Publish appropriate domain events
+            PublishImportEvents(result, isAdditional);
+        }
+
+        /// <summary>
+        /// Detect import source from file name/extension
+        /// </summary>
+        private ImportSource DetectImportSource(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName))
+                return ImportSource.Unknown;
+            
+            var extension = Path.GetExtension(fileName).ToLowerInvariant();
+            var name = Path.GetFileName(fileName).ToLowerInvariant();
+            
+            if (name.Contains("jama") || name.Contains("alldata"))
+                return ImportSource.Jama;
+            
+            return extension switch
+            {
+                ".docx" or ".doc" => ImportSource.Word,
+                ".json" => ImportSource.Json,
+                ".xlsx" or ".xls" => ImportSource.Excel,
+                _ => ImportSource.Unknown
+            };
+        }
+
+        /// <summary>
+        /// Show success notification with detailed statistics
+        /// </summary>
+        private void ShowImportSuccessNotification(ScrubberResult result, bool isAdditional)
+        {
+            var stats = result.Statistics;
+            var verb = isAdditional ? "Added" : "Imported";
+            
+            var message = $"{verb} {stats.CleanRequirements} requirements";
+            
+            if (stats.DuplicatesSkipped > 0)
+            {
+                message += $", skipped {stats.DuplicatesSkipped} duplicates";
+            }
+            
+            if (stats.IssuesFixed > 0)
+            {
+                message += $", fixed {stats.IssuesFixed} issues";
+            }
+            
+            _notificationService.ShowSuccess($"✅ {message}!", 6);
+            _logger?.LogInformation("Import completed: {Message}", message);
+        }
+
+        /// <summary>
+        /// Publish domain events for import operations
+        /// </summary>
+        private void PublishImportEvents(ScrubberResult result, bool isAdditional)
+        {
+            if (isAdditional)
+            {
+                _navigationMediator.Publish(new RequirementsEvents.AdditionalRequirementsImported(
+                    result.CleanRequirements,
+                    result.DuplicatesDetected,
+                    result.Statistics.TotalProcessed,
+                    result.Statistics.CleanRequirements));
+            }
+            else
+            {
+                _navigationMediator.Publish(new RequirementsEvents.RequirementsImported(
+                    result.CleanRequirements, 
+                    result.Statistics.ProcessingTime.ToString()))  // Using processing time as filename for now
+            }
         }
 
         /// <summary>
@@ -531,6 +706,28 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             {
                 Requirements = requirements;
                 FileName = fileName;
+            }
+        }
+
+        public class AdditionalRequirementsImported
+        {
+            public List<Requirement> NewRequirements { get; }
+            public List<Requirement> DuplicatesSkipped { get; }
+            public int TotalProcessed { get; }
+            public int CleanRequirementsAdded { get; }
+            public DateTime ImportTimestamp { get; }
+
+            public AdditionalRequirementsImported(
+                List<Requirement> newRequirements, 
+                List<Requirement> duplicatesSkipped,
+                int totalProcessed,
+                int cleanRequirementsAdded)
+            {
+                NewRequirements = newRequirements;
+                DuplicatesSkipped = duplicatesSkipped;
+                TotalProcessed = totalProcessed;
+                CleanRequirementsAdded = cleanRequirementsAdded;
+                ImportTimestamp = DateTime.Now;
             }
         }
 
