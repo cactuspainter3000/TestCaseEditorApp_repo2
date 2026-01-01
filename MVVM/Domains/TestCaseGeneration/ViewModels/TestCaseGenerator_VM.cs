@@ -618,7 +618,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             {
                 _dateChips = value ?? new ObservableCollection<ChipViewModel>();
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(VisibleChipsWithValuesCount)); // Notify count changed
             }
+        }
+
+        /// <summary>
+        /// Count of metadata fields that have actual values (not "(not set)")
+        /// </summary>
+        public int VisibleChipsWithValuesCount
+        {
+            get => VisibleChips.Count(c => !c.Value.Equals("(not set)", StringComparison.OrdinalIgnoreCase));
         }
 
         private void UpdateVisibleChipsFromRequirement(Requirement? r)

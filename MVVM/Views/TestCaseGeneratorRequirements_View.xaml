@@ -54,7 +54,7 @@
                                 </Style>
                             </Border.Style>
 
-                            <TextBlock Text="{Binding VisibleChips.Count}"
+                            <TextBlock Text="{Binding VisibleChipsWithValuesCount}"
                  Foreground="White"
                  FontSize="11"
                  FontWeight="SemiBold"
