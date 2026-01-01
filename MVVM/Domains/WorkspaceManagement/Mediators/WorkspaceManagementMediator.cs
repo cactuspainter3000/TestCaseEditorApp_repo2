@@ -13,6 +13,7 @@ using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Events;
+using static TestCaseEditorApp.MVVM.Events.CrossDomainMessages;
 
 namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
 {
@@ -414,6 +415,54 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
         public bool CanUndoLastSave()
         {
             return _currentWorkspaceInfo != null && _persistenceService.CanUndo(_currentWorkspaceInfo.Path);
+        }
+        
+        /// <summary>
+        /// Import additional requirements to existing project (append mode)
+        /// </summary>
+        public async Task ImportAdditionalRequirementsAsync()
+        {
+            try
+            {
+                _logger.LogInformation("Starting Import Additional Requirements workflow");
+                ShowProgress("Selecting file for import...", 10);
+                
+                var selectedFile = _fileDialogService.ShowOpenFile(
+                    "Import Additional Requirements",
+                    ".docx files|*.docx|.json files|*.json|All files|*.*"
+                );
+                
+                if (!string.IsNullOrEmpty(selectedFile))
+                {
+                    _logger.LogInformation("File selected for additional requirements import: {FilePath}", selectedFile);
+                    ShowProgress("Broadcasting import request...", 50);
+                    
+                    // Broadcast to TestCaseGeneration domain for processing
+                    BroadcastToAllDomains(new ImportRequirementsRequest 
+                    { 
+                        DocumentPath = selectedFile,
+                        RequestingDomain = "WorkspaceManagement",
+                        PreferJamaParser = false
+                    });
+                    
+                    ShowProgress("Import request sent", 100);
+                    await Task.Delay(500); // Brief pause to show completion
+                    HideProgress();
+                }
+                else
+                {
+                    _logger.LogInformation("Import Additional Requirements cancelled by user");
+                    ShowNotification("Import cancelled", DomainNotificationType.Info);
+                    HideProgress();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during Import Additional Requirements");
+                ShowNotification($"Import failed: {ex.Message}", DomainNotificationType.Error);
+                HideProgress();
+                throw;
+            }
         }
 
         public async Task CloseProjectAsync()

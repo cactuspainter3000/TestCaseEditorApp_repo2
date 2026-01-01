@@ -60,7 +60,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         // Commands
         public ICommand ImportFromWordCommand { get; }
         public ICommand ImportFromJamaCommand { get; }
-        public ICommand ImportAdditionalCommand { get; }
+
         public ICommand ExportForChatGptCommand { get; }
         public ICommand ExportSelectedForChatGptCommand { get; }
         public ICommand ExportAllToJamaCommand { get; }
@@ -110,7 +110,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             // Initialize commands
             ImportFromWordCommand = new AsyncRelayCommand(ImportFromWordAsync);
             ImportFromJamaCommand = new AsyncRelayCommand(ImportFromJamaAsync);
-            ImportAdditionalCommand = new AsyncRelayCommand(ImportAdditionalAsync);
+
             ExportForChatGptCommand = new RelayCommand(ExportCurrentRequirementForChatGpt, () => CurrentRequirement != null);
             ExportSelectedForChatGptCommand = new RelayCommand(ExportSelectedRequirementsForChatGpt);
             ExportAllToJamaCommand = new RelayCommand(TryInvokeExportAllToJama);
@@ -229,32 +229,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             }
         }
 
-        /// <summary>
-        /// Import additional requirements to append to existing collection
-        /// </summary>
-        private async Task ImportAdditionalAsync()
-        {
-            try
-            {
-                var path = _fileDialogService.ShowOpenFile(
-                    title: "Import Additional Requirements",
-                    filter: "Word Documents|*.docx;*.doc|All Files|*.*");
 
-                if (string.IsNullOrEmpty(path))
-                    return;
-
-                _logger?.LogInformation("Importing additional requirements from: {Path}", path);
-                _notificationService.ShowInfo("Importing additional requirements...");
-
-                var importedRequirements = await Task.Run(() => ImportRequirementsFromFile(path));
-                await ProcessAdditionalImportedRequirements(importedRequirements, Path.GetFileName(path));
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogError(ex, "Failed to import additional requirements");
-                _notificationService.ShowError($"Additional import failed: {ex.Message}", 8);
-            }
-        }
 
         /// <summary>
         /// Core import logic that tries both parsers and returns results

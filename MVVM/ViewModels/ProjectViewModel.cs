@@ -495,6 +495,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             public async Task CloseProjectAsync() => await Task.CompletedTask;
             public async Task UndoLastSaveAsync() => await Task.CompletedTask;
             public bool CanUndoLastSave() => false;
+            public async Task ImportAdditionalRequirementsAsync() => await Task.CompletedTask;
+
             public void ShowWorkspaceSelectionForOpen() { }
             public void ShowWorkspaceSelectionForNew() { }
             public async Task OnWorkspaceSelectedAsync(string workspaceSlug, string workspaceName, bool isNewProject) => await Task.CompletedTask;

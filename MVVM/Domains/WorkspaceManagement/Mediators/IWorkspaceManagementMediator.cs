@@ -51,6 +51,11 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
         string DomainName { get; }
         
         /// <summary>
+        /// Import additional requirements to existing project (append mode)
+        /// </summary>
+        Task ImportAdditionalRequirementsAsync();
+        
+        /// <summary>
         /// Mark this mediator as registered for fail-fast validation
         /// </summary>
         void MarkAsRegistered();

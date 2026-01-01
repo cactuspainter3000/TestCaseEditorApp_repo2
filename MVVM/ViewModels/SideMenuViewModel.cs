@@ -143,7 +143,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             NewProjectNavigationCommand = new RelayCommand(NavigateToNewProject, CanExecuteProjectCommands);
             
             // Requirements commands
-            ImportAdditionalCommand = new RelayCommand(() => { /* TODO: Implement import additional */ });
+            ImportAdditionalCommand = new AsyncRelayCommand(ImportAdditionalAsync);
             
             // Initialize missing commands
             UnloadProjectCommand = new AsyncRelayCommand(UnloadProjectAsync);
@@ -234,6 +234,27 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             else
             {
                 Console.WriteLine("*** NavigationMediator is null in SideMenuViewModel! ***");
+            }
+        }
+        
+        /// <summary>
+        /// Import additional requirements to existing project (append mode)
+        /// </summary>
+        private async Task ImportAdditionalAsync()
+        {
+            try
+            {
+                if (_workspaceManagementMediator == null)
+                {
+                    return;
+                }
+                
+                await _workspaceManagementMediator.ImportAdditionalRequirementsAsync();
+            }
+            catch (Exception ex)
+            {
+                // Error handling is done in the mediator, but log here for completeness
+                System.Diagnostics.Debug.WriteLine($"Error in ImportAdditionalAsync: {ex.Message}");
             }
         }
         

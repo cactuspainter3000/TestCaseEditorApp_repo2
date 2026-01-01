@@ -27,6 +27,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         private readonly IRequirementService _requirementService;
         private readonly RequirementAnalysisService _analysisService;
         private readonly ITextGenerationService _llmService;
+        private readonly IRequirementDataScrubber _scrubber;
         
         // Workflow state
         private readonly Dictionary<Requirement, List<string>> _requirementAssumptions = new();
@@ -136,6 +137,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             IRequirementService requirementService,
             RequirementAnalysisService analysisService,
             ITextGenerationService llmService,
+            IRequirementDataScrubber scrubber,
             PerformanceMonitoringService? performanceMonitor = null,
             EventReplayService? eventReplay = null)
             : base(logger, uiCoordinator, "Test Case Generator", performanceMonitor, eventReplay)
@@ -143,6 +145,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             _requirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
             _analysisService = analysisService ?? throw new ArgumentNullException(nameof(analysisService));
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
+            _scrubber = scrubber ?? throw new ArgumentNullException(nameof(scrubber));
 
             _logger.LogDebug("TestCaseGenerationMediator created with domain '{DomainName}'", _domainName);
         }
@@ -1049,43 +1052,147 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                     return;
                 }
 
-                // Import requirements using the requirement service
-                List<Requirement> importedRequirements;
+                // Determine if this is append mode (Import Additional Requirements)
+                bool isAppendMode = request.RequestingDomain.Equals("WorkspaceManagement", StringComparison.OrdinalIgnoreCase);
+                _logger.LogInformation("📋 Import mode: {Mode}", isAppendMode ? "Append (Additional Requirements)" : "Replace (New Import)");
+
+                // Import and scrub requirements
+                List<Requirement> rawRequirements;
                 if (request.PreferJamaParser)
                 {
                     _logger.LogInformation("📋 Using Jama parser for import");
-                    importedRequirements = await Task.Run(() => _requirementService.ImportRequirementsFromJamaAllDataDocx(request.DocumentPath));
+                    rawRequirements = await Task.Run(() => _requirementService.ImportRequirementsFromJamaAllDataDocx(request.DocumentPath));
                 }
                 else
                 {
                     _logger.LogInformation("📋 Using standard Word parser for import");
-                    importedRequirements = await Task.Run(() => _requirementService.ImportRequirementsFromWord(request.DocumentPath));
+                    rawRequirements = await Task.Run(() => _requirementService.ImportRequirementsFromWord(request.DocumentPath));
                 }
 
-                if (importedRequirements.Count > 0)
+                if (rawRequirements.Count > 0)
                 {
-                    _logger.LogInformation("✅ Successfully imported {Count} requirements", importedRequirements.Count);
+                    _logger.LogInformation("📥 Raw import completed: {Count} requirements before scrubbing", rawRequirements.Count);
 
-                    // Update requirements collection on UI thread
-                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    // Use Universal Requirements Scrubber for validation and cleanup
+                    var existingRequirements = isAppendMode ? _requirements.ToList() : new List<Requirement>();
+                    _logger.LogInformation("📊 Before scrubbing: Raw={RawCount}, Existing={ExistingCount}, Mode={Mode}", 
+                        rawRequirements.Count, existingRequirements.Count, isAppendMode ? "Append" : "Replace");
+                    
+                    var importContext = new ImportContext
                     {
-                        _requirements.Clear();
-                        foreach (var requirement in importedRequirements)
+                        FileName = System.IO.Path.GetFileName(request.DocumentPath),
+                        ImportType = isAppendMode ? ImportType.Additional : ImportType.Replace,
+                        Source = request.PreferJamaParser ? ImportSource.Jama : ImportSource.Word,
+                        ImportTimestamp = DateTime.Now,
+                        UserNotes = $"Import requested by {request.RequestingDomain}"
+                    };
+
+                    var scrubberResult = await _scrubber.ProcessRequirementsAsync(rawRequirements, existingRequirements, importContext);
+
+                    _logger.LogInformation("🧹 Scrubber completed: Clean={Clean}, Duplicates={Duplicates}, ValidationIssues={Issues}",
+                        scrubberResult.CleanRequirements.Count, 
+                        scrubberResult.DuplicatesDetected.Count,
+                        scrubberResult.ValidationIssues.Count);
+
+                    // Log duplicate detection details if any were found
+                    if (scrubberResult.DuplicatesDetected.Count > 0)
+                    {
+                        _logger.LogWarning("🔍 Duplicate requirements detected ({Count}):", scrubberResult.DuplicatesDetected.Count);
+                        foreach (var duplicate in scrubberResult.DuplicatesDetected.Take(5)) // Log first 5 duplicates
                         {
-                            _requirements.Add(requirement);
+                            _logger.LogWarning("  - Duplicate GlobalId: {GlobalId} | Name: {Name}", duplicate.GlobalId, duplicate.Name);
                         }
-                    });
+                        if (scrubberResult.DuplicatesDetected.Count > 5)
+                        {
+                            _logger.LogWarning("  ... and {More} more duplicates", scrubberResult.DuplicatesDetected.Count - 5);
+                        }
+                    }
 
-                    // Publish import event
-                    PublishEvent(new TestCaseGenerationEvents.RequirementsImported
+                    if (scrubberResult.CleanRequirements.Count > 0)
                     {
-                        Requirements = importedRequirements,
-                        SourceFile = request.DocumentPath,
-                        ImportType = request.PreferJamaParser ? "Jama" : "Word",
-                        ImportTime = TimeSpan.Zero // Placeholder for now
-                    });
+                        _logger.LogInformation("✅ Scrubber validation passed: {ProcessedCount} requirements validated", 
+                            scrubberResult.CleanRequirements.Count);
 
-                    _logger.LogInformation("📤 Published RequirementsImported event with {Count} requirements", importedRequirements.Count);
+                        // Update requirements collection on UI thread
+                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            if (!isAppendMode)
+                            {
+                                _requirements.Clear();
+                                _logger.LogInformation("🗑️ Cleared existing requirements (replace mode)");
+                            }
+
+                            foreach (var requirement in scrubberResult.CleanRequirements)
+                            {
+                                _requirements.Add(requirement);
+                            }
+                            
+                            // Publish RequirementsCollectionChanged event to update navigation counter
+                            PublishEvent(new TestCaseGenerationEvents.RequirementsCollectionChanged 
+                            { 
+                                AffectedRequirements = scrubberResult.CleanRequirements, 
+                                Action = isAppendMode ? "AdditionalRequirementsImported" : "RequirementsImported",
+                                NewCount = _requirements.Count
+                            });
+                        });
+
+                        // Publish appropriate event based on mode
+                        if (isAppendMode)
+                        {
+                            PublishEvent(new TestCaseGenerationEvents.AdditionalRequirementsImported
+                            {
+                                Requirements = scrubberResult.CleanRequirements,
+                                AppendedCount = scrubberResult.CleanRequirements.Count
+                            });
+                            _logger.LogInformation("📤 Published AdditionalRequirementsImported event with {Count} requirements", 
+                                scrubberResult.CleanRequirements.Count);
+                            ShowNotification($"Successfully imported {scrubberResult.CleanRequirements.Count} additional requirements", DomainNotificationType.Success);
+                        }
+                        else
+                        {
+                            PublishEvent(new TestCaseGenerationEvents.RequirementsImported
+                            {
+                                Requirements = scrubberResult.CleanRequirements,
+                                SourceFile = request.DocumentPath,
+                                ImportType = request.PreferJamaParser ? "Jama" : "Word",
+                                ImportTime = TimeSpan.Zero // Placeholder for now
+                            });
+                            _logger.LogInformation("📤 Published RequirementsImported event with {Count} requirements", 
+                                scrubberResult.CleanRequirements.Count);
+                        }
+
+                        // Log scrubber statistics
+                        if (scrubberResult.Statistics != null)
+                        {
+                            var stats = scrubberResult.Statistics;
+                            _logger.LogInformation("📊 Import Statistics - Total: {Total}, Clean: {Clean}, Duplicates: {Duplicates}, Issues Fixed: {Fixed}, Warnings: {Warnings}",
+                                stats.TotalProcessed, stats.CleanRequirements, stats.DuplicatesSkipped, stats.IssuesFixed, stats.WarningsGenerated);
+                        }
+                    }
+                    else
+                    {
+                        string warningMessage;
+                        if (scrubberResult.DuplicatesDetected.Count > 0)
+                        {
+                            warningMessage = $"All {rawRequirements.Count} requirements were duplicates - no new requirements added";
+                            _logger.LogWarning("⚠️ {Message}", warningMessage);
+                            ShowNotification(warningMessage, DomainNotificationType.Warning);
+                        }
+                        else
+                        {
+                            warningMessage = "Scrubber validation resulted in no valid requirements";
+                            _logger.LogWarning("⚠️ {Message}", warningMessage);
+                            ShowNotification("No valid requirements found in file", DomainNotificationType.Warning);
+                        }
+                        
+                        if (scrubberResult.ValidationIssues?.Any() == true)
+                        {
+                            foreach (var issue in scrubberResult.ValidationIssues.Take(3)) // Show first 3 issues
+                            {
+                                _logger.LogWarning("❌ Validation issue: {Issue}", issue.Description);
+                            }
+                        }
+                    }
                 }
                 else
                 {

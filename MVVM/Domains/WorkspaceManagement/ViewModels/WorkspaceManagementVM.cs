@@ -136,7 +136,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
         public ICommand? ToggleAutoExportCommand { get; private set; }
         public ICommand? OpenChatGptExportCommand { get; private set; }
         public ICommand? SaveProjectCommand { get; private set; }
-        public IAsyncRelayCommand? ImportAdditionalCommand { get; private set; }
+
         public IAsyncRelayCommand? ImportStructuredAnalysisCommand { get; private set; }
 
         /// <summary>
@@ -174,7 +174,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
         {
             // Import Commands
             ImportWordCommand = new AsyncRelayCommand(ImportWordAsync);
-            ImportAdditionalCommand = new AsyncRelayCommand(ImportAdditionalAsync);
+
             ImportStructuredAnalysisCommand = new AsyncRelayCommand(ImportStructuredAnalysisAsync);
 
             // Workspace Commands
@@ -238,24 +238,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
             await ImportFromPathAsync(dlg.FileName, replace: true);
         }
 
-        /// <summary>
-        /// Import additional requirements (append mode)
-        /// </summary>
-        public async Task ImportAdditionalAsync()
-        {
-            var dlg = new OpenFileDialog
-            {
-                Title = "Import Additional Requirements (.docx)",
-                Filter = "Word Documents (*.docx)|*.docx",
-                RestoreDirectory = true
-            };
-            if (dlg.ShowDialog() != true)
-            {
-                SetTransientStatus("Additional import cancelled.", 2);
-                return;
-            }
-            await ImportFromPathAsync(dlg.FileName, replace: false);
-        }
+
 
         /// <summary>
         /// Import structured analysis data  

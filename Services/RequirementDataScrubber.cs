@@ -93,15 +93,17 @@ namespace TestCaseEditorApp.Services
                 // Validate GlobalId
                 if (string.IsNullOrWhiteSpace(req.GlobalId))
                 {
+                    // Auto-generate GlobalId instead of rejecting the requirement
+                    req.GlobalId = $"REQ-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpper()}";
+                    
                     result.ValidationIssues.Add(new RequirementIssue
                     {
                         Requirement = req,
-                        Type = IssueType.Error,
+                        Type = IssueType.Fixed,
                         FieldName = nameof(req.GlobalId),
-                        Description = "GlobalId is required but missing",
-                        SuggestedFix = "Generate unique GlobalId"
+                        Description = $"Auto-generated GlobalId: {req.GlobalId}",
+                        SuggestedFix = "Consider using a more meaningful ID scheme"
                     });
-                    isValid = false;
                 }
                 
                 // Validate Name

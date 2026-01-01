@@ -147,6 +147,17 @@ namespace TestCaseEditorApp.MVVM.Events
         }
         
         /// <summary>
+        /// Fired when additional requirements are imported in append mode
+        /// </summary>
+        public class AdditionalRequirementsImported
+        {
+            public List<Requirement> Requirements { get; set; } = new();
+            public int AppendedCount { get; set; }
+            public string SourceFile { get; set; } = string.Empty;
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
+        
+        /// <summary>
         /// Fired when a requirement is updated
         /// </summary>
         public class RequirementUpdated

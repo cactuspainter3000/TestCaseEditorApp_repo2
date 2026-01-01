@@ -107,11 +107,12 @@ namespace TestCaseEditorApp
                         var requirementService = provider.GetRequiredService<IRequirementService>();
                         var analysisService = provider.GetRequiredService<RequirementAnalysisService>();
                         var llmService = provider.GetRequiredService<ITextGenerationService>();
+                        var scrubber = provider.GetRequiredService<IRequirementDataScrubber>();
                         var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
                         var eventReplay = provider.GetService<EventReplayService>();
                         
                         return new TestCaseGenerationMediator(logger, uiCoordinator, requirementService, 
-                            analysisService, llmService, performanceMonitor, eventReplay);
+                            analysisService, llmService, scrubber, performanceMonitor, eventReplay);
                     });
                     
                     services.AddSingleton<ITestFlowMediator>(provider =>
