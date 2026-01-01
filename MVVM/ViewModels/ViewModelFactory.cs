@@ -94,6 +94,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 TitleText = "Test Case Creator" 
             };
             
+            // Wire up save commands and state (follows WorkspaceHeaderViewModel pattern)
+            if (_workspaceManagementMediator != null)
+            {
+                headerVM.SaveWorkspaceCommand = new RelayCommand(async () => await _workspaceManagementMediator.SaveProjectAsync());
+                headerVM.UndoLastSaveCommand = new RelayCommand(
+                    async () => await _workspaceManagementMediator.UndoLastSaveAsync(), 
+                    () => _workspaceManagementMediator.CanUndoLastSave());
+                
+                // Update initial state
+                headerVM.UpdateSaveStatus(_workspaceManagementMediator);
+            }
+            
             // Link header VM to mediator for project status updates
             mediator.SetHeaderViewModel(headerVM);
             

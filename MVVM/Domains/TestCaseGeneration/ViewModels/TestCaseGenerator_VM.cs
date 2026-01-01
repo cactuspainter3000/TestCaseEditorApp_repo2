@@ -193,6 +193,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                     OnPropertyChanged();
                     try { ((RelayCommand)RemoveRequirementCommand).NotifyCanExecuteChanged(); } catch { }
                     RefreshSupportContent();
+                    
+                    // Update HasMeta based on visible chips with values
+                    HasMeta = VisibleChips?.Any(chip => !string.IsNullOrWhiteSpace(chip.Value) && chip.Value != "(not set)") == true;
                     UpdateVisibleChipsFromRequirement(value);
                 }
             }

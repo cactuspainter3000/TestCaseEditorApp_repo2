@@ -13,6 +13,7 @@ using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Mediators;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events;
+using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
@@ -227,6 +228,23 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             OpenRequirementsCommand = ctx?.OpenRequirementsCommand;
             OpenWorkspaceCommand = ctx?.OpenWorkspaceCommand;
             SaveCommand = ctx?.SaveCommand;
+        }
+
+        /// <summary>
+        /// Update save status from workspace management mediator (follows WorkspaceHeaderViewModel pattern)
+        /// </summary>
+        public void UpdateSaveStatus(IWorkspaceManagementMediator? mediator)
+        {
+            if (mediator != null)
+            {
+                IsDirty = mediator.HasUnsavedChanges();
+                CanUndoLastSave = mediator.CanUndoLastSave();
+            }
+            else
+            {
+                IsDirty = false;
+                CanUndoLastSave = false;
+            }
         }
 
         // ==================== Update Methods ====================
