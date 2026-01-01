@@ -86,6 +86,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         // State properties for header bindings
         [ObservableProperty] private bool isDirty;
         [ObservableProperty] private bool canUndoLastSave;
+        [ObservableProperty] private string? workspaceFilePath;
 
         // Expose this ViewModel as DataContext for XAML binding compatibility
         public object DataContext => this;
@@ -242,11 +243,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             {
                 IsDirty = mediator.HasUnsavedChanges();
                 CanUndoLastSave = mediator.CanUndoLastSave();
+                // For now, we'll set this to null until we expose the current project path
+                WorkspaceFilePath = null;
             }
             else
             {
                 IsDirty = false;
                 CanUndoLastSave = false;
+                WorkspaceFilePath = null;
             }
         }
 
