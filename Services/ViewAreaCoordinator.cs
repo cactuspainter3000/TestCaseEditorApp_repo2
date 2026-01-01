@@ -142,9 +142,12 @@ namespace TestCaseEditorApp.Services
             _navigationMediator.SetActiveHeader(_testCaseGeneratorHeader);
             HeaderArea.ShowTestCaseGeneratorHeader(_testCaseGeneratorHeader);
             
-            // Show dedicated requirements workspace view
-            var requirementsWorkspace = _viewModelFactory.CreateRequirementsWorkspaceViewModel();
-            _navigationMediator.SetMainContent(requirementsWorkspace);
+            // Show dedicated requirements workspace view - reuse existing instance to preserve state
+            if (_requirementsContent == null)
+            {
+                _requirementsContent = _viewModelFactory.CreateRequirementsWorkspaceViewModel();
+            }
+            _navigationMediator.SetMainContent(_requirementsContent);
         }
 
         private void HandleTestCaseGeneratorNavigation(object? context)

@@ -696,7 +696,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 
                 // === PROJECT DROPDOWN (as sub-item) ===
                 CreateDropdown("project", "📁", "Project", "Project management options",
-                    CreateButton("new-project", "🆕", "New Project", NewProjectNavigationCommand, "Create a new test case generation project"),
+                    CreateButton("new-project", "🆕", "New Project", NewProjectNavigationCommand, "Create a new test case project"),
                     CreateButton("open-project", "📁", "Open Project", OpenProjectCommand, "Load an existing project"),
                     CreateButton("save-project", "💾", "Save Project", SaveProjectCommand, "Save current project"),
                     CreateButton("unload-project", "📤", "Unload Project", UnloadProjectCommand, "Unload current project")
