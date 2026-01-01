@@ -709,6 +709,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         [ObservableProperty]
         private SupportView selectedSupportView = SupportView.Meta;
+        
+        [ObservableProperty]
+        private bool hasMeta;
 
         public bool IsMetaSelected
         {

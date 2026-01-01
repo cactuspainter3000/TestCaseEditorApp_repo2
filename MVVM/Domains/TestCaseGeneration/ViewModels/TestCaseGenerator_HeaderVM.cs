@@ -77,9 +77,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         public ICommand? ImportWordCommand { get; set; }
         public ICommand? LoadWorkspaceCommand { get; set; }
         public ICommand? SaveWorkspaceCommand { get; set; }
+        public ICommand? UndoLastSaveCommand { get; set; }
         public ICommand? ReloadCommand { get; set; }
         public ICommand? ExportAllToJamaCommand { get; set; }
         public ICommand? HelpCommand { get; set; }
+        
+        // State properties for header bindings
+        [ObservableProperty] private bool isDirty;
+        [ObservableProperty] private bool canUndoLastSave;
 
         // Optional view-scoped actions
         public IRelayCommand? NewTestCaseCommand { get; set; }
