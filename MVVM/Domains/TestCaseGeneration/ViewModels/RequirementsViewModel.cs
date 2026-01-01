@@ -488,7 +488,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             {
                 _navigationMediator.Publish(new RequirementsEvents.RequirementsImported(
                     result.CleanRequirements, 
-                    result.Statistics.ProcessingTime.ToString()))  // Using processing time as filename for now
+                    result.Statistics.ProcessingTime.ToString())); // Using processing time as filename for now
             }
         }
 
@@ -687,6 +687,26 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             public void Subscribe<T>(Action<T> handler) where T : class { }
             public void Unsubscribe<T>(Action<T> handler) where T : class { }
             public void Publish<T>(T navigationEvent) where T : class { }
+        }
+
+        private class StubRequirementDataScrubber : IRequirementDataScrubber
+        {
+            public async Task<ScrubberResult> ProcessRequirementsAsync(
+                List<Requirement> newRequirements, 
+                List<Requirement> existingRequirements,
+                ImportContext context)
+            {
+                await Task.CompletedTask;
+                return new ScrubberResult
+                {
+                    CleanRequirements = newRequirements,
+                    Statistics = new ScrubberStats
+                    {
+                        TotalProcessed = newRequirements.Count,
+                        CleanRequirements = newRequirements.Count
+                    }
+                };
+            }
         }
 
         #endregion

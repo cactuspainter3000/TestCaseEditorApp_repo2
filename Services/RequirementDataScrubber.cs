@@ -251,18 +251,25 @@ namespace TestCaseEditorApp.Services
                 }
                 
                 // Validate verification method if present
-                if (!string.IsNullOrWhiteSpace(req.Method))
+                if (req.Method != VerificationMethod.Unassigned)
                 {
-                    var validMethods = new[] { "Demo", "Test", "Review", "Analysis", "Inspection" };
-                    if (!validMethods.Contains(req.Method, StringComparer.OrdinalIgnoreCase))
+                    var standardMethods = new HashSet<VerificationMethod> 
+                    { 
+                        VerificationMethod.Analysis, 
+                        VerificationMethod.Demonstration, 
+                        VerificationMethod.Test, 
+                        VerificationMethod.Inspection 
+                    };
+                    
+                    if (!standardMethods.Contains(req.Method))
                     {
                         result.ValidationIssues.Add(new RequirementIssue
                         {
                             Requirement = req,
                             Type = IssueType.Warning,
                             FieldName = nameof(req.Method),
-                            Description = $"Verification method '{req.Method}' is not standard",
-                            SuggestedFix = $"Consider using: {string.Join(", ", validMethods)}"
+                            Description = $"Verification method '{req.Method}' is less common",
+                            SuggestedFix = $"Standard methods: {string.Join(", ", standardMethods)}"
                         });
                     }
                 }
