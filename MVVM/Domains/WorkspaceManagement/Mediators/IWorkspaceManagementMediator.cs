@@ -156,6 +156,11 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
         /// </summary>
         bool HasUnsavedChanges();
         
+        /// <summary>
+        /// Check if any requirements are currently loaded in the workspace
+        /// </summary>
+        bool HasRequirements();
+        
         // ===== UI COORDINATION =====
         
         /// <summary>

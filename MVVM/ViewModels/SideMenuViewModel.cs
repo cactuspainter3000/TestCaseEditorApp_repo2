@@ -143,7 +143,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             NewProjectNavigationCommand = new RelayCommand(NavigateToNewProject, CanExecuteProjectCommands);
             
             // Requirements commands
-            ImportAdditionalCommand = new AsyncRelayCommand(ImportAdditionalAsync);
+            ImportAdditionalCommand = new AsyncRelayCommand(ImportAdditionalAsync, CanImportAdditionalRequirements);
             
             // Initialize missing commands
             UnloadProjectCommand = new AsyncRelayCommand(UnloadProjectAsync);
@@ -284,6 +284,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             return IsAnythingLLMReady;
         }
+
+        private bool CanImportAdditionalRequirements()
+        {
+            return IsAnythingLLMReady && _workspaceManagementMediator?.HasRequirements() == true;
+        }
         
         private void UpdateProjectCommandsAvailability()
         {
@@ -292,6 +297,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             ((AsyncRelayCommand)OpenProjectCommand).NotifyCanExecuteChanged();
             ((AsyncRelayCommand)UnloadProjectCommand).NotifyCanExecuteChanged();
             ((RelayCommand)NewProjectNavigationCommand).NotifyCanExecuteChanged();
+            ((AsyncRelayCommand)ImportAdditionalCommand).NotifyCanExecuteChanged();
         }
         
         #endregion
