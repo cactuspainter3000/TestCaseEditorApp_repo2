@@ -121,9 +121,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             PropertyChanged += OnPropertyChanged;
             Requirements.CollectionChanged += (s, e) => 
             {
-                // Update command states when requirements collection changes
-                ((RelayCommand)ExportForChatGptCommand).NotifyCanExecuteChanged();
-                ((RelayCommand)ExportSelectedForChatGptCommand).NotifyCanExecuteChanged();
+                // Collection changes handled automatically by ObservableProperty dependencies
             };
         }
 
@@ -164,15 +162,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         private void OnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            switch (e.PropertyName)
-            {
-                case nameof(CurrentRequirement):
-                    ((RelayCommand)ExportForChatGptCommand).NotifyCanExecuteChanged();
-                    break;
-                case nameof(LastChatGptExportFilePath):
-                    ((RelayCommand)OpenChatGptExportCommand).NotifyCanExecuteChanged();
-                    break;
-            }
+            // Property changes handled automatically by ObservableProperty
+            // No manual command refresh needed
         }
 
         /// <summary>

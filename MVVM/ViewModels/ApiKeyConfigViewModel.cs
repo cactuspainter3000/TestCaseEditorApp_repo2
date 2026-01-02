@@ -128,7 +128,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             finally
             {
                 IsTesting = false;
-                UpdateCommandStates();
+                
             }
         }
 
@@ -185,13 +185,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 StatusMessage = string.Empty;
                 IsStatusError = false;
             }
-            UpdateCommandStates();
-        }
-
-        private void UpdateCommandStates()
-        {
-            ((AsyncRelayCommand)TestConnectionCommand).NotifyCanExecuteChanged();
-            ((AsyncRelayCommand)SaveCommand).NotifyCanExecuteChanged();
         }
     }
 

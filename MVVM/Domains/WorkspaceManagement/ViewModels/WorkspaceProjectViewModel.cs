@@ -101,9 +101,6 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
             
             StatusMessage = $"New project '{e.WorkspaceName}' created successfully";
             
-            // Refresh command states
-            RefreshCommandStates();
-            
             _logger.LogInformation("Project created: {WorkspaceName} at {WorkspacePath}", 
                 e.WorkspaceName, e.WorkspacePath);
         }
@@ -119,7 +116,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
             StatusMessage = $"Project '{e.WorkspaceName}' opened successfully";
             
             // Refresh command states
-            RefreshCommandStates();
+
             
             _logger.LogInformation("Project opened: {WorkspaceName} at {WorkspacePath}", 
                 e.WorkspaceName, e.WorkspacePath);
@@ -131,7 +128,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
             StatusMessage = "Project saved successfully";
             
             // Refresh command states
-            RefreshCommandStates();
+
             
             _logger.LogInformation("Project saved: {WorkspacePath}", e.WorkspacePath);
         }
@@ -147,7 +144,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
             StatusMessage = "Project closed";
             
             // Refresh command states
-            RefreshCommandStates();
+
             
             _logger.LogInformation("Project closed: {WorkspacePath}", e.WorkspacePath);
         }
@@ -169,13 +166,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
             OnPropertyChanged(nameof(Title));
         }
 
-        private void RefreshCommandStates()
-        {
-            CreateNewProjectCommand?.NotifyCanExecuteChanged();
-            OpenProjectCommand?.NotifyCanExecuteChanged();
-            SaveProjectCommand?.NotifyCanExecuteChanged();
-            CloseProjectCommand?.NotifyCanExecuteChanged();
-        }
+
 
         // Implementation of required abstract methods from BaseDomainViewModel
         protected override async Task SaveAsync()
@@ -222,7 +213,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
                 }
                 
                 StatusMessage = "Workspace information refreshed";
-                RefreshCommandStates();
+
                 
                 await Task.Delay(100); // Simulate refresh delay
             }
@@ -256,7 +247,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
         public void MarkDirty()
         {
             HasUnsavedChanges = true;
-            RefreshCommandStates();
+
         }
 
         public bool HasActiveProject => IsProjectOpen && !string.IsNullOrEmpty(CurrentWorkspaceName);

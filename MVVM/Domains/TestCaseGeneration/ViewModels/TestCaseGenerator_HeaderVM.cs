@@ -98,12 +98,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         // ==================== Computed Properties (LLM Status) ====================
         
         public string AnythingLLMStatusMessage =>
-            IsLlmBusy ? "AnythingLLM — busy"
+            IsLlmBusy ? "AnythingLLM starting..."
             : IsLlmConnected ? "AnythingLLM — connected"
-            : "AnythingLLM — disconnected";
+            : "AnythingLLM not detected";
 
         public Brush AnythingLLMStatusColor =>
-            IsLlmBusy ? Brushes.Yellow
+            IsLlmBusy ? Brushes.Orange
             : IsLlmConnected ? Brushes.LimeGreen
             : Brushes.Gray;
             
@@ -155,9 +155,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         
         private void OnAnythingLLMStatusUpdated(AnythingLLMStatus status)
         {
-            IsLlmConnected = status.IsAvailable;
-            IsLlmBusy = status.IsStarting;
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[HEADER] AnythingLLM status updated - Connected: {IsLlmConnected}, Busy: {IsLlmBusy}");
+            Application.Current?.Dispatcher.BeginInvoke(() =>
+            {
+                IsLlmConnected = status.IsAvailable;
+                IsLlmBusy = status.IsStarting;
+                
+                // Debug output to see what we're getting
+                Console.WriteLine($"*** TestCaseGenerator_HeaderVM: IsAvailable={status.IsAvailable}, IsStarting={status.IsStarting}, Message='{status.StatusMessage}' ***");
+                
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[HEADER] AnythingLLM status updated - Connected: {IsLlmConnected}, Busy: {IsLlmBusy}, Available: {status.IsAvailable}, Starting: {status.IsStarting}");
+            });
         }
         
         partial void OnIsLlmBusyChanged(bool oldValue, bool newValue)

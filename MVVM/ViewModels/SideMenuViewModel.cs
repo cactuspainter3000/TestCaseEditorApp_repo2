@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -27,24 +28,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly ITestCaseGenerationMediator? _testCaseGenerationMediator;
         private readonly TestCaseAnythingLLMService? _testCaseAnythingLLMService;
         
-        // AnythingLLM status tracking
+        // AnythingLLM status tracking - use ObservableProperty for automatic command updates  
+        [ObservableProperty]
         private bool _isAnythingLLMReady = false;
         
-        // Requirements state tracking
-        private bool _hasRequirements = false;
-        
-        public bool IsAnythingLLMReady
-        {
-            get => _isAnythingLLMReady;
-            private set
-            {
-                if (SetProperty(ref _isAnythingLLMReady, value))
-                {
-                    // Update command availability when status changes
-                    UpdateProjectCommandsAvailability();
-                }
-            }
-        }
+        // Requirements state tracking - use ObservableProperty for automatic command updates
+        [ObservableProperty] 
+        private bool hasRequirements = false;
+
+        // AnythingLLM status text for Test Case Generator section
+        [ObservableProperty]
+        private string anythingLLMStatusText = "AnythingLLM not detected";
 
         [ObservableProperty]
         private string? selectedSection;
@@ -147,7 +141,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             NewProjectCommand = new AsyncRelayCommand(CreateNewProjectAsync, CanExecuteProjectCommands);
             TestClickCommand = new RelayCommand(() => System.Windows.MessageBox.Show("Test button clicked!", "Data-Driven Test"));
             OpenProjectCommand = new AsyncRelayCommand(OpenProjectAsync, CanExecuteProjectCommands);
-            SaveProjectCommand = new RelayCommand(() => { /* TODO: Implement save */ });
+            SaveProjectCommand = new RelayCommand(() => { /* TODO: Implement save */ }, CanExecuteProjectActions);
             ProjectNavigationCommand = new RelayCommand(NavigateToProject);
             TestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToTestCaseGenerator);
             TestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToTestCaseGenerator);
@@ -158,7 +152,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             ImportAdditionalCommand = new AsyncRelayCommand(ImportAdditionalAsync, CanImportAdditionalRequirements);
             
             // Initialize missing commands
-            UnloadProjectCommand = new AsyncRelayCommand(UnloadProjectAsync);
+            UnloadProjectCommand = new AsyncRelayCommand(UnloadProjectAsync, CanExecuteProjectActions);
             BatchAnalyzeCommand = new RelayCommand(() => { /* TODO: Implement batch analyze */ }, CanAnalyzeRequirements);
             AnalyzeUnanalyzedCommand = new RelayCommand(() => { /* TODO: Implement analyze unanalyzed */ });
             ReAnalyzeModifiedCommand = new RelayCommand(() => { /* TODO: Implement re-analyze modified */ });
@@ -215,16 +209,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         private async void NavigateToTestCaseGenerator()
         {
-            Console.WriteLine("*** SideMenuViewModel.NavigateToTestCaseGenerator called! ***");
+            // Request fresh AnythingLLM status when navigating to Test Case Generator
+            AnythingLLMMediator.RequestCurrentStatus();
             
             // Navigate to splash screen first
             if (_navigationMediator != null)
             {
                 _navigationMediator.NavigateToSection("TestCase");
-            }
-            else
-            {
-                Console.WriteLine("*** NavigationMediator is null in SideMenuViewModel! ***");
             }
             
             // Then launch AnythingLLM in background
@@ -288,33 +279,29 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private void OnAnythingLLMStatusUpdated(AnythingLLMStatus status)
         {
             IsAnythingLLMReady = status.IsAvailable && !status.IsStarting;
+            
             TestCaseEditorApp.Services.Logging.Log.Info($"[MENU] AnythingLLM status updated - Ready: {IsAnythingLLMReady}, Available: {status.IsAvailable}, Starting: {status.IsStarting}");
+            // Note: Status display is handled by NewProjectHeaderView, not the side menu
         }
         
         private bool CanExecuteProjectCommands()
         {
-            return IsAnythingLLMReady;
+            return true; // Project creation/opening should always be available
+        }
+
+        private bool CanExecuteProjectActions()
+        {
+            return HasRequirements; // Save/Unload only available when there's an active project
         }
 
         private bool CanImportAdditionalRequirements()
         {
-            return IsAnythingLLMReady && _hasRequirements;
+            return IsAnythingLLMReady && HasRequirements; // Analysis requires LLM
         }
 
         private bool CanAnalyzeRequirements()
         {
-            return IsAnythingLLMReady && _hasRequirements;
-        }
-        
-        private void UpdateProjectCommandsAvailability()
-        {
-            // Notify commands that their CanExecute state may have changed
-            ((AsyncRelayCommand)NewProjectCommand).NotifyCanExecuteChanged();
-            ((AsyncRelayCommand)OpenProjectCommand).NotifyCanExecuteChanged();
-            ((AsyncRelayCommand)UnloadProjectCommand).NotifyCanExecuteChanged();
-            ((RelayCommand)NewProjectNavigationCommand).NotifyCanExecuteChanged();
-            ((AsyncRelayCommand)ImportAdditionalCommand).NotifyCanExecuteChanged();
-            ((RelayCommand)BatchAnalyzeCommand).NotifyCanExecuteChanged();
+            return IsAnythingLLMReady && HasRequirements; // Analysis requires LLM
         }
         
         #endregion
@@ -421,6 +408,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         private void InitializeHierarchicalMenu()
         {
+            Console.WriteLine("*** InitializeHierarchicalMenu() called! ***");
             HierarchicalMenuItems.Clear();
             
             // Level 1: Test Case Generator (Primary header)
@@ -455,9 +443,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 
                 // Level 2: Direct items (Secondary headers but not expandable)
                 CreateNonExpandableWithId("llm.learning", "LLM Learning", 2),
-                CreateNonExpandableWithId("testcase.generator", "Test Case Generator", 2),
+                // Removed duplicate "Test Case Generator" - the top-level one now handles navigation
                 CreateActionWithId("demo.state", "🧪 Demo State Management", "🧪", DemoStateManagementCommand)
             );
+            
+            // CRITICAL: Assign navigation command to top-level Test Case Generator section
+            // This is what makes clicking "Test Case Generator" work, just like Project does!
+            testCaseGenerator.Command = TestCaseGeneratorNavigationCommand;
+            Console.WriteLine("*** Assigned TestCaseGeneratorNavigationCommand to top-level Test Case Generator section! ***");
             
             // Level 1: Test Flow Generator (Primary header)
             var testFlowGenerator = MenuHierarchyItem.CreateSection("Test Flow Generator", 1, true,
@@ -529,6 +522,16 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 IsExpandable = false,
                 Tag = id
             };
+            
+            // Assign commands based on ID
+            if (id == "testcase.generator")
+            {
+                item.Command = TestCaseGeneratorNavigationCommand;
+                Console.WriteLine($"*** Assigned TestCaseGeneratorNavigationCommand to item: {title} (id: {id}) ***");
+            }
+            
+            Console.WriteLine($"*** Created non-expandable item: {title} (id: {id}) with command: {item.Command?.GetType().Name ?? "null"} ***");
+            
             return item;
         }
         
@@ -540,8 +543,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             var projectSection = MenuHierarchyItem.CreateSection("Project", 2, true,
                 CreateActionWithId("project.new", "🗂️ New Project", "🗂️", NewProjectCommand),
                 CreateActionWithId("project.open", "📂 Open Project", "📂", OpenProjectCommand),
-                CreateActionWithId("project.save", "💾 Save Project", "💾", SaveProjectCommand, false),
-                CreateActionWithId("project.unload", "📤 Unload Project", "📤", UnloadProjectCommand, false)
+                CreateActionWithId("project.save", "💾 Save Project", "💾", SaveProjectCommand, true),
+                CreateActionWithId("project.unload", "📤 Unload Project", "📤", UnloadProjectCommand, true)
             );
             
             projectSection.Command = ProjectNavigationCommand;
@@ -575,12 +578,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
         
         /// <summary>
-        /// Example: Handle project loaded state
+        /// Handle project loaded state
         /// </summary>
         private void OnProjectLoaded(/*ProjectLoadedEvent evt*/)
         {
             UpdateMenuItemState("project.save", isEnabled: true);
-            UpdateMenuItemState("project.close", isEnabled: true);
+            UpdateMenuItemState("project.unload", isEnabled: true); // Fixed ID mismatch
             UpdateMenuItemState("requirement.import", isEnabled: true);
         }
         
@@ -589,8 +592,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         private void OnRequirementsImported(TestCaseGenerationEvents.RequirementsImported evt)
         {
-            _hasRequirements = evt.Requirements?.Count > 0;
-            UpdateProjectCommandsAvailability();
+            HasRequirements = evt.Requirements?.Count > 0; // ObservableProperty automatically triggers command updates
         }
 
         /// <summary>
@@ -598,8 +600,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         private void OnAdditionalRequirementsImported(TestCaseGenerationEvents.AdditionalRequirementsImported evt)
         {
-            _hasRequirements = evt.Requirements?.Count > 0;
-            UpdateProjectCommandsAvailability();
+            HasRequirements = evt.Requirements?.Count > 0; // ObservableProperty automatically triggers command updates
         }
 
         /// <summary>
@@ -607,8 +608,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         private void OnRequirementsCollectionChanged(TestCaseGenerationEvents.RequirementsCollectionChanged evt)
         {
-            _hasRequirements = evt.NewCount > 0;
-            UpdateProjectCommandsAvailability();
+            HasRequirements = evt.NewCount > 0; // ObservableProperty automatically triggers command updates
         }
         
         /// <summary>
@@ -675,7 +675,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             var updates = new (string id, bool? enabled, bool? visible, string? badge, string? icon)[]
             {
                 ("project.save", true, null, null, null),       // Enable save
-                ("project.close", true, null, null, null),      // Enable close
+                ("project.unload", true, null, null, null),     // Enable unload (fixed ID)
                 ("requirement.import", true, null, null, null), // Enable requirement import
                 ("analysis.batch", false, null, null, "⚠️"),    // Disable but show warning icon
                 ("analysis.unanalyzed", false, null, "3", null) // Disable but show count badge

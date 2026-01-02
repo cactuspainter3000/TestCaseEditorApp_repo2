@@ -55,7 +55,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             if (e.PropertyName is nameof(SelectedDocumentPath) or nameof(WorkspaceName) or nameof(WorkspaceSavePath))
             {
                 UpdateCanProceed();
-                ((RelayCommand)StartImportCommand).NotifyCanExecuteChanged();
+                // ObservableProperty automatically notifies command CanExecute changes
             }
         }
 

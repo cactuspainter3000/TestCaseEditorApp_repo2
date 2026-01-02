@@ -137,21 +137,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             OnPropertyChanged(nameof(HasSelectedDocument));
             OnPropertyChanged(nameof(CanProceed));
-            StartImportCommand.NotifyCanExecuteChanged();
         }
 
         partial void OnWorkspaceNameChanged(string? value)
         {
             OnPropertyChanged(nameof(HasWorkspaceName));
             OnPropertyChanged(nameof(CanProceed));
-            StartImportCommand.NotifyCanExecuteChanged();
         }
 
         partial void OnWorkspaceSavePathChanged(string? value)
         {
             OnPropertyChanged(nameof(HasWorkspaceSavePath));
             OnPropertyChanged(nameof(CanProceed));
-            StartImportCommand.NotifyCanExecuteChanged();
         }
 
         /// <summary>

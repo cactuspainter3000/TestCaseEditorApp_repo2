@@ -195,7 +195,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     System.Windows.Application.Current.Dispatcher.Invoke(() =>
                     {
                         IsAnalyzing = false;
-                        ((AsyncRelayCommand)ReAnalyzeCommand).NotifyCanExecuteChanged();
+                        // ObservableProperty automatically notifies command CanExecute changes
                     });
                 }
             });
@@ -295,7 +295,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         partial void OnIsAnalyzingChanged(bool value)
         {
-            ((AsyncRelayCommand)ReAnalyzeCommand).NotifyCanExecuteChanged();
+            // ObservableProperty automatically notifies command CanExecute changes
         }
     }
 

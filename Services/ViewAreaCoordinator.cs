@@ -48,7 +48,10 @@ namespace TestCaseEditorApp.Services
             // Subscribe to navigation events
             SetupNavigationHandlers();
             
-            // Set initial workspace content
+            // Set initial header first
+            HandleDefaultNavigation(null); // Set initial header
+            
+            // Then set initial workspace content to welcome screen
             SetInitialContent();
         }
         
@@ -77,17 +80,33 @@ namespace TestCaseEditorApp.Services
             // Update side menu selection
             SideMenu.SelectedSection = request.SectionName;
             
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Section change requested: '{request.SectionName}' (lowercase: '{request.SectionName?.ToLowerInvariant()}')");
+            
             // Route to appropriate handler based on section
             switch (request.SectionName?.ToLowerInvariant())
             {
-                case "project": HandleProjectNavigation(request.Context); break;
-                case "requirements": HandleRequirementsNavigation(request.Context); break;
+                case "project": 
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewAreaCoordinator] Routing to HandleProjectNavigation");
+                    HandleProjectNavigation(request.Context); break;
+                case "requirements": 
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewAreaCoordinator] Routing to HandleRequirementsNavigation");
+                    HandleRequirementsNavigation(request.Context); break;
                 case "testcase": 
-                case "test case creator": HandleTestCaseGeneratorNavigation(request.Context); break;
-                case "testflow": HandleTestFlowNavigation(request.Context); break;
-                case "import": HandleImportNavigation(request.Context); break;
-                case "newproject": HandleNewProjectNavigation(request.Context); break;
-                default: HandleDefaultNavigation(request.Context); break;
+                case "test case creator": 
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewAreaCoordinator] Routing to HandleTestCaseGeneratorNavigation");
+                    HandleTestCaseGeneratorNavigation(request.Context); break;
+                case "testflow": 
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewAreaCoordinator] Routing to HandleTestFlowNavigation");
+                    HandleTestFlowNavigation(request.Context); break;
+                case "import": 
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewAreaCoordinator] Routing to HandleImportNavigation");
+                    HandleImportNavigation(request.Context); break;
+                case "newproject": 
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewAreaCoordinator] Routing to HandleNewProjectNavigation");
+                    HandleNewProjectNavigation(request.Context); break;
+                default: 
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewAreaCoordinator] Routing to HandleDefaultNavigation");
+                    HandleDefaultNavigation(request.Context); break;
             }
         }
         
@@ -154,8 +173,12 @@ namespace TestCaseEditorApp.Services
         private void HandleTestCaseGeneratorNavigation(object? context)
         {
             EnsureTestCaseGeneratorHeader();
-            _navigationMediator.SetActiveHeader(_testCaseGeneratorHeader);
+            
+            // CRITICAL: Set header in HeaderArea FIRST so the UI binding can see it
             HeaderArea.ShowTestCaseGeneratorHeader(_testCaseGeneratorHeader);
+            
+            // THEN publish HeaderChanged event so UI knows to update
+            _navigationMediator.SetActiveHeader(_testCaseGeneratorHeader);
             
             // Show test case generator splash screen
             var testCaseWorkflow = _viewModelFactory.CreateTestCaseGeneratorSplashScreenViewModel();
@@ -201,8 +224,7 @@ namespace TestCaseEditorApp.Services
             _navigationMediator.SetActiveHeader(_workspaceHeader);
             HeaderArea.ShowWorkspaceHeader(_workspaceHeader);
             
-            var placeholder = _viewModelFactory.CreatePlaceholderViewModel();
-            _navigationMediator.SetMainContent(placeholder);
+            // Don't override the initial content - let SetInitialContent handle the main workspace content
         }
 
         private void EnsureWorkspaceHeader()

@@ -346,12 +346,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         partial void OnSelectedWorkspaceChanged(AnythingLLMService.Workspace? value)
         {
-            ((AsyncRelayCommand)SelectWorkspaceCommand).NotifyCanExecuteChanged();
+            // ObservableProperty automatically notifies command CanExecute changes
         }
 
         partial void OnNewWorkspaceNameChanged(string value)
         {
-            ((AsyncRelayCommand)CreateWorkspaceCommand).NotifyCanExecuteChanged();
+            // ObservableProperty automatically notifies command CanExecute changes
             
             // Clear any previous error messages when user starts typing a new name
             if (!string.IsNullOrEmpty(value) && (StatusMessage.Contains("already exists") || ShowDuplicateNameOptions))
@@ -403,8 +403,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         partial void OnIsLoadingChanged(bool value)
         {
-            ((AsyncRelayCommand)SelectWorkspaceCommand).NotifyCanExecuteChanged();
-            ((AsyncRelayCommand)CreateWorkspaceCommand).NotifyCanExecuteChanged();
+            // ObservableProperty automatically notifies command CanExecute changes
         }
     }
 

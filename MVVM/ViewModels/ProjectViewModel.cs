@@ -370,7 +370,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 IsDirty = true;
                 HasUnsavedChanges = true;
-                ((RelayCommand)SaveWorkspaceCommand).NotifyCanExecuteChanged();
+                // ObservableProperty automatically notifies command CanExecute changes
             }
         }
         
