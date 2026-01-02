@@ -14,6 +14,7 @@ using TestCaseEditorApp.MVVM.Domains.RequirementAnalysisWorkflow.ViewModels;
 using CommunityToolkit.Mvvm.Input;
 using System.ComponentModel;
 using Microsoft.Extensions.Logging;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -156,10 +157,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             
             // Create the TestCaseGenerator_VM that contains the requirements UI logic
             var testCaseGeneratorVMLogger = _applicationServices.LoggerFactory?.CreateLogger<TestCaseGenerator_VM>();
+            var analysisService = _applicationServices.RequirementAnalysisService;
             var testCaseGeneratorVM = new TestCaseGenerator_VM(
                 _testCaseGenerationMediator, 
                 _applicationServices.PersistenceService, 
                 _applicationServices.TextEditingDialogService,
+                analysisService,
                 testCaseGeneratorVMLogger!);
             
             // Set up the CoreVM for handling tables and paragraphs

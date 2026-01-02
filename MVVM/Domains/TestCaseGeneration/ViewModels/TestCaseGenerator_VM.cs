@@ -16,6 +16,7 @@ using TestCaseEditorApp.MVVM.Views;
 using TestCaseEditorApp.MVVM.Events;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.Services;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
@@ -47,6 +48,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             ITestCaseGenerationMediator mediator,
             IPersistenceService persistence,
             ITextEditingDialogService textEditingDialogService,
+            RequirementAnalysisService analysisService,
             ILogger<TestCaseGenerator_VM> logger,
             Func<Requirement?, IEnumerable<LooseTableViewModel>>? tableProvider = null,
             Func<Requirement?, IEnumerable<string>>? paragraphProvider = null)
@@ -85,9 +87,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             // Wire collection-changed handlers and initial notifications
             WirePresenceNotifications();
 
-            // Create Analysis VM (will create its own LLM service via LlmFactory if needed)
-            var analysisLogger = new LoggerFactory().CreateLogger<TestCaseGenerator_AnalysisVM>();
-            AnalysisVM = new TestCaseGenerator_AnalysisVM(_mediator, analysisLogger, llmService: null);
+            // Create Analysis VM with proper dependency injection
+            var analysisLogger = logger as ILogger<TestCaseGenerator_AnalysisVM> ?? 
+                new LoggerFactory().CreateLogger<TestCaseGenerator_AnalysisVM>();
+            AnalysisVM = new TestCaseGenerator_AnalysisVM(_mediator, analysisLogger, analysisService);
 
             // Track SelectedSupportView changes via PropertyChanged so we don't rely on a generated partial hook
             this.PropertyChanged += TestCaseGenerator_VM_PropertyChanged;

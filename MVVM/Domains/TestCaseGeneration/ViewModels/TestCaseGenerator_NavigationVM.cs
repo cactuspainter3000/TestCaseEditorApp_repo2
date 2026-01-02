@@ -103,9 +103,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             
             // Update dropdown text
             if (value != null && RequirementsDropdown != null)
-            {
+            {   
                 RequirementsDropdown.IsExpanded = false;
-                RequirementsDropdown.Text = $"{value.Item} � {value.Name}";
+                RequirementsDropdown.Text = $"{value.Item} - {value.Name}";
             }
         }
 
@@ -127,6 +127,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             {
                 SelectedRequirement = null;
             }
+            
+            // Update navigation command states when index changes
+            NotifyNavigationCommandsCanExecuteChanged();
         }
 
         /// <summary>
@@ -137,7 +140,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             get
             {
                 var total = RequirementsView.Count;
-                var pos = (SelectedRequirementIndex >= 0 && total > 0) ? (SelectedRequirementIndex + 1).ToString() : "�";
+                var pos = (SelectedRequirementIndex >= 0 && total > 0) ? (SelectedRequirementIndex + 1).ToString() : "1";
                 return $"{pos} / {total}";
             }
         }
@@ -241,7 +244,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 if (RequirementsDropdown != null && e.Requirement != null)
                 {
                     RequirementsDropdown.IsExpanded = false;
-                    RequirementsDropdown.Text = $"{e.Requirement.Item} — {e.Requirement.Name}";
+                    RequirementsDropdown.Text = $"{e.Requirement.Item} - {e.Requirement.Name}";
                 }
                 
                 OnPropertyChanged(nameof(RequirementPositionDisplay));
@@ -267,6 +270,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 SelectedRequirement = null;
                 SelectedRequirementIndex = -1;
             }
+            // If requirements were loaded and none is selected, select the first one
+            else if (e.NewCount > 0 && SelectedRequirementIndex < 0 && _mediator.Requirements.Count > 0)
+            {
+                SelectedRequirement = _mediator.Requirements[0];
+            }
             
             // Notify UI that RequirementsView has updated (it's bound to mediator's Requirements collection)
             OnPropertyChanged(nameof(RequirementsView));
@@ -275,7 +283,19 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             
             // Update the dropdown
             UpdateDropdownFromRequirements();
+            
+            // Update navigation command states when requirements collection changes
+            NotifyNavigationCommandsCanExecuteChanged();
+        }
 
+        /// <summary>
+        /// Notify all navigation commands that their CanExecute state may have changed
+        /// </summary>
+        private void NotifyNavigationCommandsCanExecuteChanged()
+        {
+            _previousCommand?.NotifyCanExecuteChanged();
+            _nextCommand?.NotifyCanExecuteChanged();
+            _nextWithoutTestCaseCommand?.NotifyCanExecuteChanged();
         }
 
         /// <summary>
@@ -333,7 +353,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             {
                 Id = "requirements-nav",
                 Text = "No requirements loaded",
-                Icon = "??",
+                Icon = "📋",
                 IsDropdown = true,
                 IsExpanded = false,
                 Children = new ObservableCollection<MenuContentItem>()
@@ -355,8 +375,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 {
                     RequirementsDropdown.Children.Add(new MenuAction
                     {
-                        Text = $"{req.Item} � {req.Name}",
-                        Icon = "??",
+                        Text = $"{req.Item} - {req.Name}",
+                        Icon = "📄",
                         Command = new RelayCommand(() => 
                         {
                             _mediator.PublishEvent(new TestCaseGenerationEvents.RequirementSelected 
@@ -371,7 +391,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 
                 var selectedReq = SelectedRequirement;
                 RequirementsDropdown.Text = selectedReq != null 
-                    ? $"{selectedReq.Item} � {selectedReq.Name}"
+                    ? $"{selectedReq.Item} - {selectedReq.Name}"
                     : $"Requirements ({requirements.Count})";
             }
             else

@@ -147,6 +147,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
             _scrubber = scrubber ?? throw new ArgumentNullException(nameof(scrubber));
 
+            // Subscribe to internal events for header updates
+            Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelectedForHeader);
+
             _logger.LogDebug("TestCaseGenerationMediator created with domain '{DomainName}'", _domainName);
         }
 
@@ -923,6 +926,26 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         {
             _headerViewModel = headerViewModel ?? throw new ArgumentNullException(nameof(headerViewModel));
             _logger.LogDebug("Header ViewModel set for TestCaseGenerationMediator");
+        }
+        
+        /// <summary>
+        /// Handle requirement selection events to update the header ViewModel with requirement details
+        /// </summary>
+        private void OnRequirementSelectedForHeader(TestCaseGenerationEvents.RequirementSelected e)
+        {
+            if (_headerViewModel != null && e.Requirement != null)
+            {
+                _logger.LogDebug("Updating header with selected requirement: {RequirementId}", e.Requirement.GlobalId);
+                
+                // Update the header with requirement details
+                _headerViewModel.RequirementDescription = e.Requirement.Description ?? string.Empty;
+                _headerViewModel.RequirementMethod = e.Requirement.VerificationMethodText ?? e.Requirement.Method.ToString();
+                _headerViewModel.RequirementMethodEnum = e.Requirement.Method;
+                _headerViewModel.CurrentRequirementName = $"{e.Requirement.Item} - {e.Requirement.Name}";
+                
+                _logger.LogDebug("Header updated with requirement: Description={DescriptionLength} chars, Method={Method}", 
+                    _headerViewModel.RequirementDescription.Length, _headerViewModel.RequirementMethod);
+            }
         }
         
         /// <summary>

@@ -26,7 +26,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
     {
         private new readonly ITestCaseGenerationMediator _mediator;
         private readonly ITextGenerationService? _llmService;
-        private RequirementAnalysisService? _analysisService;
+        private readonly RequirementAnalysisService _analysisService;
         private Requirement? _currentRequirement;
         
         // Track if edit window is currently open to prevent multiple instances
@@ -50,10 +50,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             private set => SetProperty(ref _currentRequirement, value);
         }
 
-        public TestCaseGenerator_AnalysisVM(ITestCaseGenerationMediator mediator, ILogger<TestCaseGenerator_AnalysisVM> logger, ITextGenerationService? llmService = null)
+        public TestCaseGenerator_AnalysisVM(ITestCaseGenerationMediator mediator, ILogger<TestCaseGenerator_AnalysisVM> logger, RequirementAnalysisService analysisService, ITextGenerationService? llmService = null)
             : base(mediator, logger)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
+            _analysisService = analysisService ?? throw new ArgumentNullException(nameof(analysisService));
             _llmService = llmService;
 
             // Subscribe to domain events
@@ -179,13 +180,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
             try
             {
-                // Initialize service if needed
-                if (_analysisService == null)
-                {
-                    var llm = _llmService ?? LlmFactory.Create();
-                    _analysisService = new RequirementAnalysisService(llm);
-                }
-
                 var prompt = _analysisService.GeneratePromptForInspection(requirement);
                 
                 var summary = $"=== REQUIREMENT DATA INSPECTION ===\n" +
@@ -265,13 +259,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 HasAnalysis = false;
                 IsAnalyzing = true;
                 AnalysisStatusMessage = "Analyzing requirement quality...";
-
-                // Initialize service if needed
-                if (_analysisService == null)
-                {
-                    var llm = _llmService ?? LlmFactory.Create();
-                    _analysisService = new RequirementAnalysisService(llm);
-                }
 
                 TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] About to call AnalyzeRequirementAsync on service");
 

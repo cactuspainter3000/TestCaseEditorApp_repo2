@@ -13,6 +13,8 @@ using TestCaseEditorApp.Services;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
+using TestCaseEditorApp.Services.Prompts;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
@@ -95,10 +97,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
             // Legacy support - create TestCaseGenerator_VM for existing RequirementsView
             var testCaseGeneratorVMLogger = new LoggerFactory().CreateLogger<TestCaseGenerator_VM>();
+            // TODO: This should be injected properly, but for now create directly
+            var analysisService = new RequirementAnalysisService(LlmFactory.Create());
             TestCaseGeneratorVM = new TestCaseGenerator_VM(
                 testCaseGenerationMediator, 
                 persistence, 
                 new StubTextEditingDialogService(),
+                analysisService,
                 testCaseGeneratorVMLogger);
             if (testCaseGenerator is TestCaseGenerator_CoreVM coreVm)
             {

@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Extensions.Logging;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 
 namespace TestCaseEditorApp.Services
 {
@@ -17,6 +18,7 @@ namespace TestCaseEditorApp.Services
         public NotificationService NotificationService { get; }
         public AnythingLLMService AnythingLLMService { get; }
         public ChatGptExportService ChatGptExportService { get; }
+        public RequirementAnalysisService RequirementAnalysisService { get; }
         public ILoggerFactory? LoggerFactory { get; }
 
         public ApplicationServices(
@@ -28,6 +30,7 @@ namespace TestCaseEditorApp.Services
             NotificationService notificationService,
             AnythingLLMService anythingLLMService,
             ChatGptExportService chatGptExportService,
+            RequirementAnalysisService requirementAnalysisService,
             ILoggerFactory? loggerFactory = null)
         {
             RequirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
@@ -38,6 +41,7 @@ namespace TestCaseEditorApp.Services
             NotificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
             AnythingLLMService = anythingLLMService ?? throw new ArgumentNullException(nameof(anythingLLMService));
             ChatGptExportService = chatGptExportService ?? throw new ArgumentNullException(nameof(chatGptExportService));
+            RequirementAnalysisService = requirementAnalysisService ?? throw new ArgumentNullException(nameof(requirementAnalysisService));
             LoggerFactory = loggerFactory;
         }
     }

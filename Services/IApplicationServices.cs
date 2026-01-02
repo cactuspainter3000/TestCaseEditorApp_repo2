@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 
 namespace TestCaseEditorApp.Services
 {
@@ -21,6 +22,7 @@ namespace TestCaseEditorApp.Services
         // AI/LLM services
         AnythingLLMService AnythingLLMService { get; }
         ChatGptExportService ChatGptExportService { get; }
+        RequirementAnalysisService RequirementAnalysisService { get; }
         
         // Logging factory for creating typed loggers
         ILoggerFactory? LoggerFactory { get; }
