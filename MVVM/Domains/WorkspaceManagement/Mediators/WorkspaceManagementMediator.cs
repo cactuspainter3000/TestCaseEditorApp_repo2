@@ -28,6 +28,9 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
         private readonly IFileDialogService _fileDialogService;
         private readonly AnythingLLMService _anythingLLMService;
         private readonly NotificationService _notificationService;
+        private readonly IRequirementService _requirementService;
+        private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
+        private readonly IWorkspaceValidationService _workspaceValidationService;
         private WorkspaceInfo? _currentWorkspaceInfo;
 
         public WorkspaceManagementMediator(
@@ -37,6 +40,9 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
             IFileDialogService fileDialogService,
             AnythingLLMService anythingLLMService,
             NotificationService notificationService,
+            IRequirementService requirementService,
+            ITestCaseGenerationMediator testCaseGenerationMediator,
+            IWorkspaceValidationService workspaceValidationService,
             PerformanceMonitoringService? performanceMonitor = null,
             EventReplayService? eventReplay = null)
             : base(logger, uiCoordinator, "Workspace Management", performanceMonitor, eventReplay)
@@ -45,6 +51,9 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
             _fileDialogService = fileDialogService ?? throw new ArgumentNullException(nameof(fileDialogService));
             _anythingLLMService = anythingLLMService ?? throw new ArgumentNullException(nameof(anythingLLMService));
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
+            _requirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
+            _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
+            _workspaceValidationService = workspaceValidationService ?? throw new ArgumentNullException(nameof(workspaceValidationService));
         }
 
         public override void NavigateToInitialStep()
@@ -242,8 +251,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 });
                 
                 // 1. Get current requirements from TestCaseGeneration domain
-                var testCaseMediator = App.ServiceProvider?.GetService<ITestCaseGenerationMediator>();
-                var currentRequirements = testCaseMediator?.Requirements?.ToList() ?? new List<Requirement>();
+                var currentRequirements = _testCaseGenerationMediator?.Requirements?.ToList() ?? new List<Requirement>();
                 
                 _logger.LogInformation("Gathering current workspace data - found {RequirementCount} requirements", currentRequirements.Count);
                 
@@ -658,17 +666,16 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                         // Default to Jama parser for .docx files since most of our documents are from Jama
                         // The Jama parser has better filtering for version history and baselines
                         var preferJamaParser = documentPath.EndsWith(".docx", StringComparison.OrdinalIgnoreCase);
-                        var requirementService = App.ServiceProvider?.GetService<IRequirementService>();
                         
-                        if (requirementService != null)
+                        if (_requirementService != null)
                         {
                             if (preferJamaParser)
                             {
-                                importedRequirements = await Task.Run(() => requirementService.ImportRequirementsFromJamaAllDataDocx(documentPath));
+                                importedRequirements = await Task.Run(() => _requirementService.ImportRequirementsFromJamaAllDataDocx(documentPath));
                             }
                             else
                             {
-                                importedRequirements = await Task.Run(() => requirementService.ImportRequirementsFromWord(documentPath));
+                                importedRequirements = await Task.Run(() => _requirementService.ImportRequirementsFromWord(documentPath));
                             }
                             
                             // Broadcast imported requirements to TestCaseGenerationMediator for UI sync

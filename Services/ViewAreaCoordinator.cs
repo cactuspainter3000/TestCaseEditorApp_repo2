@@ -32,7 +32,8 @@ namespace TestCaseEditorApp.Services
         private object? _requirementsContent;
 
         public ViewAreaCoordinator(IViewModelFactory viewModelFactory, INavigationMediator navigationMediator, 
-            IWorkspaceManagementMediator workspaceManagementMediator, ITestCaseGenerationMediator testCaseGenerationMediator)
+            IWorkspaceManagementMediator workspaceManagementMediator, ITestCaseGenerationMediator testCaseGenerationMediator,
+            TestCaseAnythingLLMService? testCaseAnythingLLMService = null)
         {
             _viewModelFactory = viewModelFactory ?? throw new ArgumentNullException(nameof(viewModelFactory));
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
@@ -40,7 +41,7 @@ namespace TestCaseEditorApp.Services
             _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
             
             // Initialize UI area view models with proper dependencies
-            SideMenu = new SideMenuViewModel(_workspaceManagementMediator, _navigationMediator, _testCaseGenerationMediator);
+            SideMenu = new SideMenuViewModel(_workspaceManagementMediator, _navigationMediator, _testCaseGenerationMediator, testCaseAnythingLLMService);
             HeaderArea = new HeaderAreaViewModel();
             WorkspaceContent = new WorkspaceContentViewModel();
 

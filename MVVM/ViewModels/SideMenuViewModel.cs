@@ -25,6 +25,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly IWorkspaceManagementMediator? _workspaceManagementMediator;
         private readonly INavigationMediator? _navigationMediator;
         private readonly ITestCaseGenerationMediator? _testCaseGenerationMediator;
+        private readonly TestCaseAnythingLLMService? _testCaseAnythingLLMService;
         
         // AnythingLLM status tracking
         private bool _isAnythingLLMReady = false;
@@ -118,11 +119,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty]
         private bool autoExportForChatGpt = false;
 
-        public SideMenuViewModel(IWorkspaceManagementMediator? workspaceManagementMediator = null, INavigationMediator? navigationMediator = null, ITestCaseGenerationMediator? testCaseGenerationMediator = null)
+        public SideMenuViewModel(IWorkspaceManagementMediator? workspaceManagementMediator = null, INavigationMediator? navigationMediator = null, ITestCaseGenerationMediator? testCaseGenerationMediator = null, TestCaseAnythingLLMService? testCaseAnythingLLMService = null)
         {
             _workspaceManagementMediator = workspaceManagementMediator;
             _navigationMediator = navigationMediator;
             _testCaseGenerationMediator = testCaseGenerationMediator;
+            _testCaseAnythingLLMService = testCaseAnythingLLMService;
             
             // Subscribe to AnythingLLM status updates
             AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusUpdated;
@@ -226,10 +228,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             
             // Then launch AnythingLLM in background
-            var service = App.ServiceProvider?.GetService<TestCaseAnythingLLMService>();
-            if (service != null)
+            if (_testCaseAnythingLLMService != null)
             {
-                await service.ConnectAsync();
+                await _testCaseAnythingLLMService.ConnectAsync();
             }
         }
         

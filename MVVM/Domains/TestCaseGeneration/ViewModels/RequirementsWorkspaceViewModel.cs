@@ -46,24 +46,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         {
             try
             {
-                var currentRequirement = MainViewModel.CurrentRequirement;
-                if (currentRequirement != null && _mediator is ITestCaseGenerationMediator tcgMediator)
+                // Let domain mediator handle requirement initialization instead of accessing global state
+                if (_mediator is ITestCaseGenerationMediator tcgMediator && tcgMediator.Requirements?.Any() == true)
                 {
-                    _logger.LogDebug("[RequirementsWorkspaceViewModel] Selecting current requirement: {RequirementId}", currentRequirement.GlobalId);
-                    
-                    tcgMediator.PublishEvent(new Events.TestCaseGenerationEvents.RequirementSelected 
-                    { 
-                        Requirement = currentRequirement, 
-                        SelectedBy = "RequirementsWorkspaceInitialization" 
-                    });
-                }
-                else if (_mediator is ITestCaseGenerationMediator tcgMediator2 && tcgMediator2.Requirements?.Any() == true)
-                {
-                    // Select the first requirement if no current requirement is set
-                    var firstRequirement = tcgMediator2.Requirements.First();
+                    // Select first requirement if none is currently selected
+                    var firstRequirement = tcgMediator.Requirements.First();
                     _logger.LogDebug("[RequirementsWorkspaceViewModel] Selecting first available requirement: {RequirementId}", firstRequirement.GlobalId);
                     
-                    tcgMediator2.PublishEvent(new Events.TestCaseGenerationEvents.RequirementSelected 
+                    tcgMediator.PublishEvent(new Events.TestCaseGenerationEvents.RequirementSelected 
                     { 
                         Requirement = firstRequirement, 
                         SelectedBy = "RequirementsWorkspaceInitialization" 
@@ -76,7 +66,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[RequirementsWorkspaceViewModel] Failed to initialize requirements display");
+                _logger.LogError(ex, "[RequirementsWorkspaceViewModel] Error initializing requirements display");
             }
         }
 

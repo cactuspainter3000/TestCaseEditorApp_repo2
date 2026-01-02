@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using Microsoft.Extensions.DependencyInjection;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Models;
@@ -44,7 +45,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public IViewAreaCoordinator CreateViewAreaCoordinator()
         {
             var navigationMediator = CreateNavigationMediator();
-            return new ViewAreaCoordinator(this, navigationMediator, _workspaceManagementMediator!, _testCaseGenerationMediator!);
+            // Get TestCaseAnythingLLMService through dependency injection rather than IApplicationServices
+            var testCaseAnythingLLMService = App.ServiceProvider?.GetService<TestCaseAnythingLLMService>();
+            return new ViewAreaCoordinator(this, navigationMediator, _workspaceManagementMediator!, _testCaseGenerationMediator!, testCaseAnythingLLMService);
         }
 
         public WorkspaceHeaderViewModel CreateWorkspaceHeaderViewModel()

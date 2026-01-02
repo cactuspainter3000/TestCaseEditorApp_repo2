@@ -135,11 +135,15 @@ namespace TestCaseEditorApp
                         var fileDialogService = provider.GetRequiredService<IFileDialogService>();
                         var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
                         var notificationService = provider.GetRequiredService<NotificationService>();
+                        var requirementService = provider.GetRequiredService<IRequirementService>();
+                        var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
+                        var workspaceValidationService = provider.GetRequiredService<IWorkspaceValidationService>();
                         var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
                         var eventReplay = provider.GetService<EventReplayService>();
                         
                         return new WorkspaceManagementMediator(logger, uiCoordinator, persistenceService, 
-                            fileDialogService, anythingLLMService, notificationService, performanceMonitor, eventReplay);
+                            fileDialogService, anythingLLMService, notificationService, requirementService,
+                            testCaseGenerationMediator, workspaceValidationService, performanceMonitor, eventReplay);
                     });
 
                     // ViewModels and header VM
