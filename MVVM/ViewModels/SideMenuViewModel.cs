@@ -6,6 +6,7 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Models.DataDrivenMenu;
@@ -23,9 +24,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     {
         private readonly IWorkspaceManagementMediator? _workspaceManagementMediator;
         private readonly INavigationMediator? _navigationMediator;
+        private readonly ITestCaseGenerationMediator? _testCaseGenerationMediator;
         
         // AnythingLLM status tracking
         private bool _isAnythingLLMReady = false;
+        
+        // Requirements state tracking
+        private bool _hasRequirements = false;
+        
         public bool IsAnythingLLMReady
         {
             get => _isAnythingLLMReady;
@@ -112,13 +118,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty]
         private bool autoExportForChatGpt = false;
 
-        public SideMenuViewModel(IWorkspaceManagementMediator? workspaceManagementMediator = null, INavigationMediator? navigationMediator = null)
+        public SideMenuViewModel(IWorkspaceManagementMediator? workspaceManagementMediator = null, INavigationMediator? navigationMediator = null, ITestCaseGenerationMediator? testCaseGenerationMediator = null)
         {
             _workspaceManagementMediator = workspaceManagementMediator;
             _navigationMediator = navigationMediator;
+            _testCaseGenerationMediator = testCaseGenerationMediator;
             
             // Subscribe to AnythingLLM status updates
             AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusUpdated;
+            
+            // Subscribe to requirements state changes for command availability
+            SetupRequirementsEventSubscriptions();
             
             InitializeCommands();
             InitializeMenuItems();
@@ -287,12 +297,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private bool CanImportAdditionalRequirements()
         {
-            return IsAnythingLLMReady && _workspaceManagementMediator?.HasRequirements() == true;
+            return IsAnythingLLMReady && _hasRequirements;
         }
 
         private bool CanAnalyzeRequirements()
         {
-            return IsAnythingLLMReady && _workspaceManagementMediator?.HasRequirements() == true;
+            return IsAnythingLLMReady && _hasRequirements;
         }
         
         private void UpdateProjectCommandsAvailability()
@@ -545,9 +555,22 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Subscribe to global state changes that affect multiple menu items
             // Example: When project loads, enable project-related menu items
             
-            // TODO: Connect to your domain mediators
-            // _workspaceManagementMediator?.Subscribe<WorkspaceEvents.ProjectLoaded>(OnProjectLoaded);
-            // _testCaseGenerationMediator?.Subscribe<TestCaseEvents.RequirementsLoaded>(OnRequirementsLoaded);
+            // Cross-domain event subscriptions for UI coordination
+            // Requirements state changes affect command availability
+        }
+
+        /// <summary>
+        /// Set up event subscriptions for requirements state changes
+        /// </summary>
+        private void SetupRequirementsEventSubscriptions()
+        {
+            if (_testCaseGenerationMediator != null)
+            {
+                // Subscribe to requirements imported events
+                _testCaseGenerationMediator.Subscribe<TestCaseGenerationEvents.RequirementsImported>(OnRequirementsImported);
+                _testCaseGenerationMediator.Subscribe<TestCaseGenerationEvents.AdditionalRequirementsImported>(OnAdditionalRequirementsImported);
+                _testCaseGenerationMediator.Subscribe<TestCaseGenerationEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
+            }
         }
         
         /// <summary>
@@ -561,12 +584,30 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
         
         /// <summary>
-        /// Example: Handle requirements analysis state
+        /// Handle requirements imported events
         /// </summary>
-        private void OnRequirementsLoaded(/*RequirementsLoadedEvent evt*/)
+        private void OnRequirementsImported(TestCaseGenerationEvents.RequirementsImported evt)
         {
-            UpdateMenuItemState("analysis.batch", isEnabled: true);
-            UpdateMenuItemState("analysis.unanalyzed", isEnabled: true, badge: "5"); // Show count of unanalyzed
+            _hasRequirements = evt.Requirements?.Count > 0;
+            UpdateProjectCommandsAvailability();
+        }
+
+        /// <summary>
+        /// Handle additional requirements imported events
+        /// </summary>
+        private void OnAdditionalRequirementsImported(TestCaseGenerationEvents.AdditionalRequirementsImported evt)
+        {
+            _hasRequirements = evt.Requirements?.Count > 0;
+            UpdateProjectCommandsAvailability();
+        }
+
+        /// <summary>
+        /// Handle requirements collection changes (add/remove/clear)
+        /// </summary>
+        private void OnRequirementsCollectionChanged(TestCaseGenerationEvents.RequirementsCollectionChanged evt)
+        {
+            _hasRequirements = evt.NewCount > 0;
+            UpdateProjectCommandsAvailability();
         }
         
         /// <summary>

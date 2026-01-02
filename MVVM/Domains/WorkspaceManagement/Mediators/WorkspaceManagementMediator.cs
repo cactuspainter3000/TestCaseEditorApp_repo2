@@ -417,23 +417,6 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
             return _currentWorkspaceInfo != null && _persistenceService.CanUndo(_currentWorkspaceInfo.Path);
         }
 
-        /// <summary>
-        /// Check if any requirements are currently loaded in the workspace
-        /// </summary>
-        public bool HasRequirements()
-        {
-            try
-            {
-                var testCaseMediator = App.ServiceProvider?.GetService<ITestCaseGenerationMediator>();
-                var requirementsCount = testCaseMediator?.Requirements?.Count ?? 0;
-                return requirementsCount > 0;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error checking if requirements exist");
-                return false;
-            }
-        }
         
         /// <summary>
         /// Import additional requirements to existing project (append mode)

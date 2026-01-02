@@ -40,7 +40,7 @@ namespace TestCaseEditorApp.Services
             _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
             
             // Initialize UI area view models with proper dependencies
-            SideMenu = new SideMenuViewModel(_workspaceManagementMediator, _navigationMediator);
+            SideMenu = new SideMenuViewModel(_workspaceManagementMediator, _navigationMediator, _testCaseGenerationMediator);
             HeaderArea = new HeaderAreaViewModel();
             WorkspaceContent = new WorkspaceContentViewModel();
 

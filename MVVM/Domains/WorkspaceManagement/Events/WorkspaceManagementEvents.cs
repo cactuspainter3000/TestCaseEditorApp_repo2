@@ -126,5 +126,16 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events
             public Exception? Exception { get; set; }
             public DateTime Timestamp { get; set; } = DateTime.Now;
         }
+
+        /// <summary>
+        /// Fired when project requirements state changes (loaded/cleared/imported)
+        /// </summary>
+        public class RequirementsStateChanged
+        {
+            public bool HasRequirements { get; set; }
+            public int RequirementCount { get; set; }
+            public string Action { get; set; } = string.Empty; // "Imported", "AdditionalImported", "Cleared"
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
     }
 }
