@@ -16,6 +16,7 @@ using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
 using TestCaseEditorApp.MVVM.Extensions;
 using TestCaseEditorApp.MVVM.Utils;
+using TestCaseEditorApp.MVVM.Mediators;
 
 namespace TestCaseEditorApp
 {
@@ -145,6 +146,12 @@ namespace TestCaseEditorApp
                             fileDialogService, anythingLLMService, notificationService, requirementService,
                             testCaseGenerationMediator, workspaceValidationService, performanceMonitor, eventReplay);
                     });
+
+                    // Breadcrumb mediators for 3-level navigation context
+                    services.AddSingleton<BreadcrumbSectionMediator>();
+                    services.AddSingleton<BreadcrumbProjectMediator>();
+                    services.AddSingleton<BreadcrumbContextMediator>();
+                    services.AddSingleton<BreadcrumbComposer>();
 
                     // ViewModels and header VM
                     services.AddTransient<TestCaseGenerator_VM>();

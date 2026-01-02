@@ -5,6 +5,8 @@ using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Mediators;
+using TestCaseEditorApp.MVVM.Events;
 
 namespace TestCaseEditorApp.Services
 {
@@ -18,12 +20,20 @@ namespace TestCaseEditorApp.Services
         private readonly INavigationMediator _navigationMediator;
         private readonly IWorkspaceManagementMediator _workspaceManagementMediator;
         private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
+        private readonly BreadcrumbSectionMediator _breadcrumbSectionMediator;
+        private readonly BreadcrumbProjectMediator _breadcrumbProjectMediator;
+        private readonly BreadcrumbContextMediator _breadcrumbContextMediator;
 
         public SideMenuViewModel SideMenu { get; }
         public HeaderAreaViewModel HeaderArea { get; }
         public WorkspaceContentViewModel WorkspaceContent { get; }
         public INavigationMediator NavigationMediator => _navigationMediator;
         public IWorkspaceManagementMediator WorkspaceManagement => _workspaceManagementMediator;
+        
+        // UI Area ViewModels
+        private readonly SideMenuViewModel _sideMenu;
+        private readonly HeaderAreaViewModel _headerArea;
+        private readonly WorkspaceContentViewModel _workspaceContent;
         
         // ViewModels for reuse
         private WorkspaceHeaderViewModel? _workspaceHeader;
@@ -33,12 +43,16 @@ namespace TestCaseEditorApp.Services
 
         public ViewAreaCoordinator(IViewModelFactory viewModelFactory, INavigationMediator navigationMediator, 
             IWorkspaceManagementMediator workspaceManagementMediator, ITestCaseGenerationMediator testCaseGenerationMediator,
-            TestCaseAnythingLLMService? testCaseAnythingLLMService = null)
+            BreadcrumbSectionMediator breadcrumbSectionMediator, BreadcrumbProjectMediator breadcrumbProjectMediator, 
+            BreadcrumbContextMediator breadcrumbContextMediator, TestCaseAnythingLLMService? testCaseAnythingLLMService = null)
         {
             _viewModelFactory = viewModelFactory ?? throw new ArgumentNullException(nameof(viewModelFactory));
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
             _workspaceManagementMediator = workspaceManagementMediator ?? throw new ArgumentNullException(nameof(workspaceManagementMediator));
             _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
+            _breadcrumbSectionMediator = breadcrumbSectionMediator ?? throw new ArgumentNullException(nameof(breadcrumbSectionMediator));
+            _breadcrumbProjectMediator = breadcrumbProjectMediator ?? throw new ArgumentNullException(nameof(breadcrumbProjectMediator));
+            _breadcrumbContextMediator = breadcrumbContextMediator ?? throw new ArgumentNullException(nameof(breadcrumbContextMediator));
             
             // Initialize UI area view models with proper dependencies
             SideMenu = new SideMenuViewModel(_workspaceManagementMediator, _navigationMediator, _testCaseGenerationMediator, testCaseAnythingLLMService);
@@ -64,6 +78,8 @@ namespace TestCaseEditorApp.Services
             
             // Subscribe to workspace management events
             _workspaceManagementMediator.Subscribe<WorkspaceManagementEvents.ProjectClosed>(OnProjectClosed);
+            _workspaceManagementMediator.Subscribe<WorkspaceManagementEvents.ProjectCreated>(OnProjectCreated);
+            _workspaceManagementMediator.Subscribe<WorkspaceManagementEvents.ProjectOpened>(OnProjectOpened);
             
             // Wire up side menu selection to mediator
             SideMenu.SectionChanged += (section) => 
@@ -79,6 +95,9 @@ namespace TestCaseEditorApp.Services
         {
             // Update side menu selection
             SideMenu.SelectedSection = request.SectionName;
+            
+            // Update breadcrumb section
+            _breadcrumbSectionMediator.SetSection(request.SectionName ?? string.Empty);
             
             TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Section change requested: '{request.SectionName}' (lowercase: '{request.SectionName?.ToLowerInvariant()}')");
             
@@ -129,8 +148,23 @@ namespace TestCaseEditorApp.Services
             TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Project closed: {projectClosed.WorkspacePath}");
             _navigationMediator.ClearNavigationState();
             
+            // Clear breadcrumb project
+            _breadcrumbProjectMediator.ClearProject();
+            
             // Navigate to initial/empty state
             HandleDefaultNavigation(null);
+        }
+        
+        private void OnProjectCreated(WorkspaceManagementEvents.ProjectCreated projectCreated)
+        {
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Project created: {projectCreated.WorkspaceName}");
+            _breadcrumbProjectMediator.SetProject(projectCreated.WorkspaceName);
+        }
+        
+        private void OnProjectOpened(WorkspaceManagementEvents.ProjectOpened projectOpened)
+        {
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Project opened: {projectOpened.WorkspacePath}");
+            _breadcrumbProjectMediator.SetProject(System.IO.Path.GetFileName(projectOpened.WorkspacePath));
         }
         
         // Public navigation methods (implement IViewAreaCoordinator)
@@ -251,6 +285,21 @@ namespace TestCaseEditorApp.Services
             // Use the mediator to publish initial content - views will be subscribed to this
             var initialStateViewModel = new InitialStateViewModel();
             _navigationMediator.SetMainContent(initialStateViewModel);
+        }
+        
+        /// <summary>
+        /// Update the current section in breadcrumb and notify subscribers
+        /// </summary>
+        private void UpdateCurrentSection(string? sectionName)
+        {
+            var displayName = sectionName switch
+            {
+                "testcase" or "test case creator" => "Test Case Generator",
+                "requirements" => "Requirements", 
+                "project" => "Project",
+                "testflow" => "Test Flow",
+                _ => sectionName
+            };
         }
     }
 }

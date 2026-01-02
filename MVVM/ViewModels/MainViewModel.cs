@@ -102,7 +102,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // === UI-BOUND PROPERTIES ===
         // Properties needed for UI data binding - kept minimal and focused
         
-        public string DisplayName { get; set; } = "Test Case Editor";
+        [ObservableProperty]
+        private string displayName = "Systems App";
+        
         public string SelectedMenuSection { get; set; } = "Requirements";
         
         // === MISSING PROPERTIES FOR UI BINDING ===

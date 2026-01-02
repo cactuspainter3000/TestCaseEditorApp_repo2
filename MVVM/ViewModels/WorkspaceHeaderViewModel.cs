@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using System.Windows.Input;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
+using TestCaseEditorApp.Services;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -12,13 +13,24 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     /// ViewModel for the workspace header bar.
     /// Exposes header data and commands that MainViewModel will wire.
     /// </summary>
-    public partial class WorkspaceHeaderViewModel : ObservableObject
+    public partial class WorkspaceHeaderViewModel : ObservableObject, IDisposable
     {
         // Backing reference to an optional IWindow wrapper set by the view (MainWindow)
         private IWindow? _window;
+        private readonly BreadcrumbComposer? _breadcrumbComposer;
 
-        public WorkspaceHeaderViewModel()
+        public WorkspaceHeaderViewModel(BreadcrumbComposer? breadcrumbComposer = null)
         {
+            _breadcrumbComposer = breadcrumbComposer;
+            
+            // Subscribe to breadcrumb changes for title updates
+            if (_breadcrumbComposer != null)
+            {
+                _breadcrumbComposer.BreadcrumbChanged += OnBreadcrumbChanged;
+                // Set initial title
+                Title = _breadcrumbComposer.FullBreadcrumb;
+            }
+            
             // Subscribe to AnythingLLM status updates via mediator
             AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusUpdated;
         }
@@ -147,6 +159,26 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 IsAnythingLLMStarting = status.IsStarting;
                 AnythingLLMStatusMessage = status.StatusMessage;
             });
+        }
+        
+        /// <summary>
+        /// Handles breadcrumb changes for title updates
+        /// </summary>
+        private void OnBreadcrumbChanged(string newBreadcrumb)
+        {
+            Title = newBreadcrumb;
+        }
+        
+        /// <summary>
+        /// Clean up event subscriptions
+        /// </summary>
+        public void Dispose()
+        {
+            if (_breadcrumbComposer != null)
+            {
+                _breadcrumbComposer.BreadcrumbChanged -= OnBreadcrumbChanged;
+            }
+            AnythingLLMMediator.StatusUpdated -= OnAnythingLLMStatusUpdated;
         }
         
         /// <summary>
