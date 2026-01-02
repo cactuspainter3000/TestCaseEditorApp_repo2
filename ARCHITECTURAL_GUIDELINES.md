@@ -465,6 +465,53 @@ else
 
 ---
 
+## 🔍 Complex Debugging Methodology
+
+### **Header Coordination Issue Case Study** (January 2, 2026)
+
+**The Problem Pattern**: UI binding reads from one location, event system updates another location.
+
+**Systematic Investigation Process**:
+
+1. **Surface Symptom**: AnythingLLM status not displaying in Test Case Generator header
+2. **First Layer**: Verified command assignment and execution (MessageBox debugging confirmed execution)
+3. **Event Tracing**: Added Debug.WriteLine calls to trace navigation flow through multiple components
+4. **Data Flow Analysis**: Discovered two separate header tracking systems:
+   - `HeaderAreaViewModel.ActiveHeader` (UI binding source)  
+   - `NavigationMediator._currentHeader` (event system storage)
+5. **Timing Issue Discovery**: UI update event fired before data was available
+6. **Root Cause**: Header coordination order was backwards
+
+**The Solution Pattern**:
+```csharp
+// ❌ Wrong: Event fires before data is set
+_navigationMediator.SetActiveHeader(header);  // Triggers UI update
+HeaderArea.ShowTestCaseGeneratorHeader(header); // Sets the data
+
+// ✅ Correct: Data available before UI update event  
+HeaderArea.ShowTestCaseGeneratorHeader(header); // Sets the data
+_navigationMediator.SetActiveHeader(header);  // Triggers UI update
+```
+
+**Key Architectural Lesson**: 
+In mediator-based MVVM systems, **operation order is critical**:
+- **Set Data → Trigger UI Update Event** ✅
+- **Trigger UI Update Event → Set Data** ❌
+
+**Debugging Tools That Helped**:
+- `Debug.WriteLine` for Visual Studio debug output (not Console.WriteLine)
+- MessageBox debugging to confirm command execution
+- Binding error analysis in WPF debug output
+- Systematic component isolation (navigation → header creation → UI binding)
+
+**Prevention Strategy**:
+- When UI bindings read from ViewModels, ensure data is set before publishing change events
+- Consider using a single source of truth rather than parallel tracking systems
+- Always verify the order of operations in mediator patterns
+- Use debug output strategically to trace complex event-driven flows
+
+---
+
 ## 🎯 Success Metrics
 
 You’ll know the architecture is working when:
