@@ -147,7 +147,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             
             // Initialize missing commands
             UnloadProjectCommand = new AsyncRelayCommand(UnloadProjectAsync);
-            BatchAnalyzeCommand = new RelayCommand(() => { /* TODO: Implement batch analyze */ }, CanImportAdditionalRequirements);
+            BatchAnalyzeCommand = new RelayCommand(() => { /* TODO: Implement batch analyze */ }, CanAnalyzeRequirements);
             AnalyzeUnanalyzedCommand = new RelayCommand(() => { /* TODO: Implement analyze unanalyzed */ });
             ReAnalyzeModifiedCommand = new RelayCommand(() => { /* TODO: Implement re-analyze modified */ });
             GenerateLearningPromptCommand = new RelayCommand(() => { /* TODO: Implement generate learning prompt */ });
@@ -286,6 +286,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         private bool CanImportAdditionalRequirements()
+        {
+            return IsAnythingLLMReady && _workspaceManagementMediator?.HasRequirements() == true;
+        }
+
+        private bool CanAnalyzeRequirements()
         {
             return IsAnythingLLMReady && _workspaceManagementMediator?.HasRequirements() == true;
         }
