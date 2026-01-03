@@ -200,6 +200,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
         private void NavigateToProject()
         {
+            System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToProject called! ***");
             Console.WriteLine("*** SideMenuViewModel.NavigateToProject called! ***");
             if (_navigationMediator != null)
             {
@@ -209,6 +210,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         private async void NavigateToTestCaseGenerator()
         {
+            System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToTestCaseGenerator called! ***");
             // Request fresh AnythingLLM status when navigating to Test Case Generator
             AnythingLLMMediator.RequestCurrentStatus();
             
@@ -227,6 +229,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         private void NavigateToRequirements()
         {
+            System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToRequirements called! ***");
             Console.WriteLine("*** SideMenuViewModel.NavigateToRequirements called! ***");
             
             if (_navigationMediator != null)

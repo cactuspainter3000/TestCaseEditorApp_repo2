@@ -269,7 +269,7 @@
                                 HorizontalAlignment="Left"
                                 Margin="4,0,0,0">
                         <!-- App Title -->
-                        <TextBlock Text="Systems App"
+                        <TextBlock Text="{Binding DisplayName, FallbackValue='Systems App'}"
                                    VerticalAlignment="Center"
                                    Foreground="DarkOrange"
                                    FontSize="25"/>

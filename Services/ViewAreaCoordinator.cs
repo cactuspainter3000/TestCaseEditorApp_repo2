@@ -20,9 +20,6 @@ namespace TestCaseEditorApp.Services
         private readonly INavigationMediator _navigationMediator;
         private readonly IWorkspaceManagementMediator _workspaceManagementMediator;
         private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
-        private readonly BreadcrumbSectionMediator _breadcrumbSectionMediator;
-        private readonly BreadcrumbProjectMediator _breadcrumbProjectMediator;
-        private readonly BreadcrumbContextMediator _breadcrumbContextMediator;
 
         public SideMenuViewModel SideMenu { get; }
         public HeaderAreaViewModel HeaderArea { get; }
@@ -43,16 +40,12 @@ namespace TestCaseEditorApp.Services
 
         public ViewAreaCoordinator(IViewModelFactory viewModelFactory, INavigationMediator navigationMediator, 
             IWorkspaceManagementMediator workspaceManagementMediator, ITestCaseGenerationMediator testCaseGenerationMediator,
-            BreadcrumbSectionMediator breadcrumbSectionMediator, BreadcrumbProjectMediator breadcrumbProjectMediator, 
-            BreadcrumbContextMediator breadcrumbContextMediator, TestCaseAnythingLLMService? testCaseAnythingLLMService = null)
+            TestCaseAnythingLLMService? testCaseAnythingLLMService = null)
         {
             _viewModelFactory = viewModelFactory ?? throw new ArgumentNullException(nameof(viewModelFactory));
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
             _workspaceManagementMediator = workspaceManagementMediator ?? throw new ArgumentNullException(nameof(workspaceManagementMediator));
             _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
-            _breadcrumbSectionMediator = breadcrumbSectionMediator ?? throw new ArgumentNullException(nameof(breadcrumbSectionMediator));
-            _breadcrumbProjectMediator = breadcrumbProjectMediator ?? throw new ArgumentNullException(nameof(breadcrumbProjectMediator));
-            _breadcrumbContextMediator = breadcrumbContextMediator ?? throw new ArgumentNullException(nameof(breadcrumbContextMediator));
             
             // Initialize UI area view models with proper dependencies
             SideMenu = new SideMenuViewModel(_workspaceManagementMediator, _navigationMediator, _testCaseGenerationMediator, testCaseAnythingLLMService);
@@ -95,9 +88,6 @@ namespace TestCaseEditorApp.Services
         {
             // Update side menu selection
             SideMenu.SelectedSection = request.SectionName;
-            
-            // Update breadcrumb section
-            _breadcrumbSectionMediator.SetSection(request.SectionName ?? string.Empty);
             
             TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Section change requested: '{request.SectionName}' (lowercase: '{request.SectionName?.ToLowerInvariant()}')");
             
@@ -148,9 +138,6 @@ namespace TestCaseEditorApp.Services
             TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Project closed: {projectClosed.WorkspacePath}");
             _navigationMediator.ClearNavigationState();
             
-            // Clear breadcrumb project
-            _breadcrumbProjectMediator.ClearProject();
-            
             // Navigate to initial/empty state
             HandleDefaultNavigation(null);
         }
@@ -158,13 +145,11 @@ namespace TestCaseEditorApp.Services
         private void OnProjectCreated(WorkspaceManagementEvents.ProjectCreated projectCreated)
         {
             TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Project created: {projectCreated.WorkspaceName}");
-            _breadcrumbProjectMediator.SetProject(projectCreated.WorkspaceName);
         }
         
         private void OnProjectOpened(WorkspaceManagementEvents.ProjectOpened projectOpened)
         {
             TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Project opened: {projectOpened.WorkspacePath}");
-            _breadcrumbProjectMediator.SetProject(System.IO.Path.GetFileName(projectOpened.WorkspacePath));
         }
         
         // Public navigation methods (implement IViewAreaCoordinator)

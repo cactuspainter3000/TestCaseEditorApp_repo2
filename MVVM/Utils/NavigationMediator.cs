@@ -29,13 +29,16 @@ namespace TestCaseEditorApp.MVVM.Utils
             var previousSection = _currentSection;
             _currentSection = sectionName;
             
+            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator: NavigateToSection('{sectionName}') called ***");
             _logger?.LogDebug("Navigation request: {PreviousSection} -> {NewSection}", 
                 previousSection, sectionName);
             
             // Publish section change request
+            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator: Publishing SectionChangeRequested ***");
             Publish(new NavigationEvents.SectionChangeRequested(sectionName, context));
             
             // Publish section changed notification
+            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator: Publishing SectionChanged('{previousSection}' -> '{sectionName}') ***");
             Publish(new NavigationEvents.SectionChanged(previousSection, sectionName));
         }
         

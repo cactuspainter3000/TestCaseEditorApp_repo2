@@ -17,20 +17,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     {
         // Backing reference to an optional IWindow wrapper set by the view (MainWindow)
         private IWindow? _window;
-        private readonly BreadcrumbComposer? _breadcrumbComposer;
 
-        public WorkspaceHeaderViewModel(BreadcrumbComposer? breadcrumbComposer = null)
+        public WorkspaceHeaderViewModel()
         {
-            _breadcrumbComposer = breadcrumbComposer;
-            
-            // Subscribe to breadcrumb changes for title updates
-            if (_breadcrumbComposer != null)
-            {
-                _breadcrumbComposer.BreadcrumbChanged += OnBreadcrumbChanged;
-                // Set initial title
-                Title = _breadcrumbComposer.FullBreadcrumb;
-            }
-            
             // Subscribe to AnythingLLM status updates via mediator
             AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusUpdated;
         }
@@ -162,22 +151,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
         
         /// <summary>
-        /// Handles breadcrumb changes for title updates
-        /// </summary>
-        private void OnBreadcrumbChanged(string newBreadcrumb)
-        {
-            Title = newBreadcrumb;
-        }
-        
-        /// <summary>
         /// Clean up event subscriptions
         /// </summary>
         public void Dispose()
         {
-            if (_breadcrumbComposer != null)
-            {
-                _breadcrumbComposer.BreadcrumbChanged -= OnBreadcrumbChanged;
-            }
             AnythingLLMMediator.StatusUpdated -= OnAnythingLLMStatusUpdated;
         }
         

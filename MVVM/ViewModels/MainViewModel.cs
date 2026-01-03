@@ -24,6 +24,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     /// 2. Initialize ViewAreaCoordinator
     /// 3. Provide property bindings for UI
     /// 4. NO coordination logic - once workspace assigned → hands-off
+    /// 5. Simple dynamic title updates
     /// </summary>
     public partial class MainViewModel : ObservableObject, IDisposable
     {
@@ -32,6 +33,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly IViewAreaCoordinator _viewAreaCoordinator;
         private readonly IViewModelFactory _viewModelFactory;
         private readonly ILogger<MainViewModel>? _logger;
+        private readonly INavigationService _navigationService;
+        private string _displayName = "Systems App";
         
         // === 4-WORKSPACE PROPERTIES ===
         // All UI areas are managed by ViewAreaCoordinator
@@ -68,28 +71,63 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             (_viewAreaCoordinator.SideMenu as ViewModels.SideMenuViewModel)?.TestCaseGeneratorMenuSection;
 
         /// <summary>
+        /// Dynamic title for the application window
+        /// </summary>
+        public string DisplayName 
+        { 
+            get {
+                System.Diagnostics.Debug.WriteLine($"*** MainViewModel[{GetHashCode()}]: DisplayName getter called, returning '{_displayName}' ***");
+                return _displayName;
+            }
+            private set => SetProperty(ref _displayName, value); 
+        }
+
+        /// <summary>
         /// Simple container constructor - sets up 4 workspace areas with NO coordination logic.
         /// According to architectural guidelines: MainViewModel should be a simple container that 
         /// sets up 4 workspace areas. Once workspace assigned → hands-off.
         /// </summary>
-        public MainViewModel(IViewModelFactory viewModelFactory, ILogger<MainViewModel>? logger = null)
+        public MainViewModel(IViewModelFactory viewModelFactory, INavigationService navigationService, ILogger<MainViewModel>? logger = null)
         {
+            System.Diagnostics.Debug.WriteLine($"*** MainViewModel constructor called! Instance: {GetHashCode()} ***");
             _viewModelFactory = viewModelFactory ?? throw new ArgumentNullException(nameof(viewModelFactory));
+            _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
             _logger = logger;
+            
+            // Simple title binding - NavigationService handles all title logic
+            _navigationService.TitleChanged += (_, title) => {
+                System.Diagnostics.Debug.WriteLine($"*** MainViewModel[{GetHashCode()}]: NavigationService title changed to '{title}' ***");
+                _logger?.LogInformation("MainViewModel: NavigationService title changed to '{Title}'", title);
+                
+                // Ensure PropertyChanged is fired on UI thread for proper WPF binding
+                System.Windows.Application.Current?.Dispatcher.Invoke(() => {
+                    _displayName = title;
+                    System.Diagnostics.Debug.WriteLine($"*** MainViewModel[{GetHashCode()}]: _displayName field set to '{_displayName}' on UI thread ***");
+                    OnPropertyChanged(nameof(DisplayName));
+                    System.Diagnostics.Debug.WriteLine($"*** MainViewModel[{GetHashCode()}]: PropertyChanged fired on UI thread for DisplayName ***");
+                });
+                _logger?.LogInformation("MainViewModel: DisplayName updated to '{DisplayName}'", DisplayName);
+            };
             
             // Initialize unified navigation system - this is the ONLY responsibility
             _viewAreaCoordinator = _viewModelFactory.CreateViewAreaCoordinator();
             
+            // Initialize NavigationService with coordinator for proper title management
+            _navigationService.Initialize(_viewAreaCoordinator);
+            
             // Initialize the requirements navigator for UI binding
             RequirementsNavigator = _viewModelFactory.CreateRequirementsNavigationViewModel();
             
-            // Subscribe to navigation events for UI property binding notifications
+            // Subscribe to navigation events for UI property binding notifications ONLY
             _viewAreaCoordinator.NavigationMediator.Subscribe<NavigationEvents.HeaderChanged>(
                 e => OnPropertyChanged(nameof(HeaderWorkspace)));
             _viewAreaCoordinator.NavigationMediator.Subscribe<NavigationEvents.ContentChanged>(
                 e => OnPropertyChanged(nameof(MainWorkspace)));
-            _viewAreaCoordinator.NavigationMediator.Subscribe<NavigationEvents.SectionChanged>(
-                e => OnPropertyChanged(nameof(NavigationWorkspace)));
+            _viewAreaCoordinator.NavigationMediator.Subscribe<NavigationEvents.SectionChanged>(e => {
+                System.Diagnostics.Debug.WriteLine($"*** MainViewModel: SectionChanged event received! PreviousSection='{e.PreviousSection}', NewSection='{e.NewSection}' ***");
+                _logger?.LogInformation("MainViewModel: Section changed from '{PreviousSection}' to '{NewSection}'", e.PreviousSection, e.NewSection);
+                OnPropertyChanged(nameof(NavigationWorkspace));
+            });
             
             _logger?.LogInformation("MainViewModel initialized as simple 4-workspace container");
         }
@@ -101,9 +139,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         // === UI-BOUND PROPERTIES ===
         // Properties needed for UI data binding - kept minimal and focused
-        
-        [ObservableProperty]
-        private string displayName = "Systems App";
         
         public string SelectedMenuSection { get; set; } = "Requirements";
         

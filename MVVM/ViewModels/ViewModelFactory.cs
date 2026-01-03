@@ -49,18 +49,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             var navigationMediator = CreateNavigationMediator();
             // Get services through dependency injection
             var testCaseAnythingLLMService = App.ServiceProvider?.GetService<TestCaseAnythingLLMService>();
-            var breadcrumbSectionMediator = App.ServiceProvider?.GetRequiredService<BreadcrumbSectionMediator>();
-            var breadcrumbProjectMediator = App.ServiceProvider?.GetRequiredService<BreadcrumbProjectMediator>();
-            var breadcrumbContextMediator = App.ServiceProvider?.GetRequiredService<BreadcrumbContextMediator>();
             
             return new ViewAreaCoordinator(this, navigationMediator, _workspaceManagementMediator!, _testCaseGenerationMediator!, 
-                breadcrumbSectionMediator, breadcrumbProjectMediator, breadcrumbContextMediator, testCaseAnythingLLMService);
+                testCaseAnythingLLMService);
         }
 
         public WorkspaceHeaderViewModel CreateWorkspaceHeaderViewModel()
         {
-            var breadcrumbComposer = App.ServiceProvider?.GetService<BreadcrumbComposer>();
-            var headerViewModel = new WorkspaceHeaderViewModel(breadcrumbComposer);
+            var headerViewModel = new WorkspaceHeaderViewModel();
             
             // Wire up save commands (proper domain location per architecture)
             if (_workspaceManagementMediator != null)

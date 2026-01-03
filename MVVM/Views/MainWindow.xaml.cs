@@ -79,6 +79,29 @@ namespace TestCaseEditorApp.MVVM.Views
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"*** MainWindow: Window_Loaded called ***");
+            System.Diagnostics.Debug.WriteLine($"*** MainWindow: DataContext type = {DataContext?.GetType().Name ?? "null"} ***");
+            if (DataContext is MainViewModel mainVm)
+            {
+                System.Diagnostics.Debug.WriteLine($"*** MainWindow: DataContext is MainViewModel[{mainVm.GetHashCode()}] ***");
+                System.Diagnostics.Debug.WriteLine($"*** MainWindow: MainViewModel.DisplayName = '{mainVm.DisplayName}' ***");
+                System.Diagnostics.Debug.WriteLine($"*** MainWindow: Current Window.Title = '{this.Title}' ***");
+                
+                // Subscribe to PropertyChanged to track DisplayName changes
+                mainVm.PropertyChanged += (s, args) => {
+                    if (args.PropertyName == "DisplayName")
+                    {
+                        System.Diagnostics.Debug.WriteLine($"*** MainWindow: DisplayName PropertyChanged detected! New value: '{mainVm.DisplayName}' ***");
+                        System.Diagnostics.Debug.WriteLine($"*** MainWindow: Current Window.Title after PropertyChanged: '{this.Title}' ***");
+                    }
+                };
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"*** MainWindow: DataContext is NOT MainViewModel! ***");
+            }
+            System.Diagnostics.Debug.WriteLine($"*** MainWindow: Actual window title = '{Title}' ***");
+            
             // DataContext should already be set in constructor, but ensure it's not null
             if (DataContext == null)
             {

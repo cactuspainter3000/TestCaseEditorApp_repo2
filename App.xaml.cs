@@ -78,6 +78,9 @@ namespace TestCaseEditorApp
                     // Domain UI coordination
                     services.AddSingleton<IDomainUICoordinator, DomainUICoordinator>();
 
+                    // Navigation service for title management
+                    services.AddSingleton<INavigationService, NavigationService>();
+
                     // Requirement data scrubber (shared infrastructure)
                     services.AddScoped<IRequirementDataScrubber, RequirementDataScrubber>();
 
@@ -103,7 +106,7 @@ namespace TestCaseEditorApp
                     // Domain mediators with advanced services integration
                     services.AddSingleton<ITestCaseGenerationMediator>(provider =>
                     {
-                        var logger = provider.GetRequiredService<ILogger<TestCaseGenerationMediator>>();
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.TestCaseGenerationMediator>>();
                         var uiCoordinator = provider.GetRequiredService<IDomainUICoordinator>();
                         var requirementService = provider.GetRequiredService<IRequirementService>();
                         var analysisService = provider.GetRequiredService<RequirementAnalysisService>();
@@ -112,7 +115,7 @@ namespace TestCaseEditorApp
                         var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
                         var eventReplay = provider.GetService<EventReplayService>();
                         
-                        return new TestCaseGenerationMediator(logger, uiCoordinator, requirementService, 
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.TestCaseGenerationMediator(logger, uiCoordinator, requirementService, 
                             analysisService, llmService, scrubber, performanceMonitor, eventReplay);
                     });
                     
@@ -147,21 +150,16 @@ namespace TestCaseEditorApp
                             testCaseGenerationMediator, workspaceValidationService, performanceMonitor, eventReplay);
                     });
 
-                    // Breadcrumb mediators for 3-level navigation context
-                    services.AddSingleton<BreadcrumbSectionMediator>();
-                    services.AddSingleton<BreadcrumbProjectMediator>();
-                    services.AddSingleton<BreadcrumbContextMediator>();
-                    services.AddSingleton<BreadcrumbComposer>();
-
                     // ViewModels and header VM
                     services.AddTransient<TestCaseGenerator_VM>();
                     services.AddSingleton<WorkspaceHeaderViewModel>(); // workspace header shared instance
                     services.AddTransient<MainViewModel>(provider =>
                     {
                         var viewModelFactory = provider.GetRequiredService<IViewModelFactory>();
+                        var navigationService = provider.GetRequiredService<INavigationService>();
                         var logger = provider.GetService<ILogger<MainViewModel>>();
                         
-                        return new MainViewModel(viewModelFactory, logger);
+                        return new MainViewModel(viewModelFactory, navigationService, logger);
                     });
                     services.AddTransient<NavigationViewModel>();
 
