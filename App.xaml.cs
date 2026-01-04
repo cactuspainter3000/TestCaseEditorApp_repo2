@@ -12,10 +12,10 @@ using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
+using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
 using TestCaseEditorApp.MVVM.Extensions;
-using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Mediators;
 
 namespace TestCaseEditorApp
@@ -80,6 +80,13 @@ namespace TestCaseEditorApp
 
                     // Navigation service for title management
                     services.AddSingleton<INavigationService, NavigationService>();
+                    
+                    // Navigation mediator for view coordination
+                    services.AddSingleton<INavigationMediator>(provider => 
+                    {
+                        var logger = provider.GetService<ILogger<NavigationMediator>>();
+                        return new NavigationMediator(logger);
+                    });
 
                     // Requirement data scrubber (shared infrastructure)
                     services.AddScoped<IRequirementDataScrubber, RequirementDataScrubber>();
@@ -203,6 +210,10 @@ namespace TestCaseEditorApp
 
                     // Core application services
                     services.AddSingleton<ChatGptExportService>();
+                    
+                    // View configuration service for new navigation pattern
+                    services.AddSingleton<IViewConfigurationService, ViewConfigurationService>();
+                    
                     services.AddSingleton<IViewModelFactory>(provider =>
                     {
                         var applicationServices = provider.GetRequiredService<IApplicationServices>();

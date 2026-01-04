@@ -1,10 +1,13 @@
-using TestCaseEditorApp.Services;
+using System;
+using System.Collections.ObjectModel;
+using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.ChatGptExportAnalysis.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.RequirementAnalysisWorkflow.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.Services;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -17,6 +20,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Navigation Infrastructure
         INavigationMediator CreateNavigationMediator();
         IViewAreaCoordinator CreateViewAreaCoordinator();
+        
+        // New Configuration-Based Infrastructure  
+        IViewConfigurationService CreateViewConfigurationService();
+
         
         // Content ViewModels
         object CreateProjectViewModel();

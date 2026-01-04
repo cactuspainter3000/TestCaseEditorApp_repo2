@@ -1,83 +1,54 @@
 using System;
-using System.Linq;
 using TestCaseEditorApp.MVVM.ViewModels;
-using TestCaseEditorApp.MVVM.Utils;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
-using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Mediators;
 using TestCaseEditorApp.MVVM.Events;
+using TestCaseEditorApp.MVVM.Utils;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace TestCaseEditorApp.Services
 {
     /// <summary>
-    /// Coordinates view areas using mediator pattern to eliminate circular dependencies.
-    /// REPLACES the 4 competing navigation systems in MainViewModel.
+    /// Clean coordinator using configuration pattern - delegates to ViewConfigurationService.
+    /// Single responsibility: Respond to navigation requests by applying configurations.
     /// </summary>
     public class ViewAreaCoordinator : IViewAreaCoordinator
     {
-        private readonly IViewModelFactory _viewModelFactory;
         private readonly INavigationMediator _navigationMediator;
+        private IViewConfigurationService? _viewConfigurationService;
         private readonly IWorkspaceManagementMediator _workspaceManagementMediator;
-        private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
 
         public SideMenuViewModel SideMenu { get; }
-        public HeaderAreaViewModel HeaderArea { get; }
-        public WorkspaceContentViewModel WorkspaceContent { get; }
-        public object NotificationArea { get; private set; }
+        public ConfigurableHeaderAreaViewModel HeaderArea { get; }
+        public ConfigurableContentAreaViewModel WorkspaceContent { get; }
+        public ConfigurableNotificationAreaViewModel NotificationArea { get; }
         public INavigationMediator NavigationMediator => _navigationMediator;
         public IWorkspaceManagementMediator WorkspaceManagement => _workspaceManagementMediator;
-        
-        // UI Area ViewModels
-        private readonly SideMenuViewModel _sideMenu;
-        private readonly HeaderAreaViewModel _headerArea;
-        private readonly WorkspaceContentViewModel _workspaceContent;
-        
-        // ViewModels for reuse
-        private WorkspaceHeaderViewModel? _workspaceHeader;
-        private TestCaseGenerator_HeaderVM? _testCaseGeneratorHeader;
-        private object? _projectContent;
-        private object? _requirementsContent;
 
-        public ViewAreaCoordinator(IViewModelFactory viewModelFactory, INavigationMediator navigationMediator, 
-            IWorkspaceManagementMediator workspaceManagementMediator, ITestCaseGenerationMediator testCaseGenerationMediator,
+        public ViewAreaCoordinator(
+            IViewModelFactory viewModelFactory, 
+            INavigationMediator navigationMediator,
+            IWorkspaceManagementMediator workspaceManagementMediator,
+            ITestCaseGenerationMediator testCaseGenerationMediator,
+            IViewConfigurationService? viewConfigurationService,
             TestCaseAnythingLLMService? testCaseAnythingLLMService = null)
         {
-            _viewModelFactory = viewModelFactory ?? throw new ArgumentNullException(nameof(viewModelFactory));
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
+            _viewConfigurationService = viewConfigurationService; // Allow null initially
             _workspaceManagementMediator = workspaceManagementMediator ?? throw new ArgumentNullException(nameof(workspaceManagementMediator));
-            _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
             
-            // Initialize UI area view models with proper dependencies
-            SideMenu = new SideMenuViewModel(_workspaceManagementMediator, _navigationMediator, _testCaseGenerationMediator, testCaseAnythingLLMService);
-            HeaderArea = new HeaderAreaViewModel();
-            WorkspaceContent = new WorkspaceContentViewModel();
-            NotificationArea = _viewModelFactory.CreateDefaultNotificationViewModel(); // Start with default notification
+            // Initialize UI area view models with configurable pattern
+            SideMenu = new SideMenuViewModel(workspaceManagementMediator, navigationMediator, testCaseGenerationMediator, testCaseAnythingLLMService);
+            HeaderArea = new ConfigurableHeaderAreaViewModel(navigationMediator);
+            WorkspaceContent = new ConfigurableContentAreaViewModel(navigationMediator);
+            NotificationArea = new ConfigurableNotificationAreaViewModel(navigationMediator);
 
-            // Subscribe to navigation events
-            SetupNavigationHandlers();
-            
-            // Set initial header first
-            HandleDefaultNavigation(null); // Set initial header
-            
-            // Then set initial workspace content to welcome screen
-            SetInitialContent();
-        }
-        
-        private void SetupNavigationHandlers()
-        {
-            // Subscribe to navigation mediator events
+            // Subscribe to navigation requests
             _navigationMediator.Subscribe<NavigationEvents.SectionChangeRequested>(OnSectionChangeRequested);
-            _navigationMediator.Subscribe<NavigationEvents.StepChangeRequested>(OnStepChangeRequested);
-            _navigationMediator.Subscribe<NavigationEvents.ContentChanged>(OnContentChanged);
             
-            // Subscribe to workspace management events
-            _workspaceManagementMediator.Subscribe<WorkspaceManagementEvents.ProjectClosed>(OnProjectClosed);
-            _workspaceManagementMediator.Subscribe<WorkspaceManagementEvents.ProjectCreated>(OnProjectCreated);
-            _workspaceManagementMediator.Subscribe<WorkspaceManagementEvents.ProjectOpened>(OnProjectOpened);
-            
-            // Wire up side menu selection to mediator
+            // Wire up side menu selection
             SideMenu.SectionChanged += (section) => 
             {
                 if (!string.IsNullOrEmpty(section))
@@ -85,315 +56,59 @@ namespace TestCaseEditorApp.Services
                     _navigationMediator.NavigateToSection(section);
                 }
             };
-        }
-        
-        private void SetNotificationArea(object notificationViewModel)
-        {
-            // Dispose previous notification if it's disposable
-            if (NotificationArea is IDisposable disposableNotification)
-            {
-                disposableNotification.Dispose();
-            }
             
-            NotificationArea = notificationViewModel;
+            // Trigger initial configuration to populate views
+            // Use async task to avoid blocking constructor
+            System.Threading.Tasks.Task.Run(async () =>
+            {
+                // Small delay to ensure all initialization is complete
+                await System.Threading.Tasks.Task.Delay(100);
+                System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+                {
+                    OnSectionChangeRequested(new NavigationEvents.SectionChangeRequested("Default", "Initial"));
+                });
+            });
         }
-        
+
         private void OnSectionChangeRequested(NavigationEvents.SectionChangeRequested request)
         {
-            var targetSection = request.SectionName?.ToLowerInvariant();
-            var currentSection = _navigationMediator.CurrentSection?.ToLowerInvariant();
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Section change requested: '{request.SectionName}' - delegating to configuration service");
             
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Section change requested: '{request.SectionName}' (lowercase: '{targetSection}'), current: '{currentSection}'");
-            
-            // CRITICAL ARCHITECTURAL FIX: Check if already in target section
-            // If we're already in the requested section, this should be a no-op to preserve context
-            if (string.Equals(currentSection, targetSection, StringComparison.OrdinalIgnoreCase))
-            {
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Already in section '{targetSection}' - ignoring duplicate navigation request");
-                return; // No-op: preserve current state and context
-            }
-            
-            // Update side menu selection only if we're actually changing sections
-            SideMenu.SelectedSection = request.SectionName;
-            
-            // Route to appropriate handler based on section
-            switch (targetSection)
-            {
-                case "project": 
-                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewAreaCoordinator] Routing to HandleProjectNavigation");
-                    HandleProjectNavigation(request.Context); break;
-                case "requirements": 
-                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewAreaCoordinator] Routing to HandleRequirementsNavigation");
-                    HandleRequirementsNavigation(request.Context); break;
-                case "testcase": 
-                case "test case creator": 
-                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewAreaCoordinator] Routing to HandleTestCaseGeneratorNavigation");
-                    HandleTestCaseGeneratorNavigation(request.Context); break;
-                case "testflow": 
-                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewAreaCoordinator] Routing to HandleTestFlowNavigation");
-                    HandleTestFlowNavigation(request.Context); break;
-                case "import": 
-                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewAreaCoordinator] Routing to HandleImportNavigation");
-                    HandleImportNavigation(request.Context); break;
-                case "newproject": 
-                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewAreaCoordinator] Routing to HandleNewProjectNavigation");
-                    HandleNewProjectNavigation(request.Context); break;
-                default: 
-                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewAreaCoordinator] Routing to HandleDefaultNavigation");
-                    HandleDefaultNavigation(request.Context); break;
-            }
-            
-            // Complete the navigation - this updates the current section tracking
-            if (!string.IsNullOrEmpty(request.SectionName))
-            {
-                ((NavigationMediator)_navigationMediator).CompleteNavigation(request.SectionName);
-            }
-        }
-        
-        private void OnStepChangeRequested(NavigationEvents.StepChangeRequested request)
-        {
-            // Handle step navigation within current section
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Step change requested: {request.StepId}");
-        }
-        
-        private void OnContentChanged(NavigationEvents.ContentChanged contentChanged)
-        {
-            // Update the workspace content when mediator publishes content changes
-            WorkspaceContent.CurrentContent = contentChanged.ContentViewModel;
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Content updated to: {contentChanged.ContentViewModel?.GetType().Name ?? "<null>"}");
-        }
-        
-        private void OnProjectClosed(WorkspaceManagementEvents.ProjectClosed projectClosed)
-        {
-            // Clear navigation state when project is closed/unloaded
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Project closed: {projectClosed.WorkspacePath}");
-            _navigationMediator.ClearNavigationState();
-            
-            // Navigate to initial/empty state
-            HandleDefaultNavigation(null);
-        }
-        
-        private void OnProjectCreated(WorkspaceManagementEvents.ProjectCreated projectCreated)
-        {
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Project created: {projectCreated.WorkspaceName}");
-        }
-        
-        private void OnProjectOpened(WorkspaceManagementEvents.ProjectOpened projectOpened)
-        {
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Project opened: {projectOpened.WorkspacePath}");
-        }
-        
-        // Public navigation methods (implement IViewAreaCoordinator)
-        public void NavigateToProject() => _navigationMediator.NavigateToSection("Project");
-        public void NavigateToRequirements() => _navigationMediator.NavigateToSection("Requirements");
-        public void NavigateToTestCaseGenerator() => _navigationMediator.NavigateToSection("TestCase");
-        public void NavigateToTestFlow() => _navigationMediator.NavigateToSection("TestFlow");
-        public void NavigateToImport() => _navigationMediator.NavigateToSection("Import");
-        public void NavigateToNewProject() => _navigationMediator.NavigateToSection("NewProject");
-        
-        // Private navigation handlers
-        private void HandleProjectNavigation(object? context)
-        {
-            EnsureWorkspaceHeader();
-            _navigationMediator.SetActiveHeader(_workspaceHeader);
-            HeaderArea.ShowWorkspaceHeader(_workspaceHeader);
-            
-            // Show project content
-            if (_projectContent == null)
-            {
-                _projectContent = _viewModelFactory.CreateProjectViewModel();
-            }
-            _navigationMediator.SetMainContent(_projectContent);
-        }
-
-        private void HandleRequirementsNavigation(object? context)
-        {
-            EnsureTestCaseGeneratorHeader();
-            
-            // CRITICAL: Synchronize current requirement context before header switch
-            // If there's a current requirement being displayed in workspace header, make sure
-            // the TestCaseGeneration domain knows about it so the header shows requirement info
-            SynchronizeCurrentRequirementContext();
-            
-            _navigationMediator.SetActiveHeader(_testCaseGeneratorHeader);
-            HeaderArea.ShowTestCaseGeneratorHeader(_testCaseGeneratorHeader);
-            
-            // Show dedicated requirements workspace view - reuse existing instance to preserve state
-            if (_requirementsContent == null)
-            {
-                _requirementsContent = _viewModelFactory.CreateRequirementsWorkspaceViewModel();
-            }
-            _navigationMediator.SetMainContent(_requirementsContent);
-        }
-
-        private void HandleTestCaseGeneratorNavigation(object? context)
-        {
-            EnsureTestCaseGeneratorHeader();
-            
-            // CRITICAL: Set header in HeaderArea FIRST so the UI binding can see it
-            HeaderArea.ShowTestCaseGeneratorHeader(_testCaseGeneratorHeader);
-            
-            // THEN publish HeaderChanged event so UI knows to update
-            _navigationMediator.SetActiveHeader(_testCaseGeneratorHeader);
-            
-            // Set Test Case Generator notification area
-            SetNotificationArea(_viewModelFactory.CreateTestCaseGeneratorNotificationViewModel());
-            
-            // Show test case generator splash screen
-            var testCaseWorkflow = _viewModelFactory.CreateTestCaseGeneratorSplashScreenViewModel();
-            _navigationMediator.SetMainContent(testCaseWorkflow);
-        }
-
-        private void HandleTestFlowNavigation(object? context)
-        {
-            EnsureWorkspaceHeader();
-            _navigationMediator.SetActiveHeader(_workspaceHeader);
-            HeaderArea.ShowWorkspaceHeader(_workspaceHeader);
-            
-            // Show test flow workflow
-            var testFlowWorkflow = _viewModelFactory.CreatePlaceholderViewModel();
-            _navigationMediator.SetMainContent(testFlowWorkflow);
-        }
-
-        private void HandleImportNavigation(object? context)
-        {
-            EnsureWorkspaceHeader();
-            _navigationMediator.SetActiveHeader(_workspaceHeader);
-            HeaderArea.ShowWorkspaceHeader(_workspaceHeader);
-            
-            // Show import workflow
-            var importWorkflow = _viewModelFactory.CreateImportWorkflowViewModel();
-            _navigationMediator.SetMainContent(importWorkflow);
-        }
-
-        private void HandleNewProjectNavigation(object? context)
-        {
-            EnsureWorkspaceHeader();
-            _navigationMediator.SetActiveHeader(_workspaceHeader);
-            HeaderArea.ShowWorkspaceHeader(_workspaceHeader);
-            
-            // Show new project workflow  
-            var newProjectWorkflow = _viewModelFactory.CreateNewProjectWorkflowViewModel();
-            _navigationMediator.SetMainContent(newProjectWorkflow);
-        }
-        
-        private void HandleDefaultNavigation(object? context)
-        {
-            EnsureWorkspaceHeader();
-            _navigationMediator.SetActiveHeader(_workspaceHeader);
-            HeaderArea.ShowWorkspaceHeader(_workspaceHeader);
-            
-            // Set default notification area
-            SetNotificationArea(_viewModelFactory.CreateDefaultNotificationViewModel());
-            
-            // Don't override the initial content - let SetInitialContent handle the main workspace content
-        }
-
-        private void EnsureWorkspaceHeader()
-        {
-            if (_workspaceHeader == null)
-            {
-                _workspaceHeader = _viewModelFactory.CreateWorkspaceHeaderViewModel();
-            }
-            
-            // Update save status from workspace management mediator
-            _workspaceHeader.UpdateSaveStatus(_workspaceManagementMediator);
-        }
-
-        private void EnsureTestCaseGeneratorHeader()
-        {
-            if (_testCaseGeneratorHeader == null)
-            {
-                _testCaseGeneratorHeader = _viewModelFactory.CreateTestCaseGeneratorHeaderViewModel(_testCaseGenerationMediator);
-            }
-        }
-        
-        /// <summary>
-        /// Synchronizes current requirement context from workspace to TestCaseGeneration domain
-        /// to ensure header displays requirement information consistently across navigation
-        /// </summary>
-        private void SynchronizeCurrentRequirementContext()
-        {
             try
             {
-                // Get current requirement context from workspace header
-                var currentReqTitle = _workspaceHeader?.CurrentRequirementTitle;
-                var currentReqSummary = _workspaceHeader?.CurrentRequirementSummary;
-                
-                // If there's requirement info in workspace header, find matching requirement 
-                // in TestCaseGeneration domain and select it
-                if (!string.IsNullOrEmpty(currentReqTitle) && _testCaseGenerationMediator?.Requirements?.Any() == true)
+                // Lazy-load ViewConfigurationService to avoid circular dependency
+                if (_viewConfigurationService == null)
                 {
-                    // Find requirement that matches the current workspace context
-                    // Parse the title format which is typically "Item - Name"
-                    var titleParts = currentReqTitle.Split(new[] { " - " }, 2, StringSplitOptions.RemoveEmptyEntries);
-                    if (titleParts.Length >= 1)
+                    _viewConfigurationService = App.ServiceProvider?.GetService<IViewConfigurationService>();
+                }
+                
+                if (_viewConfigurationService != null)
+                {
+                    // Delegate to the configuration service to create configuration
+                    _viewConfigurationService.ApplyConfiguration(request.SectionName, request.Context);
+                    
+                    // Now publish the configuration using our navigation mediator
+                    var configuration = _viewConfigurationService.CurrentConfiguration;
+                    if (configuration != null)
                     {
-                        var itemToMatch = titleParts[0].Trim();
-                        
-                        var matchingRequirement = _testCaseGenerationMediator.Requirements
-                            .FirstOrDefault(r => string.Equals(r.Item?.Trim(), itemToMatch, StringComparison.OrdinalIgnoreCase) ||
-                                               string.Equals($"{r.Item} - {r.Name}".Trim(), currentReqTitle.Trim(), StringComparison.OrdinalIgnoreCase));
-                        
-                        if (matchingRequirement != null)
-                        {
-                            // Found matching requirement - select it in TestCaseGeneration domain
-                            _testCaseGenerationMediator.CurrentRequirement = matchingRequirement;
-                            _testCaseGenerationMediator.PublishEvent(new TestCaseGenerationEvents.RequirementSelected
-                            {
-                                Requirement = matchingRequirement,
-                                SelectedBy = "NavigationSync"
-                            });
-                            
-                            System.Diagnostics.Debug.WriteLine($"[ViewAreaCoordinator] Synchronized requirement context: {matchingRequirement.Item} - {matchingRequirement.Name}");
-                        }
-                        else
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[ViewAreaCoordinator] Could not find matching requirement for title: {currentReqTitle}");
-                        }
+                        _navigationMediator.Publish(new ViewConfigurationEvents.ApplyViewConfiguration(configuration));
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Configuration applied and published for: {request.SectionName}");
                     }
                 }
-                else if (_testCaseGenerationMediator?.Requirements?.Any() == true && _testCaseGenerationMediator.CurrentRequirement == null)
+                else
                 {
-                    // No current workspace context, but requirements exist - select first one as fallback
-                    var firstRequirement = _testCaseGenerationMediator.Requirements.First();
-                    _testCaseGenerationMediator.CurrentRequirement = firstRequirement;
-                    _testCaseGenerationMediator.PublishEvent(new TestCaseGenerationEvents.RequirementSelected
-                    {
-                        Requirement = firstRequirement,
-                        SelectedBy = "NavigationFallback"
-                    });
-                    
-                    System.Diagnostics.Debug.WriteLine($"[ViewAreaCoordinator] Selected first requirement as fallback: {firstRequirement.Item} - {firstRequirement.Name}");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[ViewAreaCoordinator] ViewConfigurationService not available for: {request.SectionName}");
                 }
+                
+                // Update side menu selection
+                SideMenu.SelectedSection = request.SectionName;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[ViewAreaCoordinator] Error synchronizing requirement context: {ex.Message}");
-                // Don't let synchronization errors break navigation - continue silently
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[ViewAreaCoordinator] Error applying configuration for {request.SectionName}: {ex.Message}");
+                // Fallback: at least update side menu
+                SideMenu.SelectedSection = request.SectionName;
             }
-        }
-        
-        private void SetInitialContent()
-        {
-            // Use the mediator to publish initial content - views will be subscribed to this
-            var initialStateViewModel = new InitialStateViewModel();
-            _navigationMediator.SetMainContent(initialStateViewModel);
-        }
-        
-        /// <summary>
-        /// Update the current section in breadcrumb and notify subscribers
-        /// </summary>
-        private void UpdateCurrentSection(string? sectionName)
-        {
-            var displayName = sectionName switch
-            {
-                "testcase" or "test case creator" => "Test Case Generator",
-                "requirements" => "Requirements", 
-                "project" => "Project",
-                "testflow" => "Test Flow",
-                _ => sectionName
-            };
         }
     }
 }

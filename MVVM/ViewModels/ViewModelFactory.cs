@@ -47,13 +47,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public IViewAreaCoordinator CreateViewAreaCoordinator()
         {
             var navigationMediator = CreateNavigationMediator();
-            // Get services through dependency injection
+            // Don't resolve ViewConfigurationService here to avoid circular dependency
+            // It will be resolved later when actually needed
             var testCaseAnythingLLMService = App.ServiceProvider?.GetService<TestCaseAnythingLLMService>();
             
-            return new ViewAreaCoordinator(this, navigationMediator, _workspaceManagementMediator!, _testCaseGenerationMediator!, 
-                testCaseAnythingLLMService);
+            return new ViewAreaCoordinator(this, navigationMediator, _workspaceManagementMediator!, _testCaseGenerationMediator!,
+                null, testCaseAnythingLLMService);
         }
-
+        
+        public IViewConfigurationService CreateViewConfigurationService()
+        {
+            return new ViewConfigurationService(this, _workspaceManagementMediator!, _testCaseGenerationMediator!);
+        }
         public WorkspaceHeaderViewModel CreateWorkspaceHeaderViewModel()
         {
             var headerViewModel = new WorkspaceHeaderViewModel();

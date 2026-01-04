@@ -47,17 +47,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// <summary>
         /// Main content workspace area
         /// </summary>
-        public object? MainWorkspace => _viewAreaCoordinator.WorkspaceContent.CurrentContent;
+        public object? MainWorkspace => _viewAreaCoordinator?.WorkspaceContent?.CurrentContent;
         
         /// <summary>
         /// Header workspace area
         /// </summary>
-        public object? HeaderWorkspace => _viewAreaCoordinator.HeaderArea.ActiveHeader;
+        public object? HeaderWorkspace => _viewAreaCoordinator?.HeaderArea?.ActiveHeader;
         
         /// <summary>
         /// Notification workspace area - status indicators below header
         /// </summary>
-        public object? NotificationWorkspace => _viewAreaCoordinator.NotificationArea;
+        public object? NotificationWorkspace => _viewAreaCoordinator?.NotificationArea?.CurrentNotification;
         
         /// <summary>
         /// Navigation workspace area
@@ -134,6 +134,29 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 OnPropertyChanged(nameof(NavigationWorkspace));
                 OnPropertyChanged(nameof(NotificationWorkspace));
             });
+            
+            // Subscribe to configurable ViewModel property changes
+            if (_viewAreaCoordinator.HeaderArea != null)
+            {
+                _viewAreaCoordinator.HeaderArea.PropertyChanged += (_, e) => {
+                    if (e.PropertyName == nameof(_viewAreaCoordinator.HeaderArea.ActiveHeader))
+                        OnPropertyChanged(nameof(HeaderWorkspace));
+                };
+            }
+            if (_viewAreaCoordinator.WorkspaceContent != null)
+            {
+                _viewAreaCoordinator.WorkspaceContent.PropertyChanged += (_, e) => {
+                    if (e.PropertyName == nameof(_viewAreaCoordinator.WorkspaceContent.CurrentContent))
+                        OnPropertyChanged(nameof(MainWorkspace));
+                };
+            }
+            if (_viewAreaCoordinator.NotificationArea != null)
+            {
+                _viewAreaCoordinator.NotificationArea.PropertyChanged += (_, e) => {
+                    if (e.PropertyName == nameof(_viewAreaCoordinator.NotificationArea.CurrentNotification))
+                        OnPropertyChanged(nameof(NotificationWorkspace));
+                };
+            }
             
             _logger?.LogInformation("MainViewModel initialized as simple 5-workspace container");
         }
