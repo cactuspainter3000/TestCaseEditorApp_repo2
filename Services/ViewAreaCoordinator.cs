@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
@@ -191,6 +192,12 @@ namespace TestCaseEditorApp.Services
         private void HandleRequirementsNavigation(object? context)
         {
             EnsureTestCaseGeneratorHeader();
+            
+            // CRITICAL: Synchronize current requirement context before header switch
+            // If there's a current requirement being displayed in workspace header, make sure
+            // the TestCaseGeneration domain knows about it so the header shows requirement info
+            SynchronizeCurrentRequirementContext();
+            
             _navigationMediator.SetActiveHeader(_testCaseGeneratorHeader);
             HeaderArea.ShowTestCaseGeneratorHeader(_testCaseGeneratorHeader);
             
@@ -281,6 +288,72 @@ namespace TestCaseEditorApp.Services
             if (_testCaseGeneratorHeader == null)
             {
                 _testCaseGeneratorHeader = _viewModelFactory.CreateTestCaseGeneratorHeaderViewModel(_testCaseGenerationMediator);
+            }
+        }
+        
+        /// <summary>
+        /// Synchronizes current requirement context from workspace to TestCaseGeneration domain
+        /// to ensure header displays requirement information consistently across navigation
+        /// </summary>
+        private void SynchronizeCurrentRequirementContext()
+        {
+            try
+            {
+                // Get current requirement context from workspace header
+                var currentReqTitle = _workspaceHeader?.CurrentRequirementTitle;
+                var currentReqSummary = _workspaceHeader?.CurrentRequirementSummary;
+                
+                // If there's requirement info in workspace header, find matching requirement 
+                // in TestCaseGeneration domain and select it
+                if (!string.IsNullOrEmpty(currentReqTitle) && _testCaseGenerationMediator?.Requirements?.Any() == true)
+                {
+                    // Find requirement that matches the current workspace context
+                    // Parse the title format which is typically "Item - Name"
+                    var titleParts = currentReqTitle.Split(new[] { " - " }, 2, StringSplitOptions.RemoveEmptyEntries);
+                    if (titleParts.Length >= 1)
+                    {
+                        var itemToMatch = titleParts[0].Trim();
+                        
+                        var matchingRequirement = _testCaseGenerationMediator.Requirements
+                            .FirstOrDefault(r => string.Equals(r.Item?.Trim(), itemToMatch, StringComparison.OrdinalIgnoreCase) ||
+                                               string.Equals($"{r.Item} - {r.Name}".Trim(), currentReqTitle.Trim(), StringComparison.OrdinalIgnoreCase));
+                        
+                        if (matchingRequirement != null)
+                        {
+                            // Found matching requirement - select it in TestCaseGeneration domain
+                            _testCaseGenerationMediator.CurrentRequirement = matchingRequirement;
+                            _testCaseGenerationMediator.PublishEvent(new TestCaseGenerationEvents.RequirementSelected
+                            {
+                                Requirement = matchingRequirement,
+                                SelectedBy = "NavigationSync"
+                            });
+                            
+                            System.Diagnostics.Debug.WriteLine($"[ViewAreaCoordinator] Synchronized requirement context: {matchingRequirement.Item} - {matchingRequirement.Name}");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[ViewAreaCoordinator] Could not find matching requirement for title: {currentReqTitle}");
+                        }
+                    }
+                }
+                else if (_testCaseGenerationMediator?.Requirements?.Any() == true && _testCaseGenerationMediator.CurrentRequirement == null)
+                {
+                    // No current workspace context, but requirements exist - select first one as fallback
+                    var firstRequirement = _testCaseGenerationMediator.Requirements.First();
+                    _testCaseGenerationMediator.CurrentRequirement = firstRequirement;
+                    _testCaseGenerationMediator.PublishEvent(new TestCaseGenerationEvents.RequirementSelected
+                    {
+                        Requirement = firstRequirement,
+                        SelectedBy = "NavigationFallback"
+                    });
+                    
+                    System.Diagnostics.Debug.WriteLine($"[ViewAreaCoordinator] Selected first requirement as fallback: {firstRequirement.Item} - {firstRequirement.Name}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ViewAreaCoordinator] Error synchronizing requirement context: {ex.Message}");
+                // Don't let synchronization errors break navigation - continue silently
             }
         }
         
