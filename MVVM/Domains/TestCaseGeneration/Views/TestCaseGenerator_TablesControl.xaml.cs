@@ -3,7 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using TestCaseEditorApp.MVVM.ViewModels;
 
-namespace TestCaseEditorApp.MVVM.Views
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views
 {
     public partial class TestCaseGenerator_TablesControl : UserControl
     {

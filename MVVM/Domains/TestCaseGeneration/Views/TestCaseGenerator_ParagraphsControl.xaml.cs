@@ -1,7 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 
-namespace TestCaseEditorApp.MVVM.Views
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views
 {
     public partial class TestCaseGenerator_ParagraphsControl : UserControl
     {

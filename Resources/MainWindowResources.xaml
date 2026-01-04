@@ -3,6 +3,7 @@
                     xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
                     xmlns:tcgvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels"
                     xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
+                    xmlns:tcgviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views"
                     xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
                     xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models">
 
@@ -11,11 +12,11 @@
     </DataTemplate>
     
     <DataTemplate DataType="{x:Type tcgvm:TestCaseGeneratorViewModel}">
-        <views:TestCaseGeneratorRequirements_View />
+        <tcgviews:TestCaseGeneratorRequirements_View />
     </DataTemplate>
     
     <DataTemplate DataType="{x:Type vm:TestCaseGeneratorSplashScreenViewModel}">
-        <views:TestCaseGeneratorSplashScreen />
+        <tcgviews:TestCaseGeneratorSplashScreen />
     </DataTemplate>
 
     <Style x:Key="IconButtonStyle" TargetType="Button">

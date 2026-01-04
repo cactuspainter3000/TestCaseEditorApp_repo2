@@ -13,7 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace TestCaseEditorApp.MVVM.Views
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views
 {
     /// <summary>
     /// Interaction logic for TestCaseGenerator_HeaderView.xaml

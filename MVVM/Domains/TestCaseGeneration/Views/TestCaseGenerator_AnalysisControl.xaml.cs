@@ -2,7 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 
-namespace TestCaseEditorApp.MVVM.Views
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views
 {
     public partial class TestCaseGenerator_AnalysisControl : UserControl
     {

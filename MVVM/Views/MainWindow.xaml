@@ -30,19 +30,19 @@
         <!-- Put resources directly in Window.Resources (do NOT nest a ResourceDictionary element here) -->
 
         <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_VM}">
-            <views:TestCaseGeneratorRequirements_View />
+            <tcgviews:TestCaseGeneratorRequirements_View />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_AssumptionsVM}">
-            <views:TestCaseGenerator_AssumptionsView />
+            <tcgviews:TestCaseGenerator_AssumptionsView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_QuestionsVM}">
-            <views:TestCaseGenerator_QuestionsView />
+            <tcgviews:TestCaseGenerator_QuestionsView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_CreationVM}">
-            <views:TestCaseGenerator_CreationView />
+            <tcgviews:TestCaseGenerator_CreationView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:WorkspaceHeaderViewModel}">
@@ -233,7 +233,7 @@
 
         <!-- DataTemplate for TestCaseGenerator_HeaderVM -->
         <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_HeaderVM}">
-            <views:TestCaseGenerator_HeaderView />
+            <tcgviews:TestCaseGenerator_HeaderView />
         </DataTemplate>
 
         <!-- Modal ViewModels DataTemplates -->
@@ -513,7 +513,7 @@
 
             <!-- Navigation area: compact, responsive controls (keeps your original placement) -->
             <!-- Bottom requirement navigation (Grid.Column=2 Grid.Row=8) -->
-            <views:TestCaseGenerator_NavigationControl
+            <tcgviews:TestCaseGenerator_NavigationControl
                 Grid.Column="2"
                 Grid.Row="8"
                 DataContext="{Binding RequirementsNavigator}"/>

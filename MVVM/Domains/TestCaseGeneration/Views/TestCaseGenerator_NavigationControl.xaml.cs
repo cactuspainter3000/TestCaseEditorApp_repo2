@@ -3,7 +3,7 @@ using System.Windows;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using System.ComponentModel;
 
-namespace TestCaseEditorApp.MVVM.Views
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views
 {
     public partial class TestCaseGenerator_NavigationControl : UserControl
     {
