@@ -516,8 +516,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             public void Subscribe<T>(Action<T> handler) where T : class { /* no-op */ }
             public void Unsubscribe<T>(Action<T> handler) where T : class { /* no-op */ }
             public void PublishEvent<T>(T eventData) where T : class { /* no-op */ }
-            public Task CompleteProjectCreationAsync(string workspaceName, string projectName, string projectSavePath, string documentPath) => Task.CompletedTask;
-            public Task CreateNewProjectWithWarningAsync(string workspaceName, string projectName, string projectSavePath, string documentPath) => Task.CompletedTask;
+            public Task<bool> CompleteProjectCreationAsync(string workspaceName, string projectName, string projectSavePath, string documentPath) => Task.FromResult(true);
+            public Task<bool> CreateNewProjectWithWarningAsync(string workspaceName, string projectName, string projectSavePath, string documentPath) => Task.FromResult(true);
             public (bool Success, string FilePath, string ProjectName) ShowSaveProjectDialog(string currentProjectName) => (false, string.Empty, string.Empty);
         }
         

@@ -323,10 +323,19 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
                 TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Calling CreateNewProjectWithWarningAsync with documentPath: '{SelectedDocumentPath}'");
                 
                 // Call the workspace management mediator to complete the project creation with proper warning handling
-                await _workspaceManagementMediator.CreateNewProjectWithWarningAsync(WorkspaceName, ProjectName, ProjectSavePath, SelectedDocumentPath);
+                var creationSuccessful = await _workspaceManagementMediator.CreateNewProjectWithWarningAsync(WorkspaceName, ProjectName, ProjectSavePath, SelectedDocumentPath);
                 
-                // Mark project as created successfully
-                IsProjectCreated = true;
+                // Mark project as created only if requirements import was successful
+                if (creationSuccessful)
+                {
+                    IsProjectCreated = true;
+                }
+                else
+                {
+                    // Reset project created state if requirements import failed
+                    IsProjectCreated = false;
+                    TestCaseEditorApp.Services.Logging.Log.Warn("[PROJECT] Project creation partially failed - requirements import unsuccessful");
+                }
                 
                 // Fire the event for any remaining legacy listeners
                 var args = new NewProjectCompletedEventArgs

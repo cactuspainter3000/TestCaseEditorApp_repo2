@@ -561,6 +561,269 @@ namespace TestCaseEditorApp.Services
         }
 
         /// <summary>
+        /// Configures workspace settings with optimal values for requirements analysis
+        /// </summary>
+        public async Task<bool> ConfigureWorkspaceSettingsAsync(string slug, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Configuring optimal settings for workspace '{slug}'");
+                
+                // Optimal settings based on ANYTHINGLM_OPTIMIZATION_GUIDE.md
+                var settings = new
+                {
+                    // Temperature: 0.3 for consistent, structured responses
+                    openAiTemp = 0.3,
+                    // Context history: 8K+ tokens recommended
+                    openAiHistory = 20, 
+                    // System prompt for requirements analysis
+                    openAiPrompt = GetOptimalSystemPrompt()
+                };
+
+                var json = JsonSerializer.Serialize(settings);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                var response = await _httpClient.PostAsync($"{_baseUrl}/api/v1/workspace/{slug}/update-settings", content, cancellationToken);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Failed to configure workspace settings for '{slug}': {response.StatusCode} - {errorContent}");
+                    
+                    // Try alternative endpoint format
+                    return await TryAlternativeSettingsEndpoint(slug, settings, cancellationToken);
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Successfully configured workspace settings for '{slug}'");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error configuring workspace settings for '{slug}'");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Try alternative endpoint for workspace settings configuration
+        /// </summary>
+        private async Task<bool> TryAlternativeSettingsEndpoint(string slug, object settings, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(settings);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                // Try alternative endpoint format
+                var response = await _httpClient.PutAsync($"{_baseUrl}/api/v1/workspace/{slug}/settings", content, cancellationToken);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Successfully configured workspace settings using alternative endpoint for '{slug}'");
+                    return true;
+                }
+                
+                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Alternative settings endpoint also failed for '{slug}': {response.StatusCode} - {errorContent}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error with alternative settings endpoint for '{slug}'");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets the optimal system prompt for requirements analysis based on the optimization guide
+        /// </summary>
+        private static string GetOptimalSystemPrompt()
+        {
+            return @"You are a requirements quality analyst. When analyzing requirements:
+1. Always respond in valid JSON format when requested
+2. Focus on providing specific, actionable improvements 
+3. In SuggestedEdit fields, provide actual rewritten text, not instructions
+4. Be concise but thorough in your analysis
+5. Only suggest improvements based on information available in the requirement
+6. Rate quality scores consistently: 1-3=Poor, 4-6=Fair, 7-8=Good, 9-10=Excellent";
+        }
+
+        /// <summary>
+        /// Uploads the optimization guide as a training document to the workspace
+        /// </summary>
+        public async Task<bool> UploadOptimizationGuideAsync(string slug, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Uploading optimization guide to workspace '{slug}'");
+                
+                // Get the optimization guide content
+                var guidePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Config", "ANYTHINGLM_OPTIMIZATION_GUIDE.md");
+                
+                if (!File.Exists(guidePath))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Optimization guide not found at: {guidePath}");
+                    return false;
+                }
+
+                var guideContent = await File.ReadAllTextAsync(guidePath, cancellationToken);
+                
+                // Create multipart form data for file upload
+                using var formData = new MultipartFormDataContent();
+                using var fileContent = new StringContent(guideContent);
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/markdown");
+                formData.Add(fileContent, "file", "ANYTHINGLM_OPTIMIZATION_GUIDE.md");
+                
+                var response = await _httpClient.PostAsync($"{_baseUrl}/api/v1/workspace/{slug}/upload", formData, cancellationToken);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Failed to upload optimization guide to '{slug}': {response.StatusCode} - {errorContent}");
+                    
+                    // Try alternative upload approach using document endpoint
+                    return await TryAlternativeDocumentUpload(slug, guideContent, cancellationToken);
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Successfully uploaded optimization guide to workspace '{slug}'");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error uploading optimization guide to workspace '{slug}'");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Try alternative document upload approach
+        /// </summary>
+        private async Task<bool> TryAlternativeDocumentUpload(string slug, string content, CancellationToken cancellationToken)
+        {
+            try
+            {
+                // Try uploading as a document via text content
+                var document = new
+                {
+                    name = "ANYTHINGLM_OPTIMIZATION_GUIDE.md",
+                    content = content,
+                    type = "text"
+                };
+
+                var json = JsonSerializer.Serialize(document);
+                var httpContent = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                var response = await _httpClient.PostAsync($"{_baseUrl}/api/v1/workspace/{slug}/document", httpContent, cancellationToken);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Successfully uploaded optimization guide using document endpoint for '{slug}'");
+                    return true;
+                }
+                
+                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Document upload also failed for '{slug}': {response.StatusCode} - {errorContent}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error with document upload for '{slug}'");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Creates a new workspace with automated optimization configuration
+        /// Implements the automated setup described in ANYTHINGLM_OPTIMIZATION_GUIDE.md
+        /// </summary>
+        public async Task<(Workspace? workspace, bool configurationSuccessful)> CreateAndConfigureWorkspaceAsync(
+            string baseName, 
+            Action<string>? onProgress = null,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                // Generate smart name for Test Case Editor projects
+                var workspaceName = GenerateSmartWorkspaceName(baseName);
+                onProgress?.Invoke($"Creating workspace: {workspaceName}...");
+                
+                // Step 1: Create the workspace
+                var workspace = await CreateWorkspaceAsync(workspaceName, cancellationToken);
+                if (workspace == null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Failed to create workspace '{workspaceName}'");
+                    return (null, false);
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Created workspace '{workspaceName}' - applying automated configuration...");
+                onProgress?.Invoke("Applying optimal settings...");
+
+                bool configurationSuccessful = true;
+
+                // Step 2: Configure optimal settings (temperature, system prompt, context limits)
+                var settingsResult = await ConfigureWorkspaceSettingsAsync(workspace.Slug, cancellationToken);
+                if (!settingsResult)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Failed to configure settings for workspace '{workspaceName}', but continuing...");
+                    configurationSuccessful = false;
+                }
+
+                onProgress?.Invoke("Uploading optimization guide...");
+
+                // Step 3: Upload optimization guide as training document
+                var uploadResult = await UploadOptimizationGuideAsync(workspace.Slug, cancellationToken);
+                if (!uploadResult)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Failed to upload optimization guide for workspace '{workspaceName}', but continuing...");
+                    configurationSuccessful = false;
+                }
+
+                if (configurationSuccessful)
+                {
+                    onProgress?.Invoke("✅ Workspace ready with optimized settings!");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Successfully created and configured workspace '{workspaceName}' with all optimizations");
+                }
+                else
+                {
+                    onProgress?.Invoke("⚠️ Workspace created but some optimizations failed");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Workspace '{workspaceName}' created but some configuration steps failed");
+                }
+
+                return (workspace, configurationSuccessful);
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error during automated workspace creation and configuration");
+                onProgress?.Invoke($"❌ Error: {ex.Message}");
+                return (null, false);
+            }
+        }
+
+        /// <summary>
+        /// Generates smart workspace names for Test Case Editor projects
+        /// </summary>
+        private static string GenerateSmartWorkspaceName(string baseName)
+        {
+            // Sanitize the base name
+            var sanitized = System.Text.RegularExpressions.Regex.Replace(baseName, @"[^\w\s-]", "");
+            sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized, @"\s+", " ").Trim();
+            
+            // If empty or too short, use default
+            if (string.IsNullOrWhiteSpace(sanitized) || sanitized.Length < 3)
+            {
+                sanitized = "Requirements Analysis";
+            }
+
+            // Ensure it starts with "Test Case Editor" for easy identification
+            if (!sanitized.StartsWith("Test Case Editor", StringComparison.OrdinalIgnoreCase))
+            {
+                return $"Test Case Editor - {sanitized}";
+            }
+
+            return sanitized;
+        }
+
+        /// <summary>
         /// Sends a chat message to a workspace with streaming response and progress updates
         /// </summary>
         public async Task<string?> SendChatMessageStreamingAsync(

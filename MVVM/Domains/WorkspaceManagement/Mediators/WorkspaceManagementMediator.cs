@@ -633,8 +633,10 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
         /// <summary>
         /// Complete project creation with workspace details, requirements import, and workspace setup
         /// </summary>
-        public async Task CompleteProjectCreationAsync(string workspaceName, string projectName, string projectSavePath, string documentPath)
+        public async Task<bool> CompleteProjectCreationAsync(string workspaceName, string projectName, string projectSavePath, string documentPath)
         {
+            bool requirementsImportedSuccessfully = true;
+            
             try
             {
                 _logger.LogInformation("🔍 CompleteProjectCreationAsync called - documentPath: '{DocumentPath}', exists: {Exists}", 
@@ -678,9 +680,16 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                                 importedRequirements = await Task.Run(() => _requirementService.ImportRequirementsFromWord(documentPath));
                             }
                             
-                            // Broadcast imported requirements to TestCaseGenerationMediator for UI sync
-                            if (importedRequirements.Count > 0)
+                            // Check if any requirements were successfully imported
+                            if (importedRequirements.Count == 0)
                             {
+                                requirementsImportedSuccessfully = false;
+                                _logger.LogWarning("⚠️ No requirements found in document: {DocumentPath}", documentPath);
+                                ShowNotification($"Warning: No requirements found in the document. Project created but requirements import failed.", DomainNotificationType.Warning);
+                            }
+                            else
+                            {
+                                // Broadcast imported requirements to TestCaseGenerationMediator for UI sync
                                 BroadcastToAllDomains(new TestCaseGenerationEvents.RequirementsImported
                                 {
                                     Requirements = importedRequirements,
@@ -692,13 +701,16 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                         }
                         else
                         {
+                            requirementsImportedSuccessfully = false;
                             _logger.LogWarning("❌ Could not get RequirementService from DI container");
+                            ShowNotification("Warning: Requirements service not available. Project created but requirements import failed.", DomainNotificationType.Warning);
                         }
                     }
                     catch (Exception ex)
                     {
+                        requirementsImportedSuccessfully = false;
                         _logger.LogError(ex, "❌ Error importing requirements from {DocumentPath}", documentPath);
-                        ShowNotification($"Error importing requirements: {ex.Message}", DomainNotificationType.Warning);
+                        ShowNotification($"Requirements import failed: {ex.Message}. Project created but requirements were not imported.", DomainNotificationType.Warning);
                     }
                 }
                 
@@ -753,15 +765,27 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 _logger.LogInformation("📡 Broadcasting ProjectCreated event to other domains: {ProjectName}", displayProjectName);
                 BroadcastToAllDomains(projectCreatedEvent);
                 
-                // Show success notification
-                ShowNotification(
-                    $"Project '{displayProjectName}' created successfully! Navigate to 'Requirements' to see imported data.", 
-                    DomainNotificationType.Success);
+                // Show success notification with appropriate message based on import success
+                if (requirementsImportedSuccessfully)
+                {
+                    ShowNotification(
+                        $"Project '{displayProjectName}' created successfully! Navigate to 'Requirements' to see imported data.", 
+                        DomainNotificationType.Success);
+                }
+                else
+                {
+                    ShowNotification(
+                        $"Project '{displayProjectName}' created but requirements import failed. You can manually import requirements later.", 
+                        DomainNotificationType.Warning);
+                }
                     
                 HideProgress();
                 
                 // Navigate to active project state
                 NavigateToStep("ProjectActive", _currentWorkspaceInfo);
+                
+                // Return success status - true if project was created, but indicate if requirements import failed
+                return requirementsImportedSuccessfully;
             }
             catch (Exception ex)
             {
@@ -775,14 +799,14 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 
                 ShowNotification($"Error creating project: {ex.Message}", DomainNotificationType.Error);
                 HideProgress();
-                throw; // Re-throw to let the caller handle the error
+                return false; // Return false instead of throwing to allow graceful handling
             }
         }
         
         /// <summary>
         /// Create a new project with proper warning if another project is currently open
         /// </summary>
-        public async Task CreateNewProjectWithWarningAsync(string workspaceName, string projectName, string projectSavePath, string documentPath)
+        public async Task<bool> CreateNewProjectWithWarningAsync(string workspaceName, string projectName, string projectSavePath, string documentPath)
         {
             try
             {
@@ -805,12 +829,12 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                     if (!continueCreation)
                     {
                         ShowNotification("Project creation cancelled.", DomainNotificationType.Info);
-                        return;
+                        return false;
                     }
                 }
                 
                 // Proceed with project creation
-                await CompleteProjectCreationAsync(workspaceName, projectName, projectSavePath, documentPath);
+                return await CompleteProjectCreationAsync(workspaceName, projectName, projectSavePath, documentPath);
             }
             catch (Exception ex)
             {
@@ -823,7 +847,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 });
                 
                 ShowNotification($"Error creating project: {ex.Message}", DomainNotificationType.Error);
-                throw;
+                return false;
             }
         }
         

@@ -117,19 +117,33 @@ public partial class LLMServiceManagementViewModel : ObservableObject
             }
             else
             {
-                // Create new workspace
+                // Create new workspace with automated optimization configuration
                 if (workspaceHeaderViewModel != null)
                 {
-                    workspaceHeaderViewModel.RagStatusMessage = "Creating RAG workspace...";
+                    workspaceHeaderViewModel.RagStatusMessage = "Creating optimized RAG workspace...";
                 }
 
-                var newWorkspace = await _anythingLLMService.CreateWorkspaceAsync(workspaceName);
+                var (newWorkspace, configurationSuccessful) = await _anythingLLMService.CreateAndConfigureWorkspaceAsync(
+                    workspaceName,
+                    onProgress: (message) => {
+                        if (workspaceHeaderViewModel != null)
+                        {
+                            workspaceHeaderViewModel.RagStatusMessage = message;
+                        }
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] {message}");
+                    });
+
                 if (newWorkspace != null)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Created new workspace: {newWorkspace.Name}");
+                    
+                    var statusMessage = configurationSuccessful 
+                        ? "✅ RAG workspace ready with optimized settings"
+                        : "⚠️ RAG workspace created, some optimizations failed";
+                    
                     if (workspaceHeaderViewModel != null)
                     {
-                        workspaceHeaderViewModel.RagStatusMessage = "RAG workspace created successfully";
+                        workspaceHeaderViewModel.RagStatusMessage = statusMessage;
                     }
                     
                     // Show success message in status
