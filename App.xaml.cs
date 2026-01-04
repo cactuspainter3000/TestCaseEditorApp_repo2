@@ -86,7 +86,22 @@ namespace TestCaseEditorApp
 
                     // LLM services (shared infrastructure)
                     services.AddSingleton<ITextGenerationService>(_ => LlmFactory.Create());
-                    services.AddSingleton<RequirementAnalysisService>();
+                    
+                    // LLM Health Monitoring
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor>(provider =>
+                    {
+                        var primaryLlmService = LlmFactory.Create();
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor>>();
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor(primaryLlmService, logger);
+                    });
+                    
+                    // Enhanced RequirementAnalysisService with health monitoring
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService>(provider =>
+                    {
+                        var primaryLlmService = LlmFactory.Create();
+                        var healthMonitor = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor>();
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService(primaryLlmService, healthMonitor);
+                    });
                     services.AddSingleton<AnythingLLMService>(provider =>
                         new AnythingLLMService()); // Let it get baseUrl and apiKey from defaults/user config
                     services.AddSingleton<TestCaseAnythingLLMService>();
@@ -109,7 +124,7 @@ namespace TestCaseEditorApp
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.TestCaseGenerationMediator>>();
                         var uiCoordinator = provider.GetRequiredService<IDomainUICoordinator>();
                         var requirementService = provider.GetRequiredService<IRequirementService>();
-                        var analysisService = provider.GetRequiredService<RequirementAnalysisService>();
+                        var analysisService = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService>();
                         var llmService = provider.GetRequiredService<ITextGenerationService>();
                         var scrubber = provider.GetRequiredService<IRequirementDataScrubber>();
                         var performanceMonitor = provider.GetService<PerformanceMonitoringService>();

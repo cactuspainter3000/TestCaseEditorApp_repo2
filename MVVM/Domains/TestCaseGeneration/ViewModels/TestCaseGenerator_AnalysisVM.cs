@@ -50,6 +50,38 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             private set => SetProperty(ref _currentRequirement, value);
         }
 
+        /// <summary>
+        /// Current health status of the LLM service
+        /// </summary>
+        public LlmServiceHealthMonitor.HealthReport? ServiceHealth => _analysisService.ServiceHealth;
+
+        /// <summary>
+        /// Whether the LLM service is currently using fallback mode
+        /// </summary>
+        public bool IsUsingFallback => _analysisService.IsUsingFallback;
+
+        /// <summary>
+        /// Text description of the current LLM service status
+        /// </summary>
+        public string ServiceStatusText
+        {
+            get
+            {
+                var health = ServiceHealth;
+                if (health == null) return "LLM Status: Unknown";
+
+                return health.Status switch
+                {
+                    LlmServiceHealthMonitor.HealthStatus.Healthy => $"LLM Status: Healthy ({health.ServiceType})",
+                    LlmServiceHealthMonitor.HealthStatus.Degraded => $"LLM Status: Slow ({health.ServiceType})",
+                    LlmServiceHealthMonitor.HealthStatus.Unavailable when IsUsingFallback => 
+                        $"LLM Status: Using Fallback ({health.ServiceType} unavailable)",
+                    LlmServiceHealthMonitor.HealthStatus.Unavailable => $"LLM Status: Unavailable ({health.ServiceType})",
+                    _ => "LLM Status: Unknown"
+                };
+            }
+        }
+
         public TestCaseGenerator_AnalysisVM(ITestCaseGenerationMediator mediator, ILogger<TestCaseGenerator_AnalysisVM> logger, RequirementAnalysisService analysisService, ITextGenerationService? llmService = null)
             : base(mediator, logger)
         {
@@ -251,6 +283,15 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
             try
             {
+                // Check service health before starting analysis
+                var serviceHealth = await _analysisService.GetDetailedHealthAsync();
+                if (serviceHealth?.Status == LlmServiceHealthMonitor.HealthStatus.Unavailable && !_analysisService.IsUsingFallback)
+                {
+                    AnalysisStatusMessage = $"LLM service unavailable ({serviceHealth.ServiceType}). Please check connection.";
+                    OnPropertyChanged(nameof(ServiceStatusText));
+                    return;
+                }
+
                 // Set busy flag to prevent navigation
                 TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Setting IsLlmBusy = true");
                 // Note: LLM busy state should be managed via mediator events
@@ -258,7 +299,20 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 // Clear existing analysis and show spinner
                 HasAnalysis = false;
                 IsAnalyzing = true;
-                AnalysisStatusMessage = "Analyzing requirement quality...";
+                
+                // Update status message based on service health
+                if (_analysisService.IsUsingFallback)
+                {
+                    AnalysisStatusMessage = "Analyzing requirement quality (using fallback mode)...";
+                }
+                else if (serviceHealth?.Status == LlmServiceHealthMonitor.HealthStatus.Degraded)
+                {
+                    AnalysisStatusMessage = "Analyzing requirement quality (service responding slowly)...";
+                }
+                else
+                {
+                    AnalysisStatusMessage = "Analyzing requirement quality...";
+                }
 
                 TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] About to call AnalyzeRequirementAsync on service");
 
@@ -280,21 +334,30 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 // Single UI refresh to avoid duplicate displays
                 OnPropertyChanged(nameof(Recommendations));
                 OnPropertyChanged(nameof(HasAnalysis));
+                OnPropertyChanged(nameof(ServiceStatusText)); // Update service status display
                 TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] UI refresh for analysis results");
                 
                 if (analysis.IsAnalyzed)
                 {
-                    AnalysisStatusMessage = $"Analysis complete. Quality score: {analysis.QualityScore}/10";
+                    var statusSuffix = _analysisService.IsUsingFallback ? " (fallback mode)" : "";
+                    AnalysisStatusMessage = $"Analysis complete. Quality score: {analysis.QualityScore}/10{statusSuffix}";
                 }
                 else
                 {
-                    AnalysisStatusMessage = $"Analysis failed: {analysis.ErrorMessage}";
+                    var fallbackInfo = _analysisService.IsUsingFallback ? " (Note: LLM service unavailable, using fallback)" : "";
+                    AnalysisStatusMessage = $"Analysis failed: {analysis.ErrorMessage}{fallbackInfo}";
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                AnalysisStatusMessage = "Analysis was cancelled";
+                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Analysis cancelled");
             }
             catch (Exception ex)
             {
-                AnalysisStatusMessage = $"Error: {ex.Message}";
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Analysis error: {ex}");
+                var fallbackInfo = _analysisService.IsUsingFallback ? " (fallback mode active)" : "";
+                AnalysisStatusMessage = $"Analysis error: {ex.Message}{fallbackInfo}";
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnalysisVM] Analysis error");
             }
             finally
             {

@@ -19,6 +19,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
     {
         private readonly ITextGenerationService _llmService;
         private readonly RequirementAnalysisPromptBuilder _promptBuilder;
+        private readonly LlmServiceHealthMonitor? _healthMonitor;
         private string? _cachedSystemMessage;
         
         /// <summary>
@@ -26,9 +27,26 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         /// </summary>
         public bool EnableSelfReflection { get; set; } = false;
 
+        /// <summary>
+        /// Current health status of the LLM service (null if no health monitor configured)
+        /// </summary>
+        public LlmServiceHealthMonitor.HealthReport? ServiceHealth => _healthMonitor?.CurrentHealth;
+
+        /// <summary>
+        /// Whether the service is currently using fallback mode
+        /// </summary>
+        public bool IsUsingFallback => _healthMonitor?.IsUsingFallback ?? false;
+
         public RequirementAnalysisService(ITextGenerationService llmService)
         {
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
+            _promptBuilder = new RequirementAnalysisPromptBuilder();
+        }
+
+        public RequirementAnalysisService(ITextGenerationService llmService, LlmServiceHealthMonitor healthMonitor)
+        {
+            _llmService = healthMonitor?.GetHealthyService() ?? throw new ArgumentNullException(nameof(llmService));
+            _healthMonitor = healthMonitor ?? throw new ArgumentNullException(nameof(healthMonitor));
             _promptBuilder = new RequirementAnalysisPromptBuilder();
         }
 
@@ -543,6 +561,15 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         {
             try
             {
+                // Use health monitor if available
+                if (_healthMonitor != null)
+                {
+                    var health = await _healthMonitor.CheckHealthAsync(cancellationToken);
+                    return health.Status == LlmServiceHealthMonitor.HealthStatus.Healthy || 
+                           health.Status == LlmServiceHealthMonitor.HealthStatus.Degraded;
+                }
+
+                // Fallback to direct service test
                 var testPrompt = "Return only: {\"test\":\"ok\"}";
                 var response = await _llmService.GenerateAsync(testPrompt, cancellationToken);
                 return !string.IsNullOrWhiteSpace(response);
@@ -551,6 +578,17 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             {
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Get detailed service health information including response times and error details.
+        /// </summary>
+        public async Task<LlmServiceHealthMonitor.HealthReport?> GetDetailedHealthAsync(CancellationToken cancellationToken = default)
+        {
+            if (_healthMonitor == null)
+                return null;
+
+            return await _healthMonitor.CheckHealthAsync(cancellationToken);
         }
 
         /// <summary>
