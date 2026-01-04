@@ -18,11 +18,11 @@
     <Grid Background="{StaticResource Brush.Background.Menu}">
         <ScrollViewer VerticalScrollBarVisibility="Auto" 
                       HorizontalScrollBarVisibility="Disabled"
-                      Padding="20">
+                      Padding="10">
             <StackPanel VerticalAlignment="Top" 
                         HorizontalAlignment="Center" 
                         MaxWidth="600"
-                        Margin="20,40,20,40">
+                        Margin="10,20,10,20">
             
             <!-- Project header -->
             <TextBlock Text="Project"
@@ -30,7 +30,7 @@
                        FontWeight="Light"
                        Foreground="{StaticResource Brush.Accent.Primary}"
                        TextAlignment="Center"
-                       Margin="0,0,0,20"/>
+                       Margin="0,0,0,15"/>
             
             <!-- Description -->
             <TextBlock Text="Manage your test case projects and workspace settings"
@@ -38,13 +38,13 @@
                        Foreground="{StaticResource Brush.Text.Secondary}"
                        TextAlignment="Center"
                        TextWrapping="Wrap"
-                       Margin="0,0,0,20"/>
+                       Margin="0,0,0,15"/>
                        
             <!-- AnythingLLM Status Section -->
             <Border Background="{StaticResource Brush.Background.Header}"
                     CornerRadius="6"
-                    Padding="20,15"
-                    Margin="0,0,0,20"
+                    Padding="15,10"
+                    Margin="0,0,0,15"
                     HorizontalAlignment="Center">
                 <StackPanel Orientation="Horizontal"
                            HorizontalAlignment="Center">
@@ -102,30 +102,30 @@
             <!-- Project management section -->
             <Border Background="{StaticResource Brush.Background.Menu.Selected}"
                     CornerRadius="8"
-                    Padding="30"
-                    Margin="0,20,0,0">
+                    Padding="20"
+                    Margin="0,10,0,0">
                 <StackPanel>
                     <TextBlock Text="Project Management"
                                FontSize="18"
                                FontWeight="SemiBold"
                                Foreground="{StaticResource Brush.Accent.Primary}"
-                               Margin="0,0,0,20"/>
+                               Margin="0,0,0,15"/>
                     
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <TextBlock Text="•" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,10,0" VerticalAlignment="Top"/>
                         <TextBlock Text="Create and manage test case generation projects"
                                    Foreground="{StaticResource Brush.Text.Secondary}"
                                    TextWrapping="Wrap"/>
                     </StackPanel>
                     
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <TextBlock Text="•" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,10,0" VerticalAlignment="Top"/>
                         <TextBlock Text="Configure workspace settings and preferences"
                                    Foreground="{StaticResource Brush.Text.Secondary}"
                                    TextWrapping="Wrap"/>
                     </StackPanel>
                     
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <TextBlock Text="•" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,10,0" VerticalAlignment="Top"/>
                         <TextBlock Text="Set up project-specific templates and configurations"
                                    Foreground="{StaticResource Brush.Text.Secondary}"
