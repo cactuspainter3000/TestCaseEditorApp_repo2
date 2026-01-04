@@ -82,6 +82,28 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             }
         }
 
+        /// <summary>
+        /// Cache statistics for display in UI
+        /// </summary>
+        public RequirementAnalysisCache.CacheStatistics? CacheStatistics => _analysisService.CacheStatistics;
+
+        /// <summary>
+        /// Human-readable cache performance summary
+        /// </summary>
+        public string CachePerformanceText
+        {
+            get
+            {
+                var stats = CacheStatistics;
+                if (stats == null) return "Cache: Disabled";
+
+                if (stats.TotalRequests == 0)
+                    return "Cache: No requests yet";
+
+                return $"Cache: {stats.CacheHits}/{stats.TotalRequests} hits ({stats.HitRate:F1}%), {stats.TotalTimeSaved.TotalSeconds:F0}s saved";
+            }
+        }
+
         public TestCaseGenerator_AnalysisVM(ITestCaseGenerationMediator mediator, ILogger<TestCaseGenerator_AnalysisVM> logger, RequirementAnalysisService analysisService, ITextGenerationService? llmService = null)
             : base(mediator, logger)
         {
@@ -98,6 +120,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
             AnalyzeRequirementCommand = new AsyncRelayCommand(AnalyzeRequirementAsync, CanAnalyzeRequirement);
             EditRequirementCommand = new RelayCommand(EditRequirement, CanEditRequirement);
+            
+            // Cache management commands
+            ClearCacheCommand = new RelayCommand(ClearAnalysisCache, () => _analysisService.CacheStatistics?.TotalEntries > 0);
+            InvalidateCurrentCacheCommand = new RelayCommand(InvalidateCurrentCache, () => CurrentRequirement != null);
 
             Title = "Requirement Analysis";
             // Initial load
@@ -115,10 +141,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             RefreshAnalysisDisplay();
             OnPropertyChanged(nameof(HasAnalysis));
             OnPropertyChanged(nameof(AnalysisQualityScore));
+            OnPropertyChanged(nameof(CacheStatistics));
+            OnPropertyChanged(nameof(CachePerformanceText));
+            OnPropertyChanged(nameof(ServiceStatusText));
             
             // Update command states
             ((AsyncRelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
             ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
+            ((RelayCommand)InvalidateCurrentCacheCommand).NotifyCanExecuteChanged();
         }
         
         /// <summary>
@@ -159,6 +189,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         public ICommand AnalyzeRequirementCommand { get; }
         public ICommand EditRequirementCommand { get; }
         public IAsyncRelayCommand? ReAnalyzeCommand { get; private set; }
+        
+        // Cache management commands
+        public ICommand ClearCacheCommand { get; }
+        public ICommand InvalidateCurrentCacheCommand { get; }
 
         private bool CanAnalyzeRequirement()
         {
@@ -335,6 +369,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 OnPropertyChanged(nameof(Recommendations));
                 OnPropertyChanged(nameof(HasAnalysis));
                 OnPropertyChanged(nameof(ServiceStatusText)); // Update service status display
+                OnPropertyChanged(nameof(CacheStatistics)); // Update cache statistics
+                OnPropertyChanged(nameof(CachePerformanceText)); // Update cache performance text
                 TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] UI refresh for analysis results");
                 
                 if (analysis.IsAnalyzed)
@@ -497,6 +533,47 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                    normalized == "n/a";
         }
         public bool HasNoAnalysis => !HasAnalysis;
+
+        // ===== CACHE MANAGEMENT =====
+        
+        private void ClearAnalysisCache()
+        {
+            try
+            {
+                _analysisService.ClearAnalysisCache();
+                OnPropertyChanged(nameof(CacheStatistics));
+                OnPropertyChanged(nameof(CachePerformanceText));
+                
+                // Update command states
+                ((RelayCommand)ClearCacheCommand).NotifyCanExecuteChanged();
+                
+                TestCaseEditorApp.Services.Logging.Log.Info("[AnalysisVM] User cleared analysis cache");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnalysisVM] Error clearing cache");
+            }
+        }
+        
+        private void InvalidateCurrentCache()
+        {
+            try
+            {
+                var requirement = CurrentRequirement;
+                if (requirement?.GlobalId != null)
+                {
+                    _analysisService.InvalidateCache(requirement.GlobalId);
+                    OnPropertyChanged(nameof(CacheStatistics));
+                    OnPropertyChanged(nameof(CachePerformanceText));
+                    
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnalysisVM] User invalidated cache for requirement {requirement.GlobalId}");
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnalysisVM] Error invalidating current cache");
+            }
+        }
 
         // ===== ABSTRACT METHOD IMPLEMENTATIONS =====
         

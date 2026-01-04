@@ -20,12 +20,18 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         private readonly ITextGenerationService _llmService;
         private readonly RequirementAnalysisPromptBuilder _promptBuilder;
         private readonly LlmServiceHealthMonitor? _healthMonitor;
+        private readonly RequirementAnalysisCache? _cache;
         private string? _cachedSystemMessage;
         
         /// <summary>
         /// Enable/disable self-reflection feature. When enabled, the LLM will review its own responses for quality.
         /// </summary>
         public bool EnableSelfReflection { get; set; } = false;
+
+        /// <summary>
+        /// Enable/disable caching of analysis results. When enabled, identical requirement content will use cached results.
+        /// </summary>
+        public bool EnableCaching { get; set; } = true;
 
         /// <summary>
         /// Current health status of the LLM service (null if no health monitor configured)
@@ -37,16 +43,22 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         /// </summary>
         public bool IsUsingFallback => _healthMonitor?.IsUsingFallback ?? false;
 
+        /// <summary>
+        /// Current cache statistics (null if no cache configured)
+        /// </summary>
+        public RequirementAnalysisCache.CacheStatistics? CacheStatistics => _cache?.GetStatistics();
+
         public RequirementAnalysisService(ITextGenerationService llmService)
         {
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
             _promptBuilder = new RequirementAnalysisPromptBuilder();
         }
 
-        public RequirementAnalysisService(ITextGenerationService llmService, LlmServiceHealthMonitor healthMonitor)
+        public RequirementAnalysisService(ITextGenerationService llmService, LlmServiceHealthMonitor healthMonitor, RequirementAnalysisCache? cache = null)
         {
             _llmService = healthMonitor?.GetHealthyService() ?? throw new ArgumentNullException(nameof(llmService));
             _healthMonitor = healthMonitor ?? throw new ArgumentNullException(nameof(healthMonitor));
+            _cache = cache;
             _promptBuilder = new RequirementAnalysisPromptBuilder();
         }
 
@@ -64,6 +76,18 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 throw new ArgumentNullException(nameof(requirement));
 
             TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] ENTERING analysis for requirement {requirement.Item}");
+
+            // Check cache first if enabled
+            if (EnableCaching && _cache != null)
+            {
+                if (_cache.TryGet(requirement, out var cachedAnalysis) && cachedAnalysis != null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Using CACHED analysis for requirement {requirement.Item}");
+                    return cachedAnalysis;
+                }
+            }
+
+            var analysisStartTime = DateTime.UtcNow;
 
             try
             {
@@ -180,6 +204,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
 
                 // Set timestamp
                 analysis.Timestamp = DateTime.Now;
+
+                // Cache the successful analysis result if caching is enabled
+                if (EnableCaching && _cache != null && analysis.IsAnalyzed)
+                {
+                    var analysisDuration = DateTime.UtcNow - analysisStartTime;
+                    _cache.Set(requirement, analysis, analysisDuration);
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysisService] Cached analysis result for {requirement.Item} (duration: {analysisDuration.TotalMilliseconds:F0}ms)");
+                }
 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] EXITING analysis for requirement {requirement.Item} - Success: {analysis.IsAnalyzed}");
 
@@ -589,6 +621,38 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 return null;
 
             return await _healthMonitor.CheckHealthAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Invalidate cached analysis for a specific requirement (e.g., when content changes).
+        /// </summary>
+        public void InvalidateCache(string requirementGlobalId)
+        {
+            if (_cache == null || !EnableCaching)
+                return;
+
+            _cache.Invalidate(requirementGlobalId);
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysisService] Invalidated cache for requirement {requirementGlobalId}");
+        }
+
+        /// <summary>
+        /// Clear all cached analysis results.
+        /// </summary>
+        public void ClearAnalysisCache()
+        {
+            if (_cache == null)
+                return;
+
+            _cache.Clear();
+            TestCaseEditorApp.Services.Logging.Log.Info("[RequirementAnalysisService] Cleared all analysis cache");
+        }
+
+        /// <summary>
+        /// Get comprehensive cache performance statistics.
+        /// </summary>
+        public RequirementAnalysisCache.CacheStatistics? GetCacheStatistics()
+        {
+            return _cache?.GetStatistics();
         }
 
         /// <summary>

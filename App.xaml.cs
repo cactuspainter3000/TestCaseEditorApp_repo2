@@ -95,12 +95,24 @@ namespace TestCaseEditorApp
                         return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor(primaryLlmService, logger);
                     });
                     
-                    // Enhanced RequirementAnalysisService with health monitoring
+                    // LLM Analysis Caching
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisCache>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisCache>>();
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisCache(
+                            logger,
+                            maxCacheSize: 500, // Cache up to 500 analysis results
+                            maxAge: TimeSpan.FromHours(8), // Cache expires after 8 hours
+                            cleanupInterval: TimeSpan.FromMinutes(30)); // Cleanup every 30 minutes
+                    });
+                    
+                    // Enhanced RequirementAnalysisService with health monitoring and caching
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService>(provider =>
                     {
                         var primaryLlmService = LlmFactory.Create();
                         var healthMonitor = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor>();
-                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService(primaryLlmService, healthMonitor);
+                        var cache = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisCache>();
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService(primaryLlmService, healthMonitor, cache);
                     });
                     services.AddSingleton<AnythingLLMService>(provider =>
                         new AnythingLLMService()); // Let it get baseUrl and apiKey from defaults/user config
