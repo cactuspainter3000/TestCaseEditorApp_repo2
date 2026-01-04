@@ -24,6 +24,7 @@ namespace TestCaseEditorApp.Services
         public SideMenuViewModel SideMenu { get; }
         public HeaderAreaViewModel HeaderArea { get; }
         public WorkspaceContentViewModel WorkspaceContent { get; }
+        public object NotificationArea { get; private set; }
         public INavigationMediator NavigationMediator => _navigationMediator;
         public IWorkspaceManagementMediator WorkspaceManagement => _workspaceManagementMediator;
         
@@ -51,6 +52,7 @@ namespace TestCaseEditorApp.Services
             SideMenu = new SideMenuViewModel(_workspaceManagementMediator, _navigationMediator, _testCaseGenerationMediator, testCaseAnythingLLMService);
             HeaderArea = new HeaderAreaViewModel();
             WorkspaceContent = new WorkspaceContentViewModel();
+            NotificationArea = _viewModelFactory.CreateDefaultNotificationViewModel(); // Start with default notification
 
             // Subscribe to navigation events
             SetupNavigationHandlers();
@@ -82,6 +84,17 @@ namespace TestCaseEditorApp.Services
                     _navigationMediator.NavigateToSection(section);
                 }
             };
+        }
+        
+        private void SetNotificationArea(object notificationViewModel)
+        {
+            // Dispose previous notification if it's disposable
+            if (NotificationArea is IDisposable disposableNotification)
+            {
+                disposableNotification.Dispose();
+            }
+            
+            NotificationArea = notificationViewModel;
         }
         
         private void OnSectionChangeRequested(NavigationEvents.SectionChangeRequested request)
@@ -199,6 +212,9 @@ namespace TestCaseEditorApp.Services
             // THEN publish HeaderChanged event so UI knows to update
             _navigationMediator.SetActiveHeader(_testCaseGeneratorHeader);
             
+            // Set Test Case Generator notification area
+            SetNotificationArea(_viewModelFactory.CreateTestCaseGeneratorNotificationViewModel());
+            
             // Show test case generator splash screen
             var testCaseWorkflow = _viewModelFactory.CreateTestCaseGeneratorSplashScreenViewModel();
             _navigationMediator.SetMainContent(testCaseWorkflow);
@@ -242,6 +258,9 @@ namespace TestCaseEditorApp.Services
             EnsureWorkspaceHeader();
             _navigationMediator.SetActiveHeader(_workspaceHeader);
             HeaderArea.ShowWorkspaceHeader(_workspaceHeader);
+            
+            // Set default notification area
+            SetNotificationArea(_viewModelFactory.CreateDefaultNotificationViewModel());
             
             // Don't override the initial content - let SetInitialContent handle the main workspace content
         }

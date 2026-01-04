@@ -15,12 +15,12 @@ using System.Runtime.CompilerServices;
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
     /// <summary>
-    /// MainViewModel serves as a simple container that sets up the 4 workspace areas.
+    /// MainViewModel serves as a simple container that sets up the 5 workspace areas.
     /// Following architectural guidelines: NO coordination logic, just workspace setup.
     /// All domain logic is delegated to appropriate domain mediators and ViewModels.
     /// 
     /// Responsibilities:
-    /// 1. Set up 4 workspace areas (MainWorkspace, HeaderWorkspace, NavigationWorkspace, SideMenuWorkspace)
+    /// 1. Set up 5 workspace areas (MainWorkspace, HeaderWorkspace, NotificationWorkspace, NavigationWorkspace, SideMenuWorkspace)
     /// 2. Initialize ViewAreaCoordinator
     /// 3. Provide property bindings for UI
     /// 4. NO coordination logic - once workspace assigned → hands-off
@@ -36,7 +36,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly INavigationService _navigationService;
         private string _displayName = "Systems App";
         
-        // === 4-WORKSPACE PROPERTIES ===
+        // === 5-WORKSPACE PROPERTIES ===
         // All UI areas are managed by ViewAreaCoordinator
         
         /// <summary>
@@ -53,6 +53,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// Header workspace area
         /// </summary>
         public object? HeaderWorkspace => _viewAreaCoordinator.HeaderArea.ActiveHeader;
+        
+        /// <summary>
+        /// Notification workspace area - status indicators below header
+        /// </summary>
+        public object? NotificationWorkspace => _viewAreaCoordinator.NotificationArea;
         
         /// <summary>
         /// Navigation workspace area
@@ -83,9 +88,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         /// <summary>
-        /// Simple container constructor - sets up 4 workspace areas with NO coordination logic.
+        /// Simple container constructor - sets up 5 workspace areas with NO coordination logic.
         /// According to architectural guidelines: MainViewModel should be a simple container that 
-        /// sets up 4 workspace areas. Once workspace assigned → hands-off.
+        /// sets up 5 workspace areas. Once workspace assigned → hands-off.
         /// </summary>
         public MainViewModel(IViewModelFactory viewModelFactory, INavigationService navigationService, ILogger<MainViewModel>? logger = null)
         {
@@ -127,9 +132,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 System.Diagnostics.Debug.WriteLine($"*** MainViewModel: SectionChanged event received! PreviousSection='{e.PreviousSection}', NewSection='{e.NewSection}' ***");
                 _logger?.LogInformation("MainViewModel: Section changed from '{PreviousSection}' to '{NewSection}'", e.PreviousSection, e.NewSection);
                 OnPropertyChanged(nameof(NavigationWorkspace));
+                OnPropertyChanged(nameof(NotificationWorkspace));
             });
             
-            _logger?.LogInformation("MainViewModel initialized as simple 4-workspace container");
+            _logger?.LogInformation("MainViewModel initialized as simple 5-workspace container");
         }
 
         /// <summary>

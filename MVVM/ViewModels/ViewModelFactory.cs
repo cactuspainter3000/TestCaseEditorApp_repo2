@@ -222,5 +222,26 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             return new TestCaseGeneratorSplashScreenViewModel();
         }
+
+        public NotificationAreaViewModel CreateNotificationAreaViewModel()
+        {
+            var loggerFactory = _applicationServices.LoggerFactory;
+            var logger = loggerFactory?.CreateLogger<NotificationAreaViewModel>();
+            return new NotificationAreaViewModel(logger);
+        }
+
+        public DefaultNotificationViewModel CreateDefaultNotificationViewModel()
+        {
+            var loggerFactory = _applicationServices.LoggerFactory;
+            var logger = loggerFactory?.CreateLogger<DefaultNotificationViewModel>();
+            return new DefaultNotificationViewModel(logger);
+        }
+
+        public TestCaseGeneratorNotificationViewModel CreateTestCaseGeneratorNotificationViewModel()
+        {
+            var loggerFactory = _applicationServices.LoggerFactory;
+            var logger = loggerFactory?.CreateLogger<TestCaseGeneratorNotificationViewModel>();
+            return new TestCaseGeneratorNotificationViewModel(logger);
+        }
     }
 }

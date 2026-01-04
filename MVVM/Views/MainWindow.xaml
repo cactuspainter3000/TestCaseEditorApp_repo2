@@ -49,6 +49,61 @@
             <views:WorkspaceHeaderView />
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type vm:DefaultNotificationViewModel}">
+            <!-- Simple default notification area - shows minimal ready state -->
+            <Border Background="#222222" 
+                    Padding="10,4"
+                    Height="28">
+                <TextBlock Text="{Binding DefaultText}" 
+                          FontSize="11" 
+                          Foreground="#666666" 
+                          VerticalAlignment="Center"
+                          HorizontalAlignment="Center"/>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGeneratorNotificationViewModel}">
+            <!-- Test Case Generator notification area layout -->
+            <Border Background="#222222" 
+                    Padding="10,4"
+                    Height="28">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- AnythingLLM Status -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <Ellipse Width="8" Height="8" 
+                                Fill="{Binding AnythingLlmStatusColor}" 
+                                VerticalAlignment="Center" 
+                                Margin="0,0,6,0"/>
+                        <TextBlock Text="{Binding AnythingLlmStatusText}" 
+                                  FontSize="11" 
+                                  Foreground="#BBBBBB" 
+                                  VerticalAlignment="Center"/>
+                    </StackPanel>
+                    
+                    <!-- Requirements Progress -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <TextBlock Text="{Binding RequirementsProgressText}" 
+                                  FontSize="11" 
+                                  Foreground="#BBBBBB" 
+                                  VerticalAlignment="Center"
+                                  Margin="0,0,8,0"/>
+                        <ProgressBar Width="60" Height="4" 
+                                    VerticalAlignment="Center"
+                                    Value="{Binding RequirementsProgress}"
+                                    Maximum="100"
+                                    Background="#333333"
+                                    Foreground="#51CF66"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
         <DataTemplate DataType="{x:Type vm:PlaceholderViewModel}">
             <Border Padding="10" Background="White" CornerRadius="6">
                 <TextBlock Text="{Binding Title}" FontSize="16" VerticalAlignment="Center" HorizontalAlignment="Center" />
@@ -250,6 +305,10 @@
                 <RowDefinition Height="Auto"/>
                 <!-- title bar -->
                 <RowDefinition Height="4"/>
+                <!-- gap between title and notification -->
+                <RowDefinition Height="Auto"/>
+                <!-- notification area -->
+                <RowDefinition Height="4"/>
                 <RowDefinition Height="Auto"/>
                 <!-- workspace header / summary -->
                 <RowDefinition Height="4"/>
@@ -407,7 +466,7 @@
             </Border>
 
             <!-- Workspace header -->
-            <Border Grid.Row="2" Grid.Column="2" Style="{StaticResource HeaderBorderStyle}" Height="75" Padding="0" Margin="0">
+            <Border Grid.Row="4" Grid.Column="2" Style="{StaticResource HeaderBorderStyle}" Height="75" Padding="0" Margin="0">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1*"/>
@@ -424,11 +483,16 @@
             </Border>
 
             <!-- Left menu section: Test Case / Test Flow, with one-open-at-a-time behavior -->
-            <views:NewSideMenuView Grid.Column="0" Grid.Row="2" Grid.RowSpan="5" 
+            <views:NewSideMenuView Grid.Column="0" Grid.Row="4" Grid.RowSpan="5" 
                                DataContext="{Binding ViewAreaCoordinator.SideMenu}"/>
+            
+            <!-- Notification area - positioned directly below title with full width -->
+            <Border Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="3" Style="{StaticResource ContentBorderStyle}">
+                <ContentControl Content="{Binding NotificationWorkspace}" />
+            </Border>
 
             <!-- Content area -->
-            <Border Grid.Column="2" Grid.Row="4" Style="{StaticResource ContentBorderStyle}">
+            <Border Grid.Column="2" Grid.Row="6" Style="{StaticResource ContentBorderStyle}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <!-- use relative stars that are easy to reason about -->
@@ -448,14 +512,14 @@
             </Border>
 
             <!-- Navigation area: compact, responsive controls (keeps your original placement) -->
-            <!-- Bottom requirement navigation (Grid.Column=2 Grid.Row=6) -->
+            <!-- Bottom requirement navigation (Grid.Column=2 Grid.Row=8) -->
             <views:TestCaseGenerator_NavigationControl
                 Grid.Column="2"
-                Grid.Row="6"
+                Grid.Row="8"
                 DataContext="{Binding RequirementsNavigator}"/>
             
             <!-- Modal overlay system - appears over main content when modal is shown -->
-            <Grid Grid.Row="0" Grid.RowSpan="7" Grid.Column="0" Grid.ColumnSpan="3"
+            <Grid Grid.Row="0" Grid.RowSpan="9" Grid.Column="0" Grid.ColumnSpan="3"
                   Panel.ZIndex="9998"
                   Visibility="{Binding ModalViewModel, Converter={StaticResource NullToVisibilityConverter}}">
                 <!-- Semi-transparent overlay background -->

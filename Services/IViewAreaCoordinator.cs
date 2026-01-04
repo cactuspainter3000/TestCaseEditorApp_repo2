@@ -16,6 +16,7 @@ namespace TestCaseEditorApp.Services
         SideMenuViewModel SideMenu { get; }
         HeaderAreaViewModel HeaderArea { get; }
         WorkspaceContentViewModel WorkspaceContent { get; }
+        object NotificationArea { get; }
         INavigationMediator NavigationMediator { get; }
         
         // Domain Mediators (for command access)

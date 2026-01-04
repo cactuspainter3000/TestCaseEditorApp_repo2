@@ -45,23 +45,7 @@
                 </StackPanel>
             </ToggleButton>-->
             
-            <!-- Project Info Section -->
-            <StackPanel Orientation="Vertical" 
-                        Visibility="{Binding IsProjectLoaded, Converter={StaticResource BoolToVisibilityConverter}}">
-                <!-- Project Name -->
-                <TextBlock Text="{Binding ProjectName}" FontWeight="SemiBold" FontSize="12" 
-                           Foreground="#FFE8E8E8" Margin="0,0,0,2"/>
-                
-                <!-- Test Cases Count (indented to show hierarchy) -->
-                <TextBlock Style="{StaticResource HeaderSmallText}"
-                           HorizontalAlignment="Left"
-                           TextTrimming="CharacterEllipsis"
-                           ToolTip="{Binding RequirementsWithTestCasesCount}"
-                           Margin="12,0,0,0">
-                    <Run Text="{Binding RequirementsWithTestCasesCount}" />
-                    <Run Text=" with Test Cases" />
-                </TextBlock>
-            </StackPanel>
+            <!-- Project Info Section removed per user request -->
         </StackPanel>
 
         <!-- CENTER: Description in its own column -->
@@ -78,14 +62,8 @@
                        ToolTipService.ShowDuration="60000" />
         </Border>
 
-        <!-- RIGHT: AnythingLLM Status and Verification Method only -->
+        <!-- RIGHT: Verification Method only -->
         <StackPanel Grid.Column="2" VerticalAlignment="Top" Margin="8,0,0,0" Orientation="Vertical">
-            <!-- AnythingLLM Status -->
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,0,6">
-                <Ellipse Style="{StaticResource LlmEllipseStyle}"/>
-                <TextBlock Text="{Binding OllamaStatusMessage}" Style="{StaticResource LlmStatusTextStyle}"/>
-            </StackPanel>
-
             <!-- Verification method (collapses when empty) -->
             <TextBlock FontSize="11"
                        HorizontalAlignment="Right"
