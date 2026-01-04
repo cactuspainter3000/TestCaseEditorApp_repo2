@@ -142,6 +142,7 @@ namespace TestCaseEditorApp.MVVM.Events
             public string FilePath { get; set; } = string.Empty;
             public string ImportType { get; set; } = string.Empty;
             public string ErrorMessage { get; set; } = string.Empty;
+            public string? FormatAnalysis { get; set; }
             public Exception? Exception { get; set; }
             public DateTime Timestamp { get; set; } = DateTime.Now;
         }

@@ -25,6 +25,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
     public class TestCaseGenerationMediator : BaseDomainMediator<TestCaseGenerationEvents>, ITestCaseGenerationMediator
     {
         private readonly IRequirementService _requirementService;
+        private readonly SmartRequirementImporter _smartImporter;
         private readonly RequirementAnalysisService _analysisService;
         private readonly ITextGenerationService _llmService;
         private readonly IRequirementDataScrubber _scrubber;
@@ -143,12 +144,17 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             : base(logger, uiCoordinator, "Test Case Generator", performanceMonitor, eventReplay)
         {
             _requirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
+            _smartImporter = new SmartRequirementImporter(requirementService, 
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<SmartRequirementImporter>.Instance);
             _analysisService = analysisService ?? throw new ArgumentNullException(nameof(analysisService));
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
             _scrubber = scrubber ?? throw new ArgumentNullException(nameof(scrubber));
 
             // Subscribe to internal events for header updates
             Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelectedForHeader);
+            
+            // Subscribe to cross-domain requirements import events
+            Subscribe<TestCaseGenerationEvents.RequirementsImported>(OnRequirementsImported);
 
             _logger.LogDebug("TestCaseGenerationMediator created with domain '{DomainName}'", _domainName);
         }
@@ -331,7 +337,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             if (string.IsNullOrWhiteSpace(filePath))
                 throw new ArgumentException("File path cannot be null or empty", nameof(filePath));
 
-            ShowProgress("Starting requirements import...", 0);
+            ShowProgress("Analyzing document format...", 0);
             
             PublishEvent(new TestCaseGenerationEvents.RequirementsImportStarted 
             { 
@@ -341,49 +347,60 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
 
             try
             {
-                UpdateProgress("Parsing requirements file...", 25);
+                UpdateProgress("Running smart import analysis...", 25);
                 
-                // Use existing requirement service for import
-                List<Requirement> requirements;
-                if (filePath.EndsWith(".docx", StringComparison.OrdinalIgnoreCase))
-                {
-                    requirements = await Task.Run(() => _requirementService.ImportRequirementsFromJamaAllDataDocx(filePath));
-                }
-                else
-                {
-                    requirements = await Task.Run(() => _requirementService.ImportRequirementsFromWord(filePath));
-                }
+                // Use SmartRequirementImporter for intelligent format detection and import
+                var importResult = await _smartImporter.ImportRequirementsAsync(filePath);
                 
-                UpdateProgress("Processing imported requirements...", 75);
+                UpdateProgress("Processing import results...", 75);
                 
-                if (requirements?.Any() == true)
+                if (importResult.Success && importResult.Requirements.Count > 0)
                 {
+                    // Log format analysis details
+                    if (importResult.FormatAnalysis != null)
+                    {
+                        _logger.LogInformation(
+                            "Document analysis: Format={Format}, Method={Method}, Requirements={Count}, Analysis={Reasons}",
+                            importResult.FormatAnalysis.Format,
+                            importResult.ImportMethod,
+                            importResult.Requirements.Count,
+                            string.Join("; ", importResult.FormatAnalysis.DetectionReasons)
+                        );
+                    }
+
                     PublishEvent(new TestCaseGenerationEvents.RequirementsImported 
                     { 
-                        Requirements = requirements.ToList(), 
+                        Requirements = importResult.Requirements, 
                         SourceFile = filePath, 
-                        ImportType = importType,
-                        ImportTime = TimeSpan.FromSeconds(1) // Placeholder
+                        ImportType = importResult.ImportMethod,
+                        ImportTime = importResult.ImportDuration
                     });
 
                     HideProgress();
-                    ShowNotification($"Successfully imported {requirements.Count()} requirements", DomainNotificationType.Success);
+                    ShowNotification(importResult.UserMessage, DomainNotificationType.Success);
                     
-                    _logger.LogInformation("Requirements import completed: {Count} requirements from {FilePath}", 
-                        requirements.Count(), filePath);
+                    _logger.LogInformation("Requirements import completed: {Count} requirements from {FilePath} using {Method} in {Duration:F2}s", 
+                        importResult.Requirements.Count, filePath, importResult.ImportMethod, importResult.ImportDuration.TotalSeconds);
                     
                     return true;
                 }
                 else
                 {
                     HideProgress();
-                    ShowNotification("No requirements found in the file", DomainNotificationType.Warning);
+                    
+                    // Show detailed user guidance based on document analysis
+                    var detailedMessage = importResult.FormatAnalysis?.UserGuidance ?? "No requirements found in the file";
+                    ShowNotification(detailedMessage, DomainNotificationType.Warning); // Longer duration for guidance
+                    
+                    // Create a detailed dialog with format analysis
+                    ShowImportGuidanceDialog(importResult.FormatAnalysis, filePath);
                     
                     PublishEvent(new TestCaseGenerationEvents.RequirementsImportFailed 
                     { 
                         FilePath = filePath, 
                         ImportType = importType, 
-                        ErrorMessage = "No requirements found" 
+                        ErrorMessage = importResult.ErrorMessage ?? "No requirements found",
+                        FormatAnalysis = importResult.FormatAnalysis?.Description ?? "Unknown format"
                     });
                     
                     return false;
@@ -405,6 +422,72 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 _logger.LogError(ex, "Requirements import failed for {FilePath}", filePath);
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Shows detailed guidance dialog when import fails or finds no requirements
+        /// </summary>
+        private void ShowImportGuidanceDialog(DocumentFormatDetector.DetectionResult? analysis, string filePath)
+        {
+            if (analysis == null) return;
+
+            try
+            {
+                var fileName = System.IO.Path.GetFileName(filePath);
+                var dialogMessage = BuildGuidanceDialogMessage(analysis, fileName);
+                
+                // Use Windows MessageBox for now - could be replaced with custom dialog later
+                System.Windows.MessageBox.Show(
+                    dialogMessage,
+                    "Import Guidance - Document Analysis",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Information);
+                    
+                _logger.LogInformation("Displayed import guidance dialog for {FileName} with format {Format}", 
+                    fileName, analysis.Format);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error showing import guidance dialog");
+            }
+        }
+
+        /// <summary>
+        /// Builds a comprehensive guidance message based on document analysis
+        /// </summary>
+        private static string BuildGuidanceDialogMessage(DocumentFormatDetector.DetectionResult analysis, string fileName)
+        {
+            var message = new System.Text.StringBuilder();
+            
+            message.AppendLine($"📄 File: {fileName}");
+            message.AppendLine($"🔍 Format Detected: {analysis.Description}");
+            message.AppendLine();
+            
+            if (analysis.HasRequirements)
+            {
+                message.AppendLine($"✅ Found {analysis.EstimatedRequirementCount} requirement ID(s):");
+                foreach (var id in analysis.FoundRequirementIds.Take(10))
+                {
+                    message.AppendLine($"   • {id}");
+                }
+                if (analysis.FoundRequirementIds.Count > 10)
+                {
+                    message.AppendLine($"   ... and {analysis.FoundRequirementIds.Count - 10} more");
+                }
+                message.AppendLine();
+            }
+            
+            message.AppendLine("📋 Detection Details:");
+            foreach (var reason in analysis.DetectionReasons)
+            {
+                message.AppendLine($"   • {reason}");
+            }
+            message.AppendLine();
+            
+            message.AppendLine("💡 Guidance:");
+            message.AppendLine(analysis.UserGuidance);
+            
+            return message.ToString();
         }
 
         public async Task<bool> AnalyzeRequirementAsync(Requirement requirement)
@@ -945,6 +1028,40 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 
                 _logger.LogDebug("Header updated with requirement: Description={DescriptionLength} chars, Method={Method}", 
                     _headerViewModel.RequirementDescription.Length, _headerViewModel.RequirementMethod);
+            }
+        }
+        
+        /// <summary>
+        /// Handle requirements imported events from cross-domain broadcasts (e.g., from WorkspaceManagementMediator during project creation)
+        /// </summary>
+        private void OnRequirementsImported(TestCaseGenerationEvents.RequirementsImported e)
+        {
+            if (e?.Requirements != null)
+            {
+                _logger.LogInformation("🔄 Handling cross-domain RequirementsImported with {Count} requirements", e.Requirements.Count);
+                
+                // Clear existing requirements and add new ones
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    _requirements.Clear();
+                    foreach (var requirement in e.Requirements)
+                    {
+                        _requirements.Add(requirement);
+                    }
+                });
+                
+                // Set the first requirement as current if available
+                if (e.Requirements.Count > 0)
+                {
+                    CurrentRequirement = e.Requirements.First();
+                    _logger.LogDebug("Set current requirement to: {RequirementId}", CurrentRequirement.GlobalId);
+                }
+                
+                _logger.LogInformation("✅ Successfully imported {Count} requirements from cross-domain event", e.Requirements.Count);
+            }
+            else
+            {
+                _logger.LogWarning("❌ Received RequirementsImported event with null or empty requirements");
             }
         }
         

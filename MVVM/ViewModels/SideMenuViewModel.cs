@@ -14,6 +14,7 @@ using TestCaseEditorApp.MVVM.Models.DataDrivenMenu;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -27,6 +28,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly INavigationMediator? _navigationMediator;
         private readonly ITestCaseGenerationMediator? _testCaseGenerationMediator;
         private readonly TestCaseAnythingLLMService? _testCaseAnythingLLMService;
+        private readonly JamaConnectService _jamaConnectService;
+        private readonly ILogger<SideMenuViewModel>? _logger;
         
         // AnythingLLM status tracking - use ObservableProperty for automatic command updates  
         [ObservableProperty]
@@ -113,12 +116,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty]
         private bool autoExportForChatGpt = false;
 
-        public SideMenuViewModel(IWorkspaceManagementMediator? workspaceManagementMediator = null, INavigationMediator? navigationMediator = null, ITestCaseGenerationMediator? testCaseGenerationMediator = null, TestCaseAnythingLLMService? testCaseAnythingLLMService = null)
+        public SideMenuViewModel(IWorkspaceManagementMediator? workspaceManagementMediator, INavigationMediator? navigationMediator, ITestCaseGenerationMediator? testCaseGenerationMediator, TestCaseAnythingLLMService? testCaseAnythingLLMService, JamaConnectService jamaConnectService, ILogger<SideMenuViewModel>? logger = null)
         {
             _workspaceManagementMediator = workspaceManagementMediator;
             _navigationMediator = navigationMediator;
             _testCaseGenerationMediator = testCaseGenerationMediator;
             _testCaseAnythingLLMService = testCaseAnythingLLMService;
+            _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
+            _logger = logger;
             
             // Subscribe to AnythingLLM status updates
             AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusUpdated;
@@ -163,7 +168,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             GenerateTestCaseCommandCommand = new RelayCommand(() => { /* TODO: Implement generate test case command */ });
             ToggleAutoExportCommand = new RelayCommand(() => AutoExportForChatGpt = !AutoExportForChatGpt);
             OpenChatGptExportCommand = new RelayCommand(() => { /* TODO: Implement open ChatGPT export */ });
-            ExportAllToJamaCommand = new RelayCommand(() => { /* TODO: Implement export all to Jama */ });
+            ExportAllToJamaCommand = new AsyncRelayCommand(ExportAllToJamaAsync);
             ExportForChatGptCommand = new AsyncRelayCommand(ExportForChatGptAsync);
             
             // Demo command for testing state management
@@ -299,7 +304,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private bool CanImportAdditionalRequirements()
         {
-            return IsAnythingLLMReady && HasRequirements; // Analysis requires LLM
+            return HasRequirements; // Only requires existing requirements to append to
         }
 
         private bool CanAnalyzeRequirements()
@@ -615,6 +620,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
         
         /// <summary>
+        /// Called when HasRequirements changes - notify commands that depend on it
+        /// </summary>
+        partial void OnHasRequirementsChanged(bool value)
+        {
+            // Notify commands that depend on HasRequirements to re-evaluate their CanExecute
+            (ImportAdditionalCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+            (BatchAnalyzeCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+            (UnloadProjectCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+        }
+        
+        /// <summary>
         /// Update state of a specific menu item by ID
         /// </summary>
         private void UpdateMenuItemState(string id, bool? isEnabled = null, bool? isVisible = null, string? badge = null, string? statusIcon = null)
@@ -820,6 +836,120 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         public event System.Action<string?>? SectionChanged;
+
+        /// <summary>
+        /// Export all generated test cases to Jama Connect
+        /// </summary>
+        private async Task ExportAllToJamaAsync()
+        {
+            try
+            {
+                _logger?.LogInformation("Starting Jama Connect export...");
+                
+                // JamaConnectService is now guaranteed to be non-null via DI, check if configured
+                if (!_jamaConnectService.IsConfigured)
+                {
+                    // Add debugging info to see what's happening with environment variables
+                    var debugInfo = $"Debug Info:\n" +
+                        $"JAMA_BASE_URL = '{Environment.GetEnvironmentVariable("JAMA_BASE_URL")}'\n" +
+                        $"JAMA_CLIENT_ID = '{Environment.GetEnvironmentVariable("JAMA_CLIENT_ID")}'\n" +
+                        $"JAMA_CLIENT_SECRET = '{(string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JAMA_CLIENT_SECRET")) ? "Not Set" : "Set")}'\n\n";
+                    
+                    MessageBox.Show(
+                        debugInfo +
+                        "Jama Connect is not configured.\n\n" +
+                        "To enable Jama integration, configure these environment variables:\n\n" +
+                        "Option 1 - API Token (if available):\n" +
+                        "• JAMA_BASE_URL (e.g., https://jama02.rockwellcollins.com/contour)\n" +
+                        "• JAMA_API_TOKEN\n\n" +
+                        "Option 2 - OAuth Client Credentials (recommended):\n" +
+                        "• JAMA_BASE_URL (e.g., https://jama02.rockwellcollins.com/contour)\n" +
+                        "• JAMA_CLIENT_ID\n" +
+                        "• JAMA_CLIENT_SECRET\n\n" +
+                        "Option 3 - Username/Password:\n" +
+                        "• JAMA_BASE_URL\n" +
+                        "• JAMA_USERNAME\n" +
+                        "• JAMA_PASSWORD",
+                        "Jama Connect Not Configured", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+                
+                // Test connection first
+                var (success, message) = await _jamaConnectService.TestConnectionAsync();
+                if (!success)
+                {
+                    MessageBox.Show(
+                        $"Cannot connect to Jama Connect:\n{message}\n\n" +
+                        "Please check your configuration and network connection.",
+                        "Connection Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+                
+                _logger?.LogInformation("Jama connection successful: {Message}", message);
+                
+                // Get projects to let user choose
+                var projects = await _jamaConnectService.GetProjectsAsync();
+                if (projects == null || projects.Count == 0)
+                {
+                    MessageBox.Show(
+                        "No projects found in Jama Connect.\n\n" +
+                        "Please ensure your user has access to at least one project.",
+                        "No Projects Found", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+                
+                // For now, show available projects and let user know this is a test
+                var projectList = string.Join("\n", projects.Select(p => $"• {p.Name} (ID: {p.Id})"));
+                
+                var result = MessageBox.Show(
+                    $"Jama Connect integration test successful!\n\n" +
+                    $"Found {projects.Count} project(s):\n{projectList}\n\n" +
+                    $"Would you like to run a test import of requirements from the first project?",
+                    "Jama Connect Test", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    
+                if (result == MessageBoxResult.Yes && projects.Count > 0)
+                {
+                    await TestImportRequirementsAsync(projects[0].Id);
+                }
+                
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Failed to export to Jama Connect");
+                MessageBox.Show(
+                    $"Jama Connect export failed:\n{ex.Message}",
+                    "Export Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        
+        /// <summary>
+        /// Test importing requirements from Jama
+        /// </summary>
+        private async Task TestImportRequirementsAsync(int projectId)
+        {
+            try
+            {
+                _logger?.LogInformation("Testing requirement import from Jama project {ProjectId}", projectId);
+                
+                var jamaItems = await _jamaConnectService.GetRequirementsAsync(projectId);
+                var requirements = _jamaConnectService.ConvertToRequirements(jamaItems);
+                
+                MessageBox.Show(
+                    $"Successfully imported {requirements.Count} requirements from Jama!\n\n" +
+                    $"Sample requirements:\n" +
+                    string.Join("\n", requirements.Take(3).Select(r => $"• {r.Item}: {r.Name}")),
+                    "Import Test Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                    
+                _logger?.LogInformation("Successfully imported {Count} requirements from Jama", requirements.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Failed to test import from Jama project {ProjectId}", projectId);
+                MessageBox.Show(
+                    $"Test import failed:\n{ex.Message}",
+                    "Import Test Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
     }
 
     public partial class MenuItemViewModel : ObservableObject

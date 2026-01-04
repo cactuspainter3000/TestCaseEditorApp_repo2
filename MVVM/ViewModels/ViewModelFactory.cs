@@ -49,10 +49,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             var navigationMediator = CreateNavigationMediator();
             // Don't resolve ViewConfigurationService here to avoid circular dependency
             // It will be resolved later when actually needed
-            var testCaseAnythingLLMService = App.ServiceProvider?.GetService<TestCaseAnythingLLMService>();
+            var sideMenuViewModel = App.ServiceProvider?.GetService<SideMenuViewModel>() 
+                ?? throw new InvalidOperationException("SideMenuViewModel not registered in DI container");
             
             return new ViewAreaCoordinator(this, navigationMediator, _workspaceManagementMediator!, _testCaseGenerationMediator!,
-                null, testCaseAnythingLLMService);
+                null, sideMenuViewModel);
         }
         
         public IViewConfigurationService CreateViewConfigurationService()

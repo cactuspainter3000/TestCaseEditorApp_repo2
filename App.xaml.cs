@@ -125,8 +125,41 @@ namespace TestCaseEditorApp
                         new AnythingLLMService()); // Let it get baseUrl and apiKey from defaults/user config
                     services.AddSingleton<TestCaseAnythingLLMService>();
                     
+                    // Jama Connect integration service
+                    services.AddSingleton<JamaConnectService>(provider =>
+                    {
+                        try
+                        {
+                            var baseUrl = Environment.GetEnvironmentVariable("JAMA_BASE_URL");
+                            var clientId = Environment.GetEnvironmentVariable("JAMA_CLIENT_ID");
+                            var clientSecret = Environment.GetEnvironmentVariable("JAMA_CLIENT_SECRET");
+                            
+                            if (!string.IsNullOrEmpty(baseUrl) && !string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(clientSecret))
+                            {
+                                // Handle common Jama path variations
+                                if (baseUrl.Contains("rockwellcollins.com") && !baseUrl.Contains("/contour") && !baseUrl.EndsWith("/contour"))
+                                {
+                                    baseUrl = baseUrl.TrimEnd('/') + "/contour";
+                                }
+                                
+                                return new JamaConnectService(baseUrl, clientId, clientSecret, true);
+                            }
+                            else
+                            {
+                                return new JamaConnectService("", "");
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            return new JamaConnectService("", "");
+                        }
+                    });
+                    
                     // Generic service monitoring
                     services.AddSingleton<GenericServiceMonitor>();
+
+                    // ViewModels that need DI
+                    services.AddSingleton<SideMenuViewModel>();
 
                     // Domain coordination
                     services.AddSingleton<IDomainCoordinator, DomainCoordinator>();

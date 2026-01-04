@@ -33,14 +33,14 @@ namespace TestCaseEditorApp.Services
             IWorkspaceManagementMediator workspaceManagementMediator,
             ITestCaseGenerationMediator testCaseGenerationMediator,
             IViewConfigurationService? viewConfigurationService,
-            TestCaseAnythingLLMService? testCaseAnythingLLMService = null)
+            SideMenuViewModel sideMenuViewModel)
         {
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
             _viewConfigurationService = viewConfigurationService; // Allow null initially
             _workspaceManagementMediator = workspaceManagementMediator ?? throw new ArgumentNullException(nameof(workspaceManagementMediator));
             
-            // Initialize UI area view models with configurable pattern
-            SideMenu = new SideMenuViewModel(workspaceManagementMediator, navigationMediator, testCaseGenerationMediator, testCaseAnythingLLMService);
+            // Use dependency-injected SideMenuViewModel
+            SideMenu = sideMenuViewModel ?? throw new ArgumentNullException(nameof(sideMenuViewModel));
             HeaderArea = new ConfigurableHeaderAreaViewModel(navigationMediator);
             WorkspaceContent = new ConfigurableContentAreaViewModel(navigationMediator);
             NotificationArea = new ConfigurableNotificationAreaViewModel(navigationMediator);

@@ -13,8 +13,11 @@
 	<!-- Exclude test projects and runner/tests folder from SDK wildcard includes -->
 	<ItemGroup>
 		<Compile Remove="Tests\**\*.cs" />
+		<Compile Remove="RegexTester\**\*.cs" />
 		<None Remove="Tests\**\*" />
+		<None Remove="RegexTester\**\*" />
 		<Content Remove="Tests\**\*" />
+		<Content Remove="RegexTester\**\*" />
 	</ItemGroup>
 	<ItemGroup>
 	  <Compile Remove="Helpers\TableConversionHelper.cs" />
