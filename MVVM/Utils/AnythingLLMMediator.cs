@@ -44,6 +44,15 @@ namespace TestCaseEditorApp.MVVM.Utils
                 TestCaseEditorApp.Services.Logging.Log.Info("[AnythingLLMMediator] No previous status available to broadcast");
             }
         }
+        
+        /// <summary>
+        /// Gets the last known status without triggering any events or health checks.
+        /// Returns null if no status has been recorded yet.
+        /// </summary>
+        public static AnythingLLMStatus? GetLastKnownStatus()
+        {
+            return _lastStatus;
+        }
     }
 
     /// <summary>

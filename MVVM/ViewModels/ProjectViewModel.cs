@@ -105,9 +105,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Setup property change monitoring
             Requirements.CollectionChanged += (s, e) => MarkDirty();
             
-            // Subscribe to AnythingLLM status updates via mediator
+            // Subscribe to AnythingLLM status updates via mediator (but don't auto-request status to avoid triggering startup checks)
             AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusUpdated;
-            AnythingLLMMediator.RequestCurrentStatus();
+            
+            // Use current status if already available without triggering new health checks
+            var currentStatus = AnythingLLMMediator.GetLastKnownStatus();
+            if (currentStatus != null)
+            {
+                OnAnythingLLMStatusUpdated(currentStatus);
+            }
         }
         
         // Legacy constructor for compatibility (minimal functionality)
