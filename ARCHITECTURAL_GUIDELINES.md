@@ -445,16 +445,18 @@ else
 4. **UI Thread Safety from Day One**: Cross-domain updates need `Dispatcher.Invoke`
 5. **Validate Early**: Constructor injection with null checks prevents "works on my machine"
 6. **Parser Selection Matters**: Wrong document parser can cause data duplication issues
+7. **Avoid Circular Dependencies in DI**: Break cycles by separating creation from publishing concerns
 
 ### **Migration Success Indicators**
 
 ✅ **You're on the right track when:**
 - New code follows domain patterns naturally
 - Cross-domain communication works immediately  
-- Dependency injection chains are complete
+- Dependency injection chains are complete and acyclic
 - No mixed old/new patterns exist
 - Build succeeds and features work without "quirks"
 - Document imports work consistently regardless of filename
+- Application starts without "Unable to resolve service" errors
 
 ❌ **Warning signs of migration trouble:**
 - "Almost working" features that need constant tweaking
@@ -462,6 +464,26 @@ else
 - Confusion about which communication pattern to use
 - Complex workarounds to make old patterns work with new ones
 - Inconsistent data imports from same documents
+- **Circular dependency injection failures** - Services that need each other
+- **"Unable to resolve service" runtime errors** - Broken DI registration chains
+
+### **Circular Dependency Resolution Patterns** (January 4, 2026)
+
+**Problem**: Circular dependencies in dependency injection prevent application startup
+- Service A needs Service B
+- Service B needs Service A or something Service A creates
+- DI container can't resolve the circular reference
+
+**✅ Successful Resolution Pattern:**
+1. **Identify the minimal dependency**: What does each service actually use from the other?
+2. **Break the cycle at the publishing boundary**: Remove event publishing from service constructors
+3. **Use coordinator pattern**: Let a higher-level service handle the event publishing
+4. **Prefer composition over injection**: Pass dependencies explicitly rather than injecting everything
+
+**Example**: `ViewConfigurationService` ↔ `ViewAreaCoordinator` circular dependency
+- **Problem**: Both needed `INavigationMediator` for event publishing
+- **Solution**: `ViewConfigurationService` creates configuration, `ViewAreaCoordinator` publishes events
+- **Result**: Clean separation of concerns, no circular dependency
 
 ---
 
@@ -562,6 +584,49 @@ You’ll know the architecture is working when:
 
 ---
 
-*Last Updated: December 30, 2025 — Document Parser Selection Pattern & Requirements Import Lessons Added*
+## 🏗️ **Architectural Conformity Analysis** (January 4, 2026)
+
+### **Recent Refactor: View Configuration System (Commits 9948f61, 311e31f, 6c43cd6)**
+
+#### **✅ Architectural Conformity Assessment**
+
+**Domain Alignment**: ✅ EXCELLENT
+- `ViewConfigurationService` in shared Services layer (cross-domain concern)
+- Configurable ViewModels follow proper infrastructure pattern
+- Domain-specific ViewModels stay in domain boundaries
+- Clear separation between view creation and view coordination
+
+**Fail-Fast Architecture**: ✅ EXCELLENT  
+- Constructor injection enforces all dependencies
+- Circular dependency eliminated at compile time through architectural refactoring
+- INavigationMediator registration with factory function prevents runtime failures
+- Null safety checks throughout configurable ViewModels
+
+**Dependency Injection**: ✅ EXCELLENT
+- Acyclic dependency graph after refactoring
+- Clean separation of concerns (creation vs publishing)
+- ViewAreaCoordinator properly orchestrates without creating circular references
+- All services resolve successfully at application startup
+
+**Event-Driven Communication**: ✅ EXCELLENT
+- ViewConfiguration events properly typed and domain-neutral
+- Idempotent configuration updates prevent unnecessary UI churn
+- Clean broadcast → subscription → update pattern
+- Cross-domain communication through well-defined event contracts
+
+**Developer Experience**: ✅ EXCELLENT
+- Easy to add new sections by extending configuration factory methods
+- View sharing rules explicit and configurable
+- Clear debugging through structured logging
+- Obvious extension points for future enhancements
+
+#### **🎯 Lessons Learned Applied**
+
+1. **Full Architectural Commitment**: Complete removal of circular dependencies rather than workarounds
+2. **End-to-End DI Chain**: Factory registration patterns ensure clean service resolution
+3. **Separation of Concerns**: Configuration creation separate from event publishing
+4. **Shared Infrastructure Pattern**: View coordination as infrastructure, not domain logic
 
 ---
+
+*Last Updated: January 4, 2026 — Circular Dependency Resolution Pattern & View Configuration Analysis Added*

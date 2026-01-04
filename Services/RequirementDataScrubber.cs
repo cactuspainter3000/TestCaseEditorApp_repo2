@@ -191,6 +191,8 @@ namespace TestCaseEditorApp.Services
 
         /// <summary>
         /// Phase 3: Filter out duplicates based on GlobalId and content similarity
+        /// For Additional imports: individual conflict resolution
+        /// For Replace imports: bulk conflict resolution
         /// </summary>
         private async Task<List<Requirement>> FilterDuplicatesAsync(
             List<Requirement> newRequirements, 
@@ -201,33 +203,23 @@ namespace TestCaseEditorApp.Services
             await Task.CompletedTask;
             
             var existingIds = existingRequirements.Select(r => r.GlobalId).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var uniqueRequirements = new List<Requirement>();
+            var conflictingRequirements = newRequirements.Where(r => existingIds.Contains(r.GlobalId)).ToList();
             
-            foreach (var req in newRequirements)
+            // No conflicts - proceed normally
+            if (!conflictingRequirements.Any())
             {
-                if (existingIds.Contains(req.GlobalId))
-                {
-                    result.DuplicatesDetected.Add(req);
-                    result.ValidationIssues.Add(new RequirementIssue
-                    {
-                        Requirement = req,
-                        Type = IssueType.Info,
-                        Description = $"Duplicate GlobalId '{req.GlobalId}' - skipping",
-                        FieldName = nameof(req.GlobalId)
-                    });
-                }
-                else
-                {
-                    uniqueRequirements.Add(req);
-                    // For additional imports, track the new IDs to prevent internal duplicates
-                    if (context.ImportType == ImportType.Additional)
-                    {
-                        existingIds.Add(req.GlobalId);
-                    }
-                }
+                return newRequirements;
             }
             
-            return uniqueRequirements;
+            // Handle conflicts based on import type
+            if (context.ImportType == ImportType.Additional)
+            {
+                return await HandleAdditionalImportConflicts(newRequirements, existingRequirements, result, conflictingRequirements);
+            }
+            else // ImportType.Replace
+            {
+                return await HandleReplaceImportConflicts(newRequirements, existingRequirements, result, conflictingRequirements);
+            }
         }
 
         /// <summary>
@@ -278,6 +270,88 @@ namespace TestCaseEditorApp.Services
             }
             
             return requirements;
+        }
+        
+        /// <summary>
+        /// Handle conflicts for additional imports - individual conflict resolution
+        /// </summary>
+        private async Task<List<Requirement>> HandleAdditionalImportConflicts(
+            List<Requirement> newRequirements,
+            List<Requirement> existingRequirements,
+            ScrubberResult result,
+            List<Requirement> conflictingRequirements)
+        {
+            await Task.CompletedTask;
+            var uniqueRequirements = new List<Requirement>();
+            var existingLookup = existingRequirements.ToDictionary(r => r.GlobalId, StringComparer.OrdinalIgnoreCase);
+            
+            foreach (var req in newRequirements)
+            {
+                if (conflictingRequirements.Contains(req))
+                {
+                    var existingReq = existingLookup[req.GlobalId];
+                    var conflict = new RequirementConflict
+                    {
+                        NewRequirement = req,
+                        ExistingRequirement = existingReq,
+                        ConflictDescription = $"Requirement '{req.GlobalId}' already exists. Skip this requirement or overwrite existing?",
+                        SuggestedResolution = ConflictResolutionStrategy.AskUser
+                    };
+                    
+                    result.MergeConflicts.Add(conflict);
+                    
+                    // For now, skip by default until UI dialog is implemented
+                    result.DuplicatesDetected.Add(req);
+                    result.ValidationIssues.Add(new RequirementIssue
+                    {
+                        Requirement = req,
+                        Type = IssueType.Warning,
+                        Description = $"Duplicate GlobalId '{req.GlobalId}' - skipped (conflict resolution pending)",
+                        FieldName = nameof(req.GlobalId)
+                    });
+                }
+                else
+                {
+                    uniqueRequirements.Add(req);
+                }
+            }
+            
+            return uniqueRequirements;
+        }
+        
+        /// <summary>
+        /// Handle conflicts for replace imports - bulk conflict resolution
+        /// </summary>
+        private async Task<List<Requirement>> HandleReplaceImportConflicts(
+            List<Requirement> newRequirements,
+            List<Requirement> existingRequirements,
+            ScrubberResult result,
+            List<Requirement> conflictingRequirements)
+        {
+            await Task.CompletedTask;
+            
+            // For replace imports, create a single bulk conflict requiring user decision
+            var bulkConflict = new RequirementConflict
+            {
+                NewRequirement = conflictingRequirements.First(), // Representative requirement
+                ExistingRequirement = existingRequirements.First(r => r.GlobalId.Equals(conflictingRequirements.First().GlobalId, StringComparison.OrdinalIgnoreCase)),
+                ConflictDescription = $"Re-importing document with {conflictingRequirements.Count} existing requirements. Choose action: 'Confirm all discrepancies' (review each) or 'Overwrite all requirements' (clear workspace & import all).",
+                SuggestedResolution = ConflictResolutionStrategy.AskUser
+            };
+            
+            result.MergeConflicts.Add(bulkConflict);
+            
+            // For now, include all requirements until user chooses strategy
+            // TODO: Implement bulk dialog with "Confirm All" vs "Overwrite All" options
+            result.ValidationIssues.Add(new RequirementIssue
+            {
+                Requirement = conflictingRequirements.First(),
+                Type = IssueType.Warning,
+                Description = $"Bulk import conflict: {conflictingRequirements.Count} requirements have conflicts (bulk resolution pending)",
+                FieldName = "BulkImport"
+            });
+            
+            return newRequirements; // Return all for now - user choice will determine final action
         }
     }
 }
