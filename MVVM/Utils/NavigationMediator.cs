@@ -27,18 +27,30 @@ namespace TestCaseEditorApp.MVVM.Utils
         public void NavigateToSection(string sectionName, object? context = null)
         {
             var previousSection = _currentSection;
-            _currentSection = sectionName;
+            // DON'T update _currentSection yet - let the coordinator decide if navigation should proceed
             
             System.Diagnostics.Debug.WriteLine($"*** NavigationMediator: NavigateToSection('{sectionName}') called ***");
             _logger?.LogDebug("Navigation request: {PreviousSection} -> {NewSection}", 
                 previousSection, sectionName);
             
-            // Publish section change request
+            // Publish section change request - coordinator will decide if it should proceed
             System.Diagnostics.Debug.WriteLine($"*** NavigationMediator: Publishing SectionChangeRequested ***");
             Publish(new NavigationEvents.SectionChangeRequested(sectionName, context));
+        }
+        
+        /// <summary>
+        /// Internal method for ViewAreaCoordinator to confirm navigation completion and update current section
+        /// </summary>
+        internal void CompleteNavigation(string sectionName)
+        {
+            var previousSection = _currentSection;
+            _currentSection = sectionName;
             
+            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator: CompleteNavigation - Publishing SectionChanged('{previousSection}' -> '{sectionName}') ***");
+            _logger?.LogDebug("Navigation completed: {PreviousSection} -> {NewSection}", 
+                previousSection, sectionName);
+                
             // Publish section changed notification
-            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator: Publishing SectionChanged('{previousSection}' -> '{sectionName}') ***");
             Publish(new NavigationEvents.SectionChanged(previousSection, sectionName));
         }
         

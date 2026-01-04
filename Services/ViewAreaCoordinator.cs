@@ -100,13 +100,24 @@ namespace TestCaseEditorApp.Services
         
         private void OnSectionChangeRequested(NavigationEvents.SectionChangeRequested request)
         {
-            // Update side menu selection
+            var targetSection = request.SectionName?.ToLowerInvariant();
+            var currentSection = _navigationMediator.CurrentSection?.ToLowerInvariant();
+            
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Section change requested: '{request.SectionName}' (lowercase: '{targetSection}'), current: '{currentSection}'");
+            
+            // CRITICAL ARCHITECTURAL FIX: Check if already in target section
+            // If we're already in the requested section, this should be a no-op to preserve context
+            if (string.Equals(currentSection, targetSection, StringComparison.OrdinalIgnoreCase))
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Already in section '{targetSection}' - ignoring duplicate navigation request");
+                return; // No-op: preserve current state and context
+            }
+            
+            // Update side menu selection only if we're actually changing sections
             SideMenu.SelectedSection = request.SectionName;
             
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Section change requested: '{request.SectionName}' (lowercase: '{request.SectionName?.ToLowerInvariant()}')");
-            
             // Route to appropriate handler based on section
-            switch (request.SectionName?.ToLowerInvariant())
+            switch (targetSection)
             {
                 case "project": 
                     TestCaseEditorApp.Services.Logging.Log.Debug("[ViewAreaCoordinator] Routing to HandleProjectNavigation");
@@ -130,6 +141,12 @@ namespace TestCaseEditorApp.Services
                 default: 
                     TestCaseEditorApp.Services.Logging.Log.Debug("[ViewAreaCoordinator] Routing to HandleDefaultNavigation");
                     HandleDefaultNavigation(request.Context); break;
+            }
+            
+            // Complete the navigation - this updates the current section tracking
+            if (!string.IsNullOrEmpty(request.SectionName))
+            {
+                ((NavigationMediator)_navigationMediator).CompleteNavigation(request.SectionName);
             }
         }
         
