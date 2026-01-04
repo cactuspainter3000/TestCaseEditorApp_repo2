@@ -207,6 +207,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToProject called! ***");
             Console.WriteLine("*** SideMenuViewModel.NavigateToProject called! ***");
+            
+            SelectedSection = "Project"; // Update selected section to trigger SectionChanged event
+            
             if (_navigationMediator != null)
             {
                 _navigationMediator.NavigateToSection("Project");
@@ -218,6 +221,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToTestCaseGenerator called! ***");
             // Request fresh AnythingLLM status when navigating to Test Case Generator
             AnythingLLMMediator.RequestCurrentStatus();
+            
+            SelectedSection = "TestCase"; // Update selected section to trigger SectionChanged event
             
             // Navigate to splash screen first
             if (_navigationMediator != null)
@@ -236,6 +241,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToRequirements called! ***");
             Console.WriteLine("*** SideMenuViewModel.NavigateToRequirements called! ***");
+            
+            SelectedSection = "Requirements"; // Update selected section to trigger SectionChanged event
             
             if (_navigationMediator != null)
             {
@@ -271,6 +278,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private void NavigateToNewProject()
         {
             Console.WriteLine("*** SideMenuViewModel.NavigateToNewProject called! ***");
+            
+            SelectedSection = "NewProject"; // Update selected section to trigger SectionChanged event
             
             if (_navigationMediator != null)
             {

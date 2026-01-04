@@ -561,6 +561,91 @@ namespace TestCaseEditorApp.Services
         }
 
         /// <summary>
+        /// Sends a chat message to a workspace with streaming response and progress updates
+        /// </summary>
+        public async Task<string?> SendChatMessageStreamingAsync(
+            string workspaceSlug, 
+            string message, 
+            Action<string>? onChunkReceived = null, 
+            Action<string>? onProgressUpdate = null,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                onProgressUpdate?.Invoke("Starting streaming request...");
+                
+                var payload = new
+                {
+                    message = message,
+                    mode = "chat",
+                    stream = true
+                };
+
+                var json = JsonSerializer.Serialize(payload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                onProgressUpdate?.Invoke("Sending request to AnythingLLM...");
+                
+                using var response = await _httpClient.PostAsync($"{_baseUrl}/api/v1/workspace/{workspaceSlug}/stream-chat", content, cancellationToken);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Failed to start streaming chat to '{workspaceSlug}': {response.StatusCode}");
+                    return null;
+                }
+
+                onProgressUpdate?.Invoke("Receiving streaming response...");
+                
+                var responseBuilder = new StringBuilder();
+                
+                using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                using var reader = new StreamReader(stream);
+                
+                string? line;
+                while ((line = await reader.ReadLineAsync()) != null && !cancellationToken.IsCancellationRequested)
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    
+                    // Handle Server-Sent Events format
+                    if (line.StartsWith("data: "))
+                    {
+                        var chunkData = line.Substring(6); // Remove "data: " prefix
+                        
+                        if (chunkData == "[DONE]") break;
+                        
+                        try
+                        {
+                            var chunkJson = JsonSerializer.Deserialize<StreamChunkResponse>(chunkData, new JsonSerializerOptions 
+                            { 
+                                PropertyNameCaseInsensitive = true 
+                            });
+                            
+                            if (!string.IsNullOrEmpty(chunkJson?.TextResponse))
+                            {
+                                responseBuilder.Append(chunkJson.TextResponse);
+                                onChunkReceived?.Invoke(chunkJson.TextResponse);
+                            }
+                        }
+                        catch (JsonException)
+                        {
+                            // Handle plain text chunks
+                            responseBuilder.Append(chunkData);
+                            onChunkReceived?.Invoke(chunkData);
+                        }
+                    }
+                }
+                
+                onProgressUpdate?.Invoke("Stream complete");
+                return responseBuilder.ToString();
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error in streaming chat to workspace '{workspaceSlug}'");
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Sends a chat message to a workspace
         /// </summary>
         public async Task<string?> SendChatMessageAsync(string workspaceSlug, string message, CancellationToken cancellationToken = default)
@@ -1014,6 +1099,100 @@ namespace TestCaseEditorApp.Services
             public string? TextResponse { get; set; }
             public string? Id { get; set; }
             public string? Type { get; set; }
+        }
+
+        private class StreamChunkResponse
+        {
+            public string? TextResponse { get; set; }
+            public string? Id { get; set; }
+            public string? Type { get; set; }
+            public bool? Done { get; set; }
+        }
+        
+        /// <summary>
+        /// Parallel processing result for batch operations
+        /// </summary>
+        public class ParallelProcessingResult<T>
+        {
+            public T? Result { get; set; }
+            public bool Success { get; set; }
+            public string? Error { get; set; }
+            public TimeSpan Duration { get; set; }
+            public int Index { get; set; }
+        }
+        
+        /// <summary>
+        /// Process multiple requirements in parallel with rate limiting and progress tracking
+        /// </summary>
+        public async Task<List<ParallelProcessingResult<string?>>> ProcessRequirementsInParallelAsync<T>(
+            IEnumerable<T> items,
+            Func<T, int, CancellationToken, Task<string?>> processor,
+            int maxConcurrency = 3,
+            int rateLimitDelayMs = 100,
+            Action<string, int, int>? onProgress = null,
+            CancellationToken cancellationToken = default)
+        {
+            var itemsList = items.ToList();
+            var results = new List<ParallelProcessingResult<string?>>();
+            var semaphore = new SemaphoreSlim(maxConcurrency, maxConcurrency);
+            
+            onProgress?.Invoke("Starting parallel processing...", 0, itemsList.Count);
+            
+            var tasks = itemsList.Select(async (item, index) =>
+            {
+                await semaphore.WaitAsync(cancellationToken);
+                try
+                {
+                    var stopwatch = Stopwatch.StartNew();
+                    
+                    // Rate limiting delay (except for first batch)
+                    if (index > 0)
+                    {
+                        await Task.Delay(rateLimitDelayMs, cancellationToken);
+                    }
+                    
+                    onProgress?.Invoke($"Processing item {index + 1}...", index + 1, itemsList.Count);
+                    
+                    try
+                    {
+                        var result = await processor(item, index, cancellationToken);
+                        stopwatch.Stop();
+                        
+                        return new ParallelProcessingResult<string?>
+                        {
+                            Result = result,
+                            Success = true,
+                            Duration = stopwatch.Elapsed,
+                            Index = index
+                        };
+                    }
+                    catch (Exception ex)
+                    {
+                        stopwatch.Stop();
+                        TestCaseEditorApp.Services.Logging.Log.Error(ex, $"Error processing item {index}: {ex.Message}");
+                        
+                        return new ParallelProcessingResult<string?>
+                        {
+                            Success = false,
+                            Error = ex.Message,
+                            Duration = stopwatch.Elapsed,
+                            Index = index
+                        };
+                    }
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+            
+            var completedResults = await Task.WhenAll(tasks);
+            results.AddRange(completedResults);
+            
+            var successCount = results.Count(r => r.Success);
+            onProgress?.Invoke($"Parallel processing complete: {successCount}/{itemsList.Count} successful", itemsList.Count, itemsList.Count);
+            
+            return results;
         }
     }
 }
