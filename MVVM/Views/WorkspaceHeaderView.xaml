@@ -11,7 +11,7 @@
         <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
     </UserControl.Resources>
 
-    <DockPanel LastChildFill="True" Margin="6" VerticalAlignment="Center">
+    <DockPanel LastChildFill="True" Margin="6" VerticalAlignment="Center" ClipToBounds="True">
         <!-- Left: small area (logo / status / placeholder) -->
         <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,12,0">
             <!-- You can add a small badge/icon here if desired -->
