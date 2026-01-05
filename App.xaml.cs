@@ -119,7 +119,8 @@ namespace TestCaseEditorApp
                         var primaryLlmService = LlmFactory.Create();
                         var healthMonitor = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor>();
                         var cache = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisCache>();
-                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService(primaryLlmService, healthMonitor, cache);
+                        var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService(primaryLlmService, healthMonitor, cache, anythingLLMService);
                     });
                     services.AddSingleton<AnythingLLMService>(provider =>
                         new AnythingLLMService()); // Let it get baseUrl and apiKey from defaults/user config

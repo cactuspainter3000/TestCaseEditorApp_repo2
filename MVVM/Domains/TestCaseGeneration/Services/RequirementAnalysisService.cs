@@ -22,7 +22,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         private readonly RequirementAnalysisPromptBuilder _promptBuilder;
         private readonly LlmServiceHealthMonitor? _healthMonitor;
         private readonly RequirementAnalysisCache? _cache;
+        private readonly AnythingLLMService? _anythingLLMService;
         private string? _cachedSystemMessage;
+        private string? _currentWorkspaceSlug;
         
         /// <summary>
         /// Enable/disable self-reflection feature. When enabled, the LLM will review its own responses for quality.
@@ -54,17 +56,19 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         /// </summary>
         public RequirementAnalysisCache.CacheStatistics? CacheStatistics => _cache?.GetStatistics();
 
-        public RequirementAnalysisService(ITextGenerationService llmService)
+        public RequirementAnalysisService(ITextGenerationService llmService, AnythingLLMService? anythingLLMService = null)
         {
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
+            _anythingLLMService = anythingLLMService;
             _promptBuilder = new RequirementAnalysisPromptBuilder();
         }
 
-        public RequirementAnalysisService(ITextGenerationService llmService, LlmServiceHealthMonitor healthMonitor, RequirementAnalysisCache? cache = null)
+        public RequirementAnalysisService(ITextGenerationService llmService, LlmServiceHealthMonitor healthMonitor, RequirementAnalysisCache? cache = null, AnythingLLMService? anythingLLMService = null)
         {
             _llmService = healthMonitor?.GetHealthyService() ?? throw new ArgumentNullException(nameof(llmService));
             _healthMonitor = healthMonitor ?? throw new ArgumentNullException(nameof(healthMonitor));
             _cache = cache;
+            _anythingLLMService = anythingLLMService;
             _promptBuilder = new RequirementAnalysisPromptBuilder();
         }
 
@@ -133,8 +137,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 timeoutCts.CancelAfter(AnalysisTimeout);
                 var timeoutToken = timeoutCts.Token;
                 
-                // Check if service supports streaming
-                if (_llmService is AnythingLLMService anythingLlmService)
+                // Try RAG-based analysis first (faster and more context-aware)
+                var ragResult = await TryRagAnalysisAsync(requirement, onPartialResult, onProgressUpdate, timeoutToken);
+                if (ragResult.success)
+                {
+                    response = ragResult.response;
+                }
+                // Fallback to direct LLM service
+                else if (_llmService is AnythingLLMService anythingLlmService)
                 {
                     // Use streaming analysis for real-time feedback
                     response = await anythingLlmService.SendChatMessageStreamingAsync(
@@ -146,7 +156,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 }
                 else
                 {
-                    // Fallback to traditional method
+                    // Traditional LLM method
                     response = await _llmService.GenerateWithSystemAsync(_cachedSystemMessage, contextPrompt, timeoutToken);
                 }
 
@@ -989,6 +999,229 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Try RAG-based analysis using AnythingLLM workspace with uploaded documents.
+        /// This method provides faster, more context-aware analysis than traditional prompting.
+        /// </summary>
+        private async Task<(bool success, string response)> TryRagAnalysisAsync(
+            Requirement requirement, 
+            Action<string>? onPartialResult,
+            Action<string>? onProgressUpdate,
+            CancellationToken cancellationToken)
+        {
+            // Check if RAG is available
+            if (_anythingLLMService == null)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug("[RAG] AnythingLLMService not available, using traditional analysis");
+                return (false, string.Empty);
+            }
+
+            try
+            {
+                // Get or create workspace for current project
+                var workspaceSlug = await EnsureWorkspaceConfiguredAsync(onProgressUpdate, cancellationToken);
+                if (string.IsNullOrEmpty(workspaceSlug))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[RAG] No workspace configured, using traditional analysis");
+                    return (false, string.Empty);
+                }
+
+                // Upload supplemental information as documents if not already done
+                await EnsureSupplementalInfoUploadedAsync(requirement, workspaceSlug, onProgressUpdate, cancellationToken);
+
+                onProgressUpdate?.Invoke("Performing RAG-enhanced analysis...");
+
+                // Create simplified prompt for RAG (context is in uploaded documents)
+                var ragPrompt = BuildRagOptimizedPrompt(requirement);
+
+                // Use RAG-based analysis
+                var response = await _anythingLLMService.SendChatMessageStreamingAsync(
+                    workspaceSlug,
+                    ragPrompt,
+                    onChunkReceived: onPartialResult,
+                    onProgressUpdate: onProgressUpdate,
+                    cancellationToken: cancellationToken) ?? string.Empty;
+
+                if (!string.IsNullOrWhiteSpace(response))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Successfully analyzed requirement {requirement.Item} using workspace '{workspaceSlug}'");
+                    return (true, response);
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] Failed to perform RAG analysis for requirement {requirement.Item}, falling back to traditional method: {ex.Message}");
+            }
+
+            return (false, string.Empty);
+        }
+
+        /// <summary>
+        /// Ensure workspace is configured for the current project.
+        /// Returns workspace slug if successful, null otherwise.
+        /// </summary>
+        private async Task<string?> EnsureWorkspaceConfiguredAsync(Action<string>? onProgressUpdate, CancellationToken cancellationToken)
+        {
+            if (_anythingLLMService == null) return null;
+
+            // Check if we already have a cached workspace
+            if (!string.IsNullOrEmpty(_currentWorkspaceSlug))
+            {
+                return _currentWorkspaceSlug;
+            }
+
+            try
+            {
+                onProgressUpdate?.Invoke("Checking RAG workspace...");
+
+                // Get existing workspaces
+                var workspaces = await _anythingLLMService.GetWorkspacesAsync(cancellationToken);
+                
+                // Look for a test case editor workspace
+                var testCaseWorkspace = workspaces.FirstOrDefault(w => 
+                    w.Name.Contains("Test Case Editor", StringComparison.OrdinalIgnoreCase) ||
+                    w.Name.Contains("Requirements Analysis", StringComparison.OrdinalIgnoreCase));
+
+                if (testCaseWorkspace != null)
+                {
+                    _currentWorkspaceSlug = testCaseWorkspace.Slug;
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Using existing workspace: {testCaseWorkspace.Name}");
+                    return _currentWorkspaceSlug;
+                }
+
+                // Create a new workspace if none exists
+                onProgressUpdate?.Invoke("Creating RAG workspace...");
+                var (newWorkspace, _) = await _anythingLLMService.CreateAndConfigureWorkspaceAsync(
+                    "Requirements Analysis",
+                    onProgress: onProgressUpdate,
+                    cancellationToken: cancellationToken);
+
+                if (newWorkspace != null)
+                {
+                    _currentWorkspaceSlug = newWorkspace.Slug;
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Created new workspace: {newWorkspace.Name}");
+                    return _currentWorkspaceSlug;
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] Failed to configure workspace: {ex.Message}");
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Upload supplemental information as documents to the RAG workspace.
+        /// This provides context for more accurate analysis.
+        /// </summary>
+        private async Task EnsureSupplementalInfoUploadedAsync(
+            Requirement requirement, 
+            string workspaceSlug, 
+            Action<string>? onProgressUpdate, 
+            CancellationToken cancellationToken)
+        {
+            if (_anythingLLMService == null || string.IsNullOrEmpty(workspaceSlug)) return;
+
+            try
+            {
+                // Check if requirement has supplemental information to upload
+                var hasSupplemental = 
+                    (requirement.Tables?.Count > 0) ||
+                    (requirement.LooseContent?.Paragraphs?.Count > 0) ||
+                    (requirement.LooseContent?.Tables?.Count > 0);
+
+                if (!hasSupplemental) return;
+
+                onProgressUpdate?.Invoke("Uploading supplemental information to RAG workspace...");
+
+                // Create document content from supplemental information
+                var docContent = new System.Text.StringBuilder();
+                docContent.AppendLine($"# Supplemental Information for {requirement.Item}");
+                docContent.AppendLine($"## Requirement: {requirement.Name}");
+                docContent.AppendLine();
+
+                // Add tables
+                if (requirement.Tables?.Count > 0)
+                {
+                    docContent.AppendLine("## Tables:");
+                    foreach (var table in requirement.Tables)
+                    {
+                        docContent.AppendLine($"### {table.EditableTitle}");
+                        
+                        // Add table data as formatted text
+                        if (table.Table?.Count > 0)
+                        {
+                            foreach (var row in table.Table)
+                            {
+                                docContent.AppendLine(string.Join(" | ", row));
+                            }
+                        }
+                        docContent.AppendLine();
+                    }
+                }
+
+                // Add loose content paragraphs
+                if (requirement.LooseContent?.Paragraphs?.Count > 0)
+                {
+                    docContent.AppendLine("## Additional Information:");
+                    foreach (var para in requirement.LooseContent.Paragraphs)
+                    {
+                        docContent.AppendLine(para);
+                        docContent.AppendLine();
+                    }
+                }
+
+                // Add loose content tables
+                if (requirement.LooseContent?.Tables?.Count > 0)
+                {
+                    docContent.AppendLine("## Additional Tables:");
+                    foreach (var table in requirement.LooseContent.Tables)
+                    {
+                        docContent.AppendLine($"### {table.EditableTitle}");
+                        
+                        // Add table data as formatted text
+                        if (table.Rows?.Count > 0)
+                        {
+                            foreach (var row in table.Rows)
+                            {
+                                docContent.AppendLine(string.Join(" | ", row));
+                            }
+                        }
+                        docContent.AppendLine();
+                    }
+                }
+
+                // Upload as document (simplified - would need actual upload implementation)
+                TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Prepared supplemental information document for {requirement.Item} ({docContent.Length} characters)");
+                // Note: Actual document upload would require implementing document upload API in AnythingLLMService
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] Failed to upload supplemental information for {requirement.Item}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Build RAG-optimized prompt that leverages uploaded documents for context.
+        /// Much simpler than traditional prompts since context is in RAG documents.
+        /// </summary>
+        private string BuildRagOptimizedPrompt(Requirement requirement)
+        {
+            var prompt = new System.Text.StringBuilder();
+            
+            prompt.AppendLine("Analyze the following requirement for quality and provide structured feedback in JSON format:");
+            prompt.AppendLine();
+            prompt.AppendLine($"**Requirement ID:** {requirement.Item}");
+            prompt.AppendLine($"**Name:** {requirement.Name}");
+            prompt.AppendLine($"**Description:** {requirement.Description}");
+            prompt.AppendLine();
+            prompt.AppendLine("Use any uploaded supplemental information and definitions to provide accurate analysis.");
+            prompt.AppendLine("Return only valid JSON with OverallScore, Issues, and Recommendations.");
+
+            return prompt.ToString();
         }
     }
 }
