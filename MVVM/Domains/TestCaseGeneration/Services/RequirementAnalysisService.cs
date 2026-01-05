@@ -88,18 +88,33 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         {
             if (requirement == null) throw new ArgumentNullException(nameof(requirement));
 
+            var startTime = DateTime.UtcNow;
+            System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Starting analysis for requirement {requirement.Item} at {startTime:HH:mm:ss.fff}");
+            System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] RAG Service Available: {_anythingLLMService != null}");
+            System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Timeout Setting: {AnalysisTimeout.TotalSeconds}s");
+
             onProgressUpdate?.Invoke("Starting requirement analysis...");
 
             // Check cache first if enabled
             if (EnableCaching && _cache != null)
             {
+                var cacheCheckStart = DateTime.UtcNow;
+                System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Checking cache at {cacheCheckStart:HH:mm:ss.fff}");
                 onProgressUpdate?.Invoke("Checking cache...");
                 if (_cache.TryGet(requirement, out var cachedAnalysis) && cachedAnalysis != null)
                 {
+                    var cacheTime = DateTime.UtcNow - cacheCheckStart;
+                    System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Cache HIT - returned in {cacheTime.TotalMilliseconds}ms");
                     onProgressUpdate?.Invoke("Using cached analysis");
                     TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Using CACHED analysis for requirement {requirement.Item}");
                     return cachedAnalysis;
                 }
+                var cacheMissTime = DateTime.UtcNow - cacheCheckStart;
+                System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Cache MISS - check took {cacheMissTime.TotalMilliseconds}ms");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Cache disabled or unavailable");
             }
 
             var analysisStartTime = DateTime.UtcNow;
@@ -107,10 +122,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
 
             try
             {
+                var prepStart = DateTime.UtcNow;
+                System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Starting preparation at {prepStart:HH:mm:ss.fff}");
                 onProgressUpdate?.Invoke("Preparing analysis context...");
                 
                 // Get verification assumptions for context
                 var verificationAssumptions = GetVerificationAssumptionsText(requirement);
+                var prepTime = DateTime.UtcNow - prepStart;
+                System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Preparation completed in {prepTime.TotalMilliseconds}ms");
 
                 // Build the prompt using optimized system+context approach for better performance
                 string response;
@@ -133,19 +152,30 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 onProgressUpdate?.Invoke("Sending analysis request to AI...");
                 
                 // Create timeout cancellation token to prevent hanging
+                var timeoutSetupStart = DateTime.UtcNow;
                 timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 timeoutCts.CancelAfter(AnalysisTimeout);
                 var timeoutToken = timeoutCts.Token;
+                var timeoutSetupTime = DateTime.UtcNow - timeoutSetupStart;
+                System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Timeout setup completed in {timeoutSetupTime.TotalMilliseconds}ms, timeout: {AnalysisTimeout.TotalSeconds}s");
                 
                 // Try RAG-based analysis first (faster and more context-aware)
+                var ragAttemptStart = DateTime.UtcNow;
+                System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Attempting RAG analysis at {ragAttemptStart:HH:mm:ss.fff}");
                 var ragResult = await TryRagAnalysisAsync(requirement, onPartialResult, onProgressUpdate, timeoutToken);
+                var ragAttemptTime = DateTime.UtcNow - ragAttemptStart;
+                System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] RAG attempt completed in {ragAttemptTime.TotalMilliseconds}ms, success: {ragResult.success}");
+                
                 if (ragResult.success)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Using RAG response, length: {ragResult.response?.Length ?? 0}");
                     response = ragResult.response;
                 }
                 // Fallback to direct LLM service
                 else if (_llmService is AnythingLLMService anythingLlmService)
                 {
+                    var streamingStart = DateTime.UtcNow;
+                    System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Starting AnythingLLM streaming at {streamingStart:HH:mm:ss.fff}");
                     // Use streaming analysis for real-time feedback
                     response = await anythingLlmService.SendChatMessageStreamingAsync(
                         "test-case-analysis", // Default workspace
@@ -153,11 +183,17 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                         onChunkReceived: onPartialResult,
                         onProgressUpdate: onProgressUpdate,
                         cancellationToken: timeoutToken) ?? string.Empty;
+                    var streamingTime = DateTime.UtcNow - streamingStart;
+                    System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] AnythingLLM streaming completed in {streamingTime.TotalMilliseconds}ms, response length: {response?.Length ?? 0}");
                 }
                 else
                 {
+                    var traditionalStart = DateTime.UtcNow;
+                    System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Starting traditional LLM at {traditionalStart:HH:mm:ss.fff}");
                     // Traditional LLM method
                     response = await _llmService.GenerateWithSystemAsync(_cachedSystemMessage, contextPrompt, timeoutToken);
+                    var traditionalTime = DateTime.UtcNow - traditionalStart;
+                    System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Traditional LLM completed in {traditionalTime.TotalMilliseconds}ms, response length: {response?.Length ?? 0}");
                 }
 
                 onProgressUpdate?.Invoke("Processing analysis results...");
@@ -190,18 +226,28 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 }
 
                 onProgressUpdate?.Invoke("Analysis complete");
+                var totalAnalysisTime = DateTime.UtcNow - startTime;
+                System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Analysis completed successfully in {totalAnalysisTime.TotalSeconds:F1}s");
                 return analysis;
             }
             catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
             {
+                var totalTime = DateTime.UtcNow - startTime;
+                System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Operation cancelled after {totalTime.TotalSeconds:F1}s");
+                System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Timeout triggered: {timeoutCts?.Token.IsCancellationRequested == true}");
+                System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] User cancelled: {cancellationToken.IsCancellationRequested}");
+                
                 if (timeoutCts?.Token.IsCancellationRequested == true && !cancellationToken.IsCancellationRequested)
                 {
-                    onProgressUpdate?.Invoke($"Analysis timed out after {AnalysisTimeout.TotalSeconds} seconds");
+                    var timeoutMessage = $"Analysis timed out after {AnalysisTimeout.TotalSeconds} seconds";
+                    System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] TIMEOUT: {timeoutMessage}");
+                    onProgressUpdate?.Invoke(timeoutMessage);
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] Analysis timed out for requirement {requirement.Item} after {AnalysisTimeout.TotalSeconds}s");
                     return CreateErrorAnalysis($"Analysis timed out after {AnalysisTimeout.TotalSeconds} seconds. This may indicate an issue with the LLM service.");
                 }
                 else
                 {
+                    System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] USER CANCELLED");
                     onProgressUpdate?.Invoke("Analysis cancelled");
                     return CreateErrorAnalysis("Analysis was cancelled");
                 }
@@ -1011,9 +1057,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             Action<string>? onProgressUpdate,
             CancellationToken cancellationToken)
         {
+            var ragStart = DateTime.UtcNow;
+            System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] TryRagAnalysisAsync started at {ragStart:HH:mm:ss.fff}");
+            
             // Check if RAG is available
             if (_anythingLLMService == null)
             {
+                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] AnythingLLMService is null, returning false");
                 TestCaseEditorApp.Services.Logging.Log.Debug("[RAG] AnythingLLMService not available, using traditional analysis");
                 return (false, string.Empty);
             }
@@ -1021,28 +1071,45 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             try
             {
                 // Get or create workspace for current project
+                var workspaceStart = DateTime.UtcNow;
+                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Getting workspace at {workspaceStart:HH:mm:ss.fff}");
                 var workspaceSlug = await EnsureWorkspaceConfiguredAsync(onProgressUpdate, cancellationToken);
+                var workspaceTime = DateTime.UtcNow - workspaceStart;
+                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Workspace check completed in {workspaceTime.TotalMilliseconds}ms, slug: '{workspaceSlug}'");
+                
                 if (string.IsNullOrEmpty(workspaceSlug))
                 {
+                    System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] No workspace slug returned, returning false");
                     TestCaseEditorApp.Services.Logging.Log.Debug("[RAG] No workspace configured, using traditional analysis");
                     return (false, string.Empty);
                 }
 
                 // Upload supplemental information as documents if not already done
+                var uploadStart = DateTime.UtcNow;
+                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Starting document upload at {uploadStart:HH:mm:ss.fff}");
                 await EnsureSupplementalInfoUploadedAsync(requirement, workspaceSlug, onProgressUpdate, cancellationToken);
+                var uploadTime = DateTime.UtcNow - uploadStart;
+                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Document upload completed in {uploadTime.TotalMilliseconds}ms");
 
                 onProgressUpdate?.Invoke("Performing RAG-enhanced analysis...");
 
                 // Create simplified prompt for RAG (context is in uploaded documents)
+                var promptStart = DateTime.UtcNow;
                 var ragPrompt = BuildRagOptimizedPrompt(requirement);
+                var promptTime = DateTime.UtcNow - promptStart;
+                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] RAG prompt built in {promptTime.TotalMilliseconds}ms, length: {ragPrompt?.Length ?? 0}");
 
                 // Use RAG-based analysis
+                var ragRequestStart = DateTime.UtcNow;
+                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Starting RAG request at {ragRequestStart:HH:mm:ss.fff}");
                 var response = await _anythingLLMService.SendChatMessageStreamingAsync(
                     workspaceSlug,
                     ragPrompt,
                     onChunkReceived: onPartialResult,
                     onProgressUpdate: onProgressUpdate,
                     cancellationToken: cancellationToken) ?? string.Empty;
+                var ragRequestTime = DateTime.UtcNow - ragRequestStart;
+                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] RAG request completed in {ragRequestTime.TotalMilliseconds}ms, response length: {response?.Length ?? 0}");
 
                 if (!string.IsNullOrWhiteSpace(response))
                 {
@@ -1064,22 +1131,35 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         /// </summary>
         private async Task<string?> EnsureWorkspaceConfiguredAsync(Action<string>? onProgressUpdate, CancellationToken cancellationToken)
         {
-            if (_anythingLLMService == null) return null;
+            var workspaceMethodStart = DateTime.UtcNow;
+            System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] EnsureWorkspaceConfiguredAsync started at {workspaceMethodStart:HH:mm:ss.fff}");
+            
+            if (_anythingLLMService == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] AnythingLLMService is null in EnsureWorkspaceConfiguredAsync");
+                return null;
+            }
 
             // Check if we already have a cached workspace
             if (!string.IsNullOrEmpty(_currentWorkspaceSlug))
             {
+                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Using cached workspace slug: '{_currentWorkspaceSlug}'");
                 return _currentWorkspaceSlug;
             }
 
             try
             {
                 onProgressUpdate?.Invoke("Checking RAG workspace...");
+                var listStart = DateTime.UtcNow;
+                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Getting workspaces list at {listStart:HH:mm:ss.fff}");
 
                 // Get existing workspaces
                 var workspaces = await _anythingLLMService.GetWorkspacesAsync(cancellationToken);
+                var listTime = DateTime.UtcNow - listStart;
+                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Got {workspaces?.Count() ?? 0} workspaces in {listTime.TotalMilliseconds}ms");
                 
                 // Look for a test case editor workspace
+                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Looking for existing Test Case Editor workspace...");
                 var testCaseWorkspace = workspaces.FirstOrDefault(w => 
                     w.Name.Contains("Test Case Editor", StringComparison.OrdinalIgnoreCase) ||
                     w.Name.Contains("Requirements Analysis", StringComparison.OrdinalIgnoreCase));
@@ -1087,29 +1167,45 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 if (testCaseWorkspace != null)
                 {
                     _currentWorkspaceSlug = testCaseWorkspace.Slug;
+                    System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Found existing workspace: '{testCaseWorkspace.Name}' with slug '{_currentWorkspaceSlug}'");
                     TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Using existing workspace: {testCaseWorkspace.Name}");
                     return _currentWorkspaceSlug;
                 }
 
                 // Create a new workspace if none exists
+                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] No existing workspace found, creating new one...");
                 onProgressUpdate?.Invoke("Creating RAG workspace...");
+                var createStart = DateTime.UtcNow;
                 var (newWorkspace, _) = await _anythingLLMService.CreateAndConfigureWorkspaceAsync(
                     "Requirements Analysis",
-                    onProgress: onProgressUpdate,
+                    onProgress: message => {
+                        System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Workspace creation progress: {message}");
+                        onProgressUpdate?.Invoke(message);
+                    },
                     cancellationToken: cancellationToken);
+                var createTime = DateTime.UtcNow - createStart;
+                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Workspace creation completed in {createTime.TotalMilliseconds}ms");
 
                 if (newWorkspace != null)
                 {
                     _currentWorkspaceSlug = newWorkspace.Slug;
+                    System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Created new workspace: '{newWorkspace.Name}' with slug '{_currentWorkspaceSlug}'");
                     TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Created new workspace: {newWorkspace.Name}");
                     return _currentWorkspaceSlug;
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Failed to create new workspace - returned null");
                 }
             }
             catch (Exception ex)
             {
+                var workspaceMethodTime = DateTime.UtcNow - workspaceMethodStart;
+                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] EnsureWorkspaceConfiguredAsync failed after {workspaceMethodTime.TotalMilliseconds}ms: {ex.Message}");
                 TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] Failed to configure workspace: {ex.Message}");
             }
 
+            System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] EnsureWorkspaceConfiguredAsync returning null");
             return null;
         }
 
