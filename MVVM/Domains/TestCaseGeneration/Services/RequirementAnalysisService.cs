@@ -35,6 +35,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         public bool EnableCaching { get; set; } = true;
 
         /// <summary>
+        /// Timeout for LLM analysis operations. Default is 60 seconds to prevent hanging.
+        /// </summary>
+        public TimeSpan AnalysisTimeout { get; set; } = TimeSpan.FromSeconds(60);
+
+        /// <summary>
         /// Current health status of the LLM service (null if no health monitor configured)
         /// </summary>
         public LlmServiceHealthMonitor.HealthReport? ServiceHealth => _healthMonitor?.CurrentHealth;
@@ -94,6 +99,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             }
 
             var analysisStartTime = DateTime.UtcNow;
+            CancellationTokenSource? timeoutCts = null;
 
             try
             {
@@ -122,6 +128,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
 
                 onProgressUpdate?.Invoke("Sending analysis request to AI...");
                 
+                // Create timeout cancellation token to prevent hanging
+                timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                timeoutCts.CancelAfter(AnalysisTimeout);
+                var timeoutToken = timeoutCts.Token;
+                
                 // Check if service supports streaming
                 if (_llmService is AnythingLLMService anythingLlmService)
                 {
@@ -131,12 +142,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                         $"{_cachedSystemMessage}\\n\\n{contextPrompt}",
                         onChunkReceived: onPartialResult,
                         onProgressUpdate: onProgressUpdate,
-                        cancellationToken: cancellationToken) ?? string.Empty;
+                        cancellationToken: timeoutToken) ?? string.Empty;
                 }
                 else
                 {
                     // Fallback to traditional method
-                    response = await _llmService.GenerateWithSystemAsync(_cachedSystemMessage, contextPrompt, cancellationToken);
+                    response = await _llmService.GenerateWithSystemAsync(_cachedSystemMessage, contextPrompt, timeoutToken);
                 }
 
                 onProgressUpdate?.Invoke("Processing analysis results...");
@@ -171,10 +182,19 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 onProgressUpdate?.Invoke("Analysis complete");
                 return analysis;
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
             {
-                onProgressUpdate?.Invoke("Analysis cancelled");
-                return CreateErrorAnalysis("Analysis was cancelled");
+                if (timeoutCts?.Token.IsCancellationRequested == true && !cancellationToken.IsCancellationRequested)
+                {
+                    onProgressUpdate?.Invoke($"Analysis timed out after {AnalysisTimeout.TotalSeconds} seconds");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] Analysis timed out for requirement {requirement.Item} after {AnalysisTimeout.TotalSeconds}s");
+                    return CreateErrorAnalysis($"Analysis timed out after {AnalysisTimeout.TotalSeconds} seconds. This may indicate an issue with the LLM service.");
+                }
+                else
+                {
+                    onProgressUpdate?.Invoke("Analysis cancelled");
+                    return CreateErrorAnalysis("Analysis was cancelled");
+                }
             }
             catch (JsonException ex)
             {
@@ -185,6 +205,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             {
                 onProgressUpdate?.Invoke($"Analysis failed: {ex.Message}");
                 return CreateErrorAnalysis($"Analysis failed: {ex.Message}");
+            }
+            finally
+            {
+                // Dispose timeout cancellation token
+                timeoutCts?.Dispose();
             }
         }
 

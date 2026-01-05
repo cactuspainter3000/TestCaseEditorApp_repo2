@@ -27,6 +27,10 @@ namespace TestCaseEditorApp.Prompts
             sb.AppendLine("You are a systems engineering expert specializing in requirements quality analysis.");
             sb.AppendLine("Your task is to evaluate the quality of system-level requirements.");
             sb.AppendLine();
+            sb.AppendLine("⚠️ CRITICAL: You will receive supplemental information (paragraphs, tables) with each requirement.");
+            sb.AppendLine("DO NOT mark terms as 'ambiguous' or 'unclear' if they are defined in supplemental content.");
+            sb.AppendLine("ALWAYS check supplemental information for definitions before flagging anything as unclear.");
+            sb.AppendLine();
 
             // Evaluation criteria
             sb.AppendLine("EVALUATION CRITERIA:");
