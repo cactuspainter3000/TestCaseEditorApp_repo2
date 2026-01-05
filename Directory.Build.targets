@@ -5,7 +5,7 @@
     project's own deps file (AssemblyName.deps.json) after each Build. This is a minimal,
     conservative fix to avoid the testhost attempting to load unrelated test-platform deps.
   -->
-  <Target Name="RemoveStrayDepsJson" AfterTargets="Build">
+  <Target Name="RemoveStrayDepsJson" AfterTargets="Build" Condition="'$(SkipRemoveStrayDepsJson)' != 'true'">
     <ItemGroup>
       <DepsJsonFiles Include="$(OutputPath)\*.deps.json" />
       <DepsJsonExclude Include="$(OutputPath)\$(AssemblyName).deps.json" />
