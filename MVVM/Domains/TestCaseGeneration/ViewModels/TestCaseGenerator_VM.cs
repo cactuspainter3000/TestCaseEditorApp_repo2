@@ -117,6 +117,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
                 OnPropertyChanged(nameof(BulkActionsVisible));
                 
+                // Publish domain event for cross-component communication (architectural compliance)
+                _mediator.PublishEvent(new TestCaseGenerationEvents.SupportViewChanged
+                {
+                    SupportView = SelectedSupportView.ToString(),
+                    IsAnalysisView = SelectedSupportView == SupportView.Analysis
+                });
+                
                 // When switching to Analysis view, ensure AnalysisVM refreshes its display
                 if (SelectedSupportView == SupportView.Analysis)
                 {

@@ -99,6 +99,16 @@ namespace TestCaseEditorApp.MVVM.Events
         }
         
         /// <summary>
+        /// Fired when the support view changes in the Test Case Generator
+        /// </summary>
+        public class SupportViewChanged
+        {
+            public string SupportView { get; set; } = string.Empty;
+            public bool IsAnalysisView { get; set; }
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
+        
+        /// <summary>
         /// Fired when test case generation workflow is completed
         /// </summary>
         public class GenerationCompleted

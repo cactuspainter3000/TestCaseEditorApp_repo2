@@ -42,6 +42,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // AnythingLLM status text for Test Case Generator section
         [ObservableProperty]
         private string anythingLLMStatusText = "AnythingLLM not detected";
+        
+        // Analysis tab state tracking for context-sensitive menu visibility
+        [ObservableProperty]
+        private bool isAnalysisTabActive = false;
+        
+        // References to context-sensitive menu sections for visibility updates
+        private MenuHierarchyItem? _analysisSection;
+        private MenuHierarchyItem? _clarifyingQuestionsSection;
+        
+        // References to analysis action items for enable/disable control
+        private List<MenuHierarchyItem> _analysisActionItems = new();
 
         [ObservableProperty]
         private string? selectedSection;
@@ -437,19 +448,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 MenuHierarchyItem.CreateSection("Requirement", 2, true,
                     CreateActionWithId("requirement.import", "📥 Import Additional Requirements", "📥", ImportAdditionalCommand, false), // Disabled until project loaded
                     
-                    // Level 3: Analysis (Tertiary header)
-                    MenuHierarchyItem.CreateSection("Analysis", 3, true,
-                        CreateActionWithId("analysis.batch", "⚡ Analyze All Requirements", "⚡", BatchAnalyzeCommand, false),
-                        CreateActionWithId("analysis.unanalyzed", "🔍 Analyze Unanalyzed", "🔍", AnalyzeUnanalyzedCommand, false),
-                        CreateActionWithId("analysis.export", "📝 Export for ChatGPT", "📝", ExportForChatGptCommand, false)
-                    ),
+                    // Level 3: Analysis (Tertiary header - only visible when LLM Analysis tab is active)
+                    CreateAnalysisSection(),
                     
                     // Level 3: Clarifying Questions (Tertiary header) 
-                    MenuHierarchyItem.CreateSection("Clarifying Questions", 3, true,
-                        CreateActionWithId("questions.ask", "❓ Ask Questions", "❓", null, false),
-                        CreateActionWithId("questions.paste", "📋 Paste from Clipboard", "📋", null, false),
-                        CreateActionWithId("questions.regenerate", "🔄 Regenerate Questions", "🔄", null, false)
-                    ),
+                    CreateClarifyingQuestionsSection(),
                     
                     // Level 3: Verification Method Assumptions (Tertiary header)
                     MenuHierarchyItem.CreateSection("Verification Method Assumptions", 3, true,
@@ -527,6 +530,47 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             return item;
         }
         
+        private MenuHierarchyItem CreateAnalysisSection()
+        {
+            var batchAnalyze = CreateActionWithId("analysis.batch", "⚡ Analyze All Requirements", "⚡", BatchAnalyzeCommand, false);
+            var analyzeUnanalyzed = CreateActionWithId("analysis.unanalyzed", "🔍 Analyze Unanalyzed", "🔍", AnalyzeUnanalyzedCommand, false);
+            var reAnalyze = CreateActionWithId("analysis.reanalyze", "🔄 Re-analyze Modified", "🔄", ReAnalyzeModifiedCommand, false);
+            var generateCommand = CreateActionWithId("analysis.generate-command", "🔍 Generate Analysis Command", "🔍", GenerateAnalysisCommandCommand, false);
+            var exportChatGpt = CreateActionWithId("analysis.export", "📝 Export for ChatGPT", "📝", ExportForChatGptCommand, false);
+            
+            // Track analysis action items for enable/disable control
+            _analysisActionItems.Clear();
+            _analysisActionItems.AddRange(new[] { batchAnalyze, analyzeUnanalyzed, reAnalyze, generateCommand, exportChatGpt });
+            
+            _analysisSection = MenuHierarchyItem.CreateSection("Analysis", 3, true,
+                batchAnalyze, analyzeUnanalyzed, reAnalyze, generateCommand, exportChatGpt
+            );
+            
+            // Set initial enabled state based on current analysis tab state
+            UpdateAnalysisItemsEnabledState(IsAnalysisTabActive);
+            
+            return _analysisSection;
+        }
+        
+        private MenuHierarchyItem CreateClarifyingQuestionsSection()
+        {
+            _clarifyingQuestionsSection = MenuHierarchyItem.CreateSection("Clarifying Questions", 3, true,
+                CreateActionWithId("questions.ask", "❓ Ask Questions", "❓", null, false),
+                CreateActionWithId("questions.paste", "📋 Paste from Clipboard", "📋", null, false),
+                CreateActionWithId("questions.regenerate", "🔄 Regenerate Questions", "🔄", null, false)
+            );
+            _clarifyingQuestionsSection.IsVisible = IsAnalysisTabActive;
+            return _clarifyingQuestionsSection;
+        }
+        
+        private void UpdateAnalysisItemsEnabledState(bool isEnabled)
+        {
+            foreach (var item in _analysisActionItems)
+            {
+                item.IsEnabled = isEnabled;
+            }
+        }
+        
         /// <summary>
         /// Helper to create non-expandable items with IDs
         /// </summary>
@@ -591,6 +635,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 _testCaseGenerationMediator.Subscribe<TestCaseGenerationEvents.RequirementsImported>(OnRequirementsImported);
                 _testCaseGenerationMediator.Subscribe<TestCaseGenerationEvents.AdditionalRequirementsImported>(OnAdditionalRequirementsImported);
                 _testCaseGenerationMediator.Subscribe<TestCaseGenerationEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
+                _testCaseGenerationMediator.Subscribe<TestCaseGenerationEvents.SupportViewChanged>(OnSupportViewChanged);
             }
         }
         
@@ -626,6 +671,22 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private void OnRequirementsCollectionChanged(TestCaseGenerationEvents.RequirementsCollectionChanged evt)
         {
             HasRequirements = evt.NewCount > 0; // ObservableProperty automatically triggers command updates
+        }
+        
+        private void OnSupportViewChanged(TestCaseGenerationEvents.SupportViewChanged eventData)
+        {
+            IsAnalysisTabActive = eventData.IsAnalysisView;
+            
+            // Update enabled state of Analysis section items (visible but contextually enabled)
+            UpdateAnalysisItemsEnabledState(IsAnalysisTabActive);
+            
+            // Clarifying Questions section remains context-sensitive for visibility
+            if (_clarifyingQuestionsSection != null) 
+                _clarifyingQuestionsSection.IsVisible = IsAnalysisTabActive;
+                
+            _logger?.LogDebug("Menu state updated: Analysis items {EnabledState}, Clarifying Questions {Visibility}", 
+                IsAnalysisTabActive ? "enabled" : "disabled",
+                IsAnalysisTabActive ? "visible" : "hidden");
         }
         
         /// <summary>
@@ -787,17 +848,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 // === REQUIREMENTS DROPDOWN (as sub-item) ===
                 CreateDropdown("requirements", "📋", "Requirements", "Requirements management options",
                     CreateButton("import-additional", "📥", "Import Additional Requirements", ImportAdditionalCommand, "Import additional requirements"),
-                    CreateButton("batch-analyze", "⚡", "Analyze All Requirements", BatchAnalyzeCommand, "Analyze all requirements")
+                    CreateDropdown("analysis", "📊", "Analysis", "LLM analysis operations", 
+                        CreateButton("batch-analyze", "⚡", "Analyze All Requirements", BatchAnalyzeCommand, "Analyze all requirements"),
+                        CreateButton("analyze-unanalyzed", "🔍", "Analyze Unanalyzed", AnalyzeUnanalyzedCommand, "Analyze unanalyzed requirements"),
+                        CreateButton("reanalyze-modified", "🔄", "Re-analyze Modified", ReAnalyzeModifiedCommand, "Re-analyze modified requirements"),
+                        CreateButton("generate-analysis-command", "🔍", "Generate Analysis Command", GenerateAnalysisCommandCommand, "Generate analysis command"),
+                        CreateButton("export-chatgpt", "📝", "Export for ChatGPT", ExportForChatGptCommand, "Export for ChatGPT analysis")
+                    )
                 ),
 
                 // === LLM LEARNING DROPDOWN (as sub-item) ===
                 CreateDropdown("llm-learning", "🧠", "LLM Learning", "LLM learning and training options",
-                    CreateButton("analyze-unanalyzed", "🔍", "Analyze Unanalyzed", AnalyzeUnanalyzedCommand, "Analyze unanalyzed requirements"),
-                    CreateButton("reanalyze-modified", "🔄", "Re-analyze Modified", ReAnalyzeModifiedCommand, "Re-analyze modified requirements"),
                     CreateButton("generate-learning-prompt", "📋", "Generate Learning Prompt", GenerateLearningPromptCommand, "Generate learning prompt and copy to clipboard"),
                     CreateButton("paste-chatgpt-analysis", "📥", "Paste ChatGPT Analysis", PasteChatGptAnalysisCommand, "Paste and import ChatGPT analysis results"),
                     CreateButton("setup-llm-workspace", "🔧", "Setup LLM Workspace", SetupLlmWorkspaceCommand, "Setup integrated LLM workspace"),
-                    CreateButton("generate-analysis-command", "🔍", "Generate Analysis Command", GenerateAnalysisCommandCommand, "Generate analysis command for current requirement"),
                     CreateButton("generate-testcase-command", "⚙️", "Generate Test Case Command", GenerateTestCaseCommandCommand, "Generate test case command for current requirement"),
                     CreateButton("toggle-auto-export", "📤", "Export for ChatGPT", ToggleAutoExportCommand, "Toggle auto-export for ChatGPT analysis"),
                     CreateButton("open-chatgpt-export", "📝", "Open Export", OpenChatGptExportCommand, "Open the most recent ChatGPT export file")
