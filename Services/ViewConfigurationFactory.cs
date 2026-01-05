@@ -150,7 +150,7 @@ namespace TestCaseEditorApp.Services
             return new ViewConfiguration(
                 sectionName: "Default",
                 headerViewModel: _workspaceHeader,
-                contentViewModel: new InitialStateViewModel(),
+                contentViewModel: _viewModelFactory.CreateInitialStateViewModel(),
                 notificationViewModel: _viewModelFactory.CreateDefaultNotificationViewModel(),
                 context: context
             );

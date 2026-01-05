@@ -16,8 +16,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 {
     public partial class NavigationViewModel : ObservableObject
     {
-        private readonly ITestCaseGenerationMediator? _mediator;
-        private readonly ILogger<NavigationViewModel>? _logger;
+        private readonly ITestCaseGenerationMediator _mediator;
+        private readonly ILogger<NavigationViewModel> _logger;
 
         [ObservableProperty]
         private MenuAction? requirementsDropdown;
@@ -44,15 +44,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         public NavigationViewModel(ITestCaseGenerationMediator mediator, ILogger<NavigationViewModel> logger)
         {
-            _mediator = mediator;
-            _logger = logger;
+            _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             InitializeDropdown();
             
             // Subscribe to requirement changes from the mediator
-            if (_mediator != null)
-            {
-                _mediator.Subscribe<TestCaseGenerationEvents.RequirementsImported>(OnRequirementsImported);
-            }
+            _mediator.Subscribe<TestCaseGenerationEvents.RequirementsImported>(OnRequirementsImported);
         }
 
         private void InitializeDropdown()

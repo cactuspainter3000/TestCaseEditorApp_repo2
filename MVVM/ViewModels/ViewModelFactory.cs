@@ -26,15 +26,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     public class ViewModelFactory : IViewModelFactory
     {
         private readonly IApplicationServices _applicationServices;
-        private readonly IWorkspaceManagementMediator? _workspaceManagementMediator;
-        private readonly ITestCaseGenerationMediator? _testCaseGenerationMediator;
+        private readonly IWorkspaceManagementMediator _workspaceManagementMediator;
+        private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
 
-        public ViewModelFactory(IApplicationServices applicationServices, IWorkspaceManagementMediator? workspaceManagementMediator = null, 
-            ITestCaseGenerationMediator? testCaseGenerationMediator = null)
+        public ViewModelFactory(IApplicationServices applicationServices, IWorkspaceManagementMediator workspaceManagementMediator, 
+            ITestCaseGenerationMediator testCaseGenerationMediator)
         {
             _applicationServices = applicationServices ?? throw new ArgumentNullException(nameof(applicationServices));
-            _workspaceManagementMediator = workspaceManagementMediator;
-            _testCaseGenerationMediator = testCaseGenerationMediator;
+            _workspaceManagementMediator = workspaceManagementMediator ?? throw new ArgumentNullException(nameof(workspaceManagementMediator));
+            _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
         }
 
         public INavigationMediator CreateNavigationMediator()
@@ -128,6 +128,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public PlaceholderViewModel CreatePlaceholderViewModel()
         {
             return new PlaceholderViewModel("Content coming soon...");
+        }
+        
+        public InitialStateViewModel CreateInitialStateViewModel()
+        {
+            return new InitialStateViewModel();
         }
 
         public TestCaseGenerator_NavigationVM CreateRequirementsNavigationViewModel()

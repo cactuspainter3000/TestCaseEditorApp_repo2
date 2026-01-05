@@ -244,21 +244,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// <summary>
         /// Update save status from workspace management mediator (follows WorkspaceHeaderViewModel pattern)
         /// </summary>
-        public void UpdateSaveStatus(IWorkspaceManagementMediator? mediator)
+        public void UpdateSaveStatus(IWorkspaceManagementMediator mediator)
         {
-            if (mediator != null)
-            {
-                IsDirty = mediator.HasUnsavedChanges();
-                CanUndoLastSave = mediator.CanUndoLastSave();
-                // For now, we'll set this to null until we expose the current project path
-                WorkspaceFilePath = null;
-            }
-            else
-            {
-                IsDirty = false;
-                CanUndoLastSave = false;
-                WorkspaceFilePath = null;
-            }
+            ArgumentNullException.ThrowIfNull(mediator);
+            
+            IsDirty = mediator.HasUnsavedChanges();
+            CanUndoLastSave = mediator.CanUndoLastSave();
+            // For now, we'll set this to null until we expose the current project path
+            WorkspaceFilePath = null;
         }
 
         // ==================== Update Methods ====================

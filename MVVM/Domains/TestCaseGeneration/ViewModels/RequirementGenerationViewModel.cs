@@ -5,7 +5,7 @@ using System.Linq;
 using System.Windows;
 using TestCaseEditorApp.MVVM.Models;
 
-namespace TestCaseEditorApp.MVVM.ViewModels
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
     /// <summary>
     /// ViewModel responsible for generating learning prompts and ChatGPT commands for requirement analysis and test case generation.

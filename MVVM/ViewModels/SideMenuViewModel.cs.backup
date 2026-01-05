@@ -369,6 +369,202 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
         
         /// <summary>
+        /// NEW: Initialize the data-driven hierarchical menu
+        /// This shows how easy it becomes to define complex menu structures
+        /// </summary>
+        private void InitializeHierarchicalMenu()
+        {
+            Console.WriteLine("*** InitializeHierarchicalMenu() called! ***");
+            HierarchicalMenuItems.Clear();
+            
+            // Level 1: Test Case Generator (Primary header)
+            var testCaseGenerator = MenuHierarchyItem.CreateSection("Test Case Generator", 1, true,
+                // Level 2: Project (Secondary header)
+                CreateProjectSectionWithCommand(),
+                
+                // Level 2: Requirement (Secondary header)
+                MenuHierarchyItem.CreateSection("Requirement", 2, true,
+                    CreateActionWithId("requirement.import", "📥 Import Additional Requirements", "📥", ImportAdditionalCommand, false), // Disabled until project loaded
+                    
+                    // Level 3: Analysis (Tertiary header - only visible when LLM Analysis tab is active)
+                    CreateAnalysisSection(),
+                    
+                    // Level 3: Clarifying Questions (Tertiary header) 
+                    CreateClarifyingQuestionsSection(),
+                    
+                    // Level 3: Verification Method Assumptions (Tertiary header)
+                    MenuHierarchyItem.CreateSection("Verification Method Assumptions", 3, true,
+                        CreateActionWithId("verification.reset", "🔄 Reset All Assumptions", "🔄", null, false),
+                        CreateActionWithId("verification.clear", "🧹 Clear Preset Filter", "🧹", null, false)
+                    )
+                ),
+                
+                // Level 2: Direct items (Secondary headers but not expandable)
+                CreateNonExpandableWithId("llm.learning", "LLM Learning", 2),
+                // Removed duplicate "Test Case Generator" - the top-level one now handles navigation
+                CreateActionWithId("demo.state", "🧪 Demo State Management", "🧪", DemoStateManagementCommand)
+            );
+            
+            // CRITICAL: Assign navigation command to top-level Test Case Generator section
+            // This is what makes clicking "Test Case Generator" work, just like Project does!
+            testCaseGenerator.Command = TestCaseGeneratorNavigationCommand;
+            Console.WriteLine("*** Assigned TestCaseGeneratorNavigationCommand to top-level Test Case Generator section! ***");
+            
+            // Level 1: Test Flow Generator (Primary header)
+            var testFlowGenerator = MenuHierarchyItem.CreateSection("Test Flow Generator", 1, true,
+                // Add test flow items here when needed
+                MenuHierarchyItem.CreateSection("Flow Design", 2, true,
+                    CreateActionWithId("flow.create", "🆕 Create New Flow", "🆕", null, false),
+                    CreateActionWithId("flow.validate", "✅ Validate Flow", "✅", null, false),
+                    CreateActionWithId("flow.export", "📤 Export Flow", "📤", null, false)
+                ),
+                MenuHierarchyItem.CreateSection("Testing", 2, true,
+                    CreateActionWithId("testing.option1", "🧪 Test Option 1", "🧪", null, false),
+                    CreateActionWithId("testing.option2", "🔬 Test Option 2", "🔬", null, false)
+                )
+            );
+            
+            HierarchicalMenuItems.Add(testCaseGenerator);
+            HierarchicalMenuItems.Add(testFlowGenerator);
+            
+            // Level 1: TEST - Data-Driven Test Flow Pattern (Primary header)
+            var testFlowPattern = MenuHierarchyItem.CreateSection("🧪 Data-Driven Test Flow", 1, true,
+                // Level 2: Flow Steps (simulating ListBox items)
+                CreateFlowStepSection("Flow Step 1", "Ready", true,
+                    CreateActionWithId("flow.create", "🆕 Create New Flow", "🆕", null, true),
+                    CreateActionWithId("flow.validate", "✅ Validate Flow", "✅", null, true),
+                    CreateActionWithId("flow.export", "📤 Export Flow", "📤", null, true)
+                ),
+                
+                CreateFlowStepSection("Flow Step 2", "2", false),
+                
+                CreateFlowStepSection("Testing Options", "", true,
+                    CreateActionWithId("test.option1", "🧪 Test Option 1", "🧪", null, true),
+                    CreateActionWithId("test.option2", "🔬 Test Option 2", "🔬", null, true)
+                )
+            );
+            
+            HierarchicalMenuItems.Add(testFlowPattern);
+            
+            // Subscribe to state change events
+            SubscribeToStateEvents();
+        }
+        
+        private MenuHierarchyItem CreateFlowStepSection(string title, string badge, bool isExpandable, params MenuHierarchyItem[] children)
+        {
+            var section = MenuHierarchyItem.CreateSection(title, 2, isExpandable, children);
+            section.Badge = badge;
+            section.StatusIcon = "";
+            return section;
+        }
+        
+        /// <summary>
+        /// Helper to create action items with IDs for state management
+        /// </summary>
+        private MenuHierarchyItem CreateActionWithId(string id, string title, string icon, ICommand? command, bool isEnabled = true)
+        {
+            var item = MenuHierarchyItem.CreateAction(title, icon, command, isEnabled);
+            item.Tag = id; // Store ID for mediator lookups
+            return item;
+        }
+        
+        private MenuHierarchyItem CreateAnalysisSection()
+        {
+            var batchAnalyze = CreateActionWithId("analysis.batch", "⚡ Analyze All Requirements", "⚡", BatchAnalyzeCommand, false);
+            var analyzeUnanalyzed = CreateActionWithId("analysis.unanalyzed", "🔍 Analyze Unanalyzed", "🔍", AnalyzeUnanalyzedCommand, false);
+            var reAnalyze = CreateActionWithId("analysis.reanalyze", "🔄 Re-analyze Modified", "🔄", ReAnalyzeModifiedCommand, false);
+            var generateCommand = CreateActionWithId("analysis.generate-command", "🔍 Generate Analysis Command", "🔍", GenerateAnalysisCommandCommand, false);
+            var exportChatGpt = CreateActionWithId("analysis.export", "📝 Export for ChatGPT", "📝", ExportForChatGptCommand, false);
+            
+            // Track analysis action items for enable/disable control
+            _analysisActionItems.Clear();
+            _analysisActionItems.AddRange(new[] { batchAnalyze, analyzeUnanalyzed, reAnalyze, generateCommand, exportChatGpt });
+            
+            _analysisSection = MenuHierarchyItem.CreateSection("Analysis", 3, true,
+                batchAnalyze, analyzeUnanalyzed, reAnalyze, generateCommand, exportChatGpt
+            );
+            
+            // Set initial enabled state based on current analysis tab state
+            UpdateAnalysisItemsEnabledState(IsAnalysisTabActive);
+            
+            return _analysisSection;
+        }
+        
+        private MenuHierarchyItem CreateClarifyingQuestionsSection()
+        {
+            _clarifyingQuestionsSection = MenuHierarchyItem.CreateSection("Clarifying Questions", 3, true,
+                CreateActionWithId("questions.ask", "❓ Ask Questions", "❓", null, false),
+                CreateActionWithId("questions.paste", "📋 Paste from Clipboard", "📋", null, false),
+                CreateActionWithId("questions.regenerate", "🔄 Regenerate Questions", "🔄", null, false)
+            );
+            _clarifyingQuestionsSection.IsVisible = IsAnalysisTabActive;
+            return _clarifyingQuestionsSection;
+        }
+        
+        private void UpdateAnalysisItemsEnabledState(bool isEnabled)
+        {
+            foreach (var item in _analysisActionItems)
+            {
+                item.IsEnabled = isEnabled;
+            }
+        }
+        
+        /// <summary>
+        /// Helper to create non-expandable items with IDs
+        /// </summary>
+        private MenuHierarchyItem CreateNonExpandableWithId(string id, string title, int level)
+        {
+            var item = new MenuHierarchyItem 
+            { 
+                Title = title, 
+                Level = level, 
+                IsExpandable = false,
+                Tag = id
+            };
+            
+            // Assign commands based on ID
+            if (id == "testcase.generator")
+            {
+                item.Command = TestCaseGeneratorNavigationCommand;
+                Console.WriteLine($"*** Assigned TestCaseGeneratorNavigationCommand to item: {title} (id: {id}) ***");
+            }
+            
+            Console.WriteLine($"*** Created non-expandable item: {title} (id: {id}) with command: {item.Command?.GetType().Name ?? "null"} ***");
+            
+            return item;
+        }
+        
+        /// <summary>
+        /// Creates the Project section with RelayCommand attached to notify mediators
+        /// </summary>
+        private MenuHierarchyItem CreateProjectSectionWithCommand()
+        {
+            var projectSection = MenuHierarchyItem.CreateSection("Project", 2, true,
+                CreateActionWithId("project.new", "🗂️ New Project", "🗂️", NewProjectCommand),
+                CreateActionWithId("project.open", "📂 Open Project", "📂", OpenProjectCommand),
+                CreateActionWithId("project.save", "💾 Save Project", "💾", SaveProjectCommand, true),
+                CreateActionWithId("project.unload", "📤 Unload Project", "📤", UnloadProjectCommand, true)
+            );
+            
+            projectSection.Command = ProjectNavigationCommand;
+            return projectSection;
+        }
+        
+        /// <summary>
+        /// Subscribe to mediator events for state management
+        /// </summary>
+        private void SubscribeToStateEvents()
+        {
+            // Subscribe to global state changes that affect multiple menu items
+            // Example: When project loads, enable project-related menu items
+            
+            // Cross-domain event subscriptions for UI coordination
+            // Requirements state changes affect command availability
+        }
+
+        /// <summary>
+        /// Set up event subscriptions for requirements state changes
+        /// </summary>
         private void SetupRequirementsEventSubscriptions()
         {
             // Subscribe to requirements imported events
@@ -383,8 +579,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         private void OnProjectLoaded(/*ProjectLoadedEvent evt*/)
         {
-            // TODO: Update menu item states when project loads
-            // UpdateMenuItemState calls removed - need to implement with MenuAction system
+            UpdateMenuItemState("project.save", isEnabled: true);
+            UpdateMenuItemState("project.unload", isEnabled: true); // Fixed ID mismatch
+            UpdateMenuItemState("requirement.import", isEnabled: true);
         }
         
         /// <summary>
@@ -418,14 +615,16 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Note: Analysis commands enable/disable is now handled by MenuAction system
             // Context-sensitive menu visibility is managed through the existing dropdown structure
             
-            // TODO: Update enabled state of Analysis section items (visible but contextually enabled)
-            // UpdateAnalysisItemsEnabledState call removed - need to implement with MenuAction system
+            // Update enabled state of Analysis section items (visible but contextually enabled)
+            UpdateAnalysisItemsEnabledState(IsAnalysisTabActive);
             
-            // TODO: Clarifying Questions section remains context-sensitive for visibility  
-            // _clarifyingQuestionsSection references removed - need to implement with MenuAction system
+            // Clarifying Questions section remains context-sensitive for visibility
+            if (_clarifyingQuestionsSection != null) 
+                _clarifyingQuestionsSection.IsVisible = IsAnalysisTabActive;
                 
-            _logger?.LogDebug("Menu state updated: Analysis tab {EnabledState}", 
-                IsAnalysisTabActive ? "active" : "inactive");
+            _logger?.LogDebug("Menu state updated: Analysis items {EnabledState}, Clarifying Questions {Visibility}", 
+                IsAnalysisTabActive ? "enabled" : "disabled",
+                IsAnalysisTabActive ? "visible" : "hidden");
         }
         
         /// <summary>
@@ -439,7 +638,43 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             (UnloadProjectCommand as IRelayCommand)?.NotifyCanExecuteChanged();
         }
         
+        /// <summary>
+        /// Update state of a specific menu item by ID
+        /// </summary>
+        private void UpdateMenuItemState(string id, bool? isEnabled = null, bool? isVisible = null, string? badge = null, string? statusIcon = null)
+        {
+            var item = FindMenuItemById(id);
+            item?.UpdateState(isEnabled, isVisible, badge, statusIcon);
+        }
         
+        /// <summary>
+        /// Find menu item by ID (recursive search)
+        /// </summary>
+        private MenuHierarchyItem? FindMenuItemById(string id)
+        {
+            foreach (var rootItem in HierarchicalMenuItems)
+            {
+                var found = FindMenuItemByIdRecursive(rootItem, id);
+                if (found != null) return found;
+            }
+            return null;
+        }
+        
+        private MenuHierarchyItem? FindMenuItemByIdRecursive(MenuHierarchyItem item, string id)
+        {
+            if (item.Tag as string == id) return item;
+            
+            foreach (var child in item.Children)
+            {
+                var found = FindMenuItemByIdRecursive(child, id);
+                if (found != null) return found;
+            }
+            return null;
+        }
+        
+        /// <summary>
+        /// Demo: Publish state updates through mediator (for other components to respond to)
+        /// </summary>
         public void PublishGlobalStateChange(string description, object? data = null)
         {
             // Example: When user performs an action, notify other parts of the app
@@ -473,11 +708,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 ("analysis.unanalyzed", false, null, "3", null) // Disable but show count badge
             };
             
-            // TODO: Implement batch menu updates with MenuAction system
-            // foreach (var (id, enabled, visible, badge, icon) in updates)
-            // {
-            //     UpdateMenuItemState(id, enabled, visible, badge, icon);
-            // }
+            foreach (var (id, enabled, visible, badge, icon) in updates)
+            {
+                UpdateMenuItemState(id, enabled, visible, badge, icon);
+            }
             
             PublishGlobalStateChange("Project loaded", new { ProjectPath = "example.proj" });
         }
@@ -495,28 +729,23 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         private async Task ExportForChatGptAsync()
         {
-            // TODO: Implement export progress indication with MenuAction system
-            // UpdateMenuItemState("analysis.export", badge: "⏳");
+            UpdateMenuItemState("analysis.export", badge: "⏳");
             
             try
             {
                 await Task.Delay(2000); // Simulate work
-                // TODO: Show success badge with MenuAction system
-                // UpdateMenuItemState("analysis.export", badge: "✅");
+                UpdateMenuItemState("analysis.export", badge: "✅");
                 PublishGlobalStateChange("Export completed");
                 
                 // Clear status after 3 seconds
                 await Task.Delay(3000);
-                // TODO: Clear badge with MenuAction system
-                // UpdateMenuItemState("analysis.export", badge: null);
+                UpdateMenuItemState("analysis.export", badge: null);
             }
             catch
             {
-                // TODO: Show error badge with MenuAction system
-                // UpdateMenuItemState("analysis.export", badge: "❌");
+                UpdateMenuItemState("analysis.export", badge: "❌");
                 await Task.Delay(3000);
-                // TODO: Clear error badge with MenuAction system
-                // UpdateMenuItemState("analysis.export", badge: null);
+                UpdateMenuItemState("analysis.export", badge: null);
             }
         }
 

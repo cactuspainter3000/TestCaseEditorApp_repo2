@@ -3,7 +3,7 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.MVVM.Models;
 
-namespace TestCaseEditorApp.MVVM.ViewModels
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
     // Simple bag of values & commands the header needs. MainViewModel populates this and passes it in.
     public class TestCaseGenerator_HeaderContext

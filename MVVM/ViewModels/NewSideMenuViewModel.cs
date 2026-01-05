@@ -76,8 +76,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private void NavigateToProject()
         {
             Console.WriteLine("*** NewSideMenuViewModel.NavigateToProject called! ***");
-            var projectViewModel = new ProjectViewModel();
-            _navigationMediator.SetMainContent(projectViewModel);
+            // TODO: Use ViewModelFactory for proper dependency injection
+            // var projectViewModel = _viewModelFactory.CreateProjectViewModel();
+            // For now, placeholder until factory is integrated  
+            throw new NotImplementedException("ProjectViewModel creation needs proper ViewModelFactory integration");
+            // _navigationMediator.SetMainContent(projectViewModel);
         }
 
         private async Task CreateNewProjectAsync()

@@ -30,6 +30,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         RequirementsViewModel CreateRequirementsViewModel();
         RequirementsWorkspaceViewModel CreateRequirementsWorkspaceViewModel();
         PlaceholderViewModel CreatePlaceholderViewModel();
+        InitialStateViewModel CreateInitialStateViewModel();
         
         // Navigation ViewModels
         TestCaseGenerator_NavigationVM CreateRequirementsNavigationViewModel();

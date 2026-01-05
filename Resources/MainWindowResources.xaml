@@ -15,7 +15,7 @@
         <tcgviews:TestCaseGeneratorRequirements_View />
     </DataTemplate>
     
-    <DataTemplate DataType="{x:Type vm:TestCaseGeneratorSplashScreenViewModel}">
+    <DataTemplate DataType="{x:Type tcgvm:TestCaseGeneratorSplashScreenViewModel}">
         <tcgviews:TestCaseGeneratorSplashScreen />
     </DataTemplate>
 
