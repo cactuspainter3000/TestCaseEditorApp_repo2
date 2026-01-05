@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
@@ -1040,11 +1041,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             {
                 _logger.LogInformation("🔄 Handling cross-domain RequirementsImported with {Count} requirements", e.Requirements.Count);
                 
-                // Clear existing requirements and add new ones
+                // Clear existing requirements and add new ones (sorted naturally by numeric suffix)
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     _requirements.Clear();
-                    foreach (var requirement in e.Requirements)
+                    // Sort requirements using natural numeric order to ensure RC-5 comes before RC-12, etc.
+                    var sortedRequirements = e.Requirements.OrderBy(r => r.Item ?? r.Name ?? string.Empty, 
+                        new RequirementNaturalComparer()).ToList();
+                    foreach (var requirement in sortedRequirements)
                     {
                         _requirements.Add(requirement);
                     }
@@ -1153,8 +1157,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                     _logger.LogInformation("🔄 Clearing existing requirements collection...");
                     _requirements.Clear();
                     
-                    _logger.LogInformation("➕ Adding {Count} real requirements to collection...", actualRequirements.Count);
-                    foreach (var requirement in actualRequirements)
+                    _logger.LogInformation("➕ Adding {Count} real requirements to collection (sorted naturally by numeric suffix)...", actualRequirements.Count);
+                    // Sort requirements using natural numeric order to ensure RC-5 comes before RC-12, etc.
+                    var sortedRequirements = actualRequirements.OrderBy(r => r.Item ?? r.Name ?? string.Empty, 
+                        new RequirementNaturalComparer()).ToList();
+                    foreach (var requirement in sortedRequirements)
                     {
                         _requirements.Add(requirement);
                     }
@@ -1253,7 +1260,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                         _logger.LogInformation("✅ Scrubber validation passed: {ProcessedCount} requirements validated", 
                             scrubberResult.CleanRequirements.Count);
 
-                        // Update requirements collection on UI thread
+                        // Update requirements collection on UI thread (sorted naturally by numeric suffix)
                         System.Windows.Application.Current.Dispatcher.Invoke(() =>
                         {
                             if (!isAppendMode)
@@ -1262,7 +1269,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                                 _logger.LogInformation("🗑️ Cleared existing requirements (replace mode)");
                             }
 
-                            foreach (var requirement in scrubberResult.CleanRequirements)
+                            // Sort requirements using natural numeric order to ensure RC-5 comes before RC-12, etc.
+                            var sortedRequirements = scrubberResult.CleanRequirements.OrderBy(r => r.Item ?? r.Name ?? string.Empty, 
+                                new RequirementNaturalComparer()).ToList();
+                            foreach (var requirement in sortedRequirements)
                             {
                                 _requirements.Add(requirement);
                             }
@@ -1343,6 +1353,76 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             {
                 _logger.LogError(ex, "❌ Failed to import requirements from document: {DocumentPath}", request.DocumentPath);
             }
+        }
+    }
+
+    /// <summary>
+    /// Custom comparer for natural numeric sorting of requirements (same logic as RequirementsIndexViewModel and NavigationViewModel)
+    /// Ensures DECAGON-REQ_RC-5 comes before DECAGON-REQ_RC-12, etc.
+    /// </summary>
+    internal class RequirementNaturalComparer : IComparer<string>
+    {
+        private static readonly Regex _trailingNumberRegex = new Regex(@"^(.*?)(\d+)$", RegexOptions.Compiled);
+
+        public int Compare(string? x, string? y)
+        {
+            if (ReferenceEquals(x, y)) return 0;
+            if (x == null) return -1;
+            if (y == null) return 1;
+
+            // Prefer 'Item' then 'Name' as the canonical id string (same as RequirementsIndexViewModel)
+            var sa = (x ?? string.Empty).Trim();
+            var sb = (y ?? string.Empty).Trim();
+
+            // If identical strings, consider them equal
+            if (string.Equals(sa, sb, StringComparison.OrdinalIgnoreCase)) return 0;
+
+            var ma = _trailingNumberRegex.Match(sa);
+            var mb = _trailingNumberRegex.Match(sb);
+
+            if (ma.Success && mb.Success)
+            {
+                var prefixA = ma.Groups[1].Value;
+                var prefixB = mb.Groups[1].Value;
+                if (!string.Equals(prefixA, prefixB, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Compare prefixes alphabetically
+                    return StringComparer.OrdinalIgnoreCase.Compare(prefixA, prefixB);
+                }
+
+                // Both prefixes equal – compare numeric suffix ascending so 5 comes before 12
+                if (long.TryParse(ma.Groups[2].Value, out var na) && long.TryParse(mb.Groups[2].Value, out var nb))
+                {
+                    // Ascending numeric order
+                    var numCompare = na.CompareTo(nb);
+                    if (numCompare != 0) return numCompare;
+                }
+
+                // Fallback to full-string compare if numeric equal
+                return StringComparer.OrdinalIgnoreCase.Compare(sa, sb);
+            }
+
+            // If one has numeric suffix and other not, place numeric-suffixed after/before depending on prefix
+            if (ma.Success && !mb.Success)
+            {
+                var prefixA = ma.Groups[1].Value;
+                var prefixB = sb;
+                var cmp = StringComparer.OrdinalIgnoreCase.Compare(prefixA, prefixB);
+                if (cmp != 0) return cmp;
+                // If prefixes same, treat the numeric-suffixed as less (so similar entries cluster)
+                return -1;
+            }
+            if (!ma.Success && mb.Success)
+            {
+                var prefixA = sa;
+                var prefixB = mb.Groups[1].Value;
+                var cmp = StringComparer.OrdinalIgnoreCase.Compare(prefixA, prefixB);
+                if (cmp != 0) return cmp;
+                return 1;
+            }
+
+            // No numeric suffixes – plain string compare
+            return StringComparer.OrdinalIgnoreCase.Compare(sa, sb);
         }
     }
 }

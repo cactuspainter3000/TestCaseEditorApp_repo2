@@ -192,6 +192,19 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 _logger.LogInformation("📡 Broadcasting ProjectOpened event to other domains: {ProjectName}", projectName);
                 BroadcastToAllDomains(projectOpenedEvent);
                 
+                // Also broadcast RequirementsImported event to ensure NavigationViewModel sorting is applied
+                if (workspace.Requirements?.Any() == true)
+                {
+                    _logger.LogInformation("📡 Broadcasting RequirementsImported event for project requirements: {RequirementCount}", workspace.Requirements.Count);
+                    BroadcastToAllDomains(new TestCaseGenerationEvents.RequirementsImported
+                    {
+                        Requirements = workspace.Requirements,
+                        SourceFile = selectedPath,
+                        ImportType = "Project",
+                        ImportTime = TimeSpan.Zero
+                    });
+                }
+                
                 // Store workspace info for future operations
                 _currentWorkspaceInfo = new WorkspaceInfo
                 {
