@@ -193,6 +193,24 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
         /// Returns tuple of (success, filePath, projectName)
         /// </summary>
         (bool Success, string FilePath, string ProjectName) ShowSaveProjectDialog(string currentProjectName);
+        
+        // ===== FORM PERSISTENCE (ARCHITECTURAL COMPLIANCE) =====
+        
+        /// <summary>
+        /// Saves draft project information for form persistence while maintaining architectural integrity.
+        /// </summary>
+        void SaveDraftProjectInfo(string? projectName, string? projectPath, string? requirementsPath);
+        
+        /// <summary>
+        /// Retrieves draft project information for new ViewModels.
+        /// Allows form persistence without violating fail-fast architecture.
+        /// </summary>
+        (string? projectName, string? projectPath, string? requirementsPath) GetDraftProjectInfo();
+        
+        /// <summary>
+        /// Clears draft project information when project is created or cancelled.
+        /// </summary>
+        void ClearDraftProjectInfo();
     }
     
     /// <summary>

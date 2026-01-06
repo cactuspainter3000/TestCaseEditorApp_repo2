@@ -200,8 +200,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                     var streamingStart = DateTime.UtcNow;
                     System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Starting AnythingLLM streaming at {streamingStart:HH:mm:ss.fff}");
                     
+                    // Use RAG-optimized prompt with supplemental information for workspace optimization
+                    var ragPromptForWorkspace = BuildRagOptimizedPrompt(requirement);
+                    
                     // Check if workspace has system prompt configured to avoid duplication
-                    var promptToSend = await GetOptimizedPromptForWorkspaceAsync(anythingLlmService, "test-case-analysis", contextPrompt, cancellationToken);
+                    var promptToSend = await GetOptimizedPromptForWorkspaceAsync(anythingLlmService, "test-case-analysis", ragPromptForWorkspace, cancellationToken);
                     
                     // Use streaming analysis with optimized prompt
                     response = await anythingLlmService.SendChatMessageStreamingAsync(

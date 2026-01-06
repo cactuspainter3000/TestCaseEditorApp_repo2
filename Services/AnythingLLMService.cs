@@ -716,12 +716,20 @@ namespace TestCaseEditorApp.Services
                     // System prompt for requirements analysis with anti-fabrication rules
                     openAiPrompt = GetOptimalSystemPrompt(),
                     
-                    // RAG Configuration (based on official docs):
-                    // Document similarity threshold: Set to low value to avoid filtering relevant chunks
-                    similarityThreshold = 0.1, // 10% threshold instead of default 20%
+                    // LLM Provider Configuration: Use local Ollama for data security and consistency
+                    chatProvider = "ollama", // Local Ollama provider (no internet, keeps data secure)
+                    chatModel = "llama3.2",  // Llama 3.2 model - good for structured analysis and reasoning
                     
-                    // Max context snippets: Increase to 8 for better coverage (docs suggest 4-6 default)
-                    topN = 8,
+                    // RAG Configuration (based on official docs):
+                    // Document similarity threshold: No restriction to ensure comprehensive access to supplemental materials
+                    similarityThreshold = 0, // No restriction - capture all potentially relevant context for requirement analysis
+                    
+                    // Max context snippets: Follow AnythingLLM recommendation for optimal performance
+                    topN = 4, // Use recommended value - higher values may introduce noise
+                    
+                    // Vector search preference: Accuracy optimized to prevent hallucinations
+                    // Default is fastest but may return less relevant results leading to hallucinations
+                    searchPreference = "accuracy optimized", // Use accuracy optimization over speed for requirement analysis
                     
                     // Query refusal handling for better user experience
                     queryRefusalResponse = "I can only analyze requirements based on the information provided. Please ensure your question relates to the requirement content or ask for clarification about specific aspects.",
@@ -837,11 +845,11 @@ namespace TestCaseEditorApp.Services
         /// </summary>
         public static string GetOptimalSystemPrompt()
         {
-            var prompt = @"You are a requirements quality analysis expert. Analyze software requirements for clarity, completeness, consistency, testability, and feasibility.
+            var prompt = @"You are a systems requirements analysis expert. Analyze requirements for clarity, completeness, consistency, testability, and feasibility.
 
 CRITICAL ANTI-FABRICATION RULES:
 - Use ONLY information explicitly stated in the requirement text
-- Use ONLY definitions from uploaded supplemental materials (if any)  
+- Use ONLY definitions from uploaded supplemental materials (if any) including tables, specifications, and reference documents
 - Do NOT mention IEEE standards, ISO standards, or technical protocols unless they appear in the requirement
 - Do NOT invent definitions for technical terms (e.g., 'Tier 1/2/3') unless provided in supplemental materials
 - When you lack information, suggest asking for clarification instead of inventing details
@@ -863,18 +871,21 @@ STRENGTHS:
 - [Another strength]
 
 IMPROVED REQUIREMENT:
-[REQUIRED: Provide a complete rewrite of the requirement that addresses all identified issues. Focus ONLY on WHAT the system must do, not HOW it will be tested or verified. Do NOT include:
+[REQUIRED: Provide a single, clear requirement statement that addresses all identified issues. Write this as a clean, professional requirement without any formatting, headers, or bullet points. Start with ""The [System Name] shall..."" and focus ONLY on WHAT the system must do, not HOW it will be tested or verified. Do NOT include:
+- Markdown formatting (**, ##, bullets, etc.)
+- Section headers or subsections  
 - Success criteria or verification methods
 - Test procedures or testing language  
 - Phrases like ""shall be verified by"" or ""success criteria shall be defined""
 - Specific test steps or validation approaches
-The improved requirement should state the system's functional capabilities and constraints clearly and completely, but leave verification and testing to separate test case documents.]
+- Bullet points or numbered lists
+The improved requirement should be one coherent paragraph that clearly states the system's functional capabilities and constraints, leaving verification and testing to separate test case documents.]
 
 RECOMMENDATIONS:
 - Category: [Issue type] | Description: [What to fix] | Rationale: [Why this change improves the requirement]
 
 HALLUCINATION CHECK:
-- If you referenced any standards, specifications, or technical details NOT in the requirement/supplemental materials, respond: 'FABRICATED_DETAILS'
+- If you referenced any standards, specifications, or technical details NOT in the requirement/supplemental materials (including any tables or reference documents), respond: 'FABRICATED_DETAILS'
 - If you only used provided information, respond: 'NO_FABRICATION'
 
 OVERALL ASSESSMENT:

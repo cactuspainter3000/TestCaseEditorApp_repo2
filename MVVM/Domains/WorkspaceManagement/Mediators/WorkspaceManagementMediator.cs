@@ -32,6 +32,11 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
         private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
         private readonly IWorkspaceValidationService _workspaceValidationService;
         private WorkspaceInfo? _currentWorkspaceInfo;
+        
+        // Form persistence state for architectural compliance
+        private string? _draftProjectName;
+        private string? _draftProjectPath;
+        private string? _draftRequirementsPath;
 
         public WorkspaceManagementMediator(
             ILogger<WorkspaceManagementMediator> logger,
@@ -1015,6 +1020,47 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
         {
             base.MarkAsRegistered();
         }
+
+        #region Form Persistence (Architectural Compliance)
+        
+        /// <summary>
+        /// Saves draft project information for form persistence.
+        /// Maintains user experience while preserving architectural integrity.
+        /// </summary>
+        public void SaveDraftProjectInfo(string? projectName, string? projectPath, string? requirementsPath)
+        {
+            _draftProjectName = projectName;
+            _draftProjectPath = projectPath;
+            _draftRequirementsPath = requirementsPath;
+            
+            _logger.LogDebug("Saved draft project info - Name: {Name}, Path: {Path}, Requirements: {Requirements}", 
+                projectName, projectPath, requirementsPath);
+        }
+        
+        /// <summary>
+        /// Retrieves draft project information for new ViewModels.
+        /// Allows form persistence without violating fail-fast architecture.
+        /// </summary>
+        public (string? projectName, string? projectPath, string? requirementsPath) GetDraftProjectInfo()
+        {
+            _logger.LogDebug("Retrieved draft project info - Name: {Name}, Path: {Path}, Requirements: {Requirements}", 
+                _draftProjectName, _draftProjectPath, _draftRequirementsPath);
+                
+            return (_draftProjectName, _draftProjectPath, _draftRequirementsPath);
+        }
+        
+        /// <summary>
+        /// Clears draft project information when project is created or cancelled.
+        /// </summary>
+        public void ClearDraftProjectInfo()
+        {
+            _logger.LogDebug("Clearing draft project info");
+            _draftProjectName = null;
+            _draftProjectPath = null;
+            _draftRequirementsPath = null;
+        }
+        
+        #endregion
 
 
     }

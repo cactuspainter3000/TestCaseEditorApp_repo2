@@ -519,6 +519,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             public Task<bool> CompleteProjectCreationAsync(string workspaceName, string projectName, string projectSavePath, string documentPath) => Task.FromResult(true);
             public Task<bool> CreateNewProjectWithWarningAsync(string workspaceName, string projectName, string projectSavePath, string documentPath) => Task.FromResult(true);
             public (bool Success, string FilePath, string ProjectName) ShowSaveProjectDialog(string currentProjectName) => (false, string.Empty, string.Empty);
+            
+            // Form persistence methods (no-op for stub)
+            public void SaveDraftProjectInfo(string? projectName, string? projectPath, string? requirementsPath) { /* no-op */ }
+            public (string? projectName, string? projectPath, string? requirementsPath) GetDraftProjectInfo() => (null, null, null);
+            public void ClearDraftProjectInfo() { /* no-op */ }
         }
         
         #endregion

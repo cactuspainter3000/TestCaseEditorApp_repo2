@@ -92,41 +92,29 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         // Singleton for in-progress workflows to maintain form data during navigation
-        private NewProjectWorkflowViewModel? _activeNewProjectWorkflow;
-        
         public NewProjectWorkflowViewModel CreateNewProjectWorkflowViewModel()
         {
-            // Return existing workflow if project not yet completed
-            if (_activeNewProjectWorkflow != null && !_activeNewProjectWorkflow.IsProjectCreated)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Debug("[NewProject] Returning existing workflow - project not yet completed");
-                return _activeNewProjectWorkflow;
-            }
-            
-            // Create new workflow instance
+            // Create new workflow instance with proper dependency injection
             TestCaseEditorApp.Services.Logging.Log.Debug("[NewProject] Creating new workflow instance");
-            _activeNewProjectWorkflow = new NewProjectWorkflowViewModel(
-                _applicationServices.AnythingLLMService, 
-                _applicationServices.ToastService,
-                _workspaceManagementMediator);
+            var logger = _applicationServices.LoggerFactory?.CreateLogger<NewProjectWorkflowViewModel>() 
+                ?? throw new InvalidOperationException("Logger is required for NewProjectWorkflowViewModel");
                 
-            // Subscribe to completion event to clear the cached instance
-            _activeNewProjectWorkflow.ProjectCompleted += (sender, e) => {
-                TestCaseEditorApp.Services.Logging.Log.Debug("[NewProject] Project completed - clearing cached workflow");
-                _activeNewProjectWorkflow = null;
-            };
+            var workflowViewModel = new NewProjectWorkflowViewModel(
+                _workspaceManagementMediator,
+                logger,
+                _applicationServices.AnythingLLMService, 
+                _applicationServices.ToastService);
             
-            return _activeNewProjectWorkflow;
+            return workflowViewModel;
         }
         
         /// <summary>
-        /// Forces creation of a new project workflow, clearing any existing cached instance.
-        /// Use when explicitly starting a fresh project creation process.
+        /// Creates a new project workflow. All instances are fresh to maintain architectural compliance.
+        /// Form persistence is handled within the ViewModel itself via mediator state.
         /// </summary>
         public NewProjectWorkflowViewModel CreateFreshNewProjectWorkflow()
         {
-            TestCaseEditorApp.Services.Logging.Log.Debug("[NewProject] Creating fresh workflow instance (clearing cache)");
-            _activeNewProjectWorkflow = null;
+            TestCaseEditorApp.Services.Logging.Log.Debug("[NewProject] Creating fresh workflow instance");
             return CreateNewProjectWorkflowViewModel();
         }
 

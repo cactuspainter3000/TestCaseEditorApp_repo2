@@ -44,7 +44,7 @@ namespace TestCaseEditorApp.Prompts
             sb.AppendLine();
             sb.AppendLine("2. **Testability & Verifiability**");
             sb.AppendLine("   - Can this requirement be verified through test, demonstration, inspection, analysis, or simulation?");
-            sb.AppendLine("   - Are success criteria measurable and observable?");
+            sb.AppendLine("   - Are verification criteria measurable and observable?");
             sb.AppendLine("   - Are there specific values, tolerances, thresholds, or acceptance criteria?");
             sb.AppendLine("   - Could you write concrete test cases with clear pass/fail outcomes?");
             sb.AppendLine();
@@ -441,7 +441,7 @@ namespace TestCaseEditorApp.Prompts
             sb.AppendLine();
             sb.AppendLine("2. **Testability & Verifiability**");
             sb.AppendLine("   - Can this requirement be verified through test, demonstration, inspection, analysis, or simulation?");
-            sb.AppendLine("   - Are success criteria measurable and observable?");
+            sb.AppendLine("   - Are verification criteria measurable and observable?");
             sb.AppendLine("   - Are there specific values, tolerances, thresholds, or acceptance criteria?");
             sb.AppendLine("   - Could you write concrete test cases with clear pass/fail outcomes?");
             sb.AppendLine();

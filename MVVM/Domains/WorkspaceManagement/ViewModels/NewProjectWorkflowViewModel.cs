@@ -9,12 +9,17 @@ using Microsoft.Win32;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
+using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
+using Microsoft.Extensions.Logging;
 
 namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
 {
-    public partial class NewProjectWorkflowViewModel : ObservableObject
+    public partial class NewProjectWorkflowViewModel : BaseDomainViewModel
     {
+        // Domain mediator (properly typed)
+        private new readonly IWorkspaceManagementMediator _mediator;
+        
         private readonly AnythingLLMService _anythingLLMService;
         private readonly ToastNotificationService _toastService;
         
@@ -123,28 +128,111 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
         public ICommand ChooseProjectSaveLocationCommand { get; }
         public ICommand CreateProjectCommand { get; }
         public ICommand ValidateWorkspaceCommand { get; }
-        public ICommand CancelCommand { get; }
+        public new ICommand CancelCommand { get; }
 
         // Events
         public event EventHandler<NewProjectCompletedEventArgs>? ProjectCreated;
         public event EventHandler? ProjectCancelled;
-
-        private readonly IWorkspaceManagementMediator _workspaceManagementMediator;
         
-        public NewProjectWorkflowViewModel(AnythingLLMService anythingLLMService, ToastNotificationService toastService, 
-            IWorkspaceManagementMediator workspaceManagementMediator)
+        public NewProjectWorkflowViewModel(
+            IWorkspaceManagementMediator workspaceManagementMediator,
+            ILogger<NewProjectWorkflowViewModel> logger,
+            AnythingLLMService anythingLLMService, 
+            ToastNotificationService toastService)
+            : base(workspaceManagementMediator, logger)
         {
-            _anythingLLMService = anythingLLMService;
-            _toastService = toastService;
-            _workspaceManagementMediator = workspaceManagementMediator ?? throw new ArgumentNullException(nameof(workspaceManagementMediator));
+            // Store properly typed mediator
+            _mediator = workspaceManagementMediator ?? throw new ArgumentNullException(nameof(workspaceManagementMediator));
+            
+                        _anythingLLMService = anythingLLMService ?? throw new ArgumentNullException(nameof(anythingLLMService));
+            _toastService = toastService ?? throw new ArgumentNullException(nameof(toastService));
             SelectDocumentCommand = new RelayCommand(SelectDocument);
             ChooseProjectSaveLocationCommand = new RelayCommand(ChooseProjectSaveLocation);
             CreateProjectCommand = new RelayCommand(CreateProject);
             ValidateWorkspaceCommand = new AsyncRelayCommand(ValidateWorkspaceAsync, CanValidateWorkspace);
-            CancelCommand = new RelayCommand(Cancel);
+            CancelCommand = new RelayCommand(() => Cancel());
             
             // Initialize state
             Initialize();
+            
+            // Set title for BaseDomainViewModel
+            Title = "New Project Workflow";
+        }
+
+        // ===== ABSTRACT METHOD IMPLEMENTATIONS =====
+        
+        protected override async Task SaveAsync()
+        {
+            try
+            {
+                IsBusy = true;
+                StatusMessage = "Saving project...";
+                
+                // Save current project state (if applicable)
+                await Task.CompletedTask; // No specific save operation for workflow
+                
+                StatusMessage = "Project saved";
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[NewProject] Error saving project");
+                ErrorMessage = $"Error saving project: {ex.Message}";
+                HasErrors = true;
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        protected override void Cancel()
+        {
+            // Reset form to initial state
+            Initialize(forceReset: true);
+            StatusMessage = "Project creation cancelled";
+            ProjectCancelled?.Invoke(this, EventArgs.Empty);
+        }
+
+        protected override async Task RefreshAsync()
+        {
+            try
+            {
+                IsBusy = true;
+                StatusMessage = "Refreshing...";
+                
+                // Refresh workspace validation if workspace name exists
+                if (!string.IsNullOrEmpty(WorkspaceName))
+                {
+                    await ValidateWorkspaceAsync();
+                }
+                
+                StatusMessage = "Refreshed";
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[NewProject] Error refreshing");
+                ErrorMessage = $"Error refreshing: {ex.Message}";
+                HasErrors = true;
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        protected override bool CanSave()
+        {
+            return !IsBusy && !string.IsNullOrEmpty(ProjectName) && !string.IsNullOrEmpty(ProjectSavePath);
+        }
+
+        protected override bool CanCancel()
+        {
+            return !IsBusy;
+        }
+
+        protected override bool CanRefresh()
+        {
+            return !IsBusy;
         }
 
         partial void OnWorkspaceNameChanged(string value)
@@ -187,6 +275,9 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
             UpdateCanProceed();
             OnPropertyChanged(nameof(CreateProjectButtonText));
             OnPropertyChanged(nameof(CreateProjectButtonTooltip));
+            
+            // Save to mediator for form persistence
+            SaveFormDataToMediator();
         }
 
         partial void OnProjectSavePathChanged(string value)
@@ -195,6 +286,9 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
             UpdateCanProceed();
             OnPropertyChanged(nameof(CreateProjectButtonText));
             OnPropertyChanged(nameof(CreateProjectButtonTooltip));
+            
+            // Save to mediator for form persistence
+            SaveFormDataToMediator();
         }
 
         partial void OnProjectNameChanged(string value)
@@ -204,6 +298,9 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
             UpdateCanProceed();
             OnPropertyChanged(nameof(CreateProjectButtonText));
             OnPropertyChanged(nameof(CreateProjectButtonTooltip));
+            
+            // Save to mediator for form persistence
+            SaveFormDataToMediator();
         }
 
         partial void OnIsProjectCreatedChanged(bool value)
@@ -284,7 +381,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
 
         private void ChooseProjectSaveLocation()
         {
-            var result = _workspaceManagementMediator.ShowSaveProjectDialog(ProjectName);
+            var result = _mediator.ShowSaveProjectDialog(ProjectName);
             
             if (result.Success)
             {
@@ -326,7 +423,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
                 TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Calling CreateNewProjectWithWarningAsync with documentPath: '{SelectedDocumentPath}'");
                 
                 // Call the workspace management mediator to complete the project creation with proper warning handling
-                var creationSuccessful = await _workspaceManagementMediator.CreateNewProjectWithWarningAsync(WorkspaceName, ProjectName, ProjectSavePath, SelectedDocumentPath);
+                var creationSuccessful = await _mediator.CreateNewProjectWithWarningAsync(WorkspaceName, ProjectName, ProjectSavePath, SelectedDocumentPath);
                 
                 // Mark project as created only if requirements import was successful
                 if (creationSuccessful)
@@ -367,16 +464,11 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, "[PROJECT] Error creating project");
-                _workspaceManagementMediator.ShowNotification(
+                _mediator.ShowNotification(
                     $"Error creating project: {ex.Message}", 
                     DomainNotificationType.Error);
-                _workspaceManagementMediator.HideProgress();
+                _mediator.HideProgress();
             }
-        }
-
-        private void Cancel()
-        {
-            ProjectCancelled?.Invoke(this, EventArgs.Empty);
         }
 
         private async System.Threading.Tasks.Task ValidateWorkspaceAsync()
@@ -529,11 +621,36 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
                 HasValidationMessage = false;
                 IsDuplicateName = false;
                 
+                // Clear mediator persistence when resetting
+                ((IWorkspaceManagementMediator)_mediator).ClearDraftProjectInfo();
+                
                 UpdateCanProceed();
             }
             else
             {
-                TestCaseEditorApp.Services.Logging.Log.Debug("[NewProject] Form data preserved during navigation");
+                // Load persisted form data for architectural compliance
+                var (draftProjectName, draftProjectPath, draftRequirementsPath) = 
+                    ((IWorkspaceManagementMediator)_mediator).GetDraftProjectInfo();
+                
+                if (!string.IsNullOrWhiteSpace(draftProjectName) || 
+                    !string.IsNullOrWhiteSpace(draftProjectPath) || 
+                    !string.IsNullOrWhiteSpace(draftRequirementsPath))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[NewProject] Loading persisted form data");
+                    
+                    if (!string.IsNullOrWhiteSpace(draftProjectName))
+                        ProjectName = draftProjectName;
+                    if (!string.IsNullOrWhiteSpace(draftProjectPath))
+                        ProjectSavePath = draftProjectPath;
+                    if (!string.IsNullOrWhiteSpace(draftRequirementsPath))
+                        SelectedDocumentPath = draftRequirementsPath;
+                        
+                    UpdateCanProceed();
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[NewProject] No persisted form data found");
+                }
             }
         }
 
@@ -551,6 +668,30 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
             
             // Verify property change notification
             TestCaseEditorApp.Services.Logging.Log.Debug($"[DEBUG] HasProjectName: {HasProjectName}");
+        }
+        
+        /// <summary>
+        /// Saves current form data to mediator for architectural-compliant persistence.
+        /// Maintains user experience without violating fail-fast validation.
+        /// </summary>
+        private void SaveFormDataToMediator()
+        {
+            try
+            {
+                // Only save if we have meaningful data and project isn't completed
+                if (!IsProjectCreated)
+                {
+                    ((IWorkspaceManagementMediator)_mediator).SaveDraftProjectInfo(
+                        ProjectName,
+                        ProjectSavePath, 
+                        SelectedDocumentPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[NewProject] Error saving form data to mediator");
+                // Don't interrupt user workflow for persistence errors
+            }
         }
     }
 
