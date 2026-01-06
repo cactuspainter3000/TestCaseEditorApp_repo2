@@ -429,19 +429,30 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
                 }
                 else
                 {
-                    // Create the workspace immediately - no validation message during creation
+                    // Create the workspace with optimal configuration immediately
                     IsValidatingWorkspace = true;
                     
                     try
                     {
-                        var createdWorkspace = await _anythingLLMService.CreateWorkspaceAsync(WorkspaceName);
+                        // Use full configuration method to apply optimal settings during project creation
+                        var (createdWorkspace, configurationSuccessful) = await _anythingLLMService.CreateAndConfigureWorkspaceAsync(
+                            WorkspaceName,
+                            preserveOriginalName: true, // Preserve user's chosen name
+                            onProgress: (message) => {
+                                // Could add progress updates to UI here if needed
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[NewProject] {message}");
+                            });
+                            
                         if (createdWorkspace != null)
                         {
                             // Clear loading state immediately
                             IsValidatingWorkspace = false;
                             
-                            // Show success toast notification
-                            _toastService.ShowToast($"Workspace '{WorkspaceName}' created successfully!", durationSeconds: 4, type: ToastType.Success);
+                            // Show success toast with configuration status
+                            var statusMessage = configurationSuccessful 
+                                ? $"Project workspace '{WorkspaceName}' created with optimized settings!"
+                                : $"Project workspace '{WorkspaceName}' created (settings will be applied during first analysis)";
+                            _toastService.ShowToast(statusMessage, durationSeconds: 5, type: ToastType.Success);
                             
                             // Clear validation message UI and update status
                             WorkspaceValidationMessage = "";
