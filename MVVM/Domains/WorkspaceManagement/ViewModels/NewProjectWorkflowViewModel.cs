@@ -18,6 +18,9 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
         private readonly AnythingLLMService _anythingLLMService;
         private readonly ToastNotificationService _toastService;
         
+        // Event fired when project creation is completed
+        public event EventHandler<NewProjectCompletedEventArgs>? ProjectCompleted;
+        
         [ObservableProperty]
         private string workspaceName = "";
         
@@ -329,6 +332,18 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
                 if (creationSuccessful)
                 {
                     IsProjectCreated = true;
+                    
+                    // Fire completion event to clear cached workflow instance
+                    var completedArgs = new NewProjectCompletedEventArgs
+                    {
+                        WorkspaceName = WorkspaceName,
+                        WorkspaceDescription = WorkspaceDescription,
+                        DocumentPath = SelectedDocumentPath,
+                        AutoExportEnabled = AutoExportEnabled,
+                        ProjectSavePath = ProjectSavePath,
+                        ProjectName = ProjectName
+                    };
+                    ProjectCompleted?.Invoke(this, completedArgs);
                 }
                 else
                 {
@@ -494,15 +509,32 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
             }
         }
 
-        public void Initialize()
+        public void Initialize(bool forceReset = false)
         {
-            // Reset all fields
-            WorkspaceName = "";
-            WorkspaceDescription = "";
-            SelectedDocumentPath = "";
-            ProjectSavePath = "";
-            ProjectName = "";
-            AutoExportEnabled = true;
+            // Only reset if explicitly requested or if project was already completed
+            if (forceReset || IsProjectCreated)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug("[NewProject] Resetting form data");
+                WorkspaceName = "";
+                WorkspaceDescription = "";
+                SelectedDocumentPath = "";
+                ProjectSavePath = "";
+                ProjectName = "";
+                AutoExportEnabled = true;
+                
+                // Reset workflow state
+                IsWorkspaceCreated = false;
+                IsProjectCreated = false;
+                WorkspaceValidationMessage = "";
+                HasValidationMessage = false;
+                IsDuplicateName = false;
+                
+                UpdateCanProceed();
+            }
+            else
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug("[NewProject] Form data preserved during navigation");
+            }
         }
 
         /// <summary>

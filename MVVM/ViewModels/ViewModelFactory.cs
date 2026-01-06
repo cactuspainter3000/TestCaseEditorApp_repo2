@@ -91,12 +91,43 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             return workflow;
         }
 
+        // Singleton for in-progress workflows to maintain form data during navigation
+        private NewProjectWorkflowViewModel? _activeNewProjectWorkflow;
+        
         public NewProjectWorkflowViewModel CreateNewProjectWorkflowViewModel()
         {
-            return new NewProjectWorkflowViewModel(
+            // Return existing workflow if project not yet completed
+            if (_activeNewProjectWorkflow != null && !_activeNewProjectWorkflow.IsProjectCreated)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug("[NewProject] Returning existing workflow - project not yet completed");
+                return _activeNewProjectWorkflow;
+            }
+            
+            // Create new workflow instance
+            TestCaseEditorApp.Services.Logging.Log.Debug("[NewProject] Creating new workflow instance");
+            _activeNewProjectWorkflow = new NewProjectWorkflowViewModel(
                 _applicationServices.AnythingLLMService, 
                 _applicationServices.ToastService,
                 _workspaceManagementMediator);
+                
+            // Subscribe to completion event to clear the cached instance
+            _activeNewProjectWorkflow.ProjectCompleted += (sender, e) => {
+                TestCaseEditorApp.Services.Logging.Log.Debug("[NewProject] Project completed - clearing cached workflow");
+                _activeNewProjectWorkflow = null;
+            };
+            
+            return _activeNewProjectWorkflow;
+        }
+        
+        /// <summary>
+        /// Forces creation of a new project workflow, clearing any existing cached instance.
+        /// Use when explicitly starting a fresh project creation process.
+        /// </summary>
+        public NewProjectWorkflowViewModel CreateFreshNewProjectWorkflow()
+        {
+            TestCaseEditorApp.Services.Logging.Log.Debug("[NewProject] Creating fresh workflow instance (clearing cache)");
+            _activeNewProjectWorkflow = null;
+            return CreateNewProjectWorkflowViewModel();
         }
 
         public TestCaseGenerator_HeaderVM CreateTestCaseGeneratorHeaderViewModel(ITestCaseGenerationMediator mediator)
