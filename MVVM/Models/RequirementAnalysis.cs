@@ -37,6 +37,12 @@ namespace TestCaseEditorApp.MVVM.Models
         public string? FreeformFeedback { get; set; }
 
         /// <summary>
+        /// Complete rewritten requirement that addresses all identified issues.
+        /// This is the main deliverable - the improved requirement text that should be used.
+        /// </summary>
+        public string? ImprovedRequirement { get; set; }
+
+        /// <summary>
         /// When this analysis was generated.
         /// </summary>
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;

@@ -94,12 +94,15 @@ namespace TestCaseEditorApp
                     // LLM services (shared infrastructure)
                     services.AddSingleton<ITextGenerationService>(_ => LlmFactory.Create());
                     
-                    // LLM Health Monitoring
+                    // LLM Health Monitoring - configured to be less aggressive with fallback
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor>(provider =>
                     {
                         var primaryLlmService = LlmFactory.Create();
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor>>();
-                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor(primaryLlmService, logger);
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor(
+                            primaryLlmService, 
+                            logger, 
+                            TimeSpan.FromMinutes(2)); // Less frequent health checks to avoid premature fallback
                     });
                     
                     // LLM Analysis Caching
@@ -113,14 +116,13 @@ namespace TestCaseEditorApp
                             cleanupInterval: TimeSpan.FromMinutes(30)); // Cleanup every 30 minutes
                     });
                     
-                    // Enhanced RequirementAnalysisService with health monitoring and caching
+                    // Enhanced RequirementAnalysisService with direct LLM access (bypassing slow health monitor fallback)
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService>(provider =>
                     {
                         var primaryLlmService = LlmFactory.Create();
-                        var healthMonitor = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor>();
-                        var cache = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisCache>();
                         var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
-                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService(primaryLlmService, healthMonitor, cache, anythingLLMService);
+                        // Use direct constructor to avoid slow health monitor fallback
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService(primaryLlmService, anythingLLMService);
                     });
                     services.AddSingleton<AnythingLLMService>(provider =>
                         new AnythingLLMService()); // Let it get baseUrl and apiKey from defaults/user config

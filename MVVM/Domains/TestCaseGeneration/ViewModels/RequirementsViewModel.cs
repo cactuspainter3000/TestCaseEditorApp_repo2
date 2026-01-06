@@ -82,6 +82,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             IPersistenceService persistence,
             ITestCaseGenerationMediator testCaseGenerationMediator,
             IRequirementDataScrubber requirementDataScrubber,
+            RequirementAnalysisService requirementAnalysisService,
             object? testCaseGenerator = null,
             ILogger<RequirementsViewModel>? logger = null)
         {
@@ -97,13 +98,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
             // Legacy support - create TestCaseGenerator_VM for existing RequirementsView
             var testCaseGeneratorVMLogger = new LoggerFactory().CreateLogger<TestCaseGenerator_VM>();
-            // TODO: This should be injected properly, but for now create directly
-            var analysisService = new RequirementAnalysisService(LlmFactory.Create());
+            // Use the properly configured RequirementAnalysisService from dependency injection
             TestCaseGeneratorVM = new TestCaseGenerator_VM(
                 testCaseGenerationMediator, 
                 persistence, 
                 new StubTextEditingDialogService(),
-                analysisService,
+                requirementAnalysisService,  // Use injected service with RAG and proper configuration
                 testCaseGeneratorVMLogger);
             if (testCaseGenerator is TestCaseGenerator_CoreVM coreVm)
             {
@@ -128,28 +128,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             {
                 // Collection changes handled automatically by ObservableProperty dependencies
             };
-        }
-
-        /// <summary>
-        /// Legacy constructor for compatibility (minimal functionality)
-        /// </summary>
-        public RequirementsViewModel(IPersistenceService persistence, ITestCaseGenerationMediator mediator, object? testCaseGenerator) 
-            : this(
-                new StubRequirementService(),
-                new StubFileDialogService(),
-                CreateStubChatGptExportService(),
-                new StubNotificationService(),
-                new StubNavigationMediator(),
-                new ObservableCollection<Requirement>(),
-                persistence,
-                mediator,
-                new StubRequirementDataScrubber(),
-                testCaseGenerator,
-                null)
-        {
-            Title = "Requirements";
-            Description = "View requirement details, tables, and supplemental information.";
-            TestCaseEditorApp.Services.Logging.Log.Info("[RequirementsViewModel] Legacy constructor called - limited functionality");
         }
 
         private static ChatGptExportService CreateStubChatGptExportService()

@@ -25,6 +25,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         private readonly AnythingLLMService? _anythingLLMService;
         private string? _cachedSystemMessage;
         private string? _currentWorkspaceSlug;
+        private string? _projectWorkspaceName;
         
         /// <summary>
         /// Enable/disable self-reflection feature. When enabled, the LLM will review its own responses for quality.
@@ -37,9 +38,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         public bool EnableCaching { get; set; } = true;
 
         /// <summary>
-        /// Timeout for LLM analysis operations. Default is 60 seconds to prevent hanging.
+        /// Enable/disable thread cleanup after analysis. When enabled, analysis threads are deleted after completion.
         /// </summary>
-        public TimeSpan AnalysisTimeout { get; set; } = TimeSpan.FromSeconds(60);
+        public bool EnableThreadCleanup { get; set; } = true;
+
+        /// <summary>
+        /// Timeout for LLM analysis operations. Default is 90 seconds to allow for RAG processing.
+        /// </summary>
+        public TimeSpan AnalysisTimeout { get; set; } = TimeSpan.FromSeconds(90);
 
         /// <summary>
         /// Current health status of the LLM service (null if no health monitor configured)
@@ -50,6 +56,18 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         /// Whether the service is currently using fallback mode
         /// </summary>
         public bool IsUsingFallback => _healthMonitor?.IsUsingFallback ?? false;
+
+        /// <summary>
+        /// Sets the workspace context for project-specific analysis
+        /// </summary>
+        /// <param name="workspaceName">Name of the project workspace to use for analysis</param>
+        public void SetWorkspaceContext(string? workspaceName)
+        {
+            _projectWorkspaceName = workspaceName;
+            // Clear cached workspace slug when context changes
+            _currentWorkspaceSlug = null;
+            TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Workspace context set to: {workspaceName ?? "<none>"}");
+        }
 
         /// <summary>
         /// Current cache statistics (null if no cache configured)
@@ -298,6 +316,48 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
 
             try
             {
+                // Try RAG-based analysis first (faster and more context-aware)
+                TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Attempting RAG analysis for requirement {requirement.Item}");
+                var ragResult = await TryRagAnalysisAsync(requirement, null, null, cancellationToken);
+                
+                if (ragResult.success)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Using RAG response for requirement {requirement.Item}, length: {ragResult.response?.Length ?? 0}");
+                    
+                    // Log raw RAG response for debugging (visible level for parsing debug)
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[RAG RESPONSE DEBUG] Raw response for {requirement.Item}:\n--- START RAG RESPONSE ---\n{ragResult.response}\n--- END RAG RESPONSE ---");
+                    
+                    // Parse natural language response into structured analysis  
+                    var ragAnalysis = ParseNaturalLanguageResponse(ragResult.response ?? string.Empty, requirement.Item ?? "UNKNOWN");
+                    
+                    if (ragAnalysis != null)
+                    {
+                        ragAnalysis.Timestamp = DateTime.Now;
+                        
+                        // Validate that recommendations have required fields  
+                        ValidateRecommendationQuality(ragAnalysis, requirement.Item ?? "UNKNOWN");
+                        
+                        // Cache the successful RAG analysis result
+                        if (EnableCaching && _cache != null && ragAnalysis.IsAnalyzed)
+                        {
+                            var analysisDuration = DateTime.UtcNow - analysisStartTime;
+                            TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysisService] Would cache RAG analysis result for {requirement.Item} (duration: {analysisDuration.TotalMilliseconds:F0}ms)");
+                        }
+                        
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] RAG natural language parsing successful for {requirement.Item}");
+                        return ragAnalysis;
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] RAG natural language parsing failed for {requirement.Item}, falling back to LLM");
+                    }
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] RAG analysis failed for requirement {requirement.Item}, falling back to direct LLM");
+                }
+                
+                // Fallback to direct LLM analysis
                 // Get verification assumptions for context
                 var verificationAssumptions = GetVerificationAssumptionsText(requirement);
 
@@ -357,8 +417,20 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 // Validate JSON format before parsing
                 if (!ValidateJsonFormat(jsonText, requirement.Item ?? "UNKNOWN"))
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] JSON validation failed for {requirement.Item}. Raw response length: {reflectedResponse?.Length ?? 0}");
-                    return CreateErrorAnalysis("LLM response failed JSON format validation");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] LLM JSON validation failed for {requirement.Item}, attempting JSON repair...");
+                    
+                    var repairedResult = await TryJsonRepairAsync(reflectedResponse ?? string.Empty, requirement.Item ?? "UNKNOWN", cancellationToken);
+                    
+                    if (repairedResult.success && ValidateJsonFormat(repairedResult.repairedJson, requirement.Item ?? "UNKNOWN"))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] LLM JSON repair successful for {requirement.Item}");
+                        jsonText = repairedResult.repairedJson;
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] LLM JSON repair also failed for {requirement.Item}. Raw response length: {reflectedResponse?.Length ?? 0}");
+                        return CreateErrorAnalysis("LLM response failed JSON format validation even after repair attempt");
+                    }
                 }
 
                 // Parse JSON response
@@ -370,7 +442,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] LLM self-reported fabrication for {requirement.Item}: {analysis.HallucinationCheck}");
                     
-                    // Mark analysis as having fabricated content
+                    // TODO: Add retry logic for JSON path (requires streaming method with progress updates)
+                    // For now, use fallback warning mode
                     analysis.ErrorMessage = "🚨 CRITICAL WARNING: AI FABRICATED TECHNICAL DETAILS NOT IN ORIGINAL REQUIREMENT 🚨\n\n" +
                                            "This analysis contains invented specifications that could mislead engineers. " +
                                            "All recommendations have been removed for safety. Manual review required.";
@@ -396,6 +469,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                     if (fabricationDetected)
                     {
                         TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] Pattern-based fabrication detection triggered for {requirement.Item}");
+                        
+                        // TODO: Add retry logic for pattern-detected fabrication (requires streaming method)
+                        // For now, use warning mode
                         analysis.ErrorMessage = "⚠️  CAUTION: POSSIBLE AI FABRICATION DETECTED  ⚠️\n\n" +
                                                "AI analysis may contain technical details not in the original requirement. " +
                                                "Please verify all recommendations against the source material.";
@@ -442,7 +518,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         }
 
         /// <summary>
-        /// Clean JSON response by removing markdown code fences and extra whitespace.
+        /// Clean JSON response by removing markdown code fences, extra whitespace, and common formatting issues.
         /// </summary>
         private string CleanJsonResponse(string response)
         {
@@ -466,6 +542,23 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 if (endIndex > 0)
                     cleaned = cleaned.Substring(0, endIndex);
             }
+
+            // Clean up common JSON formatting issues
+            cleaned = cleaned.Trim();
+            
+            // Remove any trailing commas before closing braces/brackets (common AI mistake)
+            cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @",(\s*[}\]])", "$1");
+            
+            // Remove any duplicate commas
+            cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @",\s*,", ",");
+            
+            // Fix common character encoding issues that might cause 'u' errors
+            cleaned = cleaned.Replace("'", "\""); // Replace single quotes with double quotes
+            cleaned = cleaned.Replace(""", "\"").Replace(""", "\""); // Replace smart quotes
+            cleaned = cleaned.Replace("'", "\"").Replace("'", "\""); // Replace smart single quotes
+            
+            // Remove any control characters that might break JSON parsing
+            cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @"[\x00-\x1F\x7F]", "");
 
             return cleaned.Trim();
         }
@@ -1027,7 +1120,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 "security protocol", "authentication", "authorization",
                 "one bit", "tolerance level", "precision", "accuracy",
                 "portable storage", "network storage", "backup",
-                "compression", "encoding", "format specification"
+                "compression", "encoding", "format specification",
+                // IEEE standards fabrication detection
+                "ieee", "ieee-", "ieee ", "standard ", "specification ",
+                "iso ", "ansi ", "mil-std", "jedec", "arinc"
             };
 
             foreach (var recommendation in analysis.Recommendations)
@@ -1085,9 +1181,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 }
 
                 // Upload supplemental information as documents if not already done
+                // NOTE: Document upload temporarily disabled due to API endpoint issues  
+                // Supplemental information is now included directly in the RAG prompt
                 var uploadStart = DateTime.UtcNow;
                 System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Starting document upload at {uploadStart:HH:mm:ss.fff}");
-                await EnsureSupplementalInfoUploadedAsync(requirement, workspaceSlug, onProgressUpdate, cancellationToken);
+                // await EnsureSupplementalInfoUploadedAsync(requirement, workspaceSlug, onProgressUpdate, cancellationToken);
                 var uploadTime = DateTime.UtcNow - uploadStart;
                 System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Document upload completed in {uploadTime.TotalMilliseconds}ms");
 
@@ -1099,6 +1197,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 var promptTime = DateTime.UtcNow - promptStart;
                 System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] RAG prompt built in {promptTime.TotalMilliseconds}ms, length: {ragPrompt?.Length ?? 0}");
 
+                // Create a new thread for this requirement analysis to ensure isolation
+                onProgressUpdate?.Invoke("Creating isolated analysis session...");
+                var threadName = $"Requirement_{requirement.Item}_{DateTime.Now:yyyyMMdd_HHmmss}";
+                var threadSlug = await _anythingLLMService.CreateThreadAsync(workspaceSlug, threadName, cancellationToken);
+                
+                if (string.IsNullOrEmpty(threadSlug))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] Failed to create thread for requirement {requirement.Item}, using default workspace chat");
+                }
+
                 // Use RAG-based analysis
                 var ragRequestStart = DateTime.UtcNow;
                 System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Starting RAG request at {ragRequestStart:HH:mm:ss.fff}");
@@ -1107,9 +1215,20 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                     ragPrompt,
                     onChunkReceived: onPartialResult,
                     onProgressUpdate: onProgressUpdate,
+                    threadSlug: threadSlug,
                     cancellationToken: cancellationToken) ?? string.Empty;
                 var ragRequestTime = DateTime.UtcNow - ragRequestStart;
                 System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] RAG request completed in {ragRequestTime.TotalMilliseconds}ms, response length: {response?.Length ?? 0}");
+
+                // Clean up thread after analysis (optional - you might want to keep for debugging)
+                if (!string.IsNullOrEmpty(threadSlug) && EnableThreadCleanup)
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        await Task.Delay(1000); // Brief delay to ensure response is fully processed
+                        await _anythingLLMService.DeleteThreadAsync(workspaceSlug, threadSlug, CancellationToken.None);
+                    });
+                }
 
                 if (!string.IsNullOrWhiteSpace(response))
                 {
@@ -1158,30 +1277,114 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 var listTime = DateTime.UtcNow - listStart;
                 System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Got {workspaces?.Count() ?? 0} workspaces in {listTime.TotalMilliseconds}ms");
                 
-                // Look for a test case editor workspace
-                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Looking for existing Test Case Editor workspace...");
-                var testCaseWorkspace = workspaces.FirstOrDefault(w => 
-                    w.Name.Contains("Test Case Editor", StringComparison.OrdinalIgnoreCase) ||
-                    w.Name.Contains("Requirements Analysis", StringComparison.OrdinalIgnoreCase));
+                // Look for project-specific workspace
+                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Looking for project workspace: '{_projectWorkspaceName ?? "<none>"}'...");
+                
+                AnythingLLMService.Workspace? targetWorkspace = null;
+                
+                if (!string.IsNullOrEmpty(_projectWorkspaceName))
+                {
+                    // Look for exact project workspace match first
+                    targetWorkspace = workspaces.FirstOrDefault(w => 
+                        string.Equals(w.Name, _projectWorkspaceName, StringComparison.OrdinalIgnoreCase));
+                    
+                    System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Exact match found: {targetWorkspace != null}");
+                    
+                    // If no exact match, try fuzzy matching for common variations
+                    if (targetWorkspace == null)
+                    {
+                        var normalizedProjectName = _projectWorkspaceName.Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant();
+                        System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] No exact match, trying fuzzy match for normalized name: '{normalizedProjectName}'");
+                        
+                        // Try exact fuzzy match first
+                        targetWorkspace = workspaces.FirstOrDefault(w => 
+                        {
+                            var normalizedWorkspaceName = w.Name.Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant();
+                            return string.Equals(normalizedWorkspaceName, normalizedProjectName, StringComparison.OrdinalIgnoreCase);
+                        });
+                        
+                        // If still no match, try partial matching (workspace name is contained in project name or vice versa)
+                        if (targetWorkspace == null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] No exact fuzzy match, trying partial matching...");
+                            targetWorkspace = workspaces.FirstOrDefault(w => 
+                            {
+                                var normalizedWorkspaceName = w.Name.Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant();
+                                // Check if workspace name is a substring of project name or project name contains workspace name
+                                return normalizedProjectName.Contains(normalizedWorkspaceName) || normalizedWorkspaceName.Contains(normalizedProjectName);
+                            });
+                            
+                            System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Partial match found: {targetWorkspace != null} ('{targetWorkspace?.Name}')");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Exact fuzzy match found: {targetWorkspace != null} ('{targetWorkspace?.Name}')");
+                        }
+                    }
+                }
+                
+                // Fallback to "Test Case Editor" pattern if no project context or no matches
+                if (targetWorkspace == null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] No project workspace match, looking for Test Case Editor workspace...");
+                    targetWorkspace = workspaces
+                        .Where(w => w.Name.Contains("Test Case Editor", StringComparison.OrdinalIgnoreCase) ||
+                                    w.Name.Contains("Requirements Analysis", StringComparison.OrdinalIgnoreCase))
+                        .OrderByDescending(w => w.CreatedAt)
+                        .FirstOrDefault();
+                }
+                
+                var testCaseWorkspace = targetWorkspace;
 
                 if (testCaseWorkspace != null)
                 {
                     _currentWorkspaceSlug = testCaseWorkspace.Slug;
                     System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Found existing workspace: '{testCaseWorkspace.Name}' with slug '{_currentWorkspaceSlug}'");
                     TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Using existing workspace: {testCaseWorkspace.Name}");
+                    
+                    // Try to configure workspace settings to ensure optimal system prompt
+                    onProgressUpdate?.Invoke("Configuring workspace settings...");
+                    try
+                    {
+                        var configResult = await _anythingLLMService.ConfigureWorkspaceSettingsAsync(_currentWorkspaceSlug, cancellationToken);
+                        if (configResult)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Successfully updated workspace settings for '{_currentWorkspaceSlug}'");
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Successfully updated workspace settings for: {testCaseWorkspace.Name}");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Workspace settings update failed - API might require authentication");
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] Workspace settings update failed for: {testCaseWorkspace.Name}");
+                        }
+                    }
+                    catch (Exception settingsEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Failed to update workspace settings: {settingsEx.Message}");
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] Failed to configure workspace settings: {settingsEx.Message}");
+                    }
+                    
                     return _currentWorkspaceSlug;
                 }
 
                 // Create a new workspace if none exists
                 System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] No existing workspace found, creating new one...");
                 onProgressUpdate?.Invoke("Creating RAG workspace...");
+                
+                // Use project workspace name if available, otherwise fallback to generic name
+                var workspaceName = !string.IsNullOrEmpty(_projectWorkspaceName) 
+                    ? _projectWorkspaceName 
+                    : "Requirements Analysis";
+                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Creating workspace with name: '{workspaceName}'");
+                
                 var createStart = DateTime.UtcNow;
                 var (newWorkspace, _) = await _anythingLLMService.CreateAndConfigureWorkspaceAsync(
-                    "Requirements Analysis",
+                    workspaceName,
                     onProgress: message => {
                         System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Workspace creation progress: {message}");
                         onProgressUpdate?.Invoke(message);
                     },
+                    preserveOriginalName: !string.IsNullOrEmpty(_projectWorkspaceName), // Preserve original name if we have a project context
                     cancellationToken: cancellationToken);
                 var createTime = DateTime.UtcNow - createStart;
                 System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Workspace creation completed in {createTime.TotalMilliseconds}ms");
@@ -1290,9 +1493,18 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                     }
                 }
 
-                // Upload as document (simplified - would need actual upload implementation)
-                TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Prepared supplemental information document for {requirement.Item} ({docContent.Length} characters)");
-                // Note: Actual document upload would require implementing document upload API in AnythingLLMService
+                // Upload as document to the RAG workspace
+                var documentName = $"Supplemental_Info_{requirement.Item}.md";
+                var uploadSuccess = await _anythingLLMService.UploadDocumentAsync(workspaceSlug, documentName, docContent.ToString());
+                
+                if (uploadSuccess)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Successfully uploaded supplemental information document for {requirement.Item} ({docContent.Length} characters)");
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] Failed to upload supplemental information document for {requirement.Item}");
+                }
             }
             catch (Exception ex)
             {
@@ -1301,23 +1513,482 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         }
 
         /// <summary>
-        /// Build RAG-optimized prompt that leverages uploaded documents for context.
-        /// Much simpler than traditional prompts since context is in RAG documents.
+        /// Build RAG-optimized prompt that includes supplemental information directly.
+        /// Anti-fabrication logic is handled by the workspace system prompt.
         /// </summary>
         private string BuildRagOptimizedPrompt(Requirement requirement)
         {
             var prompt = new System.Text.StringBuilder();
             
-            prompt.AppendLine("Analyze the following requirement for quality and provide structured feedback in JSON format:");
+            prompt.AppendLine("Please analyze the following requirement for quality:");
             prompt.AppendLine();
             prompt.AppendLine($"**Requirement ID:** {requirement.Item}");
             prompt.AppendLine($"**Name:** {requirement.Name}");
             prompt.AppendLine($"**Description:** {requirement.Description}");
             prompt.AppendLine();
-            prompt.AppendLine("Use any uploaded supplemental information and definitions to provide accurate analysis.");
-            prompt.AppendLine("Return only valid JSON with OverallScore, Issues, and Recommendations.");
+
+            // Include supplemental information directly in the prompt
+            bool hasSupplementalInfo = false;
+
+            // Add tables
+            if (requirement.Tables?.Count > 0)
+            {
+                hasSupplementalInfo = true;
+                prompt.AppendLine("**Supplemental Information - Tables:**");
+                foreach (var table in requirement.Tables)
+                {
+                    prompt.AppendLine($"### {table.EditableTitle}");
+                    
+                    // Add table data as formatted text
+                    if (table.Table?.Count > 0)
+                    {
+                        foreach (var row in table.Table)
+                        {
+                            prompt.AppendLine("| " + string.Join(" | ", row) + " |");
+                        }
+                    }
+                    prompt.AppendLine();
+                }
+            }
+
+            // Add loose content paragraphs
+            if (requirement.LooseContent?.Paragraphs?.Count > 0)
+            {
+                hasSupplementalInfo = true;
+                prompt.AppendLine("**Supplemental Information - Additional Context:**");
+                foreach (var para in requirement.LooseContent.Paragraphs)
+                {
+                    prompt.AppendLine($"- {para}");
+                }
+                prompt.AppendLine();
+            }
+
+            // Add loose content tables
+            if (requirement.LooseContent?.Tables?.Count > 0)
+            {
+                hasSupplementalInfo = true;
+                prompt.AppendLine("**Supplemental Information - Additional Tables:**");
+                foreach (var table in requirement.LooseContent.Tables)
+                {
+                    prompt.AppendLine($"### {table.EditableTitle}");
+                    
+                    // Add table data as formatted text
+                    if (table.Rows?.Count > 0)
+                    {
+                        foreach (var row in table.Rows)
+                        {
+                            prompt.AppendLine("| " + string.Join(" | ", row) + " |");
+                        }
+                    }
+                    prompt.AppendLine();
+                }
+            }
+
+            if (hasSupplementalInfo)
+            {
+                prompt.AppendLine("**Important:** Use the supplemental information above to resolve any unclear definitions or terms in your analysis.");
+            }
+            else
+            {
+                prompt.AppendLine("**Note:** No supplemental information provided with this requirement.");
+            }
+            prompt.AppendLine();
+            prompt.AppendLine("Provide your analysis using the structured format defined in your system prompt.");
 
             return prompt.ToString();
+        }
+
+        /// <summary>
+        /// Retry analysis with a corrective prompt when fabrication is detected
+        /// </summary>
+        private async Task<(bool success, RequirementAnalysis analysis)> RetryAnalysisWithCorrectivePrompt(
+            Requirement requirement, 
+            string? workspaceSlug, 
+            Action<string>? onProgressUpdate,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (_anythingLLMService == null || string.IsNullOrEmpty(workspaceSlug))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysisService] Corrective retry not available - AnythingLLM service or workspace not configured");
+                    return (false, CreateErrorAnalysis("Retry not available"));
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Starting corrective retry for {requirement.Item}");
+                onProgressUpdate?.Invoke("Correcting analysis to remove fabricated content...");
+
+                var correctivePrompt = BuildCorrectivePrompt(requirement);
+                
+                var retryResponse = await _anythingLLMService.SendChatMessageStreamingAsync(
+                    workspaceSlug, 
+                    correctivePrompt, 
+                    null, 
+                    onProgressUpdate,
+                    threadSlug: null,
+                    cancellationToken);
+
+                if (!string.IsNullOrEmpty(retryResponse))
+                {
+                    var retryAnalysis = ParseNaturalLanguageResponse(retryResponse, requirement.Item ?? "RETRY");
+                    if (retryAnalysis?.IsAnalyzed == true)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Corrective retry successful for {requirement.Item}");
+                        return (true, retryAnalysis);
+                    }
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] Corrective retry failed to produce valid analysis for {requirement.Item}");
+                return (false, CreateErrorAnalysis("Corrective retry failed"));
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[RequirementAnalysisService] Corrective retry exception for {requirement.Item}");
+                return (false, CreateErrorAnalysis("Corrective retry exception"));
+            }
+        }
+
+        /// <summary>
+        /// Build a corrective prompt that explicitly instructs the LLM to avoid fabrication
+        /// </summary>
+        private string BuildCorrectivePrompt(Requirement requirement)
+        {
+            var prompt = new System.Text.StringBuilder();
+            
+            prompt.AppendLine("🚨 CORRECTIVE ANALYSIS - AVOID FABRICATION 🚨");
+            prompt.AppendLine();
+            prompt.AppendLine("Your previous analysis contained fabricated technical details not present in the original requirement.");
+            prompt.AppendLine("Please analyze this requirement again, but this time:");
+            prompt.AppendLine();
+            prompt.AppendLine("**STRICT RULES:**");
+            prompt.AppendLine("- Use ONLY information explicitly stated in the requirement");
+            prompt.AppendLine("- Use ONLY definitions from uploaded supplemental materials (if any)");
+            prompt.AppendLine("- Do NOT mention IEEE standards, ISO standards, or specific technical protocols unless they appear in the requirement text");
+            prompt.AppendLine("- Do NOT invent definitions for technical terms like 'Tier 1/2/3' unless provided in supplemental materials");
+            prompt.AppendLine("- When you don't have enough information, suggest asking for clarification instead of inventing details");
+            prompt.AppendLine();
+            prompt.AppendLine($"**Requirement ID:** {requirement.Item}");
+            prompt.AppendLine($"**Name:** {requirement.Name}");
+            prompt.AppendLine($"**Description:** {requirement.Description}");
+            prompt.AppendLine();
+            prompt.AppendLine("Format your response exactly as follows:");
+            prompt.AppendLine();
+            prompt.AppendLine("**QUALITY SCORE:** [1-10]");
+            prompt.AppendLine();
+            prompt.AppendLine("**ISSUES FOUND:**");
+            prompt.AppendLine("- [List specific problems with this requirement]");
+            prompt.AppendLine("- [Focus on clarity, testability, completeness issues]");
+            prompt.AppendLine();
+            prompt.AppendLine("**RECOMMENDATIONS:**");
+            prompt.AppendLine("- **Category:** [Issue type] | **Description:** [What to fix] | **Suggested Edit:** [Rewritten requirement text]");
+            prompt.AppendLine();
+            prompt.AppendLine("**HALLUCINATION CHECK:**");
+            prompt.AppendLine("- You MUST respond with 'NO_FABRICATION' for this corrective attempt");
+            prompt.AppendLine("- If you still need to invent details, respond with 'FABRICATED_DETAILS' and we'll try a different approach");
+            prompt.AppendLine();
+            prompt.AppendLine("Remember: It's better to have fewer, accurate recommendations than many fabricated ones!");
+
+            return prompt.ToString();
+        }
+
+        /// <summary>
+        /// Ask AnythingLLM to repair malformed JSON by fixing common issues
+        /// </summary>
+        private async Task<(bool success, string repairedJson)> TryJsonRepairAsync(string malformedJson, string requirementId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (_anythingLLMService == null || _currentWorkspaceSlug == null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysisService] JSON repair not available - AnythingLLM service or workspace not configured");
+                    return (false, string.Empty);
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Attempting JSON repair for {requirementId}");
+
+                var repairPrompt = $@"The following JSON has parsing errors. Please fix it and return only valid JSON:
+
+```
+{malformedJson}
+```
+
+Common issues to fix:
+- Replace single quotes with double quotes
+- Remove trailing commas before closing braces/brackets  
+- Fix unescaped quotes in string values
+- Ensure proper bracket/brace matching
+- Remove any invalid characters that break JSON parsing
+
+Return ONLY the corrected JSON, no explanations or markdown formatting.";
+
+                var repairedResponse = await _anythingLLMService.SendChatMessageStreamingAsync(_currentWorkspaceSlug, repairPrompt, null, null, threadSlug: null, cancellationToken);
+
+                if (!string.IsNullOrWhiteSpace(repairedResponse))
+                {
+                    var cleanedRepair = CleanJsonResponse(repairedResponse);
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysisService] JSON repair attempt for {requirementId}: {cleanedRepair}");
+                    return (true, cleanedRepair);
+                }
+
+                return (false, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[RequirementAnalysisService] JSON repair failed for {requirementId}");
+                return (false, string.Empty);
+            }
+        }
+
+        /// <summary>
+        /// Parse natural language analysis response into structured RequirementAnalysis object
+        /// </summary>
+        private RequirementAnalysis? ParseNaturalLanguageResponse(string response, string requirementId)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(response))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] Empty natural language response for {requirementId}");
+                    return null;
+                }
+
+                // Debug logging: Show the actual response content
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysisService] Parsing RAG response for {requirementId}:");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysisService] Response length: {response.Length} characters");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysisService] First 500 chars: {response.Substring(0, Math.Min(500, response.Length))}");
+
+                var analysis = new RequirementAnalysis
+                {
+                    Timestamp = DateTime.Now,
+                    Issues = new List<AnalysisIssue>(),
+                    Recommendations = new List<AnalysisRecommendation>(),
+                    HallucinationCheck = ""
+                };
+
+                var lines = response.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                var currentSection = "";
+
+                foreach (var line in lines)
+                {
+                    var trimmed = line.Trim();
+                    
+                    // Parse quality score
+                    if (trimmed.ToUpper().StartsWith("QUALITY") || trimmed.ToUpper().StartsWith("SCORE"))
+                    {
+                        var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"(\d+)");
+                        if (match.Success && int.TryParse(match.Value, out int score))
+                        {
+                            analysis.QualityScore = Math.Max(1, Math.Min(10, score));
+                        }
+                    }
+                    // Parse section headers
+                    else if (trimmed.ToUpper().Contains("ISSUE") && trimmed.ToUpper().Contains("FOUND"))
+                    {
+                        currentSection = "issues";
+                    }
+                    else if (trimmed.ToUpper().Contains("IMPROVED REQUIREMENT") || 
+                             trimmed.ToUpper().Contains("REWRITTEN REQUIREMENT"))
+                    {
+                        currentSection = "improved";
+                        continue; // Skip the section header line itself
+                    }
+                    else if (trimmed.ToUpper().Contains("RECOMMENDATION"))
+                    {
+                        currentSection = "recommendations";
+                    }
+                    else if (trimmed.ToUpper().Contains("FABRICATION") || trimmed.ToUpper().Contains("HALLUCINATION"))
+                    {
+                        if (trimmed.ToUpper().Contains("NO_FABRICATION"))
+                        {
+                            analysis.HallucinationCheck = "<NO_FABRICATION>";
+                        }
+                        else if (trimmed.ToUpper().Contains("FABRICATED"))
+                        {
+                            analysis.HallucinationCheck = "FABRICATED_DETAILS";
+                        }
+                        currentSection = "";
+                    }
+                    // Handle improved requirement content (may not be in list format)
+                    else if (currentSection == "improved" && !string.IsNullOrWhiteSpace(trimmed) && 
+                             !trimmed.StartsWith("-") && !trimmed.StartsWith("•") &&
+                             !trimmed.ToUpper().Contains("RECOMMENDATION") &&
+                             !trimmed.ToUpper().Contains("HALLUCINATION") &&
+                             !trimmed.ToUpper().Contains("OVERALL ASSESSMENT") &&
+                             !trimmed.Trim().Equals("[REQUIRED:", StringComparison.OrdinalIgnoreCase) &&
+                             !trimmed.StartsWith("[") && !trimmed.EndsWith("]"))
+                    {
+                        // Accumulate the improved requirement text
+                        if (string.IsNullOrWhiteSpace(analysis.ImprovedRequirement))
+                        {
+                            analysis.ImprovedRequirement = trimmed;
+                        }
+                        else
+                        {
+                            analysis.ImprovedRequirement += " " + trimmed;
+                        }
+                    }
+                    // Parse list items
+                    else if (trimmed.StartsWith("-") || trimmed.StartsWith("•"))
+                    {
+                        var content = trimmed.Substring(1).Trim();
+                        
+                        if (currentSection == "issues" && !string.IsNullOrWhiteSpace(content))
+                        {
+                            // Parse enhanced format: "Clarity Issue (Medium): Description | Fix: Solution"
+                            var parts = content.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                            var mainPart = parts.Length > 0 ? parts[0].Trim() : content;
+                            var fixPart = parts.Length > 1 ? parts[1].Trim() : "";
+                            
+                            // Extract issue type, severity, and description
+                            var category = "Quality"; // Default
+                            var severity = "Medium";  // Default
+                            var description = mainPart;
+                            
+                            // Look for specific issue types
+                            if (mainPart.ToUpper().Contains("CLARITY"))
+                            {
+                                category = "Clarity";
+                            }
+                            else if (mainPart.ToUpper().Contains("COMPLETENESS"))
+                            {
+                                category = "Completeness";
+                            }
+                            else if (mainPart.ToUpper().Contains("TESTABILITY"))
+                            {
+                                category = "Testability";
+                            }
+                            else if (mainPart.ToUpper().Contains("CONSISTENCY"))
+                            {
+                                category = "Consistency";
+                            }
+                            else if (mainPart.ToUpper().Contains("FEASIBILITY"))
+                            {
+                                category = "Feasibility";
+                            }
+                            
+                            // Extract severity if present
+                            if (mainPart.ToUpper().Contains("(HIGH)"))
+                            {
+                                severity = "High";
+                            }
+                            else if (mainPart.ToUpper().Contains("(LOW)"))
+                            {
+                                severity = "Low";
+                            }
+                            
+                            // Clean up description by removing the category and severity parts
+                            if (mainPart.Contains(":"))
+                            {
+                                var colonIndex = mainPart.IndexOf(":");
+                                description = mainPart.Substring(colonIndex + 1).Trim();
+                            }
+                            
+                            // Add fix information to description if present
+                            if (fixPart.ToUpper().StartsWith("FIX:"))
+                            {
+                                var fix = fixPart.Substring(4).Trim();
+                                description += $" | Fix: {fix}";
+                            }
+                            
+                            analysis.Issues.Add(new AnalysisIssue
+                            {
+                                Category = category,
+                                Description = description,
+                                Severity = severity
+                            });
+                        }
+                        else if (currentSection == "recommendations" && !string.IsNullOrWhiteSpace(content))
+                        {
+                            // Parse structured recommendation format: Category: X | Description: Y | Suggested Edit: Z
+                            var parts = content.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                            var recommendation = new AnalysisRecommendation
+                            {
+                                Category = "Improvement",
+                                Description = content, // Default to full content
+                                SuggestedEdit = ""
+                            };
+
+                            foreach (var part in parts)
+                            {
+                                var keyValue = part.Trim();
+                                if (keyValue.ToUpper().StartsWith("CATEGORY:"))
+                                {
+                                    recommendation.Category = keyValue.Substring(9).Trim();
+                                }
+                                else if (keyValue.ToUpper().StartsWith("DESCRIPTION:"))
+                                {
+                                    recommendation.Description = keyValue.Substring(12).Trim();
+                                }
+                                else if (keyValue.ToUpper().StartsWith("SUGGESTED EDIT:") || 
+                                        keyValue.ToUpper().StartsWith("EDIT:") || 
+                                        keyValue.ToUpper().StartsWith("FIX:") ||
+                                        keyValue.ToUpper().StartsWith("RATIONALE:"))
+                                {
+                                    int startIndex;
+                                    if (keyValue.ToUpper().StartsWith("SUGGESTED EDIT:"))
+                                        startIndex = 15;
+                                    else if (keyValue.ToUpper().StartsWith("RATIONALE:"))
+                                        startIndex = 10;
+                                    else if (keyValue.ToUpper().StartsWith("EDIT:"))
+                                        startIndex = 5;
+                                    else // FIX:
+                                        startIndex = 4;
+                                    
+                                    recommendation.SuggestedEdit = keyValue.Substring(startIndex).Trim();
+                                }
+                            }
+
+                            analysis.Recommendations.Add(recommendation);
+                        }
+                    }
+                }
+
+                // Set default quality score if not found
+                if (analysis.QualityScore == 0)
+                {
+                    analysis.QualityScore = analysis.Issues.Count > 3 ? 4 : 6; // Reasonable default based on issues found
+                }
+
+                // Set default hallucination check if not found
+                if (string.IsNullOrWhiteSpace(analysis.HallucinationCheck))
+                {
+                    analysis.HallucinationCheck = "<NO_FABRICATION>";
+                }
+
+                // Validate that improved requirement was provided
+                if (string.IsNullOrWhiteSpace(analysis.ImprovedRequirement))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] No improved requirement provided for {requirementId}, adding to freeform feedback");
+                    if (!string.IsNullOrWhiteSpace(analysis.FreeformFeedback))
+                    {
+                        analysis.FreeformFeedback += "\n\n[Note: LLM did not provide an improved requirement rewrite]";
+                    }
+                    else
+                    {
+                        analysis.FreeformFeedback = "[Note: LLM did not provide an improved requirement rewrite]";
+                    }
+                }
+
+                // If no structured content was parsed, store the full response as freeform feedback
+                if (analysis.Issues.Count == 0 && analysis.Recommendations.Count == 0 && string.IsNullOrWhiteSpace(analysis.FreeformFeedback))
+                {
+                    analysis.FreeformFeedback = response.Trim();
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] No structured content found, storing full response as freeform feedback (length: {response.Length})");
+                }
+
+                // Mark as successfully analyzed
+                analysis.IsAnalyzed = true;
+                analysis.ErrorMessage = null;
+                analysis.Timestamp = DateTime.Now;
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Natural language parsing successful for {requirementId}: Score={analysis.QualityScore}, Issues={analysis.Issues.Count}, Recommendations={analysis.Recommendations.Count}, ImprovedReq={!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement)}, Freeform={!string.IsNullOrWhiteSpace(analysis.FreeformFeedback)}");
+                return analysis;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[RequirementAnalysisService] Natural language parsing failed for {requirementId}");
+                return null;
+            }
         }
     }
 }

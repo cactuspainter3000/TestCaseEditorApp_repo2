@@ -59,9 +59,18 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             ITextGenerationService primaryService,
             ILogger<LlmServiceHealthMonitor> logger,
             TimeSpan? healthCheckInterval = null)
+            : this(primaryService, new NoopTextGenerationService("[LLM Unavailable] Fallback service response"), logger, healthCheckInterval)
+        {
+        }
+
+        public LlmServiceHealthMonitor(
+            ITextGenerationService primaryService,
+            ITextGenerationService fallbackService,
+            ILogger<LlmServiceHealthMonitor> logger,
+            TimeSpan? healthCheckInterval = null)
         {
             _primaryService = primaryService ?? throw new ArgumentNullException(nameof(primaryService));
-            _fallbackService = new NoopTextGenerationService("[LLM Unavailable] Fallback service response");
+            _fallbackService = fallbackService ?? throw new ArgumentNullException(nameof(fallbackService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _healthCheckSemaphore = new SemaphoreSlim(1, 1);
 

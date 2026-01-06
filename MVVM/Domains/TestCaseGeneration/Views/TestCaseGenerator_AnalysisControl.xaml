@@ -123,6 +123,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/> <!-- Header -->
                     <RowDefinition Height="Auto"/> <!-- Quality Score -->
+                    <RowDefinition Height="Auto"/> <!-- Improved Requirement -->
                     <RowDefinition Height="Auto"/> <!-- Issues -->
                     <RowDefinition Height="Auto"/> <!-- Recommendations -->
                     <RowDefinition Height="Auto"/> <!-- Freeform Feedback -->
@@ -176,9 +177,52 @@
                         </StackPanel>
                     </StackPanel>
                 </Border>
-
-                <!-- Issues -->
+                <!-- Improved Requirement -->
                 <Border Grid.Row="2" 
+                        Background="#1E3A5F"
+                        BorderBrush="#4A9EFF"
+                        BorderThickness="1"
+                        Padding="16"
+                        Margin="0,0,0,12"
+                        Visibility="{Binding HasImprovedRequirement, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock DockPanel.Dock="Left"
+                                       Text="📝 Improved Requirement" 
+                                       Style="{StaticResource Text.H3}"
+                                       Foreground="#4A9EFF"/>
+                            <TextBlock DockPanel.Dock="Right"
+                                       Text="Primary Deliverable"
+                                       FontSize="10"
+                                       FontWeight="SemiBold"
+                                       Background="#FF6B35"
+                                       Foreground="White"
+                                       Padding="6,2"
+                                       TextAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                        </DockPanel>
+                        
+                        <TextBlock Text="Complete rewritten requirement addressing all identified issues:" 
+                                   FontSize="11"
+                                   Foreground="#CCCCCC"
+                                   Margin="0,0,0,8"/>
+                        
+                        <Border Background="#2D4A70"
+                                BorderBrush="#6BB6FF"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="12">
+                            <TextBlock Text="{Binding ImprovedRequirement}" 
+                                       TextWrapping="Wrap"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="White"
+                                       LineHeight="18"/>
+                        </Border>
+                    </StackPanel>
+                </Border>
+                <!-- Issues -->
+                <Border Grid.Row="3" 
                         Background="{DynamicResource MenuBackground}"
                         Padding="12"
                         Margin="0,0,0,10"
@@ -238,7 +282,7 @@
                 </Border>
 
                 <!-- Recommendations -->
-                <Border Grid.Row="3" 
+                <Border Grid.Row="4" 
                         Background="{DynamicResource MenuBackground}"
                         Padding="12"
                         Margin="0,0,0,10"
@@ -308,7 +352,7 @@
                 </Border>
 
                 <!-- Freeform Feedback -->
-                <Border Grid.Row="4" 
+                <Border Grid.Row="5" 
                         Background="{DynamicResource MenuBackground}"
                         Padding="12"
                         Visibility="{Binding HasFreeformFeedback, Converter={StaticResource BoolToVisibilityConverter}}">

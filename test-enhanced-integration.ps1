@@ -90,7 +90,7 @@ if ($portTest) {
         Write-Host "   ✅ API is responding" -ForegroundColor Green
     } catch {
         if ($_.Exception.Response.StatusCode -eq 401) {
-            Write-Host "   ⚠️  API responding but needs valid API key" -ForegroundColor Orange
+            Write-Host "   [!]  API responding but needs valid API key" -ForegroundColor Orange
         } else {
             Write-Host "   ❌ API connection failed: $($_.Exception.Message)" -ForegroundColor Red
         }
@@ -101,13 +101,14 @@ if ($portTest) {
 
 Write-Host "`nEnhanced Features Implemented:" -ForegroundColor Magenta
 Write-Host "=============================" -ForegroundColor Magenta
-Write-Host "🔍 Dynamic installation detection (no hardcoded paths)" -ForegroundColor White
-Write-Host "📍 Multiple search methods: Program Files, Registry, Start Menu" -ForegroundColor White
-Write-Host "🔑 Flexible API key configuration (Registry + Environment)" -ForegroundColor White
-Write-Host "🔧 API key setup dialog for first-time users" -ForegroundColor White
-Write-Host "⚡ Smart service detection and auto-start" -ForegroundColor White
-Write-Host "📦 Installation guidance for missing AnythingLLM" -ForegroundColor White
-Write-Host "🛡️ Cross-platform registry detection with fallbacks" -ForegroundColor White
+Write-Host "[*] Dynamic installation detection (no hardcoded paths)" -ForegroundColor White
+Write-Host "Key Features:" -ForegroundColor Yellow
+Write-Host "- Multiple search methods: Program Files, Registry, Start Menu" -ForegroundColor White
+Write-Host "- Flexible API key configuration (Registry + Environment)" -ForegroundColor White
+Write-Host "- API key setup dialog for first-time users" -ForegroundColor White
+Write-Host "- Smart service detection and auto-start" -ForegroundColor White
+Write-Host "- Installation guidance for missing AnythingLLM" -ForegroundColor White
+Write-Host "- Cross-platform registry detection with fallbacks" -ForegroundColor White
 
 Write-Host "`nNext Steps for Testing:" -ForegroundColor Cyan
 Write-Host "1. Set API key via environment variable" -ForegroundColor White

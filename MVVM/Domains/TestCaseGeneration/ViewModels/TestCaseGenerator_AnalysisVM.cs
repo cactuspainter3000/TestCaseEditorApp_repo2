@@ -467,6 +467,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             OnPropertyChanged(nameof(HasIssues));
             OnPropertyChanged(nameof(HasRecommendations));
             OnPropertyChanged(nameof(HasFreeformFeedback));
+            OnPropertyChanged(nameof(HasImprovedRequirement));
+            OnPropertyChanged(nameof(ImprovedRequirement));
             OnPropertyChanged(nameof(HasNoAnalysis));
             OnPropertyChanged(nameof(IsAnalyzing));
             
@@ -519,6 +521,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         public bool HasRecommendations => Recommendations?.Any() == true;
         public bool HasFreeformFeedback => !string.IsNullOrWhiteSpace(FreeformFeedback) && 
                                            !IsNoFeedbackPlaceholder(FreeformFeedback);
+        
+        /// <summary>
+        /// Gets the improved requirement text from the analysis
+        /// </summary>
+        public string? ImprovedRequirement => CurrentRequirement?.Analysis?.ImprovedRequirement;
+        
+        /// <summary>
+        /// Gets whether the analysis contains an improved requirement
+        /// </summary>
+        public bool HasImprovedRequirement => !string.IsNullOrWhiteSpace(ImprovedRequirement);
         
         private static bool IsNoFeedbackPlaceholder(string? feedback)
         {
