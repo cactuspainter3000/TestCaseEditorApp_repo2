@@ -205,36 +205,28 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Domain ViewModels - proper DI pattern implementation
         public WorkspaceManagementVM CreateWorkspaceManagementViewModel()
         {
-            // Note: This factory method should receive the necessary dependencies
-            // For now, returning null to indicate this needs proper DI setup
             // TODO: Implement with proper service resolution from IApplicationServices
             throw new NotImplementedException("WorkspaceManagementVM creation needs proper DI container setup");
         }
         
         public ChatGptExportAnalysisViewModel CreateChatGptExportAnalysisViewModel()
         {
-            // Note: This factory method should receive the necessary dependencies
-            // For now, returning null to indicate this needs proper DI setup
-            // TODO: Implement with proper service resolution from IApplicationServices
+            // TODO: Implement with proper service resolution from IApplicationServices  
             throw new NotImplementedException("ChatGptExportAnalysisViewModel creation needs proper DI container setup");
         }
         
         public RequirementAnalysisViewModel CreateRequirementAnalysisWorkflowViewModel()
         {
-            // Note: This factory method should receive the necessary dependencies
-            // For now, returning null to indicate this needs proper DI setup
             // TODO: Implement with proper service resolution from IApplicationServices
             throw new NotImplementedException("RequirementAnalysisViewModel creation needs proper DI container setup");
         }
         
         public RequirementGenerationViewModel CreateRequirementGenerationViewModel()
         {
-            // Note: This factory method should receive the necessary dependencies
-            // For now, returning null to indicate this needs proper DI setup
             // TODO: Implement with proper service resolution from IApplicationServices
             throw new NotImplementedException("RequirementGenerationViewModel creation needs proper DI container setup");
         }
-        
+
         public object CreateTestCaseGeneratorViewModel()
         {
             return new TestCaseGeneratorViewModel(

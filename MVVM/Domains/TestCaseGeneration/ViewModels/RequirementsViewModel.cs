@@ -14,7 +14,6 @@ using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
-using TestCaseEditorApp.Services.Prompts;
 using TestCaseEditorApp.MVVM.Events;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
@@ -108,7 +107,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             TestCaseGeneratorVM = new TestCaseGenerator_VM(
                 _mediator, 
                 persistence, 
-                new StubTextEditingDialogService(),
+                App.ServiceProvider?.GetService(typeof(ITextEditingDialogService)) as ITextEditingDialogService ?? throw new InvalidOperationException("ITextEditingDialogService not registered"),
                 requirementAnalysisService,  // Use injected service with RAG and proper configuration
                 testCaseGeneratorVMLogger);
             if (testCaseGenerator is TestCaseGenerator_CoreVM coreVm)
@@ -652,93 +651,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             }
         }
 
-        #region Stub Services (for legacy constructor compatibility)
 
-        private class StubRequirementService : IRequirementService
-        {
-            public List<Requirement> ImportRequirementsFromJamaAllDataDocx(string path) => new List<Requirement>();
-            public List<Requirement> ImportRequirementsFromWord(string path) => new List<Requirement>();
-            public string ExportAllGeneratedTestCasesToCsv(IEnumerable<Requirement> requirements, string folderPath, string filePrefix, string extra) => string.Empty;
-            public void ExportAllGeneratedTestCasesToExcel(IEnumerable<Requirement> requirements, string outputPath) { }
-        }
-
-        private class StubFileDialogService : IFileDialogService
-        {
-            public string? ShowOpenFile(string title, string filter, string? initialDirectory = null) => null;
-            public string? ShowSaveFile(string title, string suggestedFileName, string filter, string defaultExt, string? initialDirectory = null) => null;
-            public string? ShowFolderDialog(string title, string? initialDirectory = null) => null;
-        }
-
-        private class StubTextEditingDialogService : ITextEditingDialogService
-        {
-            public Task<string?> ShowSupplementalInfoEditDialog(string title, string currentText, string separator = " ||| ")
-            {
-                // Return null to simulate cancellation in legacy/stub scenario
-                return Task.FromResult<string?>(null);
-            }
-        }
-
-        private class StubNotificationService : NotificationService
-        {
-            private static ToastNotificationService CreateStubToastService()
-            {
-                try
-                {
-                    return new ToastNotificationService(System.Windows.Threading.Dispatcher.CurrentDispatcher);
-                }
-                catch
-                {
-                    return null!;
-                }
-            }
-
-            public StubNotificationService() : base(CreateStubToastService()!)
-            {
-            }
-
-            // Override with no-op implementations for design-time safety
-            public new void ShowSuccess(string message, int durationSeconds = 4) { }
-            public new void ShowError(string message, int durationSeconds = 8) { }
-            public new void ShowWarning(string message, int durationSeconds = 6) { }
-            public new void ShowInfo(string message, int durationSeconds = 4) { }
-        }
-
-        private class StubNavigationMediator : INavigationMediator
-        {
-            public string? CurrentSection => null;
-            public object? CurrentHeader => null;
-            public object? CurrentContent => null;
-            public void NavigateToSection(string sectionName, object? context = null) { }
-            public void NavigateToStep(string stepId, object? context = null) { }
-            public void SetActiveHeader(object? headerViewModel) { }
-            public void SetMainContent(object? contentViewModel) { }
-            public void ClearNavigationState() { }
-            public void Subscribe<T>(Action<T> handler) where T : class { }
-            public void Unsubscribe<T>(Action<T> handler) where T : class { }
-            public void Publish<T>(T navigationEvent) where T : class { }
-        }
-
-        private class StubRequirementDataScrubber : IRequirementDataScrubber
-        {
-            public async Task<ScrubberResult> ProcessRequirementsAsync(
-                List<Requirement> newRequirements, 
-                List<Requirement> existingRequirements,
-                ImportContext context)
-            {
-                await Task.CompletedTask;
-                return new ScrubberResult
-                {
-                    CleanRequirements = newRequirements,
-                    Statistics = new ScrubberStats
-                    {
-                        TotalProcessed = newRequirements.Count,
-                        CleanRequirements = newRequirements.Count
-                    }
-                };
-            }
-        }
-
-        #endregion
     }
 
     /// <summary>
