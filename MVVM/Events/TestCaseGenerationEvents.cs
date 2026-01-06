@@ -302,5 +302,24 @@ namespace TestCaseEditorApp.MVVM.Events
             public object? NewValue { get; set; }
             public DateTime Timestamp { get; set; } = DateTime.Now;
         }
+
+        /// <summary>
+        /// Fired when save operation is requested from domain ViewModels
+        /// </summary>
+        public class SaveRequested
+        {
+            public List<Requirement> Requirements { get; set; } = new();
+            public string RequestedBy { get; set; } = string.Empty;
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
+
+        /// <summary>
+        /// Fired when refresh operation is requested from domain ViewModels
+        /// </summary>
+        public class RefreshRequested
+        {
+            public string RequestedBy { get; set; } = string.Empty;
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
     }
 }

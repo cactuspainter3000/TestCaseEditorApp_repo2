@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.Services.Prompts;
+using TestCaseEditorApp.MVVM.Events;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
@@ -22,8 +23,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
     /// Dedicated ViewModel for requirements import and export management.
     /// Handles all requirements I/O operations and related workflows.
     /// </summary>
-    public partial class RequirementsViewModel : ObservableObject
+    public partial class RequirementsViewModel : BaseDomainViewModel
     {
+        // Domain mediator (properly typed)
+        private new readonly ITestCaseGenerationMediator _mediator;
+        
         // Service dependencies
         private readonly IRequirementService _requirementService;
         private readonly IFileDialogService _fileDialogService;
@@ -31,7 +35,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         private readonly NotificationService _notificationService;
         private readonly INavigationMediator _navigationMediator;
         private readonly IRequirementDataScrubber _requirementDataScrubber;
-        private readonly ILogger<RequirementsViewModel>? _logger;
         
         // Legacy support for existing RequirementsView
         public TestCaseGenerator_VM TestCaseGeneratorVM { get; private set; }
@@ -73,6 +76,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// Enhanced constructor with dependency injection for full functionality
         /// </summary>
         public RequirementsViewModel(
+            ITestCaseGenerationMediator testCaseGenerationMediator,
+            ILogger<RequirementsViewModel> logger,
             IRequirementService requirementService,
             IFileDialogService fileDialogService,
             ChatGptExportService chatGptExportService,
@@ -80,12 +85,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             INavigationMediator navigationMediator,
             ObservableCollection<Requirement> requirements,
             IPersistenceService persistence,
-            ITestCaseGenerationMediator testCaseGenerationMediator,
             IRequirementDataScrubber requirementDataScrubber,
             RequirementAnalysisService requirementAnalysisService,
-            object? testCaseGenerator = null,
-            ILogger<RequirementsViewModel>? logger = null)
+            object? testCaseGenerator = null)
+            : base(testCaseGenerationMediator, logger)
         {
+            // Store properly typed mediator
+            _mediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
+            
             // Store dependencies
             _requirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
             _fileDialogService = fileDialogService ?? throw new ArgumentNullException(nameof(fileDialogService));
@@ -94,13 +101,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
             Requirements = requirements ?? throw new ArgumentNullException(nameof(requirements));
             _requirementDataScrubber = requirementDataScrubber ?? throw new ArgumentNullException(nameof(requirementDataScrubber));
-            _logger = logger;
 
             // Legacy support - create TestCaseGenerator_VM for existing RequirementsView
             var testCaseGeneratorVMLogger = new LoggerFactory().CreateLogger<TestCaseGenerator_VM>();
             // Use the properly configured RequirementAnalysisService from dependency injection
             TestCaseGeneratorVM = new TestCaseGenerator_VM(
-                testCaseGenerationMediator, 
+                _mediator, 
                 persistence, 
                 new StubTextEditingDialogService(),
                 requirementAnalysisService,  // Use injected service with RAG and proper configuration
@@ -110,7 +116,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 TestCaseGeneratorVM.TestCaseGenerator = coreVm;
             }
 
-            TestCaseEditorApp.Services.Logging.Log.Info("[RequirementsViewModel] Enhanced constructor called with full dependencies");
+            TestCaseEditorApp.Services.Logging.Log.Info("[RequirementsViewModel] Enhanced constructor called with domain mediator pattern");
+            
+            // Set title for BaseDomainViewModel
+            Title = "Requirements Management";
 
             // Initialize commands
             ImportFromWordCommand = new AsyncRelayCommand(ImportFromWordAsync);
@@ -129,6 +138,77 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 // Collection changes handled automatically by ObservableProperty dependencies
             };
         }
+
+        // ===== ABSTRACT METHOD IMPLEMENTATIONS =====
+        
+        protected override async Task SaveAsync()
+        {
+            try
+            {
+                IsBusy = true;
+                StatusMessage = "Saving requirements...";
+                
+                // Save via mediator to maintain domain boundaries
+                _mediator.PublishEvent(new TestCaseGenerationEvents.SaveRequested 
+                { 
+                    Requirements = Requirements.ToList(), 
+                    RequestedBy = "RequirementsViewModel" 
+                });
+                
+                StatusMessage = "Requirements saved successfully";
+                _logger.LogInformation("Requirements saved successfully via domain mediator");
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Error saving requirements: {ex.Message}";
+                _logger.LogError(ex, "Failed to save requirements");
+                throw;
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        protected override void Cancel()
+        {
+            StatusMessage = "Operation cancelled";
+            IsBusy = false;
+            _logger.LogDebug("Requirements operation cancelled");
+        }
+
+        protected override async Task RefreshAsync()
+        {
+            try
+            {
+                IsBusy = true;
+                StatusMessage = "Refreshing requirements...";
+                
+                _mediator.PublishEvent(new TestCaseGenerationEvents.RefreshRequested 
+                { 
+                    RequestedBy = "RequirementsViewModel" 
+                });
+                
+                StatusMessage = "Requirements refreshed successfully";
+                _logger.LogInformation("Requirements refreshed via domain mediator");
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Error refreshing requirements: {ex.Message}";
+                _logger.LogError(ex, "Failed to refresh requirements");
+                throw;
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        protected override bool CanSave() => !IsBusy && Requirements.Any();
+        protected override bool CanCancel() => IsBusy;
+        protected override bool CanRefresh() => !IsBusy;
+
+        // ===== END ABSTRACT METHOD IMPLEMENTATIONS =====
 
         private static ChatGptExportService CreateStubChatGptExportService()
         {

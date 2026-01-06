@@ -160,8 +160,24 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         public RequirementsViewModel CreateRequirementsViewModel()
         {
-            // TODO: Create proper mediator when all required services are available
-            throw new NotImplementedException("RequirementsViewModel creation needs proper DI setup with all required services");
+            if (_testCaseGenerationMediator == null)
+                throw new InvalidOperationException("TestCaseGenerationMediator is required for RequirementsViewModel");
+
+            var logger = _applicationServices.LoggerFactory?.CreateLogger<RequirementsViewModel>() ??
+                        throw new InvalidOperationException("Logger is required for RequirementsViewModel");
+
+            return new RequirementsViewModel(
+                _testCaseGenerationMediator,
+                logger,
+                _applicationServices.RequirementService,
+                _applicationServices.FileDialogService,
+                _applicationServices.ChatGptExportService,
+                _applicationServices.NotificationService,
+                null, // Navigation will be handled differently
+                new System.Collections.ObjectModel.ObservableCollection<Requirement>(), // Will be bound to shared collection
+                _applicationServices.PersistenceService,
+                _applicationServices.RequirementService as IRequirementDataScrubber ?? throw new InvalidOperationException("RequirementDataScrubber is required"),
+                _applicationServices.RequirementAnalysisService);
         }
         
         public RequirementsWorkspaceViewModel CreateRequirementsWorkspaceViewModel()
