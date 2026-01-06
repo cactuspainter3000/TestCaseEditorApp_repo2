@@ -586,6 +586,66 @@ namespace TestCaseEditorApp.Services
         }
 
         /// <summary>
+        /// Validates that the workspace system prompt is properly configured to avoid sending redundant prompts
+        /// </summary>
+        public async Task<bool> ValidateWorkspaceSystemPromptAsync(string slug, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Validating system prompt configuration for workspace '{slug}'");
+                
+                var response = await _httpClient.GetAsync($"{_baseUrl}/api/v1/workspaces", cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Could not get workspace settings for validation");
+                    return false;
+                }
+                
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                var data = JsonSerializer.Deserialize<JsonElement>(json);
+                
+                if (data.TryGetProperty("workspaces", out var workspaces))
+                {
+                    foreach (var workspace in workspaces.EnumerateArray())
+                    {
+                        if (workspace.TryGetProperty("slug", out var workspaceSlug) && 
+                            workspaceSlug.GetString() == slug)
+                        {
+                            if (workspace.TryGetProperty("openAiPrompt", out var prompt))
+                            {
+                                var configuredPrompt = prompt.GetString();
+                                var expectedPrompt = GetOptimalSystemPrompt();
+                                
+                                bool isConfigured = !string.IsNullOrEmpty(configuredPrompt) && 
+                                                  configuredPrompt.Contains("requirements quality analysis") &&
+                                                  configuredPrompt.Contains("ANTI-FABRICATION RULES");
+                                
+                                if (isConfigured)
+                                {
+                                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Workspace '{slug}' has properly configured system prompt - optimized messaging enabled");
+                                    return true;
+                                }
+                                else
+                                {
+                                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Workspace '{slug}' system prompt not configured - will send full prompt with each request");
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Could not find workspace '{slug}' for validation");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error validating workspace system prompt for '{slug}'");
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Configures workspace settings with optimal values for requirements analysis based on official AnythingLLM documentation
         /// </summary>
         public async Task<bool> ConfigureWorkspaceSettingsAsync(string slug, CancellationToken cancellationToken = default)
@@ -773,8 +833,9 @@ namespace TestCaseEditorApp.Services
 
         /// <summary>
         /// Gets the optimal system prompt for requirements analysis based on the optimization guide
+        /// This should match what's configured in workspace settings to avoid duplication
         /// </summary>
-        private static string GetOptimalSystemPrompt()
+        public static string GetOptimalSystemPrompt()
         {
             var prompt = @"You are a requirements quality analysis expert. Analyze software requirements for clarity, completeness, consistency, testability, and feasibility.
 

@@ -27,6 +27,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         private string? _currentWorkspaceSlug;
         private string? _projectWorkspaceName;
         
+        // Cache for workspace prompt validation to avoid repeated checks
+        private static bool? _workspaceSystemPromptConfigured;
+        private static DateTime _lastWorkspaceValidation = DateTime.MinValue;
+        private static readonly TimeSpan _workspaceValidationCooldown = TimeSpan.FromMinutes(5);
+        
         /// <summary>
         /// Enable/disable self-reflection feature. When enabled, the LLM will review its own responses for quality.
         /// </summary>
@@ -189,15 +194,19 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                     System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Using RAG response, length: {ragResult.response?.Length ?? 0}");
                     response = ragResult.response;
                 }
-                // Fallback to direct LLM service
+                // Use AnythingLLM with workspace-configured system prompt (avoids sending ~793 lines per request)
                 else if (_llmService is AnythingLLMService anythingLlmService)
                 {
                     var streamingStart = DateTime.UtcNow;
                     System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Starting AnythingLLM streaming at {streamingStart:HH:mm:ss.fff}");
-                    // Use streaming analysis for real-time feedback
+                    
+                    // Check if workspace has system prompt configured to avoid duplication
+                    var promptToSend = await GetOptimizedPromptForWorkspaceAsync(anythingLlmService, "test-case-analysis", contextPrompt, cancellationToken);
+                    
+                    // Use streaming analysis with optimized prompt
                     response = await anythingLlmService.SendChatMessageStreamingAsync(
-                        "test-case-analysis", // Default workspace
-                        $"{_cachedSystemMessage}\\n\\n{contextPrompt}",
+                        "test-case-analysis", // Default workspace with potentially pre-configured system prompt
+                        promptToSend, // Optimized based on workspace configuration
                         onChunkReceived: onPartialResult,
                         onProgressUpdate: onProgressUpdate,
                         cancellationToken: timeoutToken) ?? string.Empty;
@@ -688,6 +697,45 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         /// </summary>
         /// <param name="requirement">The requirement to analyze</param>
         /// <returns>The exact prompt that would be sent to the LLM</returns>
+        /// <summary>
+        /// Optimizes prompt sending based on workspace configuration to reduce message size.
+        /// If workspace has system prompt configured, sends only context. Otherwise sends full prompt.
+        /// </summary>
+        private async Task<string> GetOptimizedPromptForWorkspaceAsync(AnythingLLMService anythingLlmService, string workspaceSlug, string contextPrompt, CancellationToken cancellationToken)
+        {
+            try
+            {
+                // Check if we need to validate workspace prompt configuration (with cooldown)
+                if (!_workspaceSystemPromptConfigured.HasValue || DateTime.UtcNow - _lastWorkspaceValidation > _workspaceValidationCooldown)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysis] Validating workspace system prompt configuration for '{workspaceSlug}'");
+                    _workspaceSystemPromptConfigured = await anythingLlmService.ValidateWorkspaceSystemPromptAsync(workspaceSlug, cancellationToken);
+                    _lastWorkspaceValidation = DateTime.UtcNow;
+                }
+                
+                if (_workspaceSystemPromptConfigured == true)
+                {
+                    // Workspace has system prompt configured - send only context (saves ~793 lines per request)
+                    var optimizedLength = contextPrompt.Length;
+                    var savedBytes = (_cachedSystemMessage?.Length ?? 0) + 4; // +4 for "\\n\\n"
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysis] Using optimized messaging - sending {optimizedLength} chars instead of {optimizedLength + savedBytes} (saved {savedBytes} chars)");
+                    return contextPrompt;
+                }
+                else
+                {
+                    // Workspace doesn't have system prompt - send full prompt for compatibility
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysis] Using full prompt - workspace system prompt not configured");
+                    return $"{_cachedSystemMessage}\\n\\n{contextPrompt}";
+                }
+            }
+            catch (Exception ex)
+            {
+                // Fallback to full prompt on any error
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysis] Error optimizing prompt for workspace '{workspaceSlug}' - falling back to full prompt: {ex.Message}");
+                return $"{_cachedSystemMessage}\\n\\n{contextPrompt}";
+            }
+        }
+
         public string GeneratePromptForInspection(Requirement requirement)
         {
             if (requirement == null)
