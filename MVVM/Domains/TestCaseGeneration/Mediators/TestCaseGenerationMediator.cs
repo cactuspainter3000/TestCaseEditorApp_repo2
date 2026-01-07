@@ -171,27 +171,32 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             base.Subscribe(handler);
             
             // Auto-sync current requirement selection for new RequirementSelected subscribers
+            // Defer the sync to avoid timing issues with ViewModel initialization
             if (typeof(T) == typeof(TestCaseGenerationEvents.RequirementSelected) && _currentRequirement != null)
             {
-                try
+                // Use Dispatcher.BeginInvoke to defer auto-sync until after ViewModel construction completes
+                System.Windows.Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    // Immediately notify new subscriber of current requirement selection
-                    var currentEvent = new TestCaseGenerationEvents.RequirementSelected
+                    try
                     {
-                        Requirement = _currentRequirement,
-                        SelectedBy = "MediatorAutoSync"
-                    };
-                    
-                    // Cast and invoke - this ensures new subscriber gets current state
-                    ((Action<TestCaseGenerationEvents.RequirementSelected>)(object)handler).Invoke(currentEvent);
-                    
-                    _logger.LogDebug("Auto-synced current requirement {RequirementId} to new subscriber", 
-                        _currentRequirement.GlobalId);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to auto-sync current requirement to new subscriber");
-                }
+                        // Immediately notify new subscriber of current requirement selection
+                        var currentEvent = new TestCaseGenerationEvents.RequirementSelected
+                        {
+                            Requirement = _currentRequirement,
+                            SelectedBy = "MediatorAutoSync"
+                        };
+                        
+                        // Cast and invoke - this ensures new subscriber gets current state
+                        ((Action<TestCaseGenerationEvents.RequirementSelected>)(object)handler).Invoke(currentEvent);
+                        
+                        _logger.LogDebug("Auto-synced current requirement {RequirementId} to new subscriber", 
+                            _currentRequirement.GlobalId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to auto-sync current requirement to new subscriber");
+                    }
+                }));
             }
         }
 
