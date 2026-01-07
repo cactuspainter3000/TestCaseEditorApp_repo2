@@ -14,6 +14,7 @@
 
     <UserControl.Resources>
         <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <conv:StringNotEmptyToVisibilityConverter x:Key="StringNotEmptyToVisibilityConverter" />
     </UserControl.Resources>
 
     <Grid Margin="0" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
@@ -186,6 +187,14 @@
                             Visibility="Collapsed">
                     </Border>
                 </Grid>
+                
+                <!-- Analysis timer (next to the analysis button) -->
+                <TextBlock Text="{Binding AnalysisVM.AnalysisElapsedTime}" 
+                           FontSize="12" 
+                           Foreground="#888888" 
+                           VerticalAlignment="Center"
+                           Margin="8,0,0,0"
+                           Visibility="{Binding AnalysisVM.AnalysisElapsedTime, Converter={StaticResource StringNotEmptyToVisibilityConverter}}"/>
 
             </StackPanel>
 

@@ -33,11 +33,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views
             if (w != null)
                 w.SizeChanged -= HostWindow_SizeChanged;
                 
-            // Clean up timer
-            if (AnalysisButton?.Resources["IsAnalyzingTimer"] is System.Windows.Threading.DispatcherTimer timer)
+            // Clean up property change subscription - type-safe cleanup
+            if (DataContext is TestCaseGeneration.ViewModels.TestCaseGenerator_VM viewModel)
             {
-                timer.Stop();
-                AnalysisButton.Resources.Remove("IsAnalyzingTimer");
+                viewModel.PropertyChanged -= OnViewModelPropertyChanged;
             }
         }
 
@@ -46,10 +45,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views
             // no-op: popup/description sizing moved to the workspace header
         }
 
-        private void RequirementsParagraphsControl_Loaded(object sender, RoutedEventArgs e)
-        {
 
-        }
 
         private void AnalysisButton_Loaded(object sender, RoutedEventArgs e)
         {
@@ -57,90 +53,60 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views
             {
                 SetupTracerAnimation();
                 
-                // Subscribe to IsAnalyzing property changes
-                if (DataContext != null)
-                {
-                    var propertyDescriptor = DependencyPropertyDescriptor.FromProperty(
-                        FrameworkElement.DataContextProperty, typeof(FrameworkElement));
-                    propertyDescriptor?.AddValueChanged(this, OnDataContextChanged);
+                // Subscribe to DataContext property changes for ViewModel binding
+                var propertyDescriptor = DependencyPropertyDescriptor.FromProperty(
+                    FrameworkElement.DataContextProperty, typeof(FrameworkElement));
+                propertyDescriptor?.AddValueChanged(this, OnDataContextChanged);
                     
-                    SetupIsAnalyzingBinding(button);
-                }
+                SetupIsAnalyzingBinding();
             }
         }
 
         private void OnDataContextChanged(object? sender, EventArgs e)
         {
-            if (AnalysisButton != null)
+            SetupIsAnalyzingBinding();
+        }
+
+        private void SetupIsAnalyzingBinding()
+        {
+            // Clean up previous subscription - type-safe cleanup
+            if (DataContext is TestCaseGeneration.ViewModels.TestCaseGenerator_VM previousViewModel)
             {
-                SetupIsAnalyzingBinding(AnalysisButton);
+                previousViewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            }
+            
+            // Subscribe to new ViewModel's property changes with type safety
+            if (DataContext is TestCaseGeneration.ViewModels.TestCaseGenerator_VM currentViewModel)
+            {
+                currentViewModel.PropertyChanged += OnViewModelPropertyChanged;
+                
+                // Get initial state - type-safe access
+                UpdateAnimationState(currentViewModel.IsAnalyzing);
             }
         }
 
-        private void SetupIsAnalyzingBinding(ToggleButton button)
+        private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            // Use a simpler approach - check IsAnalyzing periodically
-            var timer = new System.Windows.Threading.DispatcherTimer
+            if (e.PropertyName == nameof(TestCaseGeneration.ViewModels.TestCaseGenerator_VM.IsAnalyzing) && 
+                sender is TestCaseGeneration.ViewModels.TestCaseGenerator_VM viewModel)
             {
-                Interval = TimeSpan.FromMilliseconds(100)
-            };
-            
-            bool? lastIsAnalyzing = null;
-            
-            timer.Tick += (s, e) =>
-            {
-                if (DataContext != null)
-                {
-                    var isAnalyzingProperty = DataContext.GetType().GetProperty("IsAnalyzing");
-                    if (isAnalyzingProperty?.GetValue(DataContext) is bool currentIsAnalyzing)
-                    {
-                        if (lastIsAnalyzing != currentIsAnalyzing)
-                        {
-                            lastIsAnalyzing = currentIsAnalyzing;
-                            
-                            if (currentIsAnalyzing)
-                            {
-                                StartTracerAnimation();
-                            }
-                            else
-                            {
-                                StopTracerAnimation();
-                            }
-                        }
-                    }
-                }
-            };
-            
-            timer.Start();
-            
-            // Store timer for cleanup
-            button.Resources["IsAnalyzingTimer"] = timer;
-        }
-
-        private void OnIsAnalyzingChanged(object? sender, EventArgs e)
-        {
-            if (sender is ToggleButton button)
-            {
-                // Get the value directly from DataContext instead of using Tag
-                if (DataContext != null)
-                {
-                    var isAnalyzingProperty = DataContext.GetType().GetProperty("IsAnalyzing");
-                    if (isAnalyzingProperty != null && isAnalyzingProperty.GetValue(DataContext) is bool isAnalyzing)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"IsAnalyzing changed to: {isAnalyzing}");
-                        
-                        if (isAnalyzing)
-                        {
-                            StartTracerAnimation();
-                        }
-                        else
-                        {
-                            StopTracerAnimation();
-                        }
-                    }
-                }
+                UpdateAnimationState(viewModel.IsAnalyzing);
             }
         }
+        
+        private void UpdateAnimationState(bool isAnalyzing)
+        {
+            if (isAnalyzing)
+            {
+                StartTracerAnimation();
+            }
+            else
+            {
+                StopTracerAnimation();
+            }
+        }
+
+
 
         private void SetupTracerAnimation()
         {

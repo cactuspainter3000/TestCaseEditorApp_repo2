@@ -29,9 +29,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         private readonly IRequirementAnalysisService _analysisService;
         private Requirement? _currentRequirement;
         
+        // Analysis timer tracking
+        private DateTime _analysisStartTime;
+        private System.Windows.Threading.DispatcherTimer? _timerUpdateTimer;
+        
         // Track if edit window is currently open to prevent multiple instances
         [ObservableProperty]
         private bool _isEditWindowOpen = false;
+        
+        [ObservableProperty]
+        private string _analysisElapsedTime = "";
         
         // Analysis state is managed by mediator, not individual ViewModels
 
@@ -113,6 +120,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             // Subscribe to domain events
             _mediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
             _mediator.Subscribe<TestCaseGenerationEvents.RequirementAnalyzed>(OnRequirementAnalyzed);
+            _mediator.Subscribe<TestCaseGenerationEvents.WorkflowStateChanged>(OnWorkflowStateChanged);
 
             // Subscribe to mediator for analysis updates
             AnalysisMediator.AnalysisUpdated += OnAnalysisUpdated;
@@ -442,6 +450,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         {
             ((AsyncRelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
             ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
+            
+            // Handle analysis timer
+            if (value)
+            {
+                StartAnalysisTimer();
+            }
+            else
+            {
+                StopAnalysisTimer();
+            }
         }
 
         public bool HasIssues => Issues?.Any() == true;
@@ -525,6 +543,76 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             await Task.CompletedTask;
         }
         protected override bool CanCancel() => IsAnalyzing;
+        
+        // ===== TIMER MANAGEMENT =====
+        
+        private void OnWorkflowStateChanged(TestCaseGenerationEvents.WorkflowStateChanged e)
+        {
+            if (e.PropertyName == nameof(IsAnalyzing))
+            {
+                if (e.NewValue is bool isAnalyzingValue)
+                {
+                    // Update our local IsAnalyzing field to sync with mediator state
+                    isAnalyzing = isAnalyzingValue;
+                    
+                    if (isAnalyzingValue)
+                    {
+                        StartAnalysisTimer();
+                    }
+                    else
+                    {
+                        StopAnalysisTimer();
+                    }
+                }
+            }
+        }
+        
+        private void StartAnalysisTimer()
+        {
+            _analysisStartTime = DateTime.Now;
+            AnalysisElapsedTime = "";
+            
+            _timerUpdateTimer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(500) // Update every 500ms for smooth display
+            };
+            
+            _timerUpdateTimer.Tick += (s, e) =>
+            {
+                var elapsed = DateTime.Now - _analysisStartTime;
+                AnalysisElapsedTime = $"{elapsed.TotalSeconds:F0}s";
+            };
+            
+            _timerUpdateTimer.Start();
+        }
+        
+        private void StopAnalysisTimer()
+        {
+            if (_timerUpdateTimer != null)
+            {
+                _timerUpdateTimer.Stop();
+                _timerUpdateTimer = null;
+            }
+            
+            // Show final elapsed time for a moment
+            if (_analysisStartTime != default)
+            {
+                var totalElapsed = DateTime.Now - _analysisStartTime;
+                AnalysisElapsedTime = $"Completed in {totalElapsed.TotalSeconds:F0}s";
+                
+                // Clear after 3 seconds
+                var clearTimer = new System.Windows.Threading.DispatcherTimer
+                {
+                    Interval = TimeSpan.FromSeconds(3)
+                };
+                clearTimer.Tick += (s, e) =>
+                {
+                    AnalysisElapsedTime = "";
+                    clearTimer.Stop();
+                };
+                clearTimer.Start();
+            }
+        }
         protected override void Cancel()
         {
             // TODO: Cancel analysis operation if running

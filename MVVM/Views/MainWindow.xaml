@@ -73,6 +73,7 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     
                     <!-- AnythingLLM Status -->
@@ -88,10 +89,12 @@
                     </StackPanel>
                     
                     <!-- Current Requirement Verification Method -->
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" 
-                               HorizontalAlignment="Center"
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" 
+                               HorizontalAlignment="Right"
+                               Margin="0,0,8,0"
                                Visibility="{Binding CurrentRequirementVerificationMethod, Converter={StaticResource EmptyStringToCollapsedConverter}}">
-                        <TextBlock Text="Method: " 
+                        <TextBlock Text="Method:" 
+                                  Width="50"
                                   FontSize="11" 
                                   Foreground="#999999" 
                                   VerticalAlignment="Center"/>
@@ -100,10 +103,15 @@
                                   Foreground="#DDDDDD" 
                                   VerticalAlignment="Center"
                                   FontWeight="SemiBold"/>
+                        <TextBlock Text=" | " 
+                                  FontSize="11" 
+                                  Foreground="#666666" 
+                                  VerticalAlignment="Center"
+                                  Margin="8,0,0,0"/>
                     </StackPanel>
                     
                     <!-- Requirements Progress -->
-                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <StackPanel Grid.Column="3" Orientation="Horizontal">
                         <TextBlock Text="{Binding RequirementsProgressText}" 
                                   FontSize="11" 
                                   Foreground="#BBBBBB" 
