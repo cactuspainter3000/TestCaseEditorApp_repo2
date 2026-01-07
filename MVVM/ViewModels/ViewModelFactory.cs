@@ -118,30 +118,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             return CreateNewProjectWorkflowViewModel();
         }
 
+        /// <summary>
+        /// LEGACY METHOD - REMOVED
+        /// HeaderVM is now created directly by TestCaseGenerationMediator via proper DI
+        /// ViewModelFactory pattern conflicts with mediator architecture
+        /// </summary>
+        [Obsolete("HeaderVM creation moved to TestCaseGenerationMediator - use mediator pattern instead of factory")]
         public TestCaseGenerator_HeaderVM CreateTestCaseGeneratorHeaderViewModel(ITestCaseGenerationMediator mediator)
         {
-            // Use null MainViewModel for now - HeaderVM should be migrated to use mediator
-            var headerVM = new TestCaseGenerator_HeaderVM(null) 
-            { 
-                TitleText = "Test Case Creator" 
-            };
-            
-            // Wire up save commands and state (follows WorkspaceHeaderViewModel pattern)
-            if (_workspaceManagementMediator != null)
-            {
-                headerVM.SaveWorkspaceCommand = new RelayCommand(async () => await _workspaceManagementMediator.SaveProjectAsync());
-                headerVM.UndoLastSaveCommand = new RelayCommand(
-                    async () => await _workspaceManagementMediator.UndoLastSaveAsync(), 
-                    () => _workspaceManagementMediator.CanUndoLastSave());
-                
-                // Update initial state
-                headerVM.UpdateSaveStatus(_workspaceManagementMediator);
-            }
-            
-            // Link header VM to mediator for project status updates
-            mediator.SetHeaderViewModel(headerVM);
-            
-            return headerVM;
+            throw new InvalidOperationException("HeaderVM creation moved to TestCaseGenerationMediator for proper domain architecture");
         }
         
         public PlaceholderViewModel CreatePlaceholderViewModel()

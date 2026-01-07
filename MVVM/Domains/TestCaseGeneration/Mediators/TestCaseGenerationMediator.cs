@@ -132,6 +132,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 }
             } 
         }
+        
+        /// <summary>
+        /// HeaderVM instance created and managed by this mediator
+        /// </summary>
+        public TestCaseGenerator_HeaderVM? HeaderViewModel => _headerViewModel;
 
         public TestCaseGenerationMediator(
             ILogger<TestCaseGenerationMediator> logger,
@@ -156,6 +161,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             
             // Subscribe to cross-domain requirements import events
             Subscribe<TestCaseGenerationEvents.RequirementsImported>(OnRequirementsImported);
+
+            // Initialize HeaderVM directly (no legacy factory needed)
+            InitializeHeaderViewModel();
 
             _logger.LogDebug("TestCaseGenerationMediator created with domain '{DomainName}'", _domainName);
         }
@@ -1037,13 +1045,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         }
         
         /// <summary>
-        /// Set the header ViewModel for project status updates
-        /// Called from ViewModelFactory during initialization
+        /// Create header ViewModel with proper dependency injection
+        /// Called during mediator initialization - no legacy factory needed
         /// </summary>
-        public void SetHeaderViewModel(TestCaseGenerator_HeaderVM headerViewModel)
+        private void InitializeHeaderViewModel()
         {
-            _headerViewModel = headerViewModel ?? throw new ArgumentNullException(nameof(headerViewModel));
-            _logger.LogDebug("Header ViewModel set for TestCaseGenerationMediator");
+            _headerViewModel = new TestCaseGenerator_HeaderVM(this);
+            _logger.LogDebug("Header ViewModel created and initialized for TestCaseGenerationMediator");
         }
         
         /// <summary>
@@ -1062,7 +1070,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 _headerViewModel.RequirementDescription = e.Requirement.Description ?? string.Empty;
                 _headerViewModel.RequirementMethod = e.Requirement.VerificationMethodText ?? e.Requirement.Method.ToString();
                 _headerViewModel.RequirementMethodEnum = e.Requirement.Method;
-                _headerViewModel.CurrentRequirementName = $"{e.Requirement.Item} - {e.Requirement.Name}";
+                // Show the actual requirement description instead of "Item X - Name" format
+                _headerViewModel.CurrentRequirementName = e.Requirement.Description ?? $"Requirement {e.Requirement.Item}";
                 
                 _logger.LogDebug("Header updated with requirement: Description={DescriptionLength} chars, Method={Method}", 
                     _headerViewModel.RequirementDescription.Length, _headerViewModel.RequirementMethod);

@@ -204,12 +204,15 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         /// </summary>
         object? CurrentStepViewModel { get; set; }
         
+        /// <summary>
+        /// HeaderVM instance created and managed by this mediator
+        /// </summary>
+        TestCaseGenerator_HeaderVM? HeaderViewModel { get; }
+        
         // ===== HEADER INTEGRATION =====
         
-        /// <summary>
-        /// Set the header ViewModel for project status updates
-        /// </summary>
-        void SetHeaderViewModel(TestCaseGenerator_HeaderVM headerViewModel);
+        // REMOVED: SetHeaderViewModel - HeaderVM is now created directly by mediator via DI
+        // Legacy factory pattern conflicts with proper domain architecture
         
         /// <summary>
         /// Handle broadcast notifications from other domains

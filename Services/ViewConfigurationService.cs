@@ -191,7 +191,9 @@ namespace TestCaseEditorApp.Services
         {
             if (_testCaseGeneratorHeader == null)
             {
-                _testCaseGeneratorHeader = _viewModelFactory.CreateTestCaseGeneratorHeaderViewModel(_testCaseGenerationMediator);
+                // HeaderVM is now created directly by the mediator - no factory needed
+                _testCaseGeneratorHeader = _testCaseGenerationMediator.HeaderViewModel 
+                    ?? throw new InvalidOperationException("HeaderViewModel not initialized in TestCaseGenerationMediator");
             }
         }
 

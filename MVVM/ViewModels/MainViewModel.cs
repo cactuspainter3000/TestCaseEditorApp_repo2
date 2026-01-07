@@ -193,12 +193,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // These properties are still actively used and need migration to domain coordination
         // TODO: Migrate these usages to proper domain patterns
         
-        public static Requirement? CurrentRequirement { get; set; } // Used by TestCaseGenerator_QuestionsVM
-        public bool IsDirty { get; set; } = false; // Used by multiple Generator ViewModels
-        public bool IsBatchAnalyzing { get; set; } = false; // Used by TestCaseGenerator_QuestionsVM
-        public string? CurrentAnythingLLMWorkspaceSlug { get; set; } // Used by LLMServiceManagementViewModel
-        public object? SelectedStep { get; set; } // Used by TestCaseGenerator_QuestionsVM
-        public object? CurrentStepViewModel { get; set; } // Used by TestCaseGenerator_QuestionsVM
+        public string? CurrentAnythingLLMWorkspaceSlug { get; set; } // Used by LLMServiceManagementViewModel - needs migration
+        
+        /// <summary>
+        /// DEPRECATED: Use domain mediators instead. 
+        /// Still used by GeneratedTestCase, ClarifyingQuestionVM, TestCaseGenerator_AssumptionsVM
+        /// </summary>
+        [Obsolete("Use domain mediators for dirty state management")]
+        public bool IsDirty { get; set; } = false;
 
         // Collections for UI binding
         public System.Collections.ObjectModel.ObservableCollection<object> Requirements { get; } = new();

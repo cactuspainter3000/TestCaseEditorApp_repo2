@@ -14,6 +14,7 @@ using TestCaseEditorApp.MVVM.Mediators;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
@@ -24,7 +25,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
     /// </summary>
     public partial class TestCaseGenerator_HeaderVM : ObservableObject, IDisposable
     {
-        private readonly MainViewModel? _mainVm;
+        private readonly ITestCaseGenerationMediator? _mediator;
         private bool _isLoadingRequirement = false;
 
         // ==================== State Properties ====================
@@ -113,9 +114,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         // ==================== Constructor ====================
         
-        public TestCaseGenerator_HeaderVM(MainViewModel? mainVm = null) 
+        public TestCaseGenerator_HeaderVM(ITestCaseGenerationMediator? mediator = null) 
         {
-            _mainVm = mainVm;
+            _mediator = mediator;
             
             // Subscribe to AnythingLLM status updates (follows same pattern as SideMenuViewModel)
             AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusUpdated;
@@ -197,9 +198,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             
             // Mark workspace dirty when requirement description changes
             // Skip if we're just loading a requirement (not user editing)
-            if (_mainVm != null && !_isLoadingRequirement)
+            if (_mediator != null && !_isLoadingRequirement)
             {
-                _mainVm.IsDirty = true;
+                _mediator.IsDirty = true;
                 TestCaseEditorApp.Services.Logging.Log.Debug("[Header] Requirement description changed - marked workspace dirty");
             }
         }
@@ -282,13 +283,15 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         /// <summary>
         /// Map a Requirement to visible fields. Keeps presentation logic inside the header VM.
+        /// Shows requirement description as the current requirement text for better UX.
         /// </summary>
         public void SetCurrentRequirement(Requirement? req)
         {
             _isLoadingRequirement = true;
             try
             {
-                CurrentRequirementName = req?.Name ?? string.Empty;
+                // Use description as the primary text for better user experience
+                CurrentRequirementName = req?.Description ?? string.Empty;
                 CurrentRequirementSummary = req?.Description ?? string.Empty;
                 RequirementDescription = req?.Description ?? string.Empty;
                 RequirementMethod = req?.Method.ToString() ?? string.Empty;

@@ -39,8 +39,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         private readonly IPersistenceService _persistence;
         private readonly ITextGenerationService? _llm;
         private readonly TestCaseGenerator_HeaderVM? _headerVm;
-        private readonly MainViewModel? _mainVm;
-        private readonly ITestCaseGenerationMediator? _mediator;
+        private readonly ITestCaseGenerationMediator _mediator;
         private readonly CancellationTokenSource _cts = new();
         private const string PersistenceKey = "clarifying_questions";
         private Requirement? _currentRequirement;
@@ -103,28 +102,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         private readonly Dictionary<ClarifyingQuestionVM, PropertyChangedEventHandler> _vmHandlers = new();
 
         // Add or replace this constructor body in TestCaseGenerator_QuestionsVM
-        public TestCaseGenerator_QuestionsVM(IPersistenceService persistence, ITextGenerationService? llm = null, TestCaseGenerator_HeaderVM? headerVm = null, MainViewModel? mainVm = null, ITestCaseGenerationMediator? mediator = null)
+        public TestCaseGenerator_QuestionsVM(IPersistenceService persistence, ITestCaseGenerationMediator mediator, ITextGenerationService? llm = null, TestCaseGenerator_HeaderVM? headerVm = null)
         {
             _persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
+            _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _llm = llm;
             _headerVm = headerVm;
-            _mainVm = mainVm;
-            _mediator = mediator;
 
-            // Track current requirement and subscribe to changes
-            if (_mainVm != null)
-            {
-                // TODO: Use domain coordinator: _currentRequirement = MainViewModel.CurrentRequirement;
-                _currentRequirement = null;
-                _mainVm.PropertyChanged += MainVm_PropertyChanged;
-            }
-            
-            // Also subscribe to mediator events if available
-            if (_mediator != null)
-            {
-                _currentRequirement = _mediator.CurrentRequirement;
-                _mediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
-            }
+            // Get current requirement from mediator and subscribe to changes
+            _currentRequirement = _mediator.CurrentRequirement;
+            _mediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
 
             // Initialize the simple command stubs
             ClearPresetFilterCommand = new RelayCommand(ClearPresetFilter);
@@ -237,23 +224,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             }
         }
 
-        private void MainVm_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            if (e?.PropertyName == nameof(MainViewModel.CurrentRequirement))
-            {
-                // Only save current questions before switching if there are questions to preserve
-                if (_currentRequirement != null && PendingQuestions.Count > 0)
-                {
-                    SaveQuestionsForRequirement(_currentRequirement, markDirty: false);
-                }
-                
-                // Load questions for new requirement
-                // TODO: Use domain coordinator: _currentRequirement = MainViewModel.CurrentRequirement;
-                _currentRequirement = null;
-                LoadQuestionsForRequirement(_currentRequirement);
-            }
-        }
-
         /// <summary>
         /// Handle requirement selection from mediator
         /// </summary>
@@ -283,7 +253,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 {
                     foreach (var data in requirement.ClarifyingQuestions)
                     {
-                        var qvm = new ClarifyingQuestionVM(_mainVm);
+                        var qvm = new ClarifyingQuestionVM(); // Remove MainViewModel dependency
                         qvm.SetPropertiesForLoad(
                             data.Text,
                             data.Answer,
@@ -337,9 +307,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             }
             
             // Mark workspace as dirty only if requested (not during navigation)
-            if (markDirty && _mainVm != null)
+            if (markDirty)
             {
-                _mainVm.IsDirty = true;
+                _mediator.IsDirty = true;
             }
         }
 
@@ -400,7 +370,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// </summary>
         private bool IsRequirementBeingAnalyzed()
         {
-            if (_mainVm == null || _currentRequirement == null) return false;
+            if (_currentRequirement == null) return false;
 
             // Check if this specific requirement is queued for reanalysis
             var queued = _currentRequirement.IsQueuedForReanalysis;
@@ -411,7 +381,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             }
 
             // Allow clarifying questions even during batch analysis of other requirements
-            var batch = _mediator?.IsBatchAnalyzing ?? _mainVm?.IsBatchAnalyzing ?? false;
+            var batch = _mediator.IsBatchAnalyzing;
             TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] IsRequirementBeingAnalyzed -> false (IsBatchAnalyzing={batch}, IsQueuedForReanalysis={queued}) - allowing questions");
             return false;
         }
@@ -428,7 +398,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 {
                     foreach (var it in e.NewItems.OfType<string>())
                     {
-                        PendingQuestions.Add(new ClarifyingQuestionVM(it, null, _mainVm));
+                        PendingQuestions.Add(new ClarifyingQuestionVM(it, null)); // Remove MainViewModel
                     }
                 }
 
@@ -577,7 +547,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         private async Task AskClarifyingQuestionsAsync()
         {
-            TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] AskClarifyingQuestionsAsync start. SessionState={_sessionState}, IsClarifyingRunning={IsClarifyingCommandRunning}, CurrentReq={_currentRequirement?.Item ?? "<null>"}, IsBatchAnalyzing={_mediator?.IsBatchAnalyzing ?? _mainVm?.IsBatchAnalyzing}");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] AskClarifyingQuestionsAsync start. SessionState={_sessionState}, IsClarifyingRunning={IsClarifyingCommandRunning}, CurrentReq={_currentRequirement?.Item ?? "<null>"}, IsBatchAnalyzing={_mediator.IsBatchAnalyzing}");
             if (_llm == null)
             {
                 StatusHint = "LLM client not configured.";
@@ -673,7 +643,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                     QuestionBudget,
                     enabledAssumptions,
                     _llm,
-                    _mainVm,
+                    null, // MainViewModel not needed for clean mediator architecture
                     SuggestedDefaults,
                     _cts.Token,
                     customInstructions).ConfigureAwait(false);
@@ -795,7 +765,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 return;
             }
 
-            var parsed = ClarifyingParsingHelpers.ParseQuestions(llmText ?? string.Empty, _mainVm);
+            var parsed = ClarifyingParsingHelpers.ParseQuestions(llmText ?? string.Empty); // Remove MainViewModel
             Application.Current?.Dispatcher?.Invoke(() =>
             {
                 PendingQuestions.Clear();
@@ -1158,7 +1128,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                     tempRequirement,
                     enabledAssumptions,
                     _llm,
-                    _mainVm,
+                    null, // MainViewModel not needed for clean mediator architecture
                     _cts.Token,
                     customInstructions).ConfigureAwait(false);
                 parsedList = parsedList ?? new List<ClarifyingQuestionVM>();
@@ -1489,40 +1459,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                     StatusHint = $"Generated {llmResponse?.Length ?? 0} characters of test cases. Check LLM Output for raw response.";
                 });
 
-                // Navigate to the test case creation view and pass the LLM output
-                var mainVm = _mainVm;
-                if (mainVm != null)
+                // Navigate to test case creation - handled by domain coordination
+                // TODO: Use mediator to signal test case generation completed and navigate appropriately
+                // This should be coordinated through the domain mediator system
+                TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] Test cases generated, would navigate to creation step via mediator");
+                
+                // Store LLM output for the domain
+                if (!string.IsNullOrEmpty(llmResponse))
                 {
-                    // TODO: Fix step access - var creationStep = mainVm.TestCaseGeneratorSteps.FirstOrDefault(s => s.Id == "testcase-creation");
-                    var creationStep = mainVm.TestCaseGeneratorSteps.FirstOrDefault();
-                    if (creationStep != null)
-                    {
-                        Application.Current?.Dispatcher?.Invoke(() =>
-                        {
-                            mainVm.SelectedStep = creationStep;
-                            
-                            // Pass LLM output to the creation VM (which gets set in CurrentStepViewModel)
-                            if (mainVm.CurrentStepViewModel is TestCaseGenerator_CreationVM creationVm)
-                            {
-                                creationVm.LlmOutput = llmResponse;
-                                TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] Set LlmOutput to CreationVM");
-                            }
-                            
-                            // Update Test Cases menu selectability AFTER the LLM output has been set
-                            TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] About to call UpdateTestCaseStepSelectability after test generation and LlmOutput setting");
-                            try
-                            {
-                                var updateMethod = mainVm.GetType().GetMethod("UpdateTestCaseStepSelectability", 
-                                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                                updateMethod?.Invoke(mainVm, null);
-                                TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] Successfully called UpdateTestCaseStepSelectability");
-                            }
-                            catch (Exception ex)
-                            {
-                                TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] Failed to call UpdateTestCaseStepSelectability: {ex.Message}");
-                            }
-                        });
-                    }
+                    // TODO: Add GeneratedLlmOutput property to mediator
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] Generated {llmResponse.Length} characters of test cases");
                 }
             }
             catch (Exception ex)
@@ -1583,10 +1529,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             {
                 _headerVm.PropertyChanged -= HeaderVm_PropertyChanged;
             }
-            if (_mediator != null)
-            {
-                _mediator.Unsubscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
-            }
+            
+            // Unsubscribe from domain mediator events
+            _mediator.Unsubscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
+            
             _cts.Cancel();
             _cts.Dispose();
         }
