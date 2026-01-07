@@ -40,6 +40,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         // Analysis VM for LLM-powered requirement analysis
         public TestCaseGenerator_AnalysisVM? AnalysisVM { get; private set; }
 
+        // Expose mediator analysis state for UI binding
+        public bool IsAnalyzing => _mediator.IsAnalyzing;
+
         // Local state management (replacing navigator dependencies)
         private readonly ObservableCollection<Requirement> _requirements = new();
         private Requirement? _selectedRequirement;
@@ -63,6 +66,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             // Subscribe to domain events
             _mediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
             _mediator.Subscribe<TestCaseGenerationEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
+            _mediator.Subscribe<TestCaseGenerationEvents.WorkflowStateChanged>(OnWorkflowStateChanged);
 
             // Commands
             AddRequirementCommand = new RelayCommand(AddRequirement);
@@ -173,6 +177,17 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             
             OnPropertyChanged(nameof(Requirements));
             try { ((RelayCommand)RemoveRequirementCommand).NotifyCanExecuteChanged(); } catch { }
+        }
+
+        /// <summary>
+        /// Handle workflow state changes from mediator (e.g., analysis state)
+        /// </summary>
+        private void OnWorkflowStateChanged(TestCaseGenerationEvents.WorkflowStateChanged e)
+        {
+            if (e.PropertyName == nameof(IsAnalyzing))
+            {
+                OnPropertyChanged(nameof(IsAnalyzing));
+            }
         }
 
         // ===== PROPERTIES =====

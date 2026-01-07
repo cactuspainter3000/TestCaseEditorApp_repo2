@@ -33,8 +33,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         [ObservableProperty]
         private bool _isEditWindowOpen = false;
         
-        // Expose batch analyzing state for UI binding
-        public bool IsBatchAnalyzing => _mediator.IsBatchAnalyzing;
+        // Analysis state is managed by mediator, not individual ViewModels
 
         /// <summary>
         /// Gets the quality score of the current requirement's analysis
@@ -196,12 +195,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         private bool CanAnalyzeRequirement()
         {
-            return CurrentRequirement != null && !IsAnalyzing && !IsBatchAnalyzing;
+            // Analysis state is now managed by mediator - check mediator state
+            return CurrentRequirement != null && !_mediator.IsAnalyzing;
         }
 
         private bool CanEditRequirement()
         {
-            return CurrentRequirement != null && !IsAnalyzing && !IsEditWindowOpen;
+            // Edit is disabled during any analysis managed by mediator
+            return CurrentRequirement != null && !_mediator.IsAnalyzing && !IsEditWindowOpen;
         }
 
         private void EditRequirement()
@@ -312,57 +313,23 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             var requirement = CurrentRequirement;
             if (requirement == null) return;
 
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] AnalyzeRequirementAsync started");
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Requirement Description (first 200 chars): '{requirement.Description?.Substring(0, Math.Min(200, requirement.Description?.Length ?? 0))}'");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] AnalyzeRequirementAsync started - delegating to mediator");
 
             try
             {
-                // Check service health before starting analysis
-                var serviceHealth = await _analysisService.GetDetailedHealthAsync();
-                if (serviceHealth?.Status == LlmServiceHealthMonitor.HealthStatus.Unavailable && !_analysisService.IsUsingFallback)
-                {
-                    AnalysisStatusMessage = $"LLM service unavailable ({serviceHealth.ServiceType}). Please check connection.";
-                    OnPropertyChanged(nameof(ServiceStatusText));
-                    return;
-                }
-
-                // Set busy flag to prevent navigation
-                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Setting IsLlmBusy = true");
-                // Note: LLM busy state should be managed via mediator events
-
-                // Clear existing analysis and show spinner
-                HasAnalysis = false;
-                IsAnalyzing = true;
+                // Delegate to mediator which manages all analysis state and coordination
+                var success = await _mediator.AnalyzeRequirementAsync(requirement);
                 
-                // Update status message based on service health
-                if (_analysisService.IsUsingFallback)
+                if (success)
                 {
-                    AnalysisStatusMessage = "Analyzing requirement quality (using fallback mode)...";
-                }
-                else if (serviceHealth?.Status == LlmServiceHealthMonitor.HealthStatus.Degraded)
-                {
-                    AnalysisStatusMessage = "Analyzing requirement quality (service responding slowly)...";
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Analysis completed successfully via mediator");
                 }
                 else
                 {
-                    AnalysisStatusMessage = "Analyzing requirement quality...";
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnalysisVM] Analysis failed via mediator");
                 }
 
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] About to call AnalyzeRequirementAsync on service");
-
-                // Perform analysis
-                var analysis = await _analysisService.AnalyzeRequirementAsync(requirement);
-
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Analysis complete. IsAnalyzed: {analysis.IsAnalyzed}, QualityScore: {analysis.QualityScore}");
-
-                // Store result
-                requirement.Analysis = analysis;
-
-                // Mark workspace dirty when analysis is completed
-                // Note: Workspace dirty state should be managed via mediator events
-                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Analysis completed - should mark workspace dirty");
-
-                // Refresh display
+                // Refresh display - requirement.Analysis will have been updated by mediator
                 RefreshAnalysisDisplay();
 
                 // Single UI refresh to avoid duplicate displays
@@ -372,54 +339,22 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 OnPropertyChanged(nameof(CacheStatistics)); // Update cache statistics
                 OnPropertyChanged(nameof(CachePerformanceText)); // Update cache performance text
                 TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] UI refresh for analysis results");
-                
-                if (analysis.IsAnalyzed)
-                {
-                    var statusSuffix = _analysisService.IsUsingFallback ? " (fallback mode)" : "";
-                    AnalysisStatusMessage = $"Analysis complete. Quality score: {analysis.QualityScore}/10{statusSuffix}";
-                }
-                else
-                {
-                    var fallbackInfo = _analysisService.IsUsingFallback ? " (Note: LLM service unavailable, using fallback)" : "";
-                    AnalysisStatusMessage = $"Analysis failed: {analysis.ErrorMessage}{fallbackInfo}";
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                AnalysisStatusMessage = "Analysis was cancelled";
-                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Analysis cancelled");
             }
             catch (Exception ex)
             {
-                var fallbackInfo = _analysisService.IsUsingFallback ? " (fallback mode active)" : "";
-                AnalysisStatusMessage = $"Analysis error: {ex.Message}{fallbackInfo}";
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnalysisVM] Analysis error");
-            }
-            finally
-            {
-                IsAnalyzing = false;
-                
-                // Clear busy flag
-                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Setting IsLlmBusy = false");
-                // Note: LLM busy state should be managed via mediator events
-
-                // Clear status message after a delay
-                await Task.Delay(3000);
-                AnalysisStatusMessage = string.Empty;
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnalysisVM] Error delegating analysis to mediator");
             }
         }
 
         private void RefreshAnalysisDisplay()
         {
             var analysis = CurrentRequirement?.Analysis;
-            var isBatchRunning = IsBatchAnalyzing;
             
-            TestCaseEditorApp.Services.Logging.Log.Info($"[AnalysisVM] RefreshAnalysisDisplay called. CurrentReq: {CurrentRequirement?.Item}, HasAnalysis: {analysis?.IsAnalyzed}, Score: {analysis?.QualityScore}, IsBatchAnalyzing: {isBatchRunning}");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[AnalysisVM] RefreshAnalysisDisplay called. CurrentReq: {CurrentRequirement?.Item}, HasAnalysis: {analysis?.IsAnalyzed}, Score: {analysis?.QualityScore}");
 
             if (analysis?.IsAnalyzed == true)
             {
                 HasAnalysis = true;
-                IsAnalyzing = false; // Clear spinner for analyzed requirements
                 QualityScore = analysis.QualityScore;
                 Issues = analysis.Issues;
                 
@@ -453,13 +388,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 Recommendations = new List<AnalysisRecommendation>();
                 FreeformFeedback = string.Empty;
                 AnalysisTimestamp = string.Empty;
-                
-                // Show spinner during batch analysis for requirements without analysis
-                if (isBatchRunning && !IsAnalyzing)
-                {
-                    IsAnalyzing = true;
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnalysisVM] Setting IsAnalyzing=true for batch analysis on requirement without analysis: {CurrentRequirement?.Item}");
-                }
             }
 
             // Ensure all analysis properties are notified for UI binding
@@ -470,9 +398,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             OnPropertyChanged(nameof(HasImprovedRequirement));
             OnPropertyChanged(nameof(ImprovedRequirement));
             OnPropertyChanged(nameof(HasNoAnalysis));
-            OnPropertyChanged(nameof(IsAnalyzing));
             
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] RefreshAnalysisDisplay complete - QualityScore: {QualityScore}, HasAnalysis: {HasAnalysis}, IsAnalyzing: {IsAnalyzing}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] RefreshAnalysisDisplay complete - QualityScore: {QualityScore}, HasAnalysis: {HasAnalysis}");
         }
 
         [ObservableProperty]

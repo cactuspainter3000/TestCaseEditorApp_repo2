@@ -381,8 +381,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             }
 
             // Allow clarifying questions even during batch analysis of other requirements
-            var batch = _mediator.IsBatchAnalyzing;
-            TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] IsRequirementBeingAnalyzed -> false (IsBatchAnalyzing={batch}, IsQueuedForReanalysis={queued}) - allowing questions");
+            var batch = _mediator.IsAnalyzing;
+            TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] IsRequirementBeingAnalyzed -> false (IsAnalyzing={batch}, IsQueuedForReanalysis={queued}) - allowing questions");
             return false;
         }
 
@@ -547,7 +547,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         private async Task AskClarifyingQuestionsAsync()
         {
-            TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] AskClarifyingQuestionsAsync start. SessionState={_sessionState}, IsClarifyingRunning={IsClarifyingCommandRunning}, CurrentReq={_currentRequirement?.Item ?? "<null>"}, IsBatchAnalyzing={_mediator.IsBatchAnalyzing}");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] AskClarifyingQuestionsAsync start. SessionState={_sessionState}, IsClarifyingRunning={IsClarifyingCommandRunning}, CurrentReq={_currentRequirement?.Item ?? "<null>"}, IsAnalyzing={_mediator.IsAnalyzing}");
             if (_llm == null)
             {
                 StatusHint = "LLM client not configured.";

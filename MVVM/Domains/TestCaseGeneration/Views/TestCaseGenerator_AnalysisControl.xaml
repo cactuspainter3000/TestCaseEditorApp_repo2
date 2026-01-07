@@ -97,7 +97,7 @@
                                    Margin="0,0,0,12"/>
                         
                         <!-- Batch analyzing hint -->
-                        <TextBlock Visibility="{Binding IsBatchAnalyzing, Converter={StaticResource BoolToVisibilityConverter}}"
+                        <TextBlock Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVisibilityConverter}}"
                                    Text="Analysis results will appear here automatically" 
                                    FontSize="11" 
                                    Foreground="{DynamicResource AccentBrush}"
@@ -309,13 +309,6 @@
                                                        FontSize="12"
                                                        Foreground="#CCCCCC"
                                                        Margin="0,0,0,8"/>
-                                            <TextBlock Text="{Binding Example}" 
-                                                       TextWrapping="Wrap"
-                                                       FontSize="11"
-                                                       FontStyle="Italic"
-                                                       Foreground="#888888"
-                                                       Margin="0,0,0,6"
-                                                       Visibility="{Binding Example, Converter={StaticResource NullOrEmptyToVisibilityConverter}}"/>
                                             
                                             <!-- Suggested Edit Section -->
                                             <Border Background="#1E4D72"

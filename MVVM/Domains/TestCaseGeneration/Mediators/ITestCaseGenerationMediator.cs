@@ -190,9 +190,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         bool IsDirty { get; set; }
         
         /// <summary>
-        /// Indicates if batch analysis is in progress
+        /// Indicates if any requirement analysis is in progress (individual or batch)
         /// </summary>
-        bool IsBatchAnalyzing { get; set; }
+        bool IsAnalyzing { get; set; }
         
         /// <summary>
         /// Current step in the workflow

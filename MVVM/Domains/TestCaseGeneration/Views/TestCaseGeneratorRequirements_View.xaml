@@ -137,43 +137,23 @@
                     </Grid>
                 </ToggleButton>
 
-                <!-- LLM Analysis pill with animated tracer border during batch -->
+                <!-- LLM Analysis pill with animated tracer border during analysis -->
                 <Grid Margin="8,0,0,0">
-                    <!-- Animated tracer border (only visible during batch analysis) -->
-                    <Border x:Name="AnalysisTracerBorder"
-                            Visibility="{Binding DataContext.IsBatchAnalyzing, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibilityConverter}}"
-                            BorderThickness="2"
-                            CornerRadius="16"
-                            Loaded="AnalysisTracerBorder_Loaded"
-                            IsVisibleChanged="AnalysisTracerBorder_IsVisibleChanged">
-                        <Border.BorderBrush>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                <LinearGradientBrush.GradientStops>
-                                    <GradientStop Color="#FFFF8800" Offset="0.0"/>
-                                    <GradientStop Color="#FF888888" Offset="0.25"/>
-                                    <GradientStop Color="White" Offset="0.5"/>
-                                    <GradientStop Color="#FF888888" Offset="0.75"/>
-                                    <GradientStop Color="#FFFF8800" Offset="1.0"/>
-                                </LinearGradientBrush.GradientStops>
-                                <LinearGradientBrush.RelativeTransform>
-                                    <RotateTransform x:Name="AnalysisTracerRotate" CenterX="0.5" CenterY="0.5" Angle="0"/>
-                                </LinearGradientBrush.RelativeTransform>
-                            </LinearGradientBrush>
-                        </Border.BorderBrush>
-                    </Border>
-                    
-                    <!-- The actual pill button (always visible) -->
-                    <ToggleButton Style="{StaticResource ActionToggleButtonSelected}"
+                    <!-- The pill button -->
+                    <ToggleButton x:Name="AnalysisButton"
+                                  Style="{StaticResource ActionToggleButtonSelected}"
                                   Margin="2"
                                   IsChecked="{Binding IsAnalysisSelected, Mode=TwoWay}"
-                                  ToolTip="View AI-powered requirement quality analysis">
+                                  ToolTip="View AI-powered requirement quality analysis"
+                                  Loaded="AnalysisButton_Loaded">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="LLM Analysis" VerticalAlignment="Center" Margin="6,0" Foreground="{StaticResource Brush.Accent.Primary}"/>                            <Border Grid.Column="1">
+                            <TextBlock Text="LLM Analysis" VerticalAlignment="Center" Margin="6,0" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                            <Border Grid.Column="1">
                                 <Border.Style>
                                     <Style TargetType="Border" BasedOn="{StaticResource BadgeStyle}">
                                         <Setter Property="Visibility" Value="Visible"/>
@@ -195,6 +175,16 @@
                             </Border>
                         </Grid>
                     </ToggleButton>
+                    
+                    <!-- Animated tracer border overlay (appears only during analysis) -->
+                    <Border x:Name="AnalysisTracerBorder"
+                            Background="Transparent"
+                            BorderThickness="2"
+                            CornerRadius="{StaticResource Radius.SM}"
+                            Margin="0"
+                            IsHitTestVisible="False"
+                            Visibility="Collapsed">
+                    </Border>
                 </Grid>
 
             </StackPanel>

@@ -41,7 +41,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         // Domain state management - replaces MainViewModel dependencies
         private Requirement? _currentRequirement;
         private bool _isDirty = false;
-        private bool _isBatchAnalyzing = false;
+        private bool _isAnalyzing = false;
         
         // Header ViewModel integration for project status updates
         private TestCaseGenerator_HeaderVM? _headerViewModel;
@@ -89,20 +89,20 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         /// </summary>
         public ObservableCollection<Requirement> Requirements => _requirements;
         
-        public bool IsBatchAnalyzing 
+        public bool IsAnalyzing 
         { 
-            get => _isBatchAnalyzing; 
+            get => _isAnalyzing; 
             set 
             { 
-                if (_isBatchAnalyzing != value) 
+                if (_isAnalyzing != value) 
                 { 
-                    _isBatchAnalyzing = value;
+                    _isAnalyzing = value;
                     PublishEvent(new TestCaseGenerationEvents.WorkflowStateChanged 
                     { 
-                        PropertyName = nameof(IsBatchAnalyzing), 
+                        PropertyName = nameof(IsAnalyzing), 
                         NewValue = value 
                     });
-                    _logger.LogDebug("IsBatchAnalyzing changed to: {IsBatchAnalyzing}", value);
+                    _logger.LogDebug("IsAnalyzing changed to: {IsAnalyzing}", value);
                 }
             } 
         }
@@ -534,6 +534,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         {
             if (requirement == null) throw new ArgumentNullException(nameof(requirement));
 
+            IsAnalyzing = true;
             ShowProgress($"Analyzing requirement {requirement.GlobalId}...", 0);
             
             PublishEvent(new TestCaseGenerationEvents.RequirementAnalysisStarted 
@@ -562,6 +563,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 ShowNotification($"Analysis completed for {requirement.GlobalId}", DomainNotificationType.Success);
                 
                 _logger.LogInformation("Requirement analysis completed for {RequirementId}", requirement.GlobalId);
+                IsAnalyzing = false;
                 return true;
             }
             catch (Exception ex)
@@ -578,6 +580,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 });
                 
                 _logger.LogError(ex, "Requirement analysis failed for {RequirementId}", requirement.GlobalId);
+                IsAnalyzing = false;
                 return false;
             }
         }
@@ -587,6 +590,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             if (requirements == null) throw new ArgumentNullException(nameof(requirements));
             if (!requirements.Any()) return true;
 
+            IsAnalyzing = true;
             ShowProgress("Starting batch analysis...", 0);
             
             PublishEvent(new TestCaseGenerationEvents.BatchAnalysisStarted 
@@ -643,6 +647,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 }
                 
                 _logger.LogInformation("Batch analysis completed: {Successful} successful, {Failed} failed", successful, failed);
+                IsAnalyzing = false;
                 return failed == 0;
             }
             catch (Exception ex)
@@ -651,6 +656,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 ShowNotification($"Batch analysis failed: {ex.Message}", DomainNotificationType.Error);
                 
                 _logger.LogError(ex, "Batch analysis failed completely");
+                IsAnalyzing = false;
                 return false;
             }
         }
