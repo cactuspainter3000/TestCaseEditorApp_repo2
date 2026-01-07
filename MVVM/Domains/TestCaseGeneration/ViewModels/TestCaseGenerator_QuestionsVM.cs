@@ -17,6 +17,8 @@ using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services.Prompts;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Events;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
@@ -38,6 +40,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         private readonly ITextGenerationService? _llm;
         private readonly TestCaseGenerator_HeaderVM? _headerVm;
         private readonly MainViewModel? _mainVm;
+        private readonly ITestCaseGenerationMediator? _mediator;
         private readonly CancellationTokenSource _cts = new();
         private const string PersistenceKey = "clarifying_questions";
         private Requirement? _currentRequirement;
@@ -100,12 +103,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         private readonly Dictionary<ClarifyingQuestionVM, PropertyChangedEventHandler> _vmHandlers = new();
 
         // Add or replace this constructor body in TestCaseGenerator_QuestionsVM
-        public TestCaseGenerator_QuestionsVM(IPersistenceService persistence, ITextGenerationService? llm = null, TestCaseGenerator_HeaderVM? headerVm = null, MainViewModel? mainVm = null)
+        public TestCaseGenerator_QuestionsVM(IPersistenceService persistence, ITextGenerationService? llm = null, TestCaseGenerator_HeaderVM? headerVm = null, MainViewModel? mainVm = null, ITestCaseGenerationMediator? mediator = null)
         {
             _persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
             _llm = llm;
             _headerVm = headerVm;
             _mainVm = mainVm;
+            _mediator = mediator;
 
             // Track current requirement and subscribe to changes
             if (_mainVm != null)
@@ -113,6 +117,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 // TODO: Use domain coordinator: _currentRequirement = MainViewModel.CurrentRequirement;
                 _currentRequirement = null;
                 _mainVm.PropertyChanged += MainVm_PropertyChanged;
+            }
+            
+            // Also subscribe to mediator events if available
+            if (_mediator != null)
+            {
+                _currentRequirement = _mediator.CurrentRequirement;
+                _mediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
             }
 
             // Initialize the simple command stubs
@@ -241,6 +252,15 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 _currentRequirement = null;
                 LoadQuestionsForRequirement(_currentRequirement);
             }
+        }
+
+        /// <summary>
+        /// Handle requirement selection from mediator
+        /// </summary>
+        private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected e)
+        {
+            _currentRequirement = e.Requirement;
+            LoadQuestionsForRequirement(_currentRequirement);
         }
 
         private void LoadQuestionsForRequirement(Requirement? requirement)
@@ -391,7 +411,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             }
 
             // Allow clarifying questions even during batch analysis of other requirements
-            var batch = _mainVm.IsBatchAnalyzing;
+            var batch = _mediator?.IsBatchAnalyzing ?? _mainVm?.IsBatchAnalyzing ?? false;
             TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] IsRequirementBeingAnalyzed -> false (IsBatchAnalyzing={batch}, IsQueuedForReanalysis={queued}) - allowing questions");
             return false;
         }
@@ -557,7 +577,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         private async Task AskClarifyingQuestionsAsync()
         {
-            TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] AskClarifyingQuestionsAsync start. SessionState={_sessionState}, IsClarifyingRunning={IsClarifyingCommandRunning}, CurrentReq={_currentRequirement?.Item ?? "<null>"}, IsBatchAnalyzing={_mainVm?.IsBatchAnalyzing}");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[QuestionsVM] AskClarifyingQuestionsAsync start. SessionState={_sessionState}, IsClarifyingRunning={IsClarifyingCommandRunning}, CurrentReq={_currentRequirement?.Item ?? "<null>"}, IsBatchAnalyzing={_mediator?.IsBatchAnalyzing ?? _mainVm?.IsBatchAnalyzing}");
             if (_llm == null)
             {
                 StatusHint = "LLM client not configured.";
@@ -1563,9 +1583,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             {
                 _headerVm.PropertyChanged -= HeaderVm_PropertyChanged;
             }
-            if (_mainVm != null)
+            if (_mediator != null)
             {
-                _mainVm.PropertyChanged -= MainVm_PropertyChanged;
+                _mediator.Unsubscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
             }
             _cts.Cancel();
             _cts.Dispose();
