@@ -54,10 +54,13 @@
     <Style x:Key="DescriptionText" TargetType="TextBlock" BasedOn="{StaticResource Text.Body}">
         <Setter Property="TextWrapping" Value="Wrap"/>
         <Setter Property="Foreground" Value="White"/>
-        <Setter Property="FontSize" Value="16"/>
+        <Setter Property="FontSize" Value="15"/>
         <Setter Property="FontWeight" Value="Normal"/>
-        <Setter Property="LineHeight" Value="24"/>
-        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        <Setter Property="LineHeight" Value="22"/>
+        <Setter Property="TextTrimming" Value="None"/>
+        <Setter Property="Margin" Value="0,2"/>
+        <!-- Better spacing for readability -->
+        <Setter Property="Opacity" Value="0.95"/>
     </Style>
 
     <!-- Menu Item Text - standard menu text -->

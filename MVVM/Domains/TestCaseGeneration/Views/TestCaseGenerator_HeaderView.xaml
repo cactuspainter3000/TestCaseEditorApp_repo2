@@ -19,77 +19,31 @@
       - Background left transparent to match your request
     -->
 
-    <Grid Margin="6" Background="Transparent">
+    <Grid Margin="3" Background="Transparent">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/>
-            <!-- file menu -->
             <ColumnDefinition Width="*"/>
-            <!-- description -->
-            <ColumnDefinition Width="250"/>
-            <!-- dedicated space for status -->
+            <!-- description gets all space -->
         </Grid.ColumnDefinitions>
 
-        <!-- LEFT: File menu + Project Info -->
-        <StackPanel Grid.Column="0" Orientation="Vertical" VerticalAlignment="Top">
-            <!--<ToggleButton x:Name="HeaderFileToggle"
-                          Style="{StaticResource PillActionToggleButtonStyle}"
-                          IsChecked="{Binding IsFileMenuOpen, Mode=TwoWay}"
-                          Cursor="Hand"
-                          ToolTip="File menu"
-                          VerticalAlignment="Top"
-                          MinWidth="72"
-                          MinHeight="28">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0">
-                    <TextBlock Text="File" FontWeight="SemiBold" />
-                    <TextBlock Text=" ▼" Margin="6,0,0,0" />
-                </StackPanel>
-            </ToggleButton>-->
-            
-            <!-- Project Info Section removed per user request -->
-        </StackPanel>
-
-        <!-- CENTER: Description in its own column -->
-        <Border Grid.Column="1"
+        <!-- CENTER: Description with maximum available horizontal space -->
+        <Border Grid.Column="0"
                 Style="{StaticResource HeaderDescriptionBorderStyle}"
-                Padding="12"
-                Margin="0,6,12,0" 
+                Padding="8,4"
+                Margin="0,3,0,0" 
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Top"
-                MaxHeight="120">
-            <TextBlock Text="{Binding RequirementDescription}"
-                       Style="{StaticResource DescriptionText}"
-                       ToolTip="{Binding RequirementDescription}"
-                       ToolTipService.ShowDuration="60000" />
+                MaxHeight="60">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" 
+                         HorizontalScrollBarVisibility="Disabled"
+                         PanningMode="VerticalOnly">
+                <ScrollViewer.Resources>
+                    <Style TargetType="ScrollBar" BasedOn="{StaticResource CustomScrollBarStyle}"/>
+                </ScrollViewer.Resources>
+                <TextBlock Text="{Binding RequirementDescription}"
+                           Style="{StaticResource DescriptionText}"
+                           ToolTip="{Binding RequirementDescription}"
+                           ToolTipService.ShowDuration="60000" />
+            </ScrollViewer>
         </Border>
-
-        <!-- RIGHT: Verification Method only -->
-        <StackPanel Grid.Column="2" VerticalAlignment="Top" Margin="8,0,0,0" Orientation="Vertical">
-            <!-- Verification method (collapses when empty) -->
-            <TextBlock FontSize="11"
-                       HorizontalAlignment="Right"
-                       TextTrimming="CharacterEllipsis">
-                <Run Text="Verification Method: " Foreground="#AAAAAA"/>
-                <Run Text="{Binding RequirementMethod}"/>
-                <TextBlock.ToolTip>
-                    <TextBlock>
-                        <Run Text="Verification Method: "/>
-                        <Run Text="{Binding RequirementMethod}"/>
-                    </TextBlock>
-                </TextBlock.ToolTip>
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock" BasedOn="{StaticResource HeaderSmallText}">
-                        <Setter Property="Visibility" Value="Visible"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding RequirementMethod}" Value="">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding RequirementMethod}" Value="{x:Null}">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-        </StackPanel>
     </Grid>
 </UserControl>
