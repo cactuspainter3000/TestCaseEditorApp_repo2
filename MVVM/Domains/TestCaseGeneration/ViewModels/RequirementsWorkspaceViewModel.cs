@@ -38,36 +38,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             
             logger.LogDebug("[RequirementsWorkspaceViewModel] Initialized with TestCaseGenerator_VM");
             
-            // Trigger initial requirement selection if one exists
-            InitializeRequirementsDisplay();
-        }
-
-        private void InitializeRequirementsDisplay()
-        {
-            try
-            {
-                // Let domain mediator handle requirement initialization instead of accessing global state
-                if (_mediator is ITestCaseGenerationMediator tcgMediator && tcgMediator.Requirements?.Any() == true)
-                {
-                    // Select first requirement if none is currently selected
-                    var firstRequirement = tcgMediator.Requirements.First();
-                    _logger.LogDebug("[RequirementsWorkspaceViewModel] Selecting first available requirement: {RequirementId}", firstRequirement.GlobalId);
-                    
-                    tcgMediator.PublishEvent(new Events.TestCaseGenerationEvents.RequirementSelected 
-                    { 
-                        Requirement = firstRequirement, 
-                        SelectedBy = "RequirementsWorkspaceInitialization" 
-                    });
-                }
-                else
-                {
-                    _logger.LogDebug("[RequirementsWorkspaceViewModel] No requirements available for initial selection");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[RequirementsWorkspaceViewModel] Error initializing requirements display");
-            }
+            // REMOVED: Automatic requirement selection on workspace load
+            // This was causing unwanted jumping to first requirement when navigating to Requirements view
+            // Requirements should maintain their current selection when navigating between views
         }
 
         // Implementation of abstract methods from BaseDomainViewModel
