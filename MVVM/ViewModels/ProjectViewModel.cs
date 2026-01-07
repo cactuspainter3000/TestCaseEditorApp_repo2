@@ -296,7 +296,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public void CreateNewProject()
         {
             _logger?.LogInformation("Starting new project creation workflow");
-            _navigationMediator.NavigateToSection("NewProject");
+            _navigationMediator.NavigateToSection("newproject");
         }
         
         /// <summary>

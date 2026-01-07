@@ -194,7 +194,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             
             SelectedSection = "Project"; // Update selected section to trigger SectionChanged event
             
-            _navigationMediator.NavigateToSection("Project");
+            _navigationMediator.NavigateToSection("project");
         }
         
         private async void NavigateToTestCaseGenerator()
@@ -206,7 +206,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             SelectedSection = "TestCase"; // Update selected section to trigger SectionChanged event
             
             // Navigate to splash screen first
-            _navigationMediator.NavigateToSection("TestCase");
+            _navigationMediator.NavigateToSection("testcase");
             
             // Then launch AnythingLLM in background
             await _testCaseAnythingLLMService.ConnectAsync();
@@ -219,7 +219,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             
             SelectedSection = "Requirements"; // Update selected section to trigger SectionChanged event
             
-            _navigationMediator.NavigateToSection("Requirements");
+            _navigationMediator.NavigateToSection("requirements");
         }
         
         /// <summary>
@@ -244,7 +244,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             
             SelectedSection = "NewProject"; // Update selected section to trigger SectionChanged event
             
-            _navigationMediator.NavigateToSection("NewProject");
+            _navigationMediator.NavigateToSection("newproject");
         }
         
         #region AnythingLLM Status Handling
