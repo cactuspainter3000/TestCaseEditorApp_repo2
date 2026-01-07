@@ -718,7 +718,7 @@ namespace TestCaseEditorApp.Services
                     
                     // LLM Provider Configuration: Use local Ollama for data security and consistency
                     chatProvider = "ollama", // Local Ollama provider (no internet, keeps data secure)
-                    chatModel = "llama3.2",  // Llama 3.2 model - good for structured analysis and reasoning
+                    chatModel = "phi4-mini:3.8b-q4_K_M",  // Phi-4 Mini model - excellent for structured analysis and reasoning
                     
                     // RAG Configuration (based on official docs):
                     // Document similarity threshold: No restriction to ensure comprehensive access to supplemental materials
@@ -1473,7 +1473,10 @@ CRITICAL: You MUST provide a complete rewritten requirement in the IMPROVED REQU
                 
                 if (!response.IsSuccessStatusCode)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Failed to start streaming chat to '{workspaceSlug}': {response.StatusCode}");
+                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Failed to start streaming chat to '{workspaceSlug}': {response.StatusCode} - {errorContent}");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[AnythingLLM] Request endpoint: {endpoint}");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[AnythingLLM] API Key configured: {!string.IsNullOrEmpty(_apiKey)}");
                     return null;
                 }
 

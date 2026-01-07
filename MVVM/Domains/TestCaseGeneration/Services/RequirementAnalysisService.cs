@@ -1377,12 +1377,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 // Fallback to "Test Case Editor" pattern if no project context or no matches
                 if (targetWorkspace == null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] No project workspace match, looking for Test Case Editor workspace...");
-                    targetWorkspace = workspaces
-                        .Where(w => w.Name.Contains("Test Case Editor", StringComparison.OrdinalIgnoreCase) ||
-                                    w.Name.Contains("Requirements Analysis", StringComparison.OrdinalIgnoreCase))
-                        .OrderByDescending(w => w.CreatedAt)
-                        .FirstOrDefault();
+                    System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] No project workspace match, skipping fallback search for faster responses...");
+                    // Skip fallback search for faster troubleshooting
+                    // targetWorkspace = workspaces
+                    //     .Where(w => w.Name.Contains("Test Case Editor", StringComparison.OrdinalIgnoreCase) ||
+                    //                 w.Name.Contains("Requirements Analysis", StringComparison.OrdinalIgnoreCase))
+                    //     .OrderByDescending(w => w.CreatedAt)
+                    //     .FirstOrDefault();
                 }
                 
                 var testCaseWorkspace = targetWorkspace;
