@@ -311,4 +311,8 @@
     <sys:Double x:Key="DescTwoLineHeight">48</sys:Double>
     <sys:Double x:Key="SupportPaneHeight">420</sys:Double>
 
+    <!-- Button Style Aliases for Compatibility -->
+    <!-- Add SecondaryButton alias that references the proper Button.Secondary style -->
+    <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{DynamicResource Button.Secondary}" />
+
 </ResourceDictionary>

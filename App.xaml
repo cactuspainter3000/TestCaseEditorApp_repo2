@@ -37,6 +37,7 @@
                 
                 <!-- Component styles (reference DesignSystem tokens) -->
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/ButtonStyles.xaml" />
+                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/Controls/Button.xaml" />
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/TextStyles.xaml" />
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/ComboBoxStyles.xaml" />
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/ContainerStyles.xaml" />
