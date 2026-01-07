@@ -26,6 +26,7 @@
     <Window.Resources>
         <conv:SectionSelectedConverter x:Key="SectionSelectedConverter" />
         <conv:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+        <conv:EmptyStringToCollapsedConverter x:Key="EmptyStringToCollapsedConverter" />
 
         <!-- Put resources directly in Window.Resources (do NOT nest a ResourceDictionary element here) -->
 
@@ -84,6 +85,21 @@
                                   FontSize="11" 
                                   Foreground="#BBBBBB" 
                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                    
+                    <!-- Current Requirement Verification Method -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" 
+                               HorizontalAlignment="Center"
+                               Visibility="{Binding CurrentRequirementVerificationMethod, Converter={StaticResource EmptyStringToCollapsedConverter}}">
+                        <TextBlock Text="Method: " 
+                                  FontSize="11" 
+                                  Foreground="#999999" 
+                                  VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding CurrentRequirementVerificationMethod}" 
+                                  FontSize="11" 
+                                  Foreground="#DDDDDD" 
+                                  VerticalAlignment="Center"
+                                  FontWeight="SemiBold"/>
                     </StackPanel>
                     
                     <!-- Requirements Progress -->

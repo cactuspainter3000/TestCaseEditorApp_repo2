@@ -3,6 +3,8 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Utils;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Events;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
@@ -13,6 +15,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
     public partial class TestCaseGeneratorNotificationViewModel : ObservableObject, IDisposable
     {
         private readonly ILogger<TestCaseGeneratorNotificationViewModel>? _logger;
+        private readonly ITestCaseGenerationMediator? _mediator;
 
         // === STATUS INDICATORS ===
         
@@ -58,10 +61,26 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         [ObservableProperty]
         private double requirementsProgress = 0.0;
 
-        public TestCaseGeneratorNotificationViewModel(ILogger<TestCaseGeneratorNotificationViewModel>? logger = null)
+        /// <summary>
+        /// Verification method of the currently selected requirement
+        /// </summary>
+        [ObservableProperty]
+        private string currentRequirementVerificationMethod = "No requirement selected";
+
+        public TestCaseGeneratorNotificationViewModel(
+            ILogger<TestCaseGeneratorNotificationViewModel>? logger = null,
+            ITestCaseGenerationMediator? mediator = null)
         {
             _logger = logger;
+            _mediator = mediator;
             _logger?.LogInformation("TestCaseGeneratorNotificationViewModel initialized");
+            
+            // Subscribe to requirement selection changes
+            if (_mediator != null)
+            {
+                _mediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
+                _logger?.LogInformation("TestCaseGeneratorNotificationViewModel subscribed to requirement selection events");
+            }
             
             // Subscribe to AnythingLLM status updates
             AnythingLLMMediator.StatusUpdated += OnAnythingLlmStatusUpdated;
@@ -108,12 +127,26 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         }
 
         /// <summary>
+        /// Update the verification method of the currently selected requirement
+        /// </summary>
+        public void UpdateCurrentRequirementVerificationMethod(string? verificationMethod, string? requirementId = null)
+        {
+            CurrentRequirementVerificationMethod = string.IsNullOrWhiteSpace(verificationMethod) 
+                ? "No verification method" 
+                : verificationMethod;
+
+            _logger?.LogInformation("Current requirement verification method updated: {VerificationMethod} for requirement {RequirementId}", 
+                CurrentRequirementVerificationMethod, requirementId ?? "unknown");
+        }
+
+        /// <summary>
         /// Reset all status indicators (e.g., when project is closed)
         /// </summary>
         public void ResetStatus()
         {
             UpdateAnythingLlmStatus(false);
             UpdateRequirementsProgress(0, 0);
+            UpdateCurrentRequirementVerificationMethod(null);
             _logger?.LogInformation("Test case generator notification status reset");
         }
 
@@ -143,11 +176,36 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         }
 
         /// <summary>
+        /// Handle requirement selection changes from mediator
+        /// </summary>
+        private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected e)
+        {
+            if (e.Requirement != null)
+            {
+                var verificationMethod = !string.IsNullOrWhiteSpace(e.Requirement.VerificationMethodText) 
+                    ? e.Requirement.VerificationMethodText 
+                    : e.Requirement.Method.ToString();
+                    
+                UpdateCurrentRequirementVerificationMethod(verificationMethod, e.Requirement.GlobalId);
+            }
+            else
+            {
+                UpdateCurrentRequirementVerificationMethod(null);
+            }
+        }
+
+        /// <summary>
         /// Cleanup subscriptions when the ViewModel is disposed
         /// </summary>
         public void Dispose()
         {
             AnythingLLMMediator.StatusUpdated -= OnAnythingLlmStatusUpdated;
+            
+            // Unsubscribe from mediator events
+            if (_mediator != null)
+            {
+                _mediator.Unsubscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
+            }
         }
     }
 }

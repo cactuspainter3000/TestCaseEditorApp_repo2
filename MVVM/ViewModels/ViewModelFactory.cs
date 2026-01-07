@@ -279,7 +279,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             var loggerFactory = _applicationServices.LoggerFactory;
             var logger = loggerFactory?.CreateLogger<TestCaseGeneratorNotificationViewModel>();
-            return new TestCaseGeneratorNotificationViewModel(logger);
+            return new TestCaseGeneratorNotificationViewModel(logger, _testCaseGenerationMediator);
         }
     }
 }
