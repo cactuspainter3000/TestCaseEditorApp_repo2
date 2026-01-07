@@ -9,6 +9,7 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Prompts;
 using TestCaseEditorApp.Services.Prompts;
 using TestCaseEditorApp.Services;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
 {
@@ -23,6 +24,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         private readonly LlmServiceHealthMonitor? _healthMonitor;
         private readonly RequirementAnalysisCache? _cache;
         private readonly AnythingLLMService? _anythingLLMService;
+        private readonly ResponseParserManager _parserManager;
         private string? _cachedSystemMessage;
         private string? _currentWorkspaceSlug;
         private string? _projectWorkspaceName;
@@ -84,6 +86,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
             _anythingLLMService = anythingLLMService;
             _promptBuilder = new RequirementAnalysisPromptBuilder();
+            _parserManager = new ResponseParserManager();
         }
 
         public RequirementAnalysisService(ITextGenerationService llmService, LlmServiceHealthMonitor healthMonitor, RequirementAnalysisCache? cache = null, AnythingLLMService? anythingLLMService = null)
@@ -91,6 +94,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             _llmService = healthMonitor?.GetHealthyService() ?? throw new ArgumentNullException(nameof(llmService));
             _healthMonitor = healthMonitor ?? throw new ArgumentNullException(nameof(healthMonitor));
             _cache = cache;
+            _parserManager = new ResponseParserManager();
             _anythingLLMService = anythingLLMService;
             _promptBuilder = new RequirementAnalysisPromptBuilder();
         }
@@ -241,9 +245,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                     reflectedResponse = await ApplySelfReflectionAsync(response, contextPrompt, requirement.Item ?? "UNKNOWN", cancellationToken);
                 }
                 
-                // Clean and parse response
-                var jsonText = CleanJsonResponse(reflectedResponse);
-                var analysis = ParseAnalysisResponse(jsonText);
+                // Parse response using parser manager
+                var analysis = _parserManager.ParseResponse(reflectedResponse, requirement.Item ?? "UNKNOWN");
 
                 // Set timestamp and cache if enabled
                 analysis.Timestamp = DateTime.Now;
@@ -339,8 +342,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                     // Log raw RAG response for debugging (visible level for parsing debug)
                     TestCaseEditorApp.Services.Logging.Log.Info($"[RAG RESPONSE DEBUG] Raw response for {requirement.Item}:\n--- START RAG RESPONSE ---\n{ragResult.response}\n--- END RAG RESPONSE ---");
                     
-                    // Parse natural language response into structured analysis  
-                    var ragAnalysis = ParseNaturalLanguageResponse(ragResult.response ?? string.Empty, requirement.Item ?? "UNKNOWN");
+                    // Parse response using appropriate parser (JSON or Natural Language)
+                    var ragAnalysis = _parserManager.ParseResponse(ragResult.response ?? string.Empty, requirement.Item ?? "UNKNOWN");
                     
                     if (ragAnalysis != null)
                     {
@@ -423,30 +426,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                     TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Self-reflection disabled for {requirement.Item}, using original response");
                 }
                 
-                // Clean response (remove markdown code fences if present)
-                var jsonText = CleanJsonResponse(reflectedResponse ?? string.Empty);
-
-                // Validate JSON format before parsing
-                if (!ValidateJsonFormat(jsonText, requirement.Item ?? "UNKNOWN"))
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] LLM JSON validation failed for {requirement.Item}, attempting JSON repair...");
-                    
-                    var repairedResult = await TryJsonRepairAsync(reflectedResponse ?? string.Empty, requirement.Item ?? "UNKNOWN", cancellationToken);
-                    
-                    if (repairedResult.success && ValidateJsonFormat(repairedResult.repairedJson, requirement.Item ?? "UNKNOWN"))
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] LLM JSON repair successful for {requirement.Item}");
-                        jsonText = repairedResult.repairedJson;
-                    }
-                    else
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] LLM JSON repair also failed for {requirement.Item}. Raw response length: {reflectedResponse?.Length ?? 0}");
-                        return CreateErrorAnalysis("LLM response failed JSON format validation even after repair attempt");
-                    }
-                }
-
-                // Parse JSON response
-                var analysis = ParseAnalysisResponse(jsonText);
+                // Parse response using parser manager
+                var analysis = _parserManager.ParseResponse(reflectedResponse ?? string.Empty, requirement.Item ?? "UNKNOWN");
 
                 // Check for self-reported fabrication
                 if (!string.IsNullOrEmpty(analysis.HallucinationCheck) && 
@@ -527,154 +508,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[RequirementAnalysisService] GENERAL ERROR for requirement {requirement.Item}");
                 return CreateErrorAnalysis($"Analysis failed: {ex.Message}");
             }
-        }
-
-        /// <summary>
-        /// Clean JSON response by removing markdown code fences, extra whitespace, and common formatting issues.
-        /// </summary>
-        private string CleanJsonResponse(string response)
-        {
-            if (string.IsNullOrWhiteSpace(response))
-                return response;
-
-            var cleaned = response.Trim();
-
-            // Remove markdown code fences
-            if (cleaned.StartsWith("```json", StringComparison.OrdinalIgnoreCase))
-            {
-                cleaned = cleaned.Substring(7); // Remove ```json
-                var endIndex = cleaned.LastIndexOf("```");
-                if (endIndex > 0)
-                    cleaned = cleaned.Substring(0, endIndex);
-            }
-            else if (cleaned.StartsWith("```"))
-            {
-                cleaned = cleaned.Substring(3); // Remove ```
-                var endIndex = cleaned.LastIndexOf("```");
-                if (endIndex > 0)
-                    cleaned = cleaned.Substring(0, endIndex);
-            }
-
-            // Clean up common JSON formatting issues
-            cleaned = cleaned.Trim();
-            
-            // Remove any trailing commas before closing braces/brackets (common AI mistake)
-            cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @",(\s*[}\]])", "$1");
-            
-            // Remove any duplicate commas
-            cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @",\s*,", ",");
-            
-            // Fix common character encoding issues that might cause 'u' errors
-            cleaned = cleaned.Replace("'", "\""); // Replace single quotes with double quotes
-            cleaned = cleaned.Replace(""", "\"").Replace(""", "\""); // Replace smart quotes
-            cleaned = cleaned.Replace("'", "\"").Replace("'", "\""); // Replace smart single quotes
-            
-            // Remove any control characters that might break JSON parsing
-            cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @"[\x00-\x1F\x7F]", "");
-
-            return cleaned.Trim();
-        }
-
-        /// <summary>
-        /// Clean template markers like &lt;Category&gt; from category names.
-        /// </summary>
-        private string CleanTemplateMarkers(string category)
-        {
-            if (string.IsNullOrWhiteSpace(category))
-                return category;
-
-            // Remove angle brackets and template content
-            var cleaned = category.Trim();
-            if (cleaned.StartsWith("<") && cleaned.EndsWith(">"))
-            {
-                cleaned = cleaned.Substring(1, cleaned.Length - 2).Trim();
-                
-                // If it contains pipe-separated options, take the first one
-                var pipeIndex = cleaned.IndexOf('|');
-                if (pipeIndex >= 0)
-                {
-                    cleaned = cleaned.Substring(0, pipeIndex).Trim();
-                }
-            }
-
-            return cleaned;
-        }
-
-        /// <summary>
-        /// Parse the JSON response into a RequirementAnalysis object.
-        /// </summary>
-        private RequirementAnalysis ParseAnalysisResponse(string jsonText)
-        {
-            var options = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                AllowTrailingCommas = true
-            };
-
-            var analysis = JsonSerializer.Deserialize<RequirementAnalysis>(jsonText, options);
-
-            if (analysis == null)
-            {
-                return CreateErrorAnalysis("Deserialized analysis was null");
-            }
-
-            // Validate quality score is in valid range
-            if (analysis.QualityScore < 1 || analysis.QualityScore > 10)
-            {
-                analysis.QualityScore = Math.Clamp(analysis.QualityScore, 1, 10);
-            }
-
-            // Ensure collections are initialized
-            analysis.Issues ??= new System.Collections.Generic.List<AnalysisIssue>();
-            analysis.Recommendations ??= new System.Collections.Generic.List<AnalysisRecommendation>();
-
-            // Clean up template markers from categories
-            foreach (var issue in analysis.Issues)
-            {
-                issue.Category = CleanTemplateMarkers(issue.Category);
-            }
-            foreach (var recommendation in analysis.Recommendations)
-            {
-                recommendation.Category = CleanTemplateMarkers(recommendation.Category);
-            }
-
-            // Enforce maximum recommendations policy - consolidate if LLM provided too many
-            if (analysis.Recommendations != null && analysis.Recommendations.Count > 2)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] LLM provided {analysis.Recommendations.Count} recommendations, consolidating to maximum 2");
-                
-                // Keep the first 2 recommendations and log what we're dropping
-                var droppedCount = analysis.Recommendations.Count - 2;
-                for (int i = 2; i < analysis.Recommendations.Count; i++)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysisService] Dropping recommendation #{i + 1}: {analysis.Recommendations[i].Category} - {analysis.Recommendations[i].Description}");
-                }
-                
-                analysis.Recommendations = analysis.Recommendations.Take(2).ToList();
-                TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Consolidated {analysis.Recommendations.Count + droppedCount} recommendations down to {analysis.Recommendations.Count}");
-            }
-
-            // Debug logging to track field contents
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysisService] Parsed {analysis.Recommendations?.Count ?? 0} recommendations");
-            if (analysis.Recommendations != null)
-            {
-                for (int i = 0; i < analysis.Recommendations.Count; i++)
-                {
-                    var rec = analysis.Recommendations[i];
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysisService] Rec {i+1}: Category='{rec.Category}', HasSuggestedEdit={!string.IsNullOrEmpty(rec.SuggestedEdit)}");
-                    if (!string.IsNullOrEmpty(rec.SuggestedEdit))
-                    {
-                        var suggestedEditPreview = rec.SuggestedEdit.Length > 100 ? rec.SuggestedEdit.Substring(0, 100) + "..." : rec.SuggestedEdit;
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysisService] Rec {i+1} SuggestedEdit: '{suggestedEditPreview}'");
-                    }
-                }
-            }
-
-            // Mark as successfully analyzed
-            analysis.IsAnalyzed = true;
-            analysis.ErrorMessage = null;
-
-            return analysis;
         }
 
         /// <summary>
@@ -1574,6 +1407,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             
             prompt.AppendLine("Please analyze the following requirement for quality:");
             prompt.AppendLine();
+            
+            // Add current project context if available
+            if (!string.IsNullOrEmpty(_projectWorkspaceName))
+            {
+                prompt.AppendLine($"**Project Context:** {_projectWorkspaceName}");
+                prompt.AppendLine();
+            }
+            
             prompt.AppendLine($"**Requirement ID:** {requirement.Item}");
             prompt.AppendLine($"**Name:** {requirement.Name}");
             prompt.AppendLine($"**Description:** {requirement.Description}");
@@ -1682,7 +1523,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
 
                 if (!string.IsNullOrEmpty(retryResponse))
                 {
-                    var retryAnalysis = ParseNaturalLanguageResponse(retryResponse, requirement.Item ?? "RETRY");
+                    var retryAnalysis = _parserManager.ParseResponse(retryResponse, requirement.Item ?? "RETRY");
                     if (retryAnalysis?.IsAnalyzed == true)
                     {
                         TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Corrective retry successful for {requirement.Item}");
@@ -1777,9 +1618,8 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
 
                 if (!string.IsNullOrWhiteSpace(repairedResponse))
                 {
-                    var cleanedRepair = CleanJsonResponse(repairedResponse);
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysisService] JSON repair attempt for {requirementId}: {cleanedRepair}");
-                    return (true, cleanedRepair);
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysisService] JSON repair attempt for {requirementId}");
+                    return (true, repairedResponse.Trim());
                 }
 
                 return (false, string.Empty);
@@ -1788,258 +1628,6 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[RequirementAnalysisService] JSON repair failed for {requirementId}");
                 return (false, string.Empty);
-            }
-        }
-
-        /// <summary>
-        /// Parse natural language analysis response into structured RequirementAnalysis object
-        /// </summary>
-        private RequirementAnalysis? ParseNaturalLanguageResponse(string response, string requirementId)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(response))
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] Empty natural language response for {requirementId}");
-                    return null;
-                }
-
-                // Debug logging: Show the actual response content
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysisService] Parsing RAG response for {requirementId}:");
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysisService] Response length: {response.Length} characters");
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysisService] First 500 chars: {response.Substring(0, Math.Min(500, response.Length))}");
-
-                var analysis = new RequirementAnalysis
-                {
-                    Timestamp = DateTime.Now,
-                    Issues = new List<AnalysisIssue>(),
-                    Recommendations = new List<AnalysisRecommendation>(),
-                    HallucinationCheck = ""
-                };
-
-                var lines = response.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-                var currentSection = "";
-
-                foreach (var line in lines)
-                {
-                    var trimmed = line.Trim();
-                    
-                    // Parse quality score
-                    if (trimmed.ToUpper().StartsWith("QUALITY") || trimmed.ToUpper().StartsWith("SCORE"))
-                    {
-                        var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"(\d+)");
-                        if (match.Success && int.TryParse(match.Value, out int score))
-                        {
-                            analysis.QualityScore = Math.Max(1, Math.Min(10, score));
-                        }
-                    }
-                    // Parse section headers
-                    else if (trimmed.ToUpper().Contains("ISSUE") && trimmed.ToUpper().Contains("FOUND"))
-                    {
-                        currentSection = "issues";
-                    }
-                    else if (trimmed.ToUpper().Contains("IMPROVED REQUIREMENT") || 
-                             trimmed.ToUpper().Contains("REWRITTEN REQUIREMENT"))
-                    {
-                        currentSection = "improved";
-                        continue; // Skip the section header line itself
-                    }
-                    else if (trimmed.ToUpper().Contains("RECOMMENDATION"))
-                    {
-                        currentSection = "recommendations";
-                    }
-                    else if (trimmed.ToUpper().Contains("FABRICATION") || trimmed.ToUpper().Contains("HALLUCINATION"))
-                    {
-                        if (trimmed.ToUpper().Contains("NO_FABRICATION"))
-                        {
-                            analysis.HallucinationCheck = "<NO_FABRICATION>";
-                        }
-                        else if (trimmed.ToUpper().Contains("FABRICATED"))
-                        {
-                            analysis.HallucinationCheck = "FABRICATED_DETAILS";
-                        }
-                        currentSection = "";
-                    }
-                    // Handle improved requirement content (may not be in list format)
-                    else if (currentSection == "improved" && !string.IsNullOrWhiteSpace(trimmed) && 
-                             !trimmed.StartsWith("-") && !trimmed.StartsWith("•") &&
-                             !trimmed.ToUpper().Contains("RECOMMENDATION") &&
-                             !trimmed.ToUpper().Contains("HALLUCINATION") &&
-                             !trimmed.ToUpper().Contains("OVERALL ASSESSMENT") &&
-                             !trimmed.Trim().Equals("[REQUIRED:", StringComparison.OrdinalIgnoreCase) &&
-                             !trimmed.StartsWith("[") && !trimmed.EndsWith("]"))
-                    {
-                        // Accumulate the improved requirement text
-                        if (string.IsNullOrWhiteSpace(analysis.ImprovedRequirement))
-                        {
-                            analysis.ImprovedRequirement = trimmed;
-                        }
-                        else
-                        {
-                            analysis.ImprovedRequirement += " " + trimmed;
-                        }
-                    }
-                    // Parse list items
-                    else if (trimmed.StartsWith("-") || trimmed.StartsWith("•"))
-                    {
-                        var content = trimmed.Substring(1).Trim();
-                        
-                        if (currentSection == "issues" && !string.IsNullOrWhiteSpace(content))
-                        {
-                            // Parse enhanced format: "Clarity Issue (Medium): Description | Fix: Solution"
-                            var parts = content.Split('|', StringSplitOptions.RemoveEmptyEntries);
-                            var mainPart = parts.Length > 0 ? parts[0].Trim() : content;
-                            var fixPart = parts.Length > 1 ? parts[1].Trim() : "";
-                            
-                            // Extract issue type, severity, and description
-                            var category = "Quality"; // Default
-                            var severity = "Medium";  // Default
-                            var description = mainPart;
-                            
-                            // Look for specific issue types
-                            if (mainPart.ToUpper().Contains("CLARITY"))
-                            {
-                                category = "Clarity";
-                            }
-                            else if (mainPart.ToUpper().Contains("COMPLETENESS"))
-                            {
-                                category = "Completeness";
-                            }
-                            else if (mainPart.ToUpper().Contains("TESTABILITY"))
-                            {
-                                category = "Testability";
-                            }
-                            else if (mainPart.ToUpper().Contains("CONSISTENCY"))
-                            {
-                                category = "Consistency";
-                            }
-                            else if (mainPart.ToUpper().Contains("FEASIBILITY"))
-                            {
-                                category = "Feasibility";
-                            }
-                            
-                            // Extract severity if present
-                            if (mainPart.ToUpper().Contains("(HIGH)"))
-                            {
-                                severity = "High";
-                            }
-                            else if (mainPart.ToUpper().Contains("(LOW)"))
-                            {
-                                severity = "Low";
-                            }
-                            
-                            // Clean up description by removing the category and severity parts
-                            if (mainPart.Contains(":"))
-                            {
-                                var colonIndex = mainPart.IndexOf(":");
-                                description = mainPart.Substring(colonIndex + 1).Trim();
-                            }
-                            
-                            // Add fix information to description if present
-                            if (fixPart.ToUpper().StartsWith("FIX:"))
-                            {
-                                var fix = fixPart.Substring(4).Trim();
-                                description += $" | Fix: {fix}";
-                            }
-                            
-                            analysis.Issues.Add(new AnalysisIssue
-                            {
-                                Category = category,
-                                Description = description,
-                                Severity = severity
-                            });
-                        }
-                        else if (currentSection == "recommendations" && !string.IsNullOrWhiteSpace(content))
-                        {
-                            // Parse structured recommendation format: Category: X | Description: Y | Suggested Edit: Z
-                            var parts = content.Split('|', StringSplitOptions.RemoveEmptyEntries);
-                            var recommendation = new AnalysisRecommendation
-                            {
-                                Category = "Improvement",
-                                Description = content, // Default to full content
-                                SuggestedEdit = ""
-                            };
-
-                            foreach (var part in parts)
-                            {
-                                var keyValue = part.Trim();
-                                if (keyValue.ToUpper().StartsWith("CATEGORY:"))
-                                {
-                                    recommendation.Category = keyValue.Substring(9).Trim();
-                                }
-                                else if (keyValue.ToUpper().StartsWith("DESCRIPTION:"))
-                                {
-                                    recommendation.Description = keyValue.Substring(12).Trim();
-                                }
-                                else if (keyValue.ToUpper().StartsWith("SUGGESTED EDIT:") || 
-                                        keyValue.ToUpper().StartsWith("EDIT:") || 
-                                        keyValue.ToUpper().StartsWith("FIX:") ||
-                                        keyValue.ToUpper().StartsWith("RATIONALE:"))
-                                {
-                                    int startIndex;
-                                    if (keyValue.ToUpper().StartsWith("SUGGESTED EDIT:"))
-                                        startIndex = 15;
-                                    else if (keyValue.ToUpper().StartsWith("RATIONALE:"))
-                                        startIndex = 10;
-                                    else if (keyValue.ToUpper().StartsWith("EDIT:"))
-                                        startIndex = 5;
-                                    else // FIX:
-                                        startIndex = 4;
-                                    
-                                    recommendation.SuggestedEdit = keyValue.Substring(startIndex).Trim();
-                                }
-                            }
-
-                            analysis.Recommendations.Add(recommendation);
-                        }
-                    }
-                }
-
-                // Set default quality score if not found
-                if (analysis.QualityScore == 0)
-                {
-                    analysis.QualityScore = analysis.Issues.Count > 3 ? 4 : 6; // Reasonable default based on issues found
-                }
-
-                // Set default hallucination check if not found
-                if (string.IsNullOrWhiteSpace(analysis.HallucinationCheck))
-                {
-                    analysis.HallucinationCheck = "<NO_FABRICATION>";
-                }
-
-                // Validate that improved requirement was provided
-                if (string.IsNullOrWhiteSpace(analysis.ImprovedRequirement))
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] No improved requirement provided for {requirementId}, adding to freeform feedback");
-                    if (!string.IsNullOrWhiteSpace(analysis.FreeformFeedback))
-                    {
-                        analysis.FreeformFeedback += "\n\n[Note: LLM did not provide an improved requirement rewrite]";
-                    }
-                    else
-                    {
-                        analysis.FreeformFeedback = "[Note: LLM did not provide an improved requirement rewrite]";
-                    }
-                }
-
-                // If no structured content was parsed, store the full response as freeform feedback
-                if (analysis.Issues.Count == 0 && analysis.Recommendations.Count == 0 && string.IsNullOrWhiteSpace(analysis.FreeformFeedback))
-                {
-                    analysis.FreeformFeedback = response.Trim();
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] No structured content found, storing full response as freeform feedback (length: {response.Length})");
-                }
-
-                // Mark as successfully analyzed
-                analysis.IsAnalyzed = true;
-                analysis.ErrorMessage = null;
-                analysis.Timestamp = DateTime.Now;
-
-                TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Natural language parsing successful for {requirementId}: Score={analysis.QualityScore}, Issues={analysis.Issues.Count}, Recommendations={analysis.Recommendations.Count}, ImprovedReq={!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement)}, Freeform={!string.IsNullOrWhiteSpace(analysis.FreeformFeedback)}");
-                return analysis;
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[RequirementAnalysisService] Natural language parsing failed for {requirementId}");
-                return null;
             }
         }
     }
