@@ -85,8 +85,8 @@ namespace TestCaseEditorApp.Services
         {
             EnsureTestCaseGeneratorHeader();
             
-            // Synchronize requirement context BEFORE creating configuration
-            SynchronizeCurrentRequirementContext();
+            // ViewConfigurationService should only handle view creation, not domain business logic
+            // Requirement selection logic belongs in the TestCaseGeneration domain
 
             if (_requirementsContent == null)
             {
@@ -192,61 +192,6 @@ namespace TestCaseEditorApp.Services
             if (_testCaseGeneratorHeader == null)
             {
                 _testCaseGeneratorHeader = _viewModelFactory.CreateTestCaseGeneratorHeaderViewModel(_testCaseGenerationMediator);
-            }
-        }
-
-        /// <summary>
-        /// Synchronizes current requirement context from workspace to TestCaseGeneration domain
-        /// This ensures requirement descriptions persist when navigating to Requirements section
-        /// </summary>
-        private void SynchronizeCurrentRequirementContext()
-        {
-            try
-            {
-                var currentReqTitle = _workspaceHeader?.CurrentRequirementTitle;
-                
-                if (!string.IsNullOrEmpty(currentReqTitle) && _testCaseGenerationMediator?.Requirements?.Any() == true)
-                {
-                    // Parse requirement title (format: "Item - Name")
-                    var titleParts = currentReqTitle.Split(new[] { " - " }, 2, StringSplitOptions.RemoveEmptyEntries);
-                    if (titleParts.Length >= 1)
-                    {
-                        var itemToMatch = titleParts[0].Trim();
-                        
-                        var matchingRequirement = _testCaseGenerationMediator.Requirements
-                            .FirstOrDefault(r => string.Equals(r.Item?.Trim(), itemToMatch, StringComparison.OrdinalIgnoreCase) ||
-                                               string.Equals($"{r.Item} - {r.Name}".Trim(), currentReqTitle.Trim(), StringComparison.OrdinalIgnoreCase));
-                        
-                        if (matchingRequirement != null)
-                        {
-                            _testCaseGenerationMediator.CurrentRequirement = matchingRequirement;
-                            _testCaseGenerationMediator.PublishEvent(new TestCaseGenerationEvents.RequirementSelected
-                            {
-                                Requirement = matchingRequirement,
-                                SelectedBy = "ViewConfigurationSync"
-                            });
-                            
-                            System.Diagnostics.Debug.WriteLine($"[ViewConfigurationService] Synchronized requirement: {matchingRequirement.Item}");
-                        }
-                    }
-                }
-                else if (_testCaseGenerationMediator?.Requirements?.Any() == true && _testCaseGenerationMediator.CurrentRequirement == null)
-                {
-                    // Fallback to first requirement if none selected
-                    var firstRequirement = _testCaseGenerationMediator.Requirements.First();
-                    _testCaseGenerationMediator.CurrentRequirement = firstRequirement;
-                    _testCaseGenerationMediator.PublishEvent(new TestCaseGenerationEvents.RequirementSelected
-                    {
-                        Requirement = firstRequirement,
-                        SelectedBy = "ViewConfigurationFallback"
-                    });
-                    
-                    System.Diagnostics.Debug.WriteLine($"[ViewConfigurationService] Fallback to first requirement: {firstRequirement.Item}");
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[ViewConfigurationService] Context sync error: {ex.Message}");
             }
         }
 
