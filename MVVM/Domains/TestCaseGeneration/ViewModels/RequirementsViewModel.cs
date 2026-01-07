@@ -85,7 +85,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             ObservableCollection<Requirement> requirements,
             IPersistenceService persistence,
             IRequirementDataScrubber requirementDataScrubber,
-            RequirementAnalysisService requirementAnalysisService,
+            IRequirementAnalysisService requirementAnalysisService,
             object? testCaseGenerator = null)
             : base(testCaseGenerationMediator, logger)
         {

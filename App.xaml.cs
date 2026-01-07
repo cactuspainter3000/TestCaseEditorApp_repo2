@@ -12,11 +12,13 @@ using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
 using TestCaseEditorApp.MVVM.Extensions;
 using TestCaseEditorApp.MVVM.Mediators;
+using TestCaseEditorApp.Prompts;
 
 namespace TestCaseEditorApp
 {
@@ -116,13 +118,26 @@ namespace TestCaseEditorApp
                             cleanupInterval: TimeSpan.FromMinutes(30)); // Cleanup every 30 minutes
                     });
                     
-                    // Enhanced RequirementAnalysisService with direct LLM access (bypassing slow health monitor fallback)
-                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService>(provider =>
+                    // Register dependencies for RequirementAnalysisService
+                    services.AddSingleton<RequirementAnalysisPromptBuilder>();
+                    services.AddSingleton<ResponseParserManager>();
+                    
+                    // Enhanced RequirementAnalysisService with proper dependency injection
+                    services.AddSingleton<IRequirementAnalysisService, TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService>(provider =>
                     {
                         var primaryLlmService = LlmFactory.Create();
                         var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
-                        // Use direct constructor to avoid slow health monitor fallback
-                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService(primaryLlmService, anythingLLMService);
+                        var promptBuilder = provider.GetRequiredService<RequirementAnalysisPromptBuilder>();
+                        var parserManager = provider.GetRequiredService<ResponseParserManager>();
+                        var cache = provider.GetService<RequirementAnalysisCache>(); // Optional
+                        
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService(
+                            primaryLlmService, 
+                            promptBuilder, 
+                            parserManager,
+                            healthMonitor: null, // No health monitor for performance
+                            cache: cache,
+                            anythingLLMService: anythingLLMService);
                     });
                     services.AddSingleton<AnythingLLMService>(provider =>
                         new AnythingLLMService()); // Let it get baseUrl and apiKey from defaults/user config
@@ -179,7 +194,7 @@ namespace TestCaseEditorApp
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.TestCaseGenerationMediator>>();
                         var uiCoordinator = provider.GetRequiredService<IDomainUICoordinator>();
                         var requirementService = provider.GetRequiredService<IRequirementService>();
-                        var analysisService = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService>();
+                        var analysisService = provider.GetRequiredService<IRequirementAnalysisService>();
                         var llmService = provider.GetRequiredService<ITextGenerationService>();
                         var scrubber = provider.GetRequiredService<IRequirementDataScrubber>();
                         var performanceMonitor = provider.GetService<PerformanceMonitoringService>();

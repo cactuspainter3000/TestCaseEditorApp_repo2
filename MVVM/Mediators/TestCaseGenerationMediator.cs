@@ -20,7 +20,7 @@ namespace TestCaseEditorApp.MVVM.Mediators
     public class TestCaseGenerationMediator : BaseDomainMediator<TestCaseGenerationEvents>
     {
         private readonly IRequirementService _requirementService;
-        private readonly RequirementAnalysisService _analysisService;
+        private readonly IRequirementAnalysisService _analysisService;
         private readonly ITextGenerationService _llmService;
         
         // Workflow state
@@ -31,7 +31,7 @@ namespace TestCaseEditorApp.MVVM.Mediators
             ILogger<TestCaseGenerationMediator> logger,
             IDomainUICoordinator uiCoordinator,
             IRequirementService requirementService,
-            RequirementAnalysisService analysisService,
+            IRequirementAnalysisService analysisService,
             ITextGenerationService llmService)
             : base(logger, uiCoordinator, "Test Case Generator")
         {

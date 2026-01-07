@@ -33,7 +33,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
         private readonly IRequirementService _requirementService;
         private readonly NotificationService _notificationService;
         private readonly RecentFilesService? _recentFilesService;
-        private readonly RequirementAnalysisService? _analysisService;
+        private readonly IRequirementAnalysisService? _analysisService;
 
         // --- Core Properties (shared with MainViewModel) ---
         private string? _workspacePath;
@@ -156,7 +156,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
             IRequirementService requirementService,
             NotificationService notificationService,
             RecentFilesService? recentFilesService,
-            RequirementAnalysisService? analysisService)
+            IRequirementAnalysisService? analysisService)
         {
             Requirements = requirements ?? throw new ArgumentNullException(nameof(requirements));
             _fileDialog = fileDialog ?? throw new ArgumentNullException(nameof(fileDialog));

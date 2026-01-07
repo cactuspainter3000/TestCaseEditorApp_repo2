@@ -18,7 +18,7 @@ namespace TestCaseEditorApp.Services
         public NotificationService NotificationService { get; }
         public AnythingLLMService AnythingLLMService { get; }
         public ChatGptExportService ChatGptExportService { get; }
-        public RequirementAnalysisService RequirementAnalysisService { get; }
+        public IRequirementAnalysisService RequirementAnalysisService { get; }
         public ILoggerFactory? LoggerFactory { get; }
 
         public ApplicationServices(
@@ -30,7 +30,7 @@ namespace TestCaseEditorApp.Services
             NotificationService notificationService,
             AnythingLLMService anythingLLMService,
             ChatGptExportService chatGptExportService,
-            RequirementAnalysisService requirementAnalysisService,
+            IRequirementAnalysisService requirementAnalysisService,
             ILoggerFactory? loggerFactory = null)
         {
             RequirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));

@@ -27,7 +27,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
     {
         private readonly IRequirementService _requirementService;
         private readonly SmartRequirementImporter _smartImporter;
-        private readonly RequirementAnalysisService _analysisService;
+        private readonly IRequirementAnalysisService _analysisService;
         private readonly ITextGenerationService _llmService;
         private readonly IRequirementDataScrubber _scrubber;
         
@@ -137,7 +137,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             ILogger<TestCaseGenerationMediator> logger,
             IDomainUICoordinator uiCoordinator,
             IRequirementService requirementService,
-            RequirementAnalysisService analysisService,
+            IRequirementAnalysisService analysisService,
             ITextGenerationService llmService,
             IRequirementDataScrubber scrubber,
             PerformanceMonitoringService? performanceMonitor = null,

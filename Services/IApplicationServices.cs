@@ -22,7 +22,7 @@ namespace TestCaseEditorApp.Services
         // AI/LLM services
         AnythingLLMService AnythingLLMService { get; }
         ChatGptExportService ChatGptExportService { get; }
-        RequirementAnalysisService RequirementAnalysisService { get; }
+        IRequirementAnalysisService RequirementAnalysisService { get; }
         
         // Logging factory for creating typed loggers
         ILoggerFactory? LoggerFactory { get; }

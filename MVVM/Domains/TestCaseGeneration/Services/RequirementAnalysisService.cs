@@ -17,7 +17,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
     /// Service for analyzing requirement quality using LLM.
     /// Generates structured analysis with quality scores, issues, and recommendations.
     /// </summary>
-    public sealed class RequirementAnalysisService
+    public sealed class RequirementAnalysisService : IRequirementAnalysisService
     {
         private readonly ITextGenerationService _llmService;
         private readonly RequirementAnalysisPromptBuilder _promptBuilder;
@@ -29,9 +29,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         private string? _currentWorkspaceSlug;
         private string? _projectWorkspaceName;
         
-        // Cache for workspace prompt validation to avoid repeated checks
-        private static bool? _workspaceSystemPromptConfigured;
-        private static DateTime _lastWorkspaceValidation = DateTime.MinValue;
+        // Instance-based cache for workspace prompt validation to avoid repeated checks
+        private bool? _workspaceSystemPromptConfigured;
+        private DateTime _lastWorkspaceValidation = DateTime.MinValue;
         private static readonly TimeSpan _workspaceValidationCooldown = TimeSpan.FromMinutes(5);
         
         /// <summary>
@@ -81,22 +81,29 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         /// </summary>
         public RequirementAnalysisCache.CacheStatistics? CacheStatistics => _cache?.GetStatistics();
 
-        public RequirementAnalysisService(ITextGenerationService llmService, AnythingLLMService? anythingLLMService = null)
+        /// <summary>
+        /// Initializes a new instance of RequirementAnalysisService with proper dependency injection.
+        /// </summary>
+        /// <param name="llmService">Text generation service for LLM communication</param>
+        /// <param name="promptBuilder">Prompt builder for requirement analysis prompts</param>
+        /// <param name="parserManager">Parser manager for response parsing</param>
+        /// <param name="healthMonitor">Optional health monitor for service reliability</param>
+        /// <param name="cache">Optional cache for analysis results</param>
+        /// <param name="anythingLLMService">Optional AnythingLLM service for enhanced features</param>
+        public RequirementAnalysisService(
+            ITextGenerationService llmService,
+            RequirementAnalysisPromptBuilder promptBuilder,
+            ResponseParserManager parserManager,
+            LlmServiceHealthMonitor? healthMonitor = null,
+            RequirementAnalysisCache? cache = null,
+            AnythingLLMService? anythingLLMService = null)
         {
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
-            _anythingLLMService = anythingLLMService;
-            _promptBuilder = new RequirementAnalysisPromptBuilder();
-            _parserManager = new ResponseParserManager();
-        }
-
-        public RequirementAnalysisService(ITextGenerationService llmService, LlmServiceHealthMonitor healthMonitor, RequirementAnalysisCache? cache = null, AnythingLLMService? anythingLLMService = null)
-        {
-            _llmService = healthMonitor?.GetHealthyService() ?? throw new ArgumentNullException(nameof(llmService));
-            _healthMonitor = healthMonitor ?? throw new ArgumentNullException(nameof(healthMonitor));
+            _promptBuilder = promptBuilder ?? throw new ArgumentNullException(nameof(promptBuilder));
+            _parserManager = parserManager ?? throw new ArgumentNullException(nameof(parserManager));
+            _healthMonitor = healthMonitor;
             _cache = cache;
-            _parserManager = new ResponseParserManager();
             _anythingLLMService = anythingLLMService;
-            _promptBuilder = new RequirementAnalysisPromptBuilder();
         }
 
         /// <summary>
