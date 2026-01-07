@@ -160,18 +160,44 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             _logger.LogDebug("TestCaseGenerationMediator created with domain '{DomainName}'", _domainName);
         }
 
-        // ===== CORE MEDIATOR FUNCTIONALITY =====
-        
-        public override void Subscribe<T>(Action<T> handler) where T : class
+        /// <summary>
+        /// Override Subscribe to provide auto-sync of current requirement selection state
+        /// for new RequirementSelected subscribers. This ensures ViewModels get current state
+        /// when they subscribe, maintaining UI consistency across workspace changes.
+        /// </summary>
+        public override void Subscribe<T>(Action<T> handler)
         {
+            // Call base subscription first
             base.Subscribe(handler);
+            
+            // Auto-sync current requirement selection for new RequirementSelected subscribers
+            if (typeof(T) == typeof(TestCaseGenerationEvents.RequirementSelected) && _currentRequirement != null)
+            {
+                try
+                {
+                    // Immediately notify new subscriber of current requirement selection
+                    var currentEvent = new TestCaseGenerationEvents.RequirementSelected
+                    {
+                        Requirement = _currentRequirement,
+                        SelectedBy = "MediatorAutoSync"
+                    };
+                    
+                    // Cast and invoke - this ensures new subscriber gets current state
+                    ((Action<TestCaseGenerationEvents.RequirementSelected>)(object)handler).Invoke(currentEvent);
+                    
+                    _logger.LogDebug("Auto-synced current requirement {RequirementId} to new subscriber", 
+                        _currentRequirement.GlobalId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to auto-sync current requirement to new subscriber");
+                }
+            }
         }
-        
-        public override void Unsubscribe<T>(Action<T> handler) where T : class
-        {
-            base.Unsubscribe(handler);
-        }
-        
+
+        /// <summary>
+        /// Public wrapper for PublishEvent to satisfy interface requirements
+        /// </summary>
         public new void PublishEvent<T>(T eventData) where T : class
         {
             base.PublishEvent(eventData);
@@ -620,6 +646,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         {
             if (requirement == null) throw new ArgumentNullException(nameof(requirement));
             
+            // Track current requirement for auto-sync functionality
+            _currentRequirement = requirement;
+            
             PublishEvent(new TestCaseGenerationEvents.RequirementSelected 
             { 
                 Requirement = requirement, 
@@ -1017,6 +1046,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         /// </summary>
         private void OnRequirementSelectedForHeader(TestCaseGenerationEvents.RequirementSelected e)
         {
+            // Track current requirement for mediator state consistency
+            _currentRequirement = e.Requirement;
+            
             if (_headerViewModel != null && e.Requirement != null)
             {
                 _logger.LogDebug("Updating header with selected requirement: {RequirementId}", e.Requirement.GlobalId);
