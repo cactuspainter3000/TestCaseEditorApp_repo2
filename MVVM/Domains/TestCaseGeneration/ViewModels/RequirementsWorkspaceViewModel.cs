@@ -38,9 +38,41 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             
             logger.LogDebug("[RequirementsWorkspaceViewModel] Initialized with TestCaseGenerator_VM");
             
-            // REMOVED: Automatic requirement selection on workspace load
-            // This was causing unwanted jumping to first requirement when navigating to Requirements view
-            // Requirements should maintain their current selection when navigating between views
+            // When workspace loads, sync current requirement selection to populate metadata
+            // This triggers metadata loading without changing the actual selection
+            SyncCurrentRequirementMetadata();
+        }
+
+        /// <summary>
+        /// Synchronize current requirement selection to ensure metadata is populated
+        /// when Requirements workspace is loaded. This fires RequirementSelected event
+        /// for the currently selected requirement (if any) without changing the selection.
+        /// </summary>
+        private void SyncCurrentRequirementMetadata()
+        {
+            try
+            {
+                // Check if there's a currently selected requirement in the TestCaseGenerator_VM
+                var currentRequirement = TestCaseGeneratorVM.SelectedRequirement;
+                if (currentRequirement != null)
+                {
+                    // Fire RequirementSelected event to ensure metadata gets populated
+                    // This doesn't change the selection, just ensures UI is in sync
+                    var mediator = _mediator as ITestCaseGenerationMediator;
+                    mediator?.PublishEvent(new TestCaseGenerationEvents.RequirementSelected
+                    {
+                        Requirement = currentRequirement,
+                        SelectedBy = "RequirementsWorkspaceSync"
+                    });
+                    
+                    _logger.LogDebug("[RequirementsWorkspaceViewModel] Synced metadata for requirement: {RequirementId}", 
+                        currentRequirement.GlobalId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[RequirementsWorkspaceViewModel] Failed to sync current requirement metadata");
+            }
         }
 
         // Implementation of abstract methods from BaseDomainViewModel
