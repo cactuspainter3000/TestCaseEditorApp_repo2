@@ -34,7 +34,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         private bool _isEditWindowOpen = false;
         
         // Expose batch analyzing state for UI binding
-        public bool IsBatchAnalyzing => false; // TODO: Get from mediator state when available
+        public bool IsBatchAnalyzing => _mediator.IsBatchAnalyzing;
 
         /// <summary>
         /// Gets the quality score of the current requirement's analysis
