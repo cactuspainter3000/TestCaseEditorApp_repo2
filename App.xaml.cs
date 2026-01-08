@@ -317,6 +317,12 @@ namespace TestCaseEditorApp
                 var workspaceManagementMediator = _host.Services.GetRequiredService<IWorkspaceManagementMediator>();
                 workspaceManagementMediator.MarkAsRegistered();
                 
+                // Wire cross-domain commands - enable workspace commands in header
+                if (testCaseGenMediator is MVVM.Domains.TestCaseGeneration.Mediators.TestCaseGenerationMediator tcgMediator)
+                {
+                    tcgMediator.WireWorkspaceCommands(workspaceManagementMediator);
+                }
+                
                 // Set up domain coordinator and register mediators
                 var domainCoordinator = _host.Services.GetRequiredService<IDomainCoordinator>();
                 TestCaseEditorApp.MVVM.Utils.BaseDomainMediatorBase.SetDomainCoordinator(domainCoordinator);

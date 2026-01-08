@@ -1059,6 +1059,49 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
             _draftProjectPath = null;
             _draftRequirementsPath = null;
         }
+
+        /// <summary>
+        /// Handle broadcast notifications from other domains
+        /// </summary>
+        public void HandleBroadcastNotification<T>(T notification) where T : class
+        {
+            _logger.LogDebug("Received broadcast notification: {NotificationType}", typeof(T).Name);
+            
+            switch (notification)
+            {
+                case TestCaseEditorApp.MVVM.Events.CrossDomainMessages.WorkspaceContextChanged workspaceChanged:
+                    HandleWorkspaceContextChanged(workspaceChanged);
+                    break;
+                    
+                default:
+                    _logger.LogDebug("Unhandled notification type: {NotificationType}", typeof(T).Name);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Handle workspace context changes from other domains (e.g., requirement edits)
+        /// </summary>
+        private void HandleWorkspaceContextChanged(TestCaseEditorApp.MVVM.Events.CrossDomainMessages.WorkspaceContextChanged notification)
+        {
+            _logger.LogDebug("Handling workspace context change: {ChangeType} from {Domain}", 
+                notification.ChangeType, notification.OriginatingDomain);
+                
+            // Mark workspace as having unsaved changes when other domains report data changes
+            if (notification.ChangeType == "RequirementDataChanged" && _currentWorkspaceInfo != null)
+            {
+                _currentWorkspaceInfo.HasUnsavedChanges = true;
+                _logger.LogDebug("Workspace marked as dirty due to {ChangeType} from {Domain}", 
+                    notification.ChangeType, notification.OriginatingDomain);
+                    
+                // Publish workspace management event so other components know about the state change
+                PublishEvent(new WorkspaceManagementEvents.WorkspaceDirtyStateChanged
+                {
+                    HasUnsavedChanges = true,
+                    Source = notification.OriginatingDomain
+                });
+            }
+        }
         
         #endregion
 

@@ -152,6 +152,24 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             });
         }
 
+        /// <summary>
+        /// Update save status from workspace management mediator
+        /// </summary>
+        public void UpdateSaveStatus(IWorkspaceManagementMediator mediator)
+        {
+            ArgumentNullException.ThrowIfNull(mediator);
+            
+            IsDirty = mediator.HasUnsavedChanges();
+            CanUndoLastSave = mediator.CanUndoLastSave();
+            
+            // Set workspace file path so save button is visible
+            // TODO: Get actual workspace path from mediator when available
+            WorkspaceFilePath = "project"; // Non-null value to show save button
+            
+            // Update command can-execute states
+            ((AsyncRelayCommand?)UndoLastSaveCommand)?.NotifyCanExecuteChanged();
+        }
+        
         // ==================== Property Change Handlers ====================
         
         private void OnAnythingLLMStatusUpdated(AnythingLLMStatus status)
@@ -244,17 +262,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         /// <summary>
         /// Update save status from workspace management mediator (follows WorkspaceHeaderViewModel pattern)
+        /// This is a duplicate - removing to fix compilation error
         /// </summary>
-        public void UpdateSaveStatus(IWorkspaceManagementMediator mediator)
-        {
-            ArgumentNullException.ThrowIfNull(mediator);
-            
-            IsDirty = mediator.HasUnsavedChanges();
-            CanUndoLastSave = mediator.CanUndoLastSave();
-            // For now, we'll set this to null until we expose the current project path
-            WorkspaceFilePath = null;
-        }
-
+        // REMOVED: Duplicate method - using the one at line 158 which includes command update
+        
         // ==================== Update Methods ====================
         
         /// <summary>

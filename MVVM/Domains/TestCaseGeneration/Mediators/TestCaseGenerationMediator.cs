@@ -7,12 +7,14 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Extensions.Logging;
+using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events;
+using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
 
@@ -1051,9 +1053,70 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         }
         
         /// <summary>
-        /// Create header ViewModel with proper dependency injection
-        /// Called during mediator initialization - no legacy factory needed
+        /// Wire workspace management commands to the header ViewModel
+        /// This enables cross-domain command integration while maintaining domain boundaries
         /// </summary>
+        public void WireWorkspaceCommands(IWorkspaceManagementMediator workspaceMediator)
+        {
+            if (_headerViewModel == null || workspaceMediator == null) return;
+
+            _headerViewModel.SaveWorkspaceCommand = new AsyncRelayCommand(
+                async () => 
+                {
+                    await workspaceMediator.SaveProjectAsync();
+                    _headerViewModel.UpdateSaveStatus(workspaceMediator);
+                });
+            
+            _headerViewModel.UndoLastSaveCommand = new AsyncRelayCommand(
+                async () => 
+                {
+                    await workspaceMediator.UndoLastSaveAsync();
+                    _headerViewModel.UpdateSaveStatus(workspaceMediator);
+                }, 
+                () => workspaceMediator.CanUndoLastSave());
+
+            // Subscribe to workspace events to keep undo state current
+            Subscribe<WorkspaceManagementEvents.ProjectSaved>(e => 
+            {
+                Application.Current?.Dispatcher.BeginInvoke(() => 
+                {
+                    _headerViewModel.UpdateSaveStatus(workspaceMediator);
+                });
+            });
+            
+            Subscribe<WorkspaceManagementEvents.ProjectOpened>(e => 
+            {
+                Application.Current?.Dispatcher.BeginInvoke(() => 
+                {
+                    _headerViewModel.UpdateSaveStatus(workspaceMediator);
+                });
+            });
+
+            // Subscribe to internal workflow state changes to forward dirty state to workspace
+            Subscribe<TestCaseGenerationEvents.WorkflowStateChanged>(e =>
+            {
+                if (e.PropertyName == "IsDirty" && e.NewValue is true)
+                {
+                    // Broadcast cross-domain event so workspace management can respond
+                    Application.Current?.Dispatcher.BeginInvoke(() => 
+                    {
+                        // The workspace management mediator should subscribe to this notification
+                        BroadcastToAllDomains(new TestCaseEditorApp.MVVM.Events.CrossDomainMessages.WorkspaceContextChanged 
+                        { 
+                            WorkspaceName = "Current Project", // Will be updated by workspace management
+                            ChangeType = "RequirementDataChanged", 
+                            OriginatingDomain = "TestCaseGeneration"
+                        });
+                        _headerViewModel.UpdateSaveStatus(workspaceMediator);
+                    });
+                }
+            });
+
+            // Initialize state
+            _headerViewModel.UpdateSaveStatus(workspaceMediator);
+            
+            _logger.LogDebug("Workspace commands wired to TestCaseGenerator_HeaderVM");
+        }
         private void InitializeHeaderViewModel()
         {
             _headerViewModel = new TestCaseGenerator_HeaderVM(this);

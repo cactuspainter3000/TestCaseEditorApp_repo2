@@ -237,6 +237,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         {
             if (ReferenceEquals(CurrentRequirement, e.Requirement))
             {
+                // Ensure we're not in editing mode after analysis completes
+                if (IsEditingRequirement)
+                {
+                    IsEditingRequirement = false;
+                    EditingRequirementText = string.Empty;
+                }
+                
                 RefreshAnalysisDisplay();
                 OnPropertyChanged(nameof(HasAnalysis));
                 OnPropertyChanged(nameof(AnalysisQualityScore));
@@ -510,6 +517,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             
             TestCaseEditorApp.Services.Logging.Log.Info($"[AnalysisVM] RefreshAnalysisDisplay called. CurrentReq: {CurrentRequirement?.Item}, HasAnalysis: {analysis?.IsAnalyzed}, Score: {analysis?.QualityScore}");
 
+            // Reset editing state when refreshing analysis - default should be read-only view
+            if (IsEditingRequirement)
+            {
+                IsEditingRequirement = false;
+                EditingRequirementText = string.Empty;
+            }
+
             if (analysis?.IsAnalyzed == true)
             {
                 HasAnalysis = true;
@@ -601,15 +615,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             ((AsyncRelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
             ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
             
-            // Handle analysis timer
-            if (value)
-            {
-                StartAnalysisTimer();
-            }
-            else
-            {
-                StopAnalysisTimer();
-            }
+            // Note: Timer management is handled by OnWorkflowStateChanged from mediator
+            // to avoid conflicts between local property changes and mediator state
         }
 
         public bool HasIssues => Issues?.Any() == true;

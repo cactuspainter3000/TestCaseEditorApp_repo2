@@ -279,12 +279,12 @@
                                      TextOptions.TextFormattingMode="Display"
                                      TextOptions.TextRenderingMode="Auto"/>
                             
-                            <!-- Save/Cancel buttons -->
+                            <!-- Update/Cancel buttons -->
                             <StackPanel Grid.Row="1"
                                         Orientation="Horizontal"
                                         HorizontalAlignment="Right"
                                         Margin="0,8,0,0">
-                                <Button Content="Save"
+                                <Button Content="Update"
                                         Command="{Binding SaveRequirementCommand}"
                                         Style="{StaticResource ActionButton}"
                                         Margin="0,0,8,0"/>

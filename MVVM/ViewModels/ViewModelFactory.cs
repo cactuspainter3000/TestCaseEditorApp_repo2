@@ -67,10 +67,22 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Wire up save commands (proper domain location per architecture)
             if (_workspaceManagementMediator != null)
             {
-                headerViewModel.SaveWorkspaceCommand = new RelayCommand(async () => await _workspaceManagementMediator.SaveProjectAsync());
-                headerViewModel.UndoLastSaveCommand = new RelayCommand(
-                    async () => await _workspaceManagementMediator.UndoLastSaveAsync(), 
+                headerViewModel.SaveWorkspaceCommand = new AsyncRelayCommand(
+                    async () => 
+                    {
+                        await _workspaceManagementMediator.SaveProjectAsync();
+                        headerViewModel.UpdateSaveStatus(_workspaceManagementMediator);
+                    });
+                headerViewModel.UndoLastSaveCommand = new AsyncRelayCommand(
+                    async () => 
+                    {
+                        await _workspaceManagementMediator.UndoLastSaveAsync();
+                        headerViewModel.UpdateSaveStatus(_workspaceManagementMediator);
+                    }, 
                     () => _workspaceManagementMediator.CanUndoLastSave());
+                
+                // Initial state update
+                headerViewModel.UpdateSaveStatus(_workspaceManagementMediator);
             }
             
             return headerViewModel;

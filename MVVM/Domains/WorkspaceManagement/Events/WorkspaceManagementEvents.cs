@@ -137,5 +137,15 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events
             public string Action { get; set; } = string.Empty; // "Imported", "AdditionalImported", "Cleared"
             public DateTime Timestamp { get; set; } = DateTime.Now;
         }
+
+        /// <summary>
+        /// Fired when workspace dirty state changes (has unsaved changes)
+        /// </summary>
+        public class WorkspaceDirtyStateChanged
+        {
+            public bool HasUnsavedChanges { get; set; }
+            public string Source { get; set; } = string.Empty; // Which domain triggered the change
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
     }
 }

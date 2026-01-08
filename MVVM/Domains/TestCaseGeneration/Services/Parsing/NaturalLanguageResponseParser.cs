@@ -112,6 +112,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
                              !trimmed.ToUpper().Contains("RECOMMENDATION") &&
                              !trimmed.ToUpper().Contains("HALLUCINATION") &&
                              !trimmed.ToUpper().Contains("OVERALL ASSESSMENT") &&
+                             !trimmed.ToUpper().Contains("FORMATTING EXAMPLES") &&
                              !trimmed.Trim().Equals("[REQUIRED:", StringComparison.OrdinalIgnoreCase) &&
                              !trimmed.StartsWith("[") && !trimmed.EndsWith("]"))
                     {
