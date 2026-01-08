@@ -4,7 +4,11 @@
              xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
              xmlns:converters="clr-namespace:TestCaseEditorApp.Converters"
              DataContext="{Binding AnalysisVM}"
-             MinHeight="200">
+             MinHeight="200"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             TextOptions.TextFormattingMode="Display"
+             TextOptions.TextRenderingMode="Auto">
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
@@ -118,11 +122,6 @@
                                 Style="{StaticResource PillActionButtonStyle}"
                                 Margin="0,0,8,0"
                                 VerticalAlignment="Top"/>
-                        <Button Content="Edit"
-                                Command="{Binding EditRequirementCommand}"
-                                ToolTip="Edit requirement description and re-analyze"
-                                Style="{StaticResource PillActionButtonStyle}"
-                                VerticalAlignment="Top"/>
                     </StackPanel>
                     <StackPanel>
                         <TextBlock Text="Requirement Quality Analysis" 
@@ -157,32 +156,143 @@
                         </StackPanel>
                     </StackPanel>
                 </Border>
-                <!-- Improved Requirement -->
+                <!-- Improved Requirement / Editable Refined Requirement -->
                 <StackPanel Grid.Row="2" 
                             Margin="0,8,0,16"
                             Visibility="{Binding HasImprovedRequirement, Converter={StaticResource BoolToVisibilityConverter}}">
                     
-                    <TextBlock Text="📝 Refined Requirement" 
-                               FontSize="14"
+                    <!-- Header with inline Edit button -->
+                    <DockPanel Margin="0,0,0,8"
+                               Visibility="{Binding IsEditingRequirement, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                        <Button DockPanel.Dock="Right"
+                                Content="Edit"
+                                Command="{Binding EditRequirementCommand}"
+                                ToolTip="Edit requirement description and re-analyze"
+                                Style="{StaticResource ActionButton}"
+                                VerticalAlignment="Top"
+                                Margin="8,0,0,0"/>
+                        <TextBlock FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="#BBBBBB"
+                                   Text="📝 Refined Requirement"/>
+                    </DockPanel>
+                    
+                    <!-- Header for editing mode (without Edit button) -->
+                    <TextBlock FontSize="14"
                                FontWeight="SemiBold"
                                Foreground="#BBBBBB"
-                               Margin="0,0,0,8"/>
+                               Margin="0,0,0,8"
+                               Text="✏️ Editing Refined Requirement"
+                               Visibility="{Binding IsEditingRequirement, Converter={StaticResource BoolToVisibilityConverter}}"/>
                     
-                    <TextBlock Text="Complete rewritten requirement addressing all identified issues:" 
-                               FontSize="11"
+                    <!-- Subtitle changes based on edit mode -->
+                    <TextBlock FontSize="11"
                                Foreground="#CCCCCC"
-                               Margin="0,0,0,8"/>
+                               Margin="0,0,0,8">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="Complete rewritten requirement addressing all identified issues:"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsEditingRequirement}" Value="True">
+                                        <Setter Property="Text" Value="Clean up and refine the AI-generated improved requirement:"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                     
+                    <!-- Read-only view (when not editing) - shows improved requirement -->
                     <Border Background="Transparent"
                             BorderBrush="#444444"
                             BorderThickness="0,0,0,1"
                             Padding="0,8,0,16">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsEditingRequirement}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
                         <TextBlock Text="{Binding ImprovedRequirement}" 
                                    TextWrapping="Wrap"
                                    FontSize="13"
                                    FontWeight="Normal"
                                    Foreground="#D0D0D0"
-                                   LineHeight="18"/>
+                                   LineHeight="18"
+                                   UseLayoutRounding="True"
+                                   SnapsToDevicePixels="True"
+                                   TextOptions.TextFormattingMode="Display"
+                                   TextOptions.TextRenderingMode="Auto"/>
+                    </Border>
+                    
+                    <!-- Inline editing view (when editing) - edits original requirement -->
+                    <Border Background="{DynamicResource MenuBackground}"
+                            BorderBrush="{DynamicResource AccentBrush}"
+                            BorderThickness="2"
+                            CornerRadius="4"
+                            Padding="8"
+                            Margin="0,8,0,0">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsEditingRequirement}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <Border.Effect>
+                            <DropShadowEffect Color="{DynamicResource Accent.Primary}"
+                                              BlurRadius="3"
+                                              ShadowDepth="0"
+                                              Opacity="0.4"/>
+                        </Border.Effect>
+                        
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <!-- Text editor for the original requirement -->
+                            <TextBox Grid.Row="0"
+                                     Text="{Binding EditingRequirementText, UpdateSourceTrigger=PropertyChanged}"
+                                     TextWrapping="Wrap"
+                                     AcceptsReturn="True"
+                                     MinHeight="100"
+                                     MaxHeight="300"
+                                     FontSize="13"
+                                     FontWeight="Normal"
+                                     Foreground="#D0D0D0"
+                                     Background="#1E1E1E"
+                                     BorderBrush="#444444"
+                                     BorderThickness="1"
+                                     Padding="8"
+                                     VerticalScrollBarVisibility="Auto"
+                                     HorizontalScrollBarVisibility="Disabled"
+                                     UseLayoutRounding="True"
+                                     SnapsToDevicePixels="True"
+                                     TextOptions.TextFormattingMode="Display"
+                                     TextOptions.TextRenderingMode="Auto"/>
+                            
+                            <!-- Save/Cancel buttons -->
+                            <StackPanel Grid.Row="1"
+                                        Orientation="Horizontal"
+                                        HorizontalAlignment="Right"
+                                        Margin="0,8,0,0">
+                                <Button Content="Save"
+                                        Command="{Binding SaveRequirementCommand}"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"/>
+                                <Button Content="Cancel"
+                                        Command="{Binding CancelEditRequirementCommand}"
+                                        Style="{StaticResource ActionButton}"/>
+                            </StackPanel>
+                        </Grid>
                     </Border>
                 </StackPanel>
                 <!-- Issues -->

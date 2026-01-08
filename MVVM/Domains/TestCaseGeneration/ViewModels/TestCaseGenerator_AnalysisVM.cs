@@ -14,7 +14,6 @@ using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Events;
 using Microsoft.Extensions.Logging;
-using TestCaseEditorApp.MVVM.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
@@ -36,6 +35,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         // Track if edit window is currently open to prevent multiple instances
         [ObservableProperty]
         private bool _isEditWindowOpen = false;
+        
+        // Track if inline requirement editing is active
+        [ObservableProperty]
+        private bool _isEditingRequirement = false;
+        
+        // Text being edited for requirement description
+        [ObservableProperty]
+        private string _editingRequirementText = string.Empty;
         
         [ObservableProperty]
         private string _analysisElapsedTime = "";
@@ -127,6 +134,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
             AnalyzeRequirementCommand = new AsyncRelayCommand(AnalyzeRequirementAsync, CanAnalyzeRequirement);
             EditRequirementCommand = new RelayCommand(EditRequirement, CanEditRequirement);
+            SaveRequirementCommand = new RelayCommand(SaveRequirementEdit, CanSaveRequirement);
+            CancelEditRequirementCommand = new RelayCommand(CancelRequirementEdit);
             
             // Cache management commands
             ClearCacheCommand = new RelayCommand(ClearAnalysisCache, () => _analysisService.CacheStatistics?.TotalEntries > 0);
@@ -135,6 +144,69 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             Title = "Requirement Analysis";
             // Initial load
             RefreshAnalysisDisplay();
+            
+            // TODO: Remove after testing - Create dummy data for testing Edit functionality
+            CreateDummyRequirementForTesting();
+        }
+        
+        /// <summary>
+        /// Creates dummy requirement with analysis data for testing Edit functionality.
+        /// TODO: Remove this method after Edit testing is complete.
+        /// </summary>
+        private void CreateDummyRequirementForTesting()
+        {
+            var dummyRequirement = new Requirement
+            {
+                Item = "TEST-REQ-001",
+                Name = "Test Requirement for Edit Testing",
+                Description = "This is a dummy requirement created for testing the Edit button functionality. It contains some sample text that can be edited to verify the requirement editor is working properly.",
+                Analysis = new RequirementAnalysis
+                {
+                    IsAnalyzed = true,
+                    QualityScore = 7,
+                    Timestamp = DateTime.Now,
+                    Issues = new List<AnalysisIssue>
+                    {
+                        new AnalysisIssue
+                        {
+                            Category = "Clarity",
+                            Severity = "Medium",
+                            Description = "Some terms could be more specific"
+                        },
+                        new AnalysisIssue
+                        {
+                            Category = "Completeness",
+                            Severity = "Low", 
+                            Description = "Consider adding acceptance criteria"
+                        }
+                    },
+                    Recommendations = new List<AnalysisRecommendation>
+                    {
+                        new AnalysisRecommendation
+                        {
+                            Category = "Clarity",
+                            Description = "Define technical terms more explicitly",
+                            SuggestedEdit = "Replace 'some sample text' with specific functional requirements"
+                        }
+                    },
+                    FreeformFeedback = "Overall good structure but could benefit from more detailed specifications.",
+                    ImprovedRequirement = "This is an enhanced version of the dummy requirement created for testing the Edit button functionality. It contains more detailed sample text that demonstrates the improved requirement feature and can be edited to verify the requirement editor is working properly with proper technical specifications."
+                }
+            };
+            
+            // Set as current requirement
+            _currentRequirement = dummyRequirement;
+            OnPropertyChanged(nameof(CurrentRequirement));
+            OnPropertyChanged(nameof(HasAnalysis));
+            OnPropertyChanged(nameof(AnalysisQualityScore));
+            
+            // Refresh analysis display
+            RefreshAnalysisDisplay();
+            
+            // Update command states
+            ((AsyncRelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
+            ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
+            ((RelayCommand)InvalidateCurrentCacheCommand).NotifyCanExecuteChanged();
         }
 
         // ===== DOMAIN EVENT HANDLERS =====
@@ -195,6 +267,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         public ICommand AnalyzeRequirementCommand { get; }
         public ICommand EditRequirementCommand { get; }
+        public ICommand SaveRequirementCommand { get; }
+        public ICommand CancelEditRequirementCommand { get; }
         public IAsyncRelayCommand? ReAnalyzeCommand { get; private set; }
         
         // Cache management commands
@@ -216,35 +290,106 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         private void EditRequirement()
         {
             var requirement = CurrentRequirement;
-            if (requirement == null || IsEditWindowOpen) return;
+            if (requirement == null || IsEditingRequirement) return;
 
             try
             {
-                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] EditRequirement called");
+                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] EditRequirement called - switching to inline edit mode for improved requirement");
                 
-                // Mark that edit window is open and refresh command states
-                IsEditWindowOpen = true;
+                // Switch to inline editing mode using the improved requirement text
+                EditingRequirementText = requirement.Analysis?.ImprovedRequirement ?? string.Empty;
+                IsEditingRequirement = true;
+                
+                // Refresh command states
                 ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
-
-                // Publish event to request requirement editing through domain mediator
-                // This will trigger the UI to show the RequirementDescriptionEditorView
-                _mediator.PublishEvent(new TestCaseGenerationEvents.RequirementEditRequested
-                {
-                    Requirement = requirement,
-                    RequestedBy = "AnalysisView"
-                });
+                ((RelayCommand)SaveRequirementCommand).NotifyCanExecuteChanged();
                 
-                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] RequirementEditRequested event published");
+                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Switched to inline editing mode for improved requirement");
             }
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnalysisVM] Error in EditRequirement");
                 
                 // Reset state on error
-                IsEditWindowOpen = false;
+                IsEditingRequirement = false;
                 ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
+            }
+        }
+
+        private void SaveRequirementEdit()
+        {
+            var requirement = CurrentRequirement;
+            if (requirement == null || !IsEditingRequirement || requirement.Analysis == null) return;
+
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] SaveRequirementEdit called for improved requirement");
+
+                // Update the improved requirement text if it changed
+                var newImprovedText = EditingRequirementText?.Trim() ?? string.Empty;
+                var originalImprovedText = requirement.Analysis.ImprovedRequirement ?? string.Empty;
                 
-                // Don't re-throw to prevent app crash
+                if (newImprovedText != originalImprovedText)
+                {
+                    requirement.Analysis.ImprovedRequirement = newImprovedText;
+                    
+                    // Publish event that requirement was updated
+                    _mediator.PublishEvent(new TestCaseGenerationEvents.RequirementSelected 
+                    { 
+                        Requirement = requirement, 
+                        SelectedBy = "ImprovedRequirementEditor" 
+                    });
+                    
+                    // Mark workspace as dirty
+                    _mediator.PublishEvent(new TestCaseGenerationEvents.WorkflowStateChanged 
+                    { 
+                        PropertyName = "IsDirty", 
+                        NewValue = true 
+                    });
+                    
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnalysisVM] Improved requirement for {requirement.GlobalId} updated successfully");
+                    
+                    // Refresh UI properties
+                    OnPropertyChanged(nameof(ImprovedRequirement));
+                    OnPropertyChanged(nameof(HasImprovedRequirement));
+                }
+                
+                // Exit edit mode
+                IsEditingRequirement = false;
+                EditingRequirementText = string.Empty;
+                
+                // Refresh command states
+                ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
+                ((RelayCommand)SaveRequirementCommand).NotifyCanExecuteChanged();
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnalysisVM] Error in SaveRequirementEdit");
+            }
+        }
+
+        private bool CanSaveRequirement()
+        {
+            return IsEditingRequirement && !string.IsNullOrWhiteSpace(EditingRequirementText);
+        }
+
+        private void CancelRequirementEdit()
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] CancelRequirementEdit called");
+                
+                // Exit edit mode without saving
+                IsEditingRequirement = false;
+                EditingRequirementText = string.Empty;
+                
+                // Refresh command states
+                ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
+                ((RelayCommand)SaveRequirementCommand).NotifyCanExecuteChanged();
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnalysisVM] Error in CancelRequirementEdit");
             }
         }
 
@@ -558,7 +703,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 if (e.NewValue is bool isAnalyzingValue)
                 {
                     // Update our local IsAnalyzing field to sync with mediator state
-                    isAnalyzing = isAnalyzingValue;
+                    IsAnalyzing = isAnalyzingValue;
                     
                     if (isAnalyzingValue)
                     {

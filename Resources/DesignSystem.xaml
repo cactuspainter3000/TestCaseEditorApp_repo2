@@ -208,6 +208,10 @@
         <Setter Property="FontWeight" Value="{StaticResource FontWeight.Bold}"/>
         <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        <Setter Property="TextOptions.TextRenderingMode" Value="Auto"/>
     </Style>
     
     <Style x:Key="Text.H3" TargetType="TextBlock">
@@ -215,6 +219,10 @@
         <Setter Property="FontWeight" Value="{StaticResource FontWeight.SemiBold}"/>
         <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        <Setter Property="TextOptions.TextRenderingMode" Value="Auto"/>
     </Style>
     
     <!-- Body Styles -->
@@ -223,6 +231,10 @@
         <Setter Property="FontWeight" Value="{StaticResource FontWeight.Regular}"/>
         <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        <Setter Property="TextOptions.TextRenderingMode" Value="Auto"/>
     </Style>
     
     <Style x:Key="Text.Body.Small" TargetType="TextBlock">
@@ -238,6 +250,10 @@
         <Setter Property="FontWeight" Value="{StaticResource FontWeight.Regular}"/>
         <Setter Property="Foreground" Value="{StaticResource Brush.Text.Tertiary}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        <Setter Property="TextOptions.TextRenderingMode" Value="Auto"/>
     </Style>
     
     <Style x:Key="Text.Caption.Small" TargetType="TextBlock">
@@ -313,6 +329,6 @@
 
     <!-- Button Style Aliases for Compatibility -->
     <!-- Add SecondaryButton alias that references the proper Button.Secondary style -->
-    <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{DynamicResource Button.Secondary}" />
+    <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource Button.Secondary}" />
 
 </ResourceDictionary>
