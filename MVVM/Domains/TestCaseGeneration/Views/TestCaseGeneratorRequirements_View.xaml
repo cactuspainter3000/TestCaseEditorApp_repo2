@@ -181,7 +181,7 @@
                     <Border x:Name="AnalysisTracerBorder"
                             Background="Transparent"
                             BorderThickness="2"
-                            CornerRadius="5"
+                            CornerRadius="{StaticResource Radius.SM}"
                             Margin="0"
                             IsHitTestVisible="False"
                             Visibility="Collapsed">

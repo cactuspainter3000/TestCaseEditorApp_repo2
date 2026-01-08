@@ -10,7 +10,7 @@ using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
-
+using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Events;
 using Microsoft.Extensions.Logging;
@@ -226,10 +226,15 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 IsEditWindowOpen = true;
                 ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
 
-                // Note: Requirement editor functionality should be accessed via UI coordinator/mediator
-                TestCaseEditorApp.Services.Logging.Log.Info($"[AnalysisVM] Edit requirement requested for: {requirement.Item}");
+                // Publish event to request requirement editing through domain mediator
+                // This will trigger the UI to show the RequirementDescriptionEditorView
+                _mediator.PublishEvent(new TestCaseGenerationEvents.RequirementEditRequested
+                {
+                    Requirement = requirement,
+                    RequestedBy = "AnalysisView"
+                });
                 
-                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] ShowRequirementEditor completed");
+                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] RequirementEditRequested event published");
             }
             catch (Exception ex)
             {

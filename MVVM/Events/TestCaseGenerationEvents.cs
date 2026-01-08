@@ -180,6 +180,16 @@ namespace TestCaseEditorApp.MVVM.Events
         }
         
         /// <summary>
+        /// Fired when a requirement edit is requested (to show editor view)
+        /// </summary>
+        public class RequirementEditRequested
+        {
+            public Requirement Requirement { get; set; } = default!;
+            public string RequestedBy { get; set; } = string.Empty; // "AnalysisView", "RequirementsGrid", etc.
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
+        
+        /// <summary>
         /// Fired when requirement analysis starts
         /// </summary>
         public class RequirementAnalysisStarted
