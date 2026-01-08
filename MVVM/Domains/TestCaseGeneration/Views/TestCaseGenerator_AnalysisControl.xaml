@@ -158,49 +158,33 @@
                     </StackPanel>
                 </Border>
                 <!-- Improved Requirement -->
-                <Border Grid.Row="2" 
-                        Background="#2A2A2A"
-                        BorderBrush="#555555"
-                        BorderThickness="1"
-                        Padding="16"
-                        Margin="0,0,0,12"
-                        Visibility="{Binding HasImprovedRequirement, Converter={StaticResource BoolToVisibilityConverter}}">
-                    <StackPanel>
-                        <DockPanel Margin="0,0,0,8">
-                            <TextBlock DockPanel.Dock="Left"
-                                       Text="📝 Improved Requirement" 
-                                       Style="{StaticResource Text.H3}"
-                                       Foreground="#BBBBBB"/>
-                            <TextBlock DockPanel.Dock="Right"
-                                       Text="Primary Deliverable"
-                                       FontSize="9"
-                                       FontWeight="Normal"
-                                       Background="#404040"
-                                       Foreground="#AAAAAA"
-                                       Padding="4,1"
-                                       TextAlignment="Center"
-                                       VerticalAlignment="Center"/>
-                        </DockPanel>
-                        
-                        <TextBlock Text="Complete rewritten requirement addressing all identified issues:" 
-                                   FontSize="11"
-                                   Foreground="#CCCCCC"
-                                   Margin="0,0,0,8"/>
-                        
-                        <Border Background="#333333"
-                                BorderBrush="#666666"
-                                BorderThickness="1"
-                                CornerRadius="4"
-                                Padding="12">
-                            <TextBlock Text="{Binding ImprovedRequirement}" 
-                                       TextWrapping="Wrap"
-                                       FontSize="13"
-                                       FontWeight="SemiBold"
-                                       Foreground="White"
-                                       LineHeight="18"/>
-                        </Border>
-                    </StackPanel>
-                </Border>
+                <StackPanel Grid.Row="2" 
+                            Margin="0,8,0,16"
+                            Visibility="{Binding HasImprovedRequirement, Converter={StaticResource BoolToVisibilityConverter}}">
+                    
+                    <TextBlock Text="📝 Refined Requirement" 
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="#BBBBBB"
+                               Margin="0,0,0,8"/>
+                    
+                    <TextBlock Text="Complete rewritten requirement addressing all identified issues:" 
+                               FontSize="11"
+                               Foreground="#CCCCCC"
+                               Margin="0,0,0,8"/>
+                    
+                    <Border Background="Transparent"
+                            BorderBrush="#444444"
+                            BorderThickness="0,0,0,1"
+                            Padding="0,8,0,16">
+                        <TextBlock Text="{Binding ImprovedRequirement}" 
+                                   TextWrapping="Wrap"
+                                   FontSize="13"
+                                   FontWeight="Normal"
+                                   Foreground="#D0D0D0"
+                                   LineHeight="18"/>
+                    </Border>
+                </StackPanel>
                 <!-- Issues -->
                 <Border Grid.Row="3" 
                         Background="{DynamicResource MenuBackground}"
