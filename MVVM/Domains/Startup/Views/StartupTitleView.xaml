@@ -9,11 +9,9 @@
              d:DataContext="{d:DesignInstance Type=vm:StartupTitleVM}">
     
     <Grid>
-        <!-- Application Title using global TitleText style with size/weight adjustments -->
+        <!-- Application Title using global WorkspaceTitleText style -->
         <TextBlock Text="{Binding Title}"
-                   Style="{StaticResource TitleText}"
-                   FontSize="20"
-                   FontWeight="Normal"
+                   Style="{StaticResource WorkspaceTitleText}"
                    HorizontalAlignment="Left"
                    Margin="10,0"/>
     </Grid>

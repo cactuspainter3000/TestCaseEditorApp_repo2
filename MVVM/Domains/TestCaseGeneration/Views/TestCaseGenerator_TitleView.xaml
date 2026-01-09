@@ -12,12 +12,9 @@
     </UserControl.Resources>
 
     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-        <!-- App Title -->
+        <!-- App Title using global WorkspaceTitleText style -->
         <TextBlock Text="Test Case Editor"
-                   VerticalAlignment="Center"
-                   Foreground="DarkOrange"
-                   FontSize="25"
-                   Margin="0,0,20,0"/>
+                   Style="{StaticResource WorkspaceTitleText}"/>
         
         <!-- Save Indicator -->
         <Button Padding="8,4"

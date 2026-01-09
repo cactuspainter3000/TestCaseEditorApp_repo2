@@ -29,6 +29,16 @@
         <Setter Property="Margin" Value="0"/>
     </Style>
 
+    <!-- Workspace Title Text - for main workspace branding titles -->
+    <Style x:Key="WorkspaceTitleText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="25"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        <Setter Property="Margin" Value="0,0,20,0"/>
+    </Style>
+
     <!-- Header Small Text - for counts and status in headers -->
     <Style x:Key="HeaderSmallText" TargetType="TextBlock" BasedOn="{StaticResource Text.Body.Small}">
         <Setter Property="Foreground" Value="{StaticResource Brush.Text.Secondary}"/>
