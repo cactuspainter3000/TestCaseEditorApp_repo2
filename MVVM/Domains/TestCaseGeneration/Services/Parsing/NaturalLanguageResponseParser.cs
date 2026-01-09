@@ -45,7 +45,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
                 {
                     Timestamp = DateTime.Now,
                     Issues = new List<AnalysisIssue>(),
-                    Recommendations = new List<AnalysisRecommendation>(),
                     HallucinationCheck = ""
                 };
 
@@ -135,10 +134,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
                         {
                             ParseIssueItem(content, analysis.Issues);
                         }
-                        else if (currentSection == "recommendations" && !string.IsNullOrWhiteSpace(content))
-                        {
-                            ParseRecommendationItem(content, analysis.Recommendations);
-                        }
                     }
                 }
 
@@ -154,6 +149,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
 
         private void ParseIssueItem(string content, List<AnalysisIssue> issues)
         {
+            TestCaseEditorApp.Services.Logging.Log.Info($"[ParseIssue] Raw issue content: '{content}'");
+
             // Parse enhanced format: "Clarity Issue (Medium): Description | Fix: Solution"
             var parts = content.Split('|', StringSplitOptions.RemoveEmptyEntries);
             var mainPart = parts.Length > 0 ? parts[0].Trim() : content;
@@ -188,11 +185,26 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
                 var colonIndex = mainPart.IndexOf(":");
                 description = mainPart.Substring(colonIndex + 1).Trim();
             }
-            
+
+            // Remove unnecessary brackets that sometimes appear in LLM responses
+            description = description.Trim('[', ']').Trim();
+
+            // Handle case where LLM didn't provide proper format - add helpful text
+            if (!mainPart.ToUpper().Contains("ISSUE") && !string.IsNullOrEmpty(description))
+            {
+                // LLM gave us just a description without proper issue format
+                // Try to generate a more specific fix based on content analysis
+                string smartFix = GenerateSmartFix(description);
+                description = $"{description} | Fix: {smartFix}";
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[ParseIssue] Issue item lacks proper format, adding smart fix suggestion");
+            }
+
             // Add fix information to description if present
             if (fixPart.ToUpper().StartsWith("FIX:"))
             {
                 var fix = fixPart.Substring(4).Trim();
+                // Convert fix to past tense to indicate what was addressed
+                fix = ConvertFixToPastTense(fix);
                 description += $" | Fix: {fix}";
             }
             
@@ -202,50 +214,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
                 Description = description,
                 Severity = severity
             });
-        }
-
-        private void ParseRecommendationItem(string content, List<AnalysisRecommendation> recommendations)
-        {
-            // Parse structured recommendation format: Category: X | Description: Y | Rationale: Z
-            var parts = content.Split('|', StringSplitOptions.RemoveEmptyEntries);
-            var recommendation = new AnalysisRecommendation
-            {
-                Category = "Improvement",
-                Description = content, // Default to full content
-                SuggestedEdit = ""
-            };
-
-            foreach (var part in parts)
-            {
-                var keyValue = part.Trim();
-                if (keyValue.ToUpper().StartsWith("CATEGORY:"))
-                {
-                    recommendation.Category = keyValue.Substring(9).Trim();
-                }
-                else if (keyValue.ToUpper().StartsWith("DESCRIPTION:"))
-                {
-                    recommendation.Description = keyValue.Substring(12).Trim();
-                }
-                else if (keyValue.ToUpper().StartsWith("SUGGESTED EDIT:") || 
-                        keyValue.ToUpper().StartsWith("EDIT:") || 
-                        keyValue.ToUpper().StartsWith("FIX:") ||
-                        keyValue.ToUpper().StartsWith("RATIONALE:"))
-                {
-                    int startIndex;
-                    if (keyValue.ToUpper().StartsWith("SUGGESTED EDIT:"))
-                        startIndex = 15;
-                    else if (keyValue.ToUpper().StartsWith("RATIONALE:"))
-                        startIndex = 10;
-                    else if (keyValue.ToUpper().StartsWith("EDIT:"))
-                        startIndex = 5;
-                    else // FIX:
-                        startIndex = 4;
-                    
-                    recommendation.SuggestedEdit = keyValue.Substring(startIndex).Trim();
-                }
-            }
-
-            recommendations.Add(recommendation);
         }
 
         private void PostProcessAnalysis(RequirementAnalysis analysis, string requirementId)
@@ -279,7 +247,85 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
             // Mark as successfully analyzed
             analysis.IsAnalyzed = true;
 
-            TestCaseEditorApp.Services.Logging.Log.Info($"[{ParserName}Parser] Natural language parsing successful for {requirementId}: Score={analysis.QualityScore}, Issues={analysis.Issues.Count}, Recommendations={analysis.Recommendations.Count}, ImprovedReq={!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement)}, Freeform={!string.IsNullOrWhiteSpace(analysis.FreeformFeedback)}");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[{ParserName}Parser] Natural language parsing successful for {requirementId}: Score={analysis.QualityScore}, Issues={analysis.Issues.Count}, ImprovedReq={!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement)}, Freeform={!string.IsNullOrWhiteSpace(analysis.FreeformFeedback)}");
+        }
+
+        /// <summary>
+        /// Generates a smart fix suggestion based on the issue description
+        /// </summary>
+        private string GenerateSmartFix(string description)
+        {
+            var lowerDesc = description.ToLower();
+            
+            // Clarity issues
+            if (lowerDesc.Contains("unclear") || lowerDesc.Contains("ambiguous") || lowerDesc.Contains("vague"))
+                return "Clarified the ambiguous language and provided specific details";
+            
+            if (lowerDesc.Contains("missing context") || lowerDesc.Contains("context"))
+                return "Added necessary context and background information";
+            
+            // Completeness issues
+            if (lowerDesc.Contains("missing") || lowerDesc.Contains("incomplete"))
+                return "Added the missing required information and details";
+            
+            if (lowerDesc.Contains("acceptance criteria"))
+                return "Defined clear acceptance criteria and success conditions";
+            
+            // Testability issues
+            if (lowerDesc.Contains("testable") || lowerDesc.Contains("verify"))
+                return "Made the requirement more testable with measurable criteria";
+            
+            if (lowerDesc.Contains("observable") || lowerDesc.Contains("measurable"))
+                return "Added observable and measurable success indicators";
+            
+            // Consistency issues
+            if (lowerDesc.Contains("inconsistent") || lowerDesc.Contains("contradiction"))
+                return "Resolved inconsistencies and aligned with other requirements";
+            
+            // Default fix suggestion
+            return "Improved requirement clarity and completeness";
+        }
+
+        /// <summary>
+        /// Converts a fix description to past tense to indicate what was addressed
+        /// </summary>
+        private string ConvertFixToPastTense(string fix)
+        {
+            if (string.IsNullOrWhiteSpace(fix))
+                return fix;
+
+            var result = fix.Trim();
+            
+            // Common present tense to past tense conversions for fix descriptions
+            var conversions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "Add ", "Added " },
+                { "Remove ", "Removed " },
+                { "Clarify ", "Clarified " },
+                { "Define ", "Defined " },
+                { "Specify ", "Specified " },
+                { "Include ", "Included " },
+                { "Provide ", "Provided " },
+                { "Ensure ", "Ensured " },
+                { "Make ", "Made " },
+                { "Update ", "Updated " },
+                { "Improve ", "Improved " },
+                { "Enhance ", "Enhanced " },
+                { "Fix ", "Fixed " },
+                { "Resolve ", "Resolved " },
+                { "Address ", "Addressed " }
+            };
+
+            foreach (var conversion in conversions)
+            {
+                if (result.StartsWith(conversion.Key, StringComparison.OrdinalIgnoreCase))
+                {
+                    result = conversion.Value + result.Substring(conversion.Key.Length);
+                    break;
+                }
+            }
+
+            return result;
         }
     }
 }

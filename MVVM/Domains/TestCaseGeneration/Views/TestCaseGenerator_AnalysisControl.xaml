@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
              xmlns:converters="clr-namespace:TestCaseEditorApp.Converters"
+             xmlns:tcgConverters="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Converters"
              DataContext="{Binding AnalysisVM}"
              MinHeight="200"
              UseLayoutRounding="True"
@@ -15,6 +16,7 @@
         <converters:NullOrEmptyToVisibilityConverter x:Key="NullOrEmptyToVisibilityConverter" />
         <converters:StringNotEmptyToVisibilityConverter x:Key="StringNotEmptyToVisibilityConverter" />
         <converters:StringEmptyToVisibilityConverter x:Key="StringEmptyToVisibilityConverter" />
+        <tcgConverters:FixTextHighlightConverter x:Key="FixTextHighlightConverter" />
         
         <!-- Inverted converter for showing content when NOT analyzing -->
         <converters:BoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" Invert="True" />
@@ -29,7 +31,6 @@
                 <RowDefinition Height="Auto"/> <!-- Header -->
                 <RowDefinition Height="Auto"/> <!-- Quality Score -->
                 <RowDefinition Height="Auto"/> <!-- Issues -->
-                <RowDefinition Height="Auto"/> <!-- Recommendations -->
                 <RowDefinition Height="Auto"/> <!-- Freeform Feedback -->
                 <RowDefinition Height="*"/>    <!-- Spacer -->
             </Grid.RowDefinitions>
@@ -343,73 +344,7 @@
                                                            FontSize="12"
                                                            Foreground="{DynamicResource AccentBrush}"/>
                                             </DockPanel>
-                                            <TextBlock Text="{Binding Description}" 
-                                                       TextWrapping="Wrap"
-                                                       FontSize="12"
-                                                       Foreground="#CCCCCC"/>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </Border>
-
-                <!-- Recommendations -->
-                <Border Grid.Row="4" 
-                        Background="{DynamicResource MenuBackground}"
-                        Padding="12"
-                        Margin="0,0,0,10"
-                        Visibility="{Binding HasRecommendations, Converter={StaticResource BoolToVisibilityConverter}}">
-                    <StackPanel>
-                        <TextBlock Text="Recommendations" 
-                                   Style="{StaticResource Text.H3}"
-                                   Margin="0,0,0,8"/>
-                        <ItemsControl ItemsSource="{Binding Recommendations}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Background="{DynamicResource ControlBackground}"
-                                            Padding="12"
-                                            Margin="0,0,0,8"
-                                            CornerRadius="4">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Category}" 
-                                                       FontWeight="SemiBold"
-                                                       FontSize="12"
-                                                       Foreground="{DynamicResource AccentBrush}"
-                                                       Margin="0,0,0,6"/>
-                                            <TextBlock Text="{Binding Description}" 
-                                                       TextWrapping="Wrap"
-                                                       FontSize="12"
-                                                       Foreground="#CCCCCC"
-                                                       Margin="0,0,0,8"/>
-                                            
-                                            <!-- Suggested Edit Section -->
-                                            <Border Background="#1E4D72"
-                                                    BorderBrush="#4A9EFF"
-                                                    BorderThickness="1"
-                                                    Padding="8"
-                                                    CornerRadius="3"
-                                                    Margin="0,6,0,0"
-                                                    Visibility="{Binding SuggestedEdit, Converter={StaticResource NullOrEmptyToVisibilityConverter}}">
-                                                <StackPanel>
-                                                    <TextBlock Text="💡 Suggested Rewrite:" 
-                                                               FontSize="10"
-                                                               FontWeight="SemiBold"
-                                                               Foreground="#4A9EFF"
-                                                               Margin="0,0,0,4"/>
-                                                    <TextBlock Text="{Binding SuggestedEdit}" 
-                                                               TextWrapping="Wrap"
-                                                               FontSize="11"
-                                                               Foreground="#E6F3FF"
-                                                               LineHeight="16"/>
-                                                    <TextBlock Text="This incorporates details from supplemental information into the requirement text"
-                                                               FontSize="9"
-                                                               FontStyle="Italic"
-                                                               Foreground="#8BBFFF"
-                                                               Margin="0,4,0,0"/>
-                                                </StackPanel>
-                                            </Border>
+                                            <ContentPresenter Content="{Binding ., Converter={StaticResource FixTextHighlightConverter}}"/>
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>
@@ -419,7 +354,7 @@
                 </Border>
 
                 <!-- Freeform Feedback -->
-                <Border Grid.Row="5" 
+                <Border Grid.Row="4" 
                         Background="{DynamicResource MenuBackground}"
                         Padding="12"
                         Visibility="{Binding HasFreeformFeedback, Converter={StaticResource BoolToVisibilityConverter}}">

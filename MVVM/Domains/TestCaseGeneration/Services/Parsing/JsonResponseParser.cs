@@ -48,7 +48,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
                 analysis.IsAnalyzed = true;
                 analysis.ErrorMessage = null;
 
-                TestCaseEditorApp.Services.Logging.Log.Info($"[{ParserName}Parser] JSON parsing successful for {requirementId}: Score={analysis.QualityScore}, Issues={analysis.Issues?.Count ?? 0}, Recommendations={analysis.Recommendations?.Count ?? 0}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[{ParserName}Parser] JSON parsing successful for {requirementId}: Score={analysis.QualityScore}, Issues={analysis.Issues?.Count ?? 0}");
 
                 return analysis;
             }
@@ -113,55 +113,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
 
             // Ensure collections are initialized
             analysis.Issues ??= new System.Collections.Generic.List<AnalysisIssue>();
-            analysis.Recommendations ??= new System.Collections.Generic.List<AnalysisRecommendation>();
 
             // Clean up template markers from categories
             foreach (var issue in analysis.Issues)
             {
                 issue.Category = CleanTemplateMarkers(issue.Category);
-            }
-            foreach (var recommendation in analysis.Recommendations)
-            {
-                recommendation.Category = CleanTemplateMarkers(recommendation.Category);
-            }
-
-            // Enforce maximum recommendations policy - consolidate if LLM provided too many
-            if (analysis.Recommendations != null && analysis.Recommendations.Count > 2)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[{ParserName}Parser] LLM provided {analysis.Recommendations.Count} recommendations, consolidating to maximum 2");
-                
-                // Keep the first 2 recommendations and log what we're dropping
-                var droppedCount = analysis.Recommendations.Count - 2;
-                for (int i = 2; i < analysis.Recommendations.Count; i++)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[{ParserName}Parser] Dropping recommendation #{i + 1}: {analysis.Recommendations[i].Category} - {analysis.Recommendations[i].Description}");
-                }
-                
-                analysis.Recommendations = analysis.Recommendations.Take(2).ToList();
-                TestCaseEditorApp.Services.Logging.Log.Info($"[{ParserName}Parser] Consolidated {droppedCount} recommendations to meet maximum policy of 2");
-            }
-
-            // Filter out invalid recommendations that lack SuggestedEdit
-            if (analysis.Recommendations != null)
-            {
-                var validRecommendations = analysis.Recommendations.Where(r => !string.IsNullOrWhiteSpace(r.SuggestedEdit)).ToList();
-                var removedCount = analysis.Recommendations.Count - validRecommendations.Count;
-                
-                if (removedCount > 0)
-                {
-                    for (int i = 0; i < analysis.Recommendations.Count; i++)
-                    {
-                        var rec = analysis.Recommendations[i];
-                        if (string.IsNullOrWhiteSpace(rec.SuggestedEdit))
-                        {
-                            TestCaseEditorApp.Services.Logging.Log.Warn($"[{ParserName}Parser] Recommendation {i + 1} missing SuggestedEdit - removing from recommendations to prevent display issues");
-                            TestCaseEditorApp.Services.Logging.Log.Info($"[{ParserName}Parser] Removing invalid recommendation {i + 1}");
-                        }
-                    }
-                    
-                    analysis.Recommendations = validRecommendations;
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[{ParserName}Parser] Removed {removedCount} invalid recommendations lacking SuggestedEdit");
-                }
             }
 
             return analysis;
@@ -197,7 +153,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
                 ErrorMessage = errorMessage,
                 QualityScore = 0,
                 Issues = new System.Collections.Generic.List<AnalysisIssue>(),
-                Recommendations = new System.Collections.Generic.List<AnalysisRecommendation>(),
                 FreeformFeedback = string.Empty,
                 Timestamp = DateTime.Now
             };

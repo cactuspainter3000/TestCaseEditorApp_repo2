@@ -194,18 +194,11 @@ namespace TestCaseEditorApp.Prompts
             sb.AppendLine(@"    {");
             sb.AppendLine(@"      ""Category"": ""<Clarity|Testability|Completeness|Atomicity|Actionability|Consistency>"",");
             sb.AppendLine(@"      ""Severity"": ""<High|Medium|Low>"",");
-            sb.AppendLine(@"      ""Description"": ""<concise description of the issue>""");
+            sb.AppendLine(@"      ""Description"": ""<concise description of the issue>"",");
+            sb.AppendLine(@"      ""Fix"": ""<past tense description of what was addressed/improved (e.g., 'Defined specific acceptance criteria', 'Clarified technical requirements', 'Specified measurable thresholds')>""");
             sb.AppendLine(@"    }");
             sb.AppendLine(@"  ],");
-            sb.AppendLine(@"  ""Recommendations"": [");
-            sb.AppendLine(@"    {");
-            sb.AppendLine(@"      ""Category"": ""<Clarity|Testability|Completeness|Atomicity|Actionability|Consistency>"",");
-            sb.AppendLine(@"      ""Description"": ""<actionable recommendation>"",");
-
-            sb.AppendLine(@"      ""SuggestedEdit"": ""<improved requirement text>""");
-            sb.AppendLine(@"    }");
-            sb.AppendLine(@"  ],");
-            sb.AppendLine(@"  ""FreeformFeedback"": ""<OPTIONAL: Only include if you have meaningful additional insights, context, or strategic observations not covered in the structured recommendations above. If no additional insights are needed, you may leave this as an empty string or omit entirely. Do not include placeholder text like 'No additional insights necessary'.>""");
+            sb.AppendLine(@"  ""FreeformFeedback"": ""<OPTIONAL: Only include if you have meaningful additional insights, context, or strategic observations not covered in the structured issues above. If no additional insights are needed, you may leave this as an empty string or omit entirely. Do not include placeholder text like 'No additional insights necessary'.>""");
             sb.AppendLine(@"}");
             sb.AppendLine();
 

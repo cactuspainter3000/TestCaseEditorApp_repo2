@@ -77,6 +77,12 @@ namespace TestCaseEditorApp.MVVM.Models
         /// Description of the issue.
         /// </summary>
         public string Description { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Past-tense description of what was addressed/improved to fix this issue.
+        /// Example: "Defined specific acceptance criteria", "Clarified technical requirements"
+        /// </summary>
+        public string Fix { get; set; } = string.Empty;
     }
 
     /// <summary>
