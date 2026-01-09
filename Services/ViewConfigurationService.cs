@@ -114,7 +114,7 @@ namespace TestCaseEditorApp.Services
             }
 
             return new ViewConfiguration(
-                sectionName: "TestCase",                titleViewModel: _testCaseGeneratorContent,                headerViewModel: _testCaseGeneratorHeader,
+                sectionName: "TestCase",                titleViewModel: EnsureTestCaseGeneratorTitle(),                headerViewModel: _testCaseGeneratorHeader,
                 contentViewModel: _testCaseGeneratorContent,
                 notificationViewModel: _viewModelFactory.CreateTestCaseGeneratorNotificationViewModel(),
                 context: context

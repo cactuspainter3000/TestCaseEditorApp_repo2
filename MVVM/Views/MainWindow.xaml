@@ -436,7 +436,7 @@
 
             <!-- Left menu section: Test Case / Test Flow, with one-open-at-a-time behavior -->
             <views:NewSideMenuView Grid.Column="0" Grid.Row="4" Grid.RowSpan="5" 
-                               DataContext="{Binding ViewAreaCoordinator.SideMenu}"/>
+                               DataContext="{Binding SideMenuWorkspace}"/>
             
             <!-- Notification area - positioned directly below title with full width -->
             <Border Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="3" Style="{StaticResource ContentBorderStyle}">
