@@ -9,6 +9,7 @@ namespace TestCaseEditorApp.MVVM.Utils
     public class ViewConfiguration
     {
         public string SectionName { get; }
+        public object? TitleViewModel { get; }
         public object? HeaderViewModel { get; }
         public object? ContentViewModel { get; }
         public object? NavigationViewModel { get; }
@@ -16,7 +17,8 @@ namespace TestCaseEditorApp.MVVM.Utils
         public object? Context { get; }
 
         public ViewConfiguration(
-            string sectionName, 
+            string sectionName,
+            object? titleViewModel = null, 
             object? headerViewModel = null,
             object? contentViewModel = null, 
             object? navigationViewModel = null,
@@ -24,6 +26,7 @@ namespace TestCaseEditorApp.MVVM.Utils
             object? context = null)
         {
             SectionName = sectionName ?? throw new ArgumentNullException(nameof(sectionName));
+            TitleViewModel = titleViewModel;
             HeaderViewModel = headerViewModel;
             ContentViewModel = contentViewModel;
             NavigationViewModel = navigationViewModel;

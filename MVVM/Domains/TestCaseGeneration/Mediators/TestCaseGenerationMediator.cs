@@ -47,6 +47,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         
         // Header ViewModel integration for project status updates
         private TestCaseGenerator_HeaderVM? _headerViewModel;
+        private TestCaseGenerator_TitleVM? _titleViewModel;
         private object? _selectedStep;
         private object? _currentStepViewModel;
         
@@ -139,6 +140,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         /// HeaderVM instance created and managed by this mediator
         /// </summary>
         public TestCaseGenerator_HeaderVM? HeaderViewModel => _headerViewModel;
+        
+        /// <summary>
+        /// TitleVM instance created and managed by this mediator
+        /// </summary>
+        public TestCaseGenerator_TitleVM? TitleViewModel => _titleViewModel;
 
         public TestCaseGenerationMediator(
             ILogger<TestCaseGenerationMediator> logger,
@@ -564,6 +570,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 HideProgress();
                 ShowNotification($"Analysis completed for {requirement.GlobalId}", DomainNotificationType.Success);
                 
+                // Mark workspace as dirty since analysis data has been added/updated
+                IsDirty = true;
+                
                 _logger.LogInformation("Requirement analysis completed for {RequirementId}", requirement.GlobalId);
                 IsAnalyzing = false;
                 return true;
@@ -638,6 +647,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 });
 
                 HideProgress();
+                
+                // Mark workspace as dirty since analysis data has been added/updated
+                if (successful > 0)
+                {
+                    IsDirty = true;
+                }
                 
                 if (failed == 0)
                 {
@@ -1058,29 +1073,56 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         /// </summary>
         public void WireWorkspaceCommands(IWorkspaceManagementMediator workspaceMediator)
         {
-            if (_headerViewModel == null || workspaceMediator == null) return;
+            if ((_headerViewModel == null && _titleViewModel == null) || workspaceMediator == null) return;
 
-            _headerViewModel.SaveWorkspaceCommand = new AsyncRelayCommand(
-                async () => 
-                {
-                    await workspaceMediator.SaveProjectAsync();
-                    _headerViewModel.UpdateSaveStatus(workspaceMediator);
-                });
+            // Wire commands to both header and title ViewModels
+            if (_headerViewModel != null)
+            {
+                _headerViewModel.SaveWorkspaceCommand = new AsyncRelayCommand(
+                    async () => 
+                    {
+                        await workspaceMediator.SaveProjectAsync();
+                        _headerViewModel.UpdateSaveStatus(workspaceMediator);
+                        _titleViewModel?.UpdateSaveStatus(workspaceMediator);
+                    });
+                
+                _headerViewModel.UndoLastSaveCommand = new AsyncRelayCommand(
+                    async () => 
+                    {
+                        await workspaceMediator.UndoLastSaveAsync();
+                        _headerViewModel.UpdateSaveStatus(workspaceMediator);
+                        _titleViewModel?.UpdateSaveStatus(workspaceMediator);
+                    }, 
+                    () => workspaceMediator.CanUndoLastSave());
+            }
             
-            _headerViewModel.UndoLastSaveCommand = new AsyncRelayCommand(
-                async () => 
-                {
-                    await workspaceMediator.UndoLastSaveAsync();
-                    _headerViewModel.UpdateSaveStatus(workspaceMediator);
-                }, 
-                () => workspaceMediator.CanUndoLastSave());
+            if (_titleViewModel != null)
+            {
+                _titleViewModel.SaveWorkspaceCommand = new AsyncRelayCommand(
+                    async () => 
+                    {
+                        await workspaceMediator.SaveProjectAsync();
+                        _headerViewModel?.UpdateSaveStatus(workspaceMediator);
+                        _titleViewModel.UpdateSaveStatus(workspaceMediator);
+                    });
+                
+                _titleViewModel.UndoLastSaveCommand = new AsyncRelayCommand(
+                    async () => 
+                    {
+                        await workspaceMediator.UndoLastSaveAsync();
+                        _headerViewModel?.UpdateSaveStatus(workspaceMediator);
+                        _titleViewModel.UpdateSaveStatus(workspaceMediator);
+                    }, 
+                    () => workspaceMediator.CanUndoLastSave());
+            }
 
             // Subscribe to workspace events to keep undo state current
             Subscribe<WorkspaceManagementEvents.ProjectSaved>(e => 
             {
                 Application.Current?.Dispatcher.BeginInvoke(() => 
                 {
-                    _headerViewModel.UpdateSaveStatus(workspaceMediator);
+                    _headerViewModel?.UpdateSaveStatus(workspaceMediator);
+                    _titleViewModel?.UpdateSaveStatus(workspaceMediator);
                 });
             });
             
@@ -1088,7 +1130,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             {
                 Application.Current?.Dispatcher.BeginInvoke(() => 
                 {
-                    _headerViewModel.UpdateSaveStatus(workspaceMediator);
+                    _headerViewModel?.UpdateSaveStatus(workspaceMediator);
+                    _titleViewModel?.UpdateSaveStatus(workspaceMediator);
                 });
             });
 
@@ -1107,7 +1150,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                             ChangeType = "RequirementDataChanged", 
                             OriginatingDomain = "TestCaseGeneration"
                         });
-                        _headerViewModel.UpdateSaveStatus(workspaceMediator);
+                        _headerViewModel?.UpdateSaveStatus(workspaceMediator);
+                        _titleViewModel?.UpdateSaveStatus(workspaceMediator);
                     });
                 }
             });
@@ -1120,7 +1164,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         private void InitializeHeaderViewModel()
         {
             _headerViewModel = new TestCaseGenerator_HeaderVM(this);
-            _logger.LogDebug("Header ViewModel created and initialized for TestCaseGenerationMediator");
+            _titleViewModel = new TestCaseGenerator_TitleVM(this);
+            _logger.LogDebug("Header and Title ViewModels created and initialized for TestCaseGenerationMediator");
         }
         
         /// <summary>

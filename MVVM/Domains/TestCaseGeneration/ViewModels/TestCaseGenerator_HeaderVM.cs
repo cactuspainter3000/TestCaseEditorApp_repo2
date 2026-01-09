@@ -88,6 +88,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         [ObservableProperty] private bool isDirty;
         [ObservableProperty] private bool canUndoLastSave;
         [ObservableProperty] private string? workspaceFilePath;
+        [ObservableProperty] private DateTime? lastSavedTimestamp;
+        [ObservableProperty] private string saveStatusText = "";
 
         // Expose this ViewModel as DataContext for XAML binding compatibility
         public object DataContext => this;
@@ -117,6 +119,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         public TestCaseGenerator_HeaderVM(ITestCaseGenerationMediator? mediator = null) 
         {
             _mediator = mediator;
+            
+            // Initialize timestamp state
+            SaveStatusText = "";
+            LastSavedTimestamp = null;
+            
+            // Make save indicator visible immediately
+            WorkspaceFilePath = "project";
+            System.Diagnostics.Debug.WriteLine($"[HeaderVM] Constructor: WorkspaceFilePath={WorkspaceFilePath}");
             
             // Subscribe to AnythingLLM status updates (follows same pattern as SideMenuViewModel)
             AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusUpdated;
@@ -159,19 +169,41 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         {
             ArgumentNullException.ThrowIfNull(mediator);
             
+            var wasDirty = IsDirty;
             IsDirty = mediator.HasUnsavedChanges();
             CanUndoLastSave = mediator.CanUndoLastSave();
-            
+
             // Set workspace file path so save button is visible
             // TODO: Get actual workspace path from mediator when available
             WorkspaceFilePath = "project"; // Non-null value to show save button
             
+            System.Diagnostics.Debug.WriteLine($"[HeaderVM] UpdateSaveStatus: IsDirty={IsDirty}, WorkspaceFilePath={WorkspaceFilePath}, HasUnsavedChanges={mediator.HasUnsavedChanges()}");
+
+            // Update timestamp and status text when transitioning from dirty to clean (save completed)
+            if (wasDirty && !IsDirty)
+            {
+                LastSavedTimestamp = DateTime.Now;
+                SaveStatusText = $"Saved {LastSavedTimestamp:HH:mm:ss}";
+            }
+            else if (IsDirty)
+            {
+                SaveStatusText = "Unsaved changes";
+            }
+            else if (LastSavedTimestamp.HasValue)
+            {
+                SaveStatusText = $"Saved {LastSavedTimestamp:HH:mm:ss}";
+            }
+            else
+            {
+                SaveStatusText = "";
+            }
+
             // Update command can-execute states
             ((AsyncRelayCommand?)UndoLastSaveCommand)?.NotifyCanExecuteChanged();
         }
         
         // ==================== Property Change Handlers ====================
-        
+
         private void OnAnythingLLMStatusUpdated(AnythingLLMStatus status)
         {
             Application.Current?.Dispatcher.BeginInvoke(() =>
@@ -264,7 +296,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// Update save status from workspace management mediator (follows WorkspaceHeaderViewModel pattern)
         /// This is a duplicate - removing to fix compilation error
         /// </summary>
-        // REMOVED: Duplicate method - using the one at line 158 which includes command update
+        // REMOVED: Duplicate method - using the enhanced one above which includes timestamp and command updates
         
         // ==================== Update Methods ====================
         

@@ -106,7 +106,9 @@ namespace TestCaseEditorApp.Converters
         {
             var isNull = value == null;
             var visible = Invert ? isNull : !isNull;
-            return visible ? Visibility.Visible : Visibility.Collapsed;
+            var result = visible ? Visibility.Visible : Visibility.Collapsed;
+            System.Diagnostics.Debug.WriteLine($"[NullToVisibilityConverter] value={value ?? "NULL"}, isNull={isNull}, visible={visible}, result={result}");
+            return result;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

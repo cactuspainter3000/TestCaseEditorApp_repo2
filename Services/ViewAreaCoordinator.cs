@@ -21,6 +21,7 @@ namespace TestCaseEditorApp.Services
         private readonly IWorkspaceManagementMediator _workspaceManagementMediator;
 
         public SideMenuViewModel SideMenu { get; }
+        public ConfigurableTitleAreaViewModel TitleArea { get; }
         public ConfigurableHeaderAreaViewModel HeaderArea { get; }
         public ConfigurableContentAreaViewModel WorkspaceContent { get; }
         public ConfigurableNotificationAreaViewModel NotificationArea { get; }
@@ -41,6 +42,7 @@ namespace TestCaseEditorApp.Services
             
             // Use dependency-injected SideMenuViewModel
             SideMenu = sideMenuViewModel ?? throw new ArgumentNullException(nameof(sideMenuViewModel));
+            TitleArea = new ConfigurableTitleAreaViewModel(navigationMediator);
             HeaderArea = new ConfigurableHeaderAreaViewModel(navigationMediator);
             WorkspaceContent = new ConfigurableContentAreaViewModel(navigationMediator);
             NotificationArea = new ConfigurableNotificationAreaViewModel(navigationMediator);

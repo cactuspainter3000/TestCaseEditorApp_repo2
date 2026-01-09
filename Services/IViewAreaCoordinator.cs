@@ -13,6 +13,7 @@ namespace TestCaseEditorApp.Services
     {
         // UI Area ViewModels (now configurable)
         SideMenuViewModel SideMenu { get; }
+        ConfigurableTitleAreaViewModel TitleArea { get; }
         ConfigurableHeaderAreaViewModel HeaderArea { get; }
         ConfigurableContentAreaViewModel WorkspaceContent { get; }
         ConfigurableNotificationAreaViewModel NotificationArea { get; }

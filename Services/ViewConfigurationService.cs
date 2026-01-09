@@ -74,6 +74,7 @@ namespace TestCaseEditorApp.Services
 
             return new ViewConfiguration(
                 sectionName: "Project",
+                titleViewModel: EnsureTestCaseGeneratorTitle(),
                 headerViewModel: _testCaseGeneratorHeader,
                 contentViewModel: _projectContent,
                 notificationViewModel: _viewModelFactory.CreateTestCaseGeneratorNotificationViewModel(),
@@ -95,6 +96,7 @@ namespace TestCaseEditorApp.Services
 
             return new ViewConfiguration(
                 sectionName: "Requirements",
+                titleViewModel: EnsureTestCaseGeneratorTitle(),
                 headerViewModel: _testCaseGeneratorHeader,
                 contentViewModel: _requirementsContent,
                 notificationViewModel: _viewModelFactory.CreateTestCaseGeneratorNotificationViewModel(),
@@ -112,8 +114,7 @@ namespace TestCaseEditorApp.Services
             }
 
             return new ViewConfiguration(
-                sectionName: "TestCase",
-                headerViewModel: _testCaseGeneratorHeader,
+                sectionName: "TestCase",                titleViewModel: _testCaseGeneratorContent,                headerViewModel: _testCaseGeneratorHeader,
                 contentViewModel: _testCaseGeneratorContent,
                 notificationViewModel: _viewModelFactory.CreateTestCaseGeneratorNotificationViewModel(),
                 context: context
@@ -195,6 +196,13 @@ namespace TestCaseEditorApp.Services
                 _testCaseGeneratorHeader = _testCaseGenerationMediator.HeaderViewModel 
                     ?? throw new InvalidOperationException("HeaderViewModel not initialized in TestCaseGenerationMediator");
             }
+        }
+        
+        private TestCaseGenerator_TitleVM? EnsureTestCaseGeneratorTitle()
+        {
+            // TitleVM is created directly by the mediator
+            return _testCaseGenerationMediator.TitleViewModel
+                ?? throw new InvalidOperationException("TitleViewModel not initialized in TestCaseGenerationMediator");
         }
 
         #endregion

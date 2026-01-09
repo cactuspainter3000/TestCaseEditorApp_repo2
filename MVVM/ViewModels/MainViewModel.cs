@@ -34,15 +34,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly IViewModelFactory _viewModelFactory;
         private readonly ILogger<MainViewModel>? _logger;
         private readonly INavigationService _navigationService;
-        private string _displayName = "Systems App";
+        private string _displayName = "Systems ATE APP";
         
-        // === 5-WORKSPACE PROPERTIES ===
+        // === 6-WORKSPACE PROPERTIES ===
         // All UI areas are managed by ViewAreaCoordinator
         
         /// <summary>
         /// Navigation mediator access for UI binding
         /// </summary>
         public INavigationMediator NavigationMediator => _viewAreaCoordinator.NavigationMediator;
+        
+        /// <summary>
+        /// Title workspace area
+        /// </summary>
+        public object? TitleWorkspace => _viewAreaCoordinator?.TitleArea?.ActiveTitle;
         
         /// <summary>
         /// Main content workspace area
@@ -136,6 +141,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             });
             
             // Subscribe to configurable ViewModel property changes
+            if (_viewAreaCoordinator.TitleArea != null)
+            {
+                _viewAreaCoordinator.TitleArea.PropertyChanged += (_, e) => {
+                    if (e.PropertyName == nameof(_viewAreaCoordinator.TitleArea.ActiveTitle))
+                        OnPropertyChanged(nameof(TitleWorkspace));
+                };
+            }
+            
             if (_viewAreaCoordinator.HeaderArea != null)
             {
                 _viewAreaCoordinator.HeaderArea.PropertyChanged += (_, e) => {

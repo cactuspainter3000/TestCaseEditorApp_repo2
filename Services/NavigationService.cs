@@ -51,7 +51,7 @@ namespace TestCaseEditorApp.Services
     public class NavigationService : INavigationService
     {
         private readonly ILogger<NavigationService>? _logger;
-        private string _title = "Systems App";
+        private string _title = "Systems ATE APP";
         private string _currentSection = "TestCase";
         private string? _currentProject = null;
         private IViewAreaCoordinator? _coordinator;
@@ -59,7 +59,15 @@ namespace TestCaseEditorApp.Services
         public NavigationService(ILogger<NavigationService>? logger = null)
         {
             _logger = logger;
-            _logger?.LogInformation("NavigationService created");
+            _logger?.LogInformation("NavigationService created with initial title: '{Title}'", _title);
+            
+            // Fire initial title change event to ensure UI bindings are set
+            Task.Run(() => 
+            {
+                Task.Delay(100);
+                TitleChanged?.Invoke(this, _title);
+                _logger?.LogInformation("NavigationService initial TitleChanged event fired with '{Title}'", _title);
+            });
         }
         
         public string Title => _title;

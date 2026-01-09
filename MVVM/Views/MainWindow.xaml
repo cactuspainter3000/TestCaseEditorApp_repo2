@@ -128,6 +128,10 @@
             </Border>
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_TitleVM}">
+            <tcgviews:TestCaseGenerator_TitleView />
+        </DataTemplate>
+
         <DataTemplate DataType="{x:Type vm:PlaceholderViewModel}">
             <Border Padding="10" Background="White" CornerRadius="6">
                 <TextBlock Text="{Binding Title}" FontSize="16" VerticalAlignment="Center" HorizontalAlignment="Center" />
@@ -347,87 +351,11 @@
             <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
                     Style="{StaticResource ContentBorderStyle}">
                 <Grid HorizontalAlignment="Stretch">
-                    <StackPanel Orientation="Horizontal" 
-                                VerticalAlignment="Center"
-                                HorizontalAlignment="Left"
-                                Margin="4,0,0,0">
-                        <!-- App Title -->
-                        <TextBlock Text="{Binding DisplayName, FallbackValue='Systems App'}"
-                                   VerticalAlignment="Center"
-                                   Foreground="DarkOrange"
-                                   FontSize="25"/>
-                    </StackPanel>
-                    
-                    <!-- Save indicator -->
-                    <Button HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Padding="8,4"
-                            Cursor="Hand"
-                            Command="{Binding HeaderWorkspace.DataContext.SaveWorkspaceCommand}"
-                            ToolTip="Click to save workspace">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="Visibility" Value="Visible"/>
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border Background="{TemplateBinding Background}"
-                                                    Padding="{TemplateBinding Padding}"
-                                                    CornerRadius="4">
-                                                <ContentPresenter />
-                                            </Border>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HeaderWorkspace.DataContext.WorkspaceFilePath}" Value="{x:Null}">
-                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding HeaderWorkspace.DataContext.WorkspaceFilePath}" Value="">
-                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                    </DataTrigger>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#22FFFFFF"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock FontFamily="Segoe MDL2 Assets"
-                                       FontSize="16"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,6,0">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Text" Value="&#xE74E;"/> <!-- Save icon -->
-                                        <Setter Property="Foreground" Value="#4CAF50"/> <!-- Green = Saved -->
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding HeaderWorkspace.DataContext.IsDirty}" Value="True">
-                                                <Setter Property="Text" Value="&#xE734;"/> <!-- Warning icon -->
-                                                <Setter Property="Foreground" Value="#FF9800"/> <!-- Orange = Unsaved -->
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                            <TextBlock VerticalAlignment="Center"
-                                       FontSize="13"
-                                       Foreground="#CCCCCC">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Text" Value="Saved"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding HeaderWorkspace.DataContext.IsDirty}" Value="True">
-                                                <Setter Property="Text" Value="Unsaved changes"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                        </StackPanel>
-                    </Button>
+                    <!-- Dynamic Title Area - managed by ViewAreaCoordinator -->
+                    <ContentPresenter Content="{Binding TitleWorkspace}"
+                                      VerticalAlignment="Center"
+                                      HorizontalAlignment="Left"
+                                      Margin="4,0,0,0"/>
                     
                     <DockPanel HorizontalAlignment="Right" Margin="3">
                         

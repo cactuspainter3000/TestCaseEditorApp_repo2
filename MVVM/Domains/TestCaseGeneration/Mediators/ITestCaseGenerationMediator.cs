@@ -209,6 +209,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         /// </summary>
         TestCaseGenerator_HeaderVM? HeaderViewModel { get; }
         
+        /// <summary>
+        /// TitleVM instance created and managed by this mediator
+        /// </summary>
+        TestCaseGenerator_TitleVM? TitleViewModel { get; }
+        
         // ===== HEADER INTEGRATION =====
         
         // REMOVED: SetHeaderViewModel - HeaderVM is now created directly by mediator via DI
