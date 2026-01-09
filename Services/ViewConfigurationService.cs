@@ -42,6 +42,7 @@ namespace TestCaseEditorApp.Services
         {
             return sectionName?.ToLowerInvariant() switch
             {
+                "startup" => CreateStartupConfiguration(context),
                 "project" => CreateProjectConfiguration(context),
                 "requirements" => CreateRequirementsConfiguration(context),
                 "testcase" or "test case creator" => CreateTestCaseGeneratorConfiguration(context),
@@ -62,6 +63,19 @@ namespace TestCaseEditorApp.Services
         }
 
         #region Configuration Creators
+
+        private ViewConfiguration CreateStartupConfiguration(object? context)
+        {
+            return new ViewConfiguration(
+                sectionName: "Startup",
+                titleViewModel: new TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartupTitleVM(),
+                headerViewModel: new TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartupHeaderVM(),
+                contentViewModel: new TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartupMainVM(),
+                navigationViewModel: new TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartupNavigationVM(),
+                notificationViewModel: new TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartupNotificationVM(),
+                context: context
+            );
+        }
 
         private ViewConfiguration CreateProjectConfiguration(object? context)
         {

@@ -59,17 +59,8 @@ namespace TestCaseEditorApp.Services
                 }
             };
             
-            // Trigger initial configuration to populate views
-            // Use async task to avoid blocking constructor
-            System.Threading.Tasks.Task.Run(async () =>
-            {
-                // Small delay to ensure all initialization is complete
-                await System.Threading.Tasks.Task.Delay(100);
-                System.Windows.Application.Current?.Dispatcher.Invoke(() =>
-                {
-                    OnSectionChangeRequested(new NavigationEvents.SectionChangeRequested("Default", "Initial"));
-                });
-            });
+            // Note: Initial configuration is now handled by NavigationService.Initialize() 
+            // which explicitly sets "startup" configuration. No auto-default needed.
         }
 
         private void OnSectionChangeRequested(NavigationEvents.SectionChangeRequested request)

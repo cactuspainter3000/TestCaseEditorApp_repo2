@@ -8,6 +8,8 @@
         xmlns:wmvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels"
         xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
         xmlns:tcgviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views"
+        xmlns:startupvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Startup.ViewModels"
+        xmlns:startupviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Startup.Views"
         xmlns:wmviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Views"
         xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models"
         xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
@@ -130,6 +132,27 @@
 
         <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_TitleVM}">
             <tcgviews:TestCaseGenerator_TitleView />
+        </DataTemplate>
+
+        <!-- Startup ViewModels DataTemplates -->
+        <DataTemplate DataType="{x:Type startupvm:StartupTitleVM}">
+            <startupviews:StartupTitleView />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type startupvm:StartupHeaderVM}">
+            <startupviews:StartupHeaderView />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type startupvm:StartupMainVM}">
+            <startupviews:StartupMainView />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type startupvm:StartupNavigationVM}">
+            <TextBlock Text="{Binding GuidanceText}" Style="{StaticResource Text.Body.Small}" />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type startupvm:StartupNotificationVM}">
+            <TextBlock Text="{Binding StatusText}" Style="{StaticResource Text.Status}" />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:PlaceholderViewModel}">
@@ -372,8 +395,8 @@
                             <!-- Undo last save button - integrated with window controls -->
                             <Button Grid.Column="0"
                                     Style="{StaticResource MainWindowButtonControls}"
-                                    Command="{Binding HeaderWorkspace.DataContext.UndoLastSaveCommand}"
-                                    Visibility="{Binding HeaderWorkspace.DataContext.CanUndoLastSave, Converter={StaticResource BoolToVisibilityConverter}}"
+                                    Command="{Binding HeaderWorkspace.UndoLastSaveCommand}"
+                                    Visibility="{Binding HeaderWorkspace.CanUndoLastSave, Converter={StaticResource BoolToVisibilityConverter}}"
                                     ToolTip="Undo last save operation"
                                     Margin="0,0,8,0">
                                 <TextBlock Text="&#xE7A7;"

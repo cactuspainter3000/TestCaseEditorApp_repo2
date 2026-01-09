@@ -8,6 +8,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
     public partial class StartupTitleVM : ObservableObject
     {
         [ObservableProperty]
-        private string applicationName = "Systems ATE APP";
+        private string title = "Systems ATE APP";
     }
 }

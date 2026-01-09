@@ -78,6 +78,13 @@ namespace TestCaseEditorApp.Services
         {
             _coordinator = coordinator;
             
+            // Set initial startup configuration through SectionChangeRequested 
+            // This will trigger both navigation AND view configuration properly
+            if (_coordinator?.NavigationMediator is INavigationMediator navMediator)
+            {
+                navMediator.Publish(new NavigationEvents.SectionChangeRequested("startup", null));
+            }
+            
             // Subscribe to project events to automatically update titles
             if (_coordinator?.WorkspaceManagement != null)
             {
