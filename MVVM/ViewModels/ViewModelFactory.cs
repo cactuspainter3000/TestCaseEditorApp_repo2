@@ -11,6 +11,8 @@ using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 using TestCaseEditorApp.MVVM.Domains.ChatGptExportAnalysis.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.RequirementAnalysisWorkflow.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators;
 using CommunityToolkit.Mvvm.Input;
 using System.ComponentModel;
 using Microsoft.Extensions.Logging;
@@ -58,7 +60,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         public IViewConfigurationService CreateViewConfigurationService()
         {
-            return new ViewConfigurationService(this, _workspaceManagementMediator!, _testCaseGenerationMediator!);
+            // Get TestCaseCreationMediator from DI container since we removed it from this factory
+            var testCaseCreationMediator = App.ServiceProvider?.GetRequiredService<ITestCaseCreationMediator>()
+                ?? throw new InvalidOperationException("TestCaseCreationMediator not found in DI container");
+            return new ViewConfigurationService(_workspaceManagementMediator!, _testCaseGenerationMediator!, testCaseCreationMediator);
         }
         public WorkspaceHeaderViewModel CreateWorkspaceHeaderViewModel()
         {

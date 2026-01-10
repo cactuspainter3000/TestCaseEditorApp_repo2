@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Windows;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
+using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Events;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Models;
@@ -17,35 +19,40 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
     /// </summary>
     public class TestCaseCreationMainVM : BaseDomainViewModel
     {
-        private readonly ITestCaseCreationMediator _mediator;
+        private readonly ITestCaseCreationMediator _domainMediator;
         private EditableTestCase? _selectedTestCase;
         private Requirement? _currentRequirement;
-        private string _statusMessage = "Ready to create test cases";
         private bool _hasUnsavedChanges;
 
         public TestCaseCreationMainVM(ITestCaseCreationMediator mediator, ILogger<TestCaseCreationMainVM> logger)
             : base(mediator, logger)
         {
-            _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
+            _logger.LogDebug("TestCaseCreationMainVM constructor started");
+            
+            _domainMediator = mediator;
+            _logger.LogDebug("Mediator assigned");
 
             // Initialize collections
             TestCases = new ObservableCollection<EditableTestCase>();
-            
-            // Subscribe to domain events
-            _mediator.Subscribe<TestCaseCreationEvents.TestCaseCreated>(OnTestCaseCreated);
-            _mediator.Subscribe<TestCaseCreationEvents.TestCaseDeleted>(OnTestCaseDeleted);
-            _mediator.Subscribe<TestCaseCreationEvents.TestCasesSaved>(OnTestCasesSaved);
-            _mediator.Subscribe<TestCaseCreationEvents.RequirementContextChanged>(OnRequirementContextChanged);
-            _mediator.Subscribe<TestCaseCreationEvents.TestCaseSelectionChanged>(OnTestCaseSelectionChanged);
+            _logger.LogDebug("TestCases collection initialized");
 
+            // Subscribe to domain events
+            _domainMediator.Subscribe<TestCaseCreationEvents.TestCaseCreated>(OnTestCaseCreated);
+            _domainMediator.Subscribe<TestCaseCreationEvents.TestCaseDeleted>(OnTestCaseDeleted);
+            _domainMediator.Subscribe<TestCaseCreationEvents.TestCasesSaved>(OnTestCasesSaved);
+            _domainMediator.Subscribe<TestCaseCreationEvents.RequirementContextChanged>(OnRequirementContextChanged);
+            _domainMediator.Subscribe<TestCaseCreationEvents.TestCaseSelectionChanged>(OnTestCaseSelectionChanged);
+            _logger.LogDebug("Event subscriptions completed");
+            
             // Initialize commands
             AddTestCaseCommand = new AsyncRelayCommand(AddTestCaseAsync, () => CurrentRequirement != null);
             RemoveTestCaseCommand = new AsyncRelayCommand(RemoveSelectedTestCaseAsync, () => SelectedTestCase != null);
             SaveAllCommand = new AsyncRelayCommand(SaveAllTestCasesAsync, () => TestCases.Any() && HasUnsavedChanges);
             GenerateTestCaseCommandCommand = new AsyncRelayCommand(GenerateTestCaseCommandAsync, () => SelectedTestCase != null);
+            _logger.LogDebug("Commands initialized");
             
             Title = "Test Case Creation";
-            _logger.LogDebug("TestCaseCreationMainVM initialized");
+            _logger.LogDebug("TestCaseCreationMainVM constructor completed successfully");
         }
 
         // ===== PROPERTIES =====
@@ -66,7 +73,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
                 var previousTestCase = _selectedTestCase;
                 if (SetProperty(ref _selectedTestCase, value))
                 {
-                    _mediator.PublishEvent(new TestCaseCreationEvents.TestCaseSelectionChanged
+                    _domainMediator.PublishEvent(new TestCaseCreationEvents.TestCaseSelectionChanged
                     {
                         PreviousTestCase = previousTestCase,
                         CurrentTestCase = value,
@@ -103,14 +110,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
             ? $"{CurrentRequirement.Item}: {CurrentRequirement.Name}"
             : "No requirement selected";
 
-        /// <summary>
-        /// Status message for user feedback
-        /// </summary>
-        public string StatusMessage
-        {
-            get => _statusMessage;
-            set => SetProperty(ref _statusMessage, value);
-        }
+        // Use base class StatusMessage property instead of redefining it
+        // public string StatusMessage is inherited from BaseDomainViewModel
 
         /// <summary>
         /// Whether there are unsaved changes
@@ -123,7 +124,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
                 if (SetProperty(ref _hasUnsavedChanges, value))
                 {
                     UpdateCommandStates();
-                    _mediator.SetWorkspaceDirty(value);
+                    _domainMediator.SetWorkspaceDirty(value);
                 }
             }
         }
@@ -144,7 +145,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
                 IsBusy = true;
                 StatusMessage = "Creating new test case...";
 
-                var newTestCase = await _mediator.CreateTestCaseAsync();
+                var newTestCase = await _domainMediator.CreateTestCaseAsync();
                 
                 StatusMessage = $"Created test case: {newTestCase.Title}";
                 SelectedTestCase = newTestCase;
@@ -172,7 +173,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
                 StatusMessage = "Removing test case...";
 
                 var testCaseToRemove = SelectedTestCase;
-                await _mediator.DeleteTestCaseAsync(testCaseToRemove);
+                await _domainMediator.DeleteTestCaseAsync(testCaseToRemove);
                 
                 StatusMessage = $"Removed test case: {testCaseToRemove.Title}";
                 
@@ -198,7 +199,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
                 IsBusy = true;
                 StatusMessage = "Saving test cases...";
 
-                await _mediator.SaveTestCasesToRequirementAsync(CurrentRequirement, TestCases);
+                await _domainMediator.SaveTestCasesToRequirementAsync(CurrentRequirement, TestCases);
                 
                 StatusMessage = $"Saved {TestCases.Count} test cases";
                 
@@ -225,7 +226,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
                 IsBusy = true;
                 StatusMessage = "Generating test case command...";
 
-                var command = await _mediator.GenerateTestCaseCommandAsync(SelectedTestCase, "jama");
+                var command = await _domainMediator.GenerateTestCaseCommandAsync(SelectedTestCase, "jama");
                 
                 // Copy to clipboard
                 System.Windows.Clipboard.SetText(command);
@@ -321,7 +322,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
                 IsBusy = true;
                 StatusMessage = "Loading test cases...";
 
-                await _mediator.SetRequirementContextAsync(requirement);
+                await _domainMediator.SetRequirementContextAsync(requirement);
                 await LoadTestCasesFromRequirement(requirement);
                 
                 StatusMessage = $"Loaded {TestCases.Count} test cases";
@@ -376,7 +377,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
         {
             try
             {
-                var loadedTestCases = await _mediator.LoadTestCasesFromRequirementAsync(requirement);
+                var loadedTestCases = await _domainMediator.LoadTestCasesFromRequirementAsync(requirement);
                 
                 TestCases.Clear();
                 foreach (var testCase in loadedTestCases)
@@ -428,11 +429,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
             // Unsubscribe from mediator events
             try
             {
-                _mediator.Unsubscribe<TestCaseCreationEvents.TestCaseCreated>(OnTestCaseCreated);
-                _mediator.Unsubscribe<TestCaseCreationEvents.TestCaseDeleted>(OnTestCaseDeleted);
-                _mediator.Unsubscribe<TestCaseCreationEvents.TestCasesSaved>(OnTestCasesSaved);
-                _mediator.Unsubscribe<TestCaseCreationEvents.RequirementContextChanged>(OnRequirementContextChanged);
-                _mediator.Unsubscribe<TestCaseCreationEvents.TestCaseSelectionChanged>(OnTestCaseSelectionChanged);
+                _domainMediator.Unsubscribe<TestCaseCreationEvents.TestCaseCreated>(OnTestCaseCreated);
+                _domainMediator.Unsubscribe<TestCaseCreationEvents.TestCaseDeleted>(OnTestCaseDeleted);
+                _domainMediator.Unsubscribe<TestCaseCreationEvents.TestCasesSaved>(OnTestCasesSaved);
+                _domainMediator.Unsubscribe<TestCaseCreationEvents.RequirementContextChanged>(OnRequirementContextChanged);
+                _domainMediator.Unsubscribe<TestCaseCreationEvents.TestCaseSelectionChanged>(OnTestCaseSelectionChanged);
 
                 // Unsubscribe from test case property changes
                 foreach (var testCase in TestCases)

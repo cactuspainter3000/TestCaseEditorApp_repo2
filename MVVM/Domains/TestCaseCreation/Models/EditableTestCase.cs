@@ -1,5 +1,11 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+using System;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Linq;
 using System.ComponentModel.DataAnnotations;
+using CommunityToolkit.Mvvm.ComponentModel;
+using TestCaseEditorApp.MVVM.Models;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Models
 {
@@ -173,7 +179,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Models
             {
                 Id = Id,
                 Name = Title,
-                Steps = steps.ToList()
+                Steps = new ObservableCollection<TestStep>(steps)
             };
         }
 

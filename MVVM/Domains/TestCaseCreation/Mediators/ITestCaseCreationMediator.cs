@@ -28,6 +28,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators
         void PublishEvent<T>(T eventData) where T : class;
         
         /// <summary>
+        /// Mark this mediator as registered for fail-fast validation
+        /// </summary>
+        void MarkAsRegistered();
+        
+        /// <summary>
         /// Current step in the TestCaseCreation workflow
         /// </summary>
         string? CurrentStep { get; }

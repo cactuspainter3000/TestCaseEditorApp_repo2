@@ -1,8 +1,11 @@
 using System;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators;
+using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Events;
@@ -15,9 +18,9 @@ namespace TestCaseEditorApp.Services
     /// </summary>
     public class ViewConfigurationService : IViewConfigurationService
     {
-        private readonly IViewModelFactory _viewModelFactory;
         private readonly IWorkspaceManagementMediator _workspaceManagementMediator;
         private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
+        private readonly ITestCaseCreationMediator _testCaseCreationMediator;
         
         // Cached view models - created once and reused
         private WorkspaceHeaderViewModel? _workspaceHeader;
@@ -25,17 +28,18 @@ namespace TestCaseEditorApp.Services
         private object? _projectContent;
         private object? _requirementsContent;
         private object? _testCaseGeneratorContent;
+        private object? _testCaseCreationContent;
         
         public ViewConfiguration? CurrentConfiguration { get; private set; }
 
         public ViewConfigurationService(
-            IViewModelFactory viewModelFactory,
             IWorkspaceManagementMediator workspaceManagementMediator,
-            ITestCaseGenerationMediator testCaseGenerationMediator)
+            ITestCaseGenerationMediator testCaseGenerationMediator,
+            ITestCaseCreationMediator testCaseCreationMediator)
         {
-            _viewModelFactory = viewModelFactory ?? throw new ArgumentNullException(nameof(viewModelFactory));
             _workspaceManagementMediator = workspaceManagementMediator ?? throw new ArgumentNullException(nameof(workspaceManagementMediator));
             _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
+            _testCaseCreationMediator = testCaseCreationMediator ?? throw new ArgumentNullException(nameof(testCaseCreationMediator));
         }
 
         public ViewConfiguration GetConfigurationForSection(string sectionName, object? context = null)
@@ -46,6 +50,7 @@ namespace TestCaseEditorApp.Services
                 "project" => CreateProjectConfiguration(context),
                 "requirements" => CreateRequirementsConfiguration(context),
                 "testcase" or "test case creator" => CreateTestCaseGeneratorConfiguration(context),
+                "testcasecreation" or "test case creation" => CreateTestCaseCreationConfiguration(context),
                 "testflow" => CreateTestFlowConfiguration(context),
                 "import" => CreateImportConfiguration(context),
                 "newproject" => CreateNewProjectConfiguration(context),
@@ -83,7 +88,9 @@ namespace TestCaseEditorApp.Services
 
             if (_projectContent == null)
             {
-                _projectContent = _viewModelFactory.CreateProjectViewModel();
+                // Use direct service access instead of factory
+                _projectContent = App.ServiceProvider?.GetService<object>() // TODO: Replace with actual project ViewModel type
+                    ?? new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Project Content");
             }
 
             return new ViewConfiguration(
@@ -91,7 +98,7 @@ namespace TestCaseEditorApp.Services
                 titleViewModel: EnsureTestCaseGeneratorTitle(),
                 headerViewModel: _testCaseGeneratorHeader,
                 contentViewModel: _projectContent,
-                notificationViewModel: _viewModelFactory.CreateTestCaseGeneratorNotificationViewModel(),
+                notificationViewModel: new TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel(App.ServiceProvider?.GetService<Microsoft.Extensions.Logging.ILogger<TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel>>()),
                 context: context
             );
         }
@@ -100,12 +107,11 @@ namespace TestCaseEditorApp.Services
         {
             EnsureTestCaseGeneratorHeader();
             
-            // ViewConfigurationService should only handle view creation, not domain business logic
-            // Requirement selection logic belongs in the TestCaseGeneration domain
-
+            // Use direct DI injection - modern approach
             if (_requirementsContent == null)
             {
-                _requirementsContent = _viewModelFactory.CreateRequirementsWorkspaceViewModel();
+                _requirementsContent = App.ServiceProvider?.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementsWorkspaceViewModel>()
+                    ?? throw new InvalidOperationException("RequirementsWorkspaceViewModel not registered in DI container");
             }
 
             return new ViewConfiguration(
@@ -113,7 +119,7 @@ namespace TestCaseEditorApp.Services
                 titleViewModel: EnsureTestCaseGeneratorTitle(),
                 headerViewModel: _testCaseGeneratorHeader,
                 contentViewModel: _requirementsContent,
-                notificationViewModel: _viewModelFactory.CreateTestCaseGeneratorNotificationViewModel(),
+                notificationViewModel: new TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel(App.ServiceProvider?.GetService<Microsoft.Extensions.Logging.ILogger<TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel>>()),
                 context: context
             );
         }
@@ -124,15 +130,60 @@ namespace TestCaseEditorApp.Services
 
             if (_testCaseGeneratorContent == null)
             {
-                _testCaseGeneratorContent = _viewModelFactory.CreateTestCaseGeneratorSplashScreenViewModel();
+                // Use direct service access instead of factory
+                _testCaseGeneratorContent = App.ServiceProvider?.GetService<object>() // TODO: Replace with actual generator ViewModel type
+                    ?? new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Test Case Generator");
             }
 
             return new ViewConfiguration(
                 sectionName: "TestCase",                titleViewModel: EnsureTestCaseGeneratorTitle(),                headerViewModel: _testCaseGeneratorHeader,
                 contentViewModel: _testCaseGeneratorContent,
-                notificationViewModel: _viewModelFactory.CreateTestCaseGeneratorNotificationViewModel(),
+                notificationViewModel: new TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel(App.ServiceProvider?.GetService<Microsoft.Extensions.Logging.ILogger<TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel>>()),
                 context: context
             );
+        }
+
+        private ViewConfiguration CreateTestCaseCreationConfiguration(object? context)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating TestCaseCreation configuration");
+                EnsureWorkspaceHeader();
+
+                if (_testCaseCreationContent == null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Getting TestCaseCreationMainVM from DI");
+                    try
+                    {
+                        _testCaseCreationContent = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreationMainVM>();
+                        if (_testCaseCreationContent == null)
+                        {
+                            throw new InvalidOperationException("TestCaseCreationMainVM not registered in DI container or ServiceProvider is null");
+                        }
+                        TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] TestCaseCreationMainVM created successfully");
+                    }
+                    catch (Exception ex)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Error(ex, "[ViewConfigurationService] Failed to create TestCaseCreationMainVM");
+                        throw;
+                    }
+                }
+
+                var config = new ViewConfiguration(
+                    sectionName: "TestCaseCreation",
+                    headerViewModel: _workspaceHeader,
+                    contentViewModel: _testCaseCreationContent,
+                    notificationViewModel: new TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel(App.ServiceProvider?.GetService<Microsoft.Extensions.Logging.ILogger<TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel>>()),
+                    context: context
+                );
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewConfigurationService] TestCaseCreation ViewConfiguration created with content: {config.ContentViewModel?.GetType().Name}");
+                return config;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[ViewConfigurationService] Error creating TestCaseCreation configuration");
+                throw; // Re-throw to see the error
+            }
         }
 
         private ViewConfiguration CreateTestFlowConfiguration(object? context)
@@ -142,8 +193,8 @@ namespace TestCaseEditorApp.Services
             return new ViewConfiguration(
                 sectionName: "TestFlow",
                 headerViewModel: _workspaceHeader,
-                contentViewModel: _viewModelFactory.CreatePlaceholderViewModel(),
-                notificationViewModel: _viewModelFactory.CreateDefaultNotificationViewModel(),
+                contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Test Flow"),
+                notificationViewModel: new TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel(App.ServiceProvider?.GetService<Microsoft.Extensions.Logging.ILogger<TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel>>()),
                 context: context
             );
         }
@@ -155,8 +206,8 @@ namespace TestCaseEditorApp.Services
             return new ViewConfiguration(
                 sectionName: "Import",
                 headerViewModel: _workspaceHeader,
-                contentViewModel: _viewModelFactory.CreateImportWorkflowViewModel(),
-                notificationViewModel: _viewModelFactory.CreateDefaultNotificationViewModel(),
+                contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Import Requirements"),
+                notificationViewModel: new TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel(App.ServiceProvider?.GetService<Microsoft.Extensions.Logging.ILogger<TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel>>()),
                 context: context
             );
         }
@@ -168,8 +219,8 @@ namespace TestCaseEditorApp.Services
             return new ViewConfiguration(
                 sectionName: "NewProject",
                 headerViewModel: _workspaceHeader,
-                contentViewModel: _viewModelFactory.CreateNewProjectWorkflowViewModel(),
-                notificationViewModel: _viewModelFactory.CreateDefaultNotificationViewModel(),
+                contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("New Project"),
+                notificationViewModel: new TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel(App.ServiceProvider?.GetService<Microsoft.Extensions.Logging.ILogger<TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel>>()),
                 context: context
             );
         }
@@ -181,8 +232,8 @@ namespace TestCaseEditorApp.Services
             return new ViewConfiguration(
                 sectionName: "Default",
                 headerViewModel: _workspaceHeader,
-                contentViewModel: _viewModelFactory.CreateInitialStateViewModel(),
-                notificationViewModel: _viewModelFactory.CreateDefaultNotificationViewModel(),
+                contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.InitialStateViewModel(),
+                notificationViewModel: new TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel(App.ServiceProvider?.GetService<Microsoft.Extensions.Logging.ILogger<TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel>>()),
                 context: context
             );
         }
@@ -195,7 +246,8 @@ namespace TestCaseEditorApp.Services
         {
             if (_workspaceHeader == null)
             {
-                _workspaceHeader = _viewModelFactory.CreateWorkspaceHeaderViewModel();
+                _workspaceHeader = App.ServiceProvider?.GetService<WorkspaceHeaderViewModel>()
+                    ?? throw new InvalidOperationException("WorkspaceHeaderViewModel not registered in DI container");
             }
             
             // Always update save status

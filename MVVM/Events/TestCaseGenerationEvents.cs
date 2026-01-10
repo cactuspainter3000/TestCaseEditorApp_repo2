@@ -22,6 +22,16 @@ namespace TestCaseEditorApp.MVVM.Events
         }
         
         /// <summary>
+        /// Fired when project title should be updated in the title area
+        /// </summary>
+        public class ProjectTitleChanged
+        {
+            public string ProjectName { get; set; } = string.Empty;
+            public string Source { get; set; } = string.Empty; // "NewProject", "OpenProject", etc.
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
+        
+        /// <summary>
         /// Fired when a requirement is selected for test case generation
         /// </summary>
         public class RequirementSelected

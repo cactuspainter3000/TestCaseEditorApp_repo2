@@ -269,7 +269,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         {
             WorkspaceName = ctx?.WorkspaceName ?? string.Empty;
             UpdateRequirements(ctx?.Requirements);
-            StatusHint = "Test Case Creator";
+            StatusHint = "Test Case Generator";
 
             // Wire commands (MainViewModel supplies the ICommand/IRelayCommand instances)
             ImportWordCommand = ctx?.ImportCommand;

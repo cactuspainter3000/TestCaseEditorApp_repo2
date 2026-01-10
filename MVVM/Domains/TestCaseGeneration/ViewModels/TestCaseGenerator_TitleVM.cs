@@ -34,6 +34,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         [ObservableProperty] 
         private DateTime? lastSavedTimestamp;
 
+        [ObservableProperty]
+        private string title = "Test Case Generator";
+
         // ==================== Computed Properties ====================
         
         /// <summary>
@@ -56,6 +59,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             
             // Subscribe to workflow state changes to update save status
             _mediator.Subscribe<TestCaseGenerationEvents.WorkflowStateChanged>(OnWorkflowStateChanged);
+            
+            // Subscribe to project title changes
+            _mediator.Subscribe<TestCaseGenerationEvents.ProjectTitleChanged>(OnProjectTitleChanged);
             
             // Initialize save state
             SaveStatusText = "No changes";
@@ -129,6 +135,23 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 
                 System.Diagnostics.Debug.WriteLine($"[TitleVM] WorkflowStateChanged: IsDirty={IsDirty}, SaveStatusText={SaveStatusText}");
             }
+        }
+        
+        /// <summary>
+        /// Handle project title changes from the domain mediator
+        /// </summary>
+        private void OnProjectTitleChanged(TestCaseGenerationEvents.ProjectTitleChanged e)
+        {
+            if (!string.IsNullOrEmpty(e.ProjectName))
+            {
+                Title = $"Test Case Generator - {e.ProjectName}";
+            }
+            else
+            {
+                Title = "Test Case Generator";
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[TitleVM] Project title changed to: {Title}");
         }
     }
 }

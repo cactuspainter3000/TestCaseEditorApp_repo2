@@ -13,7 +13,7 @@
 
     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
         <!-- App Title using global WorkspaceTitleText style -->
-        <TextBlock Text="Test Case Editor"
+        <TextBlock Text="{Binding Title}"
                    Style="{StaticResource WorkspaceTitleText}"/>
     </StackPanel>
 </UserControl>

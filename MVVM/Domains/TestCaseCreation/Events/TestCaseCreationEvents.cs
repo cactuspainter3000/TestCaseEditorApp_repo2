@@ -6,7 +6,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Events
     /// <summary>
     /// Domain events for Test Case Creation workflow
     /// </summary>
-    public static class TestCaseCreationEvents
+    public class TestCaseCreationEvents
     {
         /// <summary>
         /// Test case was created by user

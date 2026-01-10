@@ -158,7 +158,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             AnalyzeUnanalyzedCommand = new RelayCommand(() => { /* TODO: Implement analyze unanalyzed */ });
             ReAnalyzeModifiedCommand = new RelayCommand(() => { /* TODO: Implement re-analyze modified */ });
             GenerateAnalysisCommandCommand = new RelayCommand(() => { /* TODO: Implement generate analysis command */ });
-            GenerateTestCaseCommandCommand = new RelayCommand(() => { /* TODO: Implement generate test case command */ });
+            GenerateTestCaseCommandCommand = new RelayCommand(NavigateToTestCaseCreation);
             ToggleAutoExportCommand = new RelayCommand(() => AutoExportForChatGpt = !AutoExportForChatGpt);
             ExportAllToJamaCommand = new AsyncRelayCommand(ExportAllToJamaAsync);
             
@@ -188,6 +188,28 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             SelectedSection = "Project"; // Update selected section to trigger SectionChanged event
             
             _navigationMediator.NavigateToSection("Project");
+        }
+        
+        private void NavigateToTestCaseCreation()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToTestCaseCreation called! ***");
+                Console.WriteLine("*** SideMenuViewModel.NavigateToTestCaseCreation called! ***");
+                
+                Console.WriteLine($"*** Navigating to TestCaseCreation section, current selected: {SelectedSection} ***");
+                SelectedSection = "TestCaseCreation"; // Update selected section to trigger SectionChanged event
+                
+                Console.WriteLine("*** About to call NavigateToSection('TestCaseCreation') ***");
+                _navigationMediator.NavigateToSection("TestCaseCreation");
+                Console.WriteLine("*** NavigateToSection call completed ***");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"*** ERROR in NavigateToTestCaseCreation: {ex.Message} ***");
+                System.Diagnostics.Debug.WriteLine($"*** ERROR in NavigateToTestCaseCreation: {ex.Message} ***");
+                System.Diagnostics.Debug.WriteLine($"*** Stack trace: {ex.StackTrace} ***");
+            }
         }
         
         private async void NavigateToTestCaseGenerator()
@@ -537,6 +559,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 // === TEST CASE CREATION DROPDOWN (as sub-item) ===
                 CreateDropdown("testcase-creation", "⚙️", "Test Case Creation", "Test case generation options",
+                    CreateButton("testcase-creation-main", "🏠", "Test Case Creation", new RelayCommand(NavigateToTestCaseCreation), "Navigate to Test Case Creation workspace"),
                     CreateButton("generate-testcase-command", "⚙️", "Generate Test Case Command", GenerateTestCaseCommandCommand, "Generate test case command for current requirement"),
                     CreateButton("export-to-jama", "📋", "Export to Jama…", ExportAllToJamaCommand, "Export all test cases to Jama")
                 )

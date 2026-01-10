@@ -176,11 +176,36 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             
             // Subscribe to cross-domain requirements import events
             Subscribe<TestCaseGenerationEvents.RequirementsImported>(OnRequirementsImported);
+            
+            // Project title updates will be handled via existing broadcast mechanism
 
             // Initialize HeaderVM directly (no legacy factory needed)
             InitializeHeaderViewModel();
 
             _logger.LogDebug("TestCaseGenerationMediator created with domain '{DomainName}'", _domainName);
+        }
+        
+        /// <summary>
+        /// Update project context for title and header ViewModels
+        /// </summary>
+        public void UpdateProjectContext(string? projectName)
+        {
+            // Broadcast project title change event to all subscribers
+            PublishEvent(new TestCaseGenerationEvents.ProjectTitleChanged
+            {
+                ProjectName = projectName,
+                Source = "ProjectContext",
+                Timestamp = DateTime.Now
+            });
+            
+            // Also update header if it has project tracking
+            if (_headerViewModel != null)
+            {
+                var isProjectOpen = !string.IsNullOrWhiteSpace(projectName);
+                _headerViewModel.UpdateProjectStatus(projectName, isProjectOpen);
+            }
+            
+            _logger.LogDebug("Project context updated: {ProjectName}", projectName ?? "No Project");
         }
 
         /// <summary>
@@ -1220,6 +1245,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 _headerViewModel?.UpdateProjectStatus(projectCreated.WorkspaceName, true);
                 _logger.LogDebug("Updated header with project created: {ProjectName}", projectCreated.WorkspaceName);
                 
+                // Update project title
+                UpdateProjectContext(projectCreated.WorkspaceName);
+                
                 // Load requirements for the created project if workspace data is available
                 if (projectCreated.Workspace != null)
                 {
@@ -1239,6 +1267,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 _headerViewModel?.UpdateProjectStatus(projectOpened.WorkspaceName, true);
                 _logger.LogDebug("Updated header with project opened: {ProjectName}", projectOpened.WorkspaceName);
                 
+                // Update project title
+                UpdateProjectContext(projectOpened.WorkspaceName);
+                
                 // Load requirements for the opened project
                 _logger.LogInformation("🔄 About to load requirements for project: {ProjectName}", projectOpened.WorkspaceName);
                 LoadProjectRequirements(projectOpened.WorkspaceName, projectOpened.Workspace);
@@ -1247,6 +1278,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             {
                 _logger.LogInformation("HandleBroadcast: ProjectClosed - HeaderViewModel: {HeaderViewModel}", 
                     _headerViewModel?.GetType().Name ?? "NULL");
+                    
+                // Update project title to default
+                UpdateProjectContext(null);
+                
                 _headerViewModel?.UpdateProjectStatus(null, false);
                 
                 // Clear requirements collection when project is closed (on UI thread)

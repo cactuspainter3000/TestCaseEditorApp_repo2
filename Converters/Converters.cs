@@ -76,6 +76,38 @@ namespace TestCaseEditorApp.Converters
             => throw new NotImplementedException();
     }
 
+    /// <summary>Converts zero/non-zero values to visibility - zero=collapsed, non-zero=visible</summary>
+    public class ZeroToVisibilityConverter : IValueConverter
+    {
+        public bool Invert { get; set; } = false;
+        
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            var isZero = false;
+            
+            if (value is int intVal)
+                isZero = intVal == 0;
+            else if (value is double doubleVal)
+                isZero = Math.Abs(doubleVal) < 0.001;
+            else if (value is long longVal)
+                isZero = longVal == 0;
+            else if (value is decimal decimalVal)
+                isZero = decimalVal == 0;
+            else if (value == null)
+                isZero = true;
+            else
+                isZero = false;
+                
+            var shouldShow = !isZero;
+            if (Invert) shouldShow = !shouldShow;
+            
+            return shouldShow ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
+    }
+
     public class NullOrEmptyToVisibilityConverter : IValueConverter
     {
         public bool Invert { get; set; } = false;

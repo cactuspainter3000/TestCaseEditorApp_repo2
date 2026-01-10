@@ -4,10 +4,18 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels"
+             xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="800"
              d:DataContext="{d:DesignInstance Type=vm:TestCaseCreationMainVM}"
              Background="{StaticResource Brush.Background.Menu}">
+    
+    <UserControl.Resources>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <conv:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+        <conv:NullToVisibilityConverter Invert="True" x:Key="NotNullToVisibilityConverter" />
+        <conv:ZeroToVisibilityConverter x:Key="ZeroToVisibilityConverter" />
+    </UserControl.Resources>
     
     <Grid Margin="20">
         <Grid.RowDefinitions>
@@ -44,7 +52,12 @@
                 </StackPanel>
 
                 <!-- Action Buttons -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <StackPanel.Resources>
+                        <Style TargetType="Button" BasedOn="{StaticResource Button.Secondary}">
+                            <Setter Property="Margin" Value="0,0,8,0"/>
+                        </Style>
+                    </StackPanel.Resources>
                     <Button Command="{Binding AddTestCaseCommand}"
                             Content="➕ Add Test Case"
                             Style="{StaticResource Button.Primary}"
@@ -65,7 +78,7 @@
 
         <!-- Status Bar -->
         <Border Grid.Row="1"
-                Background="{StaticResource CardBackground}"
+                Background="{StaticResource MenuBackground}"
                 BorderBrush="{StaticResource CardBorderBrush}"
                 BorderThickness="1,0,1,1"
                 Padding="16,8">
@@ -80,7 +93,12 @@
                            Foreground="{StaticResource MenuForeground}"
                            VerticalAlignment="Center"/>
                 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="16">
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <StackPanel.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="Margin" Value="0,0,16,0"/>
+                        </Style>
+                    </StackPanel.Resources>
                     <!-- Unsaved Changes Indicator -->
                     <Border Background="Orange" 
                             CornerRadius="3" 
@@ -200,14 +218,20 @@
                     BorderThickness="0,0,1,1"
                     Padding="16">
                 
-                <!-- Content when test case is selected -->
-                <ScrollViewer VerticalScrollBarVisibility="Auto"
-                              Visibility="{Binding SelectedTestCase, Converter={StaticResource NotNullToVisibilityConverter}}">
-                    <ScrollViewer.Resources>
-                        <Style TargetType="ScrollBar" BasedOn="{StaticResource CustomScrollBarStyle}"/>
-                    </ScrollViewer.Resources>
-                    
-                    <StackPanel Spacing="16">
+                <Grid>
+                    <!-- Content when test case is selected -->
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  Visibility="{Binding SelectedTestCase, Converter={StaticResource NotNullToVisibilityConverter}}">
+                        <ScrollViewer.Resources>
+                            <Style TargetType="ScrollBar" BasedOn="{StaticResource CustomScrollBarStyle}"/>
+                        </ScrollViewer.Resources>
+                        
+                        <StackPanel>
+                            <StackPanel.Resources>
+                                <Style TargetType="Grid">
+                                    <Setter Property="Margin" Value="0,0,0,16"/>
+                                </Style>
+                            </StackPanel.Resources>
                         <!-- Title Editor -->
                         <Grid>
                             <Grid.RowDefinitions>
@@ -290,30 +314,36 @@
                         </Grid>
 
                         <!-- Test Case Actions -->
-                        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <StackPanel.Resources>
+                                <Style TargetType="Button" BasedOn="{StaticResource Button.Secondary}">
+                                    <Setter Property="Margin" Value="0,0,8,0"/>
+                                </Style>
+                            </StackPanel.Resources>
                             <Button Command="{Binding RemoveTestCaseCommand}"
                                     Content="🗑️ Delete"
                                     Style="{StaticResource Button.Secondary}"
                                     ToolTip="Delete this test case"/>
                         </StackPanel>
                     </StackPanel>
-                </ScrollViewer>
-                
-                <!-- Empty State when no test case selected -->
-                <StackPanel VerticalAlignment="Center"
-                            HorizontalAlignment="Center"
-                            Visibility="{Binding SelectedTestCase, Converter={StaticResource NullToVisibilityConverter}}">
-                    <TextBlock Text="📝"
-                               FontSize="48"
-                               HorizontalAlignment="Center"
-                               Opacity="0.3"/>
-                    <TextBlock Text="Select a test case to edit"
-                               FontSize="14"
-                               Foreground="{StaticResource MenuForeground}"
-                               Opacity="0.5"
-                               TextAlignment="Center"
-                               Margin="0,8,0,0"/>
-                </StackPanel>
+                    </ScrollViewer>
+                    
+                    <!-- Empty State when no test case selected -->
+                    <StackPanel VerticalAlignment="Center"
+                                HorizontalAlignment="Center"
+                                Visibility="{Binding SelectedTestCase, Converter={StaticResource NullToVisibilityConverter}}">
+                        <TextBlock Text="📝"
+                                   FontSize="48"
+                                   HorizontalAlignment="Center"
+                                   Opacity="0.3"/>
+                        <TextBlock Text="Select a test case to edit"
+                                   FontSize="14"
+                                   Foreground="{StaticResource MenuForeground}"
+                                   Opacity="0.5"
+                                   TextAlignment="Center"
+                                   Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Grid>
             </Border>
         </Grid>
 

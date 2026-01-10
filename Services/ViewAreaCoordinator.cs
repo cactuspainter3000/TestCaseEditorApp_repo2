@@ -84,6 +84,7 @@ namespace TestCaseEditorApp.Services
                     var configuration = _viewConfigurationService.CurrentConfiguration;
                     if (configuration != null)
                     {
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Publishing configuration for: {configuration.SectionName} with content: {configuration.ContentViewModel?.GetType().Name}");
                         _navigationMediator.Publish(new ViewConfigurationEvents.ApplyViewConfiguration(configuration));
                         TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Configuration applied and published for: {request.SectionName}");
                     }

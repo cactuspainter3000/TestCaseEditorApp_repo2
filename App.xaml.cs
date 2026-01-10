@@ -9,6 +9,7 @@ using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Views;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
@@ -209,6 +210,17 @@ namespace TestCaseEditorApp
                             analysisService, llmService, scrubber, performanceMonitor, eventReplay);
                     });
                     
+                    services.AddSingleton<ITestCaseCreationMediator>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators.TestCaseCreationMediator>>();
+                        var uiCoordinator = provider.GetRequiredService<IDomainUICoordinator>();
+                        var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
+                        var eventReplay = provider.GetService<EventReplayService>();
+                        
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators.TestCaseCreationMediator(
+                            logger, uiCoordinator, performanceMonitor, eventReplay);
+                    });
+
                     services.AddSingleton<ITestFlowMediator>(provider =>
                     {
                         var logger = provider.GetRequiredService<ILogger<TestFlowMediator>>();
@@ -264,11 +276,24 @@ namespace TestCaseEditorApp
                     // NavigationHeaderManagementViewModel and RequirementImportExportViewModel already exist
                     // ChatGptExportAnalysisViewModel is registered in its domain
 
+                    // Test Case Creation domain ViewModels
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreationMainVM>();
+                    
+                    // Test Case Generation domain ViewModels - proper DI registration
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_VM>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementsWorkspaceViewModel>();
+
                     // Core application services
                     services.AddSingleton<ChatGptExportService>();
                     
                     // View configuration service for new navigation pattern
-                    services.AddSingleton<IViewConfigurationService, ViewConfigurationService>();
+                    services.AddSingleton<IViewConfigurationService>(provider =>
+                    {
+                        var workspaceManagementMediator = provider.GetRequiredService<IWorkspaceManagementMediator>();
+                        var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
+                        var testCaseCreationMediator = provider.GetRequiredService<ITestCaseCreationMediator>();
+                        return new ViewConfigurationService(workspaceManagementMediator, testCaseGenerationMediator, testCaseCreationMediator);
+                    });
                     
                     services.AddSingleton<IViewModelFactory>(provider =>
                     {
@@ -316,6 +341,9 @@ namespace TestCaseEditorApp
                 var testCaseGenMediator = _host.Services.GetRequiredService<ITestCaseGenerationMediator>();
                 testCaseGenMediator.MarkAsRegistered();
                 
+                var testCaseCreationMediator = _host.Services.GetRequiredService<ITestCaseCreationMediator>();
+                testCaseCreationMediator.MarkAsRegistered();
+                
                 var testFlowMediator = _host.Services.GetRequiredService<ITestFlowMediator>();
                 testFlowMediator.MarkAsRegistered();
                 
@@ -333,6 +361,7 @@ namespace TestCaseEditorApp
                 TestCaseEditorApp.MVVM.Utils.BaseDomainMediatorBase.SetDomainCoordinator(domainCoordinator);
                 
                 domainCoordinator.RegisterDomainMediator("TestCaseGeneration", testCaseGenMediator);
+                domainCoordinator.RegisterDomainMediator("TestCaseCreation", testCaseCreationMediator);
                 domainCoordinator.RegisterDomainMediator("TestFlow", testFlowMediator);
                 
                 // Register any extension-provided domain mediators

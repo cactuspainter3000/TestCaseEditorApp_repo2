@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Events;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Models;
@@ -17,11 +18,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators
         private bool _hasUnsavedChanges;
         
         public TestCaseCreationMediator(
-            IDomainUICoordinator uiCoordinator,
             ILogger<TestCaseCreationMediator> logger,
+            IDomainUICoordinator uiCoordinator,
             PerformanceMonitoringService? performanceMonitor = null,
             EventReplayService? eventReplay = null)
-            : base("TestCaseCreation", uiCoordinator, logger, performanceMonitor, eventReplay)
+            : base(logger, uiCoordinator, "TestCaseCreation", performanceMonitor, eventReplay)
         {
             _logger.LogDebug("TestCaseCreationMediator initialized");
         }
@@ -31,7 +32,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators
         /// <summary>
         /// Subscribe to TestCaseCreation domain events
         /// </summary>
-        public void Subscribe<T>(Action<T> handler) where T : class
+        public new void Subscribe<T>(Action<T> handler) where T : class
         {
             base.Subscribe(handler);
         }
@@ -39,7 +40,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators
         /// <summary>
         /// Unsubscribe from TestCaseCreation domain events
         /// </summary>
-        public void Unsubscribe<T>(Action<T> handler) where T : class
+        public new void Unsubscribe<T>(Action<T> handler) where T : class
         {
             base.Unsubscribe(handler);
         }
@@ -47,9 +48,34 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators
         /// <summary>
         /// Publish events within TestCaseCreation domain
         /// </summary>
-        public void PublishEvent<T>(T eventData) where T : class
+        public new void PublishEvent<T>(T eventData) where T : class
         {
             base.PublishEvent(eventData);
+        }
+
+        // Abstract method implementations required by BaseDomainMediator
+        public override void NavigateToInitialStep()
+        {
+            // Navigate to main test case creation view
+            _logger.LogInformation("Navigating to initial Test Case Creation step");
+        }
+
+        public override void NavigateToFinalStep()
+        {
+            // Navigate to final step (save/export)
+            _logger.LogInformation("Navigating to final Test Case Creation step");
+        }
+
+        public override bool CanNavigateBack()
+        {
+            // TestCaseCreation is a single-step domain
+            return false;
+        }
+
+        public override bool CanNavigateForward()
+        {
+            // TestCaseCreation is a single-step domain
+            return false;
         }
 
         // === TEST CASE OPERATIONS ===
@@ -138,8 +164,15 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators
                 
                 // Update requirement
                 requirement.GeneratedTestCases?.Clear();
-                requirement.GeneratedTestCases ??= new List<TestCase>();
-                requirement.GeneratedTestCases.AddRange(domainTestCases);
+                if (requirement.GeneratedTestCases == null)
+                {
+                    requirement.GeneratedTestCases = new ObservableCollection<TestCase>();
+                }
+                
+                foreach (var testCase in domainTestCases)
+                {
+                    requirement.GeneratedTestCases.Add(testCase);
+                }
                 
                 // Mark test cases as clean
                 foreach (var testCase in testCaseList)
