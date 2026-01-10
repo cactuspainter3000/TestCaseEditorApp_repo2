@@ -26,6 +26,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         private new readonly ITestCaseGenerationMediator _mediator;
         private readonly ITextGenerationService? _llmService;
         private readonly IRequirementAnalysisService _analysisService;
+        private readonly IEditDetectionService? _editDetectionService;
         private Requirement? _currentRequirement;
         
         // Analysis timer tracking
@@ -117,11 +118,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             }
         }
 
-        public TestCaseGenerator_AnalysisVM(ITestCaseGenerationMediator mediator, ILogger<TestCaseGenerator_AnalysisVM> logger, IRequirementAnalysisService analysisService, ITextGenerationService? llmService = null)
+        public TestCaseGenerator_AnalysisVM(ITestCaseGenerationMediator mediator, ILogger<TestCaseGenerator_AnalysisVM> logger, IRequirementAnalysisService analysisService, IEditDetectionService? editDetectionService = null, ITextGenerationService? llmService = null)
             : base(mediator, logger)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _analysisService = analysisService ?? throw new ArgumentNullException(nameof(analysisService));
+            _editDetectionService = editDetectionService;
             _llmService = llmService;
 
             // Subscribe to domain events
@@ -340,6 +342,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 {
                     requirement.Analysis.ImprovedRequirement = newImprovedText;
                     
+                    // Check for learning feedback if we have significant changes
+                    _ = CheckForLearningFeedbackAsync(originalImprovedText, newImprovedText, "improved requirement");
+                    
                     // Publish event that requirement was updated
                     _mediator.PublishEvent(new TestCaseGenerationEvents.RequirementSelected 
                     { 
@@ -372,6 +377,30 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnalysisVM] Error in SaveRequirementEdit");
+            }
+        }
+
+        /// <summary>
+        /// Check if user edit should trigger learning feedback
+        /// </summary>
+        private async System.Threading.Tasks.Task CheckForLearningFeedbackAsync(string originalText, string editedText, string context)
+        {
+            try
+            {
+                // Only check if we have edit detection service
+                if (_editDetectionService == null)
+                    return;
+
+                // Skip if either text is empty
+                if (string.IsNullOrWhiteSpace(originalText) || string.IsNullOrWhiteSpace(editedText))
+                    return;
+
+                // Trigger learning feedback detection
+                await _editDetectionService.ProcessTextEditAsync(originalText, editedText, context);
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnalysisVM] Error checking for learning feedback");
             }
         }
 

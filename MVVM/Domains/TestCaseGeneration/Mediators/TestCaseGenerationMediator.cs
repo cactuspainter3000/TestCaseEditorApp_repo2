@@ -1083,34 +1083,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             if ((_headerViewModel == null && _titleViewModel == null) || workspaceMediator == null) return;
 
             // Wire commands to both header and title ViewModels
-            if (_headerViewModel != null)
-            {
-                _headerViewModel.SaveWorkspaceCommand = new AsyncRelayCommand(
-                    async () => 
-                    {
-                        System.Diagnostics.Debug.WriteLine("[HeaderVM] Save button clicked!");
-                        try
-                        {
-                            await workspaceMediator.SaveProjectAsync();
-                            System.Diagnostics.Debug.WriteLine("[HeaderVM] Save completed successfully");
-                            
-                            // Set mediator's dirty state - this will broadcast WorkflowStateChanged event
-                            IsDirty = false;
-                            System.Diagnostics.Debug.WriteLine("[Mediator] IsDirty set to false - broadcasting state change");
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[HeaderVM] Save failed: {ex.Message}");
-                        }
-                    });
-                
-                _headerViewModel.UndoLastSaveCommand = new AsyncRelayCommand(
-                    async () => 
-                    {
-                        await workspaceMediator.UndoLastSaveAsync();
-                    }, 
-                    () => workspaceMediator.CanUndoLastSave());
-            }
+            // DEPRECATED: HeaderVM save commands removed - functionality moved to TitleWorkspace
+            // if (_headerViewModel != null)
+            // {
+            //     _headerViewModel.SaveWorkspaceCommand = new AsyncRelayCommand(...);
+            //     _headerViewModel.UndoLastSaveCommand = new AsyncRelayCommand(...);
+            // }
             
             if (_titleViewModel != null)
             {

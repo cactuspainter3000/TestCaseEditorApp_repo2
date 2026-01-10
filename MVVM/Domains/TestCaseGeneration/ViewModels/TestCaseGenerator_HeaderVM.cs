@@ -27,7 +27,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
     public partial class TestCaseGenerator_HeaderVM : ObservableObject, IDisposable
     {
         private readonly ITestCaseGenerationMediator? _mediator;
+        private readonly IEditDetectionService? _editDetectionService;
         private bool _isLoadingRequirement = false;
+        private string? _originalLLMText = null; // Track original LLM-generated text for learning feedback
 
         // ==================== State Properties ====================
         
@@ -107,11 +109,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         // ==================== Constructor ====================
         
-        public TestCaseGenerator_HeaderVM(ITestCaseGenerationMediator? mediator = null) 
+        public TestCaseGenerator_HeaderVM(ITestCaseGenerationMediator? mediator = null, IEditDetectionService? editDetectionService = null) 
         {
             System.Diagnostics.Debug.WriteLine($"[HeaderVM] Constructor START: mediator={(mediator != null ? "NOT NULL" : "NULL")}");
             
             _mediator = mediator;
+            _editDetectionService = editDetectionService;
             
             System.Diagnostics.Debug.WriteLine($"[HeaderVM] Constructor END: mediator initialized");
             
@@ -193,6 +196,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 {
                     StatusMessage = string.Empty;
                 }
+                
+                // Check for learning feedback if this is a user edit of LLM-generated text
+                _ = CheckForLearningFeedbackAsync(value);
             }
             
             // Mark workspace dirty when requirement description changes
@@ -202,6 +208,43 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 _mediator.IsDirty = true;
                 TestCaseEditorApp.Services.Logging.Log.Debug("[Header] Requirement description changed - marked workspace dirty");
             }
+        }
+
+        /// <summary>
+        /// Check if user edit should trigger learning feedback
+        /// </summary>
+        private async System.Threading.Tasks.Task CheckForLearningFeedbackAsync(string newText)
+        {
+            try
+            {
+                // Only check if we have edit detection service and original LLM text
+                if (_editDetectionService == null || string.IsNullOrEmpty(_originalLLMText))
+                    return;
+
+                // Skip if we're loading a requirement (not a user edit)
+                if (_isLoadingRequirement)
+                    return;
+
+                // Trigger learning feedback detection
+                await _editDetectionService.ProcessTextEditAsync(_originalLLMText, newText, "requirement description");
+                
+                // Clear the original text after processing to avoid repeated triggers
+                _originalLLMText = null;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[Header] Error checking for learning feedback");
+            }
+        }
+
+        /// <summary>
+        /// Set requirement description from LLM-generated suggestion
+        /// This tracks the original text for learning feedback comparison
+        /// </summary>
+        public void SetRequirementDescriptionFromLLM(string text, string originalLLMText)
+        {
+            _originalLLMText = originalLLMText;
+            RequirementDescription = text;
         }
 
         partial void OnRequirementMethodEnumChanged(VerificationMethod? value)

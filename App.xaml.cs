@@ -143,6 +143,11 @@ namespace TestCaseEditorApp
                         new AnythingLLMService()); // Let it get baseUrl and apiKey from defaults/user config
                     services.AddSingleton<TestCaseAnythingLLMService>();
                     
+                    // LLM Learning Feedback Services
+                    services.AddSingleton<ITextSimilarityService, TextSimilarityService>();
+                    services.AddSingleton<ILLMLearningService, LLMLearningService>();
+                    services.AddSingleton<IEditDetectionService, EditDetectionService>();
+                    
                     // Jama Connect integration service
                     services.AddSingleton<JamaConnectService>(provider =>
                     {
