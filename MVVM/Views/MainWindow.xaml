@@ -156,7 +156,7 @@
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:PlaceholderViewModel}">
-            <Border Padding="10" Background="White" CornerRadius="6">
+            <Border Padding="10" Background="Transparent" CornerRadius="6">
                 <TextBlock Text="{Binding Title}" FontSize="16" VerticalAlignment="Center" HorizontalAlignment="Center" />
             </Border>
         </DataTemplate>
@@ -384,6 +384,8 @@
                         
                         <Grid VerticalAlignment="Center" HorizontalAlignment="Right">
                             <Grid.ColumnDefinitions>
+                                <!-- Save Status button -->
+                                <ColumnDefinition Width="Auto"/>
                                 <!-- Undo button -->
                                 <ColumnDefinition Width="Auto"/>
                                 <!-- Minimize, Maximize, Close -->
@@ -392,13 +394,36 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <!-- Undo last save button - integrated with window controls -->
+                            <!-- Save Status button - clean icon only -->
                             <Button Grid.Column="0"
+                                    Command="{Binding HeaderWorkspace.SaveWorkspaceCommand}"
+                                    ToolTip="{Binding HeaderWorkspace.LastSaveTimestamp}"
+                                    Visibility="{Binding HeaderWorkspace.WorkspaceFilePath, Converter={StaticResource NullToVisibilityConverter}}"
+                                    Style="{StaticResource MainWindowButtonControls}">
+                                <TextBlock FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="&#xE74E;"/> <!-- Save icon -->
+                                            <Setter Property="Foreground" Value="#4CAF50"/> <!-- Green = Saved -->
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HeaderWorkspace.IsDirty}" Value="True">
+                                                    <Setter Property="Text" Value="&#xE734;"/> <!-- Warning icon -->
+                                                    <Setter Property="Foreground" Value="#FF9800"/> <!-- Orange = Unsaved -->
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Button>
+
+                            <!-- Undo last save button - always visible but enabled/disabled -->
+                            <Button Grid.Column="1"
                                     Style="{StaticResource MainWindowButtonControls}"
                                     Command="{Binding HeaderWorkspace.UndoLastSaveCommand}"
-                                    Visibility="{Binding HeaderWorkspace.CanUndoLastSave, Converter={StaticResource BoolToVisibilityConverter}}"
-                                    ToolTip="Undo last save operation"
-                                    Margin="0,0,8,0">
+                                    IsEnabled="{Binding HeaderWorkspace.CanUndoLastSave}"
+                                    ToolTip="Undo last save operation">
                                 <TextBlock Text="&#xE7A7;"
                                            FontFamily="Segoe MDL2 Assets"
                                            FontSize="14"
@@ -406,7 +431,7 @@
                             </Button>
 
                             <!-- Minimize -->
-                            <Button Grid.Column="1"
+                            <Button Grid.Column="2"
                                     Style="{StaticResource MainWindowButtonControls}"
                                     Click="ButtonMinimize_Click">
                                 <TextBlock Text="&#xE90F;"
@@ -416,7 +441,7 @@
                             </Button>
 
                             <!-- Maximize/Restore -->
-                            <Button Grid.Column="2"
+                            <Button Grid.Column="3"
                                     Style="{StaticResource MainWindowButtonControls}"
                                     Click="WindowStateButton_Click"
                                     Margin="4,0">
@@ -427,7 +452,7 @@
                             </Button>
 
                             <!-- Close -->
-                            <Button Grid.Column="3"
+                            <Button Grid.Column="4"
                                     Style="{StaticResource MainWindowCloseButton}"
                                     Click="CloseButton_Click"
                                     Margin="4,0">

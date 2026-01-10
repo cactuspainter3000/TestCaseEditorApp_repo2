@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
+using TestCaseEditorApp.MVVM.Events;
 using System;
 using System.Threading.Tasks;
 using System.Windows;
@@ -14,6 +15,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
     /// </summary>
     public partial class TestCaseGenerator_TitleVM : ObservableObject
     {
+        private readonly ITestCaseGenerationMediator _mediator;
+        
         // ==================== Observable Properties ====================
         
         [ObservableProperty] 
@@ -31,6 +34,15 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         [ObservableProperty] 
         private DateTime? lastSavedTimestamp;
 
+        // ==================== Computed Properties ====================
+        
+        /// <summary>
+        /// Formatted timestamp for display in window controls
+        /// </summary>
+        public string LastSaveTimestamp => LastSavedTimestamp.HasValue 
+            ? LastSavedTimestamp.Value.ToString("HH:mm:ss")
+            : "No saves";
+
         // ==================== Commands ====================
         
         public IAsyncRelayCommand? SaveWorkspaceCommand { get; set; }
@@ -40,6 +52,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         
         public TestCaseGenerator_TitleVM(ITestCaseGenerationMediator mediator)
         {
+            _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
+            
+            // Subscribe to workflow state changes to update save status
+            _mediator.Subscribe<TestCaseGenerationEvents.WorkflowStateChanged>(OnWorkflowStateChanged);
+            
             // Initialize save state
             SaveStatusText = "No changes";
             LastSavedTimestamp = null;
@@ -71,6 +88,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             if (wasDirty && !IsDirty)
             {
                 LastSavedTimestamp = DateTime.Now;
+                OnPropertyChanged(nameof(LastSaveTimestamp)); // Notify computed property
                 SaveStatusText = $"Saved {LastSavedTimestamp:HH:mm:ss}";
             }
             else if (IsDirty)
@@ -82,6 +100,34 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 SaveStatusText = LastSavedTimestamp.HasValue 
                     ? $"Saved {LastSavedTimestamp:HH:mm:ss}"
                     : "No changes";
+            }
+        }
+        
+        /// <summary>
+        /// Handle workflow state changes from the domain mediator
+        /// </summary>
+        private void OnWorkflowStateChanged(TestCaseGenerationEvents.WorkflowStateChanged e)
+        {
+            // Update IsDirty state when the domain's dirty state changes
+            if (e.PropertyName == nameof(ITestCaseGenerationMediator.IsDirty) && e.NewValue is bool isDirty)
+            {
+                var wasDirty = IsDirty;
+                IsDirty = isDirty;
+                
+                // Update status text based on new dirty state
+                if (IsDirty)
+                {
+                    SaveStatusText = "Unsaved changes";
+                }
+                else if (wasDirty && !IsDirty) 
+                {
+                    // Transitioning from dirty to clean (save completed)
+                    LastSavedTimestamp = DateTime.Now;
+                    OnPropertyChanged(nameof(LastSaveTimestamp));
+                    SaveStatusText = $"Saved {LastSavedTimestamp:HH:mm:ss}";
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"[TitleVM] WorkflowStateChanged: IsDirty={IsDirty}, SaveStatusText={SaveStatusText}");
             }
         }
     }

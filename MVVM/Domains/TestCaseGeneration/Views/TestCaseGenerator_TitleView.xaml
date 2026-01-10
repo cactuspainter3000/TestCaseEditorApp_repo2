@@ -15,58 +15,5 @@
         <!-- App Title using global WorkspaceTitleText style -->
         <TextBlock Text="Test Case Editor"
                    Style="{StaticResource WorkspaceTitleText}"/>
-        
-        <!-- Save Indicator -->
-        <Button Padding="8,4"
-                Background="Transparent"
-                BorderThickness="0"
-                VerticalAlignment="Center"
-                Command="{Binding SaveWorkspaceCommand}"
-                ToolTip="{Binding SaveStatusText}"
-                Visibility="{Binding WorkspaceFilePath, Converter={StaticResource NullToVisibilityConverter}}">
-            <Button.Style>
-                <Style TargetType="Button">
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="Button">
-                                <Border Background="{TemplateBinding Background}"
-                                        Padding="{TemplateBinding Padding}"
-                                        CornerRadius="3">
-                                    <ContentPresenter />
-                                </Border>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                    <Style.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="#15FFFFFF"/>
-                        </Trigger>
-                    </Style.Triggers>
-                </Style>
-            </Button.Style>
-            <StackPanel Orientation="Horizontal" Opacity="0.8">
-                <TextBlock FontFamily="Segoe MDL2 Assets"
-                           FontSize="14"
-                           VerticalAlignment="Center"
-                           Margin="0,0,6,0">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="Text" Value="&#xE74E;"/> <!-- Save icon -->
-                            <Setter Property="Foreground" Value="#4CAF50"/> <!-- Green = Saved -->
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsDirty}" Value="True">
-                                    <Setter Property="Text" Value="&#xE734;"/> <!-- Warning icon -->
-                                    <Setter Property="Foreground" Value="#FF9800"/> <!-- Orange = Unsaved -->
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
-                <TextBlock Text="{Binding SaveStatusText}"
-                           VerticalAlignment="Center"
-                           FontSize="12"
-                           Foreground="#666"/>
-            </StackPanel>
-        </Button>
     </StackPanel>
 </UserControl>

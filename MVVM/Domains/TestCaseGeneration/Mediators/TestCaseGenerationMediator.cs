@@ -74,15 +74,22 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             get => _isDirty; 
             set 
             { 
+                System.Diagnostics.Debug.WriteLine($"[TestCaseGenerationMediator] IsDirty setter called: {_isDirty} → {value}");
                 if (_isDirty != value) 
                 { 
                     _isDirty = value;
-                    PublishEvent(new TestCaseGenerationEvents.WorkflowStateChanged 
+                    var evt = new TestCaseGenerationEvents.WorkflowStateChanged 
                     { 
                         PropertyName = nameof(IsDirty), 
                         NewValue = value 
-                    });
+                    };
+                    System.Diagnostics.Debug.WriteLine($"[TestCaseGenerationMediator] Publishing WorkflowStateChanged event: PropertyName={evt.PropertyName}, NewValue={evt.NewValue}");
+                    PublishEvent(evt);
                     _logger.LogDebug("IsDirty changed to: {IsDirty}", value);
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[TestCaseGenerationMediator] IsDirty value unchanged, not publishing event");
                 }
             } 
         }
@@ -1081,17 +1088,26 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 _headerViewModel.SaveWorkspaceCommand = new AsyncRelayCommand(
                     async () => 
                     {
-                        await workspaceMediator.SaveProjectAsync();
-                        _headerViewModel.UpdateSaveStatus(workspaceMediator);
-                        _titleViewModel?.UpdateSaveStatus(workspaceMediator);
+                        System.Diagnostics.Debug.WriteLine("[HeaderVM] Save button clicked!");
+                        try
+                        {
+                            await workspaceMediator.SaveProjectAsync();
+                            System.Diagnostics.Debug.WriteLine("[HeaderVM] Save completed successfully");
+                            
+                            // Set mediator's dirty state - this will broadcast WorkflowStateChanged event
+                            IsDirty = false;
+                            System.Diagnostics.Debug.WriteLine("[Mediator] IsDirty set to false - broadcasting state change");
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[HeaderVM] Save failed: {ex.Message}");
+                        }
                     });
                 
                 _headerViewModel.UndoLastSaveCommand = new AsyncRelayCommand(
                     async () => 
                     {
                         await workspaceMediator.UndoLastSaveAsync();
-                        _headerViewModel.UpdateSaveStatus(workspaceMediator);
-                        _titleViewModel?.UpdateSaveStatus(workspaceMediator);
                     }, 
                     () => workspaceMediator.CanUndoLastSave());
             }
@@ -1102,39 +1118,18 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                     async () => 
                     {
                         await workspaceMediator.SaveProjectAsync();
-                        _headerViewModel?.UpdateSaveStatus(workspaceMediator);
-                        _titleViewModel.UpdateSaveStatus(workspaceMediator);
                     });
                 
                 _titleViewModel.UndoLastSaveCommand = new AsyncRelayCommand(
                     async () => 
                     {
                         await workspaceMediator.UndoLastSaveAsync();
-                        _headerViewModel?.UpdateSaveStatus(workspaceMediator);
-                        _titleViewModel.UpdateSaveStatus(workspaceMediator);
                     }, 
                     () => workspaceMediator.CanUndoLastSave());
             }
 
-            // Subscribe to workspace events to keep undo state current
-            Subscribe<WorkspaceManagementEvents.ProjectSaved>(e => 
-            {
-                Application.Current?.Dispatcher.BeginInvoke(() => 
-                {
-                    _headerViewModel?.UpdateSaveStatus(workspaceMediator);
-                    _titleViewModel?.UpdateSaveStatus(workspaceMediator);
-                });
-            });
+            // Cross-domain event subscriptions removed - ViewModels manage their own state directly
             
-            Subscribe<WorkspaceManagementEvents.ProjectOpened>(e => 
-            {
-                Application.Current?.Dispatcher.BeginInvoke(() => 
-                {
-                    _headerViewModel?.UpdateSaveStatus(workspaceMediator);
-                    _titleViewModel?.UpdateSaveStatus(workspaceMediator);
-                });
-            });
-
             // Subscribe to internal workflow state changes to forward dirty state to workspace
             Subscribe<TestCaseGenerationEvents.WorkflowStateChanged>(e =>
             {
@@ -1150,14 +1145,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                             ChangeType = "RequirementDataChanged", 
                             OriginatingDomain = "TestCaseGeneration"
                         });
-                        _headerViewModel?.UpdateSaveStatus(workspaceMediator);
-                        _titleViewModel?.UpdateSaveStatus(workspaceMediator);
                     });
                 }
             });
 
-            // Initialize state
-            _headerViewModel.UpdateSaveStatus(workspaceMediator);
+            // ViewModels handle their own initialization via constructor
             
             _logger.LogDebug("Workspace commands wired to TestCaseGenerator_HeaderVM");
         }

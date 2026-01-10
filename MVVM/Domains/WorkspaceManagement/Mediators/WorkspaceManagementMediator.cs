@@ -334,10 +334,16 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 _currentWorkspaceInfo.HasUnsavedChanges = false;
                 _currentWorkspaceInfo.LastModified = DateTime.Now;
                 
-                PublishEvent(new WorkspaceManagementEvents.ProjectSaved 
+                var projectSavedEvent = new WorkspaceManagementEvents.ProjectSaved 
                 { 
                     WorkspacePath = _currentWorkspaceInfo.Path 
-                });
+                };
+                
+                // Publish locally within WorkspaceManagement domain
+                PublishEvent(projectSavedEvent);
+                
+                // Broadcast to all domains for cross-domain coordination
+                BroadcastToAllDomains(projectSavedEvent);
                 
                 ShowNotification("Project saved successfully", DomainNotificationType.Success);
                 HideProgress();

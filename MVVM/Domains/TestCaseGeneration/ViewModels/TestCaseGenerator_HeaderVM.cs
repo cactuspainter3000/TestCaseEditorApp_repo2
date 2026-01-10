@@ -15,6 +15,7 @@ using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Events;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
@@ -85,11 +86,42 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         public ICommand? HelpCommand { get; set; }
         
         // State properties for header bindings
-        [ObservableProperty] private bool isDirty;
+        private bool _isDirty;
+        public bool IsDirty 
+        { 
+            get => _isDirty;
+            set 
+            {
+                System.Diagnostics.Debug.WriteLine($"[HeaderVM] IsDirty property setter called: {_isDirty} → {value}");
+                if (SetProperty(ref _isDirty, value))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[HeaderVM] IsDirty property changed successfully to: {value}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[HeaderVM] IsDirty property value unchanged");
+                }
+            }
+        }
         [ObservableProperty] private bool canUndoLastSave;
         [ObservableProperty] private string? workspaceFilePath;
         [ObservableProperty] private DateTime? lastSavedTimestamp;
         [ObservableProperty] private string saveStatusText = "";
+
+        /// <summary>
+        /// Formatted timestamp for display in window controls
+        /// </summary>
+        public string LastSaveTimestamp 
+        { 
+            get 
+            {
+                var result = LastSavedTimestamp.HasValue 
+                    ? LastSavedTimestamp.Value.ToString("HH:mm:ss")
+                    : "No saves";
+                System.Diagnostics.Debug.WriteLine($"[HeaderVM] LastSaveTimestamp getter called: returning '{result}', LastSavedTimestamp={LastSavedTimestamp}");
+                return result;
+            }
+        }
 
         // Expose this ViewModel as DataContext for XAML binding compatibility
         public object DataContext => this;
@@ -118,15 +150,34 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         
         public TestCaseGenerator_HeaderVM(ITestCaseGenerationMediator? mediator = null) 
         {
+            System.Diagnostics.Debug.WriteLine($"[HeaderVM] Constructor START: mediator={(mediator != null ? "NOT NULL" : "NULL")}");
+            
             _mediator = mediator;
             
+            // Subscribe to workflow state changes to update save status
+            if (_mediator != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[HeaderVM] Mediator available, subscribing to events");
+                _mediator.Subscribe<TestCaseGenerationEvents.WorkflowStateChanged>(OnWorkflowStateChanged);
+                
+                // Initialize with current mediator state
+                var mediatorIsDirty = _mediator.IsDirty;
+                System.Diagnostics.Debug.WriteLine($"[HeaderVM] Reading mediator IsDirty state: {mediatorIsDirty}");
+                IsDirty = mediatorIsDirty;
+                System.Diagnostics.Debug.WriteLine($"[HeaderVM] Set HeaderVM IsDirty to: {IsDirty}");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[HeaderVM] WARNING: Mediator is NULL - cannot initialize IsDirty state!");
+            }
+            
             // Initialize timestamp state
-            SaveStatusText = "";
+            SaveStatusText = IsDirty ? "Unsaved changes" : "";
             LastSavedTimestamp = null;
             
             // Make save indicator visible immediately
             WorkspaceFilePath = "project";
-            System.Diagnostics.Debug.WriteLine($"[HeaderVM] Constructor: WorkspaceFilePath={WorkspaceFilePath}");
+            System.Diagnostics.Debug.WriteLine($"[HeaderVM] Constructor END: WorkspaceFilePath={WorkspaceFilePath}, IsDirty={IsDirty}, SaveStatusText='{SaveStatusText}'");
             
             // Subscribe to AnythingLLM status updates (follows same pattern as SideMenuViewModel)
             AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusUpdated;
@@ -162,45 +213,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             });
         }
 
-        /// <summary>
-        /// Update save status from workspace management mediator
-        /// </summary>
-        public void UpdateSaveStatus(IWorkspaceManagementMediator mediator)
-        {
-            ArgumentNullException.ThrowIfNull(mediator);
-            
-            var wasDirty = IsDirty;
-            IsDirty = mediator.HasUnsavedChanges();
-            CanUndoLastSave = mediator.CanUndoLastSave();
 
-            // Set workspace file path so save button is visible
-            // TODO: Get actual workspace path from mediator when available
-            WorkspaceFilePath = "project"; // Non-null value to show save button
-            
-            System.Diagnostics.Debug.WriteLine($"[HeaderVM] UpdateSaveStatus: IsDirty={IsDirty}, WorkspaceFilePath={WorkspaceFilePath}, HasUnsavedChanges={mediator.HasUnsavedChanges()}");
-
-            // Update timestamp and status text when transitioning from dirty to clean (save completed)
-            if (wasDirty && !IsDirty)
-            {
-                LastSavedTimestamp = DateTime.Now;
-                SaveStatusText = $"Saved {LastSavedTimestamp:HH:mm:ss}";
-            }
-            else if (IsDirty)
-            {
-                SaveStatusText = "Unsaved changes";
-            }
-            else if (LastSavedTimestamp.HasValue)
-            {
-                SaveStatusText = $"Saved {LastSavedTimestamp:HH:mm:ss}";
-            }
-            else
-            {
-                SaveStatusText = "";
-            }
-
-            // Update command can-execute states
-            ((AsyncRelayCommand?)UndoLastSaveCommand)?.NotifyCanExecuteChanged();
-        }
         
         // ==================== Property Change Handlers ====================
 
@@ -345,6 +358,49 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 _isLoadingRequirement = false;
             }
         }
+        
+        /// <summary>
+        /// Handle workflow state changes from the domain mediator
+        /// </summary>
+        private void OnWorkflowStateChanged(TestCaseGenerationEvents.WorkflowStateChanged e)
+        {
+            System.Diagnostics.Debug.WriteLine($"[HeaderVM] OnWorkflowStateChanged received: PropertyName={e.PropertyName}, NewValue={e.NewValue}");
+            
+            // Update IsDirty state when the domain's dirty state changes
+            if (e.PropertyName == nameof(ITestCaseGenerationMediator.IsDirty) && e.NewValue is bool isDirty)
+            {
+                System.Diagnostics.Debug.WriteLine($"[HeaderVM] Processing IsDirty change: from {IsDirty} to {isDirty}");
+                
+                var wasDirty = IsDirty;
+                IsDirty = isDirty;
+                
+                // Update status text based on new dirty state
+                if (IsDirty)
+                {
+                    SaveStatusText = "Unsaved changes";
+                    System.Diagnostics.Debug.WriteLine($"[HeaderVM] Set to dirty: SaveStatusText={SaveStatusText}");
+                }
+                else if (wasDirty && !IsDirty) 
+                {
+                    // Transitioning from dirty to clean (save completed)
+                    LastSavedTimestamp = DateTime.Now;
+                    OnPropertyChanged(nameof(LastSaveTimestamp)); // Notify computed property
+                    SaveStatusText = $"Saved {LastSavedTimestamp:HH:mm:ss}";
+                    System.Diagnostics.Debug.WriteLine($"[HeaderVM] Set to clean: SaveStatusText={SaveStatusText}");
+                }
+                
+                // Ensure save controls are visible and configured
+                WorkspaceFilePath = "project"; // Non-null to show save button
+                CanUndoLastSave = true; // Simple implementation for now
+                
+                System.Diagnostics.Debug.WriteLine($"[HeaderVM] Final state: IsDirty={IsDirty}, SaveStatusText={SaveStatusText}");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[HeaderVM] Ignoring event - PropertyName mismatch or wrong value type");
+            }
+        }
+        
         // ==================== Disposal ====================
         
         public void Dispose()
