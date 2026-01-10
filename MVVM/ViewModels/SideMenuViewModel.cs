@@ -83,8 +83,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand BatchAnalyzeCommand { get; private set; } = null!;
         public ICommand AnalyzeUnanalyzedCommand { get; private set; } = null!;
         public ICommand ReAnalyzeModifiedCommand { get; private set; } = null!;
-        public ICommand PasteChatGptAnalysisCommand { get; private set; } = null!;
-        public ICommand SetupLlmWorkspaceCommand { get; private set; } = null!;
         public ICommand GenerateAnalysisCommandCommand { get; private set; } = null!;
         public ICommand GenerateTestCaseCommandCommand { get; private set; } = null!;
         public ICommand ToggleAutoExportCommand { get; private set; } = null!;
@@ -159,14 +157,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             BatchAnalyzeCommand = new RelayCommand(() => { /* TODO: Implement batch analyze */ }, CanAnalyzeRequirements);
             AnalyzeUnanalyzedCommand = new RelayCommand(() => { /* TODO: Implement analyze unanalyzed */ });
             ReAnalyzeModifiedCommand = new RelayCommand(() => { /* TODO: Implement re-analyze modified */ });
-            PasteChatGptAnalysisCommand = new RelayCommand(() => { /* TODO: Implement paste ChatGPT analysis */ });
-            SetupLlmWorkspaceCommand = new RelayCommand(() => { /* TODO: Implement setup LLM workspace */ });
             GenerateAnalysisCommandCommand = new RelayCommand(() => { /* TODO: Implement generate analysis command */ });
             GenerateTestCaseCommandCommand = new RelayCommand(() => { /* TODO: Implement generate test case command */ });
             ToggleAutoExportCommand = new RelayCommand(() => AutoExportForChatGpt = !AutoExportForChatGpt);
-            OpenChatGptExportCommand = new RelayCommand(() => { /* TODO: Implement open ChatGPT export */ });
             ExportAllToJamaCommand = new AsyncRelayCommand(ExportAllToJamaAsync);
-            ExportForChatGptCommand = new AsyncRelayCommand(ExportForChatGptAsync);
             
             // Demo command for testing state management
             DemoStateManagementCommand = new RelayCommand(DemoStateManagement);
@@ -491,35 +485,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
         
         /// <summary>
-        /// Enhanced export command with state feedback
-        /// </summary>
-        private async Task ExportForChatGptAsync()
-        {
-            // TODO: Implement export progress indication with MenuAction system
-            // UpdateMenuItemState("analysis.export", badge: "⏳");
-            
-            try
-            {
-                await Task.Delay(2000); // Simulate work
-                // TODO: Show success badge with MenuAction system
-                // UpdateMenuItemState("analysis.export", badge: "✅");
-                PublishGlobalStateChange("Export completed");
-                
-                // Clear status after 3 seconds
-                await Task.Delay(3000);
-                // TODO: Clear badge with MenuAction system
-                // UpdateMenuItemState("analysis.export", badge: null);
-            }
-            catch
-            {
-                // TODO: Show error badge with MenuAction system
-                // UpdateMenuItemState("analysis.export", badge: "❌");
-                await Task.Delay(3000);
-                // TODO: Clear error badge with MenuAction system
-                // UpdateMenuItemState("analysis.export", badge: null);
-            }
-        }
-
         /// <summary>
         /// Updates badge for a specific menu item
         /// </summary>
@@ -561,22 +526,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         CreateButton("batch-analyze", "⚡", "Analyze All Requirements", BatchAnalyzeCommand, "Analyze all requirements"),
                         CreateButton("analyze-unanalyzed", "🔍", "Analyze Unanalyzed", AnalyzeUnanalyzedCommand, "Analyze unanalyzed requirements"),
                         CreateButton("reanalyze-modified", "🔄", "Re-analyze Modified", ReAnalyzeModifiedCommand, "Re-analyze modified requirements"),
-                        CreateButton("generate-analysis-command", "🔍", "Generate Analysis Command", GenerateAnalysisCommandCommand, "Generate analysis command"),
-                        CreateButton("export-chatgpt", "📝", "Export for ChatGPT", ExportForChatGptCommand, "Export for ChatGPT analysis")
+                        CreateButton("generate-analysis-command", "🔍", "Generate Analysis Command", GenerateAnalysisCommandCommand, "Generate analysis command")
                     )
                 ),
 
                 // === LLM LEARNING DROPDOWN (as sub-item) ===
                 CreateDropdown("llm-learning", "🧠", "LLM Learning", "LLM learning and training options",
-                    CreateButton("paste-chatgpt-analysis", "📥", "Paste ChatGPT Analysis", PasteChatGptAnalysisCommand, "Paste and import ChatGPT analysis results"),
-                    CreateButton("setup-llm-workspace", "🔧", "Setup LLM Workspace", SetupLlmWorkspaceCommand, "Setup integrated LLM workspace"),
-                    CreateButton("generate-testcase-command", "⚙️", "Generate Test Case Command", GenerateTestCaseCommandCommand, "Generate test case command for current requirement"),
-                    CreateButton("toggle-auto-export", "📤", "Export for ChatGPT", ToggleAutoExportCommand, "Toggle auto-export for ChatGPT analysis"),
-                    CreateButton("open-chatgpt-export", "📝", "Open Export", OpenChatGptExportCommand, "Open the most recent ChatGPT export file")
+                    CreateButton("toggle-auto-export", "📤", "Toggle Auto Export", ToggleAutoExportCommand, "Toggle auto-export for ChatGPT analysis")
                 ),
 
                 // === TEST CASE CREATION DROPDOWN (as sub-item) ===
                 CreateDropdown("testcase-creation", "⚙️", "Test Case Creation", "Test case generation options",
+                    CreateButton("generate-testcase-command", "⚙️", "Generate Test Case Command", GenerateTestCaseCommandCommand, "Generate test case command for current requirement"),
                     CreateButton("export-to-jama", "📋", "Export to Jama…", ExportAllToJamaCommand, "Export all test cases to Jama")
                 )
             );

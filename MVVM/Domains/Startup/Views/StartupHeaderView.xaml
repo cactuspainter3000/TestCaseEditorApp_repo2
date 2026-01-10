@@ -9,24 +9,6 @@
              d:DataContext="{d:DesignInstance Type=vm:StartupHeaderVM}">
     
     <Grid Margin="3" Background="Transparent">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
-        
-        <!-- Simple Header Text -->
-        <Border Grid.Column="0"
-                Background="{StaticResource Brush.Background.Card}"
-                BorderBrush="{StaticResource Brush.Background.Surface}"
-                BorderThickness="1"
-                CornerRadius="4"
-                Padding="12,8"
-                Margin="0,3,8,0" 
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Center">
-            <TextBlock Text="{Binding Text}"
-                       Style="{StaticResource Text.Body}"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"/>
-        </Border>
+        <!-- Header area kept minimal - no visible elements -->
     </Grid>
 </UserControl>
