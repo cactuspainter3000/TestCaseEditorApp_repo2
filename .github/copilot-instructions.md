@@ -31,6 +31,12 @@
 ### **Workspace Switching**
 - ViewAreaCoordinator manages coordinated workspace switches
 - Side menu selection triggers all workspace updates
+- **Cross-domain communication via existing broadcast mechanisms** (not direct subscriptions)
+
+### **Legacy Architecture Warning**
+- Avoid ViewAreaCoordinator injection in domain mediators
+- Use existing `HandleBroadcastNotification` patterns
+- Factory modifications usually indicate legacy approach
 
 ## Key Patterns & Conventions
 
@@ -71,6 +77,16 @@ public class TestCaseGenerationMediator : BaseDomainMediator<TestCaseGenerationE
 
 ## Critical Development Workflows
 
+### Implementation Discovery Pattern (Critical First Step)
+**BEFORE implementing ANY new feature:**
+
+1. **Audit existing codebase** - Search for similar functionality patterns
+2. **Check existing broadcasts** - Look for `HandleBroadcastNotification` implementations
+3. **Validate complexity** - If requiring factory changes or complex dependencies, check simpler existing patterns
+4. **Follow existing patterns** - 90% of requirements already have established patterns
+
+**Golden Rule**: If implementation feels complex, audit what already exists first.
+
 ### Running Tests
 ```powershell
 .\run-tests.ps1                    # All test projects
@@ -87,6 +103,19 @@ Multiple integration test scripts exist:
 - `test-enhanced-integration.ps1` - Full LLM pipeline testing
 - `test-logic-conflicts.ps1` - Conflict resolution testing  
 - `test-rag-status.ps1` - RAG system validation
+
+### XAML/WPF Common Issues
+**"View Not Showing" Troubleshooting:**
+1. Check DataTemplate exists and is registered in App.xaml ResourceDictionary
+2. Verify ViewModel inherits from BaseDomainViewModel
+3. Validate StaticResource references (check /Resources/ and /Styles/ folders)
+4. Ensure converter classes are registered in Application.Resources
+
+**Required XAML Patterns:**
+- Use StaticResource for ALL styling (never inline styles)
+- Follow `{DomainName}_{Purpose}View.xaml` naming convention
+- Include design-time DataContext for intellisense
+- Register converters in App.xaml before use
 
 ## Service Layer Patterns
 
@@ -148,6 +177,9 @@ All services registered in `App.xaml.cs` using .NET Generic Host pattern with fa
 
 Before implementing any feature, refactoring, or architectural change, verify:
 
+- [ ] **Implementation Discovery**: Does existing code already handle this scenario?
+- [ ] **Existing Patterns**: Are there similar implementations to follow?
+- [ ] **Broadcast Check**: Does HandleBroadcastNotification already cover this?
 - [ ] **Domain Alignment**: Does this belong in TestCaseGeneration, TestFlow, or Shared layer?
 - [ ] **File Organization**: Is this in the correct folder (domain-specific vs shared)?
 - [ ] **Fail-Fast Compliance**: Will architectural violations be caught at startup/construction time?
@@ -181,11 +213,12 @@ mediator.PublishEvent(new TestCaseGenerationEvents.RequirementSelected
     Requirement = req, SelectedBy = "UserAction" 
 });
 
-// ✅ CORRECT: Cross-domain using coordinator
-await mediator.RequestCrossDomainAction(new RequestTestFlowValidation 
-{ 
-    TestCases = generatedTestCases 
-});
+// ✅ CORRECT: Cross-domain using existing broadcast mechanism
+// Check HandleBroadcastNotification first before creating new subscriptions
+mediator.BroadcastToAllDomains(notification);
+
+// ✅ CORRECT: Use existing patterns
+// Most cross-domain needs already handled by existing broadcasts
 ```
 
 ### UI Feedback

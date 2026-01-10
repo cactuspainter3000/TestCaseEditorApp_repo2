@@ -430,6 +430,178 @@ public void OnRequirementSelected(RequirementSelectedEvent evt)
 
 ---
 
+## 🔧 XAML/WPF DEBUGGING PATTERNS
+
+### **"View Not Showing Up" Decision Tree**
+```
+🤔 ViewModel assigned but view not rendering?
+
+├── DataTemplate exists?
+│   ├── Check ResourceDictionary registration in App.xaml
+│   ├── Verify x:Key matches ViewModel type exactly
+│   └── Ensure DataTemplate targets correct ViewModel
+│
+├── ViewModel inheritance correct?
+│   ├── Inherits from BaseDomainViewModel?
+│   ├── Constructor injection working?
+│   └── IsRegistered property = true?
+│
+├── StaticResource references valid?
+│   ├── Check /Resources/ and /Styles/ folders
+│   ├── Verify ResourceDictionary merged in App.xaml
+│   └── Validate converter registrations
+│
+└── Binding path issues?
+    ├── Check DataContext assignment
+    ├── Verify property names match exactly
+    └── Test with design-time DataContext
+```
+
+### **"Converter Missing" Quick Fix**
+```xaml
+<!-- 1. Create converter class -->
+public class ZeroToVisibilityConverter : IValueConverter { ... }
+
+<!-- 2. Register in App.xaml ResourceDictionary -->
+<Application.Resources>
+    <conv:ZeroToVisibilityConverter x:Key="ZeroToVisibilityConverter" />
+</Application.Resources>
+
+<!-- 3. Use in XAML -->
+<Border Visibility="{Binding Count, Converter={StaticResource ZeroToVisibilityConverter}}" />
+```
+
+### **Common XAML Issues & Solutions**
+| **Problem** | **Cause** | **Solution** |
+|-------------|-----------|---------------|
+| View blank/empty | DataTemplate not found | Check ResourceDictionary registration |
+| Converter not found | Missing App.xaml registration | Add to Application.Resources |
+| Binding fails silently | Wrong property name | Enable binding debugging |
+| StaticResource error | Missing resource key | Check /Resources/ folder imports |
+| Design-time errors | Missing d:DataContext | Add DesignInstance reference |
+
+---
+
+## 🔍 IMPLEMENTATION DISCOVERY PATTERNS
+
+### **"Find Working Example First" Protocol**
+**MANDATORY: Before implementing ANY new component, find existing working example**
+
+```
+🎯 I need to implement [NEW COMPONENT]
+
+1. 🔍 **Search for similar working implementations**
+   grep -r "similar functionality" --include="*.cs" 
+   Search: ViewModels, event patterns, service usage
+   
+2. 📋 **Audit complete implementation chain**
+   ViewModel → DataTemplate → App.xaml registration → converter registration
+   Event → subscription → handler → UI update
+   
+3. 📝 **Follow exact same pattern**
+   Same file structure + same registrations + same wiring
+   Deviate ONLY if requirements genuinely differ
+   
+4. ✅ **Validate end-to-end**
+   Build → Run → Test actual functionality → Commit
+```
+
+### **Pre-Implementation Audit Checklist**
+**Before implementing ANY new pattern:**
+
+1. 🔍 **Search existing codebase first**
+   ```
+   grep -r "similar functionality" --include="*.cs"
+   Search for: event names, method patterns, similar ViewModels
+   ```
+
+2. 📡 **Check existing broadcast mechanisms**
+   ```
+   Look for: HandleBroadcastNotification implementations
+   Check: WorkspaceManagementEvents already handled
+   Verify: Cross-domain events already exist
+   ```
+
+3. 🎯 **Validate event taxonomy**
+   ```
+   Existing events cover this? → Use existing
+   New event needed? → Follow naming patterns
+   Cross-domain required? → Check BroadcastToAllDomains usage
+   ```
+
+4. ⚡ **Simplicity validation**
+   ```
+   Requires new dependencies? → ⚠️  Check existing patterns first
+   Needs factory changes? → 🚨 STOP - likely legacy approach
+   Complex subscriptions? → 🚨 STOP - check broadcasts handle this
+   ```
+
+### **Implementation Examples Discovery Map**
+| **I need to implement...** | **Find working example by searching...** | **Pay attention to...** |
+|----------------------------|------------------------------------------|-------------------------|
+| New ViewModel | `grep -r "BaseDomainViewModel" --include="*.cs"` | Constructor injection + domain folder + mediator usage |
+| New View | `grep -r "DataTemplate" App.xaml` | ResourceDictionary registration + naming pattern |
+| New Converter | `grep -r "IValueConverter" --include="*.cs"` | App.xaml registration + StaticResource usage |
+| Cross-domain events | `grep -r "HandleBroadcastNotification" --include="*.cs"` | Existing broadcast handlers + event types |
+| Domain communication | `grep -r "PublishEvent\|BroadcastToAllDomains" --include="*.cs"` | Event patterns + subscription methods |
+| UI state updates | `grep -r "WorkflowStateChanged" --include="*.cs"` | Mediator state management + ViewModel reflection |
+
+### **Example-Driven Implementation Template**
+```csharp
+// Step 1: Find existing working ViewModel
+// Search: grep -r "TestCaseGenerator.*VM" --include="*.cs"
+// Found: TestCaseGenerator_HeaderVM.cs
+
+// Step 2: Follow exact same pattern
+public class MyNew_ViewModel : BaseDomainViewModel 
+{
+    // Same constructor pattern as working example
+    public MyNew_ViewModel(ITestCaseGenerationMediator mediator, ILogger<MyNew_ViewModel> logger) 
+        : base(mediator, logger)
+    {
+        // Same initialization pattern as working example
+    }
+}
+
+// Step 3: Follow same registration pattern
+// Check: How is TestCaseGenerator_HeaderVM registered in App.xaml DataTemplates?
+// Copy: Same ResourceDictionary entry with my ViewModel type
+```
+
+**🎯 Success Pattern**: If working example has A+B+C steps, new implementation needs A+B+C steps too.
+```
+🤔 I need to implement [FEATURE]
+
+├── Does existing HandleBroadcastNotification cover this?
+│   └── ✅ Add logic there, don't create new subscriptions
+│
+├── Do existing events already fire for this scenario?
+│   └── ✅ Subscribe to existing events, don't create new ones
+│
+├── Is there similar functionality elsewhere?
+│   └── ✅ Follow same pattern, don't invent new architecture
+│
+└── Is this truly new functionality?
+    └── ✅ Follow templates, but audit dependencies first
+```
+
+### **Anti-Pattern: Overcomplication Detection**
+```
+🚨 STOP if implementation involves:
+
+├── IViewAreaCoordinator injection → Use existing broadcast mechanism
+├── Factory constructor changes → Check if broadcasts already handle this
+├── New cross-domain subscriptions → Use BroadcastToAllDomains instead
+├── Complex dependency chains → Look for simpler existing patterns
+└── "But the guidelines say..." → Guidelines show patterns, not requirements
+```
+
+**🎯 Golden Rule**: 
+> If implementation feels complex, step back and audit what already exists.
+> 90% of the time, existing patterns already handle the requirement.
+
+---
+
 ## 🚨 MIGRATION LESSONS (Hard-Won Knowledge)
 
 ### **What Fails: Mixed Architecture Patterns**
@@ -497,6 +669,7 @@ _navigationMediator.SetActiveHeader(header);  // Triggers UI update
 
 **Before implementing ANY feature:**
 
+0. 🔍 **AUDIT EXISTING CODE FIRST** (Most Important)
 1. 🎯 **Which domain owns this?** (TestCaseGeneration/TestFlow/Shared)
 2. 📡 **Event or direct call?** (Fire-and-forget vs need response)  
 3. 🏠 **Where does code go?** (Domain folder vs shared)
@@ -504,6 +677,10 @@ _navigationMediator.SetActiveHeader(header);  // Triggers UI update
 5. ⚡ **Any cross-domain needs?** (Use coordinator/broadcast)
 
 **If uncertain, ask:**
+> "Does existing code already handle this scenario?"
+> 
+> If yes: Follow existing pattern. If no: Ask next question.
+> 
 > "Does this ViewModel own this state, or just reflect it?"
 > 
 > Answer: ViewModels almost NEVER own state - they reflect mediator state.
