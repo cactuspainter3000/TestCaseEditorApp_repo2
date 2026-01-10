@@ -285,6 +285,11 @@
                                         Orientation="Horizontal"
                                         HorizontalAlignment="Right"
                                         Margin="0,8,0,0">
+                                <Button Content="{Binding CopyAnalysisButtonText}"
+                                        Command="{Binding CopyAnalysisPromptCommand}"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        ToolTip="Copy comprehensive analysis prompt to clipboard for external LLM, or paste external response when ready"/>
                                 <Button Content="Update"
                                         Command="{Binding SaveRequirementCommand}"
                                         Style="{StaticResource ActionButton}"

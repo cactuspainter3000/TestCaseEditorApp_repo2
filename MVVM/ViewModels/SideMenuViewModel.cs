@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -82,7 +83,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand BatchAnalyzeCommand { get; private set; } = null!;
         public ICommand AnalyzeUnanalyzedCommand { get; private set; } = null!;
         public ICommand ReAnalyzeModifiedCommand { get; private set; } = null!;
-        public ICommand GenerateLearningPromptCommand { get; private set; } = null!;
         public ICommand PasteChatGptAnalysisCommand { get; private set; } = null!;
         public ICommand SetupLlmWorkspaceCommand { get; private set; } = null!;
         public ICommand GenerateAnalysisCommandCommand { get; private set; } = null!;
@@ -159,7 +159,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             BatchAnalyzeCommand = new RelayCommand(() => { /* TODO: Implement batch analyze */ }, CanAnalyzeRequirements);
             AnalyzeUnanalyzedCommand = new RelayCommand(() => { /* TODO: Implement analyze unanalyzed */ });
             ReAnalyzeModifiedCommand = new RelayCommand(() => { /* TODO: Implement re-analyze modified */ });
-            GenerateLearningPromptCommand = new RelayCommand(() => { /* TODO: Implement generate learning prompt */ });
             PasteChatGptAnalysisCommand = new RelayCommand(() => { /* TODO: Implement paste ChatGPT analysis */ });
             SetupLlmWorkspaceCommand = new RelayCommand(() => { /* TODO: Implement setup LLM workspace */ });
             GenerateAnalysisCommandCommand = new RelayCommand(() => { /* TODO: Implement generate analysis command */ });
@@ -278,6 +277,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
         
         #endregion
+        
         
         private async Task OpenProjectAsync()
         {
@@ -568,7 +568,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 // === LLM LEARNING DROPDOWN (as sub-item) ===
                 CreateDropdown("llm-learning", "🧠", "LLM Learning", "LLM learning and training options",
-                    CreateButton("generate-learning-prompt", "📋", "Generate Learning Prompt", GenerateLearningPromptCommand, "Generate learning prompt and copy to clipboard"),
                     CreateButton("paste-chatgpt-analysis", "📥", "Paste ChatGPT Analysis", PasteChatGptAnalysisCommand, "Paste and import ChatGPT analysis results"),
                     CreateButton("setup-llm-workspace", "🔧", "Setup LLM Workspace", SetupLlmWorkspaceCommand, "Setup integrated LLM workspace"),
                     CreateButton("generate-testcase-command", "⚙️", "Generate Test Case Command", GenerateTestCaseCommandCommand, "Generate test case command for current requirement"),
