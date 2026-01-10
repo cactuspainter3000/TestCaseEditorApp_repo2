@@ -526,3 +526,109 @@ _navigationMediator.SetActiveHeader(header);  // Triggers UI update
 **🎯 Key insight:** 
 > When confused about cross-domain communication, step back and ask: 
 > "Which domain actually owns this state?" Usually the answer simplifies everything.
+
+---
+
+## 🎨 UI/VIEW PATTERNS (Required)
+
+### **Global Style System**
+**MANDATORY**: Use StaticResource references for ALL UI elements
+
+```xaml
+<!-- ✅ CORRECT - Use global styles -->
+<UserControl Background="{StaticResource Brush.Background.Menu}">
+    <Border Background="{StaticResource MenuBackground}"
+            BorderBrush="{StaticResource CardBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="8">
+        <TextBox Style="{StaticResource MenuPopupTextBoxStyle}"/>
+        <TextBlock Foreground="{StaticResource MenuForeground}"/>
+    </Border>
+</UserControl>
+
+<!-- ❌ WRONG - Inline styles break consistency -->
+<UserControl Background="#FF2D2D30">
+    <TextBox FontSize="12" Background="White" BorderThickness="1"/>
+</UserControl>
+```
+
+### **Required Style Categories**
+| **Element Type** | **StaticResource Pattern** | **Examples** |
+|------------------|----------------------------|--------------|
+| Backgrounds | `Brush.Background.*` | `Brush.Background.Menu`, `MenuBackground` |
+| Borders | `*BorderBrush` | `CardBorderBrush`, `MenuBorderBrush` |
+| Text Colors | `*Foreground` | `MenuForeground`, `CardForeground` |
+| Controls | `*Style` | `MenuPopupTextBoxStyle`, `CustomScrollBarStyle` |
+
+### **View Naming Convention**
+**Pattern**: `{DomainName}_{PurposeName}View.xaml`
+
+```
+✅ TestCaseCreation_MainView.xaml
+✅ TestCaseCreation_EditorView.xaml
+✅ TestCaseGenerator_HeaderView.xaml
+❌ TestCaseView.xaml (too generic)
+❌ TCCreationView.xaml (abbreviations)
+```
+
+### **Template: Clean Domain View**
+```xaml
+<UserControl x:Class="TestCaseEditorApp.MVVM.Domains.{DomainName}.Views.{DomainName}_{Purpose}View"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.Domains.{DomainName}.ViewModels"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="800"
+             d:DataContext="{d:DesignInstance Type=vm:{DomainName}_{Purpose}VM}"
+             Background="{StaticResource Brush.Background.Menu}">
+    
+    <Grid Margin="20">
+        <Border Background="{StaticResource MenuBackground}"
+                BorderBrush="{StaticResource CardBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="16">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ScrollViewer.Resources>
+                    <Style TargetType="ScrollBar" BasedOn="{StaticResource CustomScrollBarStyle}"/>
+                </ScrollViewer.Resources>
+                
+                <!-- Your content here -->
+                
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>
+```
+
+### **Style Consistency Rules**
+1. **NEVER create inline styles** - use StaticResource only
+2. **Follow existing naming patterns** - check `/Resources/` and `/Styles/` folders
+3. **Maintain visual consistency** - views should look cohesive across domains
+4. **Use design-time DataContext** - helps with XAML intellisense
+5. **Include proper namespaces** - domain-specific ViewModel namespaces
+
+### **Common Style Resources**
+```xaml
+<!-- Backgrounds -->
+{StaticResource Brush.Background.Menu}
+{StaticResource MenuBackground}
+{StaticResource CardBackground}
+
+<!-- Borders & Brushes -->
+{StaticResource CardBorderBrush}
+{StaticResource MenuBorderBrush}
+
+<!-- Text & Foreground -->
+{StaticResource MenuForeground}
+{StaticResource CardForeground}
+{StaticResource Text.Body}
+
+<!-- Control Styles -->
+{StaticResource MenuPopupTextBoxStyle}
+{StaticResource CustomScrollBarStyle}
+{StaticResource Button.Primary}
+{StaticResource Button.Secondary}
+```
