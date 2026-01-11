@@ -5,7 +5,7 @@ using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.ChatGptExportAnalysis.ViewModels;
-using TestCaseEditorApp.MVVM.Domains.RequirementAnalysisWorkflow.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.Services;
@@ -49,6 +49,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Domain ViewModels (proper DI approach)
         WorkspaceManagementVM CreateWorkspaceManagementViewModel();
         ChatGptExportAnalysisViewModel CreateChatGptExportAnalysisViewModel();
-        RequirementAnalysisViewModel CreateRequirementAnalysisWorkflowViewModel();
+
     }
 }

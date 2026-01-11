@@ -7,18 +7,22 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Events;
 
-namespace TestCaseEditorApp.MVVM.Domains.RequirementAnalysisWorkflow.ViewModels
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
     /// <summary>
     /// Domain ViewModel responsible for requirement analysis functionality.
     /// Extracted from MainViewModel to handle all analysis-related operations.
     /// </summary>
-    public partial class RequirementAnalysisViewModel : ObservableObject
+    public partial class RequirementAnalysisViewModel : BaseDomainViewModel, IDisposable
     {
-        private readonly ILogger<RequirementAnalysisViewModel>? _logger;
+        // Domain mediator (properly typed)
+        private new readonly ITestCaseGenerationMediator _mediator;
         
-        // Status callback to communicate with parent ViewModel
+        // Legacy delegate support for backwards compatibility
         private readonly Action<string, int>? _setTransientStatus;
         
         // Data access delegates from MainViewModel
@@ -26,20 +30,23 @@ namespace TestCaseEditorApp.MVVM.Domains.RequirementAnalysisWorkflow.ViewModels
         private readonly Func<Requirement?> _getCurrentRequirement;
 
         public RequirementAnalysisViewModel(
+            ITestCaseGenerationMediator mediator,
+            ILogger<RequirementAnalysisViewModel> logger,
             Func<IEnumerable<Requirement>> getRequirements,
             Func<Requirement?> getCurrentRequirement,
-            Action<string, int>? setTransientStatus = null,
-            ILogger<RequirementAnalysisViewModel>? logger = null)
+            Action<string, int>? setTransientStatus = null)
+            : base(mediator, logger)
         {
+            _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _getRequirements = getRequirements ?? throw new ArgumentNullException(nameof(getRequirements));
             _getCurrentRequirement = getCurrentRequirement ?? throw new ArgumentNullException(nameof(getCurrentRequirement));
             _setTransientStatus = setTransientStatus;
-            _logger = logger;
 
+            _logger.LogDebug("RequirementAnalysisViewModel initialized");
             InitializeCommands();
         }
 
-        private void InitializeCommands()
+        private new void InitializeCommands()
         {
             AnalyzeUnanalyzedCommand = new RelayCommand(
                 () => AnalyzeUnanalyzed());
