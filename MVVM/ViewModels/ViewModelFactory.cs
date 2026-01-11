@@ -248,15 +248,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             throw new NotImplementedException("RequirementGenerationViewModel creation needs proper DI container setup");
         }
 
-        public object CreateTestCaseGeneratorViewModel()
-        {
-            return new TestCaseGeneratorViewModel(
-                _applicationServices.ChatGptExportService,
-                _applicationServices.NotificationService,
-                CreateNavigationMediator(),
-                new System.Collections.ObjectModel.ObservableCollection<Requirement>(), // Shared requirements will be injected later
-                _applicationServices.LoggerFactory?.CreateLogger(typeof(TestCaseGeneratorViewModel).FullName ?? "TestCaseGeneratorViewModel") as ILogger<TestCaseGeneratorViewModel>);
-        }
 
         public object CreateTestCaseGeneratorSplashScreenViewModel()
         {

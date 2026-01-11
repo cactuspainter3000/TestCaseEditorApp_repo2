@@ -142,6 +142,10 @@
 ### **Before Committing Any Implementation**
 
 #### ✅ **ViewModel Implementation Checklist**
+- [ ] **Found working example** (`grep` for similar ViewModel in same domain)
+- [ ] **Copied using statements** (EXACT imports from working example)
+- [ ] **Verified event structures** (read event class definitions before writing handlers)
+- [ ] **Checked working example's DI registration** (search App.xaml.cs pattern)
 - [ ] ViewModel created in correct domain folder
 - [ ] Inherits from `BaseDomainViewModel`
 - [ ] Constructor takes `I{Domain}Mediator` and `ILogger<VM>`
@@ -333,23 +337,54 @@ dotnet build --verbosity minimal
 // Search: grep -r "TestCaseGenerator.*VM" --include="*.cs"
 // Found: TestCaseGenerator_HeaderVM.cs
 
-// Step 2: Follow exact same pattern
-public class MyNew_ViewModel : BaseDomainViewModel 
+// Step 2: Copy EXACT using statements first
+using System;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Events; // <- CRITICAL: Copy all imports from working example
+
+// Step 3: Copy EXACT constructor pattern 
+public MyNew_ViewModel(ITestCaseGenerationMediator mediator, ILogger<MyNew_ViewModel> logger) 
+    : base(mediator, logger)
 {
-    // Same constructor pattern as working example
-    public MyNew_ViewModel(ITestCaseGenerationMediator mediator, ILogger<MyNew_ViewModel> logger) 
-        : base(mediator, logger)
-    {
-        // Same initialization pattern as working example
-    }
+    // Step 4: Copy EXACT event subscription pattern
+    _mediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
 }
 
-// Step 3: Follow same registration pattern
-// Check: How is TestCaseGenerator_HeaderVM registered in App.xaml DataTemplates?
-// Copy: Same ResourceDictionary entry with my ViewModel type
+// Step 5: Check ACTUAL event structure before writing handlers
+// Read the event class definition, don't assume properties exist
+private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected e)
+{
+    // Copy property access pattern from working example
+}
+
+// Step 6: Place methods inside main class, NOT in nested static classes
+// Check file structure before adding methods
 ```
 
-**🎯 Success Pattern**: If working example has A+B+C steps, new implementation needs A+B+C steps too.
+**🎯 Preventive Pattern**: Copy **ALL** aspects (imports, signatures, placement) from working example before modifying anything.
+
+### **Complete "Questions First" Checklist**
+```
+🤔 Before writing any code:
+
+1. FIND: Which existing ViewModel is most similar?
+   └── Copy its using statements EXACTLY
+
+2. EXAMINE: What events does the working example use?
+   └── Read the actual event class definitions
+
+3. CHECK: Where are the working example's methods placed?
+   └── Verify main class vs nested class context
+
+4. VERIFY: How does the factory call the working example?
+   └── Copy parameter order and types EXACTLY
+
+5. VALIDATE: What DI registrations does the working example have?
+   └── grep App.xaml.cs for AddTransient pattern
+
+6. CONFIRM: Does working example have factory methods?
+   └── grep for Create methods - if none exist, don't add them
+```
 
 ### **Implementation Decision Tree**
 ```

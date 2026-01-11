@@ -9,6 +9,8 @@ using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.Services;
 using Microsoft.Extensions.Logging;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Events;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
@@ -16,13 +18,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
     /// Dedicated ViewModel for test case generation and AI/LLM integration.
     /// Handles all test case generation workflows.
     /// </summary>
-    public partial class TestCaseGeneratorViewModel : ObservableObject
+    public partial class TestCaseGeneratorViewModel : BaseDomainViewModel, IDisposable
     {
         // Service dependencies
         private readonly ChatGptExportService _chatGptExportService;
         private readonly NotificationService _notificationService;
         private readonly INavigationMediator _navigationMediator;
-        private readonly ILogger<TestCaseGeneratorViewModel>? _logger;
+        private new readonly ITestCaseGenerationMediator _mediator;
         
         // Core test case generation components
         private TestCaseGenerator_CoreVM? _testCaseGenerator;
@@ -57,22 +59,24 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         /// <summary>
         /// Main constructor with dependency injection
+        /// <summary>
+        /// Main constructor following domain architecture pattern
         /// </summary>
         public TestCaseGeneratorViewModel(
+            ITestCaseGenerationMediator mediator,
+            ILogger<TestCaseGeneratorViewModel> logger,
             ChatGptExportService chatGptExportService,
             NotificationService notificationService,
-            INavigationMediator navigationMediator,
-            ObservableCollection<Requirement> requirements,
-            ILogger<TestCaseGeneratorViewModel>? logger = null)
+            INavigationMediator navigationMediator)
+            : base(mediator, logger)
         {
-            // Store dependencies
+            _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _chatGptExportService = chatGptExportService ?? throw new ArgumentNullException(nameof(chatGptExportService));
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
-            Requirements = requirements ?? throw new ArgumentNullException(nameof(requirements));
-            _logger = logger;
+            Requirements = new ObservableCollection<Requirement>();
 
-            TestCaseEditorApp.Services.Logging.Log.Info("[TestCaseGeneratorViewModel] Constructor called with full dependencies");
+            _logger.LogDebug("[TestCaseGeneratorViewModel] Constructor called with proper dependencies");
 
             // Initialize test case generation components
             InitializeTestCaseGenerationComponents();
@@ -83,22 +87,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             GenerateLearningPromptCommand = new RelayCommand(ExecuteGenerateLearningPrompt, () => CurrentRequirement != null);
             SetupLlmWorkspaceCommand = new AsyncRelayCommand(SetupLlmWorkspaceAsync);
 
+            // Subscribe to domain events 
+            _mediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
+            _mediator.Subscribe<TestCaseGenerationEvents.WorkflowStateChanged>(OnWorkflowStateChanged);
+
             // Monitor property changes
             PropertyChanged += OnPropertyChanged;
         }
 
-        /// <summary>
-        /// Legacy constructor for compatibility (minimal functionality)
-        /// </summary>
-        public TestCaseGeneratorViewModel() : this(
-            new ChatGptExportService(), // Use real service since it doesn't need dependencies
-            new StubNotificationService(),
-            new StubNavigationMediator(),
-            new ObservableCollection<Requirement>(),
-            null)
-        {
-            TestCaseEditorApp.Services.Logging.Log.Info("[TestCaseGeneratorViewModel] Legacy constructor called - limited functionality");
-        }
 
         private void InitializeTestCaseGenerationComponents()
         {
@@ -344,6 +340,68 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             public void Unsubscribe<T>(Action<T> handler) where T : class { }
             public void Publish<T>(T navigationEvent) where T : class { }
         }
+
+        #region Domain Events Handlers
+        
+        private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected e)
+        {
+            CurrentRequirement = e.Requirement;
+            _logger.LogDebug("Requirement selected: {RequirementId}", e.Requirement?.GlobalId);
+        }
+        
+        private void OnWorkflowStateChanged(TestCaseGenerationEvents.WorkflowStateChanged e)
+        {
+            _logger.LogDebug("Workflow state changed: {PropertyName}={NewValue}", e.PropertyName, e.NewValue);
+        }
+
+        #endregion
+
+        #region Abstract Method Implementations
+
+        protected override bool CanSave() => false; // Test case generator doesn't save directly
+        protected override async Task SaveAsync() => await Task.CompletedTask;
+        protected override bool CanRefresh() => true;
+        protected override async Task RefreshAsync()
+        {
+            _logger.LogDebug("Refreshing test case generator");
+            // Refresh test case generation components
+            await Task.CompletedTask;
+        }
+        protected override bool CanCancel() => false;
+        protected override void Cancel() { /* No-op */ }
+
+        #endregion
+
+        #region IDisposable Implementation
+
+        public new void Dispose()
+        {
+            try 
+            {
+                // Unsubscribe from domain events
+                _mediator.Unsubscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
+                _mediator.Unsubscribe<TestCaseGenerationEvents.WorkflowStateChanged>(OnWorkflowStateChanged);
+
+                // Clean up components
+                if (_testCaseGenerator is IDisposable disposableCore)
+                    disposableCore.Dispose();
+                if (_testCaseGeneratorHeader is IDisposable disposableHeader)
+                    disposableHeader.Dispose();
+                
+                PropertyChanged -= OnPropertyChanged;
+                _logger.LogDebug("TestCaseGeneratorViewModel disposed successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during TestCaseGeneratorViewModel disposal");
+            }
+            finally
+            {
+                base.Dispose();
+            }
+        }
+
+        #endregion
 
         #endregion
     }
