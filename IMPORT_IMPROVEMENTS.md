@@ -1,5 +1,9 @@
 # Jama Export Import Improvements 🚀
 
+> **🚀 SUPERSEDED**: This document has been superseded by `ARCHITECTURAL_GUIDE_AI.md`  
+> **Service coordination patterns** from this document have been consolidated into the comprehensive AI guide.  
+> **Use this document for**: Feature-specific implementation details and historical reference only.
+
 ## Overview
 We've dramatically improved the requirement import process to make it **much easier and less error-prone** by implementing intelligent document analysis and user guidance.
 

@@ -6,9 +6,9 @@ I’ll call out nothing inline. This is meant to be copy-paste authoritative.
 
 # Architectural Guidelines & Decision Framework (Human Version)
 
-> **Purpose**: Maintain architectural integrity during implementation and prevent vision drift.
-> **When to Use**: Before any major code changes, architectural decisions, or when unsure about design direction.
-> **AI Version**: See `ARCHITECTURAL_GUIDELINES_AI.md` for AI-optimized pattern matching and decision trees.
+> **Purpose**: Maintain architectural integrity during implementation and prevent vision drift.  
+> **When to Use**: Before any major code changes, architectural decisions, or when unsure about design direction.  
+> **AI Version**: See `ARCHITECTURAL_GUIDE_AI.md` for comprehensive AI-optimized patterns, implementation chains, and systematic validation.
 
 ---
 

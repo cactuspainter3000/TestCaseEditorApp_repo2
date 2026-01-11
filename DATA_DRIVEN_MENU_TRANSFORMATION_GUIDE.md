@@ -1,5 +1,9 @@
 # Data-Driven Menu Transformation Guide
 
+> **🚀 SUPERSEDED**: This document has been superseded by `ARCHITECTURAL_GUIDE_AI.md`  
+> **UI modernization patterns** from this document have been consolidated into the comprehensive AI guide.  
+> **Use this document for**: Project-specific implementation details and historical reference only.
+
 ## PROJECT OVERVIEW
 
 **Objective**: Transform the hardcoded Test Case Generator dropdown into a clean, data-driven template system that recreates identical behavior through declarative data.

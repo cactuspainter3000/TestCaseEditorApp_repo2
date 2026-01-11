@@ -1,5 +1,8 @@
 # Architecture Dependency Graph 🔗
 
+> **🚀 SUPERSEDED**: This document has been superseded by `ARCHITECTURAL_GUIDE_AI.md`  
+> **All dependency chains and checklists** from this document have been consolidated into the comprehensive guide.  
+> **Use the new guide for**: Complete implementation validation, discovery commands, and systematic architecture review.  
 > **Purpose**: Visual map of complete implementation chains to prevent incomplete implementations  
 > **Usage**: Before implementing any component, trace the complete dependency chain
 

@@ -1,4 +1,8 @@
 # AI Agent Architectural Guidelines 🤖
+
+> **🚀 SUPERSEDED**: This document has been superseded by `ARCHITECTURAL_GUIDE_AI.md`  
+> **All patterns and decision trees** from this document have been consolidated into the comprehensive guide.  
+> **Use the new guide for**: Complete implementation chains, dependency discovery, and systematic validation.  
 > **Optimized for AI pattern matching and immediate decision making**
 
 ---

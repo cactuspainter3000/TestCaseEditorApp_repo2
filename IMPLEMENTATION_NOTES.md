@@ -1,7 +1,8 @@
 # Implementation Notes & Lessons Learned
 
-> **Purpose**: Capture both successes and failures during implementation to avoid the "figure out → revert → struggle to reimplement" cycle.
-> **Usage**: Document what works, what doesn't, and the exact steps that led to success.
+> **Purpose**: Capture both successes and failures during implementation to avoid the "figure out → revert → struggle to reimplement" cycle.  
+> **Usage**: Document what works, what doesn't, and the exact steps that led to success.  
+> **🚀 For AI Agents**: See `ARCHITECTURAL_GUIDE_AI.md` for consolidated methodologies and systematic validation patterns.
 
 ---
 

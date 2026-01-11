@@ -1,4 +1,9 @@
 # TestCaseEditorApp Architectural Modernization Plan
+
+> **🚀 SUPERSEDED**: This document has been superseded by `ARCHITECTURAL_GUIDE_AI.md`  
+> **Best practices and patterns** from this document have been consolidated into the comprehensive AI guide.  
+> **Use this document for**: Project-specific migration tracking and historical reference only.
+
 **Version**: 1.0  
 **Date**: December 19, 2025  
 **Status**: In Progress

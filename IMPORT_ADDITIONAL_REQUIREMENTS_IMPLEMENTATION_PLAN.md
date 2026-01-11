@@ -1,5 +1,9 @@
 # Import Additional Requirements Implementation Plan
 
+> **🚀 SUPERSEDED**: This document has been superseded by `ARCHITECTURAL_GUIDE_AI.md`  
+> **Architectural patterns** from this document have been consolidated into the comprehensive AI guide.  
+> **Use this document for**: Historical reference and completed feature documentation only.
+
 ## Overview
 This document outlines the implementation plan for adding "Import Additional Requirements" functionality with universal requirements scrubbing infrastructure to the TestCaseEditorApp.
 
