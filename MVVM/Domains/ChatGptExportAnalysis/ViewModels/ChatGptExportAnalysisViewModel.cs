@@ -9,19 +9,23 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Services;
+using TestCaseEditorApp.MVVM.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Events;
 
-namespace TestCaseEditorApp.MVVM.Domains.ChatGptExportAnalysis.ViewModels
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
     /// <summary>
     /// Domain ViewModel responsible for ChatGPT export and analysis functionality.
     /// Extracted from MainViewModel to handle all ChatGPT-related export operations.
     /// </summary>
-    public partial class ChatGptExportAnalysisViewModel : ObservableObject
+    public partial class ChatGptExportAnalysisViewModel : BaseDomainViewModel, IDisposable
     {
+        // Domain mediator (properly typed)
+        private new readonly ITestCaseGenerationMediator _mediator;
+        
+        // Legacy service dependencies for backwards compatibility
         private readonly ChatGptExportService _chatGptExportService;
-        private readonly ILogger<ChatGptExportAnalysisViewModel>? _logger;
-
-        // Status callback to communicate with parent ViewModel
         private readonly Action<string, int>? _setTransientStatus;
         
         // Data access delegates from MainViewModel
@@ -32,22 +36,25 @@ namespace TestCaseEditorApp.MVVM.Domains.ChatGptExportAnalysis.ViewModels
         private string? lastChatGptExportFilePath;
 
         public ChatGptExportAnalysisViewModel(
+            ITestCaseGenerationMediator mediator,
+            ILogger<ChatGptExportAnalysisViewModel> logger,
             ChatGptExportService chatGptExportService,
             Func<Requirement?> getCurrentRequirement,
             Func<IEnumerable<Requirement>> getRequirements,
-            Action<string, int>? setTransientStatus = null,
-            ILogger<ChatGptExportAnalysisViewModel>? logger = null)
+            Action<string, int>? setTransientStatus = null)
+            : base(mediator, logger)
         {
+            _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _chatGptExportService = chatGptExportService ?? throw new ArgumentNullException(nameof(chatGptExportService));
             _getCurrentRequirement = getCurrentRequirement ?? throw new ArgumentNullException(nameof(getCurrentRequirement));
             _getRequirements = getRequirements ?? throw new ArgumentNullException(nameof(getRequirements));
             _setTransientStatus = setTransientStatus;
-            _logger = logger;
-
+            
+            _logger.LogDebug("ChatGptExportAnalysisViewModel initialized");
             InitializeCommands();
         }
 
-        private void InitializeCommands()
+        private new void InitializeCommands()
         {
             ExportCurrentForChatGptCommand = new RelayCommand(
                 () => ExportCurrentRequirementForChatGpt(), 
