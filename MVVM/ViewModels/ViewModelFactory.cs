@@ -241,12 +241,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // TODO: Implement with proper service resolution from IApplicationServices
             throw new NotImplementedException("RequirementAnalysisViewModel creation needs proper DI container setup");
         }
-        
-        public RequirementGenerationViewModel CreateRequirementGenerationViewModel()
-        {
-            // TODO: Implement with proper service resolution from IApplicationServices
-            throw new NotImplementedException("RequirementGenerationViewModel creation needs proper DI container setup");
-        }
+
 
 
         public object CreateTestCaseGeneratorSplashScreenViewModel()

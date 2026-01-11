@@ -1,9 +1,16 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System;
 using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Events;
+using Microsoft.Extensions.Logging;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
@@ -11,20 +18,30 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
     /// ViewModel responsible for generating learning prompts and ChatGPT commands for requirement analysis and test case generation.
     /// Handles prompt creation, clipboard operations, and command generation for external AI tools.
     /// </summary>
-    public partial class RequirementGenerationViewModel : ObservableObject
+    public partial class RequirementGenerationViewModel : BaseDomainViewModel, IDisposable
     {
+        // Domain mediator (properly typed)
+        private new readonly ITestCaseGenerationMediator _mediator;
+
+        // Legacy delegate support for backwards compatibility
         private readonly Action<string, int> _setTransientStatus;
         private readonly Func<IEnumerable<Requirement>> _getRequirements;
         private readonly Func<Requirement?> _getCurrentRequirement;
 
         public RequirementGenerationViewModel(
+            ITestCaseGenerationMediator mediator,
+            ILogger<RequirementGenerationViewModel> logger,
             Func<IEnumerable<Requirement>> getRequirements,
             Func<Requirement?> getCurrentRequirement,
             Action<string, int> setTransientStatus)
+            : base(mediator, logger)
         {
+            _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _getRequirements = getRequirements ?? throw new ArgumentNullException(nameof(getRequirements));
             _getCurrentRequirement = getCurrentRequirement ?? throw new ArgumentNullException(nameof(getCurrentRequirement));
             _setTransientStatus = setTransientStatus ?? throw new ArgumentNullException(nameof(setTransientStatus));
+
+            _logger.LogDebug("RequirementGenerationViewModel initialized");
         }
 
         /// <summary>
@@ -179,5 +196,41 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// Can-execute condition for commands that require a current requirement to be selected.
         /// </summary>
         private bool CanExecuteCurrentRequirementCommands() => _getCurrentRequirement() != null;
+
+        #region Abstract Method Implementations
+
+        protected override bool CanSave() => false; // Requirement generation doesn't save directly
+        protected override async Task SaveAsync() => await Task.CompletedTask;
+        protected override bool CanRefresh() => true;
+        protected override async Task RefreshAsync()
+        {
+            _logger.LogDebug("Refreshing requirement generation data");
+            // Refresh operations could go here
+            await Task.CompletedTask;
+        }
+        protected override bool CanCancel() => false;
+        protected override void Cancel() { /* No-op */ }
+
+        #endregion
+
+        #region IDisposable Implementation
+
+        public new void Dispose()
+        {
+            try 
+            {
+                _logger.LogDebug("RequirementGenerationViewModel disposed successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during RequirementGenerationViewModel disposal");
+            }
+            finally
+            {
+                base.Dispose();
+            }
+        }
+
+        #endregion
     }
 }

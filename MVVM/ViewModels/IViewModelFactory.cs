@@ -50,6 +50,5 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         WorkspaceManagementVM CreateWorkspaceManagementViewModel();
         ChatGptExportAnalysisViewModel CreateChatGptExportAnalysisViewModel();
         RequirementAnalysisViewModel CreateRequirementAnalysisWorkflowViewModel();
-        RequirementGenerationViewModel CreateRequirementGenerationViewModel();
     }
 }
