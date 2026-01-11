@@ -42,7 +42,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         ImportRequirementsWorkflowViewModel CreateImportWorkflowViewModel();
         NewProjectWorkflowViewModel CreateNewProjectWorkflowViewModel();
         // REMOVED: TestCaseGenerator_HeaderVM CreateTestCaseGeneratorHeaderViewModel - now handled by mediator
-        object CreateTestCaseGeneratorSplashScreenViewModel();
+
         NotificationAreaViewModel CreateNotificationAreaViewModel();
         DefaultNotificationViewModel CreateDefaultNotificationViewModel();
         

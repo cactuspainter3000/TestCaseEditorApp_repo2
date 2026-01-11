@@ -244,11 +244,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
 
 
-        public object CreateTestCaseGeneratorSplashScreenViewModel()
-        {
-            return new TestCaseGeneratorSplashScreenViewModel();
-        }
-
         public NotificationAreaViewModel CreateNotificationAreaViewModel()
         {
             var loggerFactory = _applicationServices.LoggerFactory;
