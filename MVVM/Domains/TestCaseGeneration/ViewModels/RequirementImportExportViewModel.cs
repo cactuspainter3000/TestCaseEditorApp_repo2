@@ -12,6 +12,10 @@ using System.Windows;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Helpers;
+using TestCaseEditorApp.MVVM.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Events;
+using Microsoft.Extensions.Logging;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
@@ -19,9 +23,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
     /// ViewModel responsible for importing and exporting requirements in various formats.
     /// Handles Word document import, workspace management, ChatGPT export functionality, and file operations.
     /// </summary>
-    public partial class RequirementImportExportViewModel : ObservableObject
+    public partial class RequirementImportExportViewModel : BaseDomainViewModel, IDisposable
     {
-        // Dependencies and function delegates for data access
+        // Domain mediator (properly typed)
+        private new readonly ITestCaseGenerationMediator _mediator;
+        
+        // Legacy delegate support for backwards compatibility
         private readonly Action<string, int, bool> _setTransientStatus;
         private readonly Func<IEnumerable<Requirement>> _getRequirements;
         private readonly Func<Requirement?> _getCurrentRequirement;
@@ -58,6 +65,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         private readonly Action<string?> _setStatus;
 
         public RequirementImportExportViewModel(
+            ITestCaseGenerationMediator mediator,
+            ILogger<RequirementImportExportViewModel> logger,
             Func<IEnumerable<Requirement>> getRequirements,
             Func<Requirement?> getCurrentRequirement,
             Func<ObservableCollection<Requirement>> getRequirementsCollection,
@@ -85,7 +94,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             Action computeDraftedCount,
             Action raiseCounterChanges,
             Action<string?> setStatus)
+            : base(mediator, logger)
         {
+            _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
+
             _getRequirements = getRequirements ?? throw new ArgumentNullException(nameof(getRequirements));
             _getCurrentRequirement = getCurrentRequirement ?? throw new ArgumentNullException(nameof(getCurrentRequirement));
             _getRequirementsCollection = getRequirementsCollection ?? throw new ArgumentNullException(nameof(getRequirementsCollection));

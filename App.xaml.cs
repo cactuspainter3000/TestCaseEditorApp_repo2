@@ -256,6 +256,7 @@ namespace TestCaseEditorApp
                     services.AddTransient<TestCaseGenerator_VM>();
                     services.AddTransient<TestCaseGeneratorViewModel>();
                     services.AddTransient<RequirementGenerationViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementImportExportViewModel>();
                     services.AddSingleton<WorkspaceHeaderViewModel>(); // workspace header shared instance
                     services.AddTransient<NotificationAreaViewModel>(); // notification area for status indicators
                     services.AddTransient<MainViewModel>(provider =>
