@@ -221,12 +221,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             return new RequirementsWorkspaceViewModel(_testCaseGenerationMediator, testCaseGeneratorVM, logger!);
         }
         
-        // Domain ViewModels - proper DI pattern implementation
-        public WorkspaceManagementVM CreateWorkspaceManagementViewModel()
-        {
-            // TODO: Implement with proper service resolution from IApplicationServices
-            throw new NotImplementedException("WorkspaceManagementVM creation needs proper DI container setup");
-        }
+        // WorkspaceManagementViewModel removed - use WorkspaceProjectViewModel instead
         
         public ChatGptExportAnalysisViewModel CreateChatGptExportAnalysisViewModel()
         {

@@ -885,6 +885,22 @@ public class ServiceResult<T>
 - UI coordinates, scroll positions, indices
 - Dialog/window instructions
 
+### **🚨 CRITICAL: Duplicate ViewModel Anti-Pattern**
+**STOP ✋ Before Creating New ViewModels - Check for Existing Functionality**
+
+| **❌ Common Mistake** | **🔍 How to Detect** | **✅ Correct Action** |
+|----------------------|---------------------|---------------------|
+| Creating `WorkspaceManagementViewModel` | Domain already has `WorkspaceProjectViewModel` | Use existing ViewModel - don't duplicate |
+| DI registration fails with CS0246 | Type not found despite correct namespace | Check if ViewModel should exist at all |
+| Multiple ViewModels per domain | `grep -r "ViewModel" MVVM/Domains/{Domain}/ViewModels/` | One focused ViewModel per domain concern |
+| Disabled methods with TODO warnings | Methods contain `architectural violation removed` | Delete the entire ViewModel - it's a duplicate |
+| Factory creates wrong ViewModel | Factory method exists but targets wrong class | Update factory to use correct existing ViewModel |
+
+**🎯 Prevention Rule**: 
+> **ALWAYS** audit existing ViewModels in target domain BEFORE creating new ones.  
+> 95% of "new" ViewModels are duplicates of existing functionality.  
+> Use `list_dir MVVM/Domains/{DomainName}/ViewModels/` first!
+
 ---
 
 ## 🎯 IMPLEMENTATION TEMPLATES

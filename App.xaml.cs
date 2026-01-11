@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
@@ -274,7 +274,7 @@ namespace TestCaseEditorApp
                     services.AddTransient<LLMServiceManagementViewModel>();
                     services.AddTransient<RequirementProcessingViewModel>();
                     services.AddTransient<RequirementAnalysisManagementViewModel>();
-                    services.AddTransient<WorkspaceManagementViewModel>();
+                    // WorkspaceManagementViewModel REMOVED - duplicate functionality, use WorkspaceProjectViewModel
                     services.AddTransient<NavigationHeaderManagementViewModel>();
                     // NavigationHeaderManagementViewModel and RequirementImportExportViewModel already exist
                     // ChatGptExportAnalysisViewModel is registered in its domain

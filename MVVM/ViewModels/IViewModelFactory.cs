@@ -45,7 +45,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         DefaultNotificationViewModel CreateDefaultNotificationViewModel();
         
         // Domain ViewModels (proper DI approach)
-        WorkspaceManagementVM CreateWorkspaceManagementViewModel();
+        // WorkspaceManagementViewModel removed - use WorkspaceProjectViewModel instead
         ChatGptExportAnalysisViewModel CreateChatGptExportAnalysisViewModel();
 
     }
