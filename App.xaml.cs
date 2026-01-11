@@ -273,7 +273,7 @@ namespace TestCaseEditorApp
                     services.AddTransient<UIModalManagementViewModel>();
                     services.AddTransient<LLMServiceManagementViewModel>();
                     services.AddTransient<RequirementProcessingViewModel>();
-                    services.AddTransient<RequirementAnalysisManagementViewModel>();
+                    // RequirementAnalysisManagementViewModel REMOVED - duplicate functionality, use RequirementAnalysisViewModel in TestCaseGeneration domain
                     // WorkspaceManagementViewModel REMOVED - duplicate functionality, use WorkspaceProjectViewModel
                     services.AddTransient<NavigationHeaderManagementViewModel>();
                     // NavigationHeaderManagementViewModel and RequirementImportExportViewModel already exist
