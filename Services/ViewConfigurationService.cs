@@ -25,6 +25,7 @@ namespace TestCaseEditorApp.Services
         // Cached view models - created once and reused
         private WorkspaceHeaderViewModel? _workspaceHeader;
         private TestCaseGenerator_HeaderVM? _testCaseGeneratorHeader;
+        private TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel? _testCaseGeneratorNotification;
         private object? _projectContent;
         private object? _requirementsContent;
         private object? _testCaseGeneratorContent;
@@ -138,7 +139,7 @@ namespace TestCaseEditorApp.Services
             return new ViewConfiguration(
                 sectionName: "TestCase",                titleViewModel: EnsureTestCaseGeneratorTitle(),                headerViewModel: _testCaseGeneratorHeader,
                 contentViewModel: _testCaseGeneratorContent,
-                notificationViewModel: new TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel(App.ServiceProvider?.GetService<Microsoft.Extensions.Logging.ILogger<TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel>>()),
+                notificationViewModel: EnsureTestCaseGeneratorNotification(),
                 context: context
             );
         }
@@ -269,6 +270,17 @@ namespace TestCaseEditorApp.Services
             // TitleVM is created directly by the mediator
             return _testCaseGenerationMediator.TitleViewModel
                 ?? throw new InvalidOperationException("TitleViewModel not initialized in TestCaseGenerationMediator");
+        }
+
+        private TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel EnsureTestCaseGeneratorNotification()
+        {
+            if (_testCaseGeneratorNotification == null)
+            {
+                // Get the notification ViewModel from the service provider
+                _testCaseGeneratorNotification = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>()
+                    ?? throw new InvalidOperationException("TestCaseGeneratorNotificationViewModel not registered in DI container");
+            }
+            return _testCaseGeneratorNotification;
         }
 
         #endregion
