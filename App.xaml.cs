@@ -271,7 +271,7 @@ namespace TestCaseEditorApp
 
                     // New domain ViewModels for consolidation
                     services.AddTransient<UIModalManagementViewModel>();
-                    services.AddTransient<LLMServiceManagementViewModel>();
+                    // LLMServiceManagementViewModel REMOVED - duplicate functionality, use TestCaseGeneration domain LLM services
                     services.AddTransient<RequirementProcessingViewModel>();
                     // RequirementAnalysisManagementViewModel REMOVED - duplicate functionality, use RequirementAnalysisViewModel in TestCaseGeneration domain
                     // WorkspaceManagementViewModel REMOVED - duplicate functionality, use WorkspaceProjectViewModel
