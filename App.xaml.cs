@@ -270,12 +270,12 @@ namespace TestCaseEditorApp
                     services.AddTransient<NavigationViewModel>();
 
                     // New domain ViewModels for consolidation
-                    services.AddTransient<UIModalManagementViewModel>();
+                    // UIModalManagementViewModel REMOVED - cross-cutting infrastructure violation, use domain mediators for modals
                     // LLMServiceManagementViewModel REMOVED - duplicate functionality, use TestCaseGeneration domain LLM services
                     services.AddTransient<RequirementProcessingViewModel>();
                     // RequirementAnalysisManagementViewModel REMOVED - duplicate functionality, use RequirementAnalysisViewModel in TestCaseGeneration domain
                     // WorkspaceManagementViewModel REMOVED - duplicate functionality, use WorkspaceProjectViewModel
-                    services.AddTransient<NavigationHeaderManagementViewModel>();
+                    //services.AddTransient<NavigationHeaderManagementViewModel>();
                     // NavigationHeaderManagementViewModel and RequirementImportExportViewModel already exist
                     // ChatGptExportAnalysisViewModel is registered in its domain
 
