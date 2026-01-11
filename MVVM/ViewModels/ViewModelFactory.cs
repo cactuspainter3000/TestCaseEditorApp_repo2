@@ -276,12 +276,5 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             var logger = loggerFactory?.CreateLogger<DefaultNotificationViewModel>();
             return new DefaultNotificationViewModel(logger);
         }
-
-        public TestCaseGeneratorNotificationViewModel CreateTestCaseGeneratorNotificationViewModel()
-        {
-            var loggerFactory = _applicationServices.LoggerFactory;
-            var logger = loggerFactory?.CreateLogger<TestCaseGeneratorNotificationViewModel>();
-            return new TestCaseGeneratorNotificationViewModel(logger, _testCaseGenerationMediator);
-        }
     }
 }

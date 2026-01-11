@@ -149,6 +149,8 @@
 - [ ] DataTemplate created for ViewModel type
 - [ ] DataTemplate registered in ResourceDictionary
 - [ ] App.xaml includes ResourceDictionary (if new file)
+- [ ] **No factory methods exist** (`grep -r "CreateYourVM\|new YourVM"` returns no results)
+- [ ] **No direct instantiation** (all creation goes through DI container)
 - [ ] Build succeeds without errors
 - [ ] View renders when ViewModel is assigned
 

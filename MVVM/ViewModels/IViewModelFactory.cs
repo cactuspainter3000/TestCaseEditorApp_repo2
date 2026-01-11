@@ -46,7 +46,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         object CreateTestCaseGeneratorSplashScreenViewModel();
         NotificationAreaViewModel CreateNotificationAreaViewModel();
         DefaultNotificationViewModel CreateDefaultNotificationViewModel();
-        TestCaseGeneratorNotificationViewModel CreateTestCaseGeneratorNotificationViewModel();
         
         // Domain ViewModels (proper DI approach)
         WorkspaceManagementVM CreateWorkspaceManagementViewModel();

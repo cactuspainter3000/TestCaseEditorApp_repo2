@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Events;
+using TestCaseEditorApp.MVVM.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
@@ -12,10 +13,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
     /// Domain-specific notification ViewModel for Test Case Generator
     /// Shows AnythingLLM status and requirements progress when Test Case Generator is active
     /// </summary>
-    public partial class TestCaseGeneratorNotificationViewModel : ObservableObject, IDisposable
+    public partial class TestCaseGeneratorNotificationViewModel : BaseDomainViewModel, IDisposable
     {
-        private readonly ILogger<TestCaseGeneratorNotificationViewModel>? _logger;
-        private readonly ITestCaseGenerationMediator? _mediator;
 
         // === STATUS INDICATORS ===
         
@@ -68,17 +67,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         private string currentRequirementVerificationMethod = "No requirement selected";
 
         public TestCaseGeneratorNotificationViewModel(
-            ILogger<TestCaseGeneratorNotificationViewModel>? logger = null,
-            ITestCaseGenerationMediator? mediator = null)
+            ITestCaseGenerationMediator mediator,
+            ILogger<TestCaseGeneratorNotificationViewModel> logger)
+            : base(mediator, logger)
         {
-            _logger = logger;
-            _mediator = mediator;
             _logger?.LogInformation("TestCaseGeneratorNotificationViewModel initialized");
             
             // Subscribe to requirement selection changes
-            if (_mediator != null)
+            if (mediator != null)
             {
-                _mediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
+                mediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
                 _logger?.LogInformation("TestCaseGeneratorNotificationViewModel subscribed to requirement selection events");
             }
             
@@ -194,18 +192,44 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             }
         }
 
+        // Implementation of abstract methods from BaseDomainViewModel
+        protected override Task SaveAsync()
+        {
+            // Notification ViewModel has no save functionality
+            return Task.CompletedTask;
+        }
+
+        protected override void Cancel()
+        {
+            // Clear any notification state if needed
+            _logger?.LogDebug("[TestCaseGeneratorNotificationViewModel] Cancel called");
+        }
+
+        protected override Task RefreshAsync()
+        {
+            // Refresh notification state
+            _logger?.LogDebug("[TestCaseGeneratorNotificationViewModel] Refresh requested");
+            return Task.CompletedTask;
+        }
+
+        protected override bool CanSave() => false; // No save functionality for notifications
+        protected override bool CanCancel() => false;
+        protected override bool CanRefresh() => true;
+
         /// <summary>
         /// Cleanup subscriptions when the ViewModel is disposed
         /// </summary>
-        public void Dispose()
+        public override void Dispose()
         {
             AnythingLLMMediator.StatusUpdated -= OnAnythingLlmStatusUpdated;
             
             // Unsubscribe from mediator events
-            if (_mediator != null)
+            if (_mediator is ITestCaseGenerationMediator testCaseMediator)
             {
-                _mediator.Unsubscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
+                testCaseMediator.Unsubscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
             }
+            
+            base.Dispose();
         }
     }
 }

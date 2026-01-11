@@ -282,6 +282,7 @@ namespace TestCaseEditorApp
                     // Test Case Generation domain ViewModels - proper DI registration
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_VM>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementsWorkspaceViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>();
 
                     // Core application services
                     services.AddSingleton<ChatGptExportService>();
