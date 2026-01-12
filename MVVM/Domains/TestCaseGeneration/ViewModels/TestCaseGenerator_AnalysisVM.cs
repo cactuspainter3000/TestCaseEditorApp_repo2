@@ -978,8 +978,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 var refinedText = ExtractRefinedRequirementFromResponse(clipboardContent);
                 if (!string.IsNullOrWhiteSpace(refinedText))
                 {
-                    // Properly start editing state via mediator to ensure copy button hides
-                    _mediator.StartEditingRequirement(requirement, refinedText);
+                    // Start editing state with original text, then update to refined text to show changes
+                    _mediator.StartEditingRequirement(requirement, requirement.Description ?? "");
+                    _mediator.UpdateEditingText(refinedText);
                     EditingRequirementText = refinedText;
                     IsEditingRequirement = true;
                     _logger.LogInformation("[AnalysisVM] Started editing mode with external LLM analysis");
