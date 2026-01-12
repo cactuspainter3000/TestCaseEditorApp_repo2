@@ -533,7 +533,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             _currentEditingText = originalText;
             
             // Fire event for UI to reflect state change
-            Publish(new TestCaseGenerationEvents.RequirementEditStateChanged
+            PublishEvent(new TestCaseGenerationEvents.RequirementEditStateChanged
             {
                 Requirement = requirement,
                 IsEditing = true,
@@ -556,7 +556,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             var hasChanges = HasUnsavedEditingChanges;
             if (_currentRequirement != null)
             {
-                Publish(new TestCaseGenerationEvents.RequirementEditStateChanged
+                PublishEvent(new TestCaseGenerationEvents.RequirementEditStateChanged
                 {
                     Requirement = _currentRequirement,
                     IsEditing = true,
@@ -574,7 +574,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         {
             if (_currentRequirement != null && _isEditingRequirement)
             {
-                Publish(new TestCaseGenerationEvents.RequirementEditStateChanged
+                PublishEvent(new TestCaseGenerationEvents.RequirementEditStateChanged
                 {
                     Requirement = _currentRequirement,
                     IsEditing = false,
@@ -596,7 +596,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         {
             if (_currentRequirement != null && _isEditingRequirement)
             {
-                Publish(new TestCaseGenerationEvents.RequirementEditStateChanged
+                PublishEvent(new TestCaseGenerationEvents.RequirementEditStateChanged
                 {
                     Requirement = _currentRequirement,
                     IsEditing = false,
