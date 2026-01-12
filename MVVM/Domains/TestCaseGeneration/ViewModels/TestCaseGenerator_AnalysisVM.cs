@@ -1286,36 +1286,62 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             try
             {
                 // Remove leading asterisk and trim
-                var content = line.TrimStart('*').Trim();
+                var content = line.TrimStart('*', '-', '•').Trim();
                 
-                // Look for pattern: "Category Issue (Priority): Description | Fix: Solution"
-                var match = System.Text.RegularExpressions.Regex.Match(content, 
+                // Try multiple parsing patterns for external LLM flexibility
+                
+                // Pattern 1: "Category Issue (Priority): Description | Fix: Solution"
+                var match1 = System.Text.RegularExpressions.Regex.Match(content, 
                     @"^(.+?)\s+Issue\s*\((.+?)\):\s*(.+?)(?:\s*\|\s*Fix:\s*(.+))?$", 
                     System.Text.RegularExpressions.RegexOptions.IgnoreCase);
                 
-                if (match.Success)
+                if (match1.Success && !string.IsNullOrWhiteSpace(match1.Groups[4].Value))
                 {
-                    var category = match.Groups[1].Value.Trim();
-                    var priority = match.Groups[2].Value.Trim();
-                    var description = match.Groups[3].Value.Trim();
-                    var fix = match.Groups[4].Value.Trim();
-                    
-                    // Only create issue if there's an actual, actionable fix provided
-                    if (!string.IsNullOrWhiteSpace(fix))
-                    {
-                        return new AnalysisIssue
-                        {
-                            Category = category,
-                            Severity = ParseSeverityString(priority),
-                            Description = $"{category} Issue: {description}",
-                            Fix = fix
-                        };
-                    }
-                    // No fix = no issue. LLM must provide actionable fixes or nothing.
+                    return CreateIssue(match1.Groups[1].Value, match1.Groups[2].Value, 
+                                     match1.Groups[3].Value, match1.Groups[4].Value);
                 }
                 
-                // Remove fallback logic - if we can't parse a proper issue with fix, reject it
-                // LLM responses should be specific and actionable, not generic content
+                // Pattern 2: "Category (Priority): Description. Fix: Solution" 
+                var match2 = System.Text.RegularExpressions.Regex.Match(content,
+                    @"^(.+?)\s*\((.+?)\):\s*(.+?)\.?\s*(?:Fix|Fixed|Resolution|Resolved):\s*(.+)$",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                
+                if (match2.Success && !string.IsNullOrWhiteSpace(match2.Groups[4].Value))
+                {
+                    return CreateIssue(match2.Groups[1].Value, match2.Groups[2].Value,
+                                     match2.Groups[3].Value, match2.Groups[4].Value);
+                }
+                
+                // Pattern 3: "Description - Fixed: Solution (Category)"
+                var match3 = System.Text.RegularExpressions.Regex.Match(content,
+                    @"^(.+?)\s*-\s*(?:Fixed|Resolved|Fix):\s*(.+?)\s*\((.+?)\)$",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                
+                if (match3.Success && !string.IsNullOrWhiteSpace(match3.Groups[2].Value))
+                {
+                    return CreateIssue(match3.Groups[3].Value, "Medium", 
+                                     match3.Groups[1].Value, match3.Groups[2].Value);
+                }
+                
+                // Pattern 4: Look for any "Fix:" or "Fixed:" anywhere in the line
+                var fixMatch = System.Text.RegularExpressions.Regex.Match(content,
+                    @"(.+?)(?:Fix|Fixed|Resolution|Resolved):\s*(.+?)(?:\s*\((.+?)\))?$",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                
+                if (fixMatch.Success && !string.IsNullOrWhiteSpace(fixMatch.Groups[2].Value))
+                {
+                    var category = fixMatch.Groups[3].Value;
+                    if (string.IsNullOrWhiteSpace(category))
+                    {
+                        // Try to extract category from description
+                        var desc = fixMatch.Groups[1].Value.Trim();
+                        category = ExtractCategoryFromDescription(desc);
+                    }
+                    return CreateIssue(category, "Medium", fixMatch.Groups[1].Value, fixMatch.Groups[2].Value);
+                }
+                
+                // If none of the patterns match or no fix is found, reject the line entirely
+                // LLM must provide actionable fixes in recognizable format
             }
             catch (Exception ex)
             {
@@ -1323,6 +1349,43 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             }
             
             return null;
+        }
+
+        /// <summary>
+        /// Helper to create AnalysisIssue with consistent formatting
+        /// </summary>
+        private AnalysisIssue CreateIssue(string category, string priority, string description, string fix)
+        {
+            return new AnalysisIssue
+            {
+                Category = category.Trim(),
+                Severity = ParseSeverityString(priority.Trim()),
+                Description = $"{category.Trim()} Issue: {description.Trim()}",
+                Fix = fix.Trim()
+            };
+        }
+
+        /// <summary>
+        /// Extract likely category from description text when not explicitly provided
+        /// </summary>
+        private string ExtractCategoryFromDescription(string description)
+        {
+            var lowerDesc = description.ToLowerInvariant();
+            
+            if (lowerDesc.Contains("unclear") || lowerDesc.Contains("ambiguous") || lowerDesc.Contains("vague"))
+                return "Clarity";
+            if (lowerDesc.Contains("test") || lowerDesc.Contains("verify") || lowerDesc.Contains("measurable"))
+                return "Testability";
+            if (lowerDesc.Contains("missing") || lowerDesc.Contains("incomplete") || lowerDesc.Contains("specify"))
+                return "Completeness";
+            if (lowerDesc.Contains("multiple") || lowerDesc.Contains("combined") || lowerDesc.Contains("split"))
+                return "Atomicity";
+            if (lowerDesc.Contains("implement") || lowerDesc.Contains("actionable") || lowerDesc.Contains("abstract"))
+                return "Actionability";
+            if (lowerDesc.Contains("consistent") || lowerDesc.Contains("terminology") || lowerDesc.Contains("format"))
+                return "Consistency";
+            
+            return "General";
         }
 
         /// <summary>
