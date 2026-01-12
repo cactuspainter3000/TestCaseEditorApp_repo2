@@ -148,6 +148,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             _mediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
             _mediator.Subscribe<TestCaseGenerationEvents.RequirementAnalyzed>(OnRequirementAnalyzed);
             _mediator.Subscribe<TestCaseGenerationEvents.WorkflowStateChanged>(OnWorkflowStateChanged);
+            _mediator.Subscribe<TestCaseGenerationEvents.RequirementEditStateChanged>(OnEditStateChanged);
 
             // Subscribe to mediator for analysis updates
             AnalysisMediator.AnalysisUpdated += OnAnalysisUpdated;
