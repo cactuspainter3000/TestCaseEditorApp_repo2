@@ -45,6 +45,23 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         private bool _isDirty = false;
         private bool _isAnalyzing = false;
         
+        // Requirement editing state management
+        private bool _isEditingRequirement = false;
+        private string _originalRequirementText = string.Empty;
+        private string _currentEditingText = string.Empty;
+        
+        /// <summary>
+        /// Whether currently editing a requirement
+        /// </summary>
+        public bool IsEditingRequirement => _isEditingRequirement;
+        
+        /// <summary>
+        /// Whether the editing text differs from original (used for UI visibility)
+        /// </summary>
+        public bool HasUnsavedEditingChanges => _isEditingRequirement && 
+                                               !string.IsNullOrEmpty(_currentEditingText) &&
+                                               _currentEditingText.Trim() != _originalRequirementText.Trim();
+        
         // Header ViewModel integration for project status updates
         private TestCaseGenerator_HeaderVM? _headerViewModel;
         private TestCaseGenerator_TitleVM? _titleViewModel;
@@ -502,6 +519,96 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 _logger.LogError(ex, "Requirements import failed for {FilePath}", filePath);
                 return false;
             }
+        }
+
+        // Editing state management methods
+        
+        /// <summary>
+        /// Start editing a requirement - mediator manages the state
+        /// </summary>
+        public void StartEditingRequirement(Requirement requirement, string originalText)
+        {
+            _isEditingRequirement = true;
+            _originalRequirementText = originalText;
+            _currentEditingText = originalText;
+            
+            // Fire event for UI to reflect state change
+            Publish(new TestCaseGenerationEvents.RequirementEditStateChanged
+            {
+                Requirement = requirement,
+                IsEditing = true,
+                HasUnsavedChanges = false,
+                OriginalText = originalText,
+                CurrentText = originalText
+            });
+        }
+        
+        /// <summary>
+        /// Update the current editing text - mediator tracks changes
+        /// </summary>
+        public void UpdateEditingText(string currentText)
+        {
+            if (!_isEditingRequirement) return;
+            
+            _currentEditingText = currentText;
+            
+            // Fire event when unsaved changes state changes
+            var hasChanges = HasUnsavedEditingChanges;
+            if (_currentRequirement != null)
+            {
+                Publish(new TestCaseGenerationEvents.RequirementEditStateChanged
+                {
+                    Requirement = _currentRequirement,
+                    IsEditing = true,
+                    HasUnsavedChanges = hasChanges,
+                    OriginalText = _originalRequirementText,
+                    CurrentText = currentText
+                });
+            }
+        }
+        
+        /// <summary>
+        /// End editing (after save) - clear state
+        /// </summary>
+        public void EndEditingRequirement()
+        {
+            if (_currentRequirement != null && _isEditingRequirement)
+            {
+                Publish(new TestCaseGenerationEvents.RequirementEditStateChanged
+                {
+                    Requirement = _currentRequirement,
+                    IsEditing = false,
+                    HasUnsavedChanges = false,
+                    OriginalText = string.Empty,
+                    CurrentText = string.Empty
+                });
+            }
+            
+            _isEditingRequirement = false;
+            _originalRequirementText = string.Empty;
+            _currentEditingText = string.Empty;
+        }
+        
+        /// <summary>
+        /// Cancel editing (without save) - clear state
+        /// </summary>
+        public void CancelEditingRequirement()
+        {
+            if (_currentRequirement != null && _isEditingRequirement)
+            {
+                Publish(new TestCaseGenerationEvents.RequirementEditStateChanged
+                {
+                    Requirement = _currentRequirement,
+                    IsEditing = false,
+                    HasUnsavedChanges = false,
+                    OriginalText = string.Empty,
+                    CurrentText = string.Empty
+                });
+            }
+            
+            _isEditingRequirement = false;
+            _originalRequirementText = string.Empty;
+            _currentEditingText = string.Empty;
         }
 
         /// <summary>

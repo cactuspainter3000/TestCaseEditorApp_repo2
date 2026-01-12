@@ -220,6 +220,20 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         // Legacy factory pattern conflicts with proper domain architecture
         
         /// <summary>
+        /// Domain state for editing
+        /// </summary>
+        bool IsEditingRequirement { get; }
+        bool HasUnsavedEditingChanges { get; }
+        
+        /// <summary>
+        /// Editing state management
+        /// </summary>
+        void StartEditingRequirement(Requirement requirement, string originalText);
+        void UpdateEditingText(string currentText);
+        void EndEditingRequirement();
+        void CancelEditingRequirement();
+        
+        /// <summary>
         /// Handle broadcast notifications from other domains
         /// </summary>
         void HandleBroadcastNotification<T>(T notification) where T : class;

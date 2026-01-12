@@ -32,6 +32,19 @@ namespace TestCaseEditorApp.MVVM.Events
         }
         
         /// <summary>
+        /// Fired when requirement editing state changes (for UI visibility)
+        /// </summary>
+        public class RequirementEditStateChanged
+        {
+            public Requirement Requirement { get; set; } = default!;
+            public bool IsEditing { get; set; }
+            public bool HasUnsavedChanges { get; set; }
+            public string OriginalText { get; set; } = string.Empty;
+            public string CurrentText { get; set; } = string.Empty;
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
+
+        /// <summary>
         /// Fired when a requirement is selected for test case generation
         /// </summary>
         public class RequirementSelected

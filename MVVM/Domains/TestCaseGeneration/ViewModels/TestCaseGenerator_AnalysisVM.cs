@@ -47,6 +47,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         [ObservableProperty]
         private string _editingRequirementText = string.Empty;
         
+        /// <summary>
+        /// Whether the copy button should be hidden (reflects mediator state)
+        /// </summary>
+        public bool ShouldHideCopyButton => _mediator.HasUnsavedEditingChanges;
+        
         // Clipboard monitoring for external LLM workflow
         private System.Windows.Threading.DispatcherTimer? _clipboardMonitorTimer;
         private string _lastClipboardContent = string.Empty;
@@ -259,6 +264,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 // Ensure we're not in editing mode after analysis completes
                 if (IsEditingRequirement)
                 {
+                    _mediator.CancelEditingRequirement();
                     IsEditingRequirement = false;
                     EditingRequirementText = string.Empty;
                 }
@@ -267,6 +273,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 OnPropertyChanged(nameof(HasAnalysis));
                 OnPropertyChanged(nameof(AnalysisQualityScore));
             }
+        }
+        
+        private void OnEditStateChanged(TestCaseGenerationEvents.RequirementEditStateChanged e)
+        {
+            // Update copy button visibility when edit state changes
+            OnPropertyChanged(nameof(ShouldHideCopyButton));
         }
 
         private void OnAnalysisUpdated(Requirement requirement)
@@ -324,6 +336,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] EditRequirement called - switching to inline edit mode for improved requirement");
                 
                 // Switch to inline editing mode using the improved requirement text
+                // Let mediator handle editing state
+                _mediator.StartEditingRequirement(requirement, requirement.Analysis?.ImprovedRequirement ?? string.Empty);
                 EditingRequirementText = requirement.Analysis?.ImprovedRequirement ?? string.Empty;
                 IsEditingRequirement = true;
                 
@@ -384,6 +398,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                     OnPropertyChanged(nameof(HasImprovedRequirement));
                 }
                 
+                // Let mediator handle editing state
+                _mediator.EndEditingRequirement();
                 // Exit edit mode
                 IsEditingRequirement = false;
                 EditingRequirementText = string.Empty;
@@ -433,6 +449,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             {
                 TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] CancelRequirementEdit called");
                 
+                // Let mediator handle editing state
+                _mediator.CancelEditingRequirement();
                 // Exit edit mode without saving
                 IsEditingRequirement = false;
                 EditingRequirementText = string.Empty;
@@ -674,6 +692,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         partial void OnEditingRequirementTextChanged(string value)
         {
+            // Notify mediator of text changes - it manages the state
+            _mediator.UpdateEditingText(value);
             // Update command states when editing text changes
             ((RelayCommand)CopyAnalysisPromptCommand).NotifyCanExecuteChanged();
         }
