@@ -103,7 +103,14 @@ namespace TestCaseEditorApp.Prompts
             sb.AppendLine("4. Provide concrete rewrites in the 'SuggestedEdit' field of your recommendations.");
             sb.AppendLine("   Use [brackets] to indicate placeholders: 'The system shall respond within [X] seconds'");
             sb.AppendLine();
-            sb.AppendLine("5. LEVERAGE SUPPLEMENTAL INFORMATION: If the supplemental paragraphs or tables contain");
+            sb.AppendLine("5. ADAPTIVE REWRITING APPROACH:");
+            sb.AppendLine("   - Use available information from requirement text, tables, and supplemental materials");
+            sb.AppendLine("   - When specific details are missing, use [brackets] with helpful examples");
+            sb.AppendLine("   - Example: 'The system shall respond within [specify time: 1 second, 500ms, etc.]'");
+            sb.AppendLine("   - Set HallucinationCheck to 'HELPFUL_ELABORATION' when using [bracket] examples");
+            sb.AppendLine("   - Set HallucinationCheck to 'NO_FABRICATION' when using only provided information");
+            sb.AppendLine();
+            sb.AppendLine("6. LEVERAGE SUPPLEMENTAL INFORMATION: If the supplemental paragraphs or tables contain");
             sb.AppendLine("   specific details that would improve the requirement (definitions, criteria, constraints),");
             sb.AppendLine("   include a 'SuggestedEdit' field with a complete rewrite that incorporates those details");
             sb.AppendLine("   directly into the requirement text. For example:");
@@ -113,7 +120,7 @@ namespace TestCaseEditorApp.Prompts
             sb.AppendLine("     suggest incorporating the specific protocol names");
             sb.AppendLine("   - Move critical details from notes/supplemental into the actual requirement text");
             sb.AppendLine();
-            sb.AppendLine("6. ALWAYS PROVIDE SUGGESTED EDITS: Every recommendation should include a SuggestedEdit");
+            sb.AppendLine("7. ALWAYS PROVIDE SUGGESTED EDITS: Every recommendation should include a SuggestedEdit");
             sb.AppendLine("   with a complete rewrite of the requirement. Use [brackets] for values that need");
             sb.AppendLine("   to be filled in by the user when specific information isn't available. Examples:");
             sb.AppendLine("   - 'The test shall achieve [enter percentage here]% boundary scan coverage'");
@@ -189,7 +196,7 @@ namespace TestCaseEditorApp.Prompts
             sb.AppendLine();
             sb.AppendLine(@"{");
             sb.AppendLine(@"  ""QualityScore"": <integer from 1-10>,");
-            sb.AppendLine(@"  ""HallucinationCheck"": ""<REQUIRED: Answer 'NO_FABRICATION' if you used ONLY terms/concepts from the original requirement, OR 'FABRICATED_DETAILS' if you added any technical terms, protocols, systems, or specifications not explicitly present in the source material. Be honest - this is a quality check, not a penalty.>"",");
+            sb.AppendLine(@"  ""HallucinationCheck"": ""<REQUIRED: Choose based on your approach - 'NO_FABRICATION' if you used ONLY terms/concepts from the original requirement/supplemental materials (complete rewrite mode), 'HELPFUL_ELABORATION' if you provided realistic examples in [brackets] to show what information is needed (coaching mode), or 'FABRICATED_DETAILS' if you added technical terms not present in the source material.>"",");
             sb.AppendLine(@"  ""Issues"": [");
             sb.AppendLine(@"    {");
             sb.AppendLine(@"      ""Category"": ""<Clarity|Testability|Completeness|Atomicity|Actionability|Consistency>"",");

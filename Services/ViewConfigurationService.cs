@@ -99,7 +99,7 @@ namespace TestCaseEditorApp.Services
                 titleViewModel: EnsureTestCaseGeneratorTitle(),
                 headerViewModel: _testCaseGeneratorHeader,
                 contentViewModel: _projectContent,
-                notificationViewModel: new TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel(App.ServiceProvider?.GetService<Microsoft.Extensions.Logging.ILogger<TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel>>()),
+                notificationViewModel: EnsureTestCaseGeneratorNotification(), // FIX: Use Test Case Generator notification for project operations
                 context: context
             );
         }
@@ -120,7 +120,7 @@ namespace TestCaseEditorApp.Services
                 titleViewModel: EnsureTestCaseGeneratorTitle(),
                 headerViewModel: _testCaseGeneratorHeader,
                 contentViewModel: _requirementsContent,
-                notificationViewModel: new TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel(App.ServiceProvider?.GetService<Microsoft.Extensions.Logging.ILogger<TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel>>()),
+                notificationViewModel: EnsureTestCaseGeneratorNotification(), // FIX: Use Test Case Generator notification for Requirements
                 context: context
             );
         }
@@ -208,7 +208,7 @@ namespace TestCaseEditorApp.Services
                 sectionName: "Import",
                 headerViewModel: _workspaceHeader,
                 contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Import Requirements"),
-                notificationViewModel: new TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel(App.ServiceProvider?.GetService<Microsoft.Extensions.Logging.ILogger<TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel>>()),
+                notificationViewModel: EnsureTestCaseGeneratorNotification(), // FIX: Use Test Case Generator notification for Requirements Import
                 context: context
             );
         }

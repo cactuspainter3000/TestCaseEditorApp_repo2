@@ -189,30 +189,19 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
             // Remove unnecessary brackets that sometimes appear in LLM responses
             description = description.Trim('[', ']').Trim();
 
-            // Handle case where LLM didn't provide proper format - add helpful text
-            if (!mainPart.ToUpper().Contains("ISSUE") && !string.IsNullOrEmpty(description))
-            {
-                // LLM gave us just a description without proper issue format
-                // Try to generate a more specific fix based on content analysis
-                string smartFix = GenerateSmartFix(description);
-                description = $"{description} | Fix: {smartFix}";
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[ParseIssue] Issue item lacks proper format, adding smart fix suggestion");
-            }
-
-            // Add fix information to description if present
+            // Simple extraction - LLM should provide properly formatted responses
+            string fix = "";
             if (fixPart.ToUpper().StartsWith("FIX:"))
             {
-                var fix = fixPart.Substring(4).Trim();
-                // Convert fix to past tense to indicate what was addressed
-                fix = ConvertFixToPastTense(fix);
-                description += $" | Fix: {fix}";
+                fix = fixPart.Substring(4).Trim();
             }
             
             issues.Add(new AnalysisIssue
             {
                 Category = category,
                 Description = description,
-                Severity = severity
+                Severity = severity,
+                Fix = fix
             });
         }
 
@@ -248,84 +237,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
             analysis.IsAnalyzed = true;
 
             TestCaseEditorApp.Services.Logging.Log.Info($"[{ParserName}Parser] Natural language parsing successful for {requirementId}: Score={analysis.QualityScore}, Issues={analysis.Issues.Count}, ImprovedReq={!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement)}, Freeform={!string.IsNullOrWhiteSpace(analysis.FreeformFeedback)}");
-        }
-
-        /// <summary>
-        /// Generates a smart fix suggestion based on the issue description
-        /// </summary>
-        private string GenerateSmartFix(string description)
-        {
-            var lowerDesc = description.ToLower();
-            
-            // Clarity issues
-            if (lowerDesc.Contains("unclear") || lowerDesc.Contains("ambiguous") || lowerDesc.Contains("vague"))
-                return "Clarified the ambiguous language and provided specific details";
-            
-            if (lowerDesc.Contains("missing context") || lowerDesc.Contains("context"))
-                return "Added necessary context and background information";
-            
-            // Completeness issues
-            if (lowerDesc.Contains("missing") || lowerDesc.Contains("incomplete"))
-                return "Added the missing required information and details";
-            
-            if (lowerDesc.Contains("acceptance criteria"))
-                return "Defined clear acceptance criteria and success conditions";
-            
-            // Testability issues
-            if (lowerDesc.Contains("testable") || lowerDesc.Contains("verify"))
-                return "Made the requirement more testable with measurable criteria";
-            
-            if (lowerDesc.Contains("observable") || lowerDesc.Contains("measurable"))
-                return "Added observable and measurable success indicators";
-            
-            // Consistency issues
-            if (lowerDesc.Contains("inconsistent") || lowerDesc.Contains("contradiction"))
-                return "Resolved inconsistencies and aligned with other requirements";
-            
-            // Default fix suggestion
-            return "Improved requirement clarity and completeness";
-        }
-
-        /// <summary>
-        /// Converts a fix description to past tense to indicate what was addressed
-        /// </summary>
-        private string ConvertFixToPastTense(string fix)
-        {
-            if (string.IsNullOrWhiteSpace(fix))
-                return fix;
-
-            var result = fix.Trim();
-            
-            // Common present tense to past tense conversions for fix descriptions
-            var conversions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
-                { "Add ", "Added " },
-                { "Remove ", "Removed " },
-                { "Clarify ", "Clarified " },
-                { "Define ", "Defined " },
-                { "Specify ", "Specified " },
-                { "Include ", "Included " },
-                { "Provide ", "Provided " },
-                { "Ensure ", "Ensured " },
-                { "Make ", "Made " },
-                { "Update ", "Updated " },
-                { "Improve ", "Improved " },
-                { "Enhance ", "Enhanced " },
-                { "Fix ", "Fixed " },
-                { "Resolve ", "Resolved " },
-                { "Address ", "Addressed " }
-            };
-
-            foreach (var conversion in conversions)
-            {
-                if (result.StartsWith(conversion.Key, StringComparison.OrdinalIgnoreCase))
-                {
-                    result = conversion.Value + result.Substring(conversion.Key.Length);
-                    break;
-                }
-            }
-
-            return result;
         }
     }
 }

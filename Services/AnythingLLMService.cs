@@ -852,41 +852,29 @@ CRITICAL ANTI-FABRICATION RULES:
 - Use ONLY definitions from uploaded supplemental materials (if any) including tables, specifications, and reference documents
 - Do NOT mention IEEE standards, ISO standards, or technical protocols unless they appear in the requirement
 - Do NOT invent definitions for technical terms (e.g., 'Tier 1/2/3') unless provided in supplemental materials
-- When you lack information, suggest asking for clarification instead of inventing details
-- If you reference ANY technical specifications not provided, you MUST respond with 'FABRICATED_DETAILS' in your HALLUCINATION CHECK
+- When information is missing, use [brackets with helpful examples] instead of inventing details
+- ADAPTIVE APPROACH: Use available info when present, [brackets] when missing
 
 Provide your analysis in this structured text format:
 
 QUALITY SCORE: [0-100 integer]
 
 ISSUES FOUND:
-- Clarity Issue (Severity): [Specific ambiguity or unclear language identified] | Fix: [How to make it clearer]
-- Completeness Issue (Severity): [Missing information or gaps identified] | Fix: [What needs to be added]
-- Testability Issue (Severity): [Why it's hard to verify or test] | Fix: [How to make it testable]
-- Consistency Issue (Severity): [Contradictions or conflicts found] | Fix: [How to resolve conflicts]
-- Feasibility Issue (Severity): [Implementation concerns identified] | Fix: [How to make it achievable]
+- [Issue Category] (Severity): [Description of the problem] | Fix: [Specific action that was addressed - use PAST TENSE (Added, Defined, Specified, etc.)]
 
 STRENGTHS:
 - [What this requirement does well]
-- [Another strength]
 
 IMPROVED REQUIREMENT:
-[REQUIRED: Provide a single, clear requirement statement that addresses all identified issues. Write this as a clean, professional requirement without any formatting, headers, or bullet points. Start with ""The [System Name] shall..."" and focus ONLY on WHAT the system must do, not HOW it will be tested or verified. Do NOT include:
-- Markdown formatting (**, ##, bullets, etc.)
-- Section headers or subsections  
-- Success criteria or verification methods
-- Test procedures or testing language  
-- Phrases like ""shall be verified by"" or ""success criteria shall be defined""
-- Specific test steps or validation approaches
-- Bullet points or numbered lists
-The improved requirement should be one coherent paragraph that clearly states the system's functional capabilities and constraints, leaving verification and testing to separate test case documents.]
+[REQUIRED: Write ONLY the requirement text itself - NO prefixes like ""Fix:"", ""Note:"", ""Recommendation:"", or any meta-commentary. Use available information from the requirement/supplemental materials. When specific details are missing, use [brackets with helpful examples] like ""[specify time: 2 seconds, 500ms, etc.]"" or ""[define temperature range: -20°C to +70°C, etc.]"". Start directly with ""The [System Name] shall..."" and provide a single, clean requirement statement. Do NOT use markdown formatting. Write as one coherent paragraph that clearly states WHAT the system must do.]
 
 RECOMMENDATIONS:
-- Category: [Issue type] | Description: [What to fix] | Rationale: [Why this change improves the requirement]
+[Single consolidated recommendation that addresses ALL identified issues with specific guidance on what information is needed]
 
 HALLUCINATION CHECK:
-- If you referenced any standards, specifications, or technical details NOT in the requirement/supplemental materials (including any tables or reference documents), respond: 'FABRICATED_DETAILS'
-- If you only used provided information, respond: 'NO_FABRICATION'
+- If you used [brackets] with helpful examples for missing information, respond: 'HELPFUL_ELABORATION'  
+- If you only used provided information without brackets, respond: 'NO_FABRICATION'
+- If you added technical details not in the source, respond: 'FABRICATED_DETAILS'
 
 OVERALL ASSESSMENT:
 [Brief summary of the requirement's quality and main recommendations]
@@ -895,11 +883,11 @@ Use these Issue Types: Clarity, Completeness, Consistency, Testability, Feasibil
 Use these Severity levels: Low, Medium, High
 
 FORMATTING EXAMPLES:
-- Clarity Issue (Medium): The term ""UUT"" is not defined | Fix: Define UUT as ""Unit Under Test"" 
-- Completeness Issue (High): No acceptance criteria specified | Fix: Add measurable success criteria
-- Testability Issue (Medium): ""Adequate performance"" is subjective | Fix: Specify exact performance metrics
+- Clarity Issue (Medium): The term ""UUT"" is not defined in the requirement text | Fix: Defined ""UUT"" as ""Unit Under Test"" in the requirements document
+- Completeness Issue (High): Missing specific acceptance criteria for warm-up period duration | Fix: Specified the exact time duration for the warm-up period (e.g., ""within 30 seconds"")
+- Testability Issue (Medium): ""Full brightness"" measurement method is not specified | Fix: Defined measurable criteria for brightness (e.g., ""minimum 500 nits"" or ""100% of maximum rated output"")
 
-CRITICAL: You MUST provide a complete rewritten requirement in the IMPROVED REQUIREMENT section. This is the primary deliverable. Focus on making it clear, complete, and addressing all identified issues while preserving the original intent. The improved requirement should describe WHAT the system must do, NOT how it will be tested or verified. Avoid any verification, testing, or success criteria language.";
+CRITICAL: The IMPROVED REQUIREMENT should use [brackets] when information is missing, not invent details. Example: ""The system shall warm up within [specify time: 30 seconds, 2 minutes, etc.] when operating at [define temperature range]"" rather than inventing specific values.";
 
             TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Generated system prompt contains 'IMPROVED REQUIREMENT': {prompt.Contains("IMPROVED REQUIREMENT")}");
             return prompt;

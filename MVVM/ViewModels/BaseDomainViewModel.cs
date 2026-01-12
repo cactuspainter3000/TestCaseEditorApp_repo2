@@ -308,10 +308,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 _validationErrors.Clear();
                 
-                if (_mediator is IDisposable disposableMediator)
-                {
-                    disposableMediator.Dispose();
-                }
+                // CRITICAL FIX: DO NOT dispose mediator - it's a singleton managed by DI container
+                // Multiple ViewModels share the same mediator instance, only DI container should dispose it
+                // Disposing shared singleton causes ObjectDisposedException for other ViewModels
                 
                 _isDisposed = true;
                 _logger.LogDebug("Disposed {ViewModelType}", GetType().Name);

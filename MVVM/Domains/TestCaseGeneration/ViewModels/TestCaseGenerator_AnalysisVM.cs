@@ -1010,7 +1010,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                         if (colonIndex >= 0 && colonIndex < line.Length - 1)
                         {
                             var sameLine = line.Substring(colonIndex + 1).Trim();
-                            if (!string.IsNullOrWhiteSpace(sameLine))
+                            if (!string.IsNullOrWhiteSpace(sameLine) && sameLine.Length > 50)
                             {
                                 return sameLine;
                             }
@@ -1032,8 +1032,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                                 break;
                             }
                             
-                            // This should be our improved requirement
-                            return nextLine;
+                            if (nextLine.Length > 50) // Reasonable length for a requirement
+                            {
+                                return nextLine;
+                            }
                         }
                     }
                 }
@@ -1053,7 +1055,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                         if (colonIndex >= 0 && colonIndex < line.Length - 1)
                         {
                             var sameLine = line.Substring(colonIndex + 1).Trim();
-                            if (!string.IsNullOrWhiteSpace(sameLine) && sameLine.Length > 50) // Reasonable length check
+                            if (!string.IsNullOrWhiteSpace(sameLine) && sameLine.Length > 50)
                             {
                                 return sameLine;
                             }

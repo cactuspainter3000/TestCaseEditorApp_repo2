@@ -879,6 +879,31 @@ public class ServiceResult<T>
 | `UpdateSaveStatus(mediator)` | ViewModel managing foreign state | ViewModel reflects own mediator state |
 | UI properties in events | UI concerns in domain events | Domain data only in events |
 
+### **🚨 CRITICAL: LLM Response Post-Processing Anti-Pattern**
+**STOP ✋ Do NOT Post-Process LLM Responses - Fix the Prompt Instead**
+
+| **❌ Wrong Approach** | **🚨 Why Wrong** | **✅ Correct Pattern** |
+|----------------------|------------------|------------------------|
+| Parser adds "smart fixes" to responses | App restructuring LLM data | LLM generates exact format needed |
+| `ConvertFixToPastTense(fix)` in parser | Post-processing logic in parser | Prompt instructs LLM to use correct tense |
+| `GenerateSmartFix()` when parsing | App inventing missing data | LLM provides complete response or uses `[brackets]` |
+| Complex parsing with data manipulation | Parser doing data transformation | Simple extraction - parser just maps to objects |
+
+**🎯 Core Principle**: 
+> **LLM must generate responses in the exact format needed - parser only extracts/maps data.**  
+> If parsing is complex or "fixing" responses → Fix the prompt, not the parser.  
+> **"Garbage in, garbage out"** - Make input right, not output smart.
+
+**✅ Correct Pattern:**
+```csharp
+// Simple extraction - LLM provides properly formatted responses
+string fix = "";
+if (fixPart.ToUpper().StartsWith("FIX:"))
+{
+    fix = fixPart.Substring(4).Trim(); // Just extract, no manipulation
+}
+```
+
 ### **STOP ✋ If Message Contains:**
 - View names, control names, XAML references
 - "Navigate to", "Select item", "Focus on"  

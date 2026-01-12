@@ -17,6 +17,7 @@
         <converters:StringNotEmptyToVisibilityConverter x:Key="StringNotEmptyToVisibilityConverter" />
         <converters:StringEmptyToVisibilityConverter x:Key="StringEmptyToVisibilityConverter" />
         <tcgConverters:FixTextHighlightConverter x:Key="FixTextHighlightConverter" />
+        <tcgConverters:BracketHighlightConverter x:Key="BracketHighlightConverter" />
         
         <!-- Inverted converter for showing content when NOT analyzing -->
         <converters:BoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" Invert="True" />
@@ -358,8 +359,41 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Freeform Feedback -->
+                <!-- Recommendations -->
                 <Border Grid.Row="4" 
+                        Background="{DynamicResource MenuBackground}"
+                        Padding="12"
+                        Margin="0,0,0,10"
+                        Visibility="{Binding HasRecommendations, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel>
+                        <TextBlock Text="Recommendations" 
+                                   Style="{StaticResource Text.H3}"
+                                   Margin="0,0,0,8"/>
+                        <ItemsControl ItemsSource="{Binding Recommendations}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource ControlBackground}"
+                                            Padding="12"
+                                            Margin="0,0,0,8"
+                                            CornerRadius="4">
+                                        <StackPanel>
+                                            <DockPanel Margin="0,0,0,6">
+                                                <TextBlock Text="{Binding Category}" 
+                                                           FontWeight="SemiBold"
+                                                           FontSize="12"
+                                                           Foreground="{DynamicResource AccentBrush}"/>
+                                            </DockPanel>
+                                            <ContentPresenter Content="{Binding ., Converter={StaticResource BracketHighlightConverter}}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <!-- Freeform Feedback -->
+                <Border Grid.Row="5" 
                         Background="{DynamicResource MenuBackground}"
                         Padding="12"
                         Visibility="{Binding HasFreeformFeedback, Converter={StaticResource BoolToVisibilityConverter}}">
