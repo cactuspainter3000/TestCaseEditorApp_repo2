@@ -48,6 +48,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         [ObservableProperty] private string projectName = "No Project";
         [ObservableProperty] private bool isProjectLoaded = false;
         
+        // Workspace dirty state - reflects mediator's IsDirty state for UI binding
+        [ObservableProperty] private bool isDirty = false;
+        
         // Requirement fields for the current requirement
         [ObservableProperty] private string requirementDescription = string.Empty;
         [ObservableProperty] private string requirementMethod = string.Empty;
@@ -81,6 +84,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         public ICommand? ImportWordCommand { get; set; }
         public ICommand? LoadWorkspaceCommand { get; set; }
         public ICommand? ReloadCommand { get; set; }
+        public ICommand? SaveWorkspaceCommand { get; set; }
         public ICommand? ExportAllToJamaCommand { get; set; }
         public ICommand? HelpCommand { get; set; }
 
@@ -116,6 +120,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             _mediator = mediator;
             _editDetectionService = editDetectionService;
             
+            // Subscribe to workflow state changes to reflect mediator's IsDirty state
+            if (_mediator != null)
+            {
+                _mediator.Subscribe<TestCaseGenerationEvents.WorkflowStateChanged>(OnWorkflowStateChanged);
+            }
+            
             System.Diagnostics.Debug.WriteLine($"[HeaderVM] Constructor END: mediator initialized");
             
             // Subscribe to AnythingLLM status updates (follows same pattern as SideMenuViewModel)
@@ -123,6 +133,18 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             
             // Request current status in case it was already set before we subscribed
             AnythingLLMMediator.RequestCurrentStatus();
+        }
+        
+        /// <summary>
+        /// Handle workflow state changes from mediator - reflects mediator's IsDirty state
+        /// </summary>
+        private void OnWorkflowStateChanged(TestCaseGenerationEvents.WorkflowStateChanged e)
+        {
+            if (e.PropertyName == nameof(IsDirty) && e.NewValue is bool newDirtyState)
+            {
+                IsDirty = newDirtyState;
+                System.Diagnostics.Debug.WriteLine($"[HeaderVM] IsDirty updated to {newDirtyState} from mediator event");
+            }
         }
 
         // ==================== Project Status Updates ====================

@@ -405,12 +405,11 @@
                                            VerticalAlignment="Center">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
-                                            <Setter Property="Text" Value="&#xE74E;"/> <!-- Save icon -->
+                                            <Setter Property="Text" Value="&#xE74E;"/> <!-- Save icon - 3.5" disc -->
                                             <Setter Property="Foreground" Value="#4CAF50"/> <!-- Green = Saved -->
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding HeaderWorkspace.IsDirty}" Value="True">
-                                                    <Setter Property="Text" Value="&#xE734;"/> <!-- Warning icon -->
-                                                    <Setter Property="Foreground" Value="#FF9800"/> <!-- Orange = Unsaved -->
+                                                    <Setter Property="Foreground" Value="#9E9E9E"/> <!-- Light Grey = Unsaved -->
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>

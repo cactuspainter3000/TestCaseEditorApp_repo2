@@ -1215,12 +1215,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             if ((_headerViewModel == null && _titleViewModel == null) || workspaceMediator == null) return;
 
             // Wire commands to both header and title ViewModels
-            // DEPRECATED: HeaderVM save commands removed - functionality moved to TitleWorkspace
-            // if (_headerViewModel != null)
-            // {
-            //     _headerViewModel.SaveWorkspaceCommand = new AsyncRelayCommand(...);
-            //     _headerViewModel.UndoLastSaveCommand = new AsyncRelayCommand(...);
-            // }
+            if (_headerViewModel != null)
+            {
+                _headerViewModel.SaveWorkspaceCommand = new AsyncRelayCommand(
+                    async () => 
+                    {
+                        await workspaceMediator.SaveProjectAsync();
+                        // Reset dirty state after successful save
+                        IsDirty = false;
+                    });
+            }
             
             if (_titleViewModel != null)
             {
