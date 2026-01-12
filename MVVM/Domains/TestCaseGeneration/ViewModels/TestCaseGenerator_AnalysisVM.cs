@@ -1163,7 +1163,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 if (extractedIssues.Count > 0)
                 {
                     Issues = extractedIssues;
-                    _logger.LogInformation("[AnalysisVM] Updated {Count} issues from external LLM", extractedIssues.Count);
+                    _logger.LogInformation("[AnalysisVM] Successfully extracted {Count} issues from external LLM", extractedIssues.Count);
+                }
+                else
+                {
+                    _logger.LogInformation("[AnalysisVM] No valid issues found in external LLM response (all issues must have actionable fixes)");
                 }
 
                 // Extract recommendations
@@ -1234,6 +1238,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         private List<AnalysisIssue> ExtractIssues(string response)
         {
             var issues = new List<AnalysisIssue>();
+            var failedLines = new List<string>();
             
             try
             {
@@ -1260,14 +1265,37 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                     }
                     
                     // Extract issue if we're in the section
-                    if (inIssuesSection && trimmed.StartsWith("*"))
+                    if (inIssuesSection && (trimmed.StartsWith("*") || trimmed.StartsWith("-") || trimmed.StartsWith("•")))
                     {
                         var issue = ParseIssueFromLine(trimmed);
                         if (issue != null)
                         {
                             issues.Add(issue);
                         }
+                        else
+                        {
+                            // Track lines that looked like issues but couldn't be parsed
+                            failedLines.Add(trimmed);
+                        }
                     }
+                }
+                
+                // Report parsing results to user
+                if (failedLines.Count > 0)
+                {
+                    var failedText = string.Join("\n", failedLines.Take(3)); // Show first 3 failed lines
+                    var moreCount = failedLines.Count > 3 ? $" (and {failedLines.Count - 3} more)" : "";
+                    
+                    _logger.LogWarning("[AnalysisVM] Failed to parse {Count} issue lines from external LLM response. " +
+                                      "Lines must contain actionable fixes to be processed. Failed lines: {FailedLines}{More}", 
+                                      failedLines.Count, failedText, moreCount);
+                    
+                    // Add to freeform feedback so user sees the issue
+                    var existingFeedback = FreeformFeedback ?? "";
+                    var parseWarning = $"\n⚠️ External LLM Parser Note: {failedLines.Count} issue line(s) were skipped because they didn't contain actionable fixes. " +
+                                      $"External LLMs must provide specific 'Fix:' descriptions for each issue.\n\nSkipped lines:\n{failedText}{moreCount}";
+                    
+                    FreeformFeedback = (existingFeedback + parseWarning).Trim();
                 }
             }
             catch (Exception ex)
