@@ -32,30 +32,19 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Converters
                 textBlock.Inlines.Add(new Run(issue.Description) { Foreground = new SolidColorBrush(Color.FromRgb(204, 204, 204)) });
             }
 
-            // Always add fix section - either with LLM-provided fix or placeholder
-            textBlock.Inlines.Add(new LineBreak());
-
-            // Add the fix label in dull red
-            textBlock.Inlines.Add(new Run("Fix: ") { Foreground = new SolidColorBrush(Color.FromRgb(139, 69, 69)) });
-
-            // Add fix content or generate meaningful default
-            string fixText = !string.IsNullOrEmpty(issue.Fix) ? issue.Fix : GetDefaultFix(issue.Category);
-            textBlock.Inlines.Add(new Run(fixText) { Foreground = new SolidColorBrush(Color.FromRgb(204, 204, 204)) });
+            // Only add fix section if LLM actually provided a fix - never manufacture one
+            if (!string.IsNullOrWhiteSpace(issue.Fix))
+            {
+                textBlock.Inlines.Add(new LineBreak());
+                
+                // Add the fix label in dull red
+                textBlock.Inlines.Add(new Run("Fix: ") { Foreground = new SolidColorBrush(Color.FromRgb(139, 69, 69)) });
+                
+                // Add the actual LLM-provided fix content
+                textBlock.Inlines.Add(new Run(issue.Fix) { Foreground = new SolidColorBrush(Color.FromRgb(204, 204, 204)) });
+            }
 
             return textBlock;
-        }
-
-        private string GetDefaultFix(string category)
-        {
-            return category.ToLower() switch
-            {
-                "clarity" => "Clarified ambiguous terminology",
-                "testability" => "Added specific acceptance criteria",
-                "completeness" => "Specified missing details",
-                "consistency" => "Aligned terminology and format",
-                "feasibility" => "Defined realistic constraints",
-                _ => "Addressed identified concerns"
-            };
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
