@@ -133,11 +133,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         {
             if (e.PropertyName == nameof(AssumptionPill.IsEnabled) && !_isApplyingDefaults)
             {
-                if (_mainVm != null)
-                {
-                    _mainVm.IsDirty = true;
-                    TestCaseEditorApp.Services.Logging.Log.Debug("[Assumptions] Pill toggled - marked workspace dirty");
-                }
+                _headerVm?.SetWorkspaceDirty();
+                TestCaseEditorApp.Services.Logging.Log.Debug("[Assumptions] Pill toggled - marked workspace dirty via HeaderVM");
             }
         }
 
@@ -149,11 +146,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         {
             if (e.PropertyName == nameof(DefaultItem.IsEnabled) && !_isApplyingDefaults)
             {
-                if (_mainVm != null)
-                {
-                    _mainVm.IsDirty = true;
-                    TestCaseEditorApp.Services.Logging.Log.Debug("[Assumptions] Pill toggled - marked workspace dirty");
-                }
+                _headerVm?.SetWorkspaceDirty();
+                TestCaseEditorApp.Services.Logging.Log.Debug("[Assumptions] Default item toggled - marked workspace dirty via HeaderVM");
             }
         }
 
@@ -308,10 +302,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             // Mark workspace dirty when custom instructions change
             // Actual save happens during navigation
             // Skip if we're just loading instructions (not user editing)
-            if (_mainVm != null && !_isLoadingInstructions)
+            if (!_isLoadingInstructions)
             {
-                _mainVm.IsDirty = true;
-                TestCaseEditorApp.Services.Logging.Log.Debug("[Assumptions] Custom instructions changed - marked workspace dirty");
+                _headerVm?.SetWorkspaceDirty();
+                TestCaseEditorApp.Services.Logging.Log.Debug("[Assumptions] Custom instructions changed - marked workspace dirty via HeaderVM");
             }
         }
 

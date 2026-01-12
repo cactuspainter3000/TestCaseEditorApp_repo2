@@ -336,6 +336,17 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             }
         }
         
+        /// <summary>
+        /// Mark workspace as dirty through the mediator (for use by other ViewModels in this domain)
+        /// </summary>
+        public void SetWorkspaceDirty()
+        {
+            if (_mediator != null)
+            {
+                _mediator.IsDirty = true;
+            }
+        }
+        
         // ==================== Disposal ====================
         
         public void Dispose()

@@ -19,7 +19,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             int questionBudget,
             IEnumerable<string> enabledAssumptions,
             ITextGenerationService llm,
-            MainViewModel? mainVm,
+            Action? onChanged,
             IEnumerable<DefaultItem>? suggestedDefaultsCatalog,
             CancellationToken ct,
             string? customInstructions = null)
@@ -40,7 +40,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             var suggested = ClarifyingParsingHelpers.TryExtractSuggestedChipKeys(safe, suggestedDefaultsCatalog);
             // Note: callers will merge suggestedKeys into their SuggestedDefaults catalog as appropriate.
 
-            var parsed = ClarifyingParsingHelpers.ParseQuestions(safe, mainVm) ?? new List<ClarifyingQuestionVM>();
+            var parsed = ClarifyingParsingHelpers.ParseQuestions(safe, onChanged) ?? new List<ClarifyingQuestionVM>();
 
             return (llmText ?? string.Empty, parsed.ToList(), suggested ?? new List<string>());
         }
@@ -49,7 +49,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             Requirement requirement,
             IEnumerable<string> enabledAssumptions,
             ITextGenerationService llm,
-            MainViewModel? mainVm,
+            Action? onChanged,
             CancellationToken ct,
             string? customInstructions = null)
         {
@@ -68,7 +68,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             var llmText = await llm.GenerateAsync(prompt, ct).ConfigureAwait(false);
             var safe = llmText ?? string.Empty;
 
-            var parsed = ClarifyingParsingHelpers.ParseQuestions(safe, mainVm) ?? new List<ClarifyingQuestionVM>();
+            var parsed = ClarifyingParsingHelpers.ParseQuestions(safe, onChanged) ?? new List<ClarifyingQuestionVM>();
 
             return (llmText ?? string.Empty, parsed.ToList());
         }

@@ -181,6 +181,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// Load the defaults catalog (chips/assumptions) and presets.
         /// Uses DefaultsHelper to load from Config/defaults.catalog.template.json or hardcoded fallback.
         /// </summary>
+        // === HELPER METHODS ===
+
+        /// <summary>
+        /// Mark workspace dirty through mediator when question data changes
+        /// </summary>
+        private void MarkWorkspaceDirty()
+        {
+            _mediator.IsDirty = true;
+        }
+
         private void LoadDefaultsCatalog()
         {
             try
@@ -253,7 +263,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 {
                     foreach (var data in requirement.ClarifyingQuestions)
                     {
-                        var qvm = new ClarifyingQuestionVM(); // Remove MainViewModel dependency
+                        var qvm = new ClarifyingQuestionVM(MarkWorkspaceDirty); // Proper delegate for dirty state
                         qvm.SetPropertiesForLoad(
                             data.Text,
                             data.Answer,
@@ -398,7 +408,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 {
                     foreach (var it in e.NewItems.OfType<string>())
                     {
-                        PendingQuestions.Add(new ClarifyingQuestionVM(it, null)); // Remove MainViewModel
+                        PendingQuestions.Add(new ClarifyingQuestionVM(it, null, MarkWorkspaceDirty)); // Proper delegate for dirty state
                     }
                 }
 
@@ -643,7 +653,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                     QuestionBudget,
                     enabledAssumptions,
                     _llm,
-                    null, // MainViewModel not needed for clean mediator architecture
+                    MarkWorkspaceDirty, // Proper delegate for dirty state management
                     SuggestedDefaults,
                     _cts.Token,
                     customInstructions).ConfigureAwait(false);
@@ -1128,7 +1138,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                     tempRequirement,
                     enabledAssumptions,
                     _llm,
-                    null, // MainViewModel not needed for clean mediator architecture
+                    MarkWorkspaceDirty, // Proper delegate for dirty state management
                     _cts.Token,
                     customInstructions).ConfigureAwait(false);
                 parsedList = parsedList ?? new List<ClarifyingQuestionVM>();

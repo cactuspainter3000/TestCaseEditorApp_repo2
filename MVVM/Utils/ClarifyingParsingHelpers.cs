@@ -68,7 +68,7 @@ namespace TestCaseEditorApp.MVVM.Utils
         /// Parse clarifying questions from arbitrary LLM text using tolerant, JSON-first approach.
         /// Returns an empty list when none found.
         /// </summary>
-        public static List<ClarifyingQuestionVM> ParseQuestions(string llmText, MainViewModel? mainVm = null)
+        public static List<ClarifyingQuestionVM> ParseQuestions(string llmText, Action? onChanged = null)
         {
             var results = new List<ClarifyingQuestionVM>();
             if (string.IsNullOrWhiteSpace(llmText)) return results;
@@ -84,7 +84,7 @@ namespace TestCaseEditorApp.MVVM.Utils
 
             if (looksJson)
             {
-                if (TryParseJsonQuestions(llmText, out var jsonQs) && jsonQs.Count > 0)
+                if (TryParseJsonQuestions(llmText, out var jsonQs, onChanged) && jsonQs.Count > 0)
                 {
                     // Clean each question text in case they contain embedded JSON
                     foreach (var q in jsonQs)
@@ -95,7 +95,7 @@ namespace TestCaseEditorApp.MVVM.Utils
                 }
 
                 var arrSlice = ExtractFirstJsonArray(llmText);
-                if (!string.IsNullOrWhiteSpace(arrSlice) && TryParseJsonQuestions(arrSlice, out var retry) && retry.Count > 0)
+                if (!string.IsNullOrWhiteSpace(arrSlice) && TryParseJsonQuestions(arrSlice, out var retry, onChanged) && retry.Count > 0)
                 {
                     // Clean each question text in case they contain embedded JSON
                     foreach (var q in retry)
@@ -113,7 +113,7 @@ namespace TestCaseEditorApp.MVVM.Utils
             // If cleaning extracted a simple question (no JSON markers), return it
             if (cleaned != llmText && !cleaned.Contains("[") && !cleaned.Contains("{") && cleaned.Contains("?"))
             {
-                results.Add(new ClarifyingQuestionVM(cleaned.Trim(), new List<string>(), mainVm));
+                results.Add(new ClarifyingQuestionVM(cleaned.Trim(), new List<string>(), onChanged));
                 return results;
             }
 
@@ -125,7 +125,7 @@ namespace TestCaseEditorApp.MVVM.Utils
             {
                 // Extract just the text value and use it as the question
                 var extractedText = match.Groups[1].Value;
-                results.Add(new ClarifyingQuestionVM(extractedText.Trim(), new List<string>(), mainVm));
+                results.Add(new ClarifyingQuestionVM(extractedText.Trim(), new List<string>(), onChanged));
                 return results;
             }
 
@@ -160,7 +160,7 @@ namespace TestCaseEditorApp.MVVM.Utils
                     opts = opts[0].Split('|').Select(s => s.Trim()).Where(s => s.Length > 0).ToList();
 
                 // Create an item-level VM (ClarifyingQuestionVM)
-                results.Add(new ClarifyingQuestionVM(text, opts, mainVm));
+                results.Add(new ClarifyingQuestionVM(text, opts, onChanged));
                 currentQuestion = null;
                 currentOptions = null;
             }
@@ -256,7 +256,7 @@ namespace TestCaseEditorApp.MVVM.Utils
         /// <summary>
         /// Try parse JSON array of objects with "text" and optional "options" and produce ClarifyingQuestionVM instances.
         /// </summary>
-        public static bool TryParseJsonQuestions(string text, out List<ClarifyingQuestionVM> result, MainViewModel? mainVm = null)
+        public static bool TryParseJsonQuestions(string text, out List<ClarifyingQuestionVM> result, Action? onChanged = null)
         {
             result = new List<ClarifyingQuestionVM>();
             if (string.IsNullOrWhiteSpace(text)) return false;
@@ -283,7 +283,7 @@ namespace TestCaseEditorApp.MVVM.Utils
                             if (o.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(o.GetString()))
                                 opts.Add(o.GetString()!.Trim());
                     }
-                    result.Add(new ClarifyingQuestionVM(qText.Trim(), opts, mainVm));
+                    result.Add(new ClarifyingQuestionVM(qText.Trim(), opts, onChanged));
                 }
                 return result.Count > 0;
             }

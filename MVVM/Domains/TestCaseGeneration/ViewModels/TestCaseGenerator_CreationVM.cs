@@ -77,7 +77,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         private void AddTestCase()
         {
-            var newTestCase = new GeneratedTestCase(null) // TODO: Pass proper reference when available
+            var newTestCase = new GeneratedTestCase(MarkWorkspaceDirty)
             {
                 Title = $"TC-{TestCases.Count + 1:000}: New Test Case",
                 Preconditions = "",
@@ -156,6 +156,15 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         // ===== PRIVATE METHODS =====
 
         /// <summary>
+        /// Mark workspace dirty through mediator when test case data changes
+        /// </summary>
+        private void MarkWorkspaceDirty()
+        {
+            _mediator.IsDirty = true;
+            _logger.LogDebug("[CreationVM] Marked workspace dirty via mediator");
+        }
+
+        /// <summary>
         /// Load test cases from a requirement
         /// </summary>
         private void LoadTestCasesFromRequirement(Requirement? requirement)
@@ -181,7 +190,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                     // Convert TestCase.Steps collection to formatted string
                     var stepsText = string.Join("\n", tc.Steps.Select((s, i) => $"{i + 1}. {s.StepAction}"));
                     
-                    var generatedTestCase = new GeneratedTestCase(null) // TODO: Pass proper reference
+                    var generatedTestCase = new GeneratedTestCase(MarkWorkspaceDirty)
                     {
                         Title = tc.Name ?? $"TC-{TestCases.Count + 1:000}",
                         Preconditions = "", // TestCase model doesn't have Preconditions
@@ -209,7 +218,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             {
                 var stepsText = string.Join("\\n", tc.Steps.Select((s, i) => $"{i + 1}. {s.StepAction}"));
                 
-                var generatedTestCase = new GeneratedTestCase(null) // TODO: Pass proper reference
+                var generatedTestCase = new GeneratedTestCase(MarkWorkspaceDirty)
                 {
                     Title = tc.Name ?? $"TC-{TestCases.Count + 1:000}",
                     Preconditions = "", // TestCase model doesn't have Preconditions
@@ -244,7 +253,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                         var tcNumber = match.Groups[1].Value;
                         var tcTitle = match.Groups[2].Value;
                         
-                        var generatedTestCase = new GeneratedTestCase(null) // TODO: Pass proper reference
+                        var generatedTestCase = new GeneratedTestCase(MarkWorkspaceDirty)
                         {
                             Title = $"TC-{tcNumber.PadLeft(3, '0')}: {tcTitle}",
                             Preconditions = "",
@@ -258,7 +267,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 else
                 {
                     // Fallback: create single test case with text content
-                    var generatedTestCase = new GeneratedTestCase(null) // TODO: Pass proper reference
+                    var generatedTestCase = new GeneratedTestCase(MarkWorkspaceDirty)
                     {
                         Title = $"TC-001: Imported Test Case",
                         Preconditions = "",
