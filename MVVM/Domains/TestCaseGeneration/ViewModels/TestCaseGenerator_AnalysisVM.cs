@@ -424,16 +424,27 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         {
             try
             {
-                // Only check if we have edit detection service
-                if (_editDetectionService == null)
-                    return;
-
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] CheckForLearningFeedbackAsync called - Original: '{originalText}', Edited: '{editedText}', Context: '{context}'");
+                
                 // Skip if either text is empty
                 if (string.IsNullOrWhiteSpace(originalText) || string.IsNullOrWhiteSpace(editedText))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Original or edited text is empty - learning feedback skipped");
                     return;
+                }
 
+                // Get EditDetectionService - should be injected via DI
+                var editDetectionService = _editDetectionService;
+                if (editDetectionService == null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn("[AnalysisVM] EditDetectionService not injected - check DI registration chain");
+                    return;
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Calling EditDetectionService.ProcessTextEditAsync");
                 // Trigger learning feedback detection
-                await _editDetectionService.ProcessTextEditAsync(originalText, editedText, context);
+                await editDetectionService.ProcessTextEditAsync(originalText, editedText, context);
+                TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] EditDetectionService.ProcessTextEditAsync completed");
             }
             catch (Exception ex)
             {
@@ -991,11 +1002,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 // Extract and update analysis results from external LLM
                 UpdateAnalysisFromExternalResponse(clipboardContent);
 
-                // Create learning data for AnythingLLM
-                var learningPrompt = BuildLearningPrompt(requirement, clipboardContent);
-                
-                // Feed to AnythingLLM learning system
-                await FeedLearningToAnythingLLM(learningPrompt);
+                // Note: Learning feedback is handled when user clicks Update, not during paste
+                // This allows users to review the pasted content before triggering learning workflow
 
                 // Reset UI state
                 IsWaitingForExternalResponse = false;
@@ -1646,29 +1654,42 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                     return;
                 }
 
-                // Create learning feedback with external analysis context
-                var feedback = new LLMLearningFeedback
+                // Extract texts for comparison
+                var originalText = requirement.Description;
+                var externalLLMText = ExtractRefinedRequirementFromResponse(learningData) ?? string.Empty;
+                
+                if (string.IsNullOrWhiteSpace(externalLLMText))
                 {
-                    RequirementId = requirement.Item,
-                    OriginalRequirement = requirement.Description,
-                    LLMGeneratedRewrite = ExtractRefinedRequirementFromResponse(learningData),
-                    UserImprovedVersion = EditingRequirementText ?? requirement.Description,
-                    ChangePercentage = 100.0, // External LLM changes are considered 100% change
-                    FeedbackCategory = "External LLM Integration",
-                    Context = "Learning from external LLM analysis and user acceptance",
-                    UserComments = "User accepted external LLM analysis via clipboard paste",
-                    CreatedAt = DateTime.UtcNow
-                };
+                    _logger.LogWarning("[AnalysisVM] Could not extract refined requirement from external LLM response");
+                    return;
+                }
 
-                // Send learning feedback (this will prompt user for consent)
-                var success = await _learningService.SendLearningFeedbackAsync(feedback);
-                if (success)
+                // Use the same consent workflow as manual edits
+                var (userConsent, feedback) = await _learningService.PromptUserForLearningConsentAsync(
+                    originalText, externalLLMText, 100.0); // External LLM changes considered 100% change
+
+                if (userConsent && feedback != null)
                 {
-                    _logger.LogInformation("[AnalysisVM] Learning feedback sent successfully for requirement {RequirementId}", requirement.Item);
+                    // Populate additional context for external LLM integration
+                    feedback.RequirementId = requirement.Item;
+                    feedback.OriginalRequirement = originalText;
+                    feedback.FeedbackCategory = "External LLM Integration";
+                    feedback.Context = "Learning from external LLM analysis and user acceptance";
+                    feedback.UserComments = "User accepted external LLM analysis via clipboard paste";
+
+                    var success = await _learningService.SendLearningFeedbackAsync(feedback);
+                    if (success)
+                    {
+                        _logger.LogInformation("[AnalysisVM] Learning feedback sent successfully for requirement {RequirementId}", requirement.Item);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("[AnalysisVM] Failed to send learning feedback for requirement {RequirementId}", requirement.Item);
+                    }
                 }
                 else
                 {
-                    _logger.LogWarning("[AnalysisVM] Failed to send learning feedback for requirement {RequirementId}", requirement.Item);
+                    _logger.LogInformation("[AnalysisVM] User declined to send learning feedback for external LLM integration");
                 }
             }
             catch (Exception ex)

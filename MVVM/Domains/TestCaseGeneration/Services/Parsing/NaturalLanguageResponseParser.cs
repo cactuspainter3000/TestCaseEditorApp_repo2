@@ -55,13 +55,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
                 {
                     var trimmed = line.Trim();
                     
-                    // Parse quality score
-                    if (trimmed.ToUpper().StartsWith("QUALITY") || trimmed.ToUpper().StartsWith("SCORE"))
+                    // Parse quality score - handle markdown formatting like **QUALITY SCORE: **55**
+                    if (trimmed.ToUpper().StartsWith("QUALITY") || trimmed.ToUpper().StartsWith("SCORE") || 
+                        (trimmed.ToUpper().Contains("QUALITY") && trimmed.ToUpper().Contains("SCORE")))
                     {
-                        var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"(\d+)");
-                        if (match.Success && int.TryParse(match.Value, out int score))
+                        // Match patterns like "55", "**55**", "SCORE: 55", etc.
+                        var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"\**(\d+)\**");
+                        if (match.Success && int.TryParse(match.Groups[1].Value, out int score))
                         {
                             analysis.QualityScore = Math.Max(1, Math.Min(10, score));
+                            TestCaseEditorApp.Services.Logging.Log.Debug($"[{ParserName}Parser] Parsed quality score: {score} from line: '{trimmed}'");
                         }
                     }
                     // Parse section headers
@@ -125,13 +128,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
                             analysis.ImprovedRequirement += " " + trimmed;
                         }
                     }
-                    // Parse list items
-                    else if (trimmed.StartsWith("-") || trimmed.StartsWith("•"))
+                    // Parse list items - handle various bullet formats including markdown asterisks
+                    else if (trimmed.StartsWith("-") || trimmed.StartsWith("•") || trimmed.StartsWith("*"))
                     {
                         var content = trimmed.Substring(1).Trim();
                         
                         if (currentSection == "issues" && !string.IsNullOrWhiteSpace(content))
                         {
+                            TestCaseEditorApp.Services.Logging.Log.Debug($"[{ParserName}Parser] Processing issue item: '{content}'");
                             ParseIssueItem(content, analysis.Issues);
                         }
                     }
@@ -151,9 +155,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
         {
             TestCaseEditorApp.Services.Logging.Log.Info($"[ParseIssue] Raw issue content: '{content}'");
 
+            // Remove markdown formatting (bold asterisks) from content
+            var cleanContent = content.Replace("**", "").Trim();
+            
             // Parse enhanced format: "Clarity Issue (Medium): Description | Fix: Solution"
-            var parts = content.Split('|', StringSplitOptions.RemoveEmptyEntries);
-            var mainPart = parts.Length > 0 ? parts[0].Trim() : content;
+            var parts = cleanContent.Split('|', StringSplitOptions.RemoveEmptyEntries);
+            var mainPart = parts.Length > 0 ? parts[0].Trim() : cleanContent;
             var fixPart = parts.Length > 1 ? parts[1].Trim() : "";
             
             // Extract issue type, severity, and description
@@ -161,23 +168,30 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
             var severity = "Medium";  // Default
             var description = mainPart;
             
-            // Look for specific issue types
-            if (mainPart.ToUpper().Contains("CLARITY"))
+            // Look for specific issue types in cleaned content
+            var upperMain = mainPart.ToUpper();
+            if (upperMain.Contains("CLARITY"))
                 category = "Clarity";
-            else if (mainPart.ToUpper().Contains("COMPLETENESS"))
+            else if (upperMain.Contains("COMPLETENESS"))
                 category = "Completeness";
-            else if (mainPart.ToUpper().Contains("TESTABILITY"))
+            else if (upperMain.Contains("TESTABILITY"))
                 category = "Testability";
-            else if (mainPart.ToUpper().Contains("CONSISTENCY"))
+            else if (upperMain.Contains("CONSISTENCY"))
                 category = "Consistency";
-            else if (mainPart.ToUpper().Contains("FEASIBILITY"))
+            else if (upperMain.Contains("FEASIBILITY"))
                 category = "Feasibility";
+                
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[ParseIssue] Detected category: '{category}' from: '{mainPart}'");
             
-            // Extract severity if present
-            if (mainPart.ToUpper().Contains("(HIGH)"))
+            // Extract severity if present - check for patterns like (Medium), (High), (Low)
+            if (upperMain.Contains("(HIGH)") || upperMain.Contains("HIGH"))
                 severity = "High";
-            else if (mainPart.ToUpper().Contains("(LOW)"))
+            else if (upperMain.Contains("(LOW)") || upperMain.Contains("LOW"))
                 severity = "Low";
+            else if (upperMain.Contains("(MEDIUM)") || upperMain.Contains("MEDIUM"))
+                severity = "Medium";
+                
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[ParseIssue] Detected severity: '{severity}' from: '{mainPart}'");
             
             // Clean up description by removing the category and severity parts
             if (mainPart.Contains(":"))
@@ -196,13 +210,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
                 fix = fixPart.Substring(4).Trim();
             }
             
-            issues.Add(new AnalysisIssue
+            var issue = new AnalysisIssue
             {
                 Category = category,
                 Description = description,
                 Severity = severity,
                 Fix = fix
-            });
+            };
+            
+            issues.Add(issue);
+            TestCaseEditorApp.Services.Logging.Log.Info($"[ParseIssue] Created issue: Category='{category}', Severity='{severity}', Description='{description}', Fix='{fix}'");
         }
 
         private void PostProcessAnalysis(RequirementAnalysis analysis, string requirementId)

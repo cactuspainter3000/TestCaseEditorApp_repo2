@@ -17,6 +17,7 @@ using TestCaseEditorApp.MVVM.Events;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
@@ -94,7 +95,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             // Create Analysis VM with proper dependency injection
             var analysisLogger = logger as ILogger<TestCaseGenerator_AnalysisVM> ?? 
                 new LoggerFactory().CreateLogger<TestCaseGenerator_AnalysisVM>();
-            AnalysisVM = new TestCaseGenerator_AnalysisVM(_mediator, analysisLogger, analysisService);
+            
+            // Get learning services from DI container if available (proper architectural pattern)
+            var editDetectionService = App.ServiceProvider?.GetService<IEditDetectionService>();
+            var learningService = App.ServiceProvider?.GetService<ILLMLearningService>();
+            
+            AnalysisVM = new TestCaseGenerator_AnalysisVM(_mediator, analysisLogger, analysisService, editDetectionService, null, learningService);
 
             // Track SelectedSupportView changes via PropertyChanged so we don't rely on a generated partial hook
             this.PropertyChanged += TestCaseGenerator_VM_PropertyChanged;

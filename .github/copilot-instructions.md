@@ -3,6 +3,19 @@
 > **🎯 For Complete Architectural Patterns**: See `ARCHITECTURAL_GUIDE_AI.md`  
 > **Purpose**: Project-specific context, domains, and quick reference information
 
+## 🚨 ARCHITECTURAL COMPLIANCE REMINDER
+
+**BEFORE implementing any code changes involving:**
+- ViewModels, services, dependency injection
+- Cross-domain communication, mediators 
+- New components or architectural patterns
+
+**ALWAYS first consult `ARCHITECTURAL_GUIDE_AI.md` to:**
+- Identify existing patterns and implementation chains
+- Avoid anti-patterns (like `new SomeService()` in ViewModels)
+- Follow "Questions First, Code Second" methodology
+- Use proper DI container patterns (`App.ServiceProvider?.GetService<T>()`)
+
 ---
 
 ## Project Overview
