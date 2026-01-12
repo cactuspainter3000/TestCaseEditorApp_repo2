@@ -1300,26 +1300,22 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                     var description = match.Groups[3].Value.Trim();
                     var fix = match.Groups[4].Value.Trim();
                     
-                    return new AnalysisIssue
+                    // Only create issue if there's an actual, actionable fix provided
+                    if (!string.IsNullOrWhiteSpace(fix))
                     {
-                        Category = category,
-                        Severity = ParseSeverityString(priority),
-                        Description = $"{category} Issue: {description}",
-                        Fix = string.IsNullOrWhiteSpace(fix) ? "" : fix
-                    };
+                        return new AnalysisIssue
+                        {
+                            Category = category,
+                            Severity = ParseSeverityString(priority),
+                            Description = $"{category} Issue: {description}",
+                            Fix = fix
+                        };
+                    }
+                    // No fix = no issue. LLM must provide actionable fixes or nothing.
                 }
                 
-                // Fallback: treat entire line as description
-                if (content.Length > 10)
-                {
-                    return new AnalysisIssue
-                    {
-                        Category = "General",
-                        Severity = "Medium",
-                        Description = content,
-                        Fix = ""
-                    };
-                }
+                // Remove fallback logic - if we can't parse a proper issue with fix, reject it
+                // LLM responses should be specific and actionable, not generic content
             }
             catch (Exception ex)
             {
