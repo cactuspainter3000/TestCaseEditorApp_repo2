@@ -29,6 +29,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         private readonly ITextGenerationService? _llmService;
         private readonly IRequirementAnalysisService _analysisService;
         private readonly IEditDetectionService? _editDetectionService;
+        private readonly ILLMLearningService? _learningService;
         private Requirement? _currentRequirement;
         
         // Analysis timer tracking
@@ -136,13 +137,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             }
         }
 
-        public TestCaseGenerator_AnalysisVM(ITestCaseGenerationMediator mediator, ILogger<TestCaseGenerator_AnalysisVM> logger, IRequirementAnalysisService analysisService, IEditDetectionService? editDetectionService = null, ITextGenerationService? llmService = null)
+        public TestCaseGenerator_AnalysisVM(ITestCaseGenerationMediator mediator, ILogger<TestCaseGenerator_AnalysisVM> logger, IRequirementAnalysisService analysisService, IEditDetectionService? editDetectionService = null, ITextGenerationService? llmService = null, ILLMLearningService? learningService = null)
             : base(mediator, logger)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _analysisService = analysisService ?? throw new ArgumentNullException(nameof(analysisService));
             _editDetectionService = editDetectionService;
             _llmService = llmService;
+            _learningService = learningService;
 
             // Subscribe to domain events
             _mediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
@@ -1624,29 +1626,49 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         {
             try
             {
-                // Check if the analysis service has AnythingLLM capability
-                if (_llmService is TestCaseEditorApp.Services.AnythingLLMService anythingLlmService)
+                if (_learningService == null)
                 {
-                    // Get available workspaces
-                    var workspaces = await anythingLlmService.GetWorkspacesAsync();
-                    var learningWorkspace = workspaces?.FirstOrDefault(w => w.Name?.Contains("learning", StringComparison.OrdinalIgnoreCase) == true)
-                                          ?? workspaces?.FirstOrDefault();
-                    
-                    if (learningWorkspace != null)
-                    {
-                        // Send as a learning message to the workspace
-                        var learningMessage = $"[LEARNING DATA] {learningData}";
-                        await anythingLlmService.SendChatMessageAsync(learningWorkspace.Slug, learningMessage);
-                        _logger.LogInformation("[AnalysisVM] Learning data sent to AnythingLLM workspace: {WorkspaceName}", learningWorkspace.Name);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("[AnalysisVM] No suitable workspace found for learning data");
-                    }
+                    _logger.LogInformation("[AnalysisVM] LLM learning service not available - skipping learning feedback");
+                    return;
+                }
+
+                var requirement = CurrentRequirement;
+                if (requirement == null)
+                {
+                    _logger.LogWarning("[AnalysisVM] No current requirement for learning feedback");
+                    return;
+                }
+
+                // Check if learning service is available
+                if (!await _learningService.IsLearningFeedbackAvailableAsync())
+                {
+                    _logger.LogWarning("[AnalysisVM] Learning feedback not available");
+                    return;
+                }
+
+                // Create learning feedback with external analysis context
+                var feedback = new LLMLearningFeedback
+                {
+                    RequirementId = requirement.Item,
+                    OriginalRequirement = requirement.Description,
+                    LLMGeneratedRewrite = ExtractRefinedRequirementFromResponse(learningData),
+                    UserImprovedVersion = EditingRequirementText ?? requirement.Description,
+                    ChangePercentage = 100.0, // External LLM changes are considered 100% change
+                    FeedbackCategory = "External LLM Integration",
+                    Context = "Learning from external LLM analysis and user acceptance",
+                    UserComments = "User accepted external LLM analysis via clipboard paste",
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                // Send learning feedback (this will prompt user for consent)
+                var success = await _learningService.SendLearningFeedbackAsync(feedback);
+                if (success)
+                {
+                    _logger.LogInformation("[AnalysisVM] Learning feedback sent successfully for requirement {RequirementId}", requirement.Item);
                 }
                 else
                 {
-                    _logger.LogWarning("[AnalysisVM] AnythingLLM service not available for learning");
+                    _logger.LogWarning("[AnalysisVM] Failed to send learning feedback for requirement {RequirementId}", requirement.Item);
                 }
             }
             catch (Exception ex)
