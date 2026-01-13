@@ -6,9 +6,9 @@ using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels;
-using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Events;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 
 namespace TestCaseEditorApp.Services
 {
@@ -18,7 +18,7 @@ namespace TestCaseEditorApp.Services
     /// </summary>
     public class ViewConfigurationService : IViewConfigurationService
     {
-        private readonly IWorkspaceManagementMediator _workspaceManagementMediator;
+        private readonly INewProjectMediator _workspaceManagementMediator;
         private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
         private readonly ITestCaseCreationMediator _testCaseCreationMediator;
         
@@ -34,7 +34,7 @@ namespace TestCaseEditorApp.Services
         public ViewConfiguration? CurrentConfiguration { get; private set; }
 
         public ViewConfigurationService(
-            IWorkspaceManagementMediator workspaceManagementMediator,
+            INewProjectMediator workspaceManagementMediator,
             ITestCaseGenerationMediator testCaseGenerationMediator,
             ITestCaseCreationMediator testCaseCreationMediator)
         {

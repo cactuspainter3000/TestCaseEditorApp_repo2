@@ -5,12 +5,12 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
         xmlns:tcgvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels"
-        xmlns:wmvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels"
+        xmlns:wmvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels"
         xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
         xmlns:tcgviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views"
         xmlns:startupvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Startup.ViewModels"
         xmlns:startupviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Startup.Views"
-        xmlns:wmviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Views"
+        xmlns:wmviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.Views"
         xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models"
         xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
         Height="665" Width="1200"
@@ -312,8 +312,8 @@
             <wmviews:NewProjectWorkflowView />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type vm:NewProjectHeaderViewModel}">
-            <views:NewProjectHeaderView />
+        <DataTemplate DataType="{x:Type wmvm:NewProjectHeaderViewModel}">
+            <wmviews:NewProjectHeaderView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:RequirementDescriptionEditorViewModel}">

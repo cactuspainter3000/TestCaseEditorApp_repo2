@@ -1,7 +1,7 @@
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Mediators;
 using TestCaseEditorApp.MVVM.Utils;
-using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 
 namespace TestCaseEditorApp.Services
 {
@@ -18,6 +18,6 @@ namespace TestCaseEditorApp.Services
         ConfigurableContentAreaViewModel WorkspaceContent { get; }
         ConfigurableNotificationAreaViewModel NotificationArea { get; }
         INavigationMediator NavigationMediator { get; }
-        IWorkspaceManagementMediator WorkspaceManagement { get; }
+        INewProjectMediator WorkspaceManagement { get; }
     }
 }

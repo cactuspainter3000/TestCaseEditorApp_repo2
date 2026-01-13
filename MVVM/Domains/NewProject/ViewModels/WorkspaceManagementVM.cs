@@ -14,7 +14,7 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 
-namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
+namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
 {
     /// <summary>
     /// WorkspaceManagementVM handles all file operations, workspace persistence, and import/export functionality.
@@ -362,7 +362,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
             try
             {
                 TestCaseEditorApp.Services.Logging.Log.Info($"[LoadWorkspace] Attempting to load workspace file...");
-                var ws = TestCaseEditorApp.Services.WorkspaceFileManager.Load(WorkspacePath!);
+                var ws = WorkspaceFileManager.Load(WorkspacePath!);
                 if (ws == null)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Info("[LoadWorkspace] Workspace file loaded but returned null");
@@ -428,7 +428,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
 
             try
             {
-                TestCaseEditorApp.Services.WorkspaceFileManager.Save(WorkspacePath!, ws);
+                WorkspaceFileManager.Save(WorkspacePath!, ws);
                 CurrentWorkspace = ws;
                 IsDirty = false;
                 HasUnsavedChanges = false;
@@ -497,7 +497,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
                     Requirements = Requirements.ToList()
                 };
 
-                TestCaseEditorApp.Services.WorkspaceFileManager.Save(WorkspacePath!, ws);
+                WorkspaceFileManager.Save(WorkspacePath!, ws);
                 CurrentWorkspace = ws;
                 IsDirty = false;
                 HasUnsavedChanges = false;

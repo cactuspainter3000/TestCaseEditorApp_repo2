@@ -1,12 +1,12 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
-using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 using TestCaseEditorApp.MVVM.Events;
 using System;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
@@ -77,7 +77,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// <summary>
         /// Update save status from workspace management mediator
         /// </summary>
-        public void UpdateSaveStatus(IWorkspaceManagementMediator mediator)
+        public void UpdateSaveStatus(INewProjectMediator mediator)
         {
             ArgumentNullException.ThrowIfNull(mediator);
             

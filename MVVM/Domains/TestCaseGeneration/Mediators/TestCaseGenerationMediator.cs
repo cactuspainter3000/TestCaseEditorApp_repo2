@@ -13,10 +13,10 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
-using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events;
-using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
 {
@@ -1210,7 +1210,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         /// Wire workspace management commands to the header ViewModel
         /// This enables cross-domain command integration while maintaining domain boundaries
         /// </summary>
-        public void WireWorkspaceCommands(IWorkspaceManagementMediator workspaceMediator)
+        public void WireWorkspaceCommands(INewProjectMediator workspaceMediator)
         {
             if ((_headerViewModel == null && _titleViewModel == null) || workspaceMediator == null) return;
 
@@ -1344,7 +1344,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             _logger.LogInformation("🔔 Received broadcast notification: {NotificationType}", typeof(T).Name);
             
             // Handle workspace management events
-            if (notification is WorkspaceManagementEvents.ProjectCreated projectCreated)
+            if (notification is NewProjectEvents.ProjectCreated projectCreated)
             {
                 _logger.LogInformation("HandleBroadcast: ProjectCreated - WorkspaceName: {WorkspaceName}, HeaderViewModel: {HeaderViewModel}", 
                     projectCreated.WorkspaceName, _headerViewModel?.GetType().Name ?? "NULL");
@@ -1366,7 +1366,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                     LoadProjectRequirements(projectCreated.WorkspaceName, projectCreated.Workspace);
                 }
             }
-            else if (notification is WorkspaceManagementEvents.ProjectOpened projectOpened)
+            else if (notification is NewProjectEvents.ProjectOpened projectOpened)
             {
                 _logger.LogInformation("🚀 HandleBroadcast: ProjectOpened - WorkspaceName: {WorkspaceName}, HeaderViewModel: {HeaderViewModel}", 
                     projectOpened.WorkspaceName, _headerViewModel?.GetType().Name ?? "NULL");
@@ -1385,7 +1385,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 _logger.LogInformation("🔄 About to load requirements for project: {ProjectName}", projectOpened.WorkspaceName);
                 LoadProjectRequirements(projectOpened.WorkspaceName, projectOpened.Workspace);
             }
-            else if (notification is WorkspaceManagementEvents.ProjectClosed)
+            else if (notification is NewProjectEvents.ProjectClosed)
             {
                 _logger.LogInformation("HandleBroadcast: ProjectClosed - HeaderViewModel: {HeaderViewModel}", 
                     _headerViewModel?.GetType().Name ?? "NULL");

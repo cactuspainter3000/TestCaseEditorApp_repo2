@@ -10,15 +10,15 @@ using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.ViewModels;
-using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 using Microsoft.Extensions.Logging;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 
-namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
+namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
 {
     public partial class NewProjectWorkflowViewModel : BaseDomainViewModel
     {
         // Domain mediator (properly typed)
-        private new readonly IWorkspaceManagementMediator _mediator;
+        private new readonly INewProjectMediator _mediator;
         
         private readonly AnythingLLMService _anythingLLMService;
         private readonly ToastNotificationService _toastService;
@@ -135,14 +135,14 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
         public event EventHandler? ProjectCancelled;
         
         public NewProjectWorkflowViewModel(
-            IWorkspaceManagementMediator workspaceManagementMediator,
+            INewProjectMediator newProjectMediator,
             ILogger<NewProjectWorkflowViewModel> logger,
             AnythingLLMService anythingLLMService, 
             ToastNotificationService toastService)
-            : base(workspaceManagementMediator, logger)
+            : base(newProjectMediator, logger)
         {
             // Store properly typed mediator
-            _mediator = workspaceManagementMediator ?? throw new ArgumentNullException(nameof(workspaceManagementMediator));
+            _mediator = newProjectMediator ?? throw new ArgumentNullException(nameof(newProjectMediator));
             
                         _anythingLLMService = anythingLLMService ?? throw new ArgumentNullException(nameof(anythingLLMService));
             _toastService = toastService ?? throw new ArgumentNullException(nameof(toastService));
@@ -622,7 +622,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
                 IsDuplicateName = false;
                 
                 // Clear mediator persistence when resetting
-                ((IWorkspaceManagementMediator)_mediator).ClearDraftProjectInfo();
+                ((INewProjectMediator)_mediator).ClearDraftProjectInfo();
                 
                 UpdateCanProceed();
             }
@@ -630,7 +630,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
             {
                 // Load persisted form data for architectural compliance
                 var (draftProjectName, draftProjectPath, draftRequirementsPath) = 
-                    ((IWorkspaceManagementMediator)_mediator).GetDraftProjectInfo();
+                    ((INewProjectMediator)_mediator).GetDraftProjectInfo();
                 
                 if (!string.IsNullOrWhiteSpace(draftProjectName) || 
                     !string.IsNullOrWhiteSpace(draftProjectPath) || 
@@ -681,7 +681,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
                 // Only save if we have meaningful data and project isn't completed
                 if (!IsProjectCreated)
                 {
-                    ((IWorkspaceManagementMediator)_mediator).SaveDraftProjectInfo(
+                    ((INewProjectMediator)_mediator).SaveDraftProjectInfo(
                         ProjectName,
                         ProjectSavePath, 
                         SelectedDocumentPath);

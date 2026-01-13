@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -12,8 +12,8 @@ using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Mediators;
 using TestCaseEditorApp.MVVM.Utils;
-using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events;
-using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Events;
 
@@ -57,7 +57,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         [ObservableProperty] private VerificationMethod? requirementMethodEnum = null;
         [ObservableProperty] private string statusMessage = string.Empty;
         
-        // Visual guidance flags — UI highlights input areas when true
+        // Visual guidance flags � UI highlights input areas when true
         [ObservableProperty] private bool requirementDescriptionHighlight = false;
         [ObservableProperty] private bool requirementMethodHighlight = false;
 
@@ -99,7 +99,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         
         public string AnythingLLMStatusMessage =>
             IsLlmBusy ? "AnythingLLM starting..."
-            : IsLlmConnected ? "AnythingLLM — connected"
+            : IsLlmConnected ? "AnythingLLM � connected"
             : "AnythingLLM not detected";
 
         public Brush AnythingLLMStatusColor =>

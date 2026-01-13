@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using TestCaseEditorApp.MVVM.Models;
 
-namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events
+namespace TestCaseEditorApp.MVVM.Domains.NewProject.Events
 {
     /// <summary>
     /// Workspace Management domain events for type-safe communication within the domain.
     /// This includes project lifecycle operations: create, open, save, close, and workspace management.
     /// </summary>
-    public class WorkspaceManagementEvents
+    public class NewProjectEvents
     {
         /// <summary>
         /// Fired when navigation changes within workspace management workflow

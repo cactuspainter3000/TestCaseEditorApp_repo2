@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -9,7 +9,7 @@ using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Models.DataDrivenMenu;
-using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using System.Runtime.CompilerServices;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
@@ -23,7 +23,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     /// 1. Set up 5 workspace areas (MainWorkspace, HeaderWorkspace, NotificationWorkspace, NavigationWorkspace, SideMenuWorkspace)
     /// 2. Initialize ViewAreaCoordinator
     /// 3. Provide property bindings for UI
-    /// 4. NO coordination logic - once workspace assigned → hands-off
+    /// 4. NO coordination logic - once workspace assigned ? hands-off
     /// 5. Simple dynamic title updates
     /// </summary>
     public partial class MainViewModel : ObservableObject, IDisposable
@@ -95,7 +95,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// <summary>
         /// Simple container constructor - sets up 5 workspace areas with NO coordination logic.
         /// According to architectural guidelines: MainViewModel should be a simple container that 
-        /// sets up 5 workspace areas. Once workspace assigned → hands-off.
+        /// sets up 5 workspace areas. Once workspace assigned ? hands-off.
         /// </summary>
         public MainViewModel(IViewModelFactory viewModelFactory, INavigationService navigationService, ILogger<MainViewModel>? logger = null)
         {

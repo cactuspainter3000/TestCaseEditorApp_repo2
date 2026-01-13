@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
-using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events;
 using TestCaseEditorApp.MVVM.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.Services;
@@ -14,15 +13,16 @@ using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Events;
 using static TestCaseEditorApp.MVVM.Events.CrossDomainMessages;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
 
-namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
+namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
 {
     /// <summary>
     /// Mediator for the Workspace Management domain.
     /// Coordinates project lifecycle operations: create, open, save, close, and workspace management.
     /// Provides domain-specific UI coordination and cross-domain communication.
     /// </summary>
-    public class WorkspaceManagementMediator : BaseDomainMediator<WorkspaceManagementEvents>, IWorkspaceManagementMediator
+    public class NewProjectMediator : BaseDomainMediator<NewProjectEvents>, INewProjectMediator
     {
         private readonly IPersistenceService _persistenceService;
         private readonly IFileDialogService _fileDialogService;
@@ -38,8 +38,8 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
         private string? _draftProjectPath;
         private string? _draftRequirementsPath;
 
-        public WorkspaceManagementMediator(
-            ILogger<WorkspaceManagementMediator> logger,
+        public NewProjectMediator(
+            ILogger<NewProjectMediator> logger,
             IDomainUICoordinator uiCoordinator,
             IPersistenceService persistenceService,
             IFileDialogService fileDialogService,
@@ -89,7 +89,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
             _logger.LogDebug("Navigating from {PreviousStep} to {CurrentStep} in {Domain}", 
                 previousStep, _currentStep, _domainName);
             
-            PublishEvent(new WorkspaceManagementEvents.StepChanged 
+            PublishEvent(new NewProjectEvents.StepChanged 
             { 
                 Step = stepName, 
                 ViewModel = context 
@@ -105,7 +105,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 
                 _logger.LogInformation("Starting new project creation workflow");
                 
-                PublishEvent(new WorkspaceManagementEvents.ProjectCreationStarted());
+                PublishEvent(new NewProjectEvents.ProjectCreationStarted());
                 
                 // Show workspace selection modal for new project
                 ShowWorkspaceSelectionForNew();
@@ -115,7 +115,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
             {
                 _logger.LogError(ex, "Failed to start new project creation");
                 
-                PublishEvent(new WorkspaceManagementEvents.ProjectOperationError 
+                PublishEvent(new NewProjectEvents.ProjectOperationError 
                 { 
                     Operation = "CreateNewProject", 
                     ErrorMessage = ex.Message, 
@@ -161,7 +161,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 ShowProgress("Reading workspace data...", 50);
                 
                 // Load workspace using existing service
-                var workspace = TestCaseEditorApp.Services.WorkspaceFileManager.Load(selectedPath);
+                var workspace = WorkspaceFileManager.Load(selectedPath);
                 if (workspace == null)
                 {
                     ShowNotification("Failed to load project file. The file may be corrupted or invalid.", DomainNotificationType.Error);
@@ -172,11 +172,11 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 ShowProgress("Setting up project...", 75);
                 
                 // Extract project name from file path
-                var projectName = System.IO.Path.GetFileNameWithoutExtension(selectedPath);
+                var projectName = Path.GetFileNameWithoutExtension(selectedPath);
                 // Remove .tcex extension if present
                 if (projectName.EndsWith(".tcex", StringComparison.OrdinalIgnoreCase))
                 {
-                    projectName = System.IO.Path.GetFileNameWithoutExtension(projectName);
+                    projectName = Path.GetFileNameWithoutExtension(projectName);
                 }
                 
                 // Project status will be communicated via cross-domain events below
@@ -184,7 +184,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 ShowProgress("Finalizing project setup...", 90);
                 
                 // Publish domain event
-                var projectOpenedEvent = new WorkspaceManagementEvents.ProjectOpened 
+                var projectOpenedEvent = new NewProjectEvents.ProjectOpened 
                 { 
                     WorkspacePath = selectedPath,
                     WorkspaceName = projectName,
@@ -237,7 +237,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
             {
                 _logger.LogError(ex, "Failed to open project");
                 
-                PublishEvent(new WorkspaceManagementEvents.ProjectOperationError 
+                PublishEvent(new NewProjectEvents.ProjectOperationError 
                 { 
                     Operation = "OpenProject", 
                     ErrorMessage = ex.Message, 
@@ -263,7 +263,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 
                 _logger.LogInformation("Saving project: {WorkspacePath}", _currentWorkspaceInfo.Path);
                 
-                PublishEvent(new WorkspaceManagementEvents.ProjectSaveStarted 
+                PublishEvent(new NewProjectEvents.ProjectSaveStarted 
                 { 
                     WorkspacePath = _currentWorkspaceInfo.Path 
                 });
@@ -297,7 +297,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                         var errorMsg = $"Validation failed: {validationResult.ErrorMessage}";
                         _logger.LogWarning("Workspace validation failed: {Error}", validationResult.ErrorMessage);
                         
-                        PublishEvent(new WorkspaceManagementEvents.ProjectOperationError
+                        PublishEvent(new NewProjectEvents.ProjectOperationError
                         {
                             Operation = "SaveProject",
                             ErrorMessage = errorMsg,
@@ -334,7 +334,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 _currentWorkspaceInfo.HasUnsavedChanges = false;
                 _currentWorkspaceInfo.LastModified = DateTime.Now;
                 
-                var projectSavedEvent = new WorkspaceManagementEvents.ProjectSaved 
+                var projectSavedEvent = new NewProjectEvents.ProjectSaved 
                 { 
                     WorkspacePath = _currentWorkspaceInfo.Path 
                 };
@@ -353,7 +353,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
             {
                 _logger.LogError(ex, "Failed to save project");
                 
-                PublishEvent(new WorkspaceManagementEvents.ProjectOperationError 
+                PublishEvent(new NewProjectEvents.ProjectOperationError 
                 { 
                     Operation = "SaveProject", 
                     ErrorMessage = ex.Message, 
@@ -396,7 +396,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 ShowProgress("Reloading project data...", 75);
 
                 // Reload the workspace to refresh UI
-                var restoredWorkspace = TestCaseEditorApp.Services.WorkspaceFileManager.Load(_currentWorkspaceInfo.Path);
+                var restoredWorkspace = WorkspaceFileManager.Load(_currentWorkspaceInfo.Path);
                 if (restoredWorkspace != null)
                 {
                     // Update workspace modified time
@@ -404,7 +404,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                     _currentWorkspaceInfo.HasUnsavedChanges = false;
 
                     // Broadcast workspace reload event to update all UI
-                    PublishEvent(new WorkspaceManagementEvents.ProjectOpened
+                    PublishEvent(new NewProjectEvents.ProjectOpened
                     {
                         Workspace = restoredWorkspace,
                         WorkspacePath = _currentWorkspaceInfo.Path,
@@ -429,7 +429,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
             {
                 _logger.LogError(ex, "Failed to undo last save");
                 
-                PublishEvent(new WorkspaceManagementEvents.ProjectOperationError 
+                PublishEvent(new NewProjectEvents.ProjectOperationError 
                 { 
                     Operation = "UndoLastSave", 
                     ErrorMessage = ex.Message, 
@@ -512,7 +512,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 
                 _logger.LogInformation("Closing project: {WorkspacePath}", _currentWorkspaceInfo.Path);
                 
-                PublishEvent(new WorkspaceManagementEvents.ProjectCloseStarted 
+                PublishEvent(new NewProjectEvents.ProjectCloseStarted 
                 { 
                     WorkspacePath = _currentWorkspaceInfo.Path 
                 });
@@ -520,7 +520,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 var workspacePath = _currentWorkspaceInfo.Path;
                 _currentWorkspaceInfo = null;
                 
-                var projectClosedEvent = new WorkspaceManagementEvents.ProjectClosed 
+                var projectClosedEvent = new NewProjectEvents.ProjectClosed 
                 { 
                     WorkspacePath = workspacePath 
                 };
@@ -541,7 +541,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
             {
                 _logger.LogError(ex, "Failed to close project");
                 
-                PublishEvent(new WorkspaceManagementEvents.ProjectOperationError 
+                PublishEvent(new NewProjectEvents.ProjectOperationError 
                 { 
                     Operation = "CloseProject", 
                     ErrorMessage = ex.Message, 
@@ -557,7 +557,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
         {
             _logger.LogInformation("Showing workspace selection for opening existing project");
             
-            PublishEvent(new WorkspaceManagementEvents.WorkspaceSelectionRequested 
+            PublishEvent(new NewProjectEvents.WorkspaceSelectionRequested 
             { 
                 IsOpenExisting = true 
             });
@@ -574,7 +574,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
         {
             _logger.LogInformation("Showing workspace selection for creating new project");
             
-            PublishEvent(new WorkspaceManagementEvents.WorkspaceSelectionRequested 
+            PublishEvent(new NewProjectEvents.WorkspaceSelectionRequested 
             { 
                 IsOpenExisting = false 
             });
@@ -594,7 +594,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 _logger.LogInformation("Workspace selected: {WorkspaceName} ({WorkspaceSlug}), IsNew: {IsNew}", 
                     workspaceName, workspaceSlug, isNewProject);
                 
-                PublishEvent(new WorkspaceManagementEvents.WorkspaceSelected 
+                PublishEvent(new NewProjectEvents.WorkspaceSelected 
                 { 
                     WorkspaceSlug = workspaceSlug, 
                     WorkspaceName = workspaceName 
@@ -613,7 +613,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
             {
                 _logger.LogError(ex, "Failed to handle workspace selection");
                 
-                PublishEvent(new WorkspaceManagementEvents.ProjectOperationError 
+                PublishEvent(new NewProjectEvents.ProjectOperationError 
                 { 
                     Operation = "WorkspaceSelection", 
                     ErrorMessage = ex.Message, 
@@ -641,7 +641,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 LastModified = DateTime.Now
             };
             
-            PublishEvent(new WorkspaceManagementEvents.ProjectCreated 
+            PublishEvent(new NewProjectEvents.ProjectCreated 
             { 
                 WorkspacePath = _currentWorkspaceInfo.Path,
                 WorkspaceName = workspaceName,
@@ -771,11 +771,11 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                 var displayProjectName = projectName;
                 if (displayProjectName.EndsWith(".tcex", StringComparison.OrdinalIgnoreCase))
                 {
-                    displayProjectName = System.IO.Path.GetFileNameWithoutExtension(displayProjectName);
+                    displayProjectName = Path.GetFileNameWithoutExtension(displayProjectName);
                 }
                 
                 // 5. Broadcast the project creation event with workspace data
-                var projectCreatedEvent = new WorkspaceManagementEvents.ProjectCreated 
+                var projectCreatedEvent = new NewProjectEvents.ProjectCreated 
                 { 
                     WorkspacePath = projectSavePath,
                     WorkspaceName = displayProjectName,
@@ -815,7 +815,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
             {
                 _logger.LogError(ex, "Failed to complete project creation for project: {ProjectName}", projectName);
                 
-                PublishEvent(new WorkspaceManagementEvents.ProjectOperationError 
+                PublishEvent(new NewProjectEvents.ProjectOperationError 
                 { 
                     ErrorMessage = ex.Message, 
                     Exception = ex 
@@ -864,7 +864,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
             {
                 _logger.LogError(ex, "Failed to create new project with warning: {ProjectName}", projectName);
                 
-                PublishEvent(new WorkspaceManagementEvents.ProjectOperationError 
+                PublishEvent(new NewProjectEvents.ProjectOperationError 
                 { 
                     ErrorMessage = ex.Message, 
                     Exception = ex 
@@ -965,7 +965,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
             // TODO: Load actual workspace data
             var workspace = new Workspace { Name = workspaceName };
             
-            var projectOpenedEvent = new WorkspaceManagementEvents.ProjectOpened 
+            var projectOpenedEvent = new NewProjectEvents.ProjectOpened 
             { 
                 WorkspacePath = _currentWorkspaceInfo.Path,
                 WorkspaceName = workspaceName,
@@ -1075,7 +1075,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
             
             switch (notification)
             {
-                case TestCaseEditorApp.MVVM.Events.CrossDomainMessages.WorkspaceContextChanged workspaceChanged:
+                case WorkspaceContextChanged workspaceChanged:
                     HandleWorkspaceContextChanged(workspaceChanged);
                     break;
                     
@@ -1088,7 +1088,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
         /// <summary>
         /// Handle workspace context changes from other domains (e.g., requirement edits)
         /// </summary>
-        private void HandleWorkspaceContextChanged(TestCaseEditorApp.MVVM.Events.CrossDomainMessages.WorkspaceContextChanged notification)
+        private void HandleWorkspaceContextChanged(WorkspaceContextChanged notification)
         {
             _logger.LogDebug("Handling workspace context change: {ChangeType} from {Domain}", 
                 notification.ChangeType, notification.OriginatingDomain);
@@ -1101,7 +1101,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
                     notification.ChangeType, notification.OriginatingDomain);
                     
                 // Publish workspace management event so other components know about the state change
-                PublishEvent(new WorkspaceManagementEvents.WorkspaceDirtyStateChanged
+                PublishEvent(new NewProjectEvents.WorkspaceDirtyStateChanged
                 {
                     HasUnsavedChanges = true,
                     Source = notification.OriginatingDomain

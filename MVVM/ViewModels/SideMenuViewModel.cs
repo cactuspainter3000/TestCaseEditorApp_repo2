@@ -7,7 +7,7 @@ using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using System.Threading.Tasks;
-using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Events;
@@ -25,7 +25,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     /// </summary>
     public partial class SideMenuViewModel : ObservableObject
     {
-        private readonly IWorkspaceManagementMediator _workspaceManagementMediator;
+        private readonly INewProjectMediator _newProjectMediator;
         private readonly INavigationMediator _navigationMediator;
         private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
         private readonly TestCaseAnythingLLMService _testCaseAnythingLLMService;
@@ -113,9 +113,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty]
         private bool autoExportForChatGpt = false;
 
-        public SideMenuViewModel(IWorkspaceManagementMediator workspaceManagementMediator, INavigationMediator navigationMediator, ITestCaseGenerationMediator testCaseGenerationMediator, TestCaseAnythingLLMService testCaseAnythingLLMService, JamaConnectService jamaConnectService, ILogger<SideMenuViewModel> logger)
+        public SideMenuViewModel(INewProjectMediator newProjectMediator, INavigationMediator navigationMediator, ITestCaseGenerationMediator testCaseGenerationMediator, TestCaseAnythingLLMService testCaseAnythingLLMService, JamaConnectService jamaConnectService, ILogger<SideMenuViewModel> logger)
         {
-            _workspaceManagementMediator = workspaceManagementMediator ?? throw new ArgumentNullException(nameof(workspaceManagementMediator));
+            _newProjectMediator = newProjectMediator ?? throw new ArgumentNullException(nameof(newProjectMediator));
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
             _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
             _testCaseAnythingLLMService = testCaseAnythingLLMService ?? throw new ArgumentNullException(nameof(testCaseAnythingLLMService));
@@ -169,7 +169,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private async Task CreateNewProjectAsync()
         {
             Console.WriteLine("*** SideMenuViewModel.CreateNewProject called! ***");
-            await _workspaceManagementMediator.CreateNewProjectAsync();
+            await _newProjectMediator.CreateNewProjectAsync();
         }
         
         /// <summary>
@@ -178,7 +178,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private async Task UnloadProjectAsync()
         {
             Console.WriteLine("*** SideMenuViewModel.UnloadProject called! ***");
-            await _workspaceManagementMediator.CloseProjectAsync();
+            await _newProjectMediator.CloseProjectAsync();
         }
         private void NavigateToProject()
         {
@@ -244,7 +244,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             try
             {
-                await _workspaceManagementMediator.ImportAdditionalRequirementsAsync();
+                await _newProjectMediator.ImportAdditionalRequirementsAsync();
             }
             catch (Exception ex)
             {
@@ -298,7 +298,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private async Task OpenProjectAsync()
         {
             Console.WriteLine("*** SideMenuViewModel.OpenProject called! ***");
-            await _workspaceManagementMediator.OpenProjectAsync();
+            await _newProjectMediator.OpenProjectAsync();
         }
 
         // ===============================================

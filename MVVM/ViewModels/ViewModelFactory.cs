@@ -7,8 +7,7 @@ using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
-using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels;
-using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
+using TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels;
 
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators;
 using CommunityToolkit.Mvvm.Input;
@@ -16,6 +15,7 @@ using System.ComponentModel;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.MVVM.Mediators;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -26,14 +26,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     public class ViewModelFactory : IViewModelFactory
     {
         private readonly IApplicationServices _applicationServices;
-        private readonly IWorkspaceManagementMediator _workspaceManagementMediator;
+        private readonly INewProjectMediator _workspaceManagementMediator;
         private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
 
-        public ViewModelFactory(IApplicationServices applicationServices, IWorkspaceManagementMediator workspaceManagementMediator, 
+        public ViewModelFactory(IApplicationServices applicationServices, INewProjectMediator newProjectMediator, 
             ITestCaseGenerationMediator testCaseGenerationMediator)
         {
             _applicationServices = applicationServices ?? throw new ArgumentNullException(nameof(applicationServices));
-            _workspaceManagementMediator = workspaceManagementMediator ?? throw new ArgumentNullException(nameof(workspaceManagementMediator));
+            _workspaceManagementMediator = newProjectMediator ?? throw new ArgumentNullException(nameof(newProjectMediator));
             _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
         }
 
@@ -109,7 +109,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Singleton for in-progress workflows to maintain form data during navigation
         public NewProjectWorkflowViewModel CreateNewProjectWorkflowViewModel()
         {
-            // Create new workflow instance with proper dependency injection
+            // Create new workflow instance with proper dependency injection via factory
             TestCaseEditorApp.Services.Logging.Log.Debug("[NewProject] Creating new workflow instance");
             var logger = _applicationServices.LoggerFactory?.CreateLogger<NewProjectWorkflowViewModel>() 
                 ?? throw new InvalidOperationException("Logger is required for NewProjectWorkflowViewModel");
@@ -122,14 +122,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             
             return workflowViewModel;
         }
-        
+
         /// <summary>
         /// Creates a new project workflow. All instances are fresh to maintain architectural compliance.
         /// Form persistence is handled within the ViewModel itself via mediator state.
+        /// REMOVED: Factory method - use DI container directly per AI Guide compliance
         /// </summary>
         public NewProjectWorkflowViewModel CreateFreshNewProjectWorkflow()
         {
-            TestCaseEditorApp.Services.Logging.Log.Debug("[NewProject] Creating fresh workflow instance");
+            TestCaseEditorApp.Services.Logging.Log.Debug("[NewProject] Creating fresh workflow instance via DI");
             return CreateNewProjectWorkflowViewModel();
         }
 

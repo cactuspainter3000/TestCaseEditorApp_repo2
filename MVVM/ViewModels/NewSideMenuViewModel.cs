@@ -5,8 +5,8 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.MVVM.Utils;
-using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 using TestCaseEditorApp.MVVM.Models.DataDrivenMenu;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -17,7 +17,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     public partial class NewSideMenuViewModel : ObservableObject
     {
         private readonly INavigationMediator _navigationMediator;
-        private readonly IWorkspaceManagementMediator _workspaceManagementMediator;
+        private readonly INewProjectMediator _workspaceManagementMediator;
 
         [ObservableProperty]
         private MenuSection? testCaseGeneratorMenuSection;
@@ -30,7 +30,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand NewProjectCommand { get; private set; } = null!;
         public ICommand OpenProjectCommand { get; private set; } = null!;
 
-        public NewSideMenuViewModel(INavigationMediator navigationMediator, IWorkspaceManagementMediator workspaceManagementMediator)
+        public NewSideMenuViewModel(INavigationMediator navigationMediator, INewProjectMediator workspaceManagementMediator)
         {
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
             _workspaceManagementMediator = workspaceManagementMediator ?? throw new ArgumentNullException(nameof(workspaceManagementMediator));

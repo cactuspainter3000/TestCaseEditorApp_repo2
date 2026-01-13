@@ -1,12 +1,12 @@
 using System;
 using TestCaseEditorApp.MVVM.ViewModels;
-using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Mediators;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 
 namespace TestCaseEditorApp.Services
 {
@@ -18,7 +18,7 @@ namespace TestCaseEditorApp.Services
     {
         private readonly INavigationMediator _navigationMediator;
         private IViewConfigurationService? _viewConfigurationService;
-        private readonly IWorkspaceManagementMediator _workspaceManagementMediator;
+        private readonly INewProjectMediator _workspaceManagementMediator;
 
         public SideMenuViewModel SideMenu { get; }
         public ConfigurableTitleAreaViewModel TitleArea { get; }
@@ -26,12 +26,12 @@ namespace TestCaseEditorApp.Services
         public ConfigurableContentAreaViewModel WorkspaceContent { get; }
         public ConfigurableNotificationAreaViewModel NotificationArea { get; }
         public INavigationMediator NavigationMediator => _navigationMediator;
-        public IWorkspaceManagementMediator WorkspaceManagement => _workspaceManagementMediator;
+        public INewProjectMediator WorkspaceManagement => _workspaceManagementMediator;
 
         public ViewAreaCoordinator(
             IViewModelFactory viewModelFactory, 
             INavigationMediator navigationMediator,
-            IWorkspaceManagementMediator workspaceManagementMediator,
+            INewProjectMediator workspaceManagementMediator,
             ITestCaseGenerationMediator testCaseGenerationMediator,
             IViewConfigurationService? viewConfigurationService,
             SideMenuViewModel sideMenuViewModel)

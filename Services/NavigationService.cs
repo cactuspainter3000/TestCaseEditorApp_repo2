@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
 using TestCaseEditorApp.MVVM.Utils;
 
 namespace TestCaseEditorApp.Services
@@ -88,13 +89,13 @@ namespace TestCaseEditorApp.Services
             // Subscribe to project events to automatically update titles
             if (_coordinator?.WorkspaceManagement != null)
             {
-                _coordinator.WorkspaceManagement.Subscribe<TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events.WorkspaceManagementEvents.ProjectOpened>(e => {
+                _coordinator.WorkspaceManagement.Subscribe<NewProjectEvents.ProjectOpened>(e => {
                     _logger?.LogInformation("NavigationService: Project opened: {ProjectName}", e.WorkspaceName);
                     _currentProject = e.WorkspaceName;
                     UpdateCurrentTitle();
                 });
                 
-                _coordinator.WorkspaceManagement.Subscribe<TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events.WorkspaceManagementEvents.ProjectClosed>(e => {
+                _coordinator.WorkspaceManagement.Subscribe<NewProjectEvents.ProjectClosed>(e => {
                     _logger?.LogInformation("NavigationService: Project closed");
                     _currentProject = null;
                     UpdateCurrentTitle();

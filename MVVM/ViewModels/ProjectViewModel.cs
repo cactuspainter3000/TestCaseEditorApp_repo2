@@ -8,7 +8,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
-using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.Services;
 using Microsoft.Extensions.Logging;
 
@@ -26,7 +26,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly NotificationService _notificationService;
         private readonly INavigationMediator _navigationMediator;
         private readonly AnythingLLMService _anythingLLMService;
-        private readonly IWorkspaceManagementMediator _workspaceMediator;
+        private readonly INewProjectMediator _workspaceMediator;
         private readonly ILogger<ProjectViewModel>? _logger;
         
         // Current workspace state
@@ -80,7 +80,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             INavigationMediator navigationMediator,
             ObservableCollection<Requirement> requirements,
             AnythingLLMService anythingLLMService,
-            IWorkspaceManagementMediator workspaceMediator,
+            INewProjectMediator workspaceMediator,
             ILogger<ProjectViewModel>? logger = null)
         {
             // Store dependencies
@@ -481,7 +481,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             public void Publish<T>(T navigationEvent) where T : class { }
         }
         
-        private class StubWorkspaceManagementMediator : IWorkspaceManagementMediator
+        private class StubWorkspaceManagementMediator : INewProjectMediator
         {
             public string CurrentStep => "ProjectSelection";
             public object? CurrentViewModel => null;

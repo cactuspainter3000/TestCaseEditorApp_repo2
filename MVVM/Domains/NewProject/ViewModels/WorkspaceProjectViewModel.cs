@@ -2,13 +2,13 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.ViewModels;
-using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
-using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Events;
 using TestCaseEditorApp.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 
-namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
+namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
 {
     /// <summary>
     /// Domain ViewModel for workspace and project management operations.
@@ -42,7 +42,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
         public IAsyncRelayCommand CloseProjectCommand { get; private set; } = null!;
 
         public WorkspaceProjectViewModel(
-            IWorkspaceManagementMediator mediator,
+            INewProjectMediator mediator,
             ILogger<WorkspaceProjectViewModel> logger,
             AnythingLLMService anythingLLMService,
             NotificationService notificationService)
@@ -62,7 +62,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
             base.InitializeCommands(); // Initialize common commands
             
             // Domain-specific commands
-            var workspaceMediator = (IWorkspaceManagementMediator)_mediator;
+            var workspaceMediator = (INewProjectMediator)_mediator;
             CreateNewProjectCommand = new RelayCommand(
                 async () => await workspaceMediator.CreateNewProjectAsync(),
                 () => !IsBusy);
@@ -83,15 +83,15 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
         private void SubscribeToEvents()
         {
             // Subscribe to workspace management events
-            Subscribe<WorkspaceManagementEvents.ProjectCreated>(OnProjectCreated);
-            Subscribe<WorkspaceManagementEvents.ProjectOpened>(OnProjectOpened);
-            Subscribe<WorkspaceManagementEvents.ProjectSaved>(OnProjectSaved);
-            Subscribe<WorkspaceManagementEvents.ProjectClosed>(OnProjectClosed);
-            Subscribe<WorkspaceManagementEvents.ProjectOperationError>(OnProjectOperationError);
-            Subscribe<WorkspaceManagementEvents.StepChanged>(OnStepChanged);
+            Subscribe<NewProjectEvents.ProjectCreated>(OnProjectCreated);
+            Subscribe<NewProjectEvents.ProjectOpened>(OnProjectOpened);
+            Subscribe<NewProjectEvents.ProjectSaved>(OnProjectSaved);
+            Subscribe<NewProjectEvents.ProjectClosed>(OnProjectClosed);
+            Subscribe<NewProjectEvents.ProjectOperationError>(OnProjectOperationError);
+            Subscribe<NewProjectEvents.StepChanged>(OnStepChanged);
         }
 
-        private void OnProjectCreated(WorkspaceManagementEvents.ProjectCreated e)
+        private void OnProjectCreated(NewProjectEvents.ProjectCreated e)
         {
             CurrentWorkspacePath = e.WorkspacePath;
             CurrentWorkspaceName = e.WorkspaceName;
@@ -105,7 +105,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
                 e.WorkspaceName, e.WorkspacePath);
         }
 
-        private void OnProjectOpened(WorkspaceManagementEvents.ProjectOpened e)
+        private void OnProjectOpened(NewProjectEvents.ProjectOpened e)
         {
             CurrentWorkspacePath = e.WorkspacePath;
             CurrentWorkspaceName = e.WorkspaceName;
@@ -122,7 +122,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
                 e.WorkspaceName, e.WorkspacePath);
         }
 
-        private void OnProjectSaved(WorkspaceManagementEvents.ProjectSaved e)
+        private void OnProjectSaved(NewProjectEvents.ProjectSaved e)
         {
             HasUnsavedChanges = false;
             StatusMessage = "Project saved successfully";
@@ -133,7 +133,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
             _logger.LogInformation("Project saved: {WorkspacePath}", e.WorkspacePath);
         }
 
-        private void OnProjectClosed(WorkspaceManagementEvents.ProjectClosed e)
+        private void OnProjectClosed(NewProjectEvents.ProjectClosed e)
         {
             CurrentWorkspacePath = null;
             CurrentWorkspaceName = null;
@@ -149,7 +149,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
             _logger.LogInformation("Project closed: {WorkspacePath}", e.WorkspacePath);
         }
 
-        private void OnProjectOperationError(WorkspaceManagementEvents.ProjectOperationError e)
+        private void OnProjectOperationError(NewProjectEvents.ProjectOperationError e)
         {
             SetError($"Error during {e.Operation}: {e.ErrorMessage}");
             StatusMessage = $"Error: {e.ErrorMessage}";
@@ -158,7 +158,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
                 e.Operation, e.ErrorMessage);
         }
 
-        private void OnStepChanged(WorkspaceManagementEvents.StepChanged e)
+        private void OnStepChanged(NewProjectEvents.StepChanged e)
         {
             _logger.LogDebug("Workspace management step changed to: {Step}", e.Step);
             
@@ -171,7 +171,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
         // Implementation of required abstract methods from BaseDomainViewModel
         protected override async Task SaveAsync()
         {
-            var workspaceMediator = (IWorkspaceManagementMediator)_mediator;
+            var workspaceMediator = (INewProjectMediator)_mediator;
             await workspaceMediator.SaveProjectAsync();
         }
 
@@ -193,7 +193,7 @@ namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels
                 StatusMessage = "Refreshing workspace information...";
                 
                 // Get current workspace info from mediator
-                var workspaceMediator = (IWorkspaceManagementMediator)_mediator;
+                var workspaceMediator = (INewProjectMediator)_mediator;
                 var workspaceInfo = workspaceMediator.GetCurrentWorkspaceInfo();
                 if (workspaceInfo != null)
                 {

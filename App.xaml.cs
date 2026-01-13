@@ -11,7 +11,7 @@ using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators;
-using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing;
 using TestCaseEditorApp.MVVM.Utils;
@@ -233,9 +233,9 @@ namespace TestCaseEditorApp
                             performanceMonitor, eventReplay);
                     });
 
-                    services.AddSingleton<IWorkspaceManagementMediator>(provider =>
+                    services.AddSingleton<INewProjectMediator>(provider =>
                     {
-                        var logger = provider.GetRequiredService<ILogger<WorkspaceManagementMediator>>();
+                        var logger = provider.GetRequiredService<ILogger<NewProjectMediator>>();
                         var uiCoordinator = provider.GetRequiredService<IDomainUICoordinator>();
                         var persistenceService = provider.GetRequiredService<IPersistenceService>();
                         var fileDialogService = provider.GetRequiredService<IFileDialogService>();
@@ -247,7 +247,7 @@ namespace TestCaseEditorApp
                         var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
                         var eventReplay = provider.GetService<EventReplayService>();
                         
-                        return new WorkspaceManagementMediator(logger, uiCoordinator, persistenceService, 
+                        return new NewProjectMediator(logger, uiCoordinator, persistenceService, 
                             fileDialogService, anythingLLMService, notificationService, requirementService,
                             testCaseGenerationMediator, workspaceValidationService, performanceMonitor, eventReplay);
                     });
@@ -293,18 +293,18 @@ namespace TestCaseEditorApp
                     // View configuration service for new navigation pattern
                     services.AddSingleton<IViewConfigurationService>(provider =>
                     {
-                        var workspaceManagementMediator = provider.GetRequiredService<IWorkspaceManagementMediator>();
+                        var NewProjectMediator = provider.GetRequiredService<INewProjectMediator>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
                         var testCaseCreationMediator = provider.GetRequiredService<ITestCaseCreationMediator>();
-                        return new ViewConfigurationService(workspaceManagementMediator, testCaseGenerationMediator, testCaseCreationMediator);
+                        return new ViewConfigurationService(NewProjectMediator, testCaseGenerationMediator, testCaseCreationMediator);
                     });
                     
                     services.AddSingleton<IViewModelFactory>(provider =>
                     {
                         var applicationServices = provider.GetRequiredService<IApplicationServices>();
-                        var workspaceManagementMediator = provider.GetRequiredService<IWorkspaceManagementMediator>();
+                        var NewProjectMediator = provider.GetRequiredService<INewProjectMediator>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
-                        return new ViewModelFactory(applicationServices, workspaceManagementMediator, testCaseGenerationMediator);
+                        return new ViewModelFactory(applicationServices, NewProjectMediator, testCaseGenerationMediator);
                     });
                     services.AddSingleton<IApplicationServices, ApplicationServices>();
 
@@ -351,13 +351,13 @@ namespace TestCaseEditorApp
                 var testFlowMediator = _host.Services.GetRequiredService<ITestFlowMediator>();
                 testFlowMediator.MarkAsRegistered();
                 
-                var workspaceManagementMediator = _host.Services.GetRequiredService<IWorkspaceManagementMediator>();
-                workspaceManagementMediator.MarkAsRegistered();
+                var NewProjectMediator = _host.Services.GetRequiredService<INewProjectMediator>();
+                NewProjectMediator.MarkAsRegistered();
                 
                 // Wire cross-domain commands - enable workspace commands in header
                 if (testCaseGenMediator is MVVM.Domains.TestCaseGeneration.Mediators.TestCaseGenerationMediator tcgMediator)
                 {
-                    tcgMediator.WireWorkspaceCommands(workspaceManagementMediator);
+                    tcgMediator.WireWorkspaceCommands(NewProjectMediator);
                 }
                 
                 // Set up domain coordinator and register mediators

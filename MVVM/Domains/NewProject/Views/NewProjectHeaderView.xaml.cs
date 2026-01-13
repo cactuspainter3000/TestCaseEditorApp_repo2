@@ -1,6 +1,6 @@
 using System.Windows.Controls;
 
-namespace TestCaseEditorApp.MVVM.Views
+namespace TestCaseEditorApp.MVVM.Domains.NewProject.Views
 {
     /// <summary>
     /// Interaction logic for NewProjectHeaderView.xaml

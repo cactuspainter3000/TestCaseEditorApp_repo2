@@ -5,13 +5,13 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
 
-namespace TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.Mediators
+namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
 {
     /// <summary>
     /// Interface for the Workspace Management domain mediator.
     /// Handles project lifecycle operations: create, open, save, close, and workspace management.
     /// </summary>
-    public interface IWorkspaceManagementMediator
+    public interface INewProjectMediator
     {
         // ===== CORE MEDIATOR FUNCTIONALITY =====
         

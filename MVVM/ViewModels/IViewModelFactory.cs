@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
-using TestCaseEditorApp.MVVM.Domains.WorkspaceManagement.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels;
 
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.Services;
@@ -38,8 +38,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         WorkspaceHeaderViewModel CreateWorkspaceHeaderViewModel();
         NavigationViewModel CreateNavigationViewModel();
         ImportRequirementsWorkflowViewModel CreateImportWorkflowViewModel();
-        NewProjectWorkflowViewModel CreateNewProjectWorkflowViewModel();
         // REMOVED: TestCaseGenerator_HeaderVM CreateTestCaseGeneratorHeaderViewModel - now handled by mediator
+        // REMOVED: NewProjectWorkflowViewModel CreateNewProjectWorkflowViewModel - use DI container directly
 
         NotificationAreaViewModel CreateNotificationAreaViewModel();
         DefaultNotificationViewModel CreateDefaultNotificationViewModel();
