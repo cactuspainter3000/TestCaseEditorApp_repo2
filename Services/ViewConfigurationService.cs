@@ -72,17 +72,17 @@ namespace TestCaseEditorApp.Services
         private ViewConfiguration CreateStartupConfiguration(object? context)
         {
             // Use DI container to resolve ViewModels following AI Guide patterns
-            var titleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartupTitleVM>();
-            var headerVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartupHeaderVM>();
-            var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartupMainVM>();
-            var navVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartupNavigationVM>();
-            var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartupNotificationVM>();
+            var titleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_TitleViewModel>();
+            var headerVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_HeaderViewModel>();
+            var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_MainViewModel>();
+            var navVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_NavigationViewModel>();
+            var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_NotificationViewModel>();
             
-            if (titleVM == null) throw new InvalidOperationException("StartupTitleVM not resolved from DI container");
-            if (headerVM == null) throw new InvalidOperationException("StartupHeaderVM not resolved from DI container");
-            if (mainVM == null) throw new InvalidOperationException("StartupMainVM not resolved from DI container");
-            if (navVM == null) throw new InvalidOperationException("StartupNavigationVM not resolved from DI container");
-            if (notificationVM == null) throw new InvalidOperationException("StartupNotificationVM not resolved from DI container");
+            if (titleVM == null) throw new InvalidOperationException("StartUp_TitleViewModel not resolved from DI container");
+            if (headerVM == null) throw new InvalidOperationException("StartUp_HeaderViewModel not resolved from DI container");
+            if (mainVM == null) throw new InvalidOperationException("StartUp_MainViewModel not resolved from DI container");
+            if (navVM == null) throw new InvalidOperationException("StartUp_NavigationViewModel not resolved from DI container");
+            if (notificationVM == null) throw new InvalidOperationException("StartUp_NotificationViewModel not resolved from DI container");
             
             return new ViewConfiguration(
                 sectionName: "Startup",
@@ -382,7 +382,7 @@ namespace TestCaseEditorApp.Services
             return new ViewConfiguration(
                 sectionName: "Default",
                 headerViewModel: _workspaceHeader,
-                contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.InitialStateViewModel(),
+                contentViewModel: App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_MainViewModel>(),
                 notificationViewModel: new TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel(App.ServiceProvider?.GetService<Microsoft.Extensions.Logging.ILogger<TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel>>()),
                 context: context
             );

@@ -2,9 +2,9 @@ using System.Windows.Controls;
 
 namespace TestCaseEditorApp.MVVM.Domains.Startup.Views
 {
-    public partial class StartupMainView : UserControl
+    public partial class StartUp_MainView : UserControl
     {
-        public StartupMainView()
+        public StartUp_MainView()
         {
             InitializeComponent();
         }

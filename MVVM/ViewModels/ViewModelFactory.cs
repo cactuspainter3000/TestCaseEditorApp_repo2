@@ -8,6 +8,7 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.Startup.ViewModels;
 
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators;
 using CommunityToolkit.Mvvm.Input;
@@ -150,9 +151,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             return new PlaceholderViewModel("Content coming soon...");
         }
         
-        public InitialStateViewModel CreateInitialStateViewModel()
+        public StartUp_MainViewModel CreateInitialStateViewModel()
         {
-            return new InitialStateViewModel();
+            return App.ServiceProvider?.GetService<StartUp_MainViewModel>() ??
+                   throw new InvalidOperationException("StartUp_MainViewModel not registered in DI container");
         }
 
         public TestCaseGenerator_NavigationVM CreateRequirementsNavigationViewModel()

@@ -6,7 +6,7 @@
              xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Startup.ViewModels"
              mc:Ignorable="d"
              d:DesignHeight="50" d:DesignWidth="400"
-             d:DataContext="{d:DesignInstance Type=vm:StartupTitleVM}">
+             d:DataContext="{d:DesignInstance Type=vm:StartUp_TitleViewModel}">
     
     <Grid>
         <!-- Application Title using global WorkspaceTitleText style -->

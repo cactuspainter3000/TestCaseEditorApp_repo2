@@ -137,23 +137,23 @@
         </DataTemplate>
 
         <!-- Startup ViewModels DataTemplates -->
-        <DataTemplate DataType="{x:Type startupvm:StartupTitleVM}">
+        <DataTemplate DataType="{x:Type startupvm:StartUp_TitleViewModel}">
             <startupviews:StartupTitleView />
         </DataTemplate>
         
-        <DataTemplate DataType="{x:Type startupvm:StartupHeaderVM}">
+        <DataTemplate DataType="{x:Type startupvm:StartUp_HeaderViewModel}">
             <startupviews:StartupHeaderView />
         </DataTemplate>
         
-        <DataTemplate DataType="{x:Type startupvm:StartupMainVM}">
-            <startupviews:StartupMainView />
+        <DataTemplate DataType="{x:Type startupvm:StartUp_MainViewModel}">
+            <startupviews:StartUp_MainView />
         </DataTemplate>
         
-        <DataTemplate DataType="{x:Type startupvm:StartupNavigationVM}">
+        <DataTemplate DataType="{x:Type startupvm:StartUp_NavigationViewModel}">
             <TextBlock Text="{Binding NavigationText}" Style="{StaticResource Text.Body.Small}" />
         </DataTemplate>
         
-        <DataTemplate DataType="{x:Type startupvm:StartupNotificationVM}">
+        <DataTemplate DataType="{x:Type startupvm:StartUp_NotificationViewModel}">
             <TextBlock Text="{Binding StatusText}" Style="{StaticResource Text.Status}" />
         </DataTemplate>
 
@@ -163,8 +163,8 @@
             </Border>
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type vm:InitialStateViewModel}">
-            <views:InitialStateView />
+        <DataTemplate DataType="{x:Type startupvm:StartUp_MainViewModel}">
+            <startupviews:StartUp_MainView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:ProjectViewModel}">

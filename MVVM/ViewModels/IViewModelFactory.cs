@@ -4,6 +4,7 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.Startup.ViewModels;
 
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.Services;
@@ -29,7 +30,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         RequirementsViewModel CreateRequirementsViewModel();
         RequirementsWorkspaceViewModel CreateRequirementsWorkspaceViewModel();
         PlaceholderViewModel CreatePlaceholderViewModel();
-        InitialStateViewModel CreateInitialStateViewModel();
+        StartUp_MainViewModel CreateInitialStateViewModel();
         
         // Navigation ViewModels
         TestCaseGenerator_NavigationVM CreateRequirementsNavigationViewModel();

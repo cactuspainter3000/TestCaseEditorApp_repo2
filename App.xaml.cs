@@ -256,6 +256,9 @@ namespace TestCaseEditorApp
                     // === DUMMY DOMAIN REGISTRATION (FOR TESTING WORKSPACE COORDINATION) ===
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Dummy.Mediators.IDummyMediator, TestCaseEditorApp.MVVM.Domains.Dummy.Mediators.DummyMediator>();
                     
+                    // === STARTUP DOMAIN REGISTRATION ===
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Startup.Mediators.IStartupMediator, TestCaseEditorApp.MVVM.Domains.Startup.Mediators.StartupMediator>();
+                    
                     // Dummy domain ViewModels - updated naming convention
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_MainViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_HeaderViewModel>();
@@ -264,11 +267,11 @@ namespace TestCaseEditorApp
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_NotificationViewModel>();
                     
                     // === STARTUP DOMAIN REGISTRATION (FOR INITIAL APP STATE) ===
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartupMainVM>();
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartupHeaderVM>();
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartupNavigationVM>();
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartupTitleVM>();
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartupNotificationVM>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_MainViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_HeaderViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_NavigationViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_TitleViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_NotificationViewModel>();
 
                     // === TEST CASE GENERATION DOMAIN WORKSPACE VIEWMODELS ===
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorMainVM>();
