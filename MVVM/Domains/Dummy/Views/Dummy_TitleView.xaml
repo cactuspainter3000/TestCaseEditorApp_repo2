@@ -30,6 +30,50 @@
                            Foreground="#666666" 
                            HorizontalAlignment="Right"/>
             </DockPanel>
+            
+            <!-- Interactive Demo -->
+            <Button Content="Title" 
+                    Command="{Binding TestButtonCommand}"
+                    VerticalAlignment="Center"
+                    MinWidth="40"
+                    Padding="6,2"
+                    FontSize="9">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Background" Value="#4A4A4A"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="BorderBrush" Value="#FF69B4"/>
+                        <Setter Property="BorderThickness" Value="1"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="3">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#FF69B4"/>
+                                            <Setter Property="BorderBrush" Value="#FF8CC8"/>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter Property="Background" Value="#E055A3"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Button.Style>
+            </Button>
+                    
+            <TextBlock Text="{Binding SharedMessage}" 
+                       FontSize="9" 
+                       Foreground="#DDDDDD" 
+                       HorizontalAlignment="Center" 
+                       TextWrapping="Wrap"/>
         </StackPanel>
     </Border>
 </UserControl>

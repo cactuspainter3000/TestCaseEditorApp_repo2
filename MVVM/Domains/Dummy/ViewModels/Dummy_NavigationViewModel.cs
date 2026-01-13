@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using TestCaseEditorApp.MVVM.Domains.Dummy.Mediators;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.ViewModels;
@@ -27,12 +28,21 @@ namespace TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels
         [ObservableProperty]
         private DateTime lastUpdated = DateTime.Now;
         
+        [ObservableProperty]
+        private string sharedMessage = "Ready for inter-workspace communication...";
+        
+        public ICommand TestButtonCommand { get; }
+        
         public Dummy_NavigationViewModel(
             IDummyMediator mediator,
             ILogger<Dummy_NavigationViewModel> logger)
             : base(mediator, logger)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
+            
+            TestButtonCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(() => {
+                _mediator.ChangeWorkspace("AllWorkspaces", "Navigation view's button was clicked!");
+            });
             
             // Subscribe to domain events
             _mediator.Subscribe<Dummy.Events.DummyEvents.DummyWorkspaceChanged>(OnWorkspaceChanged);
@@ -44,6 +54,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels
             {
                 CurrentStep = eventData.NewContent;
                 LastUpdated = DateTime.Now;
+            }
+            else if (eventData.WorkspaceName == "AllWorkspaces")
+            {
+                SharedMessage = eventData.NewContent;
             }
         }
         

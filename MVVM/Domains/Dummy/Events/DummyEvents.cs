@@ -28,5 +28,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Dummy.Events
             public string Message { get; set; } = string.Empty;
             public DateTime Timestamp { get; set; } = DateTime.Now;
         }
+        
+        public class ButtonClicked
+        {
+            public string WorkspaceName { get; set; } = string.Empty;
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+            
+            public ButtonClicked(string workspaceName)
+            {
+                WorkspaceName = workspaceName;
+            }
+        }
     }
 }

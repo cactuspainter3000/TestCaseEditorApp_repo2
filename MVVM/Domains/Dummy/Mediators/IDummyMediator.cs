@@ -50,5 +50,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Dummy.Mediators
         /// Request transition to demonstrate cross-domain coordination
         /// </summary>
         Task RequestDomainTransition(string targetDomain, object? transitionData = null);
+        
+        /// <summary>
+        /// Handle broadcast notifications from other domains - required for architectural compliance
+        /// </summary>
+        void HandleBroadcastNotification<T>(T notification) where T : class;
     }
 }

@@ -102,5 +102,34 @@ namespace TestCaseEditorApp.MVVM.Domains.Dummy.Mediators
             await Task.Delay(100); // Simulate async operation
             _logger.LogDebug("Dummy domain: Domain transition request processed");
         }
+        
+        // ===== CROSS-DOMAIN COMMUNICATION =====
+        
+        /// <summary>
+        /// Handles broadcast notifications from other domains
+        /// Required for architectural compliance with AI Guide patterns
+        /// </summary>
+        public void HandleBroadcastNotification<T>(T notification) where T : class
+        {
+            _logger.LogDebug("Dummy domain received broadcast notification: {NotificationType}", typeof(T).Name);
+            
+            // Handle cross-domain notifications here
+            switch (notification)
+            {
+                // Example: Handle workflow state changes from TestCaseGeneration domain
+                // case WorkflowStateChanged stateChange:
+                //     _logger.LogInformation("Dummy domain: Received workflow state change - {IsDirty}", stateChange.IsDirty);
+                //     break;
+                    
+                // Example: Handle save requests from any domain
+                // case SaveRequested saveRequest:
+                //     _logger.LogInformation("Dummy domain: Received save request from {Source}", saveRequest.SourceDomain);
+                //     break;
+                    
+                default:
+                    _logger.LogDebug("Dummy domain: No handler for notification type {Type}", typeof(T).Name);
+                    break;
+            }
+        }
     }
 }

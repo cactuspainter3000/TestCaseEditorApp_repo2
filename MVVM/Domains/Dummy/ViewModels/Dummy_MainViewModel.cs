@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using TestCaseEditorApp.MVVM.Domains.Dummy.Mediators;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.ViewModels;
@@ -27,6 +28,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels
         [ObservableProperty]
         private DateTime lastUpdated = DateTime.Now;
         
+        [ObservableProperty]
+        private string sharedMessage = "Ready for inter-workspace communication...";
+        
+        public ICommand TestButtonCommand { get; }
+        
         public Dummy_MainViewModel(
             IDummyMediator mediator,
             ILogger<Dummy_MainViewModel> logger)
@@ -34,8 +40,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             
+            TestButtonCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(() => {
+                _mediator.ChangeWorkspace("AllWorkspaces", "Main view's button was clicked!");
+            });
+            
             // Subscribe to domain events following AI Guide patterns
             _mediator.Subscribe<Dummy.Events.DummyEvents.DummyDataUpdated>(OnDataUpdated);
+            _mediator.Subscribe<Dummy.Events.DummyEvents.DummyWorkspaceChanged>(OnWorkspaceChanged);
         }
         
         private void OnDataUpdated(Dummy.Events.DummyEvents.DummyDataUpdated eventData)
@@ -44,6 +55,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels
             {
                 StatusMessage = eventData.NewValue?.ToString() ?? "Updated";
                 LastUpdated = eventData.Timestamp;
+            }
+        }
+        
+        private void OnWorkspaceChanged(Dummy.Events.DummyEvents.DummyWorkspaceChanged eventData)
+        {
+            if (eventData.WorkspaceName == "AllWorkspaces")
+            {
+                SharedMessage = eventData.NewContent;
             }
         }
         
