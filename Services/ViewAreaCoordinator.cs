@@ -24,6 +24,7 @@ namespace TestCaseEditorApp.Services
         public ConfigurableTitleAreaViewModel TitleArea { get; }
         public ConfigurableHeaderAreaViewModel HeaderArea { get; }
         public ConfigurableContentAreaViewModel WorkspaceContent { get; }
+        public ConfigurableNavigationAreaViewModel NavigationArea { get; }
         public ConfigurableNotificationAreaViewModel NotificationArea { get; }
         public INavigationMediator NavigationMediator => _navigationMediator;
         public INewProjectMediator WorkspaceManagement => _workspaceManagementMediator;
@@ -45,6 +46,7 @@ namespace TestCaseEditorApp.Services
             TitleArea = new ConfigurableTitleAreaViewModel(navigationMediator);
             HeaderArea = new ConfigurableHeaderAreaViewModel(navigationMediator);
             WorkspaceContent = new ConfigurableContentAreaViewModel(navigationMediator);
+            NavigationArea = new ConfigurableNavigationAreaViewModel(navigationMediator);
             NotificationArea = new ConfigurableNotificationAreaViewModel(navigationMediator);
 
             // Subscribe to navigation requests

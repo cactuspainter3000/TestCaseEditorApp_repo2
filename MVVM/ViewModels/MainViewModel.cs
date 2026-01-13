@@ -36,6 +36,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly INavigationService _navigationService;
         private string _displayName = "Systems ATE APP";
         
+        [ObservableProperty]
+        private object? modalViewModel; // Observable property for modal visibility
+        
+        [ObservableProperty]
+        private string modalTitle = string.Empty;
+        
         // === 6-WORKSPACE PROPERTIES ===
         // All UI areas are managed by ViewAreaCoordinator
         
@@ -67,7 +73,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// <summary>
         /// Navigation workspace area
         /// </summary>
-        public object? NavigationWorkspace => _viewAreaCoordinator.NavigationMediator.CurrentContent;
+        public object? NavigationWorkspace => _viewAreaCoordinator.NavigationArea.CurrentContent;
         
         /// <summary>
         /// Side menu workspace area
@@ -103,6 +109,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _viewModelFactory = viewModelFactory ?? throw new ArgumentNullException(nameof(viewModelFactory));
             _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
             _logger = logger;
+            
+            // Initialize modal command - ensure modal starts hidden
+            CloseModalCommand = new RelayCommand(CloseModal);
+            ModalViewModel = null; // Explicitly set to null to hide modal
+            ModalTitle = string.Empty;
             
             // Simple title binding - NavigationService handles all title logic
             _navigationService.TitleChanged += (_, title) => {
@@ -171,6 +182,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 };
             }
             
+            if (_viewAreaCoordinator.NavigationArea != null)
+            {
+                _viewAreaCoordinator.NavigationArea.PropertyChanged += (_, e) => {
+                    if (e.PropertyName == nameof(_viewAreaCoordinator.NavigationArea.CurrentContent))
+                        OnPropertyChanged(nameof(NavigationWorkspace));
+                };
+            }
+            
             _logger?.LogInformation("MainViewModel initialized as simple 5-workspace container");
         }
 
@@ -221,10 +240,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public System.Collections.ObjectModel.ObservableCollection<object> LooseParagraphs { get; } = new();
         public System.Collections.ObjectModel.ObservableCollection<object> TestCaseGeneratorSteps { get; } = new();
 
-        // Modal properties - ensure no modal is shown on startup
-        public object? ModalViewModel => null; // Always null to hide modal
-        public string ModalTitle => string.Empty; // Empty to avoid fallback text
-        public System.Windows.Input.ICommand? CloseModalCommand => null; // No command needed since modal never shows
+        // === MODAL COMMAND IMPLEMENTATION ===
+        public ICommand CloseModalCommand { get; private set; }
+        
+        private void CloseModal()
+        {
+            ModalViewModel = null;
+            ModalTitle = string.Empty;
+            _logger?.LogInformation("Modal dialog closed");
+        }
 
         // === SIMPLE CONTAINER METHODS ===
         // MainViewModel keeps only essential functionality as a workspace container

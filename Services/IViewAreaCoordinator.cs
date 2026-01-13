@@ -16,6 +16,7 @@ namespace TestCaseEditorApp.Services
         ConfigurableTitleAreaViewModel TitleArea { get; }
         ConfigurableHeaderAreaViewModel HeaderArea { get; }
         ConfigurableContentAreaViewModel WorkspaceContent { get; }
+        ConfigurableNavigationAreaViewModel NavigationArea { get; }
         ConfigurableNotificationAreaViewModel NotificationArea { get; }
         INavigationMediator NavigationMediator { get; }
         INewProjectMediator WorkspaceManagement { get; }

@@ -72,6 +72,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand TestCaseGeneratorNavigationCommand { get; private set; } = null!;
         public ICommand RequirementsNavigationCommand { get; private set; } = null!;
         public ICommand NewProjectNavigationCommand { get; private set; } = null!;
+        public ICommand DummyNavigationCommand { get; private set; } = null!;
 
         // Requirements Management Commands
         public ICommand ImportAdditionalCommand { get; private set; } = null!;
@@ -148,6 +149,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             TestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToTestCaseGenerator);
             RequirementsNavigationCommand = new RelayCommand(NavigateToRequirements);
             NewProjectNavigationCommand = new RelayCommand(NavigateToNewProject, CanExecuteProjectCommands);
+            DummyNavigationCommand = new RelayCommand(NavigateToDummy);
             
             // Requirements commands
             ImportAdditionalCommand = new AsyncRelayCommand(ImportAdditionalAsync, CanImportAdditionalRequirements);
@@ -260,6 +262,16 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             SelectedSection = "NewProject"; // Update selected section to trigger SectionChanged event
             
             _navigationMediator.NavigateToSection("NewProject");
+        }
+        
+        private void NavigateToDummy()
+        {
+            System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToDummy called! ***");
+            Console.WriteLine("*** SideMenuViewModel.NavigateToDummy called! ***");
+            
+            SelectedSection = "Dummy"; // Update selected section to trigger SectionChanged event
+            
+            _navigationMediator.NavigateToSection("Dummy");
         }
         
         #region AnythingLLM Status Handling
@@ -536,6 +548,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 // === PROJECT DROPDOWN (as sub-item) ===
                 CreateDropdown("project", "📁", "Project", "Project management options",
                     CreateButton("new-project", "🆕", "New Project", NewProjectNavigationCommand, "Create a new test case project"),
+                    CreateButton("dummy-domain", "🎯", "Dummy Domain", DummyNavigationCommand, "Navigate to Dummy domain - AI Guide reference implementation"),
                     CreateButton("open-project", "📁", "Open Project", OpenProjectCommand, "Load an existing project"),
                     CreateButton("save-project", "💾", "Save Project", SaveProjectCommand, "Save current project"),
                     CreateButton("unload-project", "📤", "Unload Project", UnloadProjectCommand, "Unload current project")

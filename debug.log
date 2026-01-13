@@ -1,0 +1,10 @@
+[2026-01-13 07:52:00.700] [ViewConfigurationService] CreateNewProjectConfiguration called
+[2026-01-13 07:52:00.710] [ViewConfigurationService] ServiceProvider is not null, proceeding with GetService
+[2026-01-13 07:52:00.720] [ViewConfigurationService] FAILED: NewProjectWorkflowViewModel is NULL
+[2026-01-13 07:52:00.721] [ViewConfigurationService] DI Health - AnythingLLMService: OK
+[2026-01-13 07:52:00.722] [ViewConfigurationService] DI Health - ToastNotificationService: OK
+[2026-01-13 07:52:00.727] [ViewConfigurationService] CreateNewProjectConfiguration called
+[2026-01-13 07:52:00.728] [ViewConfigurationService] ServiceProvider is not null, proceeding with GetService
+[2026-01-13 07:52:00.729] [ViewConfigurationService] FAILED: NewProjectWorkflowViewModel is NULL
+[2026-01-13 07:52:00.730] [ViewConfigurationService] DI Health - AnythingLLMService: OK
+[2026-01-13 07:52:00.730] [ViewConfigurationService] DI Health - ToastNotificationService: OK

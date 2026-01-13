@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
@@ -12,6 +12,7 @@ using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
+using TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing;
 using TestCaseEditorApp.MVVM.Utils;
@@ -67,6 +68,9 @@ namespace TestCaseEditorApp
                     services.AddSingleton<ToastNotificationService>(provider => 
                         new ToastNotificationService(Application.Current?.Dispatcher ?? System.Windows.Threading.Dispatcher.CurrentDispatcher));
                     services.AddSingleton<NotificationService>();
+                    
+                    // Modal service for cross-domain modal display
+                    services.AddSingleton<IModalService, StubModalService>(); // Stub implementation to prevent modal issues
                     
                     // Requirement parsing - wrap with notification support
                     services.AddSingleton<RequirementService>(); // Core service
@@ -183,10 +187,26 @@ namespace TestCaseEditorApp
                     services.AddSingleton<GenericServiceMonitor>();
 
                     // ViewModels that need DI
-                    services.AddSingleton<SideMenuViewModel>();
+                    services.AddSingleton<SideMenuViewModel>(provider =>
+                    {
+                        var newProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator>();
+                        var navigationMediator = provider.GetRequiredService<INavigationMediator>();
+                        var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
+                        var testCaseAnythingLLMService = provider.GetRequiredService<TestCaseAnythingLLMService>();
+                        var jamaConnectService = provider.GetRequiredService<JamaConnectService>();
+                        var logger = provider.GetRequiredService<ILogger<SideMenuViewModel>>();
+                        
+                        return new SideMenuViewModel(newProjectMediator, navigationMediator, 
+                            testCaseGenerationMediator, testCaseAnythingLLMService, jamaConnectService, logger);
+                    });
 
                     // Domain coordination
-                    services.AddSingleton<IDomainCoordinator, DomainCoordinator>();
+                    services.AddSingleton<IDomainCoordinator>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<DomainCoordinator>>();
+                        
+                        return new DomainCoordinator(logger);
+                    });
 
                     // Extensibility infrastructure (Phase 7)
                     services.AddSingleton<IServiceDiscovery, ServiceDiscovery>();
@@ -233,6 +253,26 @@ namespace TestCaseEditorApp
                             performanceMonitor, eventReplay);
                     });
 
+                    // === DUMMY DOMAIN REGISTRATION (FOR TESTING WORKSPACE COORDINATION) ===
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Dummy.Mediators.IDummyMediator, TestCaseEditorApp.MVVM.Domains.Dummy.Mediators.DummyMediator>();
+                    
+                    // Dummy domain ViewModels - updated naming convention
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_MainViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_HeaderViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_NavigationViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_TitleViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_NotificationViewModel>();
+                    
+                    // === STARTUP DOMAIN REGISTRATION (FOR INITIAL APP STATE) ===
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartupMainVM>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartupHeaderVM>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartupNavigationVM>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartupTitleVM>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartupNotificationVM>();
+
+                    // === TEST CASE GENERATION DOMAIN WORKSPACE VIEWMODELS ===
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorMainVM>();
+
                     services.AddSingleton<INewProjectMediator>(provider =>
                     {
                         var logger = provider.GetRequiredService<ILogger<NewProjectMediator>>();
@@ -257,8 +297,13 @@ namespace TestCaseEditorApp
                     services.AddTransient<TestCaseGeneratorViewModel>();
                     services.AddTransient<RequirementGenerationViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementImportExportViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorSplashViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorSplashScreenViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementAnalysisViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.ChatGptExportAnalysisViewModel>();
                     services.AddSingleton<WorkspaceHeaderViewModel>(); // workspace header shared instance
                     services.AddTransient<NotificationAreaViewModel>(); // notification area for status indicators
+                    
                     services.AddTransient<MainViewModel>(provider =>
                     {
                         var viewModelFactory = provider.GetRequiredService<IViewModelFactory>();
@@ -270,13 +315,14 @@ namespace TestCaseEditorApp
                     services.AddTransient<NavigationViewModel>();
 
                     // New domain ViewModels for consolidation
-                    // UIModalManagementViewModel REMOVED - cross-cutting infrastructure violation, use domain mediators for modals
-                    // LLMServiceManagementViewModel REMOVED - duplicate functionality, use TestCaseGeneration domain LLM services
-                    services.AddTransient<RequirementProcessingViewModel>();
+                    // UIModalManagementViewModel REMOVED - Cross-cutting infrastructure violation, use domain mediators
+                    // LLMServiceManagementViewModel REMOVED - Duplicate of TestCaseGeneration domain LLM infrastructure
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementProcessingViewModel>();
                     // RequirementAnalysisManagementViewModel REMOVED - duplicate functionality, use RequirementAnalysisViewModel in TestCaseGeneration domain
                     // WorkspaceManagementViewModel REMOVED - duplicate functionality, use WorkspaceProjectViewModel
-                    //services.AddTransient<NavigationHeaderManagementViewModel>();
-                    // NavigationHeaderManagementViewModel and RequirementImportExportViewModel already exist
+                    // NavigationHeaderManagementViewModel REMOVED - Cross-cutting infrastructure violation
+                    // RequirementImportExportViewModel (legacy root version) REMOVED - duplicate of domain version
+                    // Use TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementImportExportViewModel
                     // ChatGptExportAnalysisViewModel is registered in its domain
 
                     // Test Case Creation domain ViewModels
@@ -286,6 +332,9 @@ namespace TestCaseEditorApp
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_VM>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementsWorkspaceViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>();
+                    
+                    // NewProject domain ViewModels - proper DI registration
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel>();
 
                     // Core application services
                     services.AddSingleton<ChatGptExportService>();
@@ -293,19 +342,33 @@ namespace TestCaseEditorApp
                     // View configuration service for new navigation pattern
                     services.AddSingleton<IViewConfigurationService>(provider =>
                     {
-                        var NewProjectMediator = provider.GetRequiredService<INewProjectMediator>();
+                        var newProjectMediator = provider.GetRequiredService<INewProjectMediator>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
                         var testCaseCreationMediator = provider.GetRequiredService<ITestCaseCreationMediator>();
-                        return new ViewConfigurationService(NewProjectMediator, testCaseGenerationMediator, testCaseCreationMediator);
+                        
+                        return new ViewConfigurationService(newProjectMediator, testCaseGenerationMediator, testCaseCreationMediator);
                     });
                     
                     services.AddSingleton<IViewModelFactory>(provider =>
                     {
                         var applicationServices = provider.GetRequiredService<IApplicationServices>();
-                        var NewProjectMediator = provider.GetRequiredService<INewProjectMediator>();
+                        var newProjectMediator = provider.GetRequiredService<INewProjectMediator>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
-                        return new ViewModelFactory(applicationServices, NewProjectMediator, testCaseGenerationMediator);
+                        return new ViewModelFactory(applicationServices, newProjectMediator, testCaseGenerationMediator);
                     });
+                    
+                    // ViewAreaCoordinator registration - required for workspace coordination
+                    services.AddSingleton<IViewAreaCoordinator>(provider =>
+                    {
+                        var viewModelFactory = provider.GetRequiredService<IViewModelFactory>();
+                        var navigationMediator = provider.GetRequiredService<INavigationMediator>();
+                        var newProjectMediator = provider.GetRequiredService<INewProjectMediator>();
+                        var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
+                        var viewConfigurationService = provider.GetRequiredService<IViewConfigurationService>();
+                        var sideMenuViewModel = provider.GetRequiredService<SideMenuViewModel>();
+                        return new ViewAreaCoordinator(viewModelFactory, navigationMediator, newProjectMediator, testCaseGenerationMediator, viewConfigurationService, sideMenuViewModel);
+                    });
+                    
                     services.AddSingleton<IApplicationServices, ApplicationServices>();
 
                     // Views / Windows
@@ -351,13 +414,17 @@ namespace TestCaseEditorApp
                 var testFlowMediator = _host.Services.GetRequiredService<ITestFlowMediator>();
                 testFlowMediator.MarkAsRegistered();
                 
-                var NewProjectMediator = _host.Services.GetRequiredService<INewProjectMediator>();
-                NewProjectMediator.MarkAsRegistered();
+                var newProjectMediator = _host.Services.GetRequiredService<INewProjectMediator>();
+                newProjectMediator.MarkAsRegistered();
+                
+                // Mark Dummy mediator as registered for testing
+                var dummyMediator = _host.Services.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Dummy.Mediators.IDummyMediator>();
+                dummyMediator.MarkAsRegistered();
                 
                 // Wire cross-domain commands - enable workspace commands in header
                 if (testCaseGenMediator is MVVM.Domains.TestCaseGeneration.Mediators.TestCaseGenerationMediator tcgMediator)
                 {
-                    tcgMediator.WireWorkspaceCommands(NewProjectMediator);
+                    tcgMediator.WireWorkspaceCommands(newProjectMediator);
                 }
                 
                 // Set up domain coordinator and register mediators
