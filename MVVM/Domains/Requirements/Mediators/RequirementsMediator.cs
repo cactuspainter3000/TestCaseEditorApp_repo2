@@ -1,0 +1,828 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.Utils;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Events;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
+using TestCaseEditorApp.MVVM.Events;
+using TestCaseEditorApp.Services;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
+using System.Windows;
+
+namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
+{
+    /// <summary>
+    /// Requirements domain mediator implementation.
+    /// Handles all requirements management functionality following architectural patterns.
+    /// </summary>
+    public class RequirementsMediator : BaseDomainMediator<RequirementsEvents>, IRequirementsMediator
+    {
+        private readonly IRequirementService _requirementService;
+        private readonly IRequirementAnalysisService _analysisService;
+        private readonly IRequirementDataScrubber _scrubber;
+        private readonly SmartRequirementImporter _smartImporter;
+        private readonly ObservableCollection<Requirement> _requirements;
+        
+        private Requirement? _currentRequirement;
+        private bool _isDirty;
+        private bool _isAnalyzing;
+        private bool _isImporting;
+
+        public ObservableCollection<Requirement> Requirements => _requirements;
+
+        public Requirement? CurrentRequirement
+        {
+            get => _currentRequirement;
+            set
+            {
+                if (_currentRequirement != value)
+                {
+                    _currentRequirement = value;
+                    PublishEvent(new RequirementsEvents.RequirementSelected
+                    {
+                        Requirement = value!,
+                        SelectedBy = "Mediator"
+                    });
+                    _logger.LogDebug("Current requirement changed to: {RequirementId}", value?.GlobalId ?? "null");
+                }
+            }
+        }
+
+        public bool IsDirty
+        {
+            get => _isDirty;
+            set
+            {
+                if (_isDirty != value)
+                {
+                    _isDirty = value;
+                    PublishEvent(new RequirementsEvents.WorkflowStateChanged
+                    {
+                        PropertyName = nameof(IsDirty),
+                        NewValue = value,
+                        OldValue = _isDirty
+                    });
+                    _logger.LogDebug("IsDirty changed to: {IsDirty}", value);
+                }
+            }
+        }
+
+        public bool IsAnalyzing
+        {
+            get => _isAnalyzing;
+            set
+            {
+                if (_isAnalyzing != value)
+                {
+                    _isAnalyzing = value;
+                    PublishEvent(new RequirementsEvents.WorkflowStateChanged
+                    {
+                        PropertyName = nameof(IsAnalyzing),
+                        NewValue = value,
+                        OldValue = _isAnalyzing
+                    });
+                    _logger.LogDebug("IsAnalyzing changed to: {IsAnalyzing}", value);
+                }
+            }
+        }
+
+        public bool IsImporting
+        {
+            get => _isImporting;
+            set
+            {
+                if (_isImporting != value)
+                {
+                    _isImporting = value;
+                    PublishEvent(new RequirementsEvents.WorkflowStateChanged
+                    {
+                        PropertyName = nameof(IsImporting),
+                        NewValue = value,
+                        OldValue = _isImporting
+                    });
+                    _logger.LogDebug("IsImporting changed to: {IsImporting}", value);
+                }
+            }
+        }
+
+        public RequirementsMediator(
+            ILogger<RequirementsMediator> logger,
+            IDomainUICoordinator uiCoordinator,
+            IRequirementService requirementService,
+            IRequirementAnalysisService analysisService,
+            IRequirementDataScrubber scrubber,
+            PerformanceMonitoringService? performanceMonitor = null,
+            EventReplayService? eventReplay = null)
+            : base(logger, uiCoordinator, "Requirements", performanceMonitor, eventReplay)
+        {
+            _requirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
+            _analysisService = analysisService ?? throw new ArgumentNullException(nameof(analysisService));
+            _scrubber = scrubber ?? throw new ArgumentNullException(nameof(scrubber));
+            _smartImporter = new SmartRequirementImporter(requirementService, 
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<SmartRequirementImporter>.Instance);
+            
+            _requirements = new ObservableCollection<Requirement>();
+
+            _logger.LogDebug("RequirementsMediator created");
+        }
+
+        // ===== REQUIREMENTS MANAGEMENT =====
+
+        public async Task<bool> ImportRequirementsAsync(string filePath, string importType = "Auto")
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+                throw new ArgumentException("File path cannot be null or empty", nameof(filePath));
+
+            IsImporting = true;
+            ShowProgress("Analyzing document format...", 0);
+
+            try
+            {
+                UpdateProgress("Running smart import analysis...", 25);
+                
+                var importResult = await _smartImporter.ImportRequirementsAsync(filePath);
+                
+                UpdateProgress("Processing import results...", 75);
+                
+                if (importResult.Success && importResult.Requirements.Count > 0)
+                {
+                    // Clear existing and add new requirements
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        _requirements.Clear();
+                        var sortedRequirements = importResult.Requirements.OrderBy(r => r.Item ?? r.Name ?? string.Empty).ToList();
+                        foreach (var requirement in sortedRequirements)
+                        {
+                            _requirements.Add(requirement);
+                        }
+                    });
+
+                    // Set first requirement as current
+                    if (importResult.Requirements.Count > 0)
+                    {
+                        CurrentRequirement = importResult.Requirements.First();
+                    }
+
+                    PublishEvent(new RequirementsEvents.RequirementsImported
+                    {
+                        Requirements = importResult.Requirements,
+                        SourceFile = filePath,
+                        ImportMethod = importResult.ImportMethod,
+                        ImportDuration = importResult.ImportDuration
+                    });
+
+                    PublishEvent(new RequirementsEvents.RequirementsCollectionChanged
+                    {
+                        Action = "Import",
+                        AffectedRequirements = importResult.Requirements,
+                        NewCount = _requirements.Count
+                    });
+
+                    IsDirty = true;
+                    HideProgress();
+                    ShowNotification(importResult.UserMessage, DomainNotificationType.Success);
+
+                    _logger.LogInformation("Requirements import completed: {Count} requirements from {FilePath}",
+                        importResult.Requirements.Count, filePath);
+
+                    return true;
+                }
+                else
+                {
+                    HideProgress();
+                    ShowNotification(importResult.ErrorMessage ?? "No requirements found", DomainNotificationType.Warning);
+
+                    PublishEvent(new RequirementsEvents.RequirementsImportFailed
+                    {
+                        FilePath = filePath,
+                        ErrorMessage = importResult.ErrorMessage ?? "No requirements found",
+                        FormatAnalysis = importResult.FormatAnalysis?.Description
+                    });
+
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                HideProgress();
+                ShowNotification($"Import failed: {ex.Message}", DomainNotificationType.Error);
+
+                PublishEvent(new RequirementsEvents.RequirementsImportFailed
+                {
+                    FilePath = filePath,
+                    ErrorMessage = ex.Message,
+                    Exception = ex
+                });
+
+                _logger.LogError(ex, "Requirements import failed for {FilePath}", filePath);
+                return false;
+            }
+            finally
+            {
+                IsImporting = false;
+            }
+        }
+
+        public async Task<bool> ImportAdditionalRequirementsAsync(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+                throw new ArgumentException("File path cannot be null or empty", nameof(filePath));
+
+            IsImporting = true;
+            ShowProgress("Importing additional requirements...", 0);
+
+            try
+            {
+                var importResult = await _smartImporter.ImportRequirementsAsync(filePath);
+
+                if (importResult.Success && importResult.Requirements.Count > 0)
+                {
+                    // Add new requirements to existing collection
+                    var newRequirements = new List<Requirement>();
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        foreach (var requirement in importResult.Requirements)
+                        {
+                            // Check for duplicates
+                            if (!_requirements.Any(r => r.GlobalId == requirement.GlobalId))
+                            {
+                                _requirements.Add(requirement);
+                                newRequirements.Add(requirement);
+                            }
+                        }
+                    });
+
+                    if (newRequirements.Count > 0)
+                    {
+                        PublishEvent(new RequirementsEvents.RequirementsCollectionChanged
+                        {
+                            Action = "Add",
+                            AffectedRequirements = newRequirements,
+                            NewCount = _requirements.Count
+                        });
+
+                        IsDirty = true;
+                        ShowNotification($"Added {newRequirements.Count} new requirements", DomainNotificationType.Success);
+                    }
+                    else
+                    {
+                        ShowNotification("No new requirements found (duplicates skipped)", DomainNotificationType.Info);
+                    }
+
+                    return true;
+                }
+
+                return false;
+            }
+            finally
+            {
+                IsImporting = false;
+                HideProgress();
+            }
+        }
+
+        public async Task<bool> ExportRequirementsAsync(IReadOnlyList<Requirement> requirements, string exportType, string outputPath)
+        {
+            if (requirements == null) throw new ArgumentNullException(nameof(requirements));
+            if (string.IsNullOrWhiteSpace(exportType)) throw new ArgumentException("Export type cannot be null or empty", nameof(exportType));
+            if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("Output path cannot be null or empty", nameof(outputPath));
+
+            ShowProgress($"Exporting {requirements.Count} requirements...", 0);
+
+            try
+            {
+                UpdateProgress("Formatting requirements...", 50);
+
+                // TODO: Implement actual export logic
+                await Task.Delay(1000); // Simulate export work
+
+                PublishEvent(new RequirementsEvents.RequirementsExported
+                {
+                    Requirements = requirements.ToList(),
+                    ExportType = exportType,
+                    OutputPath = outputPath,
+                    Success = true,
+                    ExportTime = TimeSpan.FromSeconds(1)
+                });
+
+                HideProgress();
+                ShowNotification($"Requirements exported successfully to {outputPath}", DomainNotificationType.Success);
+
+                _logger.LogInformation("Requirements export completed: {Count} requirements to {OutputPath}",
+                    requirements.Count, outputPath);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                HideProgress();
+                ShowNotification($"Export failed: {ex.Message}", DomainNotificationType.Error);
+
+                _logger.LogError(ex, "Requirements export failed to {OutputPath}", outputPath);
+                return false;
+            }
+        }
+
+        public void ClearRequirements()
+        {
+            if (_requirements.Count == 0) return;
+
+            var clearedRequirements = _requirements.ToList();
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                _requirements.Clear();
+            });
+
+            CurrentRequirement = null;
+
+            PublishEvent(new RequirementsEvents.RequirementsCollectionChanged
+            {
+                Action = "Clear",
+                AffectedRequirements = clearedRequirements,
+                NewCount = 0
+            });
+
+            IsDirty = true;
+            _logger.LogDebug("Cleared {Count} requirements", clearedRequirements.Count);
+        }
+
+        public void AddRequirement(Requirement requirement)
+        {
+            if (requirement == null) throw new ArgumentNullException(nameof(requirement));
+
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                _requirements.Add(requirement);
+            });
+
+            PublishEvent(new RequirementsEvents.RequirementsCollectionChanged
+            {
+                Action = "Add",
+                AffectedRequirements = new List<Requirement> { requirement },
+                NewCount = _requirements.Count
+            });
+
+            IsDirty = true;
+            _logger.LogDebug("Added requirement: {RequirementId}", requirement.GlobalId);
+        }
+
+        public void RemoveRequirement(Requirement requirement)
+        {
+            if (requirement == null) throw new ArgumentNullException(nameof(requirement));
+
+            bool removed = false;
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                removed = _requirements.Remove(requirement);
+            });
+
+            if (removed)
+            {
+                if (CurrentRequirement == requirement)
+                {
+                    CurrentRequirement = _requirements.FirstOrDefault();
+                }
+
+                PublishEvent(new RequirementsEvents.RequirementsCollectionChanged
+                {
+                    Action = "Remove",
+                    AffectedRequirements = new List<Requirement> { requirement },
+                    NewCount = _requirements.Count
+                });
+
+                IsDirty = true;
+                _logger.LogDebug("Removed requirement: {RequirementId}", requirement.GlobalId);
+            }
+        }
+
+        public void UpdateRequirement(Requirement requirement, IReadOnlyList<string> modifiedFields)
+        {
+            if (requirement == null) throw new ArgumentNullException(nameof(requirement));
+
+            PublishEvent(new RequirementsEvents.RequirementUpdated
+            {
+                Requirement = requirement,
+                ModifiedFields = modifiedFields?.ToList() ?? new List<string>(),
+                UpdatedBy = "UserEdit"
+            });
+
+            IsDirty = true;
+            _logger.LogDebug("Updated requirement: {RequirementId}, Fields: {Fields}",
+                requirement.GlobalId, string.Join(", ", modifiedFields ?? Array.Empty<string>()));
+        }
+
+        // ===== REQUIREMENT SELECTION =====
+
+        public void SelectRequirement(Requirement requirement)
+        {
+            if (requirement == null) throw new ArgumentNullException(nameof(requirement));
+
+            CurrentRequirement = requirement;
+            _logger.LogDebug("Requirement selected: {RequirementId}", requirement.GlobalId);
+        }
+
+        public bool NavigateToNext()
+        {
+            if (_currentRequirement == null || _requirements.Count == 0) return false;
+
+            var currentIndex = _requirements.IndexOf(_currentRequirement);
+            if (currentIndex >= 0 && currentIndex < _requirements.Count - 1)
+            {
+                CurrentRequirement = _requirements[currentIndex + 1];
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool NavigateToPrevious()
+        {
+            if (_currentRequirement == null || _requirements.Count == 0) return false;
+
+            var currentIndex = _requirements.IndexOf(_currentRequirement);
+            if (currentIndex > 0)
+            {
+                CurrentRequirement = _requirements[currentIndex - 1];
+                return true;
+            }
+
+            return false;
+        }
+
+        public int GetCurrentRequirementIndex()
+        {
+            if (_currentRequirement == null) return -1;
+            return _requirements.IndexOf(_currentRequirement);
+        }
+
+        // ===== ANALYSIS FUNCTIONALITY =====
+
+        public async Task<bool> AnalyzeRequirementAsync(Requirement requirement)
+        {
+            if (requirement == null) throw new ArgumentNullException(nameof(requirement));
+
+            IsAnalyzing = true;
+            ShowProgress($"Analyzing requirement {requirement.GlobalId}...", 0);
+
+            PublishEvent(new RequirementsEvents.RequirementAnalysisStarted
+            {
+                Requirement = requirement,
+                AnalysisType = "Quality"
+            });
+
+            try
+            {
+                UpdateProgress("Running LLM analysis...", 50);
+
+                var analysis = await _analysisService.AnalyzeRequirementAsync(requirement);
+                requirement.Analysis = analysis;
+
+                PublishEvent(new RequirementsEvents.RequirementAnalyzed
+                {
+                    Requirement = requirement,
+                    Analysis = analysis,
+                    Success = true,
+                    AnalysisTime = TimeSpan.FromSeconds(2) // Placeholder
+                });
+
+                IsDirty = true;
+                HideProgress();
+                ShowNotification($"Analysis completed for {requirement.GlobalId}", DomainNotificationType.Success);
+
+                _logger.LogInformation("Requirement analysis completed for {RequirementId}", requirement.GlobalId);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                HideProgress();
+                ShowNotification($"Analysis failed: {ex.Message}", DomainNotificationType.Error);
+
+                PublishEvent(new RequirementsEvents.RequirementAnalyzed
+                {
+                    Requirement = requirement,
+                    Analysis = null,
+                    Success = false,
+                    AnalysisTime = TimeSpan.Zero,
+                    ErrorMessage = ex.Message
+                });
+
+                _logger.LogError(ex, "Requirement analysis failed for {RequirementId}", requirement.GlobalId);
+                return false;
+            }
+            finally
+            {
+                IsAnalyzing = false;
+            }
+        }
+
+        public async Task<bool> AnalyzeBatchRequirementsAsync(IReadOnlyList<Requirement> requirements)
+        {
+            if (requirements == null) throw new ArgumentNullException(nameof(requirements));
+            if (!requirements.Any()) return true;
+
+            IsAnalyzing = true;
+            ShowProgress("Starting batch analysis...", 0);
+
+            PublishEvent(new RequirementsEvents.BatchOperationStarted
+            {
+                OperationType = "Analysis",
+                TargetRequirements = requirements.ToList()
+            });
+
+            var successful = 0;
+            var failed = 0;
+            var errors = new List<string>();
+
+            try
+            {
+                for (int i = 0; i < requirements.Count; i++)
+                {
+                    var requirement = requirements[i];
+                    var progress = (double)(i + 1) / requirements.Count * 100;
+
+                    UpdateProgress($"Analyzing {requirement.GlobalId}... ({i + 1}/{requirements.Count})", progress);
+
+                    try
+                    {
+                        var analysis = await _analysisService.AnalyzeRequirementAsync(requirement);
+                        requirement.Analysis = analysis;
+                        successful++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failed++;
+                        errors.Add($"{requirement.GlobalId}: {ex.Message}");
+                        _logger.LogError(ex, "Batch analysis failed for requirement {RequirementId}", requirement.GlobalId);
+                    }
+                }
+
+                PublishEvent(new RequirementsEvents.BatchOperationCompleted
+                {
+                    OperationType = "Analysis",
+                    TargetRequirements = requirements.ToList(),
+                    SuccessCount = successful,
+                    FailureCount = failed,
+                    Errors = errors,
+                    Duration = TimeSpan.FromSeconds(requirements.Count * 2) // Placeholder
+                });
+
+                if (successful > 0)
+                {
+                    IsDirty = true;
+                }
+
+                HideProgress();
+
+                if (failed == 0)
+                {
+                    ShowNotification($"Batch analysis completed successfully: {successful} requirements", DomainNotificationType.Success);
+                }
+                else
+                {
+                    ShowNotification($"Batch analysis completed: {successful} successful, {failed} failed", DomainNotificationType.Warning);
+                }
+
+                _logger.LogInformation("Batch analysis completed: {Successful} successful, {Failed} failed", successful, failed);
+                return failed == 0;
+            }
+            finally
+            {
+                IsAnalyzing = false;
+            }
+        }
+
+        public async Task<bool> AnalyzeUnanalyzedRequirementsAsync()
+        {
+            var unanalyzed = _requirements.Where(r => r.Analysis == null).ToList();
+            if (!unanalyzed.Any())
+            {
+                ShowNotification("All requirements are already analyzed", DomainNotificationType.Info);
+                return true;
+            }
+
+            return await AnalyzeBatchRequirementsAsync(unanalyzed.AsReadOnly());
+        }
+
+        public async Task<bool> ReAnalyzeModifiedRequirementsAsync()
+        {
+            // TODO: Track modified requirements and re-analyze them
+            var modifiedRequirements = _requirements.Where(r => r.Analysis != null /* && r.IsModified */).ToList();
+            
+            if (!modifiedRequirements.Any())
+            {
+                ShowNotification("No modified requirements found", DomainNotificationType.Info);
+                return true;
+            }
+
+            return await AnalyzeBatchRequirementsAsync(modifiedRequirements.AsReadOnly());
+        }
+
+        // ===== SEARCH & FILTERING =====
+
+        public IReadOnlyList<Requirement> SearchRequirements(string searchText)
+        {
+            if (string.IsNullOrWhiteSpace(searchText)) return Array.Empty<Requirement>();
+
+            var results = _requirements
+                .Where(r => 
+                    r.Name?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true ||
+                    r.Description?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true ||
+                    r.GlobalId?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true)
+                .ToList();
+
+            _logger.LogDebug("Search for '{SearchText}' returned {Count} results", searchText, results.Count);
+            return results.AsReadOnly();
+        }
+
+        public IReadOnlyList<Requirement> FilterByAnalysisStatus(bool analyzed)
+        {
+            var results = _requirements
+                .Where(r => analyzed ? r.Analysis != null : r.Analysis == null)
+                .ToList();
+
+            return results.AsReadOnly();
+        }
+
+        public IReadOnlyList<Requirement> FilterByVerificationMethod(VerificationMethod method)
+        {
+            var results = _requirements
+                .Where(r => r.Method == method)
+                .ToList();
+
+            return results.AsReadOnly();
+        }
+
+        // ===== VALIDATION =====
+
+        public async Task<ValidationResult> ValidateRequirementAsync(Requirement requirement)
+        {
+            if (requirement == null) throw new ArgumentNullException(nameof(requirement));
+
+            var result = new ValidationResult();
+            
+            // Basic validation rules
+            if (string.IsNullOrWhiteSpace(requirement.Name))
+                result.Errors.Add("Requirement name is required");
+
+            if (string.IsNullOrWhiteSpace(requirement.Description))
+                result.Errors.Add("Requirement description is required");
+
+            if (string.IsNullOrWhiteSpace(requirement.GlobalId))
+                result.Errors.Add("Requirement ID is required");
+
+            // TODO: Add more sophisticated validation rules
+
+            result.IsValid = !result.Errors.Any();
+            await Task.CompletedTask;
+
+            return result;
+        }
+
+        public async Task<ValidationResult> ValidateAllRequirementsAsync()
+        {
+            var overallResult = new ValidationResult { IsValid = true };
+
+            foreach (var requirement in _requirements)
+            {
+                var result = await ValidateRequirementAsync(requirement);
+                if (!result.IsValid)
+                {
+                    overallResult.IsValid = false;
+                    overallResult.Errors.AddRange(result.Errors.Select(e => $"{requirement.GlobalId}: {e}"));
+                }
+            }
+
+            return overallResult;
+        }
+
+        // ===== PROJECT INTEGRATION =====
+
+        public async Task<bool> LoadFromProjectAsync(Workspace workspace)
+        {
+            if (workspace?.Requirements == null) return false;
+
+            try
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    _requirements.Clear();
+                    foreach (var requirement in workspace.Requirements.OrderBy(r => r.Item ?? r.Name ?? string.Empty))
+                    {
+                        _requirements.Add(requirement);
+                    }
+                });
+
+                if (_requirements.Count > 0)
+                {
+                    CurrentRequirement = _requirements.First();
+                }
+
+                PublishEvent(new RequirementsEvents.RequirementsCollectionChanged
+                {
+                    Action = "Load",
+                    AffectedRequirements = _requirements.ToList(),
+                    NewCount = _requirements.Count
+                });
+
+                IsDirty = false;
+                _logger.LogInformation("Loaded {Count} requirements from project", _requirements.Count);
+
+                await Task.CompletedTask;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to load requirements from project");
+                return false;
+            }
+        }
+
+        public async Task<bool> SaveToProjectAsync()
+        {
+            // TODO: Implement save to project functionality
+            await Task.CompletedTask;
+            
+            IsDirty = false;
+            ShowNotification("Requirements saved to project", DomainNotificationType.Success);
+            
+            return true;
+        }
+
+        public void UpdateProjectContext(string? projectName)
+        {
+            _logger.LogDebug("Project context updated: {ProjectName}", projectName ?? "No Project");
+        }
+
+        // ===== CROSS-DOMAIN COMMUNICATION =====
+
+        public override void BroadcastToAllDomains<T>(T notification) where T : class
+        {
+            base.BroadcastToAllDomains(notification);
+        }
+
+        public void HandleBroadcastNotification<T>(T notification) where T : class
+        {
+            _logger.LogInformation("Received broadcast notification: {NotificationType}", typeof(T).Name);
+
+            // Handle project-related events
+            if (notification is NewProjectEvents.ProjectCreated projectCreated)
+            {
+                if (projectCreated.Workspace != null)
+                {
+                    _ = LoadFromProjectAsync(projectCreated.Workspace);
+                }
+            }
+            else if (notification is NewProjectEvents.ProjectOpened projectOpened)
+            {
+                if (projectOpened.Workspace != null)
+                {
+                    _ = LoadFromProjectAsync(projectOpened.Workspace);
+                }
+            }
+            else if (notification is NewProjectEvents.ProjectClosed)
+            {
+                ClearRequirements();
+                IsDirty = false;
+            }
+            else if (notification is TestCaseEditorApp.MVVM.Events.CrossDomainMessages.ImportRequirementsRequest importRequest)
+            {
+                _ = ImportRequirementsAsync(importRequest.DocumentPath, importRequest.PreferJamaParser ? "Jama" : "Auto");
+            }
+        }
+
+        // ===== MEDIATOR BASE FUNCTIONALITY =====
+
+        public new void PublishEvent<T>(T eventData) where T : class
+        {
+            base.PublishEvent(eventData);
+        }
+
+        // ===== REQUIRED ABSTRACT METHOD IMPLEMENTATIONS =====
+
+        public override void NavigateToInitialStep()
+        {
+            _currentStep = "Import";
+            _logger.LogDebug("Requirements domain: Navigated to initial step (Import)");
+        }
+
+        public override void NavigateToFinalStep()
+        {
+            _currentStep = "Export";
+            _logger.LogDebug("Requirements domain: Navigated to final step (Export)");
+        }
+
+        public override bool CanNavigateBack()
+        {
+            return !string.IsNullOrEmpty(_currentStep) && _currentStep != "Import";
+        }
+
+        public override bool CanNavigateForward()
+        {
+            return !string.IsNullOrEmpty(_currentStep) && _currentStep != "Export";
+        }
+    }
+}

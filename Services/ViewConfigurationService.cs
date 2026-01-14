@@ -137,21 +137,29 @@ namespace TestCaseEditorApp.Services
 
         private ViewConfiguration CreateRequirementsConfiguration(object? context)
         {
-            EnsureTestCaseGeneratorHeader();
+            // Use Requirements domain ViewModels following AI Guide patterns
+            var headerVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>();
+            var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>();
+            var notificationVM = App.ServiceProvider?.GetService<NotificationAreaViewModel>();
             
-            // Use direct DI injection - modern approach
-            if (_requirementsContent == null)
+            if (headerVM == null) throw new InvalidOperationException("Requirements_HeaderViewModel not registered in DI container");
+            if (mainVM == null) throw new InvalidOperationException("Requirements_MainViewModel not registered in DI container");
+            
+            // Create the main view UserControl and set DataContext
+            object? mainContent = null;
+            if (mainVM != null)
             {
-                _requirementsContent = App.ServiceProvider?.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementsWorkspaceViewModel>()
-                    ?? throw new InvalidOperationException("RequirementsWorkspaceViewModel not registered in DI container");
+                var mainControl = new TestCaseEditorApp.MVVM.Domains.Requirements.Views.RequirementsMainView();
+                mainControl.DataContext = mainVM;
+                mainContent = mainControl;
             }
 
             return new ViewConfiguration(
                 sectionName: "Requirements",
-                titleViewModel: EnsureTestCaseGeneratorTitle(),
-                headerViewModel: _testCaseGeneratorHeader,
-                contentViewModel: _requirementsContent,
-                notificationViewModel: EnsureTestCaseGeneratorNotification(), // FIX: Use Test Case Generator notification for Requirements
+                titleViewModel: null, // TODO: Create Requirements_TitleViewModel when needed
+                headerViewModel: headerVM,
+                contentViewModel: mainContent ?? mainVM,
+                notificationViewModel: notificationVM,
                 context: context
             );
         }

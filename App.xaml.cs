@@ -265,6 +265,26 @@ namespace TestCaseEditorApp
                     // === PROJECT DOMAIN REGISTRATION ===
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Project.Mediators.IProjectMediator, TestCaseEditorApp.MVVM.Domains.Project.Mediators.ProjectMediator>();
                     
+                    // === REQUIREMENTS DOMAIN REGISTRATION ===
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator>>();
+                        var uiCoordinator = provider.GetRequiredService<IDomainUICoordinator>();
+                        var requirementService = provider.GetRequiredService<IRequirementService>();
+                        var analysisService = provider.GetRequiredService<IRequirementAnalysisService>();
+                        var scrubber = provider.GetRequiredService<IRequirementDataScrubber>();
+                        var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
+                        var eventReplay = provider.GetService<TestCaseEditorApp.MVVM.Utils.EventReplayService>();
+                        
+                        return new TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator(
+                            logger, uiCoordinator, requirementService, analysisService, scrubber, 
+                            performanceMonitor, eventReplay);
+                    });
+                    
+                    // Requirements domain ViewModels
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>();
+                    
                     // Project domain ViewModels
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Project.ViewModels.Project_MainViewModel>();
                     
@@ -333,7 +353,6 @@ namespace TestCaseEditorApp
                     });
 
                     // ViewModels and header VM
-                    services.AddTransient<TestCaseGenerator_VM>();
                     services.AddTransient<TestCaseGeneratorViewModel>();
                     services.AddTransient<RequirementGenerationViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementImportExportViewModel>();
