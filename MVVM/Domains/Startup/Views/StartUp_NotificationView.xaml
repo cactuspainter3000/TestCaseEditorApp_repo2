@@ -4,38 +4,9 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d" 
-             d:DesignHeight="200" d:DesignWidth="400"
-             Background="#1E1E1E">
+             d:DesignHeight="200" d:DesignWidth="400">
     
-    <Border BorderBrush="#FFD700" BorderThickness="2" CornerRadius="5" Padding="15">
-        <StackPanel>
-            <TextBlock Text="NOTIFICATION WORKSPACE" 
-                       FontSize="14" FontWeight="Bold" 
-                       Foreground="#FFD700" 
-                       HorizontalAlignment="Center" Margin="0,0,0,10"/>
-            
-            <TextBlock Text="{Binding NotificationTitle}" 
-                       FontSize="16" FontWeight="Bold" 
-                       Foreground="White" 
-                       HorizontalAlignment="Center" Margin="0,0,0,5"/>
-            
-            <TextBlock Text="{Binding StatusMessage}" 
-                       FontSize="12" 
-                       Foreground="#CCCCCC" 
-                       HorizontalAlignment="Center" 
-                       TextWrapping="Wrap" Margin="0,0,0,10"/>
-            
-            <TextBlock Text="{Binding LastUpdated, StringFormat='📋 Last Updated: {0:HH:mm:ss}'}" 
-                       FontSize="10" 
-                       Foreground="#666666" 
-                       HorizontalAlignment="Center" Margin="0,0,0,10"/>
-                       
-            <TextBlock Text="StartUp notifications and system status will appear here" 
-                       FontSize="10" 
-                       Foreground="#888888" 
-                       FontStyle="Italic"
-                       HorizontalAlignment="Center" 
-                       TextWrapping="Wrap"/>
-        </StackPanel>
-    </Border>
+    <Grid Margin="3" Background="Transparent">
+        <Rectangle Fill="#808080" Width="20" Height="2" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    </Grid>
 </UserControl>

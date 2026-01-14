@@ -7,8 +7,8 @@
              mc:Ignorable="d"
              d:DesignHeight="60" d:DesignWidth="800"
              d:DataContext="{d:DesignInstance Type=vm:StartUp_HeaderViewModel}">
-    
+
     <Grid Margin="3" Background="Transparent">
-        <!-- Header area kept minimal - no visible elements -->
+        <Rectangle Fill="#808080" Width="20" Height="2" HorizontalAlignment="Center" VerticalAlignment="Center"/>
     </Grid>
 </UserControl>

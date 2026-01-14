@@ -16,7 +16,6 @@
         xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models"
         xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
         Height="665" Width="1200"
-        d:DataContext="{d:DesignInstance vm:MainViewModelDesignStub, IsDesignTimeCreatable=True}"
         WindowStyle="None"
         Title="{Binding DisplayName, FallbackValue='Test Case Editor'}"
         ResizeMode="CanResizeWithGrip"
@@ -154,7 +153,7 @@
         </DataTemplate>
         
         <DataTemplate DataType="{x:Type startupvm:StartUp_NotificationViewModel}">
-            <TextBlock Text="{Binding StatusText}" Style="{StaticResource Text.Status}" />
+            <startupviews:StartUp_NotificationView />
         </DataTemplate>
 
         <!-- NEW-STYLE Dummy ViewModels DataTemplates (AI Guide compliant) -->
@@ -404,7 +403,7 @@
                 <RowDefinition Height="Auto"/>
                 <!-- notification area -->
                 <RowDefinition Height="4"/>
-                <RowDefinition Height="40"/>
+                <RowDefinition Height="60"/>
                 <!-- workspace header / summary -->
                 <RowDefinition Height="4"/>
                 <RowDefinition Height="*"/>
