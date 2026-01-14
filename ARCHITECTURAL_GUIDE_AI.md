@@ -119,6 +119,21 @@
 
 ---
 
+## 🔗 IMPLEMENTATION GUIDES
+
+### **Configurable Workspace Architecture**
+📋 **Implementation Guide**: [`CONFIGURABLE_WORKSPACE_IMPLEMENTATION_PLAN.md`](CONFIGURABLE_WORKSPACE_IMPLEMENTATION_PLAN.md)
+
+**Complete roadmap for flexible, configuration-driven workspace management:**
+- ✅ **Phase 1-4 Implementation**: Step-by-step migration strategy  
+- ✅ **Legacy Removal Timeline**: Safe deprecation and cleanup process
+- ✅ **Configuration Examples**: Default, tablet, embedded modes
+- ✅ **Future-Proof Architecture**: Support for any workspace sharing pattern
+
+**Use this for**: Project domain modernization, multi-mode applications, flexible UI architectures
+
+---
+
 ## 🧭 EVENT TAXONOMY (Required)
 
 | **Event Type** | **Purpose** | **Response** | **Example** |

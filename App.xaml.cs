@@ -259,6 +259,12 @@ namespace TestCaseEditorApp
                     // === STARTUP DOMAIN REGISTRATION ===
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Startup.Mediators.IStartupMediator, TestCaseEditorApp.MVVM.Domains.Startup.Mediators.StartupMediator>();
                     
+                    // === PROJECT DOMAIN REGISTRATION ===
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Project.Mediators.IProjectMediator, TestCaseEditorApp.MVVM.Domains.Project.Mediators.ProjectMediator>();
+                    
+                    // Project domain ViewModels
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Project.ViewModels.Project_MainViewModel>();
+                    
                     // Dummy domain ViewModels - updated naming convention
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_MainViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_HeaderViewModel>();

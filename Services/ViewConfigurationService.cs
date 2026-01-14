@@ -101,9 +101,19 @@ namespace TestCaseEditorApp.Services
 
             if (_projectContent == null)
             {
-                // Use direct service access instead of factory
-                _projectContent = App.ServiceProvider?.GetService<object>() // TODO: Replace with actual project ViewModel type
-                    ?? new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Project Content");
+                // Get Project_MainViewModel from DI container
+                var projectMainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Project.ViewModels.Project_MainViewModel>();
+                if (projectMainVM != null)
+                {
+                    // Create the Project_MainView UserControl
+                    var projectMainView = new TestCaseEditorApp.MVVM.Domains.Project.Views.Project_MainView();
+                    projectMainView.DataContext = projectMainVM;
+                    _projectContent = projectMainView;
+                }
+                else
+                {
+                    _projectContent = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Project_MainViewModel not found in DI container");
+                }
             }
 
             return new ViewConfiguration(
@@ -339,6 +349,7 @@ namespace TestCaseEditorApp.Services
                 
                 return new ViewConfiguration(
                     sectionName: "New Project",
+                    titleViewModel: EnsureTestCaseGeneratorTitle(),
                     headerViewModel: _workspaceHeader,
                     contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("New Project functionality coming soon..."),
                     navigationViewModel: null,
@@ -352,6 +363,7 @@ namespace TestCaseEditorApp.Services
                 
                 return new ViewConfiguration(
                     sectionName: "New Project (Error)",
+                    titleViewModel: EnsureTestCaseGeneratorTitle(),
                     headerViewModel: null,
                     contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"New Project Error: {ex.Message}"),
                     notificationViewModel: null,
