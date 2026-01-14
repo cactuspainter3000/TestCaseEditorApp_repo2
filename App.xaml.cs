@@ -12,6 +12,7 @@ using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
+using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing;
@@ -191,13 +192,14 @@ namespace TestCaseEditorApp
                     services.AddSingleton<SideMenuViewModel>(provider =>
                     {
                         var newProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator>();
+                        var openProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.IOpenProjectMediator>();
                         var navigationMediator = provider.GetRequiredService<INavigationMediator>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
                         var testCaseAnythingLLMService = provider.GetRequiredService<TestCaseAnythingLLMService>();
                         var jamaConnectService = provider.GetRequiredService<JamaConnectService>();
                         var logger = provider.GetRequiredService<ILogger<SideMenuViewModel>>();
                         
-                        return new SideMenuViewModel(newProjectMediator, navigationMediator, 
+                        return new SideMenuViewModel(newProjectMediator, openProjectMediator, navigationMediator, 
                             testCaseGenerationMediator, testCaseAnythingLLMService, jamaConnectService, logger);
                     });
 
@@ -303,6 +305,33 @@ namespace TestCaseEditorApp
                             smartImporter, testCaseGenerationMediator, workspaceValidationService, performanceMonitor, eventReplay);
                     });
 
+                    // === OPEN PROJECT DOMAIN ===
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.IOpenProjectMediator>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.OpenProjectMediator>>();
+                        var uiCoordinator = provider.GetRequiredService<IDomainUICoordinator>();
+                        var persistenceService = provider.GetRequiredService<IPersistenceService>();
+                        var fileDialogService = provider.GetRequiredService<IFileDialogService>();
+                        var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
+                        var notificationService = provider.GetRequiredService<NotificationService>();
+                        var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
+                        var workspaceValidationService = provider.GetRequiredService<IWorkspaceValidationService>();
+                        var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
+                        var eventReplay = provider.GetService<EventReplayService>();
+                        
+                        return new TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.OpenProjectMediator(logger, uiCoordinator, persistenceService, 
+                            fileDialogService, anythingLLMService, notificationService, testCaseGenerationMediator, workspaceValidationService, performanceMonitor, eventReplay);
+                    });
+
+                    // OpenProject ViewModels
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel>(provider =>
+                    {
+                        var mediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.IOpenProjectMediator>();
+                        var persistenceService = provider.GetRequiredService<IPersistenceService>();
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel>>();
+                        return new TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel(mediator, persistenceService, logger);
+                    });
+
                     // ViewModels and header VM
                     services.AddTransient<TestCaseGenerator_VM>();
                     services.AddTransient<TestCaseGeneratorViewModel>();
@@ -354,10 +383,11 @@ namespace TestCaseEditorApp
                     services.AddSingleton<IViewConfigurationService>(provider =>
                     {
                         var newProjectMediator = provider.GetRequiredService<INewProjectMediator>();
+                        var openProjectMediator = provider.GetRequiredService<IOpenProjectMediator>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
                         var testCaseCreationMediator = provider.GetRequiredService<ITestCaseCreationMediator>();
                         
-                        return new ViewConfigurationService(newProjectMediator, testCaseGenerationMediator, testCaseCreationMediator);
+                        return new ViewConfigurationService(newProjectMediator, openProjectMediator, testCaseGenerationMediator, testCaseCreationMediator);
                     });
                     
                     services.AddSingleton<IViewModelFactory>(provider =>
@@ -427,6 +457,9 @@ namespace TestCaseEditorApp
                 
                 var newProjectMediator = _host.Services.GetRequiredService<INewProjectMediator>();
                 newProjectMediator.MarkAsRegistered();
+                
+                var openProjectMediator = _host.Services.GetRequiredService<TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.IOpenProjectMediator>();
+                openProjectMediator.MarkAsRegistered();
                 
                 // Mark Dummy mediator as registered for testing
                 var dummyMediator = _host.Services.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Dummy.Mediators.IDummyMediator>();

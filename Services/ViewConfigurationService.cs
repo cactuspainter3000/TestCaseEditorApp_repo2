@@ -9,6 +9,7 @@ using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
+using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
 
 namespace TestCaseEditorApp.Services
 {
@@ -19,6 +20,7 @@ namespace TestCaseEditorApp.Services
     public class ViewConfigurationService : IViewConfigurationService
     {
         private readonly INewProjectMediator _workspaceManagementMediator;
+        private readonly IOpenProjectMediator _openProjectMediator;
         private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
         private readonly ITestCaseCreationMediator _testCaseCreationMediator;
         
@@ -35,10 +37,12 @@ namespace TestCaseEditorApp.Services
 
         public ViewConfigurationService(
             INewProjectMediator workspaceManagementMediator,
+            IOpenProjectMediator openProjectMediator,
             ITestCaseGenerationMediator testCaseGenerationMediator,
             ITestCaseCreationMediator testCaseCreationMediator)
         {
             _workspaceManagementMediator = workspaceManagementMediator ?? throw new ArgumentNullException(nameof(workspaceManagementMediator));
+            _openProjectMediator = openProjectMediator ?? throw new ArgumentNullException(nameof(openProjectMediator));
             _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
             _testCaseCreationMediator = testCaseCreationMediator ?? throw new ArgumentNullException(nameof(testCaseCreationMediator));
         }
@@ -57,6 +61,7 @@ namespace TestCaseEditorApp.Services
                 "testflow" => CreateTestFlowConfiguration(context),
                 "import" => CreateImportConfiguration(context),
                 "newproject" or "new project" => CreateNewProjectConfiguration(context),
+                "openproject" or "open project" => CreateOpenProjectConfiguration(context),
                 "dummy" => CreateDummyConfiguration(context),
                 _ => CreateDefaultConfiguration(context)
             };
@@ -390,6 +395,59 @@ namespace TestCaseEditorApp.Services
                     titleViewModel: EnsureTestCaseGeneratorTitle(),
                     headerViewModel: null,
                     contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"New Project Error: {ex.Message}"),
+                    notificationViewModel: null,
+                    context: context
+                );
+            }
+        }
+
+        private ViewConfiguration CreateOpenProjectConfiguration(object? context)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] CreateOpenProjectConfiguration called");
+                
+                // Only the main content differs between NewProject and OpenProject
+                // Other workspaces remain the same - project title, header, notification
+                
+                // Get OpenProjectWorkflowViewModel from DI container
+                TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Attempting to resolve OpenProjectWorkflowViewModel from DI...");
+                var openProjectMainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel>();
+                object? mainContent = null;
+                
+                if (openProjectMainVM != null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] OpenProjectWorkflowViewModel resolved successfully, creating view...");
+                    // Create the OpenProject_MainView UserControl
+                    var openProjectMainView = new TestCaseEditorApp.MVVM.Domains.OpenProject.Views.OpenProject_MainView();
+                    openProjectMainView.DataContext = openProjectMainVM;
+                    mainContent = openProjectMainView;
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] OpenProject_MainView created and DataContext set");
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] OpenProjectWorkflowViewModel is NULL - using placeholder");
+                    mainContent = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("OpenProjectWorkflowViewModel not found in DI container");
+                }
+                
+                return new ViewConfiguration(
+                    sectionName: "Open Project",
+                    titleViewModel: EnsureTestCaseGeneratorTitle(),
+                    headerViewModel: null,
+                    contentViewModel: mainContent,
+                    notificationViewModel: EnsureTestCaseGeneratorNotification(),
+                    context: context
+                );
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[ViewConfigurationService] Failed to create Open Project configuration");
+                
+                return new ViewConfiguration(
+                    sectionName: "Open Project (Error)",
+                    titleViewModel: EnsureTestCaseGeneratorTitle(),
+                    headerViewModel: null,
+                    contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"Open Project Error: {ex.Message}"),
                     notificationViewModel: null,
                     context: context
                 );

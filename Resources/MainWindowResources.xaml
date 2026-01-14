@@ -3,9 +3,13 @@
                     xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
                     xmlns:tcgvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels"
                     xmlns:tccvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels"
+                    xmlns:npvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels"
+                    xmlns:opvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels"
                     xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
                     xmlns:tcgviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views"
                     xmlns:tccviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Views"
+                    xmlns:npviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.Views"
+                    xmlns:opviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.Views"
                     xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
                     xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models">
 
@@ -23,6 +27,16 @@
 
     <DataTemplate DataType="{x:Type tccvm:TestCaseCreationMainVM}">
         <tccviews:TestCaseCreation_MainView />
+    </DataTemplate>
+
+    <!-- NewProject Domain DataTemplates -->
+    <DataTemplate DataType="{x:Type npvm:NewProjectWorkflowViewModel}">
+        <npviews:NewProject_MainView />
+    </DataTemplate>
+
+    <!-- OpenProject Domain DataTemplates -->
+    <DataTemplate DataType="{x:Type opvm:OpenProjectWorkflowViewModel}">
+        <opviews:OpenProject_MainView />
     </DataTemplate>
 
     <Style x:Key="IconButtonStyle" TargetType="Button">

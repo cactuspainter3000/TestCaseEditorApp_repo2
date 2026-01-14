@@ -8,6 +8,7 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
+using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Events;
@@ -26,6 +27,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     public partial class SideMenuViewModel : ObservableObject
     {
         private readonly INewProjectMediator _newProjectMediator;
+        private readonly IOpenProjectMediator _openProjectMediator;
         private readonly INavigationMediator _navigationMediator;
         private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
         private readonly TestCaseAnythingLLMService _testCaseAnythingLLMService;
@@ -115,9 +117,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty]
         private bool autoExportForChatGpt = false;
 
-        public SideMenuViewModel(INewProjectMediator newProjectMediator, INavigationMediator navigationMediator, ITestCaseGenerationMediator testCaseGenerationMediator, TestCaseAnythingLLMService testCaseAnythingLLMService, JamaConnectService jamaConnectService, ILogger<SideMenuViewModel> logger)
+        public SideMenuViewModel(INewProjectMediator newProjectMediator, IOpenProjectMediator openProjectMediator, INavigationMediator navigationMediator, ITestCaseGenerationMediator testCaseGenerationMediator, TestCaseAnythingLLMService testCaseAnythingLLMService, JamaConnectService jamaConnectService, ILogger<SideMenuViewModel> logger)
         {
             _newProjectMediator = newProjectMediator ?? throw new ArgumentNullException(nameof(newProjectMediator));
+            _openProjectMediator = openProjectMediator ?? throw new ArgumentNullException(nameof(openProjectMediator));
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
             _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
             _testCaseAnythingLLMService = testCaseAnythingLLMService ?? throw new ArgumentNullException(nameof(testCaseAnythingLLMService));
@@ -143,7 +146,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             NewProjectCommand = new AsyncRelayCommand(CreateNewProjectAsync, CanExecuteProjectCommands);
             TestClickCommand = new RelayCommand(() => System.Windows.MessageBox.Show("Test button clicked!", "Data-Driven Test"));
-            OpenProjectCommand = new AsyncRelayCommand(OpenProjectAsync, CanExecuteProjectCommands);
+            OpenProjectCommand = new RelayCommand(NavigateToOpenProject, CanExecuteProjectCommands);
             SaveProjectCommand = new RelayCommand(() => { /* TODO: Implement save */ }, CanExecuteProjectActions);
             ProjectNavigationCommand = new RelayCommand(NavigateToProject);
             TestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToTestCaseGenerator);
@@ -319,10 +322,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         #endregion
         
         
-        private async Task OpenProjectAsync()
+        private void NavigateToOpenProject()
         {
-            Console.WriteLine("*** SideMenuViewModel.OpenProject called! ***");
-            await _newProjectMediator.OpenProjectAsync();
+            Console.WriteLine("*** SideMenuViewModel.NavigateToOpenProject called! ***");
+            
+            SelectedSection = "OpenProject"; // Update selected section to trigger SectionChanged event
+            
+            _navigationMediator.NavigateToSection("OpenProject");
         }
 
         // ===============================================
