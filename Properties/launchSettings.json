@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "TestCaseEditorApp": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "JAMA_BASE_URL": "https://jama02.rockwellcollins.com/contour",
+        "JAMA_CLIENT_ID": "hycv5tyzpvyvhmi",
+        "JAMA_CLIENT_SECRET": "i1ohm9wlxjnhrzy5l6z0rmucx"
+      }
+    }
+  }
+}

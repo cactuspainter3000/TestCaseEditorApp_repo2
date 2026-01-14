@@ -1,5 +1,6 @@
 ﻿// File: EditableDataControl/ViewModels/EditableTableEditorViewModel.cs
 using CommunityToolkit.Mvvm.ComponentModel;
+#pragma warning disable CS8603 // Reduce noise: internal descriptor returns non-null strings
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -13,6 +14,7 @@ namespace EditableDataControl.ViewModels
         public string Header { get => _header; set => SetProperty(ref _header, value); }
         public string BindingPath { get => _bindingPath; set => SetProperty(ref _bindingPath, value); }
     }
+#pragma warning restore CS8603
 
     public class TableRowModel : ObservableObject, ICustomTypeDescriptor
     {
@@ -52,6 +54,7 @@ namespace EditableDataControl.ViewModels
         PropertyDescriptorCollection ICustomTypeDescriptor.GetProperties(Attribute[]? attributes) 
             => ((ICustomTypeDescriptor)this).GetProperties();
 
+        #pragma warning disable CS8603 // Possible null reference return - returns empty string when target/indexer missing
         private class CellPropertyDescriptor : PropertyDescriptor
         {
             private readonly string _key;
@@ -60,10 +63,11 @@ namespace EditableDataControl.ViewModels
             public override bool IsReadOnly => false;
             public override Type PropertyType => typeof(string);
             public override bool CanResetValue(object? component) => false;
-            public override object? GetValue(object? component)
+            public override object GetValue(object? component)
             {
                 var target = component as TableRowModel;
-                return target?[_key] ?? string.Empty;
+                // Explicitly return an object to satisfy the nullable analysis
+                return (object)(target?[_key] ?? string.Empty);
             }
             public override void ResetValue(object? component) { }
             public override void SetValue(object? component, object? value)
@@ -76,6 +80,7 @@ namespace EditableDataControl.ViewModels
             }
             public override bool ShouldSerializeValue(object? component) => false;
         }
+        #pragma warning restore CS8603
 
         // Other ICustomTypeDescriptor members - delegate to default behavior
         AttributeCollection ICustomTypeDescriptor.GetAttributes() => TypeDescriptor.GetAttributes(this, true);

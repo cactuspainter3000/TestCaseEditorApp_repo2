@@ -20,15 +20,26 @@ namespace TestCaseEditorApp.MVVM.Views
         // Parameterless ctor keeps the XAML designer happy. DataContext will be set at runtime via DI ctor.
         public MainWindow()
         {
+            System.Diagnostics.Debug.WriteLine("*** MainWindow: Parameterless constructor called! ***");
             InitializeComponent();
-            // Designer can render; don't set DataContext here for runtime.
+            
+            // Set DataContext early to avoid binding warnings during startup
+            // Prefer DI-provided DataContext. Fall back to App.ServiceProvider if available.
+            if (DataContext == null && !System.ComponentModel.DesignerProperties.GetIsInDesignMode(this))
+            {
+                System.Diagnostics.Debug.WriteLine("*** MainWindow: Attempting to resolve MainViewModel from App.ServiceProvider ***");
+                DataContext = App.ServiceProvider?.GetService(typeof(MainViewModel)) as MainViewModel;
+                System.Diagnostics.Debug.WriteLine($"*** MainWindow: DataContext resolved as: {DataContext?.GetType().Name ?? "null"} ***");
+            }
         }
 
         // DI constructor that accepts the MainViewModel (ensures the runtime VM has its services wired)
         public MainWindow(MainViewModel vm) : this()
         {
+            System.Diagnostics.Debug.WriteLine("*** MainWindow: DI constructor called with MainViewModel! ***");
             _vm = vm ?? throw new ArgumentNullException(nameof(vm));
             DataContext = _vm;
+            System.Diagnostics.Debug.WriteLine($"*** MainWindow: DataContext set to MainViewModel[{_vm.GetHashCode()}] via DI constructor ***");
         }
 
         // Standard Dispose pattern
@@ -73,19 +84,44 @@ namespace TestCaseEditorApp.MVVM.Views
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            // Prefer DI-provided DataContext. Fall back to App.ServiceProvider if available, then to a parameterless VM.
-            DataContext ??= App.ServiceProvider?.GetService(typeof(MainViewModel)) as MainViewModel
-               ?? new MainViewModel();
+            System.Diagnostics.Debug.WriteLine($"*** MainWindow: Window_Loaded called ***");
+            System.Diagnostics.Debug.WriteLine($"*** MainWindow: DataContext type = {DataContext?.GetType().Name ?? "null"} ***");
+            if (DataContext is MainViewModel mainVm)
+            {
+                System.Diagnostics.Debug.WriteLine($"*** MainWindow: DataContext is MainViewModel[{mainVm.GetHashCode()}] ***");
+                System.Diagnostics.Debug.WriteLine($"*** MainWindow: MainViewModel.DisplayName = '{mainVm.DisplayName}' ***");
+                System.Diagnostics.Debug.WriteLine($"*** MainWindow: Current Window.Title = '{this.Title}' ***");
+                
+                // Subscribe to PropertyChanged to track DisplayName changes
+                mainVm.PropertyChanged += (s, args) => {
+                    if (args.PropertyName == "DisplayName")
+                    {
+                        System.Diagnostics.Debug.WriteLine($"*** MainWindow: DisplayName PropertyChanged detected! New value: '{mainVm.DisplayName}' ***");
+                        System.Diagnostics.Debug.WriteLine($"*** MainWindow: Current Window.Title after PropertyChanged: '{this.Title}' ***");
+                    }
+                };
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"*** MainWindow: DataContext is NOT MainViewModel! ***");
+            }
+            System.Diagnostics.Debug.WriteLine($"*** MainWindow: Actual window title = '{Title}' ***");
+            
+            // DataContext should already be set in constructor, but ensure it's not null
+            if (DataContext == null)
+            {
+                DataContext = App.ServiceProvider?.GetService(typeof(MainViewModel)) as MainViewModel;
+            }
 
             var vm = DataContext;
             TestCaseEditorApp.Services.Logging.Log.Debug($"MainWindow DataContext = {vm?.GetType().FullName ?? "<null>"}");
-            var props = vm?.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public);
-            if (props == null || vm == null)
+            if (vm == null)
             {
-                TestCaseEditorApp.Services.Logging.Log.Debug("No public properties on DataContext.");
+                TestCaseEditorApp.Services.Logging.Log.Debug("No DataContext for MainWindow.");
                 return;
             }
 
+            var props = vm.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public);
             var nonNullVm = vm; // local non-null alias for analyzer
             foreach (var p in props)
             {
@@ -208,28 +244,8 @@ namespace TestCaseEditorApp.MVVM.Views
             // Command presence probe (keeps previous diagnostic)
             try
             {
-                Type? vmType = vm?.GetType();
                 string[] commandNames = new[] { "ImportWordCommand", "ImportRequirementsCommand", "ImportWordAsyncCommand", "ImportCommand", "Import" };
-
-                foreach (var name in commandNames)
-                {
-                    var prop = vmType?.GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase);
-                    var hasProp = prop != null;
-                    object? val = (hasProp && vm != null) ? prop.GetValue(vm) : null;
-                    bool isIcmd = val is System.Windows.Input.ICommand;
-                    var valueType = val?.GetType()?.FullName ?? "null";
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[CMD CHECK] {name}: propExists={hasProp}, valueType={valueType}, isICommand={isIcmd}");
-                    if (isIcmd)
-                    {
-                        var cmd = val as System.Windows.Input.ICommand;
-                        if (cmd != null)
-                        {
-                            bool can = true;
-                            try { can = cmd.CanExecute(null); } catch (Exception ex) { TestCaseEditorApp.Services.Logging.Log.Debug($"[CMD CHECK] {name}.CanExecute threw: {ex}"); }
-                            TestCaseEditorApp.Services.Logging.Log.Debug($"[CMD CHECK] {name}.CanExecute(null) = {can}");
-                        }
-                    }
-                }
+                TestCaseEditorApp.Services.CommandInspector.LogCommandPresence(vm, commandNames);
             }
             catch (Exception ex)
             {

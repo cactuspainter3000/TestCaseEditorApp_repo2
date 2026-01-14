@@ -56,12 +56,15 @@ namespace TestCaseEditorApp.Services.Logging
         public static void Error(Exception ex, string message)
         {
             var logger = GetLogger();
+            var safeMessage = message ?? "Unknown error";
+            var exceptionString = ex?.ToString() ?? "No exception details";
+            
             if (logger != null)
             {
-                logger.Log<string>(LogLevel.Error, new EventId(0), message + "\n" + ex.ToString(), null, (s, e) => s ?? string.Empty);
+                logger.Log<string>(LogLevel.Error, new EventId(0), safeMessage + "\n" + exceptionString, null, (s, e) => s ?? string.Empty);
                 return;
             }
-            try { System.Diagnostics.Debug.WriteLine(message + " - " + ex.ToString()); } catch { }
+            try { System.Diagnostics.Debug.WriteLine(safeMessage + " - " + exceptionString); } catch { }
         }
     }
 }

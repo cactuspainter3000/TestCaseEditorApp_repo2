@@ -111,6 +111,7 @@ namespace EditableDataControl.Controls
 
             // Use white foreground for all text
             var cellForeground = System.Windows.Media.Brushes.White;
+            var orangeCaretBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 140, 0));
 
             // Set ElementStyle for TextBlock display
             var textStyle = new Style(typeof(TextBlock));
@@ -121,7 +122,7 @@ namespace EditableDataControl.Controls
             var editStyle = new Style(typeof(TextBox));
             editStyle.Setters.Add(new Setter(TextBox.ForegroundProperty, cellForeground));
             editStyle.Setters.Add(new Setter(TextBox.BackgroundProperty, System.Windows.Media.Brushes.Transparent));
-            editStyle.Setters.Add(new Setter(TextBox.CaretBrushProperty, cellForeground));
+            editStyle.Setters.Add(new Setter(TextBox.CaretBrushProperty, orangeCaretBrush));
             column.EditingElementStyle = editStyle;
 
             // Don't set CellStyle here - let it inherit from DataGrid.Resources

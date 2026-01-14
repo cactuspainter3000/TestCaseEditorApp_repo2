@@ -12,6 +12,7 @@ namespace TestCaseEditorApp.Services.Prompts
     public interface ITextGenerationService
     {
         Task<string> GenerateAsync(string prompt, CancellationToken ct = default);
+        Task<string> GenerateWithSystemAsync(string systemMessage, string contextMessage, CancellationToken ct = default);
     }
 
     public sealed class VerificationPromptInput
@@ -58,15 +59,14 @@ namespace TestCaseEditorApp.Services.Prompts
             VerificationPromptInput input,
             IEnumerable<DefaultItem> userSelectedDefaults,
             IEnumerable<DefaultItem> allDefaultsCatalog,
-            int budget = 5,
-            bool thorough = false)
+            int budget = 5)
                 {
                     var selected = userSelectedDefaults.Select(d => d.Key).ToArray();
                     var catalogSlim = allDefaultsCatalog.Select(d => new { id = d.Key, label = d.Name });
 
                     var sb = new StringBuilder();
                     sb.AppendLine("You are preparing to draft verification test cases.");
-                    sb.AppendLine($"Ask up to {Math.Max(0, Math.Min(7, budget))} concise clarifying questions. Mode: {(thorough ? "THOROUGH" : "FAST")}.");
+                    sb.AppendLine($"Ask up to {Math.Max(0, Math.Min(7, budget))} concise clarifying questions.");
                     sb.AppendLine("Additionally, from DEFAULTS_CATALOG, return a list of IDs that should be assumed true for this requirement.");
                     sb.AppendLine("Do NOT include any already in USER_SELECTED_DEFAULT_IDS.");
                     sb.AppendLine();

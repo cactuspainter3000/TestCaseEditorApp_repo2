@@ -1,0 +1,151 @@
+<UserControl x:Class="TestCaseEditorApp.MVVM.Views.ImportMethodSelectionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
+             d:DataContext="{d:DesignInstance vm:ImportMethodSelectionViewModel, IsDesignTimeCreatable=True}"
+             mc:Ignorable="d"
+             d:DesignHeight="300" d:DesignWidth="500">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <!-- Merge global design system -->
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../Resources/DesignSystem.xaml"/>
+                <ResourceDictionary Source="../../Resources/ButtonStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Cancel Button Style - using global colors -->
+            <Style x:Key="CancelButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource Brush.Background.Menu}"/>
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="20,12"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSize.Body}"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,8"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="{StaticResource Radius.SM}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.Background.Menu.Hover}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.Background.Menu.Pressed}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Option Button Style - based on MenuPopupButtonStyle -->
+        <Style x:Key="OptionButton" TargetType="Button" BasedOn="{StaticResource MenuPopupButtonStyle}">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border.Default}"/>
+            <Setter Property="Margin" Value="0,8"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="MinHeight" Value="60"/>
+        </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+            <TextBlock Text="Choose Import Method" 
+                       FontSize="{StaticResource FontSize.H2}" 
+                       FontWeight="SemiBold" 
+                       Foreground="{StaticResource Brush.Text.Primary}" 
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,8"/>
+            <TextBlock Text="Select how you would like to import requirements into your new project:"
+                       FontSize="{StaticResource FontSize.Body}"
+                       Foreground="{StaticResource Brush.Text.Secondary}"
+                       HorizontalAlignment="Center"
+                       TextWrapping="Wrap"/>
+        </StackPanel>
+
+        <!-- Import Options -->
+        <StackPanel Grid.Row="1" Margin="0,0,0,20">
+            <!-- Word Import With Analysis Option -->
+            <Button Command="{Binding WordImportCommand}" Style="{StaticResource OptionButton}">
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="8" Height="8" Fill="{StaticResource Brush.State.Success}" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                    <StackPanel>
+                        <TextBlock Text="Import Requirements with automatic requirement analysis" 
+                                   FontWeight="SemiBold" 
+                                   FontSize="{StaticResource FontSize.Body}"
+                                   Foreground="{StaticResource Brush.Text.Primary}"/>
+                        <TextBlock Text="Recommended: Analyzes each requirement during import for better test case generation" 
+                                   FontSize="{StaticResource FontSize.Caption}" 
+                                   Foreground="{StaticResource Brush.Text.Tertiary}" 
+                                   Margin="0,4,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </Button>
+
+            <!-- Word Import Without Analysis Option -->
+            <Button Command="{Binding WordImportNoAnalysisCommand}" Style="{StaticResource OptionButton}">
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="8" Height="8" Fill="{StaticResource Brush.State.Info}" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                    <StackPanel>
+                        <TextBlock Text="Import Requirements without automatic requirement analysis" 
+                                   FontWeight="SemiBold" 
+                                   FontSize="{StaticResource FontSize.Body}"
+                                   Foreground="{StaticResource Brush.Text.Primary}"/>
+                        <TextBlock Text="Faster import - requirements can be analyzed individually later if needed" 
+                                   FontSize="{StaticResource FontSize.Caption}" 
+                                   Foreground="{StaticResource Brush.Text.Tertiary}" 
+                                   Margin="0,4,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </Button>
+
+            <!-- Workflow Import Option (New) -->
+            <Button Command="{Binding ImportWorkflowCommand}" Style="{StaticResource OptionButton}">
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="8" Height="8" Fill="{StaticResource Brush.Accent.Primary}" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                    <StackPanel>
+                        <TextBlock Text="Import Requirements (Full Configuration)" 
+                                   FontWeight="SemiBold" 
+                                   FontSize="{StaticResource FontSize.Body}"
+                                   Foreground="{StaticResource Brush.Text.Primary}"/>
+                        <TextBlock Text="Step-by-step import with full control over analysis, ChatGPT export, and workspace location" 
+                                   FontSize="{StaticResource FontSize.Caption}" 
+                                   Foreground="{StaticResource Brush.Text.Tertiary}" 
+                                   Margin="0,4,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </Button>
+        </StackPanel>
+
+        <!-- Spacer -->
+        <Border Grid.Row="2" Height="20"/>
+
+        <!-- Action Buttons -->
+        <StackPanel Grid.Row="4" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right">
+            <Button Content="Cancel" 
+                    Command="{Binding CloseCommand}"
+                    Style="{StaticResource CancelButton}"
+                    Width="100"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

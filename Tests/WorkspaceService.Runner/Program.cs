@@ -20,7 +20,7 @@ class Program
             var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
 
             // Write staging copy
-            var stagingDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TestCaseEditorApp", "Staging");
+                var stagingDir = Path.Combine(tmpDir, "Staging");
             Directory.CreateDirectory(stagingDir);
             var stagingPath = Path.Combine(stagingDir, Path.GetFileName(path));
             File.WriteAllText(stagingPath, json, Encoding.UTF8);
@@ -38,7 +38,7 @@ class Program
                 var meta = new StringBuilder();
                 meta.AppendLine($"SavedUtc: {DateTime.UtcNow:o}");
                 meta.AppendLine($"Path: {stagingPath}");
-                meta.AppendLine($"User: {Environment.UserName}");
+                    // User information removed for portability
                 meta.AppendLine($"Bytes: {Encoding.UTF8.GetByteCount(json)}");
                 meta.AppendLine($"SHA256: {hashHex}");
                 File.WriteAllText(stagingMeta, meta.ToString(), Encoding.UTF8);
@@ -66,7 +66,7 @@ class Program
                 var meta = new StringBuilder();
                 meta.AppendLine($"SavedUtc: {DateTime.UtcNow:o}");
                 meta.AppendLine($"Path: {path}");
-                meta.AppendLine($"User: {Environment.UserName}");
+                    // User information removed for portability
                 meta.AppendLine($"Bytes: {Encoding.UTF8.GetByteCount(json)}");
                 meta.AppendLine($"SHA256: {hashHex}");
                 meta.AppendLine("PreviewStart:");
@@ -76,15 +76,15 @@ class Program
             catch { }
 
             // where-saved log
-            var logDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TestCaseEditorApp");
+                var logDir = Path.Combine(tmpDir, "logs");
             Directory.CreateDirectory(logDir);
             var logPath = Path.Combine(logDir, "where-saved.log");
-            var entry = $"{DateTime.UtcNow:o}	Saved workspace to: {path}	User:{Environment.UserName}" + Environment.NewLine;
+                var entry = $"{DateTime.UtcNow:o}\tSaved workspace to: {path}" + Environment.NewLine;
             File.AppendAllText(logPath, entry);
 
             // marker file
             var markerPath = path + ".saved.txt";
-            var markerContent = $"Saved: {DateTime.UtcNow:o}\r\nPath: {path}\r\nUser: {Environment.UserName}\r\n";
+                var markerContent = $"Saved: {DateTime.UtcNow:o}\r\nPath: {path}\r\n";
             File.WriteAllText(markerPath, markerContent);
 
             // basic assertions

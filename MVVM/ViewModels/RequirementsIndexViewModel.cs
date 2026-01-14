@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -20,7 +20,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     /// - Provides a view (RequirementsView) that applies a natural numeric sort so items like
     ///   Decagon-REQ_RC-53 appear before Decagon-REQ_RC-54 (ascending numeric order).
     /// </summary>
-    public class RequirementsIndexViewModel : ObservableObject
+    public partial class RequirementsIndexViewModel : ObservableObject
     {
         private readonly ObservableCollection<Requirement> _requirements;
         private readonly Func<Requirement?> _getCurrentRequirement;
@@ -71,7 +71,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 // Refresh sorted view and notify UI
                 try { _requirementsView.Refresh(); } catch { }
-                NotifyCommands();
                 OnPropertyChanged(nameof(RequirementPositionDisplay));
                 OnPropertyChanged(nameof(SelectedRequirementIndex));
             };
@@ -87,19 +86,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public IRelayCommand PreviousRequirementCommand { get; }
         public IRelayCommand NextRequirementCommand { get; }
 
-        // Search support (optional)
-        private string? _searchQuery;
-        public string? SearchQuery
-        {
-            get => _searchQuery;
-            set
-            {
-                if (_searchQuery == value) return;
-                _searchQuery = value;
-                OnPropertyChanged(nameof(SearchQuery));
-                SearchCommand?.NotifyCanExecuteChanged();
-            }
-        }
+        // Search support (optional) - use ObservableProperty for automatic command refresh
+        [ObservableProperty]
+        private string? searchQuery;
         public IRelayCommand? SearchCommand { get; }
 
         // SelectedRequirement is mirror of host's current requirement for binding convenience.
@@ -119,7 +108,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 _setCurrentRequirement?.Invoke(value);
 
                 _logger?.LogDebug("[NAV] SelectedRequirement set -> {RequirementItem}", value?.Item ?? "<null>");
-                NotifyCommands();
                 OnPropertyChanged(nameof(RequirementPositionDisplay));
                 OnPropertyChanged(nameof(SelectedRequirementIndex));
             }
@@ -160,12 +148,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             get
             {
                 var cur = _getCurrentRequirement();
-                if (cur == null || _requirements.Count == 0) return "—";
+                if (cur == null || _requirements.Count == 0) return "�";
                 // Determine the visible (sorted) index if possible
                 int idx;
                 try { idx = _requirementsView.IndexOf(cur); }
                 catch { idx = _requirements.IndexOf(cur); }
-                if (idx < 0) return "—";
+                if (idx < 0) return "�";
                 return $"{idx + 1} / {_requirements.Count}";
             }
         }
@@ -183,7 +171,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             OnPropertyChanged(nameof(RequirementPositionDisplay));
             OnPropertyChanged(nameof(SelectedRequirementIndex));
-            NotifyCommands();
 
             _logger?.LogDebug("[NAV] NotifyCurrentRequirementChanged invoked. Current={Current}, Count={Count}",
                 _getCurrentRequirement()?.Item ?? "<null>", _requirements.Count);
@@ -279,19 +266,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             return idx >= 0 && idx < _requirementsView.Count - 1;
         }
 
-        private void NotifyCommands()
-        {
-            PreviousRequirementCommand?.NotifyCanExecuteChanged();
-            NextRequirementCommand?.NotifyCanExecuteChanged();
-            SearchCommand?.NotifyCanExecuteChanged();
-        }
+
 
         // -------------------------
         // Simple search implementation
         // -------------------------
         private void ExecuteSearch()
         {
-            var q = _searchQuery?.Trim();
+            var q = SearchQuery?.Trim();
             if (string.IsNullOrEmpty(q)) return;
 
             // Try to match Item or Name (case-insensitive)
@@ -307,7 +289,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
         }
 
-        private bool CanExecuteSearch() => !string.IsNullOrWhiteSpace(_searchQuery) && _requirements.Count > 0;
+        private bool CanExecuteSearch() => !string.IsNullOrWhiteSpace(SearchQuery) && _requirements.Count > 0;
 
         // ---- Custom comparer: natural numeric compare, ASCENDING on trailing number ----
         private class RequirementNaturalComparer : IComparer
@@ -340,7 +322,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         return StringComparer.OrdinalIgnoreCase.Compare(prefixA, prefixB);
                     }
 
-                    // Both prefixes equal — compare numeric suffix ascending so 53 comes before 54
+                    // Both prefixes equal � compare numeric suffix ascending so 53 comes before 54
                     if (long.TryParse(ma.Groups[2].Value, out var na) && long.TryParse(mb.Groups[2].Value, out var nb))
                     {
                         // Ascending numeric order
@@ -371,7 +353,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     return 1;
                 }
 
-                // No numeric suffixes — plain string compare
+                // No numeric suffixes � plain string compare
                 return StringComparer.OrdinalIgnoreCase.Compare(sa, sb);
             }
         }

@@ -13,5 +13,15 @@ namespace TestCaseEditorApp.Services
             // Return empty string to indicate "no file chosen" in the design-time scenario.
             return string.Empty;
         }
+        
+        public string? ShowOpenFile(string title, string filter, string? initialDirectory = null)
+        {
+            return string.Empty;
+        }
+        
+        public string? ShowFolderDialog(string title, string? initialDirectory = null)
+        {
+            return string.Empty;
+        }
     }
 }

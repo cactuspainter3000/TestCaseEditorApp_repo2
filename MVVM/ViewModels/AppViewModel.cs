@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Services;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 
 
 namespace TestCaseEditorApp.MVVM.ViewModels

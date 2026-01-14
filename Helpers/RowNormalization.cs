@@ -56,37 +56,3 @@ namespace TestCaseEditorApp.Helpers
         }
     }
 }
-
-//using System.Collections.ObjectModel;
-//using System.Linq;
-//using EditableDataControl.ViewModels;
-
-
-//namespace TestCaseEditorApp.Helpers
-//{
-//    /// <summary>Row normalization helpers to keep rows aligned to current columns.</summary>
-//    public static class RowNormalization
-//    {
-//        public static void NormalizeRows(ObservableCollection<ColumnDefinitionModel> columns,
-//                                         ObservableCollection<TableRowModel> rows,
-//                                         bool pruneStaleKeys = true)
-//        {
-//            var keys = columns.Select(c => c.BindingPath ?? string.Empty).ToArray();
-
-//            foreach (var row in rows)
-//            {
-//                // add missing
-//                foreach (var k in keys)
-//                    if (!row.Cells.ContainsKey(k))
-//                        row.Cells[k] = string.Empty;
-
-//                if (pruneStaleKeys)
-//                {
-//                    var toRemove = row.Cells.Keys.Where(k => !keys.Contains(k)).ToList();
-//                    foreach (var dead in toRemove)
-//                        row.Cells.Remove(dead);
-//                }
-//            }
-//        }
-//    }
-//}

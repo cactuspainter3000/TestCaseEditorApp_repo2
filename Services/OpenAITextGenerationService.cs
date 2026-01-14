@@ -43,4 +43,27 @@ public sealed class OpenAITextGenerationService : ITextGenerationService
             .GetProperty("message").GetProperty("content").GetString();
         return content ?? string.Empty;
     }
+
+    public async Task<string> GenerateWithSystemAsync(string systemMessage, string contextMessage, CancellationToken ct = default)
+    {
+        var payload = new
+        {
+            model = _model,
+            messages = new[] 
+            { 
+                new { role = "system", content = systemMessage },
+                new { role = "user", content = contextMessage } 
+            },
+            temperature = 0.2
+        };
+        var json = JsonSerializer.Serialize(payload);
+        using var resp = await _http.PostAsync("v1/chat/completions",
+            new StringContent(json, Encoding.UTF8, "application/json"), ct);
+        resp.EnsureSuccessStatusCode();
+        using var s = await resp.Content.ReadAsStreamAsync(ct);
+        using var doc = await JsonDocument.ParseAsync(s, cancellationToken: ct);
+        var content = doc.RootElement.GetProperty("choices")[0]
+            .GetProperty("message").GetProperty("content").GetString();
+        return content ?? string.Empty;
+    }
 }

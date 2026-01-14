@@ -1,0 +1,87 @@
+<UserControl x:Class="TestCaseEditorApp.MVVM.Domains.Dummy.Views.Dummy_NotificationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d" 
+             d:DesignHeight="100" d:DesignWidth="400"
+             Background="#2D2D2D">
+    
+    <Border BorderBrush="#FFD700" BorderThickness="2" CornerRadius="6" Padding="12">
+        <StackPanel>
+            <TextBlock Text="NOTIFICATION WORKSPACE" 
+                       FontSize="11" FontWeight="Bold" 
+                       Foreground="#FFD700" 
+                       HorizontalAlignment="Center" Margin="0,0,0,6"/>
+            
+            <TextBlock Text="{Binding NotificationTitle}" 
+                       FontSize="13" FontWeight="Bold" 
+                       Foreground="White" 
+                       HorizontalAlignment="Center" Margin="0,0,0,4"/>
+            
+            <TextBlock Text="{Binding StatusMessage}" 
+                       FontSize="11" 
+                       Foreground="#CCCCCC" 
+                       HorizontalAlignment="Center" 
+                       TextWrapping="Wrap"
+                       Margin="0,0,0,4"/>
+            
+            <DockPanel>
+                <TextBlock Text="{Binding SectionName, StringFormat='Domain: {0}'}" 
+                           FontSize="9" 
+                           Foreground="#888888" 
+                           DockPanel.Dock="Left"/>
+                
+                <TextBlock Text="{Binding LastUpdated, StringFormat='Last: HH:mm:ss'}" 
+                           FontSize="9" 
+                           Foreground="#666666" 
+                           HorizontalAlignment="Right"/>
+            </DockPanel>
+            
+            <!-- Interactive Demo -->
+            <Button Content="Notification" 
+                    Command="{Binding TestButtonCommand}"
+                    Margin="0,8,0,4"
+                    MinWidth="70"
+                    Padding="6,3"
+                    FontSize="9">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Background" Value="#4A4A4A"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="BorderBrush" Value="#FFD700"/>
+                        <Setter Property="BorderThickness" Value="1"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="3">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#FFD700"/>
+                                            <Setter Property="BorderBrush" Value="#FFED4E"/>
+                                            <Setter Property="Foreground" Value="Black"/>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter Property="Background" Value="#DAA520"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Button.Style>
+            </Button>
+                    
+            <TextBlock Text="{Binding SharedMessage}" 
+                       FontSize="9" 
+                       Foreground="#DDDDDD" 
+                       HorizontalAlignment="Center" 
+                       TextWrapping="Wrap"/>
+        </StackPanel>
+    </Border>
+</UserControl>

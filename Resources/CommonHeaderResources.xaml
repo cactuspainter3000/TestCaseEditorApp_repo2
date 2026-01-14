@@ -127,11 +127,11 @@
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="CornerRadius" Value="6" />
         <Style.Triggers>
             <!-- Expect the DataContext to expose a boolean RequirementDescriptionHighlight -->
             <DataTrigger Binding="{Binding RequirementDescriptionHighlight}" Value="True">
-                <Setter Property="BorderThickness" Value="1.5" />
+                <Setter Property="BorderThickness" Value="2" />
                 <Setter Property="BorderBrush" Value="{DynamicResource HeaderHighlightBorderBrush}" />
                 <Setter Property="Background" Value="{DynamicResource HeaderHighlightBackground}" />
             </DataTrigger>
@@ -198,6 +198,78 @@
                             <Setter Property="Opacity" Value="0.55" />
                         </Trigger>
                     </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Clean ScrollViewer style for header description areas -->
+    <Style x:Key="HeaderDescriptionScrollViewer" TargetType="ScrollViewer">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollViewer">
+                    <Grid>
+                        <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" 
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              CanContentScroll="{TemplateBinding CanContentScroll}"
+                                              Margin="{TemplateBinding Padding}"/>
+                        
+                        <!-- Minimal vertical scrollbar -->
+                        <ScrollBar x:Name="PART_VerticalScrollBar"
+                                 Orientation="Vertical"
+                                 HorizontalAlignment="Right"
+                                 Width="8"
+                                 Margin="0,2"
+                                 Value="{TemplateBinding VerticalOffset}"
+                                 Maximum="{TemplateBinding ScrollableHeight}"
+                                 ViewportSize="{TemplateBinding ViewportHeight}"
+                                 Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"
+                                 Style="{DynamicResource MinimalScrollBarStyle}"
+                                 Opacity="0.6"/>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Minimal ScrollBar Style -->
+    <Style x:Key="MinimalScrollBarStyle" TargetType="ScrollBar">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollBar">
+                    <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                        <Track x:Name="PART_Track" IsDirectionReversed="True">
+                            <Track.Thumb>
+                                <Thumb>
+                                    <Thumb.Style>
+                                        <Style TargetType="Thumb">
+                                            <Setter Property="Background" Value="#40FFFFFF"/>
+                                            <Setter Property="BorderThickness" Value="0"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Thumb">
+                                                        <Border Background="{TemplateBinding Background}" 
+                                                              CornerRadius="4" 
+                                                              Margin="1,0"/>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="#60FFFFFF"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Thumb.Style>
+                                </Thumb>
+                            </Track.Thumb>
+                        </Track>
+                    </Border>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
