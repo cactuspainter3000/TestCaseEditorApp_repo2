@@ -15,26 +15,28 @@
     </UserControl.Resources>
 
     <Grid Background="{StaticResource Brush.Background.Menu}">
-        <StackPanel VerticalAlignment="Center" 
-                    HorizontalAlignment="Center" 
-                    MaxWidth="500"
-                    Margin="40">
-            
-            <!-- Welcome header -->
-            <TextBlock Text="Welcome to Systems App"
-                       FontSize="32"
-                       FontWeight="Light"
-                       Foreground="{StaticResource Brush.Accent.Primary}"
-                       TextAlignment="Center"
-                       Margin="0,0,0,20"/>
-            
-            <!-- Subtitle -->
-            <TextBlock Text="Get started by selecting an option from the side menu"
-                       FontSize="16"
-                       Foreground="#CCCCCC"
-                       TextAlignment="Center"
-                       TextWrapping="Wrap"
-                       Margin="0,0,0,40"/>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" 
+                      HorizontalScrollBarVisibility="Disabled">
+            <StackPanel VerticalAlignment="Top" 
+                        HorizontalAlignment="Center" 
+                        MaxWidth="600"
+                        Margin="40">
+                
+                <!-- Welcome header -->
+                <TextBlock Text="{Binding Title}"
+                           FontSize="32"
+                           FontWeight="Light"
+                           Foreground="{StaticResource Brush.Accent.Primary}"
+                           TextAlignment="Center"
+                           Margin="0,0,0,20"/>
+                
+                <!-- Subtitle -->
+                <TextBlock Text="{Binding Description}"
+                           FontSize="16"
+                           Foreground="#CCCCCC"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"
+                           Margin="0,0,0,40"/>
             
             <!-- Getting started tips -->
             <Border Background="#333333"
@@ -72,5 +74,6 @@
             </Border>
             
         </StackPanel>
+        </ScrollViewer>
     </Grid>
 </UserControl>

@@ -29,6 +29,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.Mediators
         /// Request transition to a specific domain
         /// </summary>
         Task RequestDomainTransition(string targetDomain, object? transitionData = null);
+        
+        /// <summary>
+        /// Check if mediator is properly registered in DI container
+        /// </summary>
+        bool IsRegistered { get; }
+        
+        /// <summary>
+        /// Mark mediator as registered for fail-fast validation
+        /// </summary>
+        void MarkAsRegistered();
     }
 
     public class StartupMediator : BaseDomainMediator<StartupEvents>, IStartupMediator

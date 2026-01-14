@@ -424,6 +424,10 @@ namespace TestCaseEditorApp
                 var dummyMediator = _host.Services.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Dummy.Mediators.IDummyMediator>();
                 dummyMediator.MarkAsRegistered();
                 
+                // Mark Startup mediator as registered for startup domain
+                var startupMediator = _host.Services.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Startup.Mediators.IStartupMediator>();
+                startupMediator.MarkAsRegistered();
+                
                 // Wire cross-domain commands - enable workspace commands in header
                 if (testCaseGenMediator is MVVM.Domains.TestCaseGeneration.Mediators.TestCaseGenerationMediator tcgMediator)
                 {

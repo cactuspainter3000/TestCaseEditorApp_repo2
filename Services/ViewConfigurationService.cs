@@ -301,29 +301,14 @@ namespace TestCaseEditorApp.Services
                 
                 TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] All 5 Dummy ViewModels created successfully");
 
-                // Create UserControls and bind ViewModels (following TestCaseGenerator pattern)
-                var titleControl = new TestCaseEditorApp.MVVM.Domains.Dummy.Views.Dummy_TitleView();
-                titleControl.DataContext = dummyTitleVM;
-                
-                var headerControl = new TestCaseEditorApp.MVVM.Domains.Dummy.Views.Dummy_HeaderView();
-                headerControl.DataContext = dummyHeaderVM;
-                
-                var mainControl = new TestCaseEditorApp.MVVM.Domains.Dummy.Views.Dummy_MainView();
-                mainControl.DataContext = dummyMainVM;
-                
-                var navigationControl = new TestCaseEditorApp.MVVM.Domains.Dummy.Views.Dummy_NavigationView();
-                navigationControl.DataContext = dummyNavigationVM;
-                
-                var notificationControl = new TestCaseEditorApp.MVVM.Domains.Dummy.Views.Dummy_NotificationView();
-                notificationControl.DataContext = dummyNotificationVM;
-                
+                // Return ViewModels directly (same pattern as StartUp domain) - no manual UserControl creation
                 return new ViewConfiguration(
                     sectionName: "Dummy Domain",
-                    titleViewModel: titleControl,           // 🩷 Pink border UserControl
-                    headerViewModel: headerControl,         // 🟠 Orange border UserControl
-                    contentViewModel: mainControl,          // 🟢 Green border UserControl
-                    navigationViewModel: navigationControl, // 🔵 Blue border UserControl
-                    notificationViewModel: notificationControl, // 🟡 Gold border UserControl
+                    titleViewModel: dummyTitleVM,         // ViewModel, not UserControl
+                    headerViewModel: dummyHeaderVM,       // ViewModel, not UserControl
+                    contentViewModel: dummyMainVM,        // ViewModel, not UserControl
+                    navigationViewModel: dummyNavigationVM, // ViewModel, not UserControl
+                    notificationViewModel: dummyNotificationVM, // ViewModel, not UserControl
                     context: context
                 );
             }
@@ -377,15 +362,8 @@ namespace TestCaseEditorApp.Services
 
         private ViewConfiguration CreateDefaultConfiguration(object? context)
         {
-            EnsureWorkspaceHeader();
-
-            return new ViewConfiguration(
-                sectionName: "Default",
-                headerViewModel: _workspaceHeader,
-                contentViewModel: App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_MainViewModel>(),
-                notificationViewModel: new TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel(App.ServiceProvider?.GetService<Microsoft.Extensions.Logging.ILogger<TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel>>()),
-                context: context
-            );
+            // Use startup configuration as default for initial app state
+            return CreateStartupConfiguration(context);
         }
 
         #endregion

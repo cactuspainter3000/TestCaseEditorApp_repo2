@@ -137,7 +137,8 @@ namespace TestCaseEditorApp.Services
                 "newproject" => "Test Case Generator",
                 "testflow" => "Test Case Generator",
                 "import" => "Test Case Generator",
-                _ => "Test Case Generator"
+                "startup" => "Systems ATE APP",
+                _ => "Systems ATE APP"  // Default to startup instead of Test Case Generator
             };
             
             // Simple format: Section - ProjectName (if available)

@@ -138,11 +138,11 @@
 
         <!-- Startup ViewModels DataTemplates -->
         <DataTemplate DataType="{x:Type startupvm:StartUp_TitleViewModel}">
-            <startupviews:StartupTitleView />
+            <startupviews:StartUp_TitleView />
         </DataTemplate>
         
         <DataTemplate DataType="{x:Type startupvm:StartUp_HeaderViewModel}">
-            <startupviews:StartupHeaderView />
+            <startupviews:StartUp_HeaderView />
         </DataTemplate>
         
         <DataTemplate DataType="{x:Type startupvm:StartUp_MainViewModel}">
@@ -150,11 +150,32 @@
         </DataTemplate>
         
         <DataTemplate DataType="{x:Type startupvm:StartUp_NavigationViewModel}">
-            <TextBlock Text="{Binding NavigationText}" Style="{StaticResource Text.Body.Small}" />
+            <startupviews:StartUp_NavigationView />
         </DataTemplate>
         
         <DataTemplate DataType="{x:Type startupvm:StartUp_NotificationViewModel}">
             <TextBlock Text="{Binding StatusText}" Style="{StaticResource Text.Status}" />
+        </DataTemplate>
+
+        <!-- NEW-STYLE Dummy ViewModels DataTemplates (AI Guide compliant) -->
+        <DataTemplate DataType="{x:Type dummyvm:Dummy_TitleViewModel}">
+            <dummyviews:Dummy_TitleView />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type dummyvm:Dummy_HeaderViewModel}">
+            <dummyviews:Dummy_HeaderView />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type dummyvm:Dummy_MainViewModel}">
+            <dummyviews:Dummy_MainView />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type dummyvm:Dummy_NavigationViewModel}">
+            <dummyviews:Dummy_NavigationView />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type dummyvm:Dummy_NotificationViewModel}">
+            <dummyviews:Dummy_NotificationView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:PlaceholderViewModel}">
@@ -163,13 +184,13 @@
             </Border>
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type startupvm:StartUp_MainViewModel}">
+        <!--<DataTemplate DataType="{x:Type startupvm:StartUp_MainViewModel}">
             <startupviews:StartUp_MainView />
-        </DataTemplate>
+        </DataTemplate>-->
 
-        <DataTemplate DataType="{x:Type vm:ProjectViewModel}">
+        <!--<DataTemplate DataType="{x:Type vm:ProjectViewModel}">
             <views:ProjectView />
-        </DataTemplate>
+        </DataTemplate>-->
 
         <DataTemplate DataType="{x:Type tcgvm:RequirementsViewModel}">
             <views:RequirementsView />
@@ -383,7 +404,7 @@
                 <RowDefinition Height="Auto"/>
                 <!-- notification area -->
                 <RowDefinition Height="4"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="40"/>
                 <!-- workspace header / summary -->
                 <RowDefinition Height="4"/>
                 <RowDefinition Height="*"/>
@@ -488,7 +509,7 @@
             </Border>
 
             <!-- Workspace header -->
-            <Border Grid.Row="4" Grid.Column="2" Style="{StaticResource HeaderBorderStyle}" Height="120" Padding="0" Margin="0">
+            <Border Grid.Row="4" Grid.Column="2" Style="{StaticResource HeaderBorderStyle}" Padding="0" Margin="0">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1*"/>
@@ -534,11 +555,11 @@
             </Border>
 
             <!-- Navigation workspace area - uses proper workspace coordination -->
-            <ContentControl Grid.Column="2" Grid.Row="8" 
-                          Content="{Binding NavigationWorkspace}" 
-                          HorizontalAlignment="Stretch" 
-                          VerticalAlignment="Stretch"
-                          Margin="10"/>
+            <Border Grid.Column="2" Grid.Row="8" Style="{StaticResource ContentBorderStyle}">
+                <ContentControl Content="{Binding NavigationWorkspace}" 
+                              HorizontalAlignment="Stretch" 
+                              VerticalAlignment="Stretch"/>
+            </Border>
             
             <!-- Modal overlay system - TEMPORARILY DISABLED while debugging -->
             <Grid Grid.Row="0" Grid.RowSpan="9" Grid.Column="0" Grid.ColumnSpan="3"

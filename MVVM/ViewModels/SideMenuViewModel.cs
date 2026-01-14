@@ -73,6 +73,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand RequirementsNavigationCommand { get; private set; } = null!;
         public ICommand NewProjectNavigationCommand { get; private set; } = null!;
         public ICommand DummyNavigationCommand { get; private set; } = null!;
+        public ICommand StartupNavigationCommand { get; private set; } = null!;
 
         // Requirements Management Commands
         public ICommand ImportAdditionalCommand { get; private set; } = null!;
@@ -150,6 +151,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             RequirementsNavigationCommand = new RelayCommand(NavigateToRequirements);
             NewProjectNavigationCommand = new RelayCommand(NavigateToNewProject, CanExecuteProjectCommands);
             DummyNavigationCommand = new RelayCommand(NavigateToDummy);
+            StartupNavigationCommand = new RelayCommand(NavigateToStartup);
             
             // Requirements commands
             ImportAdditionalCommand = new AsyncRelayCommand(ImportAdditionalAsync, CanImportAdditionalRequirements);
@@ -272,6 +274,16 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             SelectedSection = "Dummy"; // Update selected section to trigger SectionChanged event
             
             _navigationMediator.NavigateToSection("Dummy");
+        }
+        
+        private void NavigateToStartup()
+        {
+            System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToStartup called! ***");
+            Console.WriteLine("*** SideMenuViewModel.NavigateToStartup called! ***");
+            
+            SelectedSection = "startup"; // Update selected section to trigger SectionChanged event
+            
+            _navigationMediator.NavigateToSection("startup");
         }
         
         #region AnythingLLM Status Handling
@@ -541,6 +553,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 headerIcon: "🧪",
                 headerText: "Test Case Generator"
             );
+
+            // Add a "Home" button at the top level to navigate to startup domain
+            var homeButton = CreateButton("home", "🏠", "Home", StartupNavigationCommand, "Return to application home screen", 0);
+            TestCaseGeneratorMenuSection.AddItem(homeButton);
 
             // Create the main Test Case Generator dropdown with all sections as children
             var mainTestCaseGeneratorDropdown = CreateDropdownWithLevel("test-case-generator-main", "🧪", "Test Case Generator", "Test case generation workflow", 0,
