@@ -425,28 +425,30 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 // Call the workspace management mediator to complete the project creation with proper warning handling
                 var creationSuccessful = await _mediator.CreateNewProjectWithWarningAsync(WorkspaceName, ProjectName, ProjectSavePath, SelectedDocumentPath);
                 
-                // Mark project as created only if requirements import was successful
+                // Always mark project as created if method completed without exception
+                // Even if requirements import failed, the project file was still created successfully
+                IsProjectCreated = true;
+                
+                // Fire completion event to clear cached workflow instance
+                var completedArgs = new NewProjectCompletedEventArgs
+                {
+                    WorkspaceName = WorkspaceName,
+                    WorkspaceDescription = WorkspaceDescription,
+                    DocumentPath = SelectedDocumentPath,
+                    AutoExportEnabled = AutoExportEnabled,
+                    ProjectSavePath = ProjectSavePath,
+                    ProjectName = ProjectName
+                };
+                ProjectCompleted?.Invoke(this, completedArgs);
+                
+                // Log the outcome for debugging
                 if (creationSuccessful)
                 {
-                    IsProjectCreated = true;
-                    
-                    // Fire completion event to clear cached workflow instance
-                    var completedArgs = new NewProjectCompletedEventArgs
-                    {
-                        WorkspaceName = WorkspaceName,
-                        WorkspaceDescription = WorkspaceDescription,
-                        DocumentPath = SelectedDocumentPath,
-                        AutoExportEnabled = AutoExportEnabled,
-                        ProjectSavePath = ProjectSavePath,
-                        ProjectName = ProjectName
-                    };
-                    ProjectCompleted?.Invoke(this, completedArgs);
+                    TestCaseEditorApp.Services.Logging.Log.Info("[PROJECT] Project creation completed successfully with requirements import");
                 }
                 else
                 {
-                    // Reset project created state if requirements import failed
-                    IsProjectCreated = false;
-                    TestCaseEditorApp.Services.Logging.Log.Warn("[PROJECT] Project creation partially failed - requirements import unsuccessful");
+                    TestCaseEditorApp.Services.Logging.Log.Warn("[PROJECT] Project creation completed but requirements import unsuccessful");
                 }
                 
                 // Fire the event for any remaining legacy listeners

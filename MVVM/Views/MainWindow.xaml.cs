@@ -20,21 +20,26 @@ namespace TestCaseEditorApp.MVVM.Views
         // Parameterless ctor keeps the XAML designer happy. DataContext will be set at runtime via DI ctor.
         public MainWindow()
         {
+            System.Diagnostics.Debug.WriteLine("*** MainWindow: Parameterless constructor called! ***");
             InitializeComponent();
             
             // Set DataContext early to avoid binding warnings during startup
             // Prefer DI-provided DataContext. Fall back to App.ServiceProvider if available.
             if (DataContext == null && !System.ComponentModel.DesignerProperties.GetIsInDesignMode(this))
             {
+                System.Diagnostics.Debug.WriteLine("*** MainWindow: Attempting to resolve MainViewModel from App.ServiceProvider ***");
                 DataContext = App.ServiceProvider?.GetService(typeof(MainViewModel)) as MainViewModel;
+                System.Diagnostics.Debug.WriteLine($"*** MainWindow: DataContext resolved as: {DataContext?.GetType().Name ?? "null"} ***");
             }
         }
 
         // DI constructor that accepts the MainViewModel (ensures the runtime VM has its services wired)
         public MainWindow(MainViewModel vm) : this()
         {
+            System.Diagnostics.Debug.WriteLine("*** MainWindow: DI constructor called with MainViewModel! ***");
             _vm = vm ?? throw new ArgumentNullException(nameof(vm));
             DataContext = _vm;
+            System.Diagnostics.Debug.WriteLine($"*** MainWindow: DataContext set to MainViewModel[{_vm.GetHashCode()}] via DI constructor ***");
         }
 
         // Standard Dispose pattern

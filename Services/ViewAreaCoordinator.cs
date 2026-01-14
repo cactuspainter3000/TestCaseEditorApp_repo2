@@ -37,9 +37,13 @@ namespace TestCaseEditorApp.Services
             IViewConfigurationService? viewConfigurationService,
             SideMenuViewModel sideMenuViewModel)
         {
+            System.Diagnostics.Debug.WriteLine("*** ViewAreaCoordinator: Constructor called! ***");
+            
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
             _viewConfigurationService = viewConfigurationService; // Allow null initially
             _workspaceManagementMediator = workspaceManagementMediator ?? throw new ArgumentNullException(nameof(workspaceManagementMediator));
+            
+            System.Diagnostics.Debug.WriteLine("*** ViewAreaCoordinator: Creating workspace ViewModels ***");
             
             // Use dependency-injected SideMenuViewModel
             SideMenu = sideMenuViewModel ?? throw new ArgumentNullException(nameof(sideMenuViewModel));
@@ -49,17 +53,16 @@ namespace TestCaseEditorApp.Services
             NavigationArea = new ConfigurableNavigationAreaViewModel(navigationMediator);
             NotificationArea = new ConfigurableNotificationAreaViewModel(navigationMediator);
 
+            System.Diagnostics.Debug.WriteLine("*** ViewAreaCoordinator: About to subscribe to SectionChangeRequested ***");
+            
             // Subscribe to navigation requests
             _navigationMediator.Subscribe<NavigationEvents.SectionChangeRequested>(OnSectionChangeRequested);
             
-            // Wire up side menu selection
-            SideMenu.SectionChanged += (section) => 
-            {
-                if (!string.IsNullOrEmpty(section))
-                {
-                    _navigationMediator.NavigateToSection(section);
-                }
-            };
+            System.Diagnostics.Debug.WriteLine("*** ViewAreaCoordinator: Successfully subscribed to SectionChangeRequested ***");
+            
+            // NOTE: Removed SideMenu.SectionChanged subscription to prevent circular calls
+            // The flow should be: SideMenu → NavigateToSection → SectionChangeRequested → OnSectionChangeRequested
+            // NOT: SideMenu → SelectedSection → SectionChanged → NavigateToSection (circular!)
             
             // Note: Initial configuration is now handled by NavigationService.Initialize() 
             // which explicitly sets "startup" configuration. No auto-default needed.
@@ -74,13 +77,24 @@ namespace TestCaseEditorApp.Services
                 // Lazy-load ViewConfigurationService to avoid circular dependency
                 if (_viewConfigurationService == null)
                 {
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewAreaCoordinator] ViewConfigurationService is null, attempting to resolve from DI...");
                     _viewConfigurationService = App.ServiceProvider?.GetService<IViewConfigurationService>();
+                    if (_viewConfigurationService == null)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Debug("[ViewAreaCoordinator] FAILED to resolve ViewConfigurationService from DI!");
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Debug("[ViewAreaCoordinator] ViewConfigurationService resolved successfully from DI");
+                    }
                 }
                 
                 if (_viewConfigurationService != null)
                 {
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Calling ApplyConfiguration for: {request.SectionName}");
                     // Delegate to the configuration service to create configuration
                     _viewConfigurationService.ApplyConfiguration(request.SectionName, request.Context);
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] ApplyConfiguration completed for: {request.SectionName}");
                     
                     // Now publish the configuration using our navigation mediator
                     var configuration = _viewConfigurationService.CurrentConfiguration;
@@ -89,6 +103,10 @@ namespace TestCaseEditorApp.Services
                         TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Publishing configuration for: {configuration.SectionName} with content: {configuration.ContentViewModel?.GetType().Name}");
                         _navigationMediator.Publish(new ViewConfigurationEvents.ApplyViewConfiguration(configuration));
                         TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Configuration applied and published for: {request.SectionName}");
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] WARNING: CurrentConfiguration is NULL after ApplyConfiguration for: {request.SectionName}");
                     }
                 }
                 else

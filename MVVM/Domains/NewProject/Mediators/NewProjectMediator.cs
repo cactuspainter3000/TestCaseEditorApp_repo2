@@ -14,6 +14,7 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Events;
 using static TestCaseEditorApp.MVVM.Events.CrossDomainMessages;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 
 namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
 {
@@ -29,6 +30,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         private readonly AnythingLLMService _anythingLLMService;
         private readonly NotificationService _notificationService;
         private readonly IRequirementService _requirementService;
+        private readonly SmartRequirementImporter _smartImporter;
         private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
         private readonly IWorkspaceValidationService _workspaceValidationService;
         private WorkspaceInfo? _currentWorkspaceInfo;
@@ -46,6 +48,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             AnythingLLMService anythingLLMService,
             NotificationService notificationService,
             IRequirementService requirementService,
+            SmartRequirementImporter smartImporter,
             ITestCaseGenerationMediator testCaseGenerationMediator,
             IWorkspaceValidationService workspaceValidationService,
             PerformanceMonitoringService? performanceMonitor = null,
@@ -57,6 +60,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             _anythingLLMService = anythingLLMService ?? throw new ArgumentNullException(nameof(anythingLLMService));
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
             _requirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
+            _smartImporter = smartImporter ?? throw new ArgumentNullException(nameof(smartImporter));
             _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
             _workspaceValidationService = workspaceValidationService ?? throw new ArgumentNullException(nameof(workspaceValidationService));
         }
@@ -689,45 +693,29 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     
                     try
                     {
-                        // Default to Jama parser for .docx files since most of our documents are from Jama
-                        // The Jama parser has better filtering for version history and baselines
-                        var preferJamaParser = documentPath.EndsWith(".docx", StringComparison.OrdinalIgnoreCase);
+                        // Use SmartRequirementImporter for automatic format detection and fallback
+                        var importResult = await _smartImporter.ImportRequirementsAsync(documentPath);
                         
-                        if (_requirementService != null)
+                        if (importResult.Success)
                         {
-                            if (preferJamaParser)
-                            {
-                                importedRequirements = await Task.Run(() => _requirementService.ImportRequirementsFromJamaAllDataDocx(documentPath));
-                            }
-                            else
-                            {
-                                importedRequirements = await Task.Run(() => _requirementService.ImportRequirementsFromWord(documentPath));
-                            }
+                            importedRequirements = importResult.Requirements;
+                            _logger.LogInformation("✅ Successfully imported {Count} requirements using {Method}", 
+                                importedRequirements.Count, importResult.ImportMethod);
                             
-                            // Check if any requirements were successfully imported
-                            if (importedRequirements.Count == 0)
+                            // Broadcast imported requirements to TestCaseGenerationMediator for UI sync
+                            BroadcastToAllDomains(new TestCaseGenerationEvents.RequirementsImported
                             {
-                                requirementsImportedSuccessfully = false;
-                                _logger.LogWarning("⚠️ No requirements found in document: {DocumentPath}", documentPath);
-                                ShowNotification($"Warning: No requirements found in the document. Project created but requirements import failed.", DomainNotificationType.Warning);
-                            }
-                            else
-                            {
-                                // Broadcast imported requirements to TestCaseGenerationMediator for UI sync
-                                BroadcastToAllDomains(new TestCaseGenerationEvents.RequirementsImported
-                                {
-                                    Requirements = importedRequirements,
-                                    SourceFile = documentPath,
-                                    ImportType = preferJamaParser ? "Jama" : "Word",
-                                    ImportTime = TimeSpan.Zero
-                                });
-                            }
+                                Requirements = importedRequirements,
+                                SourceFile = documentPath,
+                                ImportType = importResult.ImportMethod,
+                                ImportTime = importResult.ImportDuration
+                            });
                         }
                         else
                         {
                             requirementsImportedSuccessfully = false;
-                            _logger.LogWarning("❌ Could not get RequirementService from DI container");
-                            ShowNotification("Warning: Requirements service not available. Project created but requirements import failed.", DomainNotificationType.Warning);
+                            _logger.LogWarning("⚠️ Smart importer failed: {Error}", importResult.ErrorMessage);
+                            ShowNotification(importResult.UserMessage, DomainNotificationType.Warning);
                         }
                     }
                     catch (Exception ex)

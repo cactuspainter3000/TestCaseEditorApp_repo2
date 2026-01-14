@@ -38,66 +38,7 @@
                        Foreground="{StaticResource Brush.Text.Secondary}"
                        TextAlignment="Center"
                        TextWrapping="Wrap"
-                       Margin="0,0,0,15"/>
-                       
-            <!-- AnythingLLM Status Section -->
-            <Border Background="{StaticResource Brush.Background.Header}"
-                    CornerRadius="6"
-                    Padding="15,10"
-                    Margin="0,0,0,15"
-                    HorizontalAlignment="Center">
-                <StackPanel Orientation="Horizontal"
-                           HorizontalAlignment="Center">
-                    
-                    <!-- Status Indicator -->
-                    <Border Width="8" Height="8" 
-                            Margin="0,0,8,0"
-                            VerticalAlignment="Center"
-                            CornerRadius="4">
-                        <Border.Style>
-                            <Style TargetType="Border">
-                                <Setter Property="Background" Value="{StaticResource Brush.State.Error}"/> <!-- Red -->
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsAnythingLLMStarting}" Value="True">
-                                        <Setter Property="Background" Value="Orange"/> <!-- Orange when starting -->
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding IsAnythingLLMAvailable}" Value="True">
-                                        <Setter Property="Background" Value="{StaticResource Brush.State.Success}"/> <!-- Green when connected -->
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Border.Style>
-                        
-                        <!-- Spinning animation for startup (small white dot that traverses the circle) -->
-                        <Border Width="6" Height="6" 
-                                Background="White" 
-                                Opacity="0.8"
-                                CornerRadius="3"
-                                Visibility="{Binding IsAnythingLLMStarting, Converter={StaticResource BoolToVisibilityConverter}}">
-                            <Border.RenderTransform>
-                                <RotateTransform x:Name="SpinnerRotate"/>
-                            </Border.RenderTransform>
-                            <Border.Triggers>
-                                <EventTrigger RoutedEvent="Loaded">
-                                    <BeginStoryboard>
-                                        <Storyboard RepeatBehavior="Forever">
-                                            <DoubleAnimation Storyboard.TargetName="SpinnerRotate"
-                                                           Storyboard.TargetProperty="Angle"
-                                                           From="0" To="360" Duration="0:0:1"/>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </EventTrigger>
-                            </Border.Triggers>
-                        </Border>
-                    </Border>
-                    
-                    <!-- Status Message -->
-                    <TextBlock Text="{Binding AnythingLLMStatusMessage}"
-                              FontSize="14"
-                              Foreground="{StaticResource Brush.Text.Secondary}"
-                              VerticalAlignment="Center"/>
-                </StackPanel>
-            </Border>
+                       Margin="0,0,0,25"/>
             
             <!-- Project management section -->
             <Border Background="{StaticResource Brush.Background.Menu.Selected}"

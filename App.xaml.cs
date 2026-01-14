@@ -75,6 +75,7 @@ namespace TestCaseEditorApp
                     // Requirement parsing - wrap with notification support
                     services.AddSingleton<RequirementService>(); // Core service
                     services.AddSingleton<IRequirementService, NotifyingRequirementService>(); // Wrapper with notifications
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.SmartRequirementImporter>(); // Smart importer with fallback logic
 
                     // File dialog helper used by the VM
                     services.AddSingleton<IFileDialogService, FileDialogService>();
@@ -291,6 +292,7 @@ namespace TestCaseEditorApp
                         var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
                         var notificationService = provider.GetRequiredService<NotificationService>();
                         var requirementService = provider.GetRequiredService<IRequirementService>();
+                        var smartImporter = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.SmartRequirementImporter>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
                         var workspaceValidationService = provider.GetRequiredService<IWorkspaceValidationService>();
                         var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
@@ -298,7 +300,7 @@ namespace TestCaseEditorApp
                         
                         return new NewProjectMediator(logger, uiCoordinator, persistenceService, 
                             fileDialogService, anythingLLMService, notificationService, requirementService,
-                            testCaseGenerationMediator, workspaceValidationService, performanceMonitor, eventReplay);
+                            smartImporter, testCaseGenerationMediator, workspaceValidationService, performanceMonitor, eventReplay);
                     });
 
                     // ViewModels and header VM

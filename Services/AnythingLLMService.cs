@@ -903,7 +903,14 @@ CRITICAL: The IMPROVED REQUIREMENT should use [brackets] when information is mis
                 TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Uploading optimization guide to workspace '{slug}'");
                 
                 // Get the optimization guide content
-                var guidePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Config", "ANYTHINGLM_OPTIMIZATION_GUIDE.md");
+                // In debug mode, BaseDirectory points to bin/Debug/net8.0-windows, so we need to go up to find Config
+                var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                var binParent = Directory.GetParent(baseDir); // bin folder
+                var outputParent = binParent?.Parent; // Debug folder parent
+                var projectRoot = outputParent?.Parent?.FullName; // Project root
+                var guidePath = !string.IsNullOrEmpty(projectRoot) 
+                    ? Path.Combine(projectRoot, "Config", "ANYTHINGLM_OPTIMIZATION_GUIDE.md")
+                    : Path.Combine(baseDir, "Config", "ANYTHINGLM_OPTIMIZATION_GUIDE.md");
                 
                 if (!File.Exists(guidePath))
                 {

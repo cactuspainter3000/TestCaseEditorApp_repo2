@@ -40,9 +40,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         public INavigationMediator CreateNavigationMediator()
         {
-            var loggerFactory = _applicationServices.LoggerFactory;
-            var logger = loggerFactory?.CreateLogger(typeof(NavigationMediator).FullName ?? "NavigationMediator");
-            return new NavigationMediator(logger);
+            // Use singleton NavigationMediator from DI container to ensure all components share the same instance
+            return App.ServiceProvider?.GetRequiredService<INavigationMediator>()
+                ?? throw new InvalidOperationException("NavigationMediator not found in DI container");
         }
 
         public IViewAreaCoordinator CreateViewAreaCoordinator()

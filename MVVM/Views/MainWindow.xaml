@@ -331,7 +331,7 @@
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type wmvm:NewProjectWorkflowViewModel}">
-            <wmviews:NewProjectWorkflowView />
+            <wmviews:NewProject_MainView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type wmvm:NewProjectHeaderViewModel}">

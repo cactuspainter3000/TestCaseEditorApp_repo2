@@ -45,6 +45,8 @@ namespace TestCaseEditorApp.Services
 
         public ViewConfiguration GetConfigurationForSection(string sectionName, object? context = null)
         {
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewConfigurationService] GetConfigurationForSection called with: '{sectionName}' (lowercase: '{sectionName?.ToLowerInvariant()}')");
+            
             return sectionName?.ToLowerInvariant() switch
             {
                 "startup" => CreateStartupConfiguration(context),
@@ -54,7 +56,9 @@ namespace TestCaseEditorApp.Services
                 "testcasecreation" or "test case creation" => CreateTestCaseCreationConfiguration(context),
                 "testflow" => CreateTestFlowConfiguration(context),
                 "import" => CreateImportConfiguration(context),
-                "newproject" => CreateNewProjectConfiguration(context),                "dummy" => CreateDummyConfiguration(context),                _ => CreateDefaultConfiguration(context)
+                "newproject" or "new project" => CreateNewProjectConfiguration(context),
+                "dummy" => CreateDummyConfiguration(context),
+                _ => CreateDefaultConfiguration(context)
             };
         }
 
@@ -343,17 +347,37 @@ namespace TestCaseEditorApp.Services
             
             try
             {
-                // Use actual NewProject domain ViewModels when they're ready
-                // For now, create a basic configuration that shows this is the New Project section
-                EnsureWorkspaceHeader();
+                // Use same shared views as Project domain (title, header, notification)
+                // Only the main content differs between Project and NewProject
+                EnsureTestCaseGeneratorHeader();
+                
+                // Get NewProjectWorkflowViewModel from DI container
+                TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Attempting to resolve NewProjectWorkflowViewModel from DI...");
+                var newProjectMainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel>();
+                object? mainContent = null;
+                
+                if (newProjectMainVM != null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] NewProjectWorkflowViewModel resolved successfully, creating view...");
+                    // Create the NewProject_MainView UserControl
+                    var newProjectMainView = new TestCaseEditorApp.MVVM.Domains.NewProject.Views.NewProject_MainView();
+                    newProjectMainView.DataContext = newProjectMainVM;
+                    mainContent = newProjectMainView;
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] NewProject_MainView created and DataContext set");
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] NewProjectWorkflowViewModel is NULL - using placeholder");
+                    mainContent = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("NewProjectWorkflowViewModel not found in DI container");
+                }
                 
                 return new ViewConfiguration(
                     sectionName: "New Project",
                     titleViewModel: EnsureTestCaseGeneratorTitle(),
-                    headerViewModel: _workspaceHeader,
-                    contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("New Project functionality coming soon..."),
+                    headerViewModel: _testCaseGeneratorHeader,
+                    contentViewModel: mainContent,
                     navigationViewModel: null,
-                    notificationViewModel: null,
+                    notificationViewModel: EnsureTestCaseGeneratorNotification(),
                     context: context
                 );
             }
@@ -374,6 +398,7 @@ namespace TestCaseEditorApp.Services
 
         private ViewConfiguration CreateDefaultConfiguration(object? context)
         {
+            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] CreateDefaultConfiguration called - falling back to startup configuration");
             // Use startup configuration as default for initial app state
             return CreateStartupConfiguration(context);
         }

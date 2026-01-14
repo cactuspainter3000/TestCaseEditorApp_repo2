@@ -109,12 +109,16 @@ namespace TestCaseEditorApp.MVVM.Utils
         public void Subscribe<T>(Action<T> handler) where T : class
         {
             var eventType = typeof(T);
+            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Subscribe<{eventType.Name}>: Subscribing handler ***");
+            
             var handlers = _subscribers.GetOrAdd(eventType, _ => new List<object>());
             
             lock (handlers)
             {
                 handlers.Add(handler);
             }
+            
+            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Subscribe<{eventType.Name}>: Total handlers now: {handlers.Count} ***");
             
             _logger?.LogTrace("Subscribed to {EventType}, total handlers: {Count}", 
                 eventType.Name, handlers.Count);
@@ -140,20 +144,29 @@ namespace TestCaseEditorApp.MVVM.Utils
         {
             var eventType = typeof(T);
             
+            // DEBUG: Add detailed diagnostic logging
+            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Checking for handlers ***");
+            
             if (!_subscribers.TryGetValue(eventType, out var handlers))
             {
                 _logger?.LogTrace("No handlers for {EventType}", eventType.Name);
                 return;
             }
             
+            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Found {handlers.Count} handlers ***");
+            
+            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Found {handlers.Count} handlers ***");
+
             List<object> handlersCopy;
             lock (handlers)
             {
                 handlersCopy = new List<object>(handlers);
             }
-            
+
             _logger?.LogTrace("Publishing {EventType} to {Count} handlers", 
                 eventType.Name, handlersCopy.Count);
+
+            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Invoking {handlersCopy.Count} handlers ***");
             
             foreach (var handler in handlersCopy)
             {
@@ -161,11 +174,18 @@ namespace TestCaseEditorApp.MVVM.Utils
                 {
                     if (handler is Action<T> typedHandler)
                     {
+                        System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Invoking handler ***");
                         typedHandler(navigationEvent);
+                        System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Handler completed ***");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Handler type mismatch! ***");
                     }
                 }
                 catch (Exception ex)
                 {
+                    System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Handler threw exception: {ex.Message} ***");
                     _logger?.LogError(ex, "Error handling {EventType}", eventType.Name);
                 }
             }
