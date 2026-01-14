@@ -230,7 +230,7 @@
         </DockPanel>
 
         <!-- support content area -->
-        <Border Grid.Row="1" Background="Transparent" CornerRadius="6" Padding="8" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
+        <Border Grid.Row="1" Background="Transparent" CornerRadius="6" Padding="8">
             <ContentControl Content="{Binding}">
                 <ContentControl.Style>
                     <Style TargetType="ContentControl">

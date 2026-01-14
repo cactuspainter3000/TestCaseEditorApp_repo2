@@ -6,9 +6,8 @@
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="600">
     
-    <!-- Green border for Main workspace -->
-    <Border BorderBrush="Green" BorderThickness="2" Background="Transparent" Padding="5">
-        <Grid>
+    <!-- Main workspace content -->
+    <Grid>
             <Border Background="{StaticResource Brush.Background.Menu}" 
                     BorderBrush="{StaticResource CardBorderBrush}" 
                     BorderThickness="1" 
@@ -49,6 +48,5 @@
                     
                 </StackPanel>
             </Border>
-        </Grid>
-    </Border>
+    </Grid>
 </UserControl>
