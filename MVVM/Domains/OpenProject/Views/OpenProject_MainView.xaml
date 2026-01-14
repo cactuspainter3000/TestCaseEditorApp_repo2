@@ -24,71 +24,73 @@
 
             <!-- Step 1: Select Project File -->
             <StackPanel Grid.Row="0" Margin="0,0,0,15">
-                <TextBlock Text="Select Project File" 
+                <TextBlock Text="Search" 
                            FontSize="18" 
                            FontWeight="SemiBold" 
                            Foreground="DarkOrange" 
                            Margin="0,0,0,8"/>
+                
+                <DockPanel Margin="0,0,0,8">
+                    <Button DockPanel.Dock="Right" 
+                            Style="{StaticResource ActionButton}"
+                            FontSize="11"
+                            FontWeight="SemiBold"
+                            Height="32"
+                            Width="50"
+                            Margin="10,0,0,0"
+                            VerticalAlignment="Bottom"
+                            Command="{Binding SelectProjectFileCommand}"
+                            IsEnabled="{Binding IsLoadingProject, Converter={StaticResource InvertBoolConverter}}">
+                        <TextBlock Text="Open">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="#CCCCCC"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsMainOpenButtonActive}" Value="True">
+                                            <Setter Property="Foreground" Value="DarkOrange"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Button>
 
-                <Border Background="Transparent" 
-                        CornerRadius="8" 
-                        Padding="15" 
-                        BorderThickness="2">
-                    <Border.Style>
-                        <Style TargetType="Border">
-                            <Setter Property="BorderBrush" Value="#444444"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsProjectSelected}" Value="True">
-                                    <Setter Property="BorderBrush" Value="DarkOrange"/>
-                                    <Setter Property="Background" Value="#3A3A3A"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Border.Style>
-                    <Grid>
-                        <StackPanel>
-                            <TextBlock Text="Choose a Test Case Editor project file (.tcex.json) to open." 
-                                       Foreground="#CCCCCC" 
-                                       TextWrapping="Wrap" 
-                                       Margin="0,0,0,15"
-                                       LineHeight="20"/>
-
-                            <DockPanel Margin="0,0,0,10">
-                                <Button DockPanel.Dock="Right" 
-                                        Style="{StaticResource ActionButton}"
-                                        Margin="10,0,0,0"
-                                        Command="{Binding SelectProjectFileCommand}"
-                                        IsEnabled="{Binding IsLoadingProject, Converter={StaticResource InvertBoolConverter}}">
-                                    <TextBlock>
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Text" Value="Browse..."/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsProjectSelected}" Value="True">
-                                                        <Setter Property="Text" Value="✅ Selected"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding IsLoadingProject}" Value="True">
-                                                        <Setter Property="Text" Value="Loading..."/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </Button>
-
-                                <Border Background="#444444" 
-                                        CornerRadius="4" 
-                                        Padding="12,8"
-                                        BorderBrush="#555555"
-                                        BorderThickness="1">
-                                    <TextBlock Text="{Binding SelectedProjectPath, FallbackValue='No project selected'}" 
-                                               Foreground="#CCCCCC"
-                                               VerticalAlignment="Center"/>
-                                </Border>
-                            </DockPanel>
+                    <Border Background="Transparent" 
+                            CornerRadius="4" 
+                            Padding="12,8"
+                            BorderBrush="#555555"
+                            BorderThickness="1"
+                            Height="56">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#4A4A4A"/>
+                                        <Setter Property="BorderBrush" Value="DarkOrange"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{Binding ProjectName, FallbackValue='No project selected'}" 
+                                       Foreground="White"
+                                       FontWeight="SemiBold"
+                                       FontSize="14"
+                                       Margin="0,0,0,3"/>
+                            <TextBlock Foreground="#999999" FontSize="10"
+                                       Visibility="{Binding IsProjectSelected, Converter={StaticResource BoolToVis}}">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0} requirements | {1}% analyzed | {2}% assigned test cases">
+                                        <Binding Path="RequirementCount" FallbackValue="0"/>
+                                        <Binding Path="AnalyzedPercentage" FallbackValue="0"/>
+                                        <Binding Path="TestCasesPercentage" FallbackValue="0"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
                         </StackPanel>
-                    </Grid>
-                </Border>
+                    </Border>
+                </DockPanel>
             </StackPanel>
 
             <!-- Step 2: Recent Projects -->
@@ -101,105 +103,79 @@
                            Foreground="DarkOrange" 
                            Margin="0,0,0,8"/>
 
-                <Border Background="Transparent" 
-                        CornerRadius="8" 
-                        Padding="15" 
-                        BorderThickness="2"
-                        BorderBrush="#444444">
-                    <StackPanel>
-                        <TextBlock Text="Quick access to recently opened projects." 
-                                   Foreground="#CCCCCC" 
-                                   TextWrapping="Wrap" 
-                                   Margin="0,0,0,15"
-                                   LineHeight="20"/>
+                <StackPanel>
                         
                         <ItemsControl ItemsSource="{Binding RecentProjects}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="#444444" 
-                                            CornerRadius="4" 
-                                            Margin="0,0,0,8"
-                                            BorderBrush="#555555"
-                                            BorderThickness="1">
-                                        <Border.Style>
-                                            <Style TargetType="Border">
-                                                <Style.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Background" Value="#4A4A4A"/>
-                                                        <Setter Property="BorderBrush" Value="DarkOrange"/>
-                                                    </Trigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        
-                                        <Button Background="Transparent"
-                                                BorderThickness="0"
-                                                Padding="12,8"
-                                                HorizontalAlignment="Stretch"
-                                                HorizontalContentAlignment="Stretch"
+                                    <DockPanel Margin="0,0,0,8">
+                                        <Button DockPanel.Dock="Right" 
+                                                Style="{StaticResource ActionButton}"
+                                                FontSize="11"
+                                                FontWeight="SemiBold"
+                                                Height="32"
+                                                Width="50"
+                                                Margin="10,0,0,0"
+                                                VerticalAlignment="Bottom"
                                                 Command="{Binding DataContext.OpenRecentProjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}">
-                                            <Button.Style>
-                                                <Style TargetType="Button">
-                                                    <Setter Property="Template">
-                                                        <Setter.Value>
-                                                            <ControlTemplate TargetType="Button">
-                                                                <Border Background="{TemplateBinding Background}">
-                                                                    <ContentPresenter/>
-                                                                </Border>
-                                                            </ControlTemplate>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                </Style>
-                                            </Button.Style>
-                                            
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                
-                                                <!-- Project Info -->
-                                                <StackPanel Grid.Column="0">
-                                                    <TextBlock Text="{Binding DisplayName}" 
-                                                               Foreground="White" 
-                                                               FontWeight="SemiBold"
-                                                               FontSize="14"
-                                                               Margin="0,0,0,3"/>
-                                                    <TextBlock Text="{Binding FilePath}" 
-                                                               Foreground="#CCCCCC" 
-                                                               FontSize="11"
-                                                               TextTrimming="CharacterEllipsis"/>
-                                                </StackPanel>
-                                                
-                                                <!-- Time & Open -->
-                                                <StackPanel Grid.Column="1" 
-                                                            VerticalAlignment="Center"
-                                                            Margin="15,0,10,0">
-                                                    <TextBlock Text="{Binding RelativeTime}" 
-                                                               Foreground="#CCCCCC" 
-                                                               FontSize="11"
-                                                               HorizontalAlignment="Right"/>
-                                                </StackPanel>
-                                                
-                                                <Border Grid.Column="2"
-                                                        Background="DarkOrange"
-                                                        CornerRadius="3"
-                                                        Padding="8,4">
-                                                    <TextBlock Text="Open" 
-                                                               Foreground="White" 
-                                                               FontSize="11"
-                                                               FontWeight="SemiBold"/>
-                                                </Border>
-                                            </Grid>
+                                            <TextBlock Text="Open">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="#CCCCCC"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsActiveProject}" Value="True">
+                                                                <Setter Property="Foreground" Value="DarkOrange"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
                                         </Button>
-                                    </Border>
+                                        
+                                        <Border Background="Transparent" 
+                                                CornerRadius="4" 
+                                                Padding="12,8"
+                                                BorderBrush="#555555"
+                                                BorderThickness="1">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#4A4A4A"/>
+                                                            <Setter Property="BorderBrush" Value="DarkOrange"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding DisplayName}" 
+                                                           Foreground="White" 
+                                                           FontWeight="SemiBold"
+                                                           FontSize="14"
+                                                           Margin="0,0,0,3"/>
+                                                
+                                                <!-- Metadata -->
+                                                <TextBlock Margin="0,0,0,5"
+                                                           Foreground="#999999" 
+                                                           FontSize="10">
+                                                    <Run Text="{Binding RequirementsCount, FallbackValue='0', Mode=OneWay}"/>
+                                                    <Run Text="requirements"/>
+                                                    <Run Text=" | "/>
+                                                    <Run Text="{Binding AnalyzedPercentage, FallbackValue='0', Mode=OneWay}"/>
+                                                    <Run Text="% analyzed"/>
+                                                    <Run Text=" | "/>
+                                                    <Run Text="{Binding TestCasesPercentage, FallbackValue='0', Mode=OneWay}"/>
+                                                    <Run Text="% assigned test cases"/>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </Border>
+                                    </DockPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </StackPanel>
-                </Border>
             </StackPanel>
         </Grid>
     </ScrollViewer>

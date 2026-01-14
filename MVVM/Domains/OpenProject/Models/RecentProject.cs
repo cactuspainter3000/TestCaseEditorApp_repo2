@@ -1,8 +1,9 @@
 using System;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Models
 {
-    public class RecentProject
+    public partial class RecentProject : ObservableObject
     {
         public string FilePath { get; set; } = "";
         public string ProjectName { get; set; } = "";
@@ -21,9 +22,9 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Models
         public int AnalyzedPercentage => RequirementsCount > 0 ? (int)Math.Round((double)AnalyzedCount / RequirementsCount * 100) : 0;
         public int TestCasesPercentage => RequirementsCount > 0 ? (int)Math.Round((double)TestCasesGeneratedCount / RequirementsCount * 100) : 0;
         
-        public bool IsComplete => RequirementsCount > 0 && TestCasesGeneratedCount == RequirementsCount;
-        public bool IsInProgress => RequirementsCount > 0 && (AnalyzedCount > 0 || TestCasesGeneratedCount > 0) && !IsComplete;
-        public bool IsNotStarted => RequirementsCount > 0 && AnalyzedCount == 0 && TestCasesGeneratedCount == 0;
+        // UI State - needs to be set from ViewModel
+        [ObservableProperty]
+        private bool isActiveProject = false;
         
         private static string GetRelativeTime(DateTime dateTime)
         {
