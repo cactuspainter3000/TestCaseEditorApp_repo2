@@ -4,6 +4,15 @@
 
 ---
 
+## 🚨 CRITICAL DOMAIN VIEW RULE
+
+**⚠️ FOR ANY DOMAIN VIEW CREATION**: 
+- **NEVER CREATE CUSTOM VIEWS** - Always copy authentic views from TestCaseGeneration domain
+- **Follow Domain View Creation Chain** (see section below) - Missing steps cause build failures
+- **TestCaseGeneration is the reference implementation** - All domains copy from this source
+
+---
+
 ## 🎯 FAIL-FAST ARCHITECTURE PRINCIPLES
 
 | **Principle** | **Implementation** | **Enforcement** |
@@ -42,11 +51,14 @@
 │   ├── Constructor: `(I{Domain}Mediator mediator, ILogger<VM> logger)`
 │   └── Register: App.xaml.cs `services.AddTransient<VM>()`
 │
-├── 🖥️ **View Registration** (REQUIRED FOR UI)
-│   ├── Create: `/MVVM/Domains/{Domain}/Views/{Domain}_{Purpose}View.xaml`
-│   ├── DataTemplate: Add to App.xaml or ResourceDictionary
-│   ├── Naming: `<DataTemplate DataType="{x:Type vm:{Domain}_{Purpose}VM}">`
-│   └── Validate: App.xaml.Resources.MergedDictionaries includes view
+├── 🖥️ **View Creation** (REQUIRED FOR DOMAIN UI)
+│   ├── **NEVER CREATE CUSTOM VIEWS** - Always copy from TestCaseGeneration
+│   ├── Source: Find equivalent in `/MVVM/Domains/TestCaseGeneration/Views/`
+│   ├── Copy: Both `.xaml` and `.xaml.cs` files to new domain
+│   ├── Update: All namespace and class references to new domain
+│   ├── Analyze: `grep` copied XAML for ALL property bindings
+│   ├── Match: Ensure ViewModel has every property referenced in XAML
+│   └── Validate: Build with zero errors before proceeding
 │
 ├── 🔄 **Event Subscriptions** (IF NEEDED)
 │   ├── Subscribe: In ViewModel constructor via mediator
@@ -57,6 +69,49 @@
     ├── Create: Converter classes implementing IValueConverter
     ├── Register: App.xaml `<conv:ConverterName x:Key="ConverterKey" />`
     └── Reference: View uses `{StaticResource ConverterKey}`
+```
+
+### **Domain View Creation Chain** ⭐ **CRITICAL PATTERN**
+```
+🏗️ New Domain Views Request
+│
+├── 🔍 **Source Discovery** (MANDATORY FIRST STEP)
+│   ├── Identify: Equivalent views in TestCaseGeneration domain
+│   ├── Pattern: `TestCaseGeneratorRequirements_View.xaml` → `{Domain}MainView.xaml`
+│   ├── Pattern: `TestCaseGenerator_NavigationControl.xaml` → `{Domain}NavigationView.xaml`
+│   └── **NEVER**: Create custom views from scratch
+│
+├── 📋 **File Copying** (EXACT DUPLICATION)
+│   ├── Copy: Both `.xaml` and `.xaml.cs` files
+│   ├── Rename: To match domain naming convention
+│   ├── Update: All namespace declarations
+│   ├── Update: All class names and references
+│   └── Clean: Remove any domain-specific event handlers
+│
+├── 🔍 **Property Analysis** (PREVENT BUILD FAILURES)
+│   ├── Command: `grep -r "Binding.*}" {copied}.xaml`
+│   ├── Extract: ALL property names referenced in XAML
+│   ├── List: Every binding, including UI-specific properties
+│   └── Document: Required properties for ViewModel
+│
+├── 🎯 **ViewModel Creation** (COMPLETE PROPERTY MATCHING)
+│   ├── Inherit: `BaseDomainViewModel`
+│   ├── Add: ALL properties found in XAML analysis
+│   ├── Include: UI-specific properties (RequirementsDropdown, etc.)
+│   ├── Constructor: `(I{Domain}Mediator mediator, ILogger<VM> logger)`
+│   └── Initialize: Any complex properties in constructor
+│
+├── 🔗 **Registration Chain** (COMPLETE 4-STEP PROCESS)
+│   ├── DI: `App.xaml.cs` - `services.AddTransient<ViewModel>()`
+│   ├── DataTemplate: `MainWindow.xaml` - ViewModel to View mapping
+│   ├── ViewConfig: `ViewConfigurationService` - include in workspace method
+│   └── Using: Add all required namespace references
+│
+└── ✅ **Validation** (ZERO-TOLERANCE)
+    ├── Build: Must succeed with 0 errors
+    ├── Properties: All XAML bindings have matching ViewModel properties
+    ├── Navigation: Test workspace switching renders correctly
+    └── Clean: No duplicate or backup files exist
 ```
 
 ### **Cross-Domain Communication Chain**
@@ -568,6 +623,7 @@ private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected 
 - [ ] **Trace Dependencies**: Follow complete implementation chain  
 - [ ] **Check Broadcasts**: Does HandleBroadcastNotification already handle this?
 - [ ] **Validate Complexity**: If complex, look for simpler existing patterns
+- [ ] **FOR DOMAIN VIEWS**: Always find TestCaseGeneration equivalent first
 
 ### **For New ViewModel**
 - [ ] Inherit from `BaseDomainViewModel`
@@ -575,6 +631,14 @@ private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected 
 - [ ] Register in App.xaml.cs: `services.AddTransient<VM>()`
 - [ ] Create DataTemplate with correct DataType
 - [ ] Add ResourceDictionary to App.xaml if new file
+
+### **For Domain View Creation (FOLLOW CHAIN ABOVE)**
+- [ ] **Find Source**: Identify TestCaseGeneration equivalent view
+- [ ] **Copy Files**: Both .xaml and .xaml.cs to new domain
+- [ ] **Analyze XAML**: `grep` for ALL property bindings before creating ViewModel
+- [ ] **Match Properties**: Ensure ViewModel has every property referenced in XAML
+- [ ] **Complete Chain**: DI → DataTemplate → ViewConfig → Using statements
+- [ ] **Validate Build**: Zero errors required before testing UI
 
 ### **For Cross-Domain Communication**
 - [ ] Search for existing `HandleBroadcastNotification` patterns
