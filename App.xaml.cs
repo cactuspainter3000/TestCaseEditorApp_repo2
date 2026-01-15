@@ -285,6 +285,7 @@ namespace TestCaseEditorApp
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NotificationViewModel>();
                     
                     // Project domain ViewModels
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Project.ViewModels.Project_MainViewModel>();

@@ -205,6 +205,10 @@
             <reqviews:RequirementsNavigationView />
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type reqvm:Requirements_NotificationViewModel}">
+            <reqviews:RequirementsNotificationView />
+        </DataTemplate>
+
         <DataTemplate DataType="{x:Type vm:LLMLearningViewModel}">
             <views:LLMLearningView />
         </DataTemplate>
