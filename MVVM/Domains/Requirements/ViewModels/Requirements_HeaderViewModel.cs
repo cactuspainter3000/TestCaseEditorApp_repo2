@@ -39,6 +39,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         [ObservableProperty]
         private string analysisProgress = "0%";
 
+        [ObservableProperty]
+        private string requirementDescription = "Requirements management workspace";
+
         // Workspace management properties
         [ObservableProperty]
         private string? workspaceFilePath;
