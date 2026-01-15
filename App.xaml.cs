@@ -284,6 +284,7 @@ namespace TestCaseEditorApp
                     // Requirements domain ViewModels
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>();
                     
                     // Project domain ViewModels
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Project.ViewModels.Project_MainViewModel>();
@@ -483,6 +484,10 @@ namespace TestCaseEditorApp
                 // Mark Dummy mediator as registered for testing
                 var dummyMediator = _host.Services.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Dummy.Mediators.IDummyMediator>();
                 dummyMediator.MarkAsRegistered();
+                
+                // Mark Requirements mediator as registered for requirements domain
+                var requirementsMediator = _host.Services.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
+                requirementsMediator.MarkAsRegistered();
                 
                 // Mark Startup mediator as registered for startup domain
                 var startupMediator = _host.Services.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Startup.Mediators.IStartupMediator>();

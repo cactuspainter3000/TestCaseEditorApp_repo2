@@ -13,6 +13,8 @@
         xmlns:wmviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.Views"
         xmlns:dummyvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels"
         xmlns:dummyviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Dummy.Views"
+        xmlns:reqvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels"
+        xmlns:reqviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.Views"
         xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models"
         xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
         Height="665" Width="1200"
@@ -191,12 +193,16 @@
             <views:ProjectView />
         </DataTemplate>-->
 
-        <DataTemplate DataType="{x:Type tcgvm:RequirementsViewModel}">
-            <views:RequirementsView />
+        <DataTemplate DataType="{x:Type reqvm:Requirements_MainViewModel}">
+            <reqviews:RequirementsMainView />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type tcgvm:RequirementsWorkspaceViewModel}">
-            <tcgviews:RequirementsWorkspaceView />
+        <DataTemplate DataType="{x:Type reqvm:Requirements_HeaderViewModel}">
+            <reqviews:RequirementsHeaderView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type reqvm:Requirements_NavigationViewModel}">
+            <reqviews:RequirementsNavigationView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:LLMLearningViewModel}">

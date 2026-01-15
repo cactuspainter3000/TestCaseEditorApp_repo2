@@ -211,4 +211,94 @@ namespace TestCaseEditorApp.Converters
             return value is bool b ? !b : false;
         }
     }
+
+    /// <summary>
+    /// Converts analysis status to color for display
+    /// </summary>
+    public class AnalysisStatusToColorConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value == null) return "#E0E0E0"; // Gray for null/unanalyzed
+            
+            var status = value.ToString();
+            return status switch
+            {
+                "Analyzed" => "#4CAF50", // Green
+                "Complete" => "#4CAF50", // Green
+                "Pending" => "#FF9800", // Orange
+                "In Progress" => "#2196F3", // Blue
+                "Failed" => "#F44336", // Red
+                "Error" => "#F44336", // Red
+                _ => "#E0E0E0" // Gray for unknown
+            };
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Converts analysis status to display text
+    /// </summary>
+    public class AnalysisStatusToTextConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value == null) return "Not Analyzed";
+            
+            var status = value.ToString();
+            return status switch
+            {
+                "Analyzed" => "Analyzed",
+                "Complete" => "Complete",
+                "Pending" => "Pending",
+                "In Progress" => "In Progress",
+                "Failed" => "Failed",
+                "Error" => "Error",
+                _ => "Unknown"
+            };
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Converts progress value to width for progress bar visualization
+    /// </summary>
+    public class ProgressToWidthConverter : IMultiValueConverter
+    {
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (values.Length >= 2 && values[0] is int current && values[1] is int total && total > 0)
+            {
+                var percentage = (double)current / total;
+                // Assume a base width of 200 pixels for the progress bar
+                return percentage * 200.0;
+            }
+            return 0.0;
+        }
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Converts boolean to status color (green for true, red for false)
+    /// </summary>
+    public class BoolToStatusColorConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool boolValue)
+            {
+                return boolValue ? "#27AE60" : "#E74C3C"; // Green for true, red for false
+            }
+            return "#95A5A6"; // Gray for null/unknown
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
+    }
 }

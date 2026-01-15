@@ -137,28 +137,23 @@ namespace TestCaseEditorApp.Services
 
         private ViewConfiguration CreateRequirementsConfiguration(object? context)
         {
-            // Use Requirements domain ViewModels following AI Guide patterns
+            // Use Requirements domain ViewModels following AI Guide patterns (same as Dummy)
             var headerVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>();
             var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>();
+            var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>();
             var notificationVM = App.ServiceProvider?.GetService<NotificationAreaViewModel>();
             
             if (headerVM == null) throw new InvalidOperationException("Requirements_HeaderViewModel not registered in DI container");
             if (mainVM == null) throw new InvalidOperationException("Requirements_MainViewModel not registered in DI container");
+            if (navigationVM == null) throw new InvalidOperationException("Requirements_NavigationViewModel not registered in DI container");
             
-            // Create the main view UserControl and set DataContext
-            object? mainContent = null;
-            if (mainVM != null)
-            {
-                var mainControl = new TestCaseEditorApp.MVVM.Domains.Requirements.Views.RequirementsMainView();
-                mainControl.DataContext = mainVM;
-                mainContent = mainControl;
-            }
-
+            // Return ViewModels directly (same pattern as Dummy domain) - no manual UserControl creation
             return new ViewConfiguration(
                 sectionName: "Requirements",
                 titleViewModel: null, // TODO: Create Requirements_TitleViewModel when needed
-                headerViewModel: headerVM,
-                contentViewModel: mainContent ?? mainVM,
+                headerViewModel: headerVM,        // ViewModel, not UserControl - DataTemplate will handle rendering
+                contentViewModel: mainVM,         // ViewModel, not UserControl - DataTemplate will handle rendering
+                navigationViewModel: navigationVM, // ViewModel, not UserControl - DataTemplate will handle rendering
                 notificationViewModel: notificationVM,
                 context: context
             );

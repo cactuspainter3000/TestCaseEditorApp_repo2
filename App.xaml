@@ -21,6 +21,12 @@
             <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
             <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" CollapseWhenFalse="True" />
             <conv:InvertedBoolToVisibilityConverter x:Key="InvertedBoolToVis" />
+            <conv:AddOneConverter x:Key="AddOneConverter" />
+            <conv:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+            <conv:AnalysisStatusToColorConverter x:Key="AnalysisStatusToColorConverter" />
+            <conv:AnalysisStatusToTextConverter x:Key="AnalysisStatusToTextConverter" />
+            <conv:ProgressToWidthConverter x:Key="ProgressToWidthConverter" />
+            <conv:BoolToStatusColorConverter x:Key="BoolToStatusColorConverter" />
 
             <ResourceDictionary.MergedDictionaries>
                 <!-- ===================================== -->

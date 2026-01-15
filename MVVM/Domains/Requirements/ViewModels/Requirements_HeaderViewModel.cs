@@ -1,10 +1,14 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Events;
+using TestCaseEditorApp.MVVM.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 {
@@ -13,10 +17,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
     /// Provides contextual header information and quick stats.
     /// Following architectural guide patterns for header ViewModels.
     /// </summary>
-    public partial class Requirements_HeaderViewModel : ObservableObject
+    public partial class Requirements_HeaderViewModel : BaseDomainViewModel
     {
-        private readonly IRequirementsMediator _mediator;
-        private readonly ILogger<Requirements_HeaderViewModel> _logger;
+        private new readonly IRequirementsMediator _mediator;
 
         [ObservableProperty]
         private int totalRequirements;
@@ -36,12 +39,32 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         [ObservableProperty]
         private string analysisProgress = "0%";
 
+        // Workspace management properties
+        [ObservableProperty]
+        private string? workspaceFilePath;
+
+        [ObservableProperty]
+        private System.DateTime? lastSaveTimestamp;
+
+        [ObservableProperty]
+        private bool isDirty;
+
+        [ObservableProperty]
+        private bool canUndoLastSave;
+
+        public ICommand SaveWorkspaceCommand { get; }
+        public ICommand UndoLastSaveCommand { get; }
+
         public Requirements_HeaderViewModel(
             IRequirementsMediator mediator,
             ILogger<Requirements_HeaderViewModel> logger)
+            : base(mediator, logger)
         {
             _mediator = mediator ?? throw new System.ArgumentNullException(nameof(mediator));
-            _logger = logger ?? throw new System.ArgumentNullException(nameof(logger));
+
+            // Initialize workspace commands
+            SaveWorkspaceCommand = new RelayCommand(SaveWorkspace, () => IsDirty);
+            UndoLastSaveCommand = new RelayCommand(UndoLastSave, () => CanUndoLastSave);
 
             // Subscribe to requirements events for real-time updates
             _mediator.Subscribe<RequirementsEvents.RequirementsImported>(OnRequirementsImported);
@@ -135,5 +158,43 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 OnPropertyChanged(nameof(AnalysisStatus));
             }
         }
+
+        // Workspace management methods
+        private void SaveWorkspace()
+        {
+            // TODO: Implement save workspace functionality
+            LastSaveTimestamp = System.DateTime.Now;
+            IsDirty = false;
+            CanUndoLastSave = true;
+        }
+
+        private void UndoLastSave()
+        {
+            // TODO: Implement undo last save functionality
+            CanUndoLastSave = false;
+        }
+
+        // Abstract method implementations from BaseDomainViewModel
+        protected override async Task SaveAsync()
+        {
+            SaveWorkspace();
+            await Task.CompletedTask;
+        }
+
+        protected override void Cancel()
+        {
+            // Reset any unsaved changes
+            IsDirty = false;
+        }
+
+        protected override async Task RefreshAsync()
+        {
+            // Refresh requirements data
+            await Task.CompletedTask;
+        }
+
+        protected override bool CanSave() => IsDirty && !IsBusy;
+        protected override bool CanCancel() => IsDirty;
+        protected override bool CanRefresh() => !IsBusy;
     }
 }

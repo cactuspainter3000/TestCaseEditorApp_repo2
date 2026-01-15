@@ -26,6 +26,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// </summary>
         void PublishEvent<T>(T eventData) where T : class;
 
+        /// <summary>
+        /// Mark mediator as registered and ready
+        /// </summary>
+        void MarkAsRegistered();
+
         // ===== STATE PROPERTIES =====
 
         /// <summary>

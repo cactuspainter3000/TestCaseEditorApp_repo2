@@ -801,6 +801,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             base.PublishEvent(eventData);
         }
 
+        public new void MarkAsRegistered()
+        {
+            base.MarkAsRegistered();
+        }
+
         // ===== REQUIRED ABSTRACT METHOD IMPLEMENTATIONS =====
 
         public override void NavigateToInitialStep()
