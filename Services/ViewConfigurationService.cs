@@ -436,8 +436,8 @@ namespace TestCaseEditorApp.Services
                     mainContent = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("OpenProjectWorkflowViewModel not found in DI container");
                 }
                 
-                // Get Requirements navigation ViewModel for OpenProject section navigation workspace
-                var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>();
+                // Get TestCaseGenerator navigation ViewModel for OpenProject section navigation workspace
+                var navigationVM = App.ServiceProvider?.GetService<TestCaseGenerator_NavigationVM>();
                 
                 return new ViewConfiguration(
                     sectionName: "Open Project",
