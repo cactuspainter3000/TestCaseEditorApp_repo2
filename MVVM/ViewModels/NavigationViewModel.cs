@@ -16,8 +16,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 {
     public partial class NavigationViewModel : ObservableObject
     {
-        private readonly ITestCaseGenerationMediator _mediator;
-        private readonly ILogger<NavigationViewModel> _logger;
+        private readonly ITestCaseGenerationMediator? _mediator;
+        private readonly ILogger<NavigationViewModel>? _logger;
 
         [ObservableProperty]
         private MenuAction? requirementsDropdown;

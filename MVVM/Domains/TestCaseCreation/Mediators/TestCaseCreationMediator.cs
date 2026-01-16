@@ -114,8 +114,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators
                 _logger.LogError(ex, "Failed to create test case");
                 throw;
             }
-            
-            await Task.CompletedTask;
         }
 
         /// <summary>
@@ -232,8 +230,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators
                 _logger.LogError(ex, "Failed to load test cases from requirement {RequirementId}", requirement.GlobalId);
                 throw;
             }
-            
-            await Task.CompletedTask;
         }
 
         // === EXTERNAL COMMANDS ===

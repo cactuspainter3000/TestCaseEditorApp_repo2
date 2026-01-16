@@ -156,6 +156,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 
                 StatusMessage = "Requirements saved successfully";
                 _logger.LogInformation("Requirements saved successfully via domain mediator");
+                await Task.CompletedTask;
             }
             catch (Exception ex)
             {
@@ -190,6 +191,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 
                 StatusMessage = "Requirements refreshed successfully";
                 _logger.LogInformation("Requirements refreshed via domain mediator");
+                await Task.CompletedTask;
             }
             catch (Exception ex)
             {

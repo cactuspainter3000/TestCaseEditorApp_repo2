@@ -29,8 +29,6 @@ namespace TestCaseEditorApp.Services
         private TestCaseGenerator_HeaderVM? _testCaseGeneratorHeader;
         private TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel? _testCaseGeneratorNotification;
         private object? _projectContent;
-        private object? _requirementsContent;
-        private object? _testCaseGeneratorContent;
         private object? _testCaseCreationContent;
         
         public ViewConfiguration? CurrentConfiguration { get; private set; }

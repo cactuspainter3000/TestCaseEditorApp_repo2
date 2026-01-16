@@ -58,6 +58,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         protected override async Task SaveAsync()
         {
             // No save functionality needed for notifications
+            await Task.CompletedTask;
         }
 
         protected override void Cancel()
@@ -69,6 +70,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             LastUpdated = DateTime.Now;
             SharedMessage = "Status refreshed...";
+            await Task.CompletedTask;
         }
 
         protected override bool CanSave()

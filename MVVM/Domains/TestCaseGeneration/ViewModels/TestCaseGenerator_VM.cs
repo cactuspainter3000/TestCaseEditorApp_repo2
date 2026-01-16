@@ -180,7 +180,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             // Update local requirements collection
             var beforeCount = _requirements.Count;
             _requirements.Clear();
-            foreach (var req in e.AffectedRequirements)
+            foreach (var req in e.AffectedRequirements ?? Enumerable.Empty<Requirement>())
             {
                 _requirements.Add(req);
             }

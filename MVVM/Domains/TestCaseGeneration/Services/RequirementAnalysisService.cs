@@ -203,7 +203,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 if (ragResult.success)
                 {
                     System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Using RAG response, length: {ragResult.response?.Length ?? 0}");
-                    response = ragResult.response;
+                    response = ragResult.response ?? throw new InvalidOperationException("RAG analysis succeeded but returned null response");
                 }
                 // Use AnythingLLM with workspace-configured system prompt (avoids sending ~793 lines per request)
                 else if (_llmService is AnythingLLMService anythingLlmService)
@@ -254,6 +254,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 
                 // Parse response using parser manager
                 var analysis = _parserManager.ParseResponse(reflectedResponse, requirement.Item ?? "UNKNOWN");
+                
+                // Check if parsing was successful
+                if (analysis == null)
+                {
+                    return CreateErrorAnalysis("Failed to parse LLM response");
+                }
 
                 // Set timestamp and cache if enabled
                 analysis.Timestamp = DateTime.Now;

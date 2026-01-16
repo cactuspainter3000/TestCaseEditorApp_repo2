@@ -18,8 +18,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Project.Mediators
         private readonly IPersistenceService? _persistenceService;
         private readonly AnythingLLMService? _llmService;
         private readonly Dictionary<Type, List<Delegate>> _subscriptions;
-        private bool _isRegistered = false;
         private ProjectStatus _currentStatus;
+        private bool _isRegistered;
+
+        /// <summary>
+        /// Whether this mediator has been marked as registered and ready
+        /// </summary>
+        public bool IsRegistered => _isRegistered;
         
         public ProjectMediator(
             ILogger<ProjectMediator> logger,

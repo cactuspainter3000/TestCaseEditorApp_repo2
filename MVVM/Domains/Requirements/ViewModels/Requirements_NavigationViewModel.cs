@@ -48,14 +48,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             
             // Initialize navigation commands
-            ImportCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(async () => await ImportRequirementsAsync());
-            ExportCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(async () => await ExportRequirementsAsync());
-            AnalyzeCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(async () => await AnalyzeRequirementsAsync());
+            ImportCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(ImportRequirements);
+            ExportCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(ExportRequirements);
+            AnalyzeCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(AnalyzeRequirements);
             
             InitializeRequirementsDropdown();
         }
         
-        private async Task ImportRequirementsAsync()
+        private void ImportRequirements()
         {
             try
             {
@@ -69,7 +69,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
         }
         
-        private async Task ExportRequirementsAsync()
+        private void ExportRequirements()
         {
             try
             {
@@ -83,7 +83,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
         }
         
-        private async Task AnalyzeRequirementsAsync()
+        private void AnalyzeRequirements()
         {
             try
             {
@@ -101,6 +101,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         protected override async Task SaveAsync()
         {
             // Save navigation state if needed
+            await Task.CompletedTask;
         }
 
         protected override void Cancel()
@@ -113,6 +114,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             CurrentStep = "Requirements Overview";
             LastUpdated = DateTime.Now;
             SharedMessage = "Ready for requirements management...";
+            await Task.CompletedTask;
         }
 
         protected override bool CanSave()

@@ -166,7 +166,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             
             return new TestCaseGenerator_NavigationVM(
                 _testCaseGenerationMediator,
-                _applicationServices.LoggerFactory?.CreateLogger<TestCaseGenerator_NavigationVM>());
+                _applicationServices.LoggerFactory?.CreateLogger<TestCaseGenerator_NavigationVM>() ?? 
+                    throw new InvalidOperationException("Logger is required for TestCaseGenerator_NavigationVM"));
         }
         
         public object CreateProjectViewModel()
@@ -196,7 +197,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 _applicationServices.FileDialogService,
                 _applicationServices.ChatGptExportService,
                 _applicationServices.NotificationService,
-                null, // Navigation will be handled differently
+                null!, // Navigation will be handled differently
                 new System.Collections.ObjectModel.ObservableCollection<Requirement>(), // Will be bound to shared collection
                 _applicationServices.PersistenceService,
                 _applicationServices.RequirementService as IRequirementDataScrubber ?? throw new InvalidOperationException("RequirementDataScrubber is required"),

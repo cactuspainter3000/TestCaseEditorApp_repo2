@@ -33,6 +33,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         protected override async Task SaveAsync()
         {
             // Save logic here
+            await Task.CompletedTask;
         }
 
         protected override void Cancel()
@@ -43,6 +44,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         protected override async Task RefreshAsync()
         {
             // Refresh logic here
+            await Task.CompletedTask;
         }
 
         protected override bool CanSave()

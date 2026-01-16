@@ -96,7 +96,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             _persistenceService = persistenceService ?? throw new ArgumentNullException(nameof(persistenceService));
             
             // Initialize commands
-            SelectProjectFileCommand = new AsyncRelayCommand(SelectProjectFileAsync);
+            SelectProjectFileCommand = new RelayCommand(SelectProjectFile);
             OpenSelectedProjectCommand = new AsyncRelayCommand(OpenSelectedProjectAsync, CanOpenSelectedProject);
             ClearSelectionCommand = new RelayCommand(ClearSelection);
             OpenFileDirectlyCommand = new AsyncRelayCommand(OpenFileDirectlyAsync);
@@ -108,7 +108,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             _mediator.Subscribe<OpenProjectEvents.WorkspaceLoaded>(OnWorkspaceLoaded);
         }
 
-        private async Task SelectProjectFileAsync()
+        private void SelectProjectFile()
         {
             try
             {
