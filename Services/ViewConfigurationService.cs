@@ -125,11 +125,15 @@ namespace TestCaseEditorApp.Services
                 }
             }
 
+            // Get Requirements navigation ViewModel for Project section navigation workspace
+            var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>();
+
             return new ViewConfiguration(
                 sectionName: "Project",
                 titleViewModel: EnsureTestCaseGeneratorTitle(),
                 headerViewModel: _testCaseGeneratorHeader,
                 contentViewModel: _projectContent,
+                navigationViewModel: navigationVM, // Use Requirements navigation for Project section
                 notificationViewModel: EnsureTestCaseGeneratorNotification(), // FIX: Use Test Case Generator notification for project operations
                 context: context
             );
@@ -434,11 +438,15 @@ namespace TestCaseEditorApp.Services
                     mainContent = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("OpenProjectWorkflowViewModel not found in DI container");
                 }
                 
+                // Get Requirements navigation ViewModel for OpenProject section navigation workspace
+                var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>();
+                
                 return new ViewConfiguration(
                     sectionName: "Open Project",
                     titleViewModel: EnsureTestCaseGeneratorTitle(),
                     headerViewModel: null,
                     contentViewModel: mainContent,
+                    navigationViewModel: navigationVM, // Use Requirements navigation for OpenProject section
                     notificationViewModel: EnsureTestCaseGeneratorNotification(),
                     context: context
                 );
@@ -452,6 +460,7 @@ namespace TestCaseEditorApp.Services
                     titleViewModel: EnsureTestCaseGeneratorTitle(),
                     headerViewModel: null,
                     contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"Open Project Error: {ex.Message}"),
+                    navigationViewModel: null, // No navigation in error case
                     notificationViewModel: null,
                     context: context
                 );
