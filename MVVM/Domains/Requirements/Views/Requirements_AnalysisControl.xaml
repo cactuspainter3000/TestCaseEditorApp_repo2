@@ -1,0 +1,415 @@
+<UserControl x:Class="TestCaseEditorApp.MVVM.Domains.Requirements.Views.Requirements_AnalysisControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
+             xmlns:converters="clr-namespace:TestCaseEditorApp.Converters"
+             xmlns:tcgConverters="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Converters"
+             DataContext="{Binding AnalysisVM}"
+             MinHeight="200"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             TextOptions.TextFormattingMode="Display"
+             TextOptions.TextRenderingMode="Auto">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <converters:NullOrEmptyToVisibilityConverter x:Key="NullOrEmptyToVisibilityConverter" />
+        <converters:StringNotEmptyToVisibilityConverter x:Key="StringNotEmptyToVisibilityConverter" />
+        <converters:StringEmptyToVisibilityConverter x:Key="StringEmptyToVisibilityConverter" />
+        <tcgConverters:FixTextHighlightConverter x:Key="FixTextHighlightConverter" />
+        <tcgConverters:BracketHighlightConverter x:Key="BracketHighlightConverter" />
+        
+        <!-- Inverted converter for showing content when NOT analyzing -->
+        <converters:BoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" Invert="True" />
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <ScrollViewer.Resources>
+            <Style TargetType="ScrollBar" BasedOn="{StaticResource CustomScrollBarStyle}"/>
+        </ScrollViewer.Resources>
+        <Grid Margin="8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <!-- Header -->
+                <RowDefinition Height="Auto"/> <!-- Quality Score -->
+                <RowDefinition Height="Auto"/> <!-- Issues -->
+                <RowDefinition Height="Auto"/> <!-- Freeform Feedback -->
+                <RowDefinition Height="*"/>    <!-- Spacer -->
+            </Grid.RowDefinitions>
+
+            <!-- No analysis yet -->
+            <StackPanel Grid.Row="0" Grid.RowSpan="6" 
+                        VerticalAlignment="Center" 
+                        HorizontalAlignment="Center"
+                        Visibility="{Binding HasNoAnalysis, Converter={StaticResource BoolToVisibilityConverter}}">
+                
+                <!-- Analyzing status -->
+                <StackPanel Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVisibilityConverter}}"
+                            HorizontalAlignment="Center">
+                    <TextBlock Text="{Binding AnalysisStatusMessage}" 
+                               FontSize="16" 
+                               Foreground="#888888" 
+                               HorizontalAlignment="Center"
+                               TextWrapping="Wrap"
+                               MaxWidth="400"
+                               TextAlignment="Center"/>
+                </StackPanel>
+                
+                <!-- No analysis prompt -->
+                <StackPanel Visibility="{Binding IsAnalyzing, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                    
+                    <!-- Error message (when analysis failed) -->
+                    <StackPanel Visibility="{Binding AnalysisStatusMessage, Converter={StaticResource StringNotEmptyToVisibilityConverter}}">
+                        <TextBlock Text="Analysis Failed" 
+                                   FontSize="16" 
+                                   Foreground="#CC6666" 
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,12"/>
+                        <TextBlock Text="{Binding AnalysisStatusMessage}" 
+                                   FontSize="14" 
+                                   Foreground="#CC6666" 
+                                   HorizontalAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="400"
+                                   TextAlignment="Center"
+                                   Margin="0,0,0,20"/>
+                    </StackPanel>
+                    
+                    <!-- No analysis available (when not yet attempted) -->
+                    <StackPanel Visibility="{Binding AnalysisStatusMessage, Converter={StaticResource StringEmptyToVisibilityConverter}}">
+                        <TextBlock Text="No analysis available" 
+                                   FontSize="16" 
+                                   Foreground="#888888" 
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,12"/>
+                        
+                        <!-- Batch analyzing hint -->
+                        <TextBlock Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVisibilityConverter}}"
+                                   Text="Analysis results will appear here automatically" 
+                                   FontSize="11" 
+                                   Foreground="{DynamicResource AccentBrush}"
+                                   FontWeight="SemiBold"
+                                   HorizontalAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="400"
+                                   TextAlignment="Center"
+                                   Margin="0,0,0,20"/>
+                    </StackPanel>
+                    
+                    <Button Content="Analyze Now"
+                            Command="{Binding AnalyzeRequirementCommand}"
+                            Style="{StaticResource ActionButton}"
+                            HorizontalAlignment="Center"
+                            Margin="0,12,0,0"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Analysis content (when available) -->
+            <Grid Grid.Row="0" Grid.RowSpan="6"
+                  Visibility="{Binding HasAnalysis, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/> <!-- Header -->
+                    <RowDefinition Height="Auto"/> <!-- Quality Score -->
+                    <RowDefinition Height="Auto"/> <!-- Improved Requirement -->
+                    <RowDefinition Height="Auto"/> <!-- Issues -->
+                    <RowDefinition Height="Auto"/> <!-- Recommendations -->
+                    <RowDefinition Height="Auto"/> <!-- Freeform Feedback -->
+                </Grid.RowDefinitions>
+
+                <!-- Header -->
+                <DockPanel Grid.Row="0" Margin="0,0,0,12">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Content="Inspect Result"
+                                Click="InspectResult_Click"
+                                ToolTip="View parsed analysis result"
+                                Style="{StaticResource PillActionButtonStyle}"
+                                Margin="0,0,8,0"
+                                VerticalAlignment="Top"/>
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Text="Requirement Quality Analysis" 
+                                   Style="{StaticResource Text.H2}"
+                                   Margin="0,0,0,4"/>
+                        <TextBlock Text="{Binding AnalysisTimestamp}" 
+                                   Style="{StaticResource Text.Caption}"/>
+                    </StackPanel>
+                </DockPanel>
+
+                <!-- Quality Score -->
+                <Border Grid.Row="1" 
+                        Background="{DynamicResource MenuBackground}"
+                        BorderBrush="{DynamicResource AccentBrush}"
+                        BorderThickness="0,0,0,2"
+                        Padding="12"
+                        Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="Quality Score" 
+                                   Style="{StaticResource Text.H3}"
+                                   Margin="0,0,0,6"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding QualityScore}" 
+                                       FontSize="32" 
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource AccentBrush}"/>
+                            <TextBlock Text=" / 10" 
+                                       FontSize="20" 
+                                       Foreground="#888888"
+                                       VerticalAlignment="Bottom"
+                                       Margin="4,0,0,4"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                <!-- Improved Requirement / Editable Refined Requirement -->
+                <StackPanel Grid.Row="2" 
+                            Margin="0,8,0,16"
+                            Visibility="{Binding HasImprovedRequirement, Converter={StaticResource BoolToVisibilityConverter}}">
+                    
+                    <!-- Header with inline Edit button -->
+                    <DockPanel Margin="0,0,0,8"
+                               Visibility="{Binding IsEditingRequirement, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                        <Button DockPanel.Dock="Right"
+                                Content="Edit"
+                                Command="{Binding EditRequirementCommand}"
+                                ToolTip="Edit requirement description and re-analyze"
+                                Style="{StaticResource ActionButton}"
+                                VerticalAlignment="Top"
+                                Margin="8,0,0,0"/>
+                        <TextBlock FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="#BBBBBB"
+                                   Text="📝 Refined Requirement"/>
+                    </DockPanel>
+                    
+                    <!-- Header for editing mode (without Edit button) -->
+                    <TextBlock FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="#BBBBBB"
+                               Margin="0,0,0,8"
+                               Text="✏️ Editing Refined Requirement"
+                               Visibility="{Binding IsEditingRequirement, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                    
+                    <!-- Subtitle changes based on edit mode -->
+                    <TextBlock FontSize="11"
+                               Foreground="#CCCCCC"
+                               Margin="0,0,0,8">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="Complete rewritten requirement addressing all identified issues:"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsEditingRequirement}" Value="True">
+                                        <Setter Property="Text" Value="Clean up and refine the AI-generated improved requirement:"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    
+                    <!-- Read-only view (when not editing) - shows improved requirement -->
+                    <Border Background="Transparent"
+                            BorderBrush="#444444"
+                            BorderThickness="0,0,0,1"
+                            Padding="0,8,0,16">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsEditingRequirement}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Text="{Binding ImprovedRequirement}" 
+                                   TextWrapping="Wrap"
+                                   FontSize="13"
+                                   FontWeight="Normal"
+                                   Foreground="#D0D0D0"
+                                   LineHeight="18"
+                                   UseLayoutRounding="True"
+                                   SnapsToDevicePixels="True"
+                                   TextOptions.TextFormattingMode="Display"
+                                   TextOptions.TextRenderingMode="Auto"/>
+                    </Border>
+                    
+                    <!-- Inline editing view (when editing) - edits original requirement -->
+                    <Border Background="{DynamicResource MenuBackground}"
+                            BorderBrush="{DynamicResource AccentBrush}"
+                            BorderThickness="2"
+                            CornerRadius="4"
+                            Padding="8"
+                            Margin="0,8,0,0">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsEditingRequirement}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <Border.Effect>
+                            <DropShadowEffect Color="{DynamicResource Accent.Primary}"
+                                              BlurRadius="3"
+                                              ShadowDepth="0"
+                                              Opacity="0.4"/>
+                        </Border.Effect>
+                        
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <!-- Text editor for the original requirement -->
+                            <TextBox Grid.Row="0"
+                                     Text="{Binding EditingRequirementText, UpdateSourceTrigger=PropertyChanged}"
+                                     TextWrapping="Wrap"
+                                     AcceptsReturn="True"
+                                     MinHeight="100"
+                                     MaxHeight="300"
+                                     FontSize="13"
+                                     FontWeight="Normal"
+                                     Foreground="#D0D0D0"
+                                     Background="#1E1E1E"
+                                     BorderBrush="#444444"
+                                     BorderThickness="1"
+                                     Padding="8"
+                                     VerticalScrollBarVisibility="Auto"
+                                     HorizontalScrollBarVisibility="Disabled"
+                                     UseLayoutRounding="True"
+                                     SnapsToDevicePixels="True"
+                                     TextOptions.TextFormattingMode="Display"
+                                     TextOptions.TextRenderingMode="Auto"/>
+                            
+                            <!-- Update/Cancel buttons -->
+                            <StackPanel Grid.Row="1"
+                                        Orientation="Horizontal"
+                                        HorizontalAlignment="Right"
+                                        Margin="0,8,0,0">
+                                <Button Content="{Binding CopyAnalysisButtonText}"
+                                        Command="{Binding CopyAnalysisPromptCommand}"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Visibility="{Binding ShouldHideCopyButton, Converter={StaticResource InverseBoolToVisibilityConverter}}"
+                                        ToolTip="Copy comprehensive analysis prompt to clipboard for external LLM, or paste external response when ready"/>
+                                <Button Content="Update"
+                                        Command="{Binding SaveRequirementCommand}"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"/>
+                                <Button Content="Cancel"
+                                        Command="{Binding CancelEditRequirementCommand}"
+                                        Style="{StaticResource ActionButton}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+                <!-- Issues -->
+                <Border Grid.Row="3" 
+                        Background="{DynamicResource MenuBackground}"
+                        Padding="12"
+                        Margin="0,0,0,10"
+                        Visibility="{Binding HasIssues, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel>
+                        <TextBlock Text="Issues Identified" 
+                                   Style="{StaticResource Text.H3}"
+                                   Margin="0,0,0,8"/>
+                        <ItemsControl ItemsSource="{Binding Issues}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource ControlBackground}"
+                                            Padding="12"
+                                            Margin="0,0,0,8"
+                                            CornerRadius="4">
+                                        <StackPanel>
+                                            <DockPanel Margin="0,0,0,6">
+                                                <Border DockPanel.Dock="Right"
+                                                        Padding="6,2"
+                                                        CornerRadius="3">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Background" Value="#5C6B73"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Severity}" Value="High">
+                                                                    <Setter Property="Background" Value="#D32F2F"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Severity}" Value="Medium">
+                                                                    <Setter Property="Background" Value="#F57C00"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Severity}" Value="Low">
+                                                                    <Setter Property="Background" Value="#5C6B73"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock Text="{Binding Severity}" 
+                                                               FontSize="10" 
+                                                               Foreground="White"
+                                                               FontWeight="SemiBold"/>
+                                                </Border>
+                                                <TextBlock Text="{Binding Category}" 
+                                                           FontWeight="SemiBold"
+                                                           FontSize="12"
+                                                           Foreground="{DynamicResource AccentBrush}"/>
+                                            </DockPanel>
+                                            <ContentPresenter Content="{Binding ., Converter={StaticResource FixTextHighlightConverter}}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <!-- Recommendations -->
+                <Border Grid.Row="4" 
+                        Background="{DynamicResource MenuBackground}"
+                        Padding="12"
+                        Margin="0,0,0,10"
+                        Visibility="{Binding HasRecommendations, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel>
+                        <TextBlock Text="Recommendations" 
+                                   Style="{StaticResource Text.H3}"
+                                   Margin="0,0,0,8"/>
+                        <ItemsControl ItemsSource="{Binding Recommendations}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource ControlBackground}"
+                                            Padding="12"
+                                            Margin="0,0,0,8"
+                                            CornerRadius="4">
+                                        <StackPanel>
+                                            <DockPanel Margin="0,0,0,6">
+                                                <TextBlock Text="{Binding Category}" 
+                                                           FontWeight="SemiBold"
+                                                           FontSize="12"
+                                                           Foreground="{DynamicResource AccentBrush}"/>
+                                            </DockPanel>
+                                            <ContentPresenter Content="{Binding ., Converter={StaticResource BracketHighlightConverter}}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <!-- Freeform Feedback -->
+                <Border Grid.Row="5" 
+                        Background="{DynamicResource MenuBackground}"
+                        Padding="12"
+                        Visibility="{Binding HasFreeformFeedback, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel>
+                        <TextBlock Text="Additional Feedback" 
+                                   Style="{StaticResource Text.H3}"
+                                   Margin="0,0,0,8"/>
+                        <TextBlock Text="{Binding FreeformFeedback}" 
+                                   TextWrapping="Wrap"
+                                   FontSize="12"
+                                   Foreground="#CCCCCC"
+                                   LineHeight="18"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </ScrollViewer>
+</UserControl>
