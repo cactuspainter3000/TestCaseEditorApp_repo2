@@ -362,7 +362,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                     var selectedIndices = new List<int>();
                     for (int i = 0; i < SelectedParagraphVMs.Count; i++)
                     {
-                        if (SelectedParagraphVMs[i].IsSelected)
+                        if (SelectedParagraphVMs[i]?.IsSelected == true)
                         {
                             selectedIndices.Add(i);
                         }

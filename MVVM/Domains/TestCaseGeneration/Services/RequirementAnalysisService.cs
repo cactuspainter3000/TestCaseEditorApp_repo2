@@ -441,6 +441,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 
                 // Parse response using parser manager
                 var analysis = _parserManager.ParseResponse(reflectedResponse ?? string.Empty, requirement.Item ?? "UNKNOWN");
+                
+                // Check if parsing was successful
+                if (analysis == null)
+                {
+                    return CreateErrorAnalysis("Failed to parse LLM response");
+                }
 
                 // Check for self-reported fabrication
                 if (!string.IsNullOrEmpty(analysis.HallucinationCheck) && 
@@ -1109,7 +1115,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Starting RAG request at {ragRequestStart:HH:mm:ss.fff}");
                 var response = await _anythingLLMService.SendChatMessageStreamingAsync(
                     workspaceSlug,
-                    ragPrompt,
+                    ragPrompt!,
                     onChunkReceived: onPartialResult,
                     onProgressUpdate: onProgressUpdate,
                     threadSlug: threadSlug,
@@ -1179,7 +1185,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 
                 AnythingLLMService.Workspace? targetWorkspace = null;
                 
-                if (!string.IsNullOrEmpty(_projectWorkspaceName))
+                if (!string.IsNullOrEmpty(_projectWorkspaceName) && workspaces != null)
                 {
                     // Look for exact project workspace match first
                     targetWorkspace = workspaces.FirstOrDefault(w => 
