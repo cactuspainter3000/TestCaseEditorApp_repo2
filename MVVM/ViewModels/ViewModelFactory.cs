@@ -166,8 +166,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             
             return new TestCaseGenerator_NavigationVM(
                 _testCaseGenerationMediator,
-                _applicationServices.LoggerFactory?.CreateLogger<TestCaseGenerator_NavigationVM>() ?? 
-                    throw new InvalidOperationException("Logger is required for TestCaseGenerator_NavigationVM"));
+                _applicationServices.LoggerFactory?.CreateLogger<TestCaseGenerator_NavigationVM>());
         }
         
         public object CreateProjectViewModel()

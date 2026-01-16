@@ -156,6 +156,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// </summary>
         private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected e)
         {
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[TestCaseGenerator_VM] OnRequirementSelected called with: {e.Requirement?.GlobalId ?? "NULL"}");
             if (!ReferenceEquals(_selectedRequirement, e.Requirement))
             {
                 _selectedRequirement = e.Requirement;
@@ -674,9 +675,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         private void UpdateVisibleChipsFromRequirement(Requirement? r)
         {
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[TestCaseGenerator_VM] UpdateVisibleChipsFromRequirement called with: {r?.GlobalId ?? "NULL"}");
             var list = new ObservableCollection<ChipViewModel>();
             if (r != null)
             {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[TestCaseGenerator_VM] Creating chips for requirement: {r.GlobalId}");
                 int orderCounter = 10;
                 
                 // Helper: always add field, show placeholder if empty
@@ -744,7 +747,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 DateChips = new ObservableCollection<ChipViewModel>();
             }
 
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[TestCaseGenerator_VM] Setting VisibleChips with {list.Count} items");
             VisibleChips = list;
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[TestCaseGenerator_VM] VisibleChips now has {VisibleChips.Count} items");
         }
 
         // ===== SUPPORT VIEW SELECTION =====
