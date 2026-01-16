@@ -39,6 +39,82 @@
 
 ---
 
+## ⚠️ DOMAIN MIGRATION LESSONS LEARNED
+
+### **Critical Failure Points in Requirements Domain Migration (Jan 2026)**
+
+**❌ Failed Approach: Hybrid ViewModels**
+- Mixed Requirements navigation + TestCaseGeneration headers
+- Event domain mismatches (RequirementsEvents ≠ TestCaseGenerationEvents)
+- Incomplete data initialization chains
+- Complex cross-domain event coordination
+
+**🔍 Root Causes Identified:**
+1. **Event System Fragmentation**: Each domain has separate event namespaces, making cross-domain communication complex
+2. **Incomplete ViewModel Copying**: Missed critical initialization logic from source ViewModels
+3. **Data Flow Assumptions**: Assumed event subscriptions would be sufficient without verifying complete data chains
+4. **Integration Testing Gaps**: No validation of actual requirement data display until runtime
+
+---
+
+## 📋 REQUIREMENTS DOMAIN MIGRATION - DETAILED EXECUTION PLAN
+
+> **Current Status: Jan 16, 2026 - Planning Phase**  
+> **Safe Revert Point**: Commit `379e43b` - "SAFE REVERT POINT: Third attempt at Requirements domain refactoring"
+
+### **Phase 1: Deep Source Analysis** 
+
+| Step | Task | Status | Notes |
+|------|------|--------|--------|
+| 1.1 | Analyze TestCaseGenerator_VM complete property list | 🔲 **Pending** | `grep -r "public.*Property" TestCaseGeneration/ViewModels/` |
+| 1.2 | Map TestCaseGenerator_VM data initialization chains | 🔲 **Pending** | Find all `SelectedRequirement` usage patterns |
+| 1.3 | Document TestCaseGenerator_VM event subscription patterns | 🔲 **Pending** | `grep -r "Subscribe.*Event" TestCaseGeneration/ViewModels/` |
+| 1.4 | Identify ALL UI binding requirements from views | 🔲 **Pending** | `grep -r "Binding.*}" TestCaseGeneration/Views/` |
+| 1.5 | Map cross-domain event dependencies | 🔲 **Pending** | Find all TestCaseGenerationEvents usage |
+
+### **Phase 2: Complete ViewModel Replication**
+
+| Step | Task | Status | Notes |
+|------|------|--------|--------|
+| 2.1 | Copy TestCaseGenerator_VM → Requirements_MainViewModel (COMPLETE) | 🔲 **Pending** | Include ALL properties and methods |
+| 2.2 | Copy TestCaseGenerator_NavigationVM → Requirements_NavigationViewModel (COMPLETE) | 🔲 **Pending** | Include ALL navigation logic |
+| 2.3 | Verify ALL XAML bindings have matching ViewModel properties | 🔲 **Pending** | Cross-reference step 1.4 findings |
+| 2.4 | Implement complete data initialization chain | 🔲 **Pending** | Copy ALL initialization logic from source |
+| 2.5 | Test Requirements ViewModels in isolation (unit tests) | 🔲 **Pending** | Verify data flow before UI integration |
+
+### **Phase 3: All-at-Once Switch**
+
+| Step | Task | Status | Notes |
+|------|------|--------|--------|
+| 3.1 | Update ViewConfigurationService (ALL Requirements ViewModels) | 🔲 **Pending** | NO hybrid approaches |
+| 3.2 | Build and verify zero errors | 🔲 **Pending** | Must succeed before testing |
+| 3.3 | Test complete Requirements section functionality | 🔲 **Pending** | Verify actual requirement data display |
+| 3.4 | Verify navigation updates headers correctly | 🔲 **Pending** | Test Next/Previous buttons |
+| 3.5 | Verify all tabs and chip displays work correctly | 🔲 **Pending** | Test Details, Tables, etc. |
+
+### **Phase 4: Event System Validation**
+
+| Step | Task | Status | Notes |
+|------|------|--------|--------|
+| 4.1 | Verify RequirementsEvents publish correctly | 🔲 **Pending** | Add debugging logs |
+| 4.2 | Test cross-domain communication (if needed) | 🔲 **Pending** | May need dual event publishing |
+| 4.3 | Verify all workspace switching works | 🔲 **Pending** | Test from other sections to Requirements |
+| 4.4 | Full end-to-end testing | 🔲 **Pending** | Complete user workflow validation |
+
+### **Success Criteria**
+- ✅ Requirements section displays actual requirement data (not placeholders)
+- ✅ Navigation buttons update main content correctly  
+- ✅ All tabs (Details, Tables, Supplemental Info, LLM Analysis) function
+- ✅ Header/title updates when navigating between requirements
+- ✅ No functional regression from working baseline
+
+### **Failure Protocol**
+- 🚨 **Any step failure**: Document specific error and revert to commit `379e43b`
+- 🚨 **Any functional regression**: Immediate revert and analysis
+- 🚨 **Build failures**: Fix immediately before proceeding
+
+---
+
 ## 🏗️ COMPLETE IMPLEMENTATION CHAINS
 
 ### **New ViewModel Implementation Chain**
