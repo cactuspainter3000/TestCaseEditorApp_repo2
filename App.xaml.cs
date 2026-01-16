@@ -283,8 +283,20 @@ namespace TestCaseEditorApp
                     
                     // Requirements domain ViewModels - Navigation as Singleton to maintain state
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>();
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>();
-                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>(provider =>
+                    {
+                        // Use TestCaseGenerationMediator as data source for header
+                        var testCaseGenMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.ITestCaseGenerationMediator>();
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>>();
+                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel(testCaseGenMediator, logger);
+                    });
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>(provider =>
+                    {
+                        // Use TestCaseGenerationMediator as data source for navigation
+                        var testCaseGenMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.ITestCaseGenerationMediator>();
+                        var logger = provider.GetService<Microsoft.Extensions.Logging.ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>>();
+                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel(testCaseGenMediator, logger!);
+                    });
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NotificationViewModel>();
                     
                     // Project domain ViewModels

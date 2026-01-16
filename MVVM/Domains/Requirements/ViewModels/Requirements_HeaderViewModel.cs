@@ -6,8 +6,8 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
-using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
-using TestCaseEditorApp.MVVM.Domains.Requirements.Events;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
@@ -19,7 +19,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
     /// </summary>
     public partial class Requirements_HeaderViewModel : BaseDomainViewModel
     {
-        private new readonly IRequirementsMediator _mediator;
+        private new readonly ITestCaseGenerationMediator _mediator;
 
         [ObservableProperty]
         private int totalRequirements;
@@ -59,7 +59,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public ICommand UndoLastSaveCommand { get; }
 
         public Requirements_HeaderViewModel(
-            IRequirementsMediator mediator,
+            ITestCaseGenerationMediator mediator,
             ILogger<Requirements_HeaderViewModel> logger)
             : base(mediator, logger)
         {
@@ -69,10 +69,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             SaveWorkspaceCommand = new RelayCommand(SaveWorkspace, () => IsDirty);
             UndoLastSaveCommand = new RelayCommand(UndoLastSave, () => CanUndoLastSave);
 
-            // Subscribe to requirements events for real-time updates
-            _mediator.Subscribe<RequirementsEvents.RequirementsImported>(OnRequirementsImported);
-            _mediator.Subscribe<RequirementsEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
-            _mediator.Subscribe<RequirementsEvents.RequirementAnalyzed>(OnRequirementAnalyzed);
+            // Subscribe to TestCaseGeneration events for real-time updates
+            _mediator.Subscribe<TestCaseGenerationEvents.RequirementsImported>(OnRequirementsImported);
+            _mediator.Subscribe<TestCaseGenerationEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
+            _mediator.Subscribe<TestCaseGenerationEvents.RequirementAnalyzed>(OnRequirementAnalyzed);
+            _mediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
 
             // Initialize values
             UpdateStatistics();
@@ -80,20 +81,33 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _logger.LogDebug("Requirements_HeaderViewModel initialized");
         }
 
-        private void OnRequirementsImported(RequirementsEvents.RequirementsImported e)
+        private void OnRequirementsImported(TestCaseGenerationEvents.RequirementsImported e)
         {
             ImportSource = System.IO.Path.GetFileName(e.SourceFile) ?? "Unknown";
             UpdateStatistics();
         }
 
-        private void OnRequirementsCollectionChanged(RequirementsEvents.RequirementsCollectionChanged e)
+        private void OnRequirementsCollectionChanged(TestCaseGenerationEvents.RequirementsCollectionChanged e)
         {
             UpdateStatistics();
         }
 
-        private void OnRequirementAnalyzed(RequirementsEvents.RequirementAnalyzed e)
+        private void OnRequirementAnalyzed(TestCaseGenerationEvents.RequirementAnalyzed e)
         {
             UpdateStatistics();
+        }
+
+        private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected e)
+        {
+            // Update header description based on selected requirement
+            if (e.Requirement != null)
+            {
+                RequirementDescription = $"{e.Requirement.Description?.Substring(0, Math.Min(e.Requirement.Description?.Length ?? 0, 100))}{(e.Requirement.Description?.Length > 100 ? "..." : "")}";
+            }
+            else
+            {
+                RequirementDescription = "Requirements management workspace";
+            }
         }
 
         private void UpdateStatistics()
