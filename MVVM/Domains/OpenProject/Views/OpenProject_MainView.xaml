@@ -32,19 +32,45 @@
                            Margin="0,0,0,8"/>
                 
                 <DockPanel Margin="0,0,0,8">
+                    <!-- Browse Button (when no project selected) -->
+                    <Button DockPanel.Dock="Right" 
+                            FontSize="11"
+                            FontWeight="SemiBold"
+                            Height="32"
+                            Width="60"
+                            Margin="10,0,0,0"
+                            VerticalAlignment="Bottom"
+                            Command="{Binding SelectProjectFileCommand}"
+                            IsEnabled="{Binding IsLoadingProject, Converter={StaticResource InvertBoolConverter}}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ActionButton}">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsProjectSelected}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <TextBlock Text="Browse" Foreground="#CCCCCC"/>
+                    </Button>
+                    
+                    <!-- Open Button (when project is selected) -->
                     <Button DockPanel.Dock="Right" 
                             Style="{StaticResource ActionButton}"
                             FontSize="11"
                             FontWeight="SemiBold"
                             Height="32"
-                            Width="50"
+                            Width="60"
                             Margin="10,0,0,0"
                             VerticalAlignment="Bottom"
-                            Command="{Binding SelectProjectFileCommand}"
-                            IsEnabled="{Binding IsLoadingProject, Converter={StaticResource InvertBoolConverter}}">
-                        <TextBlock Text="Open">
+                            Command="{Binding OpenSelectedProjectCommand}"
+                            IsEnabled="{Binding IsLoadingProject, Converter={StaticResource InvertBoolConverter}}"
+                            Visibility="{Binding IsProjectSelected, Converter={StaticResource BoolToVis}}">
+                        <TextBlock>
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="Open"/>
                                     <Setter Property="Foreground" Value="#CCCCCC"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsMainOpenButtonActive}" Value="True">

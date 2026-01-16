@@ -174,12 +174,20 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// </summary>
         private void OnRequirementsCollectionChanged(TestCaseGenerationEvents.RequirementsCollectionChanged e)
         {
+            _logger.LogInformation("🔔 TestCaseGenerator_VM: OnRequirementsCollectionChanged - Action={Action}, NewCount={NewCount}, AffectedCount={AffectedCount}",
+                e.Action, e.NewCount, e.AffectedRequirements?.Count ?? 0);
+                
             // Update local requirements collection
+            var beforeCount = _requirements.Count;
             _requirements.Clear();
             foreach (var req in e.AffectedRequirements)
             {
                 _requirements.Add(req);
             }
+            var afterCount = _requirements.Count;
+            
+            _logger.LogInformation("🔄 TestCaseGenerator_VM: Requirements collection updated - Before={BeforeCount}, After={AfterCount}",
+                beforeCount, afterCount);
             
             OnPropertyChanged(nameof(Requirements));
             try { ((RelayCommand)RemoveRequirementCommand).NotifyCanExecuteChanged(); } catch { }

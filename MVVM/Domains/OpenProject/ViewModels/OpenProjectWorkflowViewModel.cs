@@ -44,8 +44,12 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
         
         partial void OnIsProjectSelectedChanged(bool value)
         {
+            _logger.LogInformation($"*** OnIsProjectSelectedChanged: value={value}");
             OnPropertyChanged(nameof(SelectButtonText));
             OnPropertyChanged(nameof(OpenButtonText));
+            _logger.LogInformation($"*** About to call NotifyCanExecuteChanged from OnIsProjectSelectedChanged");
+            ((AsyncRelayCommand)OpenSelectedProjectCommand).NotifyCanExecuteChanged();
+            _logger.LogInformation($"*** NotifyCanExecuteChanged called from OnIsProjectSelectedChanged");
         }
         
         [ObservableProperty]
@@ -148,9 +152,6 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
                         }
                         
                         _logger.LogInformation($"Project file selected: {selectedPath}");
-                        
-                        // Update command states
-                        ((AsyncRelayCommand)OpenSelectedProjectCommand).NotifyCanExecuteChanged();
                     }
                 }
                 else
@@ -167,6 +168,9 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             finally
             {
                 IsLoadingProject = false;
+                // Update command states after IsLoadingProject is reset
+                _logger.LogInformation($"*** Calling NotifyCanExecuteChanged for OpenSelectedProjectCommand");
+                ((AsyncRelayCommand)OpenSelectedProjectCommand).NotifyCanExecuteChanged();
             }
         }
 
@@ -211,7 +215,9 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
 
         private bool CanOpenSelectedProject()
         {
-            return IsProjectSelected && !IsLoadingProject && !string.IsNullOrWhiteSpace(SelectedProjectPath);
+            var canOpen = IsProjectSelected && !IsLoadingProject && !string.IsNullOrWhiteSpace(SelectedProjectPath);
+            _logger.LogInformation($"*** CanOpenSelectedProject check: IsProjectSelected={IsProjectSelected}, IsLoadingProject={IsLoadingProject}, HasPath={!string.IsNullOrWhiteSpace(SelectedProjectPath)}, Result={canOpen}");
+            return canOpen;
         }
 
         private void ClearSelection()
