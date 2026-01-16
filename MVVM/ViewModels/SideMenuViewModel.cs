@@ -239,9 +239,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToRequirements called! ***");
             Console.WriteLine("*** SideMenuViewModel.NavigateToRequirements called! ***");
             
+            // Write to log file for visibility
+            try {
+                System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: SideMenuViewModel.NavigateToRequirements called\n");
+            } catch { /* ignore */ }
+            
+            // CRITICAL DEBUG: Force case-insensitive navigation
+            System.Diagnostics.Debug.WriteLine("*** FORCING NAVIGATION TO 'requirements' (lowercase) ***");
+            Console.WriteLine("*** FORCING NAVIGATION TO 'requirements' (lowercase) ***");
+            
             SelectedSection = "Requirements"; // Update selected section to trigger SectionChanged event
             
-            _navigationMediator.NavigateToSection("Requirements");
+            _navigationMediator.NavigateToSection("requirements"); // Force lowercase
         }
         
         /// <summary>
@@ -612,6 +621,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             var requirementsDropdown = mainTestCaseGeneratorDropdown.Children.FirstOrDefault(x => x.Id == "requirements") as MenuAction;
             if (requirementsDropdown != null)
             {
+                // CRITICAL: Make Requirements dropdown itself navigate to Requirements domain
                 requirementsDropdown.Command = RequirementsNavigationCommand;
             }
 

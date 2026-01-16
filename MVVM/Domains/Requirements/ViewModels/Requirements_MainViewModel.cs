@@ -18,7 +18,9 @@ using TestCaseEditorApp.MVVM.Domains.Requirements.Events;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
+using TestCaseEditorApp.MVVM.Mediators;
 using Microsoft.Extensions.DependencyInjection;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 
 namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 {
@@ -29,6 +31,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
     public partial class Requirements_MainViewModel : BaseDomainViewModel, IDisposable
     {
         private new readonly IRequirementsMediator _mediator;
+        private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
         private readonly IPersistenceService _persistence;
         private readonly ITextEditingDialogService _textEditingDialogService;
 
@@ -51,24 +54,29 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         public Requirements_MainViewModel(
             IRequirementsMediator mediator,
+            ITestCaseGenerationMediator testCaseGenerationMediator,
             IPersistenceService persistence,
             ITextEditingDialogService textEditingDialogService,
-            IRequirementAnalysisService analysisService,
             ILogger<Requirements_MainViewModel> logger,
+            IRequirementAnalysisService? analysisService = null,
             Func<Requirement?, IEnumerable<LooseTableViewModel>>? tableProvider = null,
             Func<Requirement?, IEnumerable<string>>? paragraphProvider = null)
             : base(mediator, logger)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
+            _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
             _persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
             _textEditingDialogService = textEditingDialogService ?? throw new ArgumentNullException(nameof(textEditingDialogService));
             _tableProvider = tableProvider;
             _paragraphProvider = paragraphProvider;
 
-            // Subscribe to domain events
+            // Subscribe to domain events - DUAL SUBSCRIPTION for cross-domain compatibility
             _mediator.Subscribe<RequirementsEvents.RequirementSelected>(OnRequirementSelected);
             _mediator.Subscribe<RequirementsEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
             _mediator.Subscribe<RequirementsEvents.WorkflowStateChanged>(OnWorkflowStateChanged);
+            
+            // CRITICAL: Also subscribe to TestCaseGenerationEvents since navigation publishes those
+            _testCaseGenerationMediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnTestCaseGenerationRequirementSelected);
 
             // Commands
             AddRequirementCommand = new RelayCommand(AddRequirement);
@@ -96,8 +104,41 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // Create Analysis VM placeholder (we'll skip the complex analysis setup for now)
             AnalysisVM = null; // TODO: Add analysis functionality if needed
             
+            // CRITICAL: Initialize with current requirement from TestCaseGeneration mediator
+            InitializeWithCurrentRequirement();
+            
             // Initial data load
             UpdateVisibleChipsFromRequirement(SelectedRequirement);
+        }
+
+        /// <summary>
+        /// Initialize with current requirement from TestCaseGeneration mediator
+        /// </summary>
+        private void InitializeWithCurrentRequirement()
+        {
+            try
+            {
+                // Get current requirement from TestCaseGeneration mediator
+                var currentRequirement = _testCaseGenerationMediator.CurrentRequirement;
+                if (currentRequirement != null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] Initializing with current requirement: {currentRequirement.GlobalId}");
+                    _selectedRequirement = currentRequirement;
+                    OnPropertyChanged(nameof(SelectedRequirement));
+                    
+                    // Load the requirement content
+                    UpdateVisibleChipsFromRequirement(_selectedRequirement);
+                    LoadRequirementContent(_selectedRequirement);
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] No current requirement found during initialization");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error initializing Requirements_MainViewModel with current requirement");
+            }
         }
 
         /// <summary>
@@ -106,6 +147,31 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private void OnRequirementSelected(RequirementsEvents.RequirementSelected e)
         {
             TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] OnRequirementSelected called with: {e.Requirement?.GlobalId ?? "NULL"}");
+            Console.WriteLine($"*** [Requirements_MainViewModel] OnRequirementSelected: {e.Requirement?.GlobalId ?? "NULL"} ***");
+            if (!ReferenceEquals(_selectedRequirement, e.Requirement))
+            {
+                _selectedRequirement = e.Requirement;
+                OnPropertyChanged(nameof(SelectedRequirement));
+                
+                // Re-populate chips from requirement data
+                UpdateVisibleChipsFromRequirement(_selectedRequirement);
+                
+                // Update analysis state
+                OnPropertyChanged(nameof(HasAnalysis));
+                OnPropertyChanged(nameof(AnalysisQualityScore));
+                
+                // Load requirement content
+                LoadRequirementContent(_selectedRequirement);
+            }
+        }
+
+        /// <summary>
+        /// Handle requirement selection events from TestCaseGeneration domain (cross-domain compatibility)
+        /// </summary>
+        private void OnTestCaseGenerationRequirementSelected(TestCaseGenerationEvents.RequirementSelected e)
+        {
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] OnTestCaseGenerationRequirementSelected called with: {e.Requirement?.GlobalId ?? "NULL"}");
+            Console.WriteLine($"*** [Requirements_MainViewModel] OnTestCaseGenerationRequirementSelected: {e.Requirement?.GlobalId ?? "NULL"} ***");
             if (!ReferenceEquals(_selectedRequirement, e.Requirement))
             {
                 _selectedRequirement = e.Requirement;
@@ -267,6 +333,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 {
                     _visibleChips = value;
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(OptionalChips)); // Notify OptionalChips when VisibleChips changes
                     OnPropertyChanged(nameof(VisibleChipsWithValuesCount));
                 }
             }
@@ -274,9 +341,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private ObservableCollection<ChipViewModel> _visibleChips = new();
 
         /// <summary>
-        /// Optional additional chips
+        /// Non-core chips only (for the pills grid) - computed from VisibleChips
         /// </summary>
-        public ObservableCollection<ChipViewModel> OptionalChips { get; private set; } = new();
+        public ObservableCollection<ChipViewModel> OptionalChips
+        {
+            get => new ObservableCollection<ChipViewModel>(VisibleChips.Where(c => !c.IsCore));
+        }
 
         /// <summary>
         /// Date-related chips
@@ -651,13 +721,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         public override void Dispose()
         {
-            // Unsubscribe from mediator events - stub for now as interface may not have Unsubscribe
+            // Unsubscribe from domain events
             try
             {
-                // TODO: Add unsubscribe functionality when IRequirementsMediator supports it
-                // _mediator.Unsubscribe<RequirementsEvents.RequirementSelected>(OnRequirementSelected);
-                // _mediator.Unsubscribe<RequirementsEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
-                // _mediator.Unsubscribe<RequirementsEvents.WorkflowStateChanged>(OnWorkflowStateChanged);
+                // Cast to BaseDomainMediator to access Unsubscribe methods
+                if (_mediator is TestCaseEditorApp.MVVM.Utils.BaseDomainMediator<RequirementsEvents> baseMediator)
+                {
+                    baseMediator.Unsubscribe<RequirementsEvents.RequirementSelected>(OnRequirementSelected);
+                    baseMediator.Unsubscribe<RequirementsEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
+                    baseMediator.Unsubscribe<RequirementsEvents.WorkflowStateChanged>(OnWorkflowStateChanged);
+                }
+                
+                // Unsubscribe from cross-domain TestCaseGeneration events
+                _testCaseGenerationMediator.Unsubscribe<TestCaseGenerationEvents.RequirementSelected>(OnTestCaseGenerationRequirementSelected);
             }
             catch (Exception ex)
             {

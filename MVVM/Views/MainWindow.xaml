@@ -198,7 +198,7 @@
         </DataTemplate>-->
 
         <DataTemplate DataType="{x:Type reqvm:Requirements_MainViewModel}">
-            <reqviews:RequirementsMainView />
+            <tcgviews:TestCaseGeneratorRequirements_View />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type reqvm:Requirements_HeaderViewModel}">

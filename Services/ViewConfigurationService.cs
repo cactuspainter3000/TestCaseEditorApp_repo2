@@ -139,23 +139,45 @@ namespace TestCaseEditorApp.Services
 
         private ViewConfiguration CreateRequirementsConfiguration(object? context)
         {
-            // Use TestCaseGeneration domain ViewModels to access actual requirements data
+            // CRITICAL DEBUG: Verify this method is being called
+            System.Diagnostics.Debug.WriteLine("*** CreateRequirementsConfiguration called! Creating Requirements domain configuration ***");
+            Console.WriteLine("*** CreateRequirementsConfiguration called! Creating Requirements domain configuration ***");
+            
+            // Write to log file for visibility
+            try {
+                System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: CreateRequirementsConfiguration called\n");
+            } catch { /* ignore */ }
+            
+            // PARTIAL SWITCH: Test Requirements_MainViewModel with TestCaseGeneration navigation
             EnsureTestCaseGeneratorHeader();
             var headerVM = _testCaseGeneratorHeader;
-            var mainVM = App.ServiceProvider?.GetService<TestCaseGenerator_VM>();
+            var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>();
             var navigationVM = App.ServiceProvider?.GetService<TestCaseGenerator_NavigationVM>();
             var notificationVM = EnsureTestCaseGeneratorNotification();
             
-            if (mainVM == null) throw new InvalidOperationException("TestCaseGenerator_VM not registered in DI container");
+            if (mainVM == null) throw new InvalidOperationException("Requirements_MainViewModel not registered in DI container");
             if (navigationVM == null) throw new InvalidOperationException("TestCaseGenerator_NavigationVM not registered in DI container");
             
-            // Return ViewModels that have access to the actual requirements data
+            System.Diagnostics.Debug.WriteLine($"*** Requirements Configuration: MainVM={mainVM.GetType().Name}, HeaderVM={headerVM?.GetType().Name} ***");
+            Console.WriteLine($"*** Requirements Configuration: MainVM={mainVM.GetType().Name}, HeaderVM={headerVM?.GetType().Name} ***");
+            
+            // Write more debugging info
+            try {
+                System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: Requirements_MainViewModel created: {mainVM.GetType().Name}\n");
+                System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: VisibleChips count: {((dynamic)mainVM).VisibleChips?.Count ?? -1}\n");
+            } catch { /* ignore */ }
+            
+            // FIXED: Use the ViewModel directly and let DataTemplate system resolve the view
+            // DataTemplate exists in MainWindow.xaml: Requirements_MainViewModel → RequirementsMainView
+            System.Diagnostics.Debug.WriteLine($"*** Using Requirements_MainViewModel with DataTemplate binding ***");
+            
+            // Return mixed ViewModels: Requirements main, TestCaseGeneration navigation
             return new ViewConfiguration(
                 sectionName: "Requirements",
                 titleViewModel: EnsureTestCaseGeneratorTitle(),
                 headerViewModel: headerVM,        // TestCaseGeneration header with requirements info
-                contentViewModel: mainVM,         // TestCaseGeneration main VM with requirements data
-                navigationViewModel: navigationVM, // TestCaseGeneration navigation with requirements
+                contentViewModel: mainVM,         // FIXED: Use ViewModel, not View - DataTemplate will resolve
+                navigationViewModel: navigationVM, // OLD: TestCaseGeneration navigation (for now)
                 notificationViewModel: notificationVM,
                 context: context
             );
