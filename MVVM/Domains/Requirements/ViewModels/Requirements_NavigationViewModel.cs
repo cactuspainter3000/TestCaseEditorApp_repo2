@@ -79,6 +79,39 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public MenuAction RequirementsDropdown { get; private set; }
         
         /// <summary>
+        /// Handle requirements collection change events from mediator
+        /// </summary>
+        private void OnRequirementsCollectionChanged(RequirementsEvents.RequirementsCollectionChanged e)
+        {
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_NavigationViewModel] Requirements collection changed: {e.AffectedRequirements?.Count ?? 0} requirements");
+            
+            // Refresh the local requirements collection from mediator
+            RefreshRequirementsFromMediator();
+            
+            // If a requirement was previously selected, try to maintain selection
+            if (SelectedRequirement != null)
+            {
+                var index = RequirementsView.IndexOf(SelectedRequirement);
+                if (index >= 0)
+                {
+                    SelectedRequirementIndex = index;
+                }
+                else
+                {
+                    // Selected requirement no longer exists, clear selection
+                    SelectedRequirement = null;
+                    SelectedRequirementIndex = -1;
+                }
+            }
+            else if (RequirementsView.Count > 0)
+            {
+                // No previous selection, select first requirement if available
+                SelectedRequirement = RequirementsView[0];
+                SelectedRequirementIndex = 0;
+            }
+        }
+
+        /// <summary>
         /// Handle requirement selection events from mediator
         /// </summary>
         private void OnRequirementSelected(RequirementsEvents.RequirementSelected e)
@@ -297,16 +330,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             
             UpdateDropdownItems(_requirements);
             OnPropertyChanged(nameof(RequirementPositionDisplay));
-        }
-
-        /// <summary>
-        /// Handle requirements collection changes from mediator
-        /// </summary>
-        private void OnRequirementsCollectionChanged(RequirementsEvents.RequirementsCollectionChanged e)
-        {
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_NavigationViewModel] Requirements collection changed: {e.AffectedRequirements?.Count ?? 0} requirements");
-            
-            RefreshRequirementsFromMediator();
         }
 
         /// <summary>
