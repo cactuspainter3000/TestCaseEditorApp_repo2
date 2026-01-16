@@ -507,8 +507,12 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             await Task.CompletedTask;
             try
             {
+                _logger.LogInformation("🔍 CloseProjectAsync called - checking workspace state: {HasWorkspace}", 
+                    _currentWorkspaceInfo != null ? $"Yes ({_currentWorkspaceInfo.Path})" : "No workspace loaded");
+                
                 if (_currentWorkspaceInfo == null)
                 {
+                    _logger.LogWarning("⚠️ CloseProjectAsync: No workspace to close (_currentWorkspaceInfo is null)");
                     return;
                 }
 
@@ -1067,10 +1071,34 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     HandleWorkspaceContextChanged(workspaceChanged);
                     break;
                     
+                case TestCaseEditorApp.MVVM.Domains.OpenProject.Events.OpenProjectEvents.ProjectOpened projectOpened:
+                    HandleProjectOpened(projectOpened);
+                    break;
+                    
                 default:
                     _logger.LogDebug("Unhandled notification type: {NotificationType}", typeof(T).Name);
                     break;
             }
+        }
+        
+        /// <summary>
+        /// Handle project opened events from OpenProjectMediator to track current workspace
+        /// </summary>
+        private void HandleProjectOpened(TestCaseEditorApp.MVVM.Domains.OpenProject.Events.OpenProjectEvents.ProjectOpened notification)
+        {
+            _logger.LogInformation("🔔 NewProjectMediator received ProjectOpened event: {WorkspaceName} ({WorkspacePath})", 
+                notification.WorkspaceName, notification.WorkspacePath);
+                
+            // Update our workspace tracking to match the opened project
+            _currentWorkspaceInfo = new WorkspaceInfo
+            {
+                Name = notification.WorkspaceName,
+                Path = notification.WorkspacePath,
+                LastModified = DateTime.Now
+            };
+            
+            _logger.LogInformation("✅ NewProjectMediator workspace tracking updated for: {WorkspaceName}", 
+                notification.WorkspaceName);
         }
 
         /// <summary>

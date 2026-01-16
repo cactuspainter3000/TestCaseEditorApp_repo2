@@ -1342,6 +1342,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         /// </summary>
         public void HandleBroadcastNotification<T>(T notification) where T : class
         {
+            _logger.LogInformation("🔔🔔🔔 BROADCAST RECEIVED: {NotificationType} - TestCaseGenerationMediator", typeof(T).Name);
             _logger.LogInformation("🔔 Received broadcast notification: {NotificationType}", typeof(T).Name);
             
             // Handle workspace management events
@@ -1419,6 +1420,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             }
             else if (notification is NewProjectEvents.ProjectClosed)
             {
+                _logger.LogInformation("🔔 RECEIVED ProjectClosed event - starting cleanup");
                 _logger.LogInformation("HandleBroadcast: ProjectClosed - HeaderViewModel: {HeaderViewModel}", 
                     _headerViewModel?.GetType().Name ?? "NULL");
                     
@@ -1431,13 +1433,19 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 _logger.LogInformation("🔄 Clearing requirements collection on project close...");
                 Application.Current.Dispatcher.Invoke(() =>
                 {
+                    _logger.LogInformation("🗑️ Before clear: Requirements.Count = {Count}", _requirements.Count);
                     _requirements.Clear();
-                    PublishEvent(new TestCaseGenerationEvents.RequirementsCollectionChanged
+                    _logger.LogInformation("✅ After clear: Requirements.Count = {Count}", _requirements.Count);
+                    
+                    var collectionEvent = new TestCaseGenerationEvents.RequirementsCollectionChanged
                     {
                         Action = "Clear",
                         AffectedRequirements = new List<Requirement>(),
                         NewCount = 0
-                    });
+                    };
+                    
+                    _logger.LogInformation("📢 Publishing RequirementsCollectionChanged event: Action=Clear, NewCount=0");
+                    PublishEvent(collectionEvent);
                 });
                 
                 _logger.LogDebug("Updated header with project closed and cleared requirements");

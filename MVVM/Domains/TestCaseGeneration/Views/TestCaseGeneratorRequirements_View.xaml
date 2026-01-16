@@ -45,7 +45,7 @@
                         <Border Grid.Column="1">
                             <Border.Style>
                                 <Style TargetType="Border" BasedOn="{StaticResource BadgeStyle}">
-                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Setter Property="Visibility" Value="Hidden"/>
                                     <Style.Triggers>
                                         <!-- bind to a boolean VM property instead of Count; use Hidden to keep layout -->
                                         <DataTrigger Binding="{Binding HasMeta}" Value="False">

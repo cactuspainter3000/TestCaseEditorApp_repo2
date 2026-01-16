@@ -82,10 +82,21 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// </summary>
         private void OnRequirementsCollectionChanged(TestCaseGenerationEvents.RequirementsCollectionChanged e)
         {
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_NavigationViewModel] Requirements collection changed: {e.AffectedRequirements?.Count ?? 0} requirements");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"🔔 [Requirements_NavigationViewModel] Requirements collection changed: Action={e.Action}, AffectedRequirements={e.AffectedRequirements?.Count ?? 0}, NewCount={e.NewCount}");
             
             // Refresh the local requirements collection from TestCaseGeneration mediator
             RefreshRequirementsFromMediator();
+            
+            // Handle selection based on new collection state
+            if (RequirementsView.Count == 0)
+            {
+                // Collection is empty (project closed/unloaded), reset navigation state
+                TestCaseEditorApp.Services.Logging.Log.Debug("🧹 [Requirements_NavigationViewModel] Collection is empty, resetting navigation state");
+                SelectedRequirement = null;
+                SelectedRequirementIndex = -1;
+                TestCaseEditorApp.Services.Logging.Log.Debug("✅ [Requirements_NavigationViewModel] Navigation state reset complete");
+                return;
+            }
             
             // If a requirement was previously selected, try to maintain selection
             if (SelectedRequirement != null)
@@ -97,9 +108,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 }
                 else
                 {
-                    // Selected requirement no longer exists, clear selection
-                    SelectedRequirement = null;
-                    SelectedRequirementIndex = -1;
+                    // Selected requirement no longer exists, select first available
+                    SelectedRequirement = RequirementsView[0];
+                    SelectedRequirementIndex = 0;
                 }
             }
             else if (RequirementsView.Count > 0)
@@ -171,7 +182,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             get
             {
                 var total = RequirementsView.Count;
-                var pos = (SelectedRequirementIndex >= 0 && total > 0) ? (SelectedRequirementIndex + 1).ToString() : "1";
+                var pos = (SelectedRequirementIndex >= 0 && total > 0) ? (SelectedRequirementIndex + 1).ToString() : "0";
                 return $"{pos} / {total}";
             }
         }

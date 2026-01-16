@@ -89,6 +89,21 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         private void OnRequirementsCollectionChanged(TestCaseGenerationEvents.RequirementsCollectionChanged e)
         {
+            // If requirements are being cleared (e.g., project close), reset all header state
+            if (e.Action == "Clear" && e.NewCount == 0)
+            {
+                _logger.LogDebug("Requirements cleared - resetting header state");
+                
+                // Reset all project-specific properties
+                ImportSource = "None";
+                WorkspaceFilePath = null;
+                LastSaveTimestamp = null;
+                RequirementDescription = ""; // Empty instead of default text
+                
+                _logger.LogDebug("Header state reset: ImportSource={ImportSource}, WorkspaceFilePath={WorkspaceFilePath}", 
+                    ImportSource, WorkspaceFilePath ?? "null");
+            }
+            
             UpdateStatistics();
         }
 

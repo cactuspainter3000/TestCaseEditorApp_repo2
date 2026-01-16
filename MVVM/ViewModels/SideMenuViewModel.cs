@@ -184,8 +184,21 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         private async Task UnloadProjectAsync()
         {
-            Console.WriteLine("*** SideMenuViewModel.UnloadProject called! ***");
-            await _newProjectMediator.CloseProjectAsync();
+            try
+            {
+                _logger.LogInformation("UnloadProject button clicked - starting project unload");
+                Console.WriteLine("*** SideMenuViewModel.UnloadProject called! ***");
+                
+                await _newProjectMediator.CloseProjectAsync();
+                
+                _logger.LogInformation("Project unload completed successfully");
+                Console.WriteLine("*** Project unload completed successfully ***");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during project unload: {Message}", ex.Message);
+                Console.WriteLine($"*** Error during project unload: {ex.Message} ***");
+            }
         }
         private void NavigateToProject()
         {

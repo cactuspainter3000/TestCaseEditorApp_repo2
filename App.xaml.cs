@@ -520,6 +520,8 @@ namespace TestCaseEditorApp
                 domainCoordinator.RegisterDomainMediator("TestCaseGeneration", testCaseGenMediator);
                 domainCoordinator.RegisterDomainMediator("TestCaseCreation", testCaseCreationMediator);
                 domainCoordinator.RegisterDomainMediator("TestFlow", testFlowMediator);
+                domainCoordinator.RegisterDomainMediator("NewProject", newProjectMediator);
+                domainCoordinator.RegisterDomainMediator("OpenProject", openProjectMediator);
                 
                 // Register any extension-provided domain mediators
                 foreach (var domainExtension in extensionManager.DomainExtensions.Values)

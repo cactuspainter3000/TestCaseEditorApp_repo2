@@ -77,6 +77,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             
             // CRITICAL: Also subscribe to TestCaseGenerationEvents since navigation publishes those
             _testCaseGenerationMediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnTestCaseGenerationRequirementSelected);
+            _testCaseGenerationMediator.Subscribe<TestCaseGenerationEvents.RequirementsCollectionChanged>(OnTestCaseGenerationRequirementsCollectionChanged);
 
             // Commands
             AddRequirementCommand = new RelayCommand(AddRequirement);
@@ -171,22 +172,63 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private void OnTestCaseGenerationRequirementSelected(TestCaseGenerationEvents.RequirementSelected e)
         {
             TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] OnTestCaseGenerationRequirementSelected called with: {e.Requirement?.GlobalId ?? "NULL"}");
-            Console.WriteLine($"*** [Requirements_MainViewModel] OnTestCaseGenerationRequirementSelected: {e.Requirement?.GlobalId ?? "NULL"} ***");
-            if (!ReferenceEquals(_selectedRequirement, e.Requirement))
+            Console.WriteLine($"*** [Requirements_MainViewModel] OnTestCaseGenerationRequirementSelected: {e.Requirement?.GlobalId ?? "NULL"} ***");            
+            OnRequirementSelected(new RequirementsEvents.RequirementSelected { Requirement = e.Requirement });
+        }
+        
+        /// <summary>
+        /// Handle requirements collection changes from TestCaseGeneration mediator (for project close events)
+        /// </summary>
+        private void OnTestCaseGenerationRequirementsCollectionChanged(TestCaseGenerationEvents.RequirementsCollectionChanged e)
+        {
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] OnTestCaseGenerationRequirementsCollectionChanged: Action={e.Action}, NewCount={e.NewCount}");
+            Console.WriteLine($"*** [Requirements_MainViewModel] TestCaseGeneration collection changed: {e.Action}, Count={e.NewCount} ***");
+            
+            // Clear the main workspace when requirements are cleared
+            if (e.Action == "Clear" && e.NewCount == 0)
             {
-                _selectedRequirement = e.Requirement;
+                Console.WriteLine("*** [Requirements_MainViewModel] Clearing workspace due to project close ***");
+                TestCaseEditorApp.Services.Logging.Log.Debug("[Requirements_MainViewModel] Clearing workspace due to project close");
+                
+                // Clear selection and content
+                _selectedRequirement = null;
                 OnPropertyChanged(nameof(SelectedRequirement));
                 
-                // Re-populate chips from requirement data
-                UpdateVisibleChipsFromRequirement(_selectedRequirement);
+                // Generate empty chips showing "(not set)" for all fields instead of clearing completely
+                UpdateVisibleChipsFromRequirement(null);
                 
-                // Update analysis state
+                // Reset support view to default (Meta tab)
+                SelectedSupportView = SupportView.Meta;
+                
+                // Clear all table and paragraph content
+                SelectedTableVMs.Clear();
+                SelectedParagraphVMs.Clear();
+                OnPropertyChanged(nameof(HasTables));
+                OnPropertyChanged(nameof(HasParagraphs));
+                
+                // Clear content (this will handle the empty case properly)
+                LoadRequirementContent(null);
+                
+                // Force refresh of all property bindings to ensure meta data is cleared
+                OnPropertyChanged(nameof(IsMetaSelected));
+                OnPropertyChanged(nameof(IsTablesSelected));
+                OnPropertyChanged(nameof(IsParagraphsSelected));
+                OnPropertyChanged(nameof(IsAnalysisSelected));
                 OnPropertyChanged(nameof(HasAnalysis));
                 OnPropertyChanged(nameof(AnalysisQualityScore));
                 
-                // Load requirement content
-                LoadRequirementContent(_selectedRequirement);
+                // Force update of any computed properties that might be cached
+                OnPropertyChanged(nameof(Requirements));
             }
+            
+            // Convert to Requirements domain event and handle normally
+            var requirementsEvent = new RequirementsEvents.RequirementsCollectionChanged
+            {
+                Action = e.Action,
+                AffectedRequirements = e.AffectedRequirements,
+                NewCount = e.NewCount
+            };
+            OnRequirementsCollectionChanged(requirementsEvent);
         }
 
         /// <summary>
@@ -452,6 +494,49 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
             else
             {
+                // When requirement is null, still show all fields with "(not set)" values
+                TestCaseEditorApp.Services.Logging.Log.Debug("[Requirements_MainViewModel] Creating empty chips for cleared requirement");
+                int orderCounter = 10;
+                
+                // Helper: add empty field
+                void AddEmpty(string label, bool isCore = false)
+                {
+                    list.Add(new ChipViewModel 
+                    { 
+                        Label = label, 
+                        Value = "(not set)",
+                        IsCore = isCore,
+                        DisplayOrder = orderCounter++
+                    });
+                }
+
+                // === Same field structure as when requirement is loaded ===
+                AddEmpty("Global ID", isCore: true);
+                AddEmpty("Type", isCore: true);
+                AddEmpty("Status", isCore: true);
+                AddEmpty("Version", isCore: true);
+
+                // === Optional fields ===
+                AddEmpty("Safety");
+                AddEmpty("Security");
+                AddEmpty("Key Characteristics");
+                AddEmpty("FDAL");
+                AddEmpty("Derived");
+                AddEmpty("Export Controlled");
+                AddEmpty("Project");
+                AddEmpty("Set");
+                AddEmpty("Heading");
+                AddEmpty("API ID");
+                AddEmpty("Change Driver");
+                AddEmpty("Created By");
+                AddEmpty("Modified By");
+                AddEmpty("Locked By");
+                AddEmpty("Upstream Links");
+                AddEmpty("Downstream Links");
+                AddEmpty("Comments");
+                AddEmpty("Attachments");
+                
+                // Clear date chips as well
                 DateChips = new ObservableCollection<ChipViewModel>();
             }
 
@@ -734,6 +819,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 
                 // Unsubscribe from cross-domain TestCaseGeneration events
                 _testCaseGenerationMediator.Unsubscribe<TestCaseGenerationEvents.RequirementSelected>(OnTestCaseGenerationRequirementSelected);
+                _testCaseGenerationMediator.Unsubscribe<TestCaseGenerationEvents.RequirementsCollectionChanged>(OnTestCaseGenerationRequirementsCollectionChanged);
             }
             catch (Exception ex)
             {
