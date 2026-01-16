@@ -51,6 +51,10 @@
             <tcgviews:TestCaseGenerator_CreationView />
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_NavigationVM}">
+            <tcgviews:TestCaseGenerator_NavigationControl />
+        </DataTemplate>
+
         <DataTemplate DataType="{x:Type vm:WorkspaceHeaderViewModel}">
             <views:WorkspaceHeaderView />
         </DataTemplate>

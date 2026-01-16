@@ -306,6 +306,7 @@ namespace TestCaseEditorApp
 
                     // === TEST CASE GENERATION DOMAIN WORKSPACE VIEWMODELS ===
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorMainVM>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_NavigationVM>();
 
                     services.AddSingleton<INewProjectMediator>(provider =>
                     {
