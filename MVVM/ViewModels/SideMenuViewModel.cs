@@ -261,9 +261,25 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             System.Diagnostics.Debug.WriteLine("*** FORCING NAVIGATION TO 'requirements' (lowercase) ***");
             Console.WriteLine("*** FORCING NAVIGATION TO 'requirements' (lowercase) ***");
             
+            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator is null: {_navigationMediator == null} ***");
+            Console.WriteLine($"*** NavigationMediator is null: {_navigationMediator == null} ***");
+            
             SelectedSection = "Requirements"; // Update selected section to trigger SectionChanged event
             
-            _navigationMediator.NavigateToSection("requirements"); // Force lowercase
+            try 
+            {
+                System.Diagnostics.Debug.WriteLine("*** About to call NavigateToSection ***");
+                Console.WriteLine("*** About to call NavigateToSection ***");
+                _navigationMediator.NavigateToSection("requirements"); // Force lowercase
+                System.Diagnostics.Debug.WriteLine("*** NavigateToSection call completed ***");
+                Console.WriteLine("*** NavigateToSection call completed ***");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"*** EXCEPTION in NavigateToSection: {ex.Message} ***");
+                Console.WriteLine($"*** EXCEPTION in NavigateToSection: {ex.Message} ***");
+                System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: EXCEPTION: {ex.Message}\n{ex.StackTrace}\n");
+            }
         }
         
         /// <summary>

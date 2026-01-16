@@ -2,11 +2,13 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Views;
+using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators;
@@ -282,7 +284,35 @@ namespace TestCaseEditorApp
                     });
                     
                     // Requirements domain ViewModels - Navigation as Singleton to maintain state
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>(provider =>
+                    {
+                        var reqMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
+                        var testCaseGenMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.ITestCaseGenerationMediator>();
+                        var persistence = provider.GetRequiredService<IPersistenceService>();
+                        var textEditingService = provider.GetRequiredService<ITextEditingDialogService>();
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>>();
+                        var analysisService = provider.GetService<IRequirementAnalysisService>();
+                        
+                        // Get the TestCaseGenerator_VM to access table and paragraph providers through its CoreVM
+                        var testCaseGeneratorVM = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_VM>();
+                        
+                        // Create provider functions that delegate to the core VM (if available)
+                        Func<Requirement?, IEnumerable<LooseTableViewModel>> tableProvider = (req) => 
+                        {
+                            if (testCaseGeneratorVM.TestCaseGenerator != null)
+                                return testCaseGeneratorVM.TestCaseGenerator.GetLooseTableVMsForRequirement(req);
+                            return Enumerable.Empty<LooseTableViewModel>();
+                        };
+                        Func<Requirement?, IEnumerable<string>> paragraphProvider = (req) => 
+                        {
+                            if (testCaseGeneratorVM.TestCaseGenerator != null)
+                                return testCaseGeneratorVM.TestCaseGenerator.GetLooseParagraphsForRequirement(req);
+                            return Enumerable.Empty<string>();
+                        };
+                        
+                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel(
+                            reqMediator, testCaseGenMediator, persistence, textEditingService, logger, analysisService, tableProvider, paragraphProvider);
+                    });
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>(provider =>
                     {
                         // Use TestCaseGenerationMediator as data source for header
@@ -403,7 +433,22 @@ namespace TestCaseEditorApp
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreationMainVM>();
                     
                     // Test Case Generation domain ViewModels - proper DI registration
-                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_VM>();
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_VM>(provider =>
+                    {
+                        var mediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.ITestCaseGenerationMediator>();
+                        var persistence = provider.GetRequiredService<IPersistenceService>();
+                        var textEditingService = provider.GetRequiredService<ITextEditingDialogService>();
+                        var analysisService = provider.GetRequiredService<IRequirementAnalysisService>();
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_VM>>();
+                        
+                        var vm = new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_VM(
+                            mediator, persistence, textEditingService, analysisService, logger);
+                        
+                        // Initialize the CoreVM for table and paragraph data (like ViewModelFactory does)
+                        vm.TestCaseGenerator = new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_CoreVM();
+                        
+                        return vm;
+                    });
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementsWorkspaceViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>();
                     
