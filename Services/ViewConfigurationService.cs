@@ -156,13 +156,22 @@ namespace TestCaseEditorApp.Services
             System.Diagnostics.Debug.WriteLine($"*** All Requirements ViewModels resolved successfully ***");
             Console.WriteLine($"*** Requirements Domain: Header={headerVM.GetType().Name}, Main={mainVM.GetType().Name}, Navigation={navigationVM.GetType().Name} ***");
             
+            // Create the navigation UserControl and bind the ViewModel (like TestCaseGenerator does)
+            object? navigationContent = null;
+            if (navigationVM != null)
+            {
+                var navigationControl = new TestCaseEditorApp.MVVM.Domains.Requirements.Views.RequirementsNavigationView();
+                navigationControl.DataContext = navigationVM;
+                navigationContent = navigationControl;
+            }
+            
             // Return complete Requirements domain configuration
             return new ViewConfiguration(
                 sectionName: "Requirements",
                 titleViewModel: EnsureTestCaseGeneratorTitle(), // Keep using TestCaseGeneration title for now
                 headerViewModel: headerVM,        // Requirements header
                 contentViewModel: mainVM,         // Requirements main (with correct DataTemplate)
-                navigationViewModel: navigationVM, // Requirements navigation
+                navigationViewModel: navigationContent, // Requirements navigation UserControl (not ViewModel)
                 notificationViewModel: notificationVM,
                 context: context
             );
