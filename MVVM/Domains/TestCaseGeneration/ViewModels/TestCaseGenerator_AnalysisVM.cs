@@ -597,6 +597,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         }
 
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(HasNoAnalysis))]
         private bool hasAnalysis;
 
         [ObservableProperty]
