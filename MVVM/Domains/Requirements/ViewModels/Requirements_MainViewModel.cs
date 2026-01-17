@@ -161,6 +161,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             Console.WriteLine($"*** [Requirements_MainViewModel] OnRequirementSelected: {e.Requirement?.GlobalId ?? "NULL"} ***");
             if (!ReferenceEquals(_selectedRequirement, e.Requirement))
             {
+                // Save any dirty table changes before navigating away
+                SaveDirtyTableChanges();
+                
                 _selectedRequirement = e.Requirement;
                 OnPropertyChanged(nameof(SelectedRequirement));
                 
@@ -188,6 +191,43 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             Console.WriteLine($"*** [Requirements_MainViewModel] OnTestCaseGenerationRequirementSelected: {e.Requirement?.GlobalId ?? "NULL"} ***");            
             OnRequirementSelected(new RequirementsEvents.RequirementSelected { Requirement = e.Requirement });
         }
+        
+        /// <summary>
+        /// Save any dirty table changes before navigating to a new requirement.
+        /// </summary>
+        private void SaveDirtyTableChanges()
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] SaveDirtyTableChanges called. TableProvider: {_tableProvider != null}, SelectedReq: {_selectedRequirement?.GlobalId ?? "NULL"}");
+                
+                if (_tableProvider != null && _selectedRequirement != null)
+                {
+                    var tables = _tableProvider(_selectedRequirement);
+                    var tableList = tables?.ToList() ?? new List<LooseTableViewModel>();
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] Found {tableList.Count} tables for requirement {_selectedRequirement.GlobalId}");
+                    
+                    var dirtyTables = tableList.OfType<LooseTableViewModel>().Where(t => t.IsDirty).ToList();
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] Found {dirtyTables.Count} dirty tables");
+                    
+                    foreach (var table in dirtyTables)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] Saving dirty table: {table.Title} (ID: {table.RequirementId})");
+                        table.SaveToSourceRequirement();
+                    }
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] Cannot save dirty tables - TableProvider: {_tableProvider != null}, SelectedReq: {_selectedRequirement != null}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving dirty table changes during navigation");
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "Error saving dirty table changes during navigation");
+            }
+        }
+        
         
         /// <summary>
         /// Handle requirements collection changes from TestCaseGeneration mediator (for project close events)
@@ -813,6 +853,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// </summary>
         private void LoadRequirementContent(Requirement? requirement)
         {
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] LoadRequirementContent called for: {requirement?.GlobalId ?? "NULL"}");
+            
             // Clear existing content
             SelectedTableVMs.Clear();
             
@@ -835,6 +877,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     {
                         SelectedTableVMs.Add(table);
                     }
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] Loaded {SelectedTableVMs.Count} tables for requirement {requirement.GlobalId}");
                 }
                 catch (Exception ex)
                 {
