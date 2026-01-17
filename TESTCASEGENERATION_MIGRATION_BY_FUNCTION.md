@@ -1,45 +1,129 @@
-# TestCaseGeneration Domain Migration Analysis by Function
+# TestCaseGeneration → Requirements Migration Reference
 
-## Overview
+## Quick Status
+- **Requirements Domain Coverage**: 40%
+- **Missing Functionality**: 60%
+- **Migration Approach**: Port existing code, don't create new logic
 
-This document provides a comprehensive analysis of functionality that needs to be migrated from the TestCaseGeneration domain to the Requirements domain, organized by business function rather than technical component. This functional view helps prioritize migration work based on user impact and business value.
+## 🚨 RABBIT HOLE WARNINGS
+| ❌ DON'T | ✅ DO INSTEAD |
+|----------|---------------|
+| Analyze 1,808-line AnalysisVM line-by-line | Check interfaces, dependencies, public methods only |
+| Create new DI patterns | Use patterns from ARCHITECTURAL_GUIDE_AI.md |
+| Write new business logic | Search TestCaseGeneration for existing implementation |
+| Make Requirements→TestCaseGeneration calls | Complete functional migration or defer |
+| Move services without dependency mapping | Map complete dependency chains first |
+| Migrate ViewModels without Views | Migrate View+ViewModel+Services as units |
 
-**Analysis Date**: January 17, 2026  
-**Current Status**: Requirements domain has ~40% of needed functionality  
-**Migration Scope**: 60% of functionality missing
-
-## 🎯 MIGRATION OBJECTIVES & PRINCIPLES
-
-### PRIMARY OBJECTIVE
-**Consolidate all requirements-related functionality into a single Requirements domain**, enabling the safe removal of TestCaseGeneration domain without functionality loss.
-
-### CORE PRINCIPLES
-1. **No Hybrid Solutions** - Each function must be 100% migrated or 0% migrated
-2. **Complete Functional Equivalence** - Users must not lose any existing capabilities
-3. **Clean Domain Boundaries** - Requirements domain owns all requirement workflows
-4. **Single Source of Truth** - Eliminate duplicate implementations across domains
-
-### ARCHITECTURAL GUIDANCE
-📖 **See ARCHITECTURAL_GUIDE_AI.md for detailed implementation patterns:**
-- **Domain Organization**: Section on proper domain structure and boundaries
-- **Dependency Injection**: Best practices for service registration and resolution
-- **Cross-Domain Communication**: Mediator patterns and event coordination
-- **ViewModel Architecture**: MVVM patterns and property notification
-- **Questions First, Code Second**: Methodology for systematic implementation
-
-### WHAT WE'RE AVOIDING
-❌ **Hybrid cross-domain dependencies** (Requirements calling TestCaseGeneration services)  
-❌ **Partial migrations** (some features in Requirements, some still in TestCaseGeneration)  
-❌ **Duplicate functionality** (same feature implemented in both domains)  
-❌ **Temporary bridges** that become permanent technical debt
-
-### END STATE VISION
-✅ **Requirements domain** contains ALL requirement-related functionality  
-✅ **TestCaseGeneration domain** completely removed from codebase  
-✅ **Zero external dependencies** on TestCaseGeneration namespace  
-✅ **Clean DI container** with no TestCaseGeneration registrations
+**RED FLAG**: If you're writing complex new code during migration, you're in a rabbit hole.
 
 ---
+
+## 📋 MIGRATION INVENTORY
+
+### 🔄 IMPORT/EXPORT PROCESS
+**Status**: ❌ MISSING
+
+| Component | Type | Source | Target | Dependencies |
+|-----------|------|--------|--------|--------------|
+| SmartRequirementImporter | Service | TestCaseGeneration/Services | Requirements/Services | IDocumentParser, IMediator |
+| RequirementImportCoordinator | Service | TestCaseGeneration/Services | Requirements/Services | SmartRequirementImporter |
+| DocumentFormatDetector | Service | TestCaseGeneration/Services | Requirements/Services | None |
+| JamaAllDataDocxParser | Service | TestCaseGeneration/Services | Requirements/Services | FileSystem |
+| JamaAllDataDocxEnricher | Service | TestCaseGeneration/Services | Requirements/Services | JamaAllDataDocxParser |
+| JamaAllDataEnricher | Service | TestCaseGeneration/Services | Requirements/Services | None |
+| JamaRequirementMapper | Service | TestCaseGeneration/Services | Requirements/Services | JamaAllDataEnricher |
+| JamaImportInspection | Service | TestCaseGeneration/Services | Requirements/Services | None |
+| RequirementImportExportViewModel | ViewModel | TestCaseGeneration/ViewModels | Requirements/ViewModels | All above services |
+
+**Migration Unit**: Import/Export (9 components)
+**DI Registrations**: 8 services + ViewModel factory registration
+
+### 🧠 LLM ANALYSIS
+**Status**: ⚠️ PARTIAL 
+
+| Component | Status | Location | Notes |
+|-----------|--------|----------|-------|
+| TestCaseGenerator_AnalysisVM | ✅ Exists | Requirements/ViewModels | Cross-domain dependency |
+| LLMService | ❌ Missing | Requirements/Services | Core analysis engine |
+| PromptTemplateService | ❌ Missing | Requirements/Services | Prompt management |
+| AnalysisCache | ❌ Missing | Requirements/Services | Performance optimization |
+| AnalysisHealthService | ❌ Missing | Requirements/Services | Health monitoring |
+
+**Migration Unit**: LLM Analysis (4 missing services)
+
+### 🎯 TEST CASE CREATION  
+**Status**: ❌ MISSING
+
+| Component | Type | Missing Count |
+|-----------|------|---------------|
+| ViewModels | TestCaseGenerator_* | 10+ |
+| Services | TestCase*, Catalog* | 8+ |
+| Views | TestCase*.xaml | 5+ |
+
+**Decision Required**: Migrate to Requirements or create separate TestCaseCreation domain?
+
+### 📊 WORKFLOW ORCHESTRATION
+**Status**: ❌ MISSING
+
+| Component | Type | Source |
+|-----------|------|--------|
+| TestCaseGeneratorWorkflowCoordinator | Service | TestCaseGeneration/Services |
+| WorkspaceCoordinationService | Service | TestCaseGeneration/Services |
+| ViewAreaCoordinator | Service | TestCaseGeneration/Services |
+
+---
+
+## 🛠️ MIGRATION EXECUTION TEMPLATES
+
+### Service Migration Pattern
+```csharp
+// 1. Copy service to Requirements/Services/
+// 2. Update namespace
+namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
+{
+    // 3. Update DI registration in App.xaml.cs
+    services.AddTransient<IServiceName, ServiceName>();
+    
+    // 4. Update cross-domain mediator calls if any
+    await _requirementsMediator.SendAsync(new SomeCommand());
+}
+```
+
+### ViewModel Migration Pattern  
+```csharp
+// 1. Copy to Requirements/ViewModels/
+// 2. Update dependencies to Requirements services
+// 3. Update View xaml.cs DataContext binding
+// 4. Register in ViewModelFactory
+```
+
+### Dependency Chain Discovery
+```bash
+# Find all references to component
+grep -r "ComponentName" --include="*.cs" .
+# Find DI registrations
+grep -r "AddTransient.*ComponentName" App.xaml.cs
+grep -r "AddSingleton.*ComponentName" App.xaml.cs
+```
+
+---
+
+## ✅ MIGRATION VALIDATION CHECKLIST
+
+### Per Migration Unit:
+- [ ] All components moved
+- [ ] DI registrations updated  
+- [ ] Cross-domain calls eliminated
+- [ ] Views bind correctly
+- [ ] Tests pass
+- [ ] No TestCaseGeneration references remain
+
+### Pre-Removal Validation:
+- [ ] Zero references to TestCaseGeneration namespace
+- [ ] All functionality verified in Requirements domain
+- [ ] Performance equivalent
+- [ ] User workflows unchanged
 
 ## 📋 MIGRATION NEEDS BY FUNCTIONAL AREA
 
