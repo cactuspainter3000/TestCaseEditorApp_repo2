@@ -11,6 +11,7 @@ using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Services;
 using System.Windows;
 
 namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
@@ -22,7 +23,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
     public class RequirementsMediator : BaseDomainMediator<RequirementsEvents>, IRequirementsMediator
     {
         private readonly IRequirementService _requirementService;
-        private readonly IRequirementAnalysisService _analysisService;
+        private readonly IRequirementAnalysisService _analysisService; // Legacy - will be phased out
+        private readonly IRequirementAnalysisEngine? _analysisEngine; // NEW: Requirements domain analysis
         private readonly IRequirementDataScrubber _scrubber;
         private readonly SmartRequirementImporter _smartImporter;
         private readonly ObservableCollection<Requirement> _requirements;
@@ -115,6 +117,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             IRequirementService requirementService,
             IRequirementAnalysisService analysisService,
             IRequirementDataScrubber scrubber,
+            IRequirementAnalysisEngine? analysisEngine = null, // NEW: Optional for transition period
             PerformanceMonitoringService? performanceMonitor = null,
             EventReplayService? eventReplay = null)
             : base(logger, uiCoordinator, "Requirements", performanceMonitor, eventReplay)
@@ -122,6 +125,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             _requirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
             _analysisService = analysisService ?? throw new ArgumentNullException(nameof(analysisService));
             _scrubber = scrubber ?? throw new ArgumentNullException(nameof(scrubber));
+            _analysisEngine = analysisEngine; // Optional during transition
             _smartImporter = new SmartRequirementImporter(requirementService, 
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<SmartRequirementImporter>.Instance);
             
@@ -478,7 +482,21 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             {
                 UpdateProgress("Running LLM analysis...", 50);
 
-                var analysis = await _analysisService.AnalyzeRequirementAsync(requirement);
+                RequirementAnalysis analysis;
+
+                // ARCHITECTURE: Prefer new Requirements domain engine when available
+                if (_analysisEngine != null)
+                {
+                    _logger.LogDebug("[RequirementsMediator] Using NEW Requirements domain analysis engine");
+                    analysis = await _analysisEngine.AnalyzeRequirementAsync(requirement, 
+                        progress => UpdateProgress($"Analysis progress: {progress}", 75));
+                }
+                else
+                {
+                    _logger.LogDebug("[RequirementsMediator] Fallback to legacy TestCaseGeneration analysis service");
+                    analysis = await _analysisService.AnalyzeRequirementAsync(requirement);
+                }
+
                 requirement.Analysis = analysis;
 
                 PublishEvent(new RequirementsEvents.RequirementAnalyzed
@@ -548,7 +566,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
 
                     try
                     {
-                        var analysis = await _analysisService.AnalyzeRequirementAsync(requirement);
+                        RequirementAnalysis analysis;
+                        
+                        // ARCHITECTURE: Prefer new Requirements domain engine when available
+                        if (_analysisEngine != null)
+                        {
+                            analysis = await _analysisEngine.AnalyzeRequirementAsync(requirement, 
+                                progressMsg => UpdateProgress($"Analyzing {requirement.GlobalId}... ({i + 1}/{requirements.Count}) - {progressMsg}", (double)(i + 1) / requirements.Count * 100));
+                        }
+                        else
+                        {
+                            analysis = await _analysisService.AnalyzeRequirementAsync(requirement);
+                        }
+
                         requirement.Analysis = analysis;
                         successful++;
                     }

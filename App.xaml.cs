@@ -287,9 +287,12 @@ namespace TestCaseEditorApp
                         var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
                         var eventReplay = provider.GetService<TestCaseEditorApp.MVVM.Utils.EventReplayService>();
                         
+                        // NEW: Get the Requirements domain analysis engine
+                        var analysisEngine = provider.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisEngine>();
+                        
                         return new TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator(
                             logger, uiCoordinator, requirementService, analysisService, scrubber, 
-                            performanceMonitor, eventReplay);
+                            analysisEngine, performanceMonitor, eventReplay);
                     });
                     
                     // Requirements domain ViewModels - Navigation as Singleton to maintain state
