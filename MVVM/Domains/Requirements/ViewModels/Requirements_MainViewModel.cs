@@ -102,6 +102,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // Wire collection-changed handlers and initial notifications
             WirePresenceNotifications();
 
+            // Track SelectedSupportView changes for BulkActionsVisible updates
+            this.PropertyChanged += Requirements_MainViewModel_PropertyChanged;
+
             // Create Analysis VM placeholder (we'll skip the complex analysis setup for now)
             AnalysisVM = null; // TODO: Add analysis functionality if needed
             
@@ -202,6 +205,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 
                 // Clear all table and paragraph content
                 SelectedTableVMs.Clear();
+                
+                // Unwire PropertyChanged events before clearing
+                foreach (var para in SelectedParagraphVMs)
+                {
+                    para.PropertyChanged -= ParagraphViewModel_PropertyChanged;
+                }
                 SelectedParagraphVMs.Clear();
                 OnPropertyChanged(nameof(HasTables));
                 OnPropertyChanged(nameof(HasParagraphs));
@@ -675,9 +684,83 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
         }
 
-        private void EditSupplementalInfo()
+        private async void EditSupplementalInfo()
         {
-            // TODO: Implement edit supplemental info
+            try
+            {
+                if (SelectedRequirement == null || SelectedParagraphVMs?.Any(p => p.IsSelected) != true)
+                {
+                    return;
+                }
+
+                var selectedParagraphs = SelectedParagraphVMs
+                    .Where(p => p.IsSelected)
+                    .Select(p => p.Text)
+                    .ToList();
+
+                var existingText = string.Join(" ||| ", selectedParagraphs);
+
+                var editedText = await _textEditingDialogService.ShowSupplementalInfoEditDialog(
+                    "Edit Supplemental Information",
+                    existingText);
+
+                if (editedText != null && !string.IsNullOrWhiteSpace(editedText))
+                {
+                    var newParagraphs = editedText
+                        .Split(new[] { " ||| " }, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(p => p.Trim())
+                        .Where(p => !string.IsNullOrWhiteSpace(p))
+                        .ToList();
+
+                    // Update the LooseContent with the new paragraphs
+                    if (SelectedRequirement.LooseContent == null)
+                    {
+                        SelectedRequirement.LooseContent = new RequirementLooseContent
+                        {
+                            Paragraphs = new List<string>()
+                        };
+                    }
+                    else if (SelectedRequirement.LooseContent.Paragraphs == null)
+                    {
+                        SelectedRequirement.LooseContent.Paragraphs = new List<string>();
+                    }
+
+                    // Remove the old selected paragraphs from the collection
+                    var paragraphsToRemove = SelectedParagraphVMs
+                        .Where(p => p.IsSelected)
+                        .Select(p => p.Text)
+                        .ToList();
+
+                    var paragraphList = SelectedRequirement.LooseContent.Paragraphs.ToList();
+                    foreach (var paragraphToRemove in paragraphsToRemove)
+                    {
+                        paragraphList.Remove(paragraphToRemove);
+                    }
+
+                    // Add the new paragraphs
+                    paragraphList.AddRange(newParagraphs);
+
+                    // Update the collection
+                    SelectedRequirement.LooseContent.Paragraphs = paragraphList;
+
+                    // Refresh the UI
+                    LoadRequirementContent(SelectedRequirement);
+
+                    _logger.LogInformation("Successfully updated supplemental information for requirement {Id}. " +
+                                         "Edited {OldCount} paragraphs into {NewCount} paragraphs.",
+                                         SelectedRequirement?.GlobalId ?? "Unknown",
+                                         selectedParagraphs.Count,
+                                         newParagraphs.Count);
+
+                    // Mark the requirement as modified
+                    OnPropertyChanged(nameof(SelectedRequirement));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error editing supplemental information for requirement {Id}",
+                               SelectedRequirement?.GlobalId ?? "Unknown");
+            }
         }
 
         private void SelectAllVisible()
@@ -698,11 +781,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         private bool CanSelectAllVisible()
         {
-            if (IsTablesSelected)
-                return SelectedTableVMs?.Any() == true;
-            else if (IsParagraphsSelected)
-                return SelectedParagraphVMs?.Any() == true;
-            return false;
+            return (IsTablesSelected && HasTables)
+                || (IsParagraphsSelected && HasParagraphs);
         }
 
         private bool CanClearAllVisible()
@@ -717,6 +797,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             // Clear existing content
             SelectedTableVMs.Clear();
+            
+            // Unwire PropertyChanged events before clearing
+            foreach (var para in SelectedParagraphVMs)
+            {
+                para.PropertyChanged -= ParagraphViewModel_PropertyChanged;
+            }
             SelectedParagraphVMs.Clear();
 
             if (requirement == null) return;
@@ -737,10 +823,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 var paragraphs = _paragraphProvider(requirement);
                 foreach (var paragraph in paragraphs)
                 {
-                    SelectedParagraphVMs.Add(new ParagraphViewModel(paragraph) 
+                    var paraVM = new ParagraphViewModel(paragraph) 
                     { 
                         IsSelected = false 
-                    });
+                    };
+                    paraVM.PropertyChanged += ParagraphViewModel_PropertyChanged;
+                    SelectedParagraphVMs.Add(paraVM);
                 }
             }
 
@@ -766,6 +854,41 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 OnPropertyChanged(nameof(HasParagraphs));
                 OnPropertyChanged(nameof(BulkActionsVisible));
             };
+        }
+
+        /// <summary>
+        /// Handle SelectedSupportView changes for BulkActionsVisible updates
+        /// </summary>
+        private void Requirements_MainViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e?.PropertyName == nameof(SelectedSupportView))
+            {
+                // Update routed command availability and visibility
+                try
+                {
+                    ((RelayCommand)SelectAllVisibleCommand).NotifyCanExecuteChanged();
+                    ((RelayCommand)ClearAllVisibleCommand).NotifyCanExecuteChanged();
+                    ((RelayCommand)EditSupplementalInfoCommand).NotifyCanExecuteChanged();
+                }
+                catch { /* ignore if not RelayCommand */ }
+
+                OnPropertyChanged(nameof(BulkActionsVisible));
+            }
+        }
+
+        /// <summary>
+        /// Handle ParagraphViewModel property changes for command CanExecute updates
+        /// </summary>
+        private void ParagraphViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ParagraphViewModel.IsSelected))
+            {
+                try
+                {
+                    ((RelayCommand)EditSupplementalInfoCommand).NotifyCanExecuteChanged();
+                }
+                catch { }
+            }
         }
 
         // ==== ABSTRACT METHOD IMPLEMENTATIONS ====
