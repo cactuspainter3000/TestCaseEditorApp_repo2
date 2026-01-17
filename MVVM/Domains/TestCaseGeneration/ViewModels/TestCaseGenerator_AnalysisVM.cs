@@ -568,8 +568,18 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 FreeformFeedback = analysis.FreeformFeedback ?? string.Empty;
                 AnalysisTimestamp = $"Analyzed on {analysis.Timestamp:MMM d, yyyy 'at' h:mm tt}";
                 
-                // Clear status message for successful analysis
-                AnalysisStatusMessage = string.Empty;
+                // Check if analysis contains error state
+                if (!string.IsNullOrEmpty(analysis.ErrorMessage))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnalysisVM] Analysis has ErrorMessage: '{analysis.ErrorMessage}' - setting status message");
+                    AnalysisStatusMessage = analysis.ErrorMessage;
+                }
+                else
+                {
+                    // Clear status message for successful analysis
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Analysis successful - clearing status message");
+                    AnalysisStatusMessage = string.Empty;
+                }
             }
             else
             {
