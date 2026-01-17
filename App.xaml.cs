@@ -148,6 +148,15 @@ namespace TestCaseEditorApp
                             cache: cache,
                             anythingLLMService: anythingLLMService);
                     });
+
+                    // ===== REQUIREMENTS DOMAIN SERVICES (Refactored Architecture) =====
+                    
+                    // Register the new analysis engine that consolidates analysis functionality
+                    services.AddScoped<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisEngine, 
+                                      TestCaseEditorApp.MVVM.Domains.Requirements.Services.RequirementAnalysisEngine>();
+                    
+                    // Register the focused RequirementAnalysisViewModel for Requirements domain
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel>();
                     services.AddSingleton<AnythingLLMService>(provider =>
                         new AnythingLLMService()); // Let it get baseUrl and apiKey from defaults/user config
                     services.AddSingleton<TestCaseAnythingLLMService>();
