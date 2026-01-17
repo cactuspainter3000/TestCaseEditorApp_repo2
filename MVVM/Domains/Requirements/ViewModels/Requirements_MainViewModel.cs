@@ -14,13 +14,15 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Views;
 using TestCaseEditorApp.MVVM.Events;
-using TestCaseEditorApp.MVVM.Domains.Requirements.Events;
+using RequirementsEvents = TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
+using TestCaseGenerationMediator = TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.ITestCaseGenerationMediator;
+using TestCaseGenerationEvents = TestCaseEditorApp.MVVM.Events.TestCaseGenerationEvents;
 using TestCaseEditorApp.MVVM.Mediators;
 using Microsoft.Extensions.DependencyInjection;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 
 namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 {
@@ -31,7 +33,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
     public partial class Requirements_MainViewModel : BaseDomainViewModel, IDisposable
     {
         private new readonly IRequirementsMediator _mediator;
-        private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
+        private readonly TestCaseGenerationMediator _testCaseGenerationMediator;
         private readonly IPersistenceService _persistence;
         private readonly ITextEditingDialogService _textEditingDialogService;
 
@@ -43,7 +45,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         internal object? RequirementsCore { get; set; }
 
         // Analysis VM for LLM-powered requirement analysis
-        public object? AnalysisVM { get; private set; }
+        public TestCaseGenerator_AnalysisVM? AnalysisVM { get; private set; }
 
         // Expose mediator analysis state for UI binding
         public bool IsAnalyzing => _mediator.IsAnalyzing;
@@ -54,7 +56,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         public Requirements_MainViewModel(
             IRequirementsMediator mediator,
-            ITestCaseGenerationMediator testCaseGenerationMediator,
+            TestCaseGenerationMediator testCaseGenerationMediator,
             IPersistenceService persistence,
             ITextEditingDialogService textEditingDialogService,
             ILogger<Requirements_MainViewModel> logger,
@@ -105,8 +107,23 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // Track SelectedSupportView changes for BulkActionsVisible updates
             this.PropertyChanged += Requirements_MainViewModel_PropertyChanged;
 
-            // Create Analysis VM placeholder (we'll skip the complex analysis setup for now)
-            AnalysisVM = null; // TODO: Add analysis functionality if needed
+            // Create Analysis VM with proper dependency injection
+            if (analysisService != null)
+            {
+                var analysisLogger = logger as ILogger<TestCaseGenerator_AnalysisVM> ?? 
+                    new LoggerFactory().CreateLogger<TestCaseGenerator_AnalysisVM>();
+                
+                // Get learning services from DI container if available (proper architectural pattern)
+                var editDetectionService = App.ServiceProvider?.GetService<IEditDetectionService>();
+                var learningService = App.ServiceProvider?.GetService<ILLMLearningService>();
+                
+                // Use TestCaseGeneration mediator for analysis since that's where the events come from
+                AnalysisVM = new TestCaseGenerator_AnalysisVM(_testCaseGenerationMediator, analysisLogger, analysisService, editDetectionService, null, learningService);
+            }
+            else
+            {
+                AnalysisVM = null; // Fallback when no analysis service available
+            }
             
             // CRITICAL: Initialize with current requirement from TestCaseGeneration mediator
             InitializeWithCurrentRequirement();
