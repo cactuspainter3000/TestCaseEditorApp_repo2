@@ -17,10 +17,8 @@ using TestCaseEditorApp.MVVM.Events;
 using RequirementsEvents = TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.Services;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
-using TestCaseGenerationMediator = TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.ITestCaseGenerationMediator;
-using TestCaseGenerationEvents = TestCaseEditorApp.MVVM.Events.TestCaseGenerationEvents;
+// COMPLETED: IRequirementAnalysisService moved to Requirements domain
+using TestCaseEditorApp.MVVM.Domains.Requirements.Services; // IRequirementAnalysisService now in Requirements domain
 using TestCaseEditorApp.MVVM.Mediators;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -33,7 +31,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
     public partial class Requirements_MainViewModel : BaseDomainViewModel, IDisposable
     {
         private new readonly IRequirementsMediator _mediator;
-        private readonly TestCaseGenerationMediator _testCaseGenerationMediator;
         private readonly IPersistenceService _persistence;
         private readonly ITextEditingDialogService _textEditingDialogService;
 
@@ -56,7 +53,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         public Requirements_MainViewModel(
             IRequirementsMediator mediator,
-            TestCaseGenerationMediator testCaseGenerationMediator,
             IPersistenceService persistence,
             ITextEditingDialogService textEditingDialogService,
             ILogger<Requirements_MainViewModel> logger,
@@ -66,20 +62,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             : base(mediator, logger)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
-            _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
+            // REMOVED: TestCaseGenerationMediator dependency - Requirements domain now independent
             _persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
             _textEditingDialogService = textEditingDialogService ?? throw new ArgumentNullException(nameof(textEditingDialogService));
             _tableProvider = tableProvider;
             _paragraphProvider = paragraphProvider;
 
-            // Subscribe to domain events - DUAL SUBSCRIPTION for cross-domain compatibility
+            // Subscribe to Requirements domain events ONLY - Requirements domain independence
             _mediator.Subscribe<RequirementsEvents.RequirementSelected>(OnRequirementSelected);
             _mediator.Subscribe<RequirementsEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
             _mediator.Subscribe<RequirementsEvents.WorkflowStateChanged>(OnWorkflowStateChanged);
-            
-            // CRITICAL: Also subscribe to TestCaseGenerationEvents since navigation publishes those
-            _testCaseGenerationMediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnTestCaseGenerationRequirementSelected);
-            _testCaseGenerationMediator.Subscribe<TestCaseGenerationEvents.RequirementsCollectionChanged>(OnTestCaseGenerationRequirementsCollectionChanged);
 
             // Commands
             AddRequirementCommand = new RelayCommand(AddRequirement);
@@ -122,45 +114,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 logger.LogWarning("[Requirements_MainVM] No IRequirementAnalysisEngine service available - analysis features disabled");
             }
             
-            // CRITICAL: Initialize with current requirement from TestCaseGeneration mediator
-            InitializeWithCurrentRequirement();
+            // Initialize Requirements domain - will be populated via mediator events
+            _selectedRequirement = null;
             
             // Initial data load
             UpdateVisibleChipsFromRequirement(SelectedRequirement);
-        }
-
-        /// <summary>
-        /// Initialize with current requirement from TestCaseGeneration mediator
-        /// </summary>
-        private void InitializeWithCurrentRequirement()
-        {
-            try
-            {
-                // Get current requirement from TestCaseGeneration mediator
-                var currentRequirement = _testCaseGenerationMediator.CurrentRequirement;
-                if (currentRequirement != null)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] Initializing with current requirement: {currentRequirement.GlobalId}");
-                    _selectedRequirement = currentRequirement;
-                    
-                    // **CRITICAL**: Update mediator's CurrentRequirement to match initial selection
-                    _mediator.CurrentRequirement = currentRequirement;
-                    
-                    OnPropertyChanged(nameof(SelectedRequirement));
-                    
-                    // Load the requirement content
-                    UpdateVisibleChipsFromRequirement(_selectedRequirement);
-                    LoadRequirementContent(_selectedRequirement);
-                }
-                else
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] No current requirement found during initialization");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error initializing Requirements_MainViewModel with current requirement");
-            }
         }
 
         /// <summary>
@@ -196,16 +154,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
         }
 
-        /// <summary>
-        /// Handle requirement selection events from TestCaseGeneration domain (cross-domain compatibility)
-        /// </summary>
-        private void OnTestCaseGenerationRequirementSelected(TestCaseGenerationEvents.RequirementSelected e)
-        {
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] OnTestCaseGenerationRequirementSelected called with: {e.Requirement?.GlobalId ?? "NULL"}");
-            Console.WriteLine($"*** [Requirements_MainViewModel] OnTestCaseGenerationRequirementSelected: {e.Requirement?.GlobalId ?? "NULL"} ***");            
-            OnRequirementSelected(new RequirementsEvents.RequirementSelected { Requirement = e.Requirement });
-        }
-        
         /// <summary>
         /// Save any dirty table changes before navigating to a new requirement.
         /// </summary>
@@ -244,14 +192,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         
         
         /// <summary>
-        /// Handle requirements collection changes from TestCaseGeneration mediator (for project close events)
+        /// Handle requirements collection changes
         /// </summary>
-        private void OnTestCaseGenerationRequirementsCollectionChanged(TestCaseGenerationEvents.RequirementsCollectionChanged e)
+        private void OnRequirementsCollectionChanged(RequirementsEvents.RequirementsCollectionChanged e)
         {
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] OnTestCaseGenerationRequirementsCollectionChanged: Action={e.Action}, NewCount={e.NewCount}");
-            Console.WriteLine($"*** [Requirements_MainViewModel] TestCaseGeneration collection changed: {e.Action}, Count={e.NewCount} ***");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] OnRequirementsCollectionChanged: Action={e.Action}, NewCount={e.NewCount}");
             
-            // Clear the main workspace when requirements are cleared
+            // Handle project close scenario (clear all requirements)
             if (e.Action == "Clear" && e.NewCount == 0)
             {
                 Console.WriteLine("*** [Requirements_MainViewModel] Clearing workspace due to project close ***");
@@ -293,22 +240,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 // Force update of any computed properties that might be cached
                 OnPropertyChanged(nameof(Requirements));
             }
-            
-            // Convert to Requirements domain event and handle normally
-            var requirementsEvent = new RequirementsEvents.RequirementsCollectionChanged
-            {
-                Action = e.Action,
-                AffectedRequirements = e.AffectedRequirements,
-                NewCount = e.NewCount
-            };
-            OnRequirementsCollectionChanged(requirementsEvent);
-        }
 
-        /// <summary>
-        /// Handle requirements collection changes
-        /// </summary>
-        private void OnRequirementsCollectionChanged(RequirementsEvents.RequirementsCollectionChanged e)
-        {
             // Update local requirements collection
             _requirements.Clear();
             foreach (var req in e.AffectedRequirements)
@@ -1036,10 +968,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     baseMediator.Unsubscribe<RequirementsEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
                     baseMediator.Unsubscribe<RequirementsEvents.WorkflowStateChanged>(OnWorkflowStateChanged);
                 }
-                
-                // Unsubscribe from cross-domain TestCaseGeneration events
-                _testCaseGenerationMediator.Unsubscribe<TestCaseGenerationEvents.RequirementSelected>(OnTestCaseGenerationRequirementSelected);
-                _testCaseGenerationMediator.Unsubscribe<TestCaseGenerationEvents.RequirementsCollectionChanged>(OnTestCaseGenerationRequirementsCollectionChanged);
             }
             catch (Exception ex)
             {

@@ -17,6 +17,7 @@ using TestCaseEditorApp.MVVM.Events;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Services; // For IRequirementAnalysisService
 using Microsoft.Extensions.DependencyInjection;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
@@ -52,7 +53,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             ITestCaseGenerationMediator mediator,
             IPersistenceService persistence,
             ITextEditingDialogService textEditingDialogService,
-            IRequirementAnalysisService analysisService,
+            TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.IRequirementAnalysisService analysisService,
             ILogger<TestCaseGenerator_VM> logger,
             Func<Requirement?, IEnumerable<LooseTableViewModel>>? tableProvider = null,
             Func<Requirement?, IEnumerable<string>>? paragraphProvider = null)

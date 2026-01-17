@@ -12,6 +12,7 @@ using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Services; // For IRequirementAnalysisService
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
@@ -30,7 +31,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
     {
         private readonly IRequirementService _requirementService;
         private readonly SmartRequirementImporter _smartImporter;
-        private readonly IRequirementAnalysisService _analysisService;
+        private readonly TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService _analysisService;
         private readonly ITextGenerationService _llmService;
         private readonly IRequirementDataScrubber _scrubber;
         
@@ -175,7 +176,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             ILogger<TestCaseGenerationMediator> logger,
             IDomainUICoordinator uiCoordinator,
             IRequirementService requirementService,
-            IRequirementAnalysisService analysisService,
+            TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService analysisService,
             ITextGenerationService llmService,
             IRequirementDataScrubber scrubber,
             PerformanceMonitoringService? performanceMonitor = null,

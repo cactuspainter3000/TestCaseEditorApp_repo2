@@ -6,7 +6,9 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
+using RequirementsMediator = TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Events;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.ViewModels;
 
@@ -19,7 +21,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
     /// </summary>
     public partial class Requirements_HeaderViewModel : BaseDomainViewModel
     {
-        private new readonly ITestCaseGenerationMediator _mediator;
+        private new readonly IRequirementsMediator _mediator;
 
         [ObservableProperty]
         private int totalRequirements;
@@ -59,7 +61,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public ICommand UndoLastSaveCommand { get; }
 
         public Requirements_HeaderViewModel(
-            ITestCaseGenerationMediator mediator,
+            IRequirementsMediator mediator,
             ILogger<Requirements_HeaderViewModel> logger)
             : base(mediator, logger)
         {
@@ -69,11 +71,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             SaveWorkspaceCommand = new RelayCommand(SaveWorkspace, () => IsDirty);
             UndoLastSaveCommand = new RelayCommand(UndoLastSave, () => CanUndoLastSave);
 
-            // Subscribe to TestCaseGeneration events for real-time updates
-            _mediator.Subscribe<TestCaseGenerationEvents.RequirementsImported>(OnRequirementsImported);
-            _mediator.Subscribe<TestCaseGenerationEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
-            _mediator.Subscribe<TestCaseGenerationEvents.RequirementAnalyzed>(OnRequirementAnalyzed);
-            _mediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
+            // Subscribe to Requirements events for real-time updates
+            if (_mediator is RequirementsMediator concreteMediator)
+            {
+                concreteMediator.Subscribe<RequirementsEvents.RequirementsImported>(OnRequirementsImported);
+                concreteMediator.Subscribe<RequirementsEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
+                concreteMediator.Subscribe<RequirementsEvents.RequirementAnalyzed>(OnRequirementAnalyzed);
+                concreteMediator.Subscribe<RequirementsEvents.RequirementSelected>(OnRequirementSelected);
+            }
 
             // Initialize values
             UpdateStatistics();
@@ -81,13 +86,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _logger.LogDebug("Requirements_HeaderViewModel initialized");
         }
 
-        private void OnRequirementsImported(TestCaseGenerationEvents.RequirementsImported e)
+        private void OnRequirementsImported(RequirementsEvents.RequirementsImported e)
         {
             ImportSource = System.IO.Path.GetFileName(e.SourceFile) ?? "Unknown";
             UpdateStatistics();
         }
 
-        private void OnRequirementsCollectionChanged(TestCaseGenerationEvents.RequirementsCollectionChanged e)
+        private void OnRequirementsCollectionChanged(RequirementsEvents.RequirementsCollectionChanged e)
         {
             // If requirements are being cleared (e.g., project close), reset all header state
             if (e.Action == "Clear" && e.NewCount == 0)
@@ -107,12 +112,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             UpdateStatistics();
         }
 
-        private void OnRequirementAnalyzed(TestCaseGenerationEvents.RequirementAnalyzed e)
+        private void OnRequirementAnalyzed(RequirementsEvents.RequirementAnalyzed e)
         {
             UpdateStatistics();
         }
 
-        private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected e)
+        private void OnRequirementSelected(RequirementsEvents.RequirementSelected e)
         {
             // Update header description based on selected requirement
             if (e.Requirement != null)

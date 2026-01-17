@@ -94,13 +94,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             return headerViewModel;
         }
 
-        public NavigationViewModel CreateNavigationViewModel()
+        public TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel CreateNavigationViewModel()
         {
             if (_testCaseGenerationMediator == null)
                 throw new InvalidOperationException("TestCaseGenerationMediator is required for NavigationViewModel");
                 
-            var logger = _applicationServices.LoggerFactory?.CreateLogger<NavigationViewModel>();
-            return new NavigationViewModel(_testCaseGenerationMediator, logger!);
+            var logger = _applicationServices.LoggerFactory?.CreateLogger<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel>();
+            return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel(_testCaseGenerationMediator, logger!);
         }
 
         public ImportRequirementsWorkflowViewModel CreateImportWorkflowViewModel()

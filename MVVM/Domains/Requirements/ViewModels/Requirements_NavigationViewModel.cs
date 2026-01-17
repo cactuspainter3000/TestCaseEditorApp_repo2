@@ -8,19 +8,21 @@ using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Models.DataDrivenMenu;
 using TestCaseEditorApp.MVVM.Events;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Events;
 using TestCaseEditorApp.MVVM.ViewModels;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
+using RequirementsMediator = TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator;
 using Microsoft.Extensions.Logging;
 
 namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 {
     /// <summary>
-    /// Navigation ViewModel for Requirements domain - uses TestCaseGenerationMediator for data source.
-    /// Provides requirement navigation functionality for Requirements domain.
+    /// Navigation ViewModel for Requirements domain - uses RequirementsMediator as data source.
+    /// Provides requirement navigation functionality with autonomous Requirements domain operations.
     /// </summary>
     public partial class Requirements_NavigationViewModel : BaseDomainViewModel, IDisposable
     {
-        private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
+        private readonly IRequirementsMediator _requirementsMediator;
         
         [ObservableProperty]
         private int selectedRequirementIndex = -1;
@@ -44,16 +46,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private readonly ObservableCollection<Requirement> _requirements = new();
 
         /// <summary>
-        /// Constructor for TestCaseGeneration mediator injection (data source)
+        /// Constructor for Requirements mediator injection (independent data source)
         /// </summary>
-        public Requirements_NavigationViewModel(ITestCaseGenerationMediator mediator, ILogger<Requirements_NavigationViewModel> logger) 
+        public Requirements_NavigationViewModel(IRequirementsMediator mediator, ILogger<Requirements_NavigationViewModel> logger) 
             : base(mediator, logger)
         {
-            _testCaseGenerationMediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
+            _requirementsMediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             
-            // Subscribe to TestCaseGeneration mediator events (where the actual data is)
-            _testCaseGenerationMediator.Subscribe<TestCaseGenerationEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
-            _testCaseGenerationMediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
+            // Subscribe to Requirements domain events (autonomous data source)
+            if (_requirementsMediator is RequirementsMediator concreteMediator)
+            {
+                concreteMediator.Subscribe<RequirementsEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
+                concreteMediator.Subscribe<RequirementsEvents.RequirementSelected>(OnRequirementSelected);
+            }
             
             // Initialize requirements dropdown
             RequirementsDropdown = new MenuAction
@@ -63,7 +68,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 Children = new ObservableCollection<MenuContentItem>()
             };
             
-            // Load initial requirements from TestCaseGeneration mediator
+            // Load initial requirements from Requirements domain mediator
             RefreshRequirementsFromMediator();
         }
 
@@ -78,13 +83,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public MenuAction RequirementsDropdown { get; private set; }
         
         /// <summary>
-        /// Handle requirements collection change events from TestCaseGeneration mediator
+        /// Handle requirements collection change events from Requirements domain mediator
         /// </summary>
-        private void OnRequirementsCollectionChanged(TestCaseGenerationEvents.RequirementsCollectionChanged e)
+        private void OnRequirementsCollectionChanged(RequirementsEvents.RequirementsCollectionChanged e)
         {
             TestCaseEditorApp.Services.Logging.Log.Debug($"🔔 [Requirements_NavigationViewModel] Requirements collection changed: Action={e.Action}, AffectedRequirements={e.AffectedRequirements?.Count ?? 0}, NewCount={e.NewCount}");
             
-            // Refresh the local requirements collection from TestCaseGeneration mediator
+            // Refresh the local requirements collection from Requirements domain mediator
             RefreshRequirementsFromMediator();
             
             // Handle selection based on new collection state
@@ -122,9 +127,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         }
 
         /// <summary>
-        /// Handle requirement selection events from TestCaseGeneration mediator
+        /// Handle requirement selection events from Requirements domain mediator
         /// </summary>
-        private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected e)
+        private void OnRequirementSelected(RequirementsEvents.RequirementSelected e)
         {
             TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_NavigationViewModel] Requirement selected: {e.Requirement?.GlobalId ?? "NULL"}");
             
@@ -156,10 +161,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// </summary>
         partial void OnSelectedRequirementIndexChanged(int value)
         {
-            // Update selected requirement using TestCaseGeneration mediator's requirements collection
-            if (value >= 0 && value < _testCaseGenerationMediator.Requirements.Count)
+            // Update selected requirement using Requirements domain mediator's requirements collection
+            if (value >= 0 && value < _requirementsMediator.Requirements.Count)
             {
-                var newRequirement = _testCaseGenerationMediator.Requirements[value];
+                var newRequirement = _requirementsMediator.Requirements[value];
                 if (SelectedRequirement != newRequirement)
                 {
                     SelectedRequirement = newRequirement;
@@ -219,7 +224,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 var newIndex = SelectedRequirementIndex - 1;
                 var requirement = RequirementsView[newIndex];
                 
-                _testCaseGenerationMediator.PublishEvent(new TestCaseGenerationEvents.RequirementSelected 
+                _requirementsMediator.PublishEvent(new RequirementsEvents.RequirementSelected 
                 { 
                     Requirement = requirement,
                     SelectedBy = "NavigationPrevious"
@@ -237,7 +242,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 var newIndex = SelectedRequirementIndex + 1;
                 var requirement = RequirementsView[newIndex];
                 
-                _testCaseGenerationMediator.PublishEvent(new TestCaseGenerationEvents.RequirementSelected 
+                _requirementsMediator.PublishEvent(new RequirementsEvents.RequirementSelected 
                 { 
                     Requirement = requirement,
                     SelectedBy = "NavigationNext"
@@ -268,7 +273,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 // Check if requirement has test cases (simplified check)
                 if (!HasTestCases(requirement))
                 {
-                    _testCaseGenerationMediator.PublishEvent(new TestCaseGenerationEvents.RequirementSelected 
+                    _requirementsMediator.PublishEvent(new RequirementsEvents.RequirementSelected 
                     { 
                         Requirement = requirement,
                         SelectedBy = "NavigationNextWithoutTestCase"
@@ -326,7 +331,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 return;
             }
             
-            var filteredRequirements = _testCaseGenerationMediator.Requirements
+            var filteredRequirements = _requirementsMediator.Requirements
                 .Where(r => r.GlobalId.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                            r.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                            r.Description.Contains(query, StringComparison.OrdinalIgnoreCase))
@@ -343,13 +348,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         }
 
         /// <summary>
-        /// Refresh local requirements collection from TestCaseGeneration mediator
+        /// Refresh local requirements collection from Requirements domain mediator
         /// </summary>
         private void RefreshRequirementsFromMediator()
         {
             _requirements.Clear();
             
-            foreach (var req in _testCaseGenerationMediator.Requirements)
+            foreach (var req in _requirementsMediator.Requirements)
             {
                 _requirements.Add(req);
             }
@@ -375,7 +380,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                         Text = $"{req.Item} - {req.Name}",
                         Command = new RelayCommand(() => 
                         {
-                            _testCaseGenerationMediator.PublishEvent(new TestCaseGenerationEvents.RequirementSelected 
+                            _requirementsMediator.PublishEvent(new RequirementsEvents.RequirementSelected 
                             {
                                 Requirement = req,
                                 SelectedBy = "NavigationDropdown"
@@ -434,10 +439,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public override void Dispose()
         {
             // Unsubscribe from mediator events to prevent memory leaks
-            if (_testCaseGenerationMediator is TestCaseEditorApp.MVVM.Utils.BaseDomainMediator<TestCaseGenerationEvents> baseMediator)
+            if (_requirementsMediator is RequirementsMediator concreteMediator)
             {
-                baseMediator.Unsubscribe<TestCaseGenerationEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
-                baseMediator.Unsubscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
+                concreteMediator.Unsubscribe<RequirementsEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
+                concreteMediator.Unsubscribe<RequirementsEvents.RequirementSelected>(OnRequirementSelected);
             }
             base.Dispose();
         }

@@ -10,14 +10,17 @@ using TestCaseEditorApp.Prompts;
 using TestCaseEditorApp.Services.Prompts;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Services; // For Requirements domain interface
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
 {
     /// <summary>
     /// Service for analyzing requirement quality using LLM.
     /// Generates structured analysis with quality scores, issues, and recommendations.
+    /// Implements both TestCaseGeneration and Requirements domain interfaces during migration.
     /// </summary>
-    public sealed class RequirementAnalysisService : IRequirementAnalysisService
+    public sealed class RequirementAnalysisService : IRequirementAnalysisService, 
+        TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService
     {
         private readonly ITextGenerationService _llmService;
         private readonly RequirementAnalysisPromptBuilder _promptBuilder;

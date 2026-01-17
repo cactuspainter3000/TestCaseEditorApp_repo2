@@ -12,7 +12,7 @@ using System.Linq;
 using System.Windows.Input;
 using Microsoft.Extensions.Logging;
 
-namespace TestCaseEditorApp.MVVM.ViewModels
+namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
     public partial class NavigationViewModel : ObservableObject
     {

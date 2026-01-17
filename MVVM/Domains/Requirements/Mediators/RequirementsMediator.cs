@@ -10,8 +10,8 @@ using TestCaseEditorApp.MVVM.Domains.Requirements.Events;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.Services;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Services;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services; // For SmartRequirementImporter
 using System.Windows;
 
 namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
@@ -23,7 +23,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
     public class RequirementsMediator : BaseDomainMediator<RequirementsEvents>, IRequirementsMediator
     {
         private readonly IRequirementService _requirementService;
-        private readonly IRequirementAnalysisService _analysisService; // Legacy - will be phased out
+        private readonly TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService _analysisService; // Legacy - will be phased out
         private readonly IRequirementAnalysisEngine? _analysisEngine; // NEW: Requirements domain analysis
         private readonly IRequirementDataScrubber _scrubber;
         private readonly SmartRequirementImporter _smartImporter;
@@ -115,7 +115,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             ILogger<RequirementsMediator> logger,
             IDomainUICoordinator uiCoordinator,
             IRequirementService requirementService,
-            IRequirementAnalysisService analysisService,
+            TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService analysisService,
             IRequirementDataScrubber scrubber,
             IRequirementAnalysisEngine? analysisEngine = null, // NEW: Optional for transition period
             PerformanceMonitoringService? performanceMonitor = null,
