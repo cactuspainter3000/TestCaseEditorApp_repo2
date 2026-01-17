@@ -44,8 +44,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         // Optional richer provider that can provide VMs directly.
         internal object? RequirementsCore { get; set; }
 
-        // Analysis VM for LLM-powered requirement analysis
-        public TestCaseGenerator_AnalysisVM? AnalysisVM { get; private set; }
+        // Analysis VM for LLM-powered requirement analysis (NEW: Focused architecture)
+        public RequirementAnalysisViewModel? RequirementAnalysisVM { get; private set; }
 
         // Expose mediator analysis state for UI binding
         public bool IsAnalyzing => _mediator.IsAnalyzing;
@@ -107,22 +107,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // Track SelectedSupportView changes for BulkActionsVisible updates
             this.PropertyChanged += Requirements_MainViewModel_PropertyChanged;
 
-            // Create Analysis VM with proper dependency injection
-            if (analysisService != null)
+            // Create Analysis VM with proper dependency injection (NEW: Service-based architecture)
+            var analysisEngine = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisEngine>();
+            if (analysisEngine != null)
             {
-                var analysisLogger = logger as ILogger<TestCaseGenerator_AnalysisVM> ?? 
-                    new LoggerFactory().CreateLogger<TestCaseGenerator_AnalysisVM>();
+                var analysisLogger = App.ServiceProvider?.GetService<ILogger<RequirementAnalysisViewModel>>() ?? 
+                    new LoggerFactory().CreateLogger<RequirementAnalysisViewModel>();
                 
-                // Get learning services from DI container if available (proper architectural pattern)
-                var editDetectionService = App.ServiceProvider?.GetService<IEditDetectionService>();
-                var learningService = App.ServiceProvider?.GetService<ILLMLearningService>();
-                
-                // Use TestCaseGeneration mediator for analysis since that's where the events come from
-                AnalysisVM = new TestCaseGenerator_AnalysisVM(_testCaseGenerationMediator, analysisLogger, analysisService, editDetectionService, null, learningService);
+                RequirementAnalysisVM = new RequirementAnalysisViewModel(analysisEngine, analysisLogger);
             }
             else
             {
-                AnalysisVM = null; // Fallback when no analysis service available
+                RequirementAnalysisVM = null; // Fallback when no analysis engine available
+                logger.LogWarning("[Requirements_MainVM] No IRequirementAnalysisEngine service available - analysis features disabled");
             }
             
             // CRITICAL: Initialize with current requirement from TestCaseGeneration mediator
@@ -367,6 +364,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     
                     // Update content based on new selection (simple clear/reload)
                     UpdateVisibleChipsFromRequirement(value);
+                    
+                    // Synchronize requirement with Analysis VM (NEW: Service-based architecture)
+                    if (RequirementAnalysisVM != null)
+                    {
+                        RequirementAnalysisVM.CurrentRequirement = value;
+                    }
                 }
             }
         }
@@ -700,7 +703,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         }
 
         // Analysis properties
-        public bool HasAnalysis => AnalysisVM != null; // TODO: Implement proper analysis check
+        public bool HasAnalysis => RequirementAnalysisVM?.HasAnalysis == true;
         public string AnalysisQualityScore => "—"; // TODO: Implement analysis quality
         public bool HasMeta => VisibleChips?.Any() == true;
 

@@ -57,7 +57,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
 
                 if (analysis.IsAnalyzed)
                 {
-                    _logger.LogInfo("[AnalysisEngine] Analysis completed successfully for {RequirementId}. Original Quality: {OriginalScore}, Issues: {IssueCount}", 
+                    _logger.LogInformation("[AnalysisEngine] Analysis completed successfully for {RequirementId}. Original Quality: {OriginalScore}, Issues: {IssueCount}", 
                         requirement.Item, analysis.OriginalQualityScore, analysis.Issues?.Count ?? 0);
                     
                     progressCallback?.Invoke($"Analysis complete. Your requirement quality: {analysis.OriginalQualityScore}/10");
@@ -141,7 +141,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                 {
                     IsHealthy = true, // TODO: Implement proper health checks
                     StatusMessage = "Analysis engine operational",
-                    CacheStatistics = cacheStats != null ? $"Cache Hits: {cacheStats.Value.HitCount}, Cache Entries: {cacheStats.Value.TotalEntries}" : "Cache statistics unavailable",
+                    CacheStatistics = cacheStats != null ? $"Cache Hits: {cacheStats.CacheHits}, Cache Entries: {cacheStats.TotalEntries}" : "Cache statistics unavailable",
                     LLMHealthStatus = "LLM service connected", // TODO: Get actual LLM health
                     PerformanceMetrics = "Average response time: <1s", // TODO: Get actual metrics
                     LastUpdated = DateTime.UtcNow

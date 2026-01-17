@@ -64,6 +64,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         [ObservableProperty]
         private string engineStatusText = string.Empty;
 
+        [ObservableProperty] 
+        private bool isEditingRequirement;
+
+        // Computed properties for UI binding
+        public bool HasNoAnalysis => !HasAnalysis && !IsAnalyzing;
+        public bool HasFreeformFeedback => !string.IsNullOrWhiteSpace(FreeformFeedback);
+
         // Current requirement being analyzed
         private Requirement? _currentRequirement;
         public Requirement? CurrentRequirement 
@@ -83,6 +90,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public ICommand AnalyzeRequirementCommand { get; }
         public ICommand CancelAnalysisCommand { get; }
         public ICommand RefreshEngineStatusCommand { get; }
+        public ICommand EditRequirementCommand { get; }
+        public ICommand CancelEditRequirementCommand { get; }
 
         public RequirementAnalysisViewModel(
             IRequirementAnalysisEngine analysisEngine,
@@ -95,6 +104,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             AnalyzeRequirementCommand = new AsyncRelayCommand(AnalyzeRequirementAsync, CanAnalyzeRequirement);
             CancelAnalysisCommand = new RelayCommand(CancelAnalysis, () => IsAnalyzing);
             RefreshEngineStatusCommand = new RelayCommand(RefreshEngineStatus);
+            EditRequirementCommand = new RelayCommand(StartEditingRequirement, CanEditRequirement);
+            CancelEditRequirementCommand = new RelayCommand(CancelEditingRequirement, () => IsEditingRequirement);
 
             // Initialize engine status
             RefreshEngineStatus();
@@ -261,6 +272,33 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
         }
 
+        /// <summary>
+        /// Starts editing the current requirement.
+        /// Puts the UI into edit mode for requirement refinement.
+        /// </summary>
+        private void StartEditingRequirement()
+        {
+            IsEditingRequirement = true;
+            _logger.LogDebug("[RequirementAnalysisVM] Started editing requirement");
+        }
+
+        /// <summary>
+        /// Cancels requirement editing and returns to read-only mode.
+        /// </summary>
+        private void CancelEditingRequirement()
+        {
+            IsEditingRequirement = false;
+            _logger.LogDebug("[RequirementAnalysisVM] Cancelled requirement editing");
+        }
+
+        /// <summary>
+        /// Determines if requirement editing is allowed.
+        /// </summary>
+        private bool CanEditRequirement()
+        {
+            return HasImprovedRequirement && !IsAnalyzing;
+        }
+
         protected override void OnPropertyChanged(PropertyChangedEventArgs e)
         {
             base.OnPropertyChanged(e);
@@ -270,6 +308,24 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 ((RelayCommand)CancelAnalysisCommand).NotifyCanExecuteChanged();
                 ((RelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
+                ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
+                OnPropertyChanged(nameof(HasNoAnalysis)); // Computed property depends on IsAnalyzing
+            }
+            else if (e.PropertyName == nameof(HasAnalysis))
+            {
+                OnPropertyChanged(nameof(HasNoAnalysis)); // Computed property depends on HasAnalysis
+            }
+            else if (e.PropertyName == nameof(HasImprovedRequirement))
+            {
+                ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
+            }
+            else if (e.PropertyName == nameof(IsEditingRequirement))
+            {
+                ((RelayCommand)CancelEditRequirementCommand).NotifyCanExecuteChanged();
+            }
+            else if (e.PropertyName == nameof(FreeformFeedback))
+            {
+                OnPropertyChanged(nameof(HasFreeformFeedback)); // Computed property depends on FreeformFeedback
             }
         }
 
