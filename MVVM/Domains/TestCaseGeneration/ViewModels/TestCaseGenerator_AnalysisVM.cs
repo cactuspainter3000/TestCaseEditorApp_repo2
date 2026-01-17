@@ -543,7 +543,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             if (analysis?.IsAnalyzed == true)
             {
                 HasAnalysis = true;
-                QualityScore = analysis.QualityScore;
+                QualityScore = analysis.OriginalQualityScore; // Show user's original requirement quality
                 Issues = analysis.Issues;
                 
                 // Force a fresh list assignment to ensure UI updates properly

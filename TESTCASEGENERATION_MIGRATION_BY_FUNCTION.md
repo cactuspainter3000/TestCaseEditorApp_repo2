@@ -63,6 +63,67 @@
 
 **Migration Unit**: LLM Analysis (4 missing services)
 
+#### 🎯 REFACTORING IMPROVEMENTS (FUNCTIONAL ENHANCEMENTS)
+
+| Enhancement | Current Problem | Refactored Solution |
+|-------------|-----------------|-------------------|
+| Pre-Analysis Quality Score | Shows post-improvement score, not original requirement quality | Add `OriginalQualityScore` field to show user's actual requirement quality for learning |
+| Monolithic AnalysisVM (1,808 lines) | Business logic mixed with UI concerns | Separate into focused services: AnalysisEngine, PromptManager, CacheService |
+| Cross-domain dependencies | Requirements calling TestCaseGeneration services | Pure Requirements domain analysis with proper DI |
+| Duplicate analysis services | Two RequirementAnalysisService implementations | Single consolidated service with proper architecture |
+| LLM Setup & Configuration | Users manually configure API keys, no validation or guidance | **Setup Wizard** with guided configuration and live validation |
+| UI Style Documentation | No visual reference for available styles and templates | **Style Template Gallery** showcasing all available UI components |
+
+#### 🧙‍♂️ FUTURE ENHANCEMENT: LLM Setup Wizard
+
+| Component | Purpose | Features |
+|-----------|---------|----------|
+| LLMConfigurationWizard | Guided setup for LLM services | Step-by-step API key configuration |
+| ConnectionValidationService | Test LLM connectivity | Live validation of API keys and endpoints |
+| ConfigurationHealthService | Monitor ongoing LLM health | Connection status, quota usage, performance metrics |
+| ProviderSwitchingService | Multi-LLM provider support | Easy switching between Ollama, OpenAI, AnythingLLM |
+
+**Wizard Flow:**
+```
+1. Welcome & Provider Selection (Ollama/OpenAI/AnythingLLM)
+2. API Key/Endpoint Configuration  
+3. Live Connection Test
+4. Performance Benchmarking
+5. Workspace Setup (for AnythingLLM)
+6. Final Validation & Save
+```
+
+**Integration Points:**
+- Requirements domain LLM services use centralized configuration
+- Health monitoring integrated with analysis reliability
+- Provider switching without service restart
+- Configuration backup/restore for teams
+
+#### 🎨 FUTURE ENHANCEMENT: Style Template Gallery
+
+| Component | Purpose | Features |
+|-----------|---------|----------|
+| StyleGalleryViewModel | Showcase all available styles | Categorized display of UI components |
+| ComponentPreviewService | Live style rendering | Real-time preview of buttons, text, inputs |
+| StyleDocumentationService | Style usage guidance | Code examples and usage guidelines |
+| ThemeVariationService | Multi-theme support | Preview styles across different themes |
+
+**Gallery Categories:**
+```
+- Buttons (Primary, Secondary, Danger, Success, etc.)
+- Text Styles (Headers H1-H6, Body, Caption, etc.) 
+- Input Controls (TextBox, ComboBox, CheckBox, etc.)
+- Cards & Containers (Border styles, Background variants)
+- Icons & Symbols (Available icon library)
+- Color Palette (Accent, Warning, Error, Success colors)
+```
+
+**Integration Points:**
+- Accessible from Help menu or developer tools
+- Copy-paste XAML style references
+- Integration with Requirements domain UI components
+- Live preview with current theme settings
+
 ### 🎯 TEST CASE CREATION  
 **Status**: ❌ MISSING
 

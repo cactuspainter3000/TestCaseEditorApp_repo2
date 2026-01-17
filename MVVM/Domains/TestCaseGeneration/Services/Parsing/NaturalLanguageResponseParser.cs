@@ -224,10 +224,24 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
 
         private void PostProcessAnalysis(RequirementAnalysis analysis, string requirementId)
         {
-            // Set default quality score if not found
-            if (analysis.QualityScore == 0)
+            // Set default original quality score if not found
+            if (analysis.OriginalQualityScore == 0 && analysis.QualityScore > 0)
             {
-                analysis.QualityScore = analysis.Issues.Count > 3 ? 4 : 6; // Reasonable default based on issues found
+                analysis.OriginalQualityScore = analysis.QualityScore;
+            }
+            
+            if (analysis.OriginalQualityScore == 0)
+            {
+                analysis.OriginalQualityScore = analysis.Issues.Count > 3 ? 4 : 6; // Reasonable default based on issues found
+            }
+
+            // If an improved requirement is provided, estimate improved quality score
+            if (!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement) && !analysis.ImprovedQualityScore.HasValue)
+            {
+                // Improved version should score higher - add 1-3 points based on number of issues fixed
+                var issueCount = analysis.Issues?.Count ?? 0;
+                var improvement = Math.Min(3, Math.Max(1, issueCount / 2)); // 1-3 point improvement
+                analysis.ImprovedQualityScore = Math.Min(10, analysis.OriginalQualityScore + improvement);
             }
 
             // Set default hallucination check if not found

@@ -105,10 +105,25 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
                 return CreateErrorAnalysis("Deserialized analysis was null");
             }
 
-            // Validate quality score is in valid range
-            if (analysis.QualityScore < 1 || analysis.QualityScore > 10)
+            // Handle backward compatibility: if QualityScore is set, treat it as OriginalQualityScore
+            if (analysis.OriginalQualityScore == 0 && analysis.QualityScore > 0)
             {
-                analysis.QualityScore = Math.Clamp(analysis.QualityScore, 1, 10);
+                analysis.OriginalQualityScore = analysis.QualityScore;
+            }
+
+            // Validate original quality score is in valid range
+            if (analysis.OriginalQualityScore < 1 || analysis.OriginalQualityScore > 10)
+            {
+                analysis.OriginalQualityScore = Math.Clamp(analysis.OriginalQualityScore, 1, 10);
+            }
+
+            // If an improved requirement is provided, estimate improved quality score
+            if (!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement) && !analysis.ImprovedQualityScore.HasValue)
+            {
+                // Improved version should score higher - add 1-3 points based on number of issues fixed
+                var issueCount = analysis.Issues?.Count ?? 0;
+                var improvement = Math.Min(3, Math.Max(1, issueCount / 2)); // 1-3 point improvement
+                analysis.ImprovedQualityScore = Math.Min(10, analysis.OriginalQualityScore + improvement);
             }
 
             // Ensure collections are initialized
