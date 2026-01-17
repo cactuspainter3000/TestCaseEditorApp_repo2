@@ -171,71 +171,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             Title = "Requirement Analysis";
             // Initial load
             RefreshAnalysisDisplay();
-            
-            // TODO: Remove after testing - Create dummy data for testing Edit functionality
-            CreateDummyRequirementForTesting();
         }
         
-        /// <summary>
-        /// Creates dummy requirement with analysis data for testing Edit functionality.
-        /// TODO: Remove this method after Edit testing is complete.
-        /// </summary>
-        private void CreateDummyRequirementForTesting()
-        {
-            var dummyRequirement = new Requirement
-            {
-                Item = "TEST-REQ-001",
-                Name = "Test Requirement for Edit Testing",
-                Description = "This is a dummy requirement created for testing the Edit button functionality. It contains some sample text that can be edited to verify the requirement editor is working properly.",
-                Analysis = new RequirementAnalysis
-                {
-                    IsAnalyzed = true,
-                    QualityScore = 7,
-                    Timestamp = DateTime.Now,
-                    Issues = new List<AnalysisIssue>
-                    {
-                        new AnalysisIssue
-                        {
-                            Category = "Clarity",
-                            Severity = "Medium",
-                            Description = "Some terms could be more specific"
-                        },
-                        new AnalysisIssue
-                        {
-                            Category = "Completeness",
-                            Severity = "Low", 
-                            Description = "Consider adding acceptance criteria"
-                        }
-                    },
-                    Recommendations = new List<AnalysisRecommendation>
-                    {
-                        new AnalysisRecommendation
-                        {
-                            Category = "Clarity",
-                            Description = "Define technical terms more explicitly",
-                            SuggestedEdit = "Replace 'some sample text' with specific functional requirements"
-                        }
-                    },
-                    FreeformFeedback = "Overall good structure but could benefit from more detailed specifications.",
-                    ImprovedRequirement = "This is an enhanced version of the dummy requirement created for testing the Edit button functionality. It contains more detailed sample text that demonstrates the improved requirement feature and can be edited to verify the requirement editor is working properly with proper technical specifications."
-                }
-            };
-            
-            // Set as current requirement
-            _currentRequirement = dummyRequirement;
-            OnPropertyChanged(nameof(CurrentRequirement));
-            OnPropertyChanged(nameof(HasAnalysis));
-            OnPropertyChanged(nameof(AnalysisQualityScore));
-            
-            // Refresh analysis display
-            RefreshAnalysisDisplay();
-            
-            // Update command states
-            ((AsyncRelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
-            ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
-            ((RelayCommand)InvalidateCurrentCacheCommand).NotifyCanExecuteChanged();
-        }
-
         // ===== DOMAIN EVENT HANDLERS =====
         
         /// <summary>
@@ -630,6 +567,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 
                 FreeformFeedback = analysis.FreeformFeedback ?? string.Empty;
                 AnalysisTimestamp = $"Analyzed on {analysis.Timestamp:MMM d, yyyy 'at' h:mm tt}";
+                
+                // Clear status message for successful analysis
+                AnalysisStatusMessage = string.Empty;
             }
             else
             {
@@ -639,6 +579,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 Recommendations = new List<AnalysisRecommendation>();
                 FreeformFeedback = string.Empty;
                 AnalysisTimestamp = string.Empty;
+                
+                // Clear status message when no analysis - show clean "Analyze Now" interface
+                AnalysisStatusMessage = string.Empty;
             }
 
             // Ensure all analysis properties are notified for UI binding
