@@ -6,6 +6,10 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Windows;
+using TestCaseEditorApp.MVVM.Models;  // TableDto
+using TestCaseEditorApp.Services;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
+using Microsoft.Extensions.DependencyInjection;
 // using TestCaseEditorApp.Session;          // SessionTableStore, TableSnapshot - TODO: implement session persistence
 
 namespace TestCaseEditorApp.MVVM.ViewModels
@@ -160,6 +164,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     Rows.Add(row);
                 }
                 
+                // **CRITICAL**: Also update source requirement data so changes persist across navigation
+                UpdateSourceRequirement();
+                
                 // Clear editor ViewModel
                 EditorViewModel = null;
                 
@@ -224,6 +231,84 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     // Stay in editing mode
                     break;
             }
+        }
+
+        private void UpdateSourceRequirement()
+        {
+            try
+            {
+                // Find the requirement in the TestCaseGeneration mediator
+                var testCaseGenMediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.ITestCaseGenerationMediator>();
+                if (testCaseGenMediator == null) return;
+
+                var requirement = testCaseGenMediator.Requirements.FirstOrDefault(r => r.Item == RequirementId || r.GlobalId == RequirementId);
+                if (requirement == null) return;
+
+                // Ensure LooseContent exists
+                if (requirement.LooseContent == null)
+                    requirement.LooseContent = new RequirementLooseContent();
+                
+                if (requirement.LooseContent.Tables == null)
+                    requirement.LooseContent.Tables = new List<LooseTable>();
+
+                // Convert current table data to LooseTable format
+                var looseTable = ConvertToLooseTable();
+                
+                // Find and replace the matching table in the source data
+                var tables = requirement.LooseContent.Tables;
+                bool found = false;
+                
+                for (int i = 0; i < tables.Count; i++)
+                {
+                    if (tables[i] is LooseTable existingTable && 
+                        existingTable.EditableTitle == Title)
+                    {
+                        tables[i] = looseTable;
+                        found = true;
+                        break;
+                    }
+                }
+                
+                // If not found, add as new table
+                if (!found)
+                {
+                    tables.Add(looseTable);
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[UpdateSourceRequirement] Updated source data for table '{Title}' in requirement '{RequirementId}'");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[UpdateSourceRequirement] Failed to update source requirement data for table '{Title}'");
+            }
+        }
+
+        private LooseTable ConvertToLooseTable()
+        {
+            var looseTable = new LooseTable
+            {
+                EditableTitle = Title
+            };
+
+            // Convert columns to headers
+            var headers = Columns.Select(c => c.Header ?? string.Empty).ToList();
+            looseTable.ColumnHeaders = headers;
+            
+            // Convert rows to raw string data
+            var rows = new List<List<string>>();
+            foreach (var row in Rows)
+            {
+                var stringRow = new List<string>();
+                foreach (var col in Columns)
+                {
+                    var cellValue = row[col.BindingPath ?? ""]?.ToString() ?? string.Empty;
+                    stringRow.Add(cellValue);
+                }
+                rows.Add(stringRow);
+            }
+            looseTable.Rows = rows;
+
+            return looseTable;
         }
 
         private bool HasUnsavedChanges()

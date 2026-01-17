@@ -128,6 +128,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 {
                     TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] Initializing with current requirement: {currentRequirement.GlobalId}");
                     _selectedRequirement = currentRequirement;
+                    
+                    // **CRITICAL**: Update mediator's CurrentRequirement to match initial selection
+                    _mediator.CurrentRequirement = currentRequirement;
+                    
                     OnPropertyChanged(nameof(SelectedRequirement));
                     
                     // Load the requirement content
@@ -146,6 +150,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         }
 
         /// <summary>
+        /// Save any pending table edits back to the requirement before switching requirements
+        /// </summary>
+        /// <summary>
         /// Handle requirement selection events from domain mediator
         /// </summary>
         private void OnRequirementSelected(RequirementsEvents.RequirementSelected e)
@@ -157,6 +164,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 _selectedRequirement = e.Requirement;
                 OnPropertyChanged(nameof(SelectedRequirement));
                 
+                // **CRITICAL**: Update mediator's CurrentRequirement to match local selection
+                _mediator.CurrentRequirement = e.Requirement;
+                
                 // Re-populate chips from requirement data
                 UpdateVisibleChipsFromRequirement(_selectedRequirement);
                 
@@ -164,7 +174,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 OnPropertyChanged(nameof(HasAnalysis));
                 OnPropertyChanged(nameof(AnalysisQualityScore));
                 
-                // Load requirement content
+                // Load requirement content (simple clear/reload like TestCaseGenerator)
                 LoadRequirementContent(_selectedRequirement);
             }
         }
@@ -193,7 +203,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 Console.WriteLine("*** [Requirements_MainViewModel] Clearing workspace due to project close ***");
                 TestCaseEditorApp.Services.Logging.Log.Debug("[Requirements_MainViewModel] Clearing workspace due to project close");
                 
-                // Clear selection and content
+                // Clear selection and content (simple clear like TestCaseGenerator)
                 _selectedRequirement = null;
                 OnPropertyChanged(nameof(SelectedRequirement));
                 
@@ -282,6 +292,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 if (!ReferenceEquals(_selectedRequirement, value))
                 {
                     _selectedRequirement = value;
+                    
+                    // **CRITICAL**: Update mediator's CurrentRequirement to match local selection
+                    _mediator.CurrentRequirement = value;
+                    
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(RequirementPositionDisplay));
                     
@@ -294,7 +308,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                         });
                     }
                     
-                    // Update content based on new selection
+                    // Update content based on new selection (simple clear/reload)
                     UpdateVisibleChipsFromRequirement(value);
                 }
             }
@@ -434,6 +448,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private void UpdateVisibleChipsFromRequirement(Requirement? r)
         {
             TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] UpdateVisibleChipsFromRequirement called with: {r?.GlobalId ?? "NULL"}");
+            if (r != null)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] Requirement details - GlobalId: {r.GlobalId}, Type: {r.RequirementType}, Status: {r.Status}, Project: {r.Project}");
+            }
             var list = new ObservableCollection<ChipViewModel>();
             
             if (r != null)
@@ -810,25 +828,41 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // Load tables if provider available
             if (_tableProvider != null)
             {
-                var tables = _tableProvider(requirement);
-                foreach (var table in tables)
+                try
                 {
-                    SelectedTableVMs.Add(table);
+                    var tables = _tableProvider(requirement);
+                    foreach (var table in tables)
+                    {
+                        SelectedTableVMs.Add(table);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error(ex, "[LoadRequirementContent] Table provider failed");
+                    // Continue loading other content even if table loading fails
                 }
             }
 
             // Load paragraphs if provider available
             if (_paragraphProvider != null)
             {
-                var paragraphs = _paragraphProvider(requirement);
-                foreach (var paragraph in paragraphs)
+                try
                 {
-                    var paraVM = new ParagraphViewModel(paragraph) 
-                    { 
-                        IsSelected = false 
-                    };
-                    paraVM.PropertyChanged += ParagraphViewModel_PropertyChanged;
-                    SelectedParagraphVMs.Add(paraVM);
+                    var paragraphs = _paragraphProvider(requirement);
+                    foreach (var paragraph in paragraphs)
+                    {
+                        var paraVM = new ParagraphViewModel(paragraph) 
+                        { 
+                            IsSelected = false 
+                        };
+                        paraVM.PropertyChanged += ParagraphViewModel_PropertyChanged;
+                        SelectedParagraphVMs.Add(paraVM);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error(ex, "[LoadRequirementContent] Paragraph provider failed");
+                    // Continue with the rest of the method
                 }
             }
 
