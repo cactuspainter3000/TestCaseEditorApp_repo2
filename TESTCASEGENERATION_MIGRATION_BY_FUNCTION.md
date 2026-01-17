@@ -3,7 +3,18 @@
 ## Quick Status
 - **Requirements Domain Coverage**: 40%
 - **Missing Functionality**: 60%
-- **Migration Approach**: Port existing code, don't create new logic
+- **Migration Approach**: Refactor and decompose, not copy/paste
+
+## 🎯 WHY THIS MIGRATION (REFACTORING OBJECTIVES)
+| Current Problem | Architectural Goal |
+|-----------------|-------------------|
+| 1,808-line TestCaseGenerator_AnalysisVM | Break into focused ViewModels + Services following ARCHITECTURAL_GUIDE_AI.md |
+| Cross-domain dependencies (Requirements↔TestCaseGeneration) | Single Requirements domain with clear boundaries |
+| Monolithic ViewModels with business logic | Proper MVVM with service injection and separation of concerns |
+| Scattered requirement functionality | Logical domain organization with proper abstraction layers |
+| Duplicate/similar services across domains | Consolidated services with single responsibility |
+
+**THIS IS REFACTORING, NOT MOVING**: We're improving architecture while consolidating domains.
 
 ## 🚨 RABBIT HOLE WARNINGS
 | ❌ DON'T | ✅ DO INSTEAD |
