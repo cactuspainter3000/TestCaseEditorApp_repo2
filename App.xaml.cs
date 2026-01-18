@@ -361,6 +361,8 @@ namespace TestCaseEditorApp
                     // NewProject domain ViewModels - using proper domain ViewModels
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectHeaderViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.DummyNewProjectTitleViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.DummyNewProjectNavigationViewModel>();
                     
                     // === STARTUP DOMAIN REGISTRATION (FOR INITIAL APP STATE) ===
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_MainViewModel>();
@@ -422,6 +424,9 @@ namespace TestCaseEditorApp
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel>>();
                         return new TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel(mediator, persistenceService, logger);
                     });
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProject_TitleViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProject_HeaderViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProject_NavigationViewModel>();
 
                     // ViewModels and header VM
                     services.AddTransient<TestCaseGeneratorViewModel>();

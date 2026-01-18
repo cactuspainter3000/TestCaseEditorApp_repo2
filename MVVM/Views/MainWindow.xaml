@@ -11,6 +11,8 @@
         xmlns:startupvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Startup.ViewModels"
         xmlns:startupviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Startup.Views"
         xmlns:wmviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.Views"
+        xmlns:opvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels"
+        xmlns:opviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.Views"
         xmlns:dummyvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels"
         xmlns:dummyviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Dummy.Views"
         xmlns:reqvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels"
@@ -135,6 +137,11 @@
 
         <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_TitleVM}">
             <tcgviews:TestCaseGenerator_TitleView />
+        </DataTemplate>
+
+        <!-- TestCaseGeneratorMainVM DataTemplate - Added for AI Guide compliance -->
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGeneratorMainVM}">
+            <tcgviews:TestCaseGeneratorMainView />
         </DataTemplate>
 
         <!-- Startup ViewModels DataTemplates -->
@@ -351,6 +358,28 @@
 
         <DataTemplate DataType="{x:Type wmvm:NewProjectHeaderViewModel}">
             <wmviews:NewProjectHeaderView />
+        </DataTemplate>
+
+        <!-- NewProject Domain Title and Navigation ViewModels -->
+        <DataTemplate DataType="{x:Type wmvm:DummyNewProjectTitleViewModel}">
+            <wmviews:DummyNewProjectTitleView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type wmvm:DummyNewProjectNavigationViewModel}">
+            <wmviews:DummyNewProjectNavigationView />
+        </DataTemplate>
+
+        <!-- OpenProject Domain ViewModels -->
+        <DataTemplate DataType="{x:Type opvm:OpenProject_TitleViewModel}">
+            <opviews:OpenProject_TitleView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type opvm:OpenProject_HeaderViewModel}">
+            <opviews:OpenProject_HeaderView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type opvm:OpenProject_NavigationViewModel}">
+            <opviews:OpenProject_NavigationView />
         </DataTemplate>
 
         <!-- DUMMY DOMAIN DataTemplates - Perfect AI Guide Reference Implementation -->

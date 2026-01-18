@@ -261,7 +261,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToTestCaseGenerator called! ***");
             Console.WriteLine("*** SideMenuViewModel.NavigateToTestCaseGenerator called! ***");
             
-            // Find the Test Case Generator menu item
+            // Add debug logging to file
+            try 
+            {
+                System.IO.File.AppendAllText(@"c:\temp\navigation-debug.log", 
+                    $"[{DateTime.Now:HH:mm:ss}] SideMenuViewModel.NavigateToTestCaseGenerator() called\n");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"*** Failed to write to log: {ex.Message} ***");
+            }
+            
+            // Find the Test Case Generator menu item for debug logging only
             var testCaseGenMenuItem = SideMenuSection?.Items?.OfType<MenuAction>()
                 ?.FirstOrDefault(x => x?.Id == "test-case-generator");
                 
@@ -271,9 +282,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 Console.WriteLine($"*** Children count: {testCaseGenMenuItem.Children?.Count ?? 0} ***");
                 Console.WriteLine($"*** IsDropdown: {testCaseGenMenuItem.IsDropdown} ***");
                 
-                // Toggle the expansion state
-                testCaseGenMenuItem.IsExpanded = !testCaseGenMenuItem.IsExpanded;
-                Console.WriteLine($"*** Toggled Test Case Generator IsExpanded to: {testCaseGenMenuItem.IsExpanded} ***");
+                // DON'T manually toggle - let the ToggleButton handle expansion via IsChecked binding
+                // The ToggleButton's IsChecked="{Binding IsExpanded, Mode=TwoWay}" will handle this
+                Console.WriteLine($"*** Letting ToggleButton handle expansion, current IsExpanded: {testCaseGenMenuItem.IsExpanded} ***");
                 
                 // List children for debugging
                 if (testCaseGenMenuItem.Children != null && testCaseGenMenuItem.Children.Count > 0)
@@ -288,18 +299,21 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     Console.WriteLine("*** No children found or Children collection is null! ***");
                 }
-                
-                // Always navigate to the TestCaseGenerator section regardless of expansion state
-                SelectedSection = "TestCaseGenerator";
-                _navigationMediator?.NavigateToSection("TestCaseGenerator");
             }
-            else
+            
+            // Always navigate to the TestCaseGenerator section regardless of expansion state
+            SelectedSection = "TestCaseGenerator";
+            Console.WriteLine($"*** About to call NavigationMediator.NavigateToSection('TestCaseGenerator') ***");
+            Console.WriteLine($"*** NavigationMediator is null: {_navigationMediator == null} ***");
+            
+            try 
             {
-                Console.WriteLine("*** Test Case Generator menu item not found! ***");
-                // Fallback - just navigate
-                SelectedSection = "TestCaseGenerator";
-                _navigationMediator?.NavigateToSection("TestCaseGenerator");
+                System.IO.File.AppendAllText(@"c:\temp\navigation-debug.log", 
+                    $"[{DateTime.Now:HH:mm:ss}] SideMenuViewModel: About to call NavigateToSection('TestCaseGenerator'), mediator null: {_navigationMediator == null}\n");
             }
+            catch { }
+            
+            _navigationMediator?.NavigateToSection("TestCaseGenerator");
         }
         
         private void NavigateToRequirements()
