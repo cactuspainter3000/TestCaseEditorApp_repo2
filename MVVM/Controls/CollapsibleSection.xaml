@@ -54,9 +54,9 @@
                 Padding="0" 
                 Background="Transparent" 
                 ClipToBounds="True">
-            <Border.LayoutTransform>
+            <Border.RenderTransform>
                 <ScaleTransform ScaleY="0" />
-            </Border.LayoutTransform>
+            </Border.RenderTransform>
             <Border.Style>
                 <Style TargetType="Border">
                     <Setter Property="Opacity" Value="0" />
@@ -65,7 +65,7 @@
                             <DataTrigger.EnterActions>
                                 <BeginStoryboard>
                                     <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
+                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" 
                                                          To="1" Duration="0:0:0.35" 
                                                          AccelerationRatio="0.15" DecelerationRatio="0.85"/>
                                         <DoubleAnimation Storyboard.TargetProperty="Opacity" 
@@ -76,7 +76,7 @@
                             <DataTrigger.ExitActions>
                                 <BeginStoryboard>
                                     <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
+                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" 
                                                          To="0" Duration="0:0:0.30" 
                                                          AccelerationRatio="0.15" DecelerationRatio="0.85"/>
                                         <DoubleAnimation Storyboard.TargetProperty="Opacity" 
@@ -94,3 +94,5 @@
         </Border>
     </StackPanel>
 </UserControl>
+
+

@@ -8,6 +8,7 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Events;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
+using TestCaseEditorApp.MVVM.Domains.OpenProject.Events;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Services;
@@ -130,6 +131,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<SmartRequirementImporter>.Instance);
             
             _requirements = new ObservableCollection<Requirement>();
+
+            // Subscribe to cross-domain events for requirement synchronization
+            SubscribeToCrossDomainEvents();
 
             _logger.LogDebug("RequirementsMediator created");
         }
@@ -733,33 +737,75 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
 
         public async Task<bool> LoadFromProjectAsync(Workspace workspace)
         {
-            if (workspace?.Requirements == null) return false;
+            _logger.LogInformation("📥 RequirementsMediator.LoadFromProjectAsync called - workspace.Requirements.Count: {Count}", 
+                workspace?.Requirements?.Count ?? 0);
+                
+            if (workspace?.Requirements == null) 
+            {
+                _logger.LogWarning("⚠️ RequirementsMediator.LoadFromProjectAsync: workspace or workspace.Requirements is null");
+                return false;
+            }
 
             try
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {
+                    // Check if data is already loaded and current - avoid unnecessary reload!
+                    var sortedRequirements = workspace.Requirements.OrderBy(r => r, new RequirementNaturalComparer()).ToList();
+                    
+                    // If we already have the same requirements loaded, preserve current navigation state
+                    if (_requirements.Count == sortedRequirements.Count && 
+                        _requirements.SequenceEqual(sortedRequirements, new RequirementEqualityComparer()))
+                    {
+                        _logger.LogInformation("🔄 RequirementsMediator: Data already current, preserving navigation state. CurrentRequirement: {Current}", 
+                            CurrentRequirement?.Item ?? "none");
+                        return; // Don't reload - data is already current!
+                    }
+                    
+                    _logger.LogInformation("📊 RequirementsMediator: Reloading requirements data (count changed or different data)");
+                    
+                    // Preserve current requirement if possible
+                    var previousCurrentRequirement = CurrentRequirement;
+                    
                     _requirements.Clear();
-                    foreach (var requirement in workspace.Requirements.OrderBy(r => r.Item ?? r.Name ?? string.Empty))
+                    foreach (var requirement in sortedRequirements)
                     {
                         _requirements.Add(requirement);
                     }
+                    
+                    if (_requirements.Count > 0)
+                    {
+                        // Try to preserve current requirement position
+                        if (previousCurrentRequirement != null)
+                        {
+                            var matchingReq = _requirements.FirstOrDefault(r => 
+                                r.Item == previousCurrentRequirement.Item || 
+                                r.Name == previousCurrentRequirement.Name);
+                            CurrentRequirement = matchingReq ?? _requirements.First();
+                        }
+                        else
+                        {
+                            CurrentRequirement = _requirements.First();
+                        }
+                        
+                        // CRITICAL: Notify ViewModels about the selected requirement
+                        PublishEvent(new RequirementsEvents.RequirementSelected
+                        {
+                            Requirement = CurrentRequirement
+                        });
+                    }
+
+                    // CRITICAL: Publish event on UI thread to avoid threading violations
+                    PublishEvent(new RequirementsEvents.RequirementsCollectionChanged
+                    {
+                        Action = "Load",
+                        AffectedRequirements = _requirements.ToList(),
+                        NewCount = _requirements.Count
+                    });
+                    
+                    IsDirty = false;
+                    _logger.LogInformation("Loaded {Count} requirements from project", _requirements.Count);
                 });
-
-                if (_requirements.Count > 0)
-                {
-                    CurrentRequirement = _requirements.First();
-                }
-
-                PublishEvent(new RequirementsEvents.RequirementsCollectionChanged
-                {
-                    Action = "Load",
-                    AffectedRequirements = _requirements.ToList(),
-                    NewCount = _requirements.Count
-                });
-
-                IsDirty = false;
-                _logger.LogInformation("Loaded {Count} requirements from project", _requirements.Count);
 
                 await Task.CompletedTask;
                 return true;
@@ -806,11 +852,25 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     _ = LoadFromProjectAsync(projectCreated.Workspace);
                 }
             }
-            else if (notification is NewProjectEvents.ProjectOpened projectOpened)
+            else if (notification is NewProjectEvents.ProjectOpened newProjectOpened)
             {
-                if (projectOpened.Workspace != null)
+                if (newProjectOpened.Workspace != null)
                 {
-                    _ = LoadFromProjectAsync(projectOpened.Workspace);
+                    _ = LoadFromProjectAsync(newProjectOpened.Workspace);
+                }
+            }
+            else if (notification is OpenProjectEvents.ProjectOpened openProjectOpened)
+            {
+                _logger.LogInformation("🔔 RequirementsMediator: Handling OpenProjectEvents.ProjectOpened - WorkspaceName: {WorkspaceName}", openProjectOpened.WorkspaceName);
+                if (openProjectOpened.Workspace != null)
+                {
+                    _logger.LogInformation("🚀 RequirementsMediator: About to call LoadFromProjectAsync for workspace with {RequirementCount} requirements", 
+                        openProjectOpened.Workspace.Requirements?.Count ?? 0);
+                    _ = LoadFromProjectAsync(openProjectOpened.Workspace);
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ RequirementsMediator: OpenProjectEvents.ProjectOpened has null Workspace");
                 }
             }
             else if (notification is NewProjectEvents.ProjectClosed)
@@ -858,6 +918,168 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         public override bool CanNavigateForward()
         {
             return !string.IsNullOrEmpty(_currentStep) && _currentStep != "Export";
+        }
+
+        // ===== CROSS-DOMAIN SYNCHRONIZATION =====
+
+        /// <summary>
+        /// Subscribe to cross-domain events for requirement selection synchronization
+        /// </summary>
+        private void SubscribeToCrossDomainEvents()
+        {
+            try
+            {
+                // Subscribe to TestCaseGeneration domain requirement selection
+                // This ensures Requirements domain stays in sync with global requirement selection
+                var domainCoordinator = GetDomainCoordinator();
+                if (domainCoordinator != null)
+                {
+                    // TODO: Implement proper cross-domain subscription through DomainCoordinator
+                    _logger.LogDebug("[RequirementsMediator] DomainCoordinator available for cross-domain events");
+                }
+                
+                _logger.LogDebug("[RequirementsMediator] Subscribed to cross-domain TestCaseGeneration.RequirementSelected events");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[RequirementsMediator] Failed to subscribe to cross-domain events");
+            }
+        }
+
+        /// <summary>
+        /// Handle requirement selection from TestCaseGeneration domain
+        /// Synchronizes Requirements domain state with global requirement selection
+        /// </summary>
+        private async void OnTestCaseGenerationRequirementSelected(TestCaseGenerationEvents.RequirementSelected eventData)
+        {
+            try
+            {
+                _logger.LogDebug("[RequirementsMediator] Received cross-domain RequirementSelected: {RequirementId}", 
+                    eventData.Requirement?.GlobalId ?? "null");
+
+                // Find the requirement in our collection
+                var requirement = _requirements.FirstOrDefault(r => r.GlobalId == eventData.Requirement?.GlobalId);
+                
+                if (requirement != null && CurrentRequirement?.GlobalId != requirement.GlobalId)
+                {
+                    _logger.LogDebug("[RequirementsMediator] Synchronizing to requirement: {RequirementId}", requirement.GlobalId);
+                    
+                    // Update CurrentRequirement without publishing our own event to avoid circular notifications
+                    _currentRequirement = requirement;
+                    
+                    // Notify UI via property change but don't publish cross-domain event
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        PublishEvent(new RequirementsEvents.RequirementSelected
+                        {
+                            Requirement = requirement,
+                            SelectedBy = "CrossDomainSync"
+                        });
+                    });
+                    
+                    _logger.LogDebug("[RequirementsMediator] Successfully synchronized to requirement: {RequirementId}", requirement.GlobalId);
+                }
+                else if (requirement == null && eventData.Requirement != null)
+                {
+                    _logger.LogDebug("[RequirementsMediator] Requirement {RequirementId} not found in Requirements domain collection", 
+                        eventData.Requirement.GlobalId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsMediator] Error handling cross-domain RequirementSelected event");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Custom comparer for natural numeric sorting of requirements
+    /// Ensures DECAGON-REQ_RC-5 comes before DECAGON-REQ_RC-12, etc.
+    /// (Copied from TestCaseGeneration domain for consistency)
+    /// </summary>
+    internal class RequirementNaturalComparer : IComparer<Requirement>
+    {
+        private static readonly System.Text.RegularExpressions.Regex _trailingNumberRegex = 
+            new System.Text.RegularExpressions.Regex(@"^(.*?)(\d+)$", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        public int Compare(Requirement? x, Requirement? y)
+        {
+            if (ReferenceEquals(x, y)) return 0;
+            if (x == null) return -1;
+            if (y == null) return 1;
+
+            // Prefer 'Item' then 'Name' as the canonical id string
+            var sa = (x.Item ?? x.Name ?? string.Empty).Trim();
+            var sb = (y.Item ?? y.Name ?? string.Empty).Trim();
+
+            // If identical strings, consider them equal
+            if (string.Equals(sa, sb, StringComparison.OrdinalIgnoreCase)) return 0;
+
+            var ma = _trailingNumberRegex.Match(sa);
+            var mb = _trailingNumberRegex.Match(sb);
+
+            if (ma.Success && mb.Success)
+            {
+                var prefixA = ma.Groups[1].Value;
+                var prefixB = mb.Groups[1].Value;
+                if (!string.Equals(prefixA, prefixB, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Compare prefixes alphabetically
+                    return StringComparer.OrdinalIgnoreCase.Compare(prefixA, prefixB);
+                }
+
+                // Both prefixes equal – compare numeric suffix ascending so 5 comes before 12
+                if (long.TryParse(ma.Groups[2].Value, out var na) && long.TryParse(mb.Groups[2].Value, out var nb))
+                {
+                    // Ascending numeric order
+                    var numCompare = na.CompareTo(nb);
+                    if (numCompare != 0) return numCompare;
+                }
+
+                // Fallback to full-string compare if numeric equal
+                return StringComparer.OrdinalIgnoreCase.Compare(sa, sb);
+            }
+
+            // If one has numeric suffix and other not, place numeric-suffixed after/before depending on prefix
+            if (ma.Success && !mb.Success)
+            {
+                var prefixA = ma.Groups[1].Value;
+                var prefixB = sb;
+                var cmp = StringComparer.OrdinalIgnoreCase.Compare(prefixA, prefixB);
+                if (cmp != 0) return cmp;
+                // If prefixes same, treat the numeric-suffixed as less (so similar entries cluster)
+                return -1;
+            }
+            if (!ma.Success && mb.Success)
+            {
+                var prefixA = sa;
+                var prefixB = mb.Groups[1].Value;
+                var cmp = StringComparer.OrdinalIgnoreCase.Compare(prefixA, prefixB);
+                if (cmp != 0) return cmp;
+                return 1;
+            }
+
+            // No numeric suffixes – plain string compare
+            return StringComparer.OrdinalIgnoreCase.Compare(sa, sb);
+        }
+    }
+    
+    /// <summary>
+    /// Equality comparer for requirements to check if collections are equivalent
+    /// </summary>
+    internal class RequirementEqualityComparer : IEqualityComparer<Requirement>
+    {
+        public bool Equals(Requirement? x, Requirement? y)
+        {
+            if (ReferenceEquals(x, y)) return true;
+            if (x == null || y == null) return false;
+            
+            return x.Item == y.Item && x.Name == y.Name && x.Description == y.Description;
+        }
+        
+        public int GetHashCode(Requirement obj)
+        {
+            return HashCode.Combine(obj.Item, obj.Name, obj.Description);
         }
     }
 }

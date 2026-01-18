@@ -6,7 +6,10 @@ using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
+using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.Utils;
 
 namespace TestCaseEditorApp.Services
 {
@@ -115,6 +118,13 @@ namespace TestCaseEditorApp.Services
 
                     CrossDomainMessages.RequestRequirementQualityAnalysis qualityRequest =>
                         await HandleRequestRequirementQualityAnalysisAsync(qualityRequest) as T,
+
+                    // ===== WORKSPACE MANAGEMENT REQUESTS =====
+                    ShowWorkspaceSelectionModalRequest workspaceRequest =>
+                        await HandleShowWorkspaceSelectionModal(workspaceRequest) as T,
+
+                    NavigateToSectionRequest navigationRequest =>
+                        HandleNavigateToSection(navigationRequest) as T,
 
                     _ => throw new NotSupportedException($"Request type {requestType} is not supported")
                 };
@@ -634,6 +644,8 @@ namespace TestCaseEditorApp.Services
                 "AnalyzeRequirementsForFlow" => "TestCaseGeneration",
                 "GenerateTestCasesForFlowSteps" => "TestCaseGeneration",
                 "RequestRequirementQualityAnalysis" => "TestCaseGeneration",
+                "ShowWorkspaceSelectionModalRequest" => "Workspace Management",
+                "NavigateToSectionRequest" => "Navigation",
                 _ => "Unknown"
             };
         }
@@ -647,6 +659,57 @@ namespace TestCaseEditorApp.Services
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Error firing cross-domain communication event");
+            }
+        }
+
+        /// <summary>
+        /// Handle navigation request by using the navigation mediator
+        /// </summary>
+        private object HandleNavigateToSection(NavigateToSectionRequest request)
+        {
+            _logger.LogInformation("Navigation requested: Section={Section}, Context={Context}", 
+                request.SectionName, request.Context);
+
+            // Get the navigation mediator and navigate
+            if (_registeredMediators.TryGetValue("Navigation", out var mediatorObj) 
+                && mediatorObj is INavigationMediator navigationMediator)
+            {
+                navigationMediator.NavigateToSection(request.SectionName);
+                return new { Success = true, Message = $"Navigated to {request.SectionName}" };
+            }
+            else
+            {
+                _logger.LogWarning("NavigationMediator not found in registered mediators");
+                return new { Success = false, Message = "NavigationMediator not available" };
+            }
+        }
+
+        /// <summary>
+        /// Handle workspace selection modal request - simulate workspace selection for now
+        /// </summary>
+        private async Task<object> HandleShowWorkspaceSelectionModal(ShowWorkspaceSelectionModalRequest request)
+        {
+            _logger.LogInformation("Workspace selection modal requested: ForOpenExisting={ForOpenExisting}, DomainContext={DomainContext}", 
+                request.ForOpenExisting, request.DomainContext);
+
+            // Simulate immediate workspace selection with default values
+            if (_registeredMediators.TryGetValue("NewProject", out var mediatorObj) 
+                && mediatorObj is INewProjectMediator newProjectMediator)
+            {
+                _logger.LogInformation("Simulating workspace selection for new project");
+                
+                // Simulate user selecting a default workspace
+                await newProjectMediator.OnWorkspaceSelectedAsync(
+                    "default-workspace", 
+                    "Default Workspace", 
+                    !request.ForOpenExisting);
+                
+                return new { Success = true, Message = "Workspace selected automatically" };
+            }
+            else
+            {
+                _logger.LogWarning("NewProjectMediator not found in registered mediators");
+                return new { Success = false, Message = "NewProjectMediator not available" };
             }
         }
     }

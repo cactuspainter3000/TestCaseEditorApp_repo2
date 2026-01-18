@@ -33,7 +33,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         StartUp_MainViewModel CreateInitialStateViewModel();
         
         // Navigation ViewModels
-        TestCaseGenerator_NavigationVM CreateRequirementsNavigationViewModel();
         
         // Legacy ViewModels (for backwards compatibility)
         WorkspaceHeaderViewModel CreateWorkspaceHeaderViewModel();

@@ -49,7 +49,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         // Local state management 
         private readonly ObservableCollection<Requirement> _requirements = new();
-        private Requirement? _selectedRequirement;
+        // REMOVED: _selectedRequirement - ViewModels should read directly from mediator.CurrentRequirement
 
         public Requirements_MainViewModel(
             IRequirementsMediator mediator,
@@ -114,8 +114,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 logger.LogWarning("[Requirements_MainVM] No IRequirementAnalysisEngine service available - analysis features disabled");
             }
             
-            // Initialize Requirements domain - will be populated via mediator events
-            _selectedRequirement = null;
+            // Initialize Requirements domain - CurrentRequirement will be set via mediator events
+            // No local state initialization needed - ViewModels read directly from mediator
             
             // Initial data load
             UpdateVisibleChipsFromRequirement(SelectedRequirement);
@@ -131,27 +131,33 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] OnRequirementSelected called with: {e.Requirement?.GlobalId ?? "NULL"}");
             Console.WriteLine($"*** [Requirements_MainViewModel] OnRequirementSelected: {e.Requirement?.GlobalId ?? "NULL"} ***");
-            if (!ReferenceEquals(_selectedRequirement, e.Requirement))
-            {
-                // Save any dirty table changes before navigating away
-                SaveDirtyTableChanges();
-                
-                _selectedRequirement = e.Requirement;
-                OnPropertyChanged(nameof(SelectedRequirement));
-                
-                // **CRITICAL**: Update mediator's CurrentRequirement to match local selection
-                _mediator.CurrentRequirement = e.Requirement;
-                
-                // Re-populate chips from requirement data
-                UpdateVisibleChipsFromRequirement(_selectedRequirement);
-                
-                // Update analysis state
-                OnPropertyChanged(nameof(HasAnalysis));
-                OnPropertyChanged(nameof(AnalysisQualityScore));
-                
-                // Load requirement content (simple clear/reload like TestCaseGenerator)
-                LoadRequirementContent(_selectedRequirement);
-            }
+            
+            // ENHANCED DEBUG: Log more details
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] Current mediator requirement: {_mediator.CurrentRequirement?.GlobalId ?? "NULL"}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] Event requirement matches current: {ReferenceEquals(_mediator.CurrentRequirement, e.Requirement)}");
+            Console.WriteLine($"*** [Requirements_MainViewModel] Current: {_mediator.CurrentRequirement?.Item ?? "NULL"}, Event: {e.Requirement?.Item ?? "NULL"}, Match: {ReferenceEquals(_mediator.CurrentRequirement, e.Requirement)} ***");
+            
+            // ALWAYS UPDATE - don't skip updates even if same reference
+            // Save any dirty table changes before navigating away
+            SaveDirtyTableChanges();
+            
+            // Update mediator's CurrentRequirement - this is the single source of truth
+            _mediator.CurrentRequirement = e.Requirement;
+            OnPropertyChanged(nameof(SelectedRequirement));
+            
+            Console.WriteLine($"*** [Requirements_MainViewModel] About to update UI: {e.Requirement?.Item} - {e.Requirement?.Name} ***");
+            
+            // Re-populate chips from requirement data
+            UpdateVisibleChipsFromRequirement(SelectedRequirement);
+            
+            // Update analysis state
+            OnPropertyChanged(nameof(HasAnalysis));
+            OnPropertyChanged(nameof(AnalysisQualityScore));
+            
+            // Load requirement content (simple clear/reload like TestCaseGenerator)
+            LoadRequirementContent(SelectedRequirement);
+            
+            Console.WriteLine($"*** [Requirements_MainViewModel] UI update complete ***");
         }
 
         /// <summary>
@@ -161,13 +167,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             try
             {
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] SaveDirtyTableChanges called. TableProvider: {_tableProvider != null}, SelectedReq: {_selectedRequirement?.GlobalId ?? "NULL"}");
+                var selectedRequirement = _mediator.CurrentRequirement;
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] SaveDirtyTableChanges called. TableProvider: {_tableProvider != null}, SelectedReq: {selectedRequirement?.GlobalId ?? "NULL"}");
                 
-                if (_tableProvider != null && _selectedRequirement != null)
+                if (_tableProvider != null && selectedRequirement != null)
                 {
-                    var tables = _tableProvider(_selectedRequirement);
+                    var tables = _tableProvider(selectedRequirement);
                     var tableList = tables?.ToList() ?? new List<LooseTableViewModel>();
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] Found {tableList.Count} tables for requirement {_selectedRequirement.GlobalId}");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] Found {tableList.Count} tables for requirement {selectedRequirement.GlobalId}");
                     
                     var dirtyTables = tableList.OfType<LooseTableViewModel>().Where(t => t.IsDirty).ToList();
                     TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] Found {dirtyTables.Count} dirty tables");
@@ -180,7 +187,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 }
                 else
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] Cannot save dirty tables - TableProvider: {_tableProvider != null}, SelectedReq: {_selectedRequirement != null}");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] Cannot save dirty tables - TableProvider: {_tableProvider != null}, SelectedReq: {selectedRequirement != null}");
                 }
             }
             catch (Exception ex)
@@ -204,8 +211,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 Console.WriteLine("*** [Requirements_MainViewModel] Clearing workspace due to project close ***");
                 TestCaseEditorApp.Services.Logging.Log.Debug("[Requirements_MainViewModel] Clearing workspace due to project close");
                 
-                // Clear selection and content (simple clear like TestCaseGenerator)
-                _selectedRequirement = null;
+                // Clear selection and content via mediator (single source of truth)
+                _mediator.CurrentRequirement = null;
                 OnPropertyChanged(nameof(SelectedRequirement));
                 
                 // Generate empty chips showing "(not set)" for all fields instead of clearing completely
@@ -268,29 +275,27 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public ObservableCollection<Requirement> Requirements => _requirements;
 
         /// <summary>
-        /// Currently selected requirement
+        /// Currently selected requirement - reads directly from mediator state
         /// </summary>
         public Requirement? SelectedRequirement
         {
-            get => _selectedRequirement;
+            get => _mediator.CurrentRequirement;
             set
             {
-                if (!ReferenceEquals(_selectedRequirement, value))
+                if (!ReferenceEquals(_mediator.CurrentRequirement, value))
                 {
-                    _selectedRequirement = value;
-                    
-                    // **CRITICAL**: Update mediator's CurrentRequirement to match local selection
+                    // Set mediator's CurrentRequirement - this is the single source of truth
                     _mediator.CurrentRequirement = value;
                     
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(RequirementPositionDisplay));
                     
                     // Notify other components
-                    if (_selectedRequirement != null)
+                    if (value != null)
                     {
                         _mediator.PublishEvent(new RequirementsEvents.RequirementSelected 
                         { 
-                            Requirement = _selectedRequirement 
+                            Requirement = value 
                         });
                     }
                     

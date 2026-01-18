@@ -159,16 +159,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                    throw new InvalidOperationException("StartUp_MainViewModel not registered in DI container");
         }
 
-        public TestCaseGenerator_NavigationVM CreateRequirementsNavigationViewModel()
-        {
-            if (_testCaseGenerationMediator == null)
-                throw new InvalidOperationException("TestCaseGenerationMediator is required for navigation ViewModel");
-            
-            return new TestCaseGenerator_NavigationVM(
-                _testCaseGenerationMediator,
-                _applicationServices.LoggerFactory?.CreateLogger<TestCaseGenerator_NavigationVM>());
-        }
-        
+
         public object CreateProjectViewModel()
         {
             // Redirect to new Project domain - get Project_MainViewModel from DI container

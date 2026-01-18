@@ -85,8 +85,6 @@
                         <!-- Dropdown Header with chevron and accent color -->
                         <ToggleButton Style="{StaticResource ActionToggleButton}"
                                       IsChecked="{Binding IsExpanded, Mode=TwoWay}"
-                                      Command="{Binding Command}"
-                                      CommandParameter="{Binding CommandParameter}"
                                       HorizontalAlignment="Stretch"
                                       HorizontalContentAlignment="Stretch"
                                       FontWeight="Normal"
@@ -262,3 +260,5 @@
         </Border>
     </DataTemplate>
 </ResourceDictionary>
+
+

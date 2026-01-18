@@ -1,70 +1,20 @@
-1/16/2026 12:37:21 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 12:37:21 PM: CreateRequirementsConfiguration called
-1/16/2026 12:37:21 PM: Requirements_MainViewModel created: Requirements_MainViewModel
-1/16/2026 12:37:21 PM: VisibleChips count: 22
-1/16/2026 12:37:21 PM: CreateRequirementsConfiguration called
-1/16/2026 12:37:21 PM: Requirements_MainViewModel created: Requirements_MainViewModel
-1/16/2026 12:37:21 PM: VisibleChips count: 22
-1/16/2026 12:41:15 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 12:41:15 PM: CreateRequirementsConfiguration called
-1/16/2026 12:41:15 PM: Requirements_MainViewModel created: Requirements_MainViewModel
-1/16/2026 12:41:15 PM: VisibleChips count: 0
-1/16/2026 12:41:15 PM: CreateRequirementsConfiguration called
-1/16/2026 12:41:15 PM: Requirements_MainViewModel created: Requirements_MainViewModel
-1/16/2026 12:41:15 PM: VisibleChips count: 0
-1/16/2026 12:46:23 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 12:46:23 PM: CreateRequirementsConfiguration called
-1/16/2026 12:46:23 PM: Requirements_MainViewModel created: Requirements_MainViewModel
-1/16/2026 12:46:23 PM: VisibleChips count: 22
-1/16/2026 12:46:23 PM: CreateRequirementsConfiguration called
-1/16/2026 12:46:23 PM: Requirements_MainViewModel created: Requirements_MainViewModel
-1/16/2026 12:46:23 PM: VisibleChips count: 22
-1/16/2026 12:48:15 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 12:48:15 PM: CreateRequirementsConfiguration called
-1/16/2026 12:48:15 PM: Requirements_MainViewModel created: Requirements_MainViewModel
-1/16/2026 12:48:15 PM: VisibleChips count: 0
-1/16/2026 12:48:15 PM: CreateRequirementsConfiguration called
-1/16/2026 12:48:15 PM: Requirements_MainViewModel created: Requirements_MainViewModel
-1/16/2026 12:48:15 PM: VisibleChips count: 0
-1/16/2026 12:48:23 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 12:48:23 PM: CreateRequirementsConfiguration called
-1/16/2026 12:48:23 PM: Requirements_MainViewModel created: Requirements_MainViewModel
-1/16/2026 12:48:23 PM: VisibleChips count: 22
-1/16/2026 12:48:23 PM: CreateRequirementsConfiguration called
-1/16/2026 12:48:23 PM: Requirements_MainViewModel created: Requirements_MainViewModel
-1/16/2026 12:48:23 PM: VisibleChips count: 22
-1/16/2026 1:04:20 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 1:07:31 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 1:13:37 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 1:13:46 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 1:17:00 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 1:24:02 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 1:27:22 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 1:29:54 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 1:33:14 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 1:57:59 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 2:04:32 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 2:12:38 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 2:14:35 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 2:17:36 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 2:22:20 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 2:25:29 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 2:40:26 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 2:59:26 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 3:14:12 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 3:14:13 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 3:14:15 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 3:14:16 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 3:14:20 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 3:14:23 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 3:21:24 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 3:38:00 PM: SideMenuViewModel.NavigateToRequirements called
-1/16/2026 3:44:56 PM: SideMenuViewModel.NavigateToRequirements called
-1/17/2026 9:57:45 AM: SideMenuViewModel.NavigateToRequirements called
-1/17/2026 10:00:57 AM: SideMenuViewModel.NavigateToRequirements called
-1/17/2026 10:31:41 AM: SideMenuViewModel.NavigateToRequirements called
-1/17/2026 10:44:36 AM: SideMenuViewModel.NavigateToRequirements called
-1/17/2026 11:06:17 AM: SideMenuViewModel.NavigateToRequirements called
-1/17/2026 11:06:22 AM: SideMenuViewModel.NavigateToRequirements called
-1/17/2026 11:06:31 AM: SideMenuViewModel.NavigateToRequirements called
-1/17/2026 11:54:14 AM: SideMenuViewModel.NavigateToRequirements called
+1/17/2026 3:03:55 PM: SideMenuViewModel.NavigateToRequirements called
+1/17/2026 3:49:29 PM: SideMenuViewModel.NavigateToRequirements called
+1/17/2026 3:49:45 PM: SideMenuViewModel.NavigateToRequirements called
+1/17/2026 3:52:19 PM: SideMenuViewModel.NavigateToRequirements called
+1/17/2026 3:53:13 PM: SideMenuViewModel.NavigateToRequirements called
+1/17/2026 4:01:59 PM: SideMenuViewModel.NavigateToRequirements called
+1/17/2026 6:00:06 PM: SideMenuViewModel.NavigateToRequirements called
+1/17/2026 6:00:28 PM: SideMenuViewModel.NavigateToRequirements called
+1/17/2026 6:19:30 PM: SideMenuViewModel.NavigateToRequirements called
+1/17/2026 6:25:10 PM: SideMenuViewModel.NavigateToRequirements called
+1/17/2026 6:29:27 PM: SideMenuViewModel.NavigateToRequirements called
+1/17/2026 6:33:21 PM: SideMenuViewModel.NavigateToRequirements called
+1/17/2026 6:36:13 PM: SideMenuViewModel.NavigateToRequirements called
+1/17/2026 6:48:46 PM: SideMenuViewModel.NavigateToRequirements called
+1/18/2026 9:56:40 AM: SideMenuViewModel.NavigateToRequirements called
+1/18/2026 9:57:03 AM: SideMenuViewModel.NavigateToRequirements called
+1/18/2026 11:06:35 AM: SideMenuViewModel.NavigateToRequirements called
+1/18/2026 11:06:42 AM: SideMenuViewModel.NavigateToRequirements called
+1/18/2026 11:06:44 AM: SideMenuViewModel.NavigateToRequirements called
+1/18/2026 11:06:50 AM: SideMenuViewModel.NavigateToRequirements called

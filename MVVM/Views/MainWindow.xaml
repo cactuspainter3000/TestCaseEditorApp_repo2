@@ -51,10 +51,6 @@
             <tcgviews:TestCaseGenerator_CreationView />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_NavigationVM}">
-            <tcgviews:TestCaseGenerator_NavigationControl />
-        </DataTemplate>
-
         <DataTemplate DataType="{x:Type vm:WorkspaceHeaderViewModel}">
             <views:WorkspaceHeaderView />
         </DataTemplate>
@@ -321,6 +317,11 @@
         <!-- DataTemplate for TestCaseGenerator_HeaderVM -->
         <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_HeaderVM}">
             <tcgviews:TestCaseGenerator_HeaderView />
+        </DataTemplate>
+
+        <!-- DataTemplate for TestCaseGenerator_NavigationVM -->
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_NavigationVM}">
+            <tcgviews:TestCaseGenerator_NavigationControl />
         </DataTemplate>
 
         <!-- Modal ViewModels DataTemplates -->

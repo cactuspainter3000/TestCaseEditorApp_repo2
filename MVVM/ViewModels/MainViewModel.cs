@@ -81,12 +81,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public object? SideMenuWorkspace => _viewAreaCoordinator.SideMenu;
         
         /// <summary>
-        /// Exposes the data-driven Test Case Generator menu section for UI binding
-        /// </summary>
-        public MenuSection? TestCaseGeneratorMenuSection => 
-            (_viewAreaCoordinator.SideMenu as ViewModels.SideMenuViewModel)?.TestCaseGeneratorMenuSection;
-
-        /// <summary>
         /// Dynamic title for the application window
         /// </summary>
         public string DisplayName 
@@ -135,9 +129,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             
             // Initialize NavigationService with coordinator for proper title management
             _navigationService.Initialize(_viewAreaCoordinator);
-            
-            // Initialize the requirements navigator for UI binding
-            RequirementsNavigator = _viewModelFactory.CreateRequirementsNavigationViewModel();
             
             // Subscribe to navigation events for UI property binding notifications ONLY
             _viewAreaCoordinator.NavigationMediator.Subscribe<NavigationEvents.HeaderChanged>(
@@ -214,9 +205,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         [ObservableProperty]
         private bool isLlmBusy;
-        
-        [ObservableProperty]
-        private object? requirementsNavigator;
         
         [ObservableProperty]
         private System.Collections.ObjectModel.ObservableCollection<object> toastNotifications = new();

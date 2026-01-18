@@ -25,7 +25,7 @@
             <!-- Main Section Animation Storyboards - exact timing from analysis -->
             <Storyboard x:Key="ExpandAnimation">
                 <!-- ScaleY expand: 0.35s with AccelDecel easing -->
-                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
+                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
                                To="1" Duration="0:0:0.35"
                                AccelerationRatio="0.15" DecelerationRatio="0.85"/>
                 <!-- Opacity expand: 0.25s with AccelDecel easing -->
@@ -36,7 +36,7 @@
             
             <Storyboard x:Key="CollapseAnimation">
                 <!-- ScaleY collapse: 0.30s with AccelDecel easing -->
-                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
+                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
                                To="0" Duration="0:0:0.30"
                                AccelerationRatio="0.15" DecelerationRatio="0.85"/>
                 <!-- Opacity collapse: 0.20s with AccelDecel easing -->
@@ -51,7 +51,7 @@
                 <DoubleAnimation Storyboard.TargetProperty="MaxHeight"
                                To="2000" Duration="0:0:0.4"/>
                 <!-- ScaleY expand: 0.4s -->
-                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
+                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
                                To="1" Duration="0:0:0.4"/>
                 <!-- Opacity expand: 0.35s -->
                 <DoubleAnimation Storyboard.TargetProperty="Opacity"
@@ -63,7 +63,7 @@
                 <DoubleAnimation Storyboard.TargetProperty="MaxHeight"
                                To="0" Duration="0:0:0.35"/>
                 <!-- ScaleY collapse: 0.35s -->
-                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
+                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
                                To="0" Duration="0:0:0.35"/>
                 <!-- Opacity collapse: 0.3s -->
                 <DoubleAnimation Storyboard.TargetProperty="Opacity"
@@ -116,62 +116,42 @@
                    Padding="0" 
                    Background="Transparent" 
                    ClipToBounds="True">
-                <Border.LayoutTransform>
+                <Border.RenderTransform>
                     <ScaleTransform ScaleY="0" />
-                </Border.LayoutTransform>
+                </Border.RenderTransform>
                 <Border.Style>
                     <Style TargetType="Border">
                         <Setter Property="Opacity" Value="0" />
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsChecked, ElementName=SectionToggle}" Value="True">
-                                <DataTrigger.EnterActions>
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <!-- Exact animation timing from original -->
-                                            <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
-                                                           To="1" Duration="0:0:0.35" 
-                                                           AccelerationRatio="0.15" DecelerationRatio="0.85"/>
-                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" 
-                                                           To="1" Duration="0:0:0.25" />
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </DataTrigger.EnterActions>
-                                <DataTrigger.ExitActions>
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
-                                                           To="0" Duration="0:0:0.30" 
-                                                           AccelerationRatio="0.15" DecelerationRatio="0.85"/>
-                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" 
-                                                           To="0" Duration="0:0:0.20" />
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </DataTrigger.ExitActions>
+                                <!-- Temporarily disabled animations to fix startup issue -->
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleY="1" />
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="Opacity" Value="1" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsChecked, ElementName=SectionToggle}" Value="False">
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleY="0" />
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="Opacity" Value="0" />
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
                 
-                <!-- Data-driven content - renders items using template system -->
-                <ItemsControl ItemsSource="{Binding Items}"
-                              ItemTemplateSelector="{StaticResource MenuContentTemplateSelector}"
-                              Margin="8,4">
-                    
-                    <!-- Standard layout -->
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Vertical"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    
-                    <!-- Ensure proper stretching -->
-                    <ItemsControl.ItemContainerStyle>
-                        <Style TargetType="ContentPresenter">
-                            <Setter Property="HorizontalAlignment" Value="Stretch"/>
-                        </Style>
-                    </ItemsControl.ItemContainerStyle>
-                </ItemsControl>
+                <!-- Dynamic Content using MenuContentTemplateSelector -->
+                <ItemsControl ItemsSource="{Binding Items}" 
+                             Margin="16,8,0,8"
+                             ItemTemplateSelector="{StaticResource MenuContentTemplateSelector}"/>
             </Border>
         </StackPanel>
     </Border>
 </UserControl>
+
+
+

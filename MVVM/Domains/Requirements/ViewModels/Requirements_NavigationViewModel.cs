@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using System.Windows;
 using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -359,6 +360,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 _requirements.Add(req);
             }
             
+            // Set SelectedRequirement to match the mediator's CurrentRequirement
+            var currentRequirement = _requirementsMediator.CurrentRequirement;
+            if (currentRequirement != null)
+            {
+                SelectedRequirement = currentRequirement;
+                var index = _requirements.IndexOf(currentRequirement);
+                if (index >= 0)
+                {
+                    SelectedRequirementIndex = index;
+                }
+            }
+            
             UpdateDropdownItems(_requirements);
             OnPropertyChanged(nameof(RequirementPositionDisplay));
             NotifyNavigationCommandsCanExecuteChanged();
@@ -369,45 +382,53 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// </summary>
         private void UpdateDropdownItems(IEnumerable<Requirement> requirements)
         {
-            RequirementsDropdown.Children.Clear();
-            
-            if (requirements.Any())
+            // Ensure UI updates happen on the dispatcher thread
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
-                foreach (var req in requirements)
-                {
-                    RequirementsDropdown.Children.Add(new MenuAction
-                    {
-                        Text = $"{req.Item} - {req.Name}",
-                        Command = new RelayCommand(() => 
-                        {
-                            _requirementsMediator.PublishEvent(new RequirementsEvents.RequirementSelected 
-                            {
-                                Requirement = req,
-                                SelectedBy = "NavigationDropdown"
-                            });
-                        })
-                    });
-                }
+                RequirementsDropdown.Children.Clear();
                 
-                var selectedReq = SelectedRequirement;
-                RequirementsDropdown.Text = selectedReq != null 
-                    ? $"{selectedReq.Item} - {selectedReq.Name}"
-                    : $"Requirements ({requirements.Count()})";
-            }
-            else
-            {
-                RequirementsDropdown.Text = "No requirements loaded";
-            }
+                if (requirements.Any())
+                {
+                    foreach (var req in requirements)
+                    {
+                        RequirementsDropdown.Children.Add(new MenuAction
+                        {
+                            Text = $"{req.Item} - {req.Name}",
+                            Command = new RelayCommand(() => 
+                            {
+                                _requirementsMediator.PublishEvent(new RequirementsEvents.RequirementSelected 
+                                {
+                                    Requirement = req,
+                                    SelectedBy = "NavigationDropdown"
+                                });
+                            })
+                        });
+                    }
+                    
+                    var selectedReq = SelectedRequirement;
+                    RequirementsDropdown.Text = selectedReq != null 
+                        ? $"{selectedReq.Item} - {selectedReq.Name}"
+                        : $"Requirements ({requirements.Count()})";
+                }
+                else
+                {
+                    RequirementsDropdown.Text = "No requirements loaded";
+                }
+            });
         }
 
         /// <summary>
         /// Notify all navigation commands to update their CanExecute state
+        /// THREADING: Dispatches to UI thread to prevent cross-thread access violations
         /// </summary>
         private void NotifyNavigationCommandsCanExecuteChanged()
         {
-            _previousCommand?.NotifyCanExecuteChanged();
-            _nextCommand?.NotifyCanExecuteChanged();
-            _nextWithoutTestCaseCommand?.NotifyCanExecuteChanged();
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                _previousCommand?.NotifyCanExecuteChanged();
+                _nextCommand?.NotifyCanExecuteChanged();
+                _nextWithoutTestCaseCommand?.NotifyCanExecuteChanged();
+            });
         }
 
         // ===== ABSTRACT METHOD IMPLEMENTATIONS =====

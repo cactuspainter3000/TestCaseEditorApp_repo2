@@ -21,6 +21,16 @@
         <tcgviews:TestCaseGeneratorRequirements_View />
     </DataTemplate>
     
+    <!-- TestCaseGeneration Domain - Main workspace view -->
+    <DataTemplate DataType="{x:Type tcgvm:TestCaseGeneratorMainVM}">
+        <tcgviews:TestCaseGeneratorMainView />
+    </DataTemplate>
+    
+    <!-- TestCaseGeneration Domain - Navigation view -->
+    <DataTemplate DataType="{x:Type tcgvm:NavigationViewModel}">
+        <tcgviews:TestCaseGenerator_NavigationControl />
+    </DataTemplate>
+    
     <DataTemplate DataType="{x:Type tcgvm:TestCaseGeneratorSplashScreenViewModel}">
         <tcgviews:TestCaseGeneratorSplashScreen />
     </DataTemplate>

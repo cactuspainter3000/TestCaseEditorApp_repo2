@@ -660,6 +660,13 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             HideProgress();
             
             NavigateToStep("ProjectActive", _currentWorkspaceInfo);
+            
+            // Request navigation to NewProject section to show the project view
+            RequestCrossDomainAction(new NavigateToSectionRequest 
+            { 
+                SectionName = "NewProject",
+                Context = "Project created successfully"
+            });
         }
         
         /// <summary>
@@ -1137,5 +1144,14 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
     {
         public bool ForOpenExisting { get; set; }
         public string DomainContext { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Cross-domain request for navigating to a section
+    /// </summary>
+    public class NavigateToSectionRequest
+    {
+        public string SectionName { get; set; } = string.Empty;
+        public string? Context { get; set; }
     }
 }

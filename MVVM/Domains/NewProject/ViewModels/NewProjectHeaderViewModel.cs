@@ -28,9 +28,23 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         [ObservableProperty] private bool isAnythingLLMStarting;
         [ObservableProperty] private string anythingLLMStatusMessage = "Initializing AnythingLLM...";
         
+        // Workspace-related properties to match header view expectations
+        [ObservableProperty] private string? workspaceFilePath = null;
+        [ObservableProperty] private bool isDirty = false;
+        [ObservableProperty] private string? lastSaveTimestamp = null;
+        [ObservableProperty] private bool canUndoLastSave = false;
+        
+        // Commands for workspace operations (no-op for project creation)
+        public ICommand SaveWorkspaceCommand { get; }
+        public ICommand UndoLastSaveCommand { get; }
+        
         public NewProjectHeaderViewModel()
         {
             TestCaseEditorApp.Services.Logging.Log.Info("[NewProjectHeaderVM] Constructor called");
+            
+            // Initialize commands as no-op for project creation workflow
+            SaveWorkspaceCommand = new RelayCommand(() => { /* No save operation in project creation */ });
+            UndoLastSaveCommand = new RelayCommand(() => { /* No undo operation in project creation */ });
             
             // Subscribe to workflow state changes via mediator
             ProjectWorkflowMediator.WorkflowStateChanged += OnWorkflowStateChanged;

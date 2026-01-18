@@ -1,4 +1,4 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!--
@@ -21,11 +21,11 @@
         IsChecked="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected, Mode=TwoWay}"
         Style="{StaticResource MenuPopupButtonStyle}" />
 
-            <!-- Animated sub-menu using LayoutTransform so layout reflows -->
+            <!-- Animated sub-menu using RenderTransform so layout reflows -->
             <Border Margin="8,6,0,6" Padding="0" Background="Transparent" ClipToBounds="True">
-                <Border.LayoutTransform>
+                <Border.RenderTransform>
                     <ScaleTransform ScaleY="0" />
-                </Border.LayoutTransform>
+                </Border.RenderTransform>
 
                 <Border.Style>
                     <Style TargetType="Border">
@@ -35,7 +35,7 @@
                                 <DataTrigger.EnterActions>
                                     <BeginStoryboard>
                                         <Storyboard>
-                                            <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY"
+                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
                                        To="1"
                                        Duration="0:0:0.22"
                                        AccelerationRatio="0.2" DecelerationRatio="0.8" />
@@ -48,7 +48,7 @@
                                 <DataTrigger.ExitActions>
                                     <BeginStoryboard>
                                         <Storyboard>
-                                            <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY"
+                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
                                        To="0"
                                        Duration="0:0:0.18"
                                        AccelerationRatio="0.2" DecelerationRatio="0.8" />
@@ -75,3 +75,5 @@
     </DataTemplate>
 
 </ResourceDictionary>
+
+

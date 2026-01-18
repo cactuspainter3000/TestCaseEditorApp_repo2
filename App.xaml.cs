@@ -212,12 +212,13 @@ namespace TestCaseEditorApp
                         var openProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.IOpenProjectMediator>();
                         var navigationMediator = provider.GetRequiredService<INavigationMediator>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
+                        var requirementsMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
                         var testCaseAnythingLLMService = provider.GetRequiredService<TestCaseAnythingLLMService>();
                         var jamaConnectService = provider.GetRequiredService<JamaConnectService>();
                         var logger = provider.GetRequiredService<ILogger<SideMenuViewModel>>();
                         
                         return new SideMenuViewModel(newProjectMediator, openProjectMediator, navigationMediator, 
-                            testCaseGenerationMediator, testCaseAnythingLLMService, jamaConnectService, logger);
+                            testCaseGenerationMediator, requirementsMediator, testCaseAnythingLLMService, jamaConnectService, logger);
                     });
 
                     // Domain coordination
@@ -357,6 +358,10 @@ namespace TestCaseEditorApp
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_TitleViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_NotificationViewModel>();
                     
+                    // NewProject domain ViewModels - using proper domain ViewModels
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectHeaderViewModel>();
+                    
                     // === STARTUP DOMAIN REGISTRATION (FOR INITIAL APP STATE) ===
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_MainViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_HeaderViewModel>();
@@ -367,6 +372,9 @@ namespace TestCaseEditorApp
                     // === TEST CASE GENERATION DOMAIN WORKSPACE VIEWMODELS ===
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorMainVM>();
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_NavigationVM>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_HeaderVM>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>();
 
                     services.AddSingleton<INewProjectMediator>(provider =>
                     {
@@ -580,11 +588,14 @@ namespace TestCaseEditorApp
                 var domainCoordinator = _host.Services.GetRequiredService<IDomainCoordinator>();
                 TestCaseEditorApp.MVVM.Utils.BaseDomainMediatorBase.SetDomainCoordinator(domainCoordinator);
                 
+                var navigationMediator = _host.Services.GetRequiredService<INavigationMediator>();
+                domainCoordinator.RegisterDomainMediator("Navigation", navigationMediator);
                 domainCoordinator.RegisterDomainMediator("TestCaseGeneration", testCaseGenMediator);
                 domainCoordinator.RegisterDomainMediator("TestCaseCreation", testCaseCreationMediator);
                 domainCoordinator.RegisterDomainMediator("TestFlow", testFlowMediator);
                 domainCoordinator.RegisterDomainMediator("NewProject", newProjectMediator);
                 domainCoordinator.RegisterDomainMediator("OpenProject", openProjectMediator);
+                domainCoordinator.RegisterDomainMediator("Requirements", requirementsMediator);
                 
                 // Register any extension-provided domain mediators
                 foreach (var domainExtension in extensionManager.DomainExtensions.Values)
