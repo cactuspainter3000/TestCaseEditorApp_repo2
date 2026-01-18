@@ -5,6 +5,8 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
         xmlns:tcgvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels"
+        xmlns:tcgmodevm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels"
+        xmlns:tcgmodeviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.Views"
         xmlns:wmvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels"
         xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
         xmlns:tcgviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views"
@@ -37,20 +39,28 @@
 
         <!-- Put resources directly in Window.Resources (do NOT nest a ResourceDictionary element here) -->
 
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_VM}">
-            <tcgviews:TestCaseGeneratorRequirements_View />
+        <DataTemplate DataType="{x:Type tcgmodevm:TestCaseGeneratorMode_MainVM}">
+            <tcgmodeviews:TestCaseGeneratorMainView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_TitleVM}">
+            <tcgmodeviews:TestCaseGenerator_TitleView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_HeaderVM}">
+            <tcgmodeviews:TestCaseGenerator_HeaderView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_AssumptionsVM}">
-            <tcgviews:TestCaseGenerator_AssumptionsView />
+            <tcgmodeviews:TestCaseGenerator_AssumptionsView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_QuestionsVM}">
-            <tcgviews:TestCaseGenerator_QuestionsView />
+            <tcgmodeviews:TestCaseGenerator_QuestionsView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_CreationVM}">
-            <tcgviews:TestCaseGenerator_CreationView />
+            <tcgmodeviews:TestCaseGenerator_CreationView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:WorkspaceHeaderViewModel}">
@@ -135,13 +145,9 @@
             </Border>
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_TitleVM}">
-            <tcgviews:TestCaseGenerator_TitleView />
-        </DataTemplate>
-
         <!-- TestCaseGeneratorMainVM DataTemplate - Added for AI Guide compliance -->
         <DataTemplate DataType="{x:Type tcgvm:TestCaseGeneratorMainVM}">
-            <tcgviews:TestCaseGeneratorMainView />
+            <tcgmodeviews:TestCaseGeneratorMainView />
         </DataTemplate>
 
         <!-- Startup ViewModels DataTemplates -->
@@ -321,14 +327,9 @@
             </Style.Triggers>
         </Style>
 
-        <!-- DataTemplate for TestCaseGenerator_HeaderVM -->
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_HeaderVM}">
-            <tcgviews:TestCaseGenerator_HeaderView />
-        </DataTemplate>
-
         <!-- DataTemplate for TestCaseGenerator_NavigationVM -->
         <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_NavigationVM}">
-            <tcgviews:TestCaseGenerator_NavigationControl />
+            <tcgmodeviews:TestCaseGenerator_NavigationControl />
         </DataTemplate>
 
         <!-- Modal ViewModels DataTemplates -->

@@ -2,11 +2,13 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
                     xmlns:tcgvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels"
+                    xmlns:tcgmodevm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels"
                     xmlns:tccvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels"
                     xmlns:npvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels"
                     xmlns:opvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels"
                     xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
                     xmlns:tcgviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views"
+                    xmlns:tcgmodeviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.Views"
                     xmlns:tccviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Views"
                     xmlns:npviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.Views"
                     xmlns:opviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.Views"
@@ -22,13 +24,13 @@
     </DataTemplate>
     
     <!-- TestCaseGeneration Domain - Main workspace view -->
-    <DataTemplate DataType="{x:Type tcgvm:TestCaseGeneratorMainVM}">
-        <tcgviews:TestCaseGeneratorMainView />
+    <DataTemplate DataType="{x:Type tcgmodevm:TestCaseGeneratorMode_MainVM}">
+        <tcgmodeviews:TestCaseGeneratorMainView />
     </DataTemplate>
     
     <!-- TestCaseGeneration Domain - Navigation view -->
     <DataTemplate DataType="{x:Type tcgvm:NavigationViewModel}">
-        <tcgviews:TestCaseGenerator_NavigationControl />
+        <tcgmodeviews:TestCaseGenerator_NavigationControl />
     </DataTemplate>
     
     <DataTemplate DataType="{x:Type tcgvm:TestCaseGeneratorSplashScreenViewModel}">

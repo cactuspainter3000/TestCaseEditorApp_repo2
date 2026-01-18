@@ -14,6 +14,7 @@ using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Services; // For IRequirementAnalysisService
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Events;

@@ -5,9 +5,10 @@ using Microsoft.Extensions.DependencyInjection;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
@@ -17,6 +18,14 @@ namespace TestCaseEditorApp.Services
     /// <summary>
     /// Implementation of view configuration service.
     /// Defines complete view configurations for each section and broadcasts them.
+    /// 
+    /// DOMAIN TERMINOLOGY:
+    /// - Menu Item Domains (_Mode suffix): Handle what displays when specific menu items are clicked
+    ///   Examples: TestCaseGenerator_Mode, Project_Mode, Requirements_Mode
+    /// - Codebase Domains (no suffix): Broader implementation functionality 
+    ///   Examples: TestCaseGeneration, WorkspaceManagement
+    /// 
+    /// CRITICAL DISTINCTION: TestCaseGenerator_Mode (menu item) vs TestCaseGeneration (codebase)
     /// </summary>
     public class ViewConfigurationService : IViewConfigurationService
     {
@@ -152,19 +161,23 @@ namespace TestCaseEditorApp.Services
                     throw new InvalidOperationException("App.ServiceProvider is null - DI container not initialized yet");
                 }
                 
-                // Get Project domain ViewModels from DI container - return ViewModels directly
+                // Get Project domain ViewModels from DI container - use shared ViewModels from TestCaseGeneration
                 var projectMainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Project.ViewModels.Project_MainViewModel>();
+                var sharedTitleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
+                var sharedHeaderVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_HeaderVM>();
                 
                 // Verify ViewModels were created
                 if (projectMainVM == null) throw new InvalidOperationException("Project_MainViewModel not resolved");
+                if (sharedTitleVM == null) throw new InvalidOperationException("TestCaseGenerator_TitleVM not resolved");
+                if (sharedHeaderVM == null) throw new InvalidOperationException("TestCaseGenerator_HeaderVM not resolved");
                 
                 TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Project ViewModels created successfully");
 
-                // Return ViewModels directly (same pattern as New Project and Dummy domains)
+                // Return ViewModels directly (same pattern as Friday working version - shared title/header)
                 return new ViewConfiguration(
                     sectionName: "Project",
-                    titleViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Project"),
-                    headerViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Project Header"),
+                    titleViewModel: sharedTitleVM,               // Use shared TestCaseGeneration title
+                    headerViewModel: sharedHeaderVM,             // Use shared TestCaseGeneration header
                     contentViewModel: projectMainVM,             // Return ViewModel directly
                     navigationViewModel: null,                   // No specific navigation for Project
                     notificationViewModel: null,
@@ -190,7 +203,8 @@ namespace TestCaseEditorApp.Services
         {
             TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating LLM Learning configuration");
             
-            // For now, return a simple placeholder configuration
+            // TODO: Create proper LLMLearning domain ViewModels when this feature is implemented
+            // For now, return a simple placeholder configuration until the domain is built
             return new ViewConfiguration(
                 sectionName: "LLM Learning",
                 titleViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("LLM Learning"),
@@ -334,14 +348,14 @@ namespace TestCaseEditorApp.Services
             // Resolve all ViewModels from DI container (no manual UserControl creation)
             var titleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
             var headerVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_HeaderVM>();
-            var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorMainVM>();
+            var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels.TestCaseGeneratorMode_MainVM>();
             var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_NavigationVM>();
             var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>();
             
             // Fail-fast validation (AI Guide requirement)
             if (titleVM == null) throw new InvalidOperationException("TestCaseGenerator_TitleVM not registered in DI container");
             if (headerVM == null) throw new InvalidOperationException("TestCaseGenerator_HeaderVM not registered in DI container");
-            if (mainVM == null) throw new InvalidOperationException("TestCaseGeneratorMainVM not registered in DI container");
+            if (mainVM == null) throw new InvalidOperationException("TestCaseGeneratorMode_MainVM not registered in DI container");
             if (navigationVM == null) throw new InvalidOperationException("TestCaseGenerator_NavigationVM not registered in DI container");
             if (notificationVM == null) throw new InvalidOperationException("TestCaseGeneratorNotificationViewModel not registered in DI container");
             

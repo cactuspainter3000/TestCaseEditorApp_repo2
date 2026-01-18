@@ -4,6 +4,28 @@
 
 ---
 
+## 🏛️ DOMAIN TERMINOLOGY (CRITICAL)
+
+**Two distinct types of "domains" - DO NOT CONFUSE:**
+
+### **Menu Item Domains (_Mode suffix)**
+- **Purpose**: Handle what displays when specific menu items are clicked
+- **Naming**: `{MenuName}_Mode` (e.g., TestCaseGenerator_Mode, Project_Mode, Requirements_Mode)
+- **Contains**: Views, ViewModels, and responsibilities for that menu selection
+- **Status**: Just one domain among many - no special architectural status
+- **Example**: TestCaseGenerator_Mode = what shows when you click "Test Case Generator" menu item
+
+### **Codebase Domains (no suffix)**
+- **Purpose**: Broader implementation functionality shared across menu items
+- **Naming**: `{FeatureName}` (e.g., TestCaseGeneration, WorkspaceManagement)
+- **Contains**: Core implementation code, services, mediators, business logic
+- **Status**: Reference implementations that _Mode domains copy from
+- **Example**: TestCaseGeneration = the broader codebase for test case generation functionality
+
+**Key Distinction**: TestCaseGenerator_Mode (menu item) vs TestCaseGeneration (codebase implementation)
+
+---
+
 ## 🚨 CRITICAL DOMAIN VIEW RULE
 
 **⚠️ FOR ANY DOMAIN VIEW CREATION**: 
