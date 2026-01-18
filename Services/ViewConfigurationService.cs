@@ -225,13 +225,13 @@ namespace TestCaseEditorApp.Services
             var headerVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>();
             var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>();
             var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>();
-            var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NotificationViewModel>();
+            var sharedNotificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>();
             
             // Fail-fast validation (AI Guide requirement)
             if (headerVM == null) throw new InvalidOperationException("Requirements_HeaderViewModel not registered in DI container");
             if (mainVM == null) throw new InvalidOperationException("Requirements_MainViewModel not registered in DI container");
             if (navigationVM == null) throw new InvalidOperationException("Requirements_NavigationViewModel not registered in DI container");
-            if (notificationVM == null) throw new InvalidOperationException("Requirements_NotificationViewModel not registered in DI container");
+            if (sharedNotificationVM == null) throw new InvalidOperationException("TestCaseGeneratorNotificationViewModel not registered in DI container");
             
             TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] All Requirements ViewModels resolved successfully");
 
@@ -246,7 +246,7 @@ namespace TestCaseEditorApp.Services
                 headerViewModel: headerVM,       // ViewModel → DataTemplate renders Requirements_HeaderView
                 contentViewModel: mainVM,        // ViewModel → DataTemplate renders Requirements_MainView
                 navigationViewModel: navigationVM, // ViewModel → DataTemplate renders Requirements_NavigationView
-                notificationViewModel: notificationVM, // ViewModel → DataTemplate renders Requirements_NotificationView
+                notificationViewModel: sharedNotificationVM, // Use shared TestCaseGenerator notification (same as OpenProject_Mode)
                 context: context
             );
         }
