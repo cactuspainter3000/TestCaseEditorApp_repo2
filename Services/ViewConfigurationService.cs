@@ -205,8 +205,8 @@ namespace TestCaseEditorApp.Services
             
             try
             {
-                // ✅ Use proper LLMLearningViewModel instead of placeholders
-                var titleVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("LLM Learning");
+                // ✅ Use same title view as TestCaseGenerator for consistency
+                var titleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
                 var headerVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Learning Configuration");
                 var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.ViewModels.LLMLearningViewModel>() 
                             ?? new TestCaseEditorApp.MVVM.ViewModels.LLMLearningViewModel();
@@ -300,11 +300,22 @@ namespace TestCaseEditorApp.Services
                     }
                 }
 
+                // ✅ Use same title view as TestCaseGenerator for consistency
+                var titleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
+                
+                // ✅ Use same notification view as TestCaseGenerator for consistency
+                var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>();
+                
+                // ✅ Use same navigation view as TestCaseGenerator for consistency
+                var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_NavigationVM>();
+
                 var config = new ViewConfiguration(
                     sectionName: "TestCaseCreation",
+                    titleViewModel: titleVM,
                     headerViewModel: _workspaceHeader,
                     contentViewModel: _testCaseCreationContent,
-                    notificationViewModel: new TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel(App.ServiceProvider?.GetService<Microsoft.Extensions.Logging.ILogger<TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel>>()),
+                    navigationViewModel: navigationVM,
+                    notificationViewModel: notificationVM,
                     context: context
                 );
                 TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewConfigurationService] TestCaseCreation ViewConfiguration created with content: {config.ContentViewModel?.GetType().Name}");

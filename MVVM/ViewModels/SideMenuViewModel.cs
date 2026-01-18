@@ -77,6 +77,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand TestCaseGeneratorNavigationCommand { get; private set; } = null!;
         public ICommand NewProjectNavigationCommand { get; private set; } = null!;
         public ICommand DummyNavigationCommand { get; private set; } = null!;
+        public ICommand LLMLearningNavigationCommand { get; private set; } = null!;
         public ICommand StartupNavigationCommand { get; private set; } = null!;
 
         // Requirements Management Commands
@@ -177,6 +178,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             TestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToTestCaseGenerator);
             NewProjectNavigationCommand = new RelayCommand(NavigateToNewProject, CanExecuteProjectCommands);
             DummyNavigationCommand = new RelayCommand(NavigateToDummy);
+            LLMLearningNavigationCommand = new RelayCommand(NavigateToLLMLearning);
             StartupNavigationCommand = new RelayCommand(NavigateToStartup);
             
             // Requirements commands
@@ -386,6 +388,16 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _navigationMediator.NavigateToSection("Dummy");
         }
         
+        private void NavigateToLLMLearning()
+        {
+            System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToLLMLearning called! ***");
+            Console.WriteLine("*** SideMenuViewModel.NavigateToLLMLearning called! ***");
+            
+            SelectedSection = "LLMLearning"; // Update selected section to trigger SectionChanged event
+            
+            _navigationMediator.NavigateToSection("llm learning");
+        }
+        
         private void NavigateToStartup()
         {
             System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToStartup called! ***");
@@ -544,7 +556,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                                 Id = "llm-learning",
                                 Text = "LLM Learning",
                                 Icon = "🤖",
-                                Command = DummyNavigationCommand,
+                                Command = LLMLearningNavigationCommand,
                                 IsDropdown = true,
                                 Children = new ObservableCollection<MenuContentItem>
                                 {
