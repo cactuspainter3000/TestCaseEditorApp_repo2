@@ -221,14 +221,14 @@ namespace TestCaseEditorApp.Services
             TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating Requirements configuration using AI Guide standard pattern");
             
             // ✅ PHASE 2: Convert to AI Guide standard - ViewModels + DataTemplates pattern
-            // Resolve all ViewModels from DI container (Requirements domain already properly implemented)
-            var headerVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>();
+            // Resolve all ViewModels from DI container (use shared header same as OpenProject_Mode)
+            var sharedHeaderVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_HeaderVM>();
             var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>();
             var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>();
             var sharedNotificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>();
             
             // Fail-fast validation (AI Guide requirement)
-            if (headerVM == null) throw new InvalidOperationException("Requirements_HeaderViewModel not registered in DI container");
+            if (sharedHeaderVM == null) throw new InvalidOperationException("TestCaseGenerator_HeaderVM not registered in DI container");
             if (mainVM == null) throw new InvalidOperationException("Requirements_MainViewModel not registered in DI container");
             if (navigationVM == null) throw new InvalidOperationException("Requirements_NavigationViewModel not registered in DI container");
             if (sharedNotificationVM == null) throw new InvalidOperationException("TestCaseGeneratorNotificationViewModel not registered in DI container");
@@ -243,7 +243,7 @@ namespace TestCaseEditorApp.Services
             return new ViewConfiguration(
                 sectionName: "Requirements",
                 titleViewModel: titleVM,         // Shared TestCaseGeneration title
-                headerViewModel: headerVM,       // ViewModel → DataTemplate renders Requirements_HeaderView
+                headerViewModel: sharedHeaderVM,       // Use shared TestCaseGeneration header (same as OpenProject_Mode)
                 contentViewModel: mainVM,        // ViewModel → DataTemplate renders Requirements_MainView
                 navigationViewModel: navigationVM, // ViewModel → DataTemplate renders Requirements_NavigationView
                 notificationViewModel: sharedNotificationVM, // Use shared TestCaseGenerator notification (same as OpenProject_Mode)
