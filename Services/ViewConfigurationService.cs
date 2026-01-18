@@ -242,14 +242,14 @@ namespace TestCaseEditorApp.Services
             TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating Requirements configuration using AI Guide standard pattern");
             
             // ✅ PHASE 2: Convert to AI Guide standard - ViewModels + DataTemplates pattern
-            // Resolve all ViewModels from DI container (use shared header same as OpenProject_Mode)
-            var sharedHeaderVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_HeaderVM>();
+            // Resolve all ViewModels from DI container (use Requirements-specific header for requirement details)
+            var requirementsHeaderVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>();
             var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>();
             var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>();
             var sharedNotificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>();
             
             // Fail-fast validation (AI Guide requirement)
-            if (sharedHeaderVM == null) throw new InvalidOperationException("TestCaseGenerator_HeaderVM not registered in DI container");
+            if (requirementsHeaderVM == null) throw new InvalidOperationException("Requirements_HeaderViewModel not registered in DI container");
             if (mainVM == null) throw new InvalidOperationException("Requirements_MainViewModel not registered in DI container");
             if (navigationVM == null) throw new InvalidOperationException("Requirements_NavigationViewModel not registered in DI container");
             if (sharedNotificationVM == null) throw new InvalidOperationException("TestCaseGeneratorNotificationViewModel not registered in DI container");
@@ -264,7 +264,7 @@ namespace TestCaseEditorApp.Services
             return new ViewConfiguration(
                 sectionName: "Requirements",
                 titleViewModel: titleVM,         // Shared TestCaseGeneration title
-                headerViewModel: sharedHeaderVM,       // Use shared TestCaseGeneration header (same as OpenProject_Mode)
+                headerViewModel: requirementsHeaderVM,       // Use Requirements-specific header to show requirement details
                 contentViewModel: mainVM,        // ViewModel → DataTemplate renders Requirements_MainView
                 navigationViewModel: navigationVM, // ViewModel → DataTemplate renders Requirements_NavigationView
                 notificationViewModel: sharedNotificationVM, // Use shared TestCaseGenerator notification (same as OpenProject_Mode)
@@ -540,16 +540,16 @@ namespace TestCaseEditorApp.Services
             try
             {
                 // ✅ PHASE 2: Convert to AI Guide standard - ViewModels + DataTemplates pattern
-                // Resolve all ViewModels from DI container (use shared title, header, and navigation same as Requirements_Mode)
+                // Resolve all ViewModels from DI container (use Requirements_HeaderViewModel to show requirement details)
                 var sharedTitleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
-                var sharedHeaderVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_HeaderVM>();
+                var requirementsHeaderVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>();
                 var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel>();
                 var sharedNavigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>();
                 var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>();
                 
                 // Fail-fast validation (AI Guide requirement)
                 if (sharedTitleVM == null) throw new InvalidOperationException("TestCaseGenerator_TitleVM not registered in DI container");
-                if (sharedHeaderVM == null) throw new InvalidOperationException("TestCaseGenerator_HeaderVM not registered in DI container");
+                if (requirementsHeaderVM == null) throw new InvalidOperationException("Requirements_HeaderViewModel not registered in DI container");
                 if (mainVM == null) throw new InvalidOperationException("OpenProjectWorkflowViewModel not registered in DI container");
                 if (sharedNavigationVM == null) throw new InvalidOperationException("Requirements_NavigationViewModel not registered in DI container");
                 if (notificationVM == null) throw new InvalidOperationException("TestCaseGeneratorNotificationViewModel not registered in DI container");
@@ -560,7 +560,7 @@ namespace TestCaseEditorApp.Services
                 return new ViewConfiguration(
                     sectionName: "OpenProject",
                     titleViewModel: sharedTitleVM,         // Use shared TestCaseGeneration title (same as Project_Mode and NewProject_Mode)
-                    headerViewModel: sharedHeaderVM,       // Use shared TestCaseGeneration header (shows requirement description when available)
+                    headerViewModel: requirementsHeaderVM,       // Use Requirements header to show requirement details when available
                     contentViewModel: mainVM,        // ViewModel → DataTemplate renders OpenProject_MainView
                     navigationViewModel: sharedNavigationVM, // Use shared Requirements navigation (same as Requirements_Mode)
                     notificationViewModel: notificationVM, // Shared TestCaseGenerator notification

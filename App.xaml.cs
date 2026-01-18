@@ -332,7 +332,7 @@ namespace TestCaseEditorApp
                         return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel(
                             reqMediator, persistence, textEditingService, logger, analysisService, tableProvider, paragraphProvider);
                     });
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>(provider =>
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>(provider =>
                     {
                         // Use RequirementsMediator as independent data source for header
                         var reqMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();

@@ -226,7 +226,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         protected override async Task RefreshAsync()
         {
-            // Refresh requirements data
+            // Refresh requirements data and statistics when activated
+            UpdateStatistics();
             await Task.CompletedTask;
         }
 

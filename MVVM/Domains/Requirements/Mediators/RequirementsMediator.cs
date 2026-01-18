@@ -759,6 +759,28 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     {
                         _logger.LogInformation("🔄 RequirementsMediator: Data already current, preserving navigation state. CurrentRequirement: {Current}", 
                             CurrentRequirement?.Item ?? "none");
+                        
+                        // ✅ Ensure CurrentRequirement is set to first requirement if null but requirements exist
+                        if (CurrentRequirement == null && _requirements.Count > 0)
+                        {
+                            CurrentRequirement = _requirements.First();
+                            _logger.LogDebug("Set CurrentRequirement to first requirement: {Item}", CurrentRequirement.Item);
+                        }
+                        
+                        // ✅ Even when data is current, notify header to refresh display when project is activated
+                        PublishEvent(new RequirementsEvents.RequirementsCollectionChanged
+                        {
+                            Action = "ProjectActivated",
+                            AffectedRequirements = _requirements.ToList(),
+                            NewCount = _requirements.Count
+                        });
+                        
+                        // ✅ Always notify about requirement selection to update header (even if null)
+                        PublishEvent(new RequirementsEvents.RequirementSelected
+                        {
+                            Requirement = CurrentRequirement
+                        });
+                        
                         return; // Don't reload - data is already current!
                     }
                     
