@@ -465,14 +465,12 @@ namespace TestCaseEditorApp.Services
                 var sharedTitleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
                 var headerVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectHeaderViewModel>();
                 var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel>();
-                var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.DummyNewProjectNavigationViewModel>();
                 var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>();
                 
                 // Fail-fast validation (AI Guide requirement)
                 if (sharedTitleVM == null) throw new InvalidOperationException("TestCaseGenerator_TitleVM not registered in DI container");
                 if (headerVM == null) throw new InvalidOperationException("NewProjectHeaderViewModel not registered in DI container");
                 if (mainVM == null) throw new InvalidOperationException("NewProjectWorkflowViewModel not registered in DI container");
-                if (navigationVM == null) throw new InvalidOperationException("DummyNewProjectNavigationViewModel not registered in DI container");
                 if (notificationVM == null) throw new InvalidOperationException("TestCaseGeneratorNotificationViewModel not registered in DI container");
                 
                 TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] All NewProject ViewModels resolved successfully");
@@ -483,7 +481,7 @@ namespace TestCaseEditorApp.Services
                     titleViewModel: sharedTitleVM,         // Use shared TestCaseGeneration title (same as Project_Mode)
                     headerViewModel: headerVM,       // ViewModel → DataTemplate renders NewProjectHeaderView  
                     contentViewModel: mainVM,        // ViewModel → DataTemplate renders NewProject_MainView
-                    navigationViewModel: navigationVM, // ViewModel → DataTemplate renders DummyNewProjectNavigationView
+                    navigationViewModel: null,       // No navigation (blank, same as Project_Mode)
                     notificationViewModel: notificationVM, // Shared TestCaseGenerator notification
                     context: context
                 );
