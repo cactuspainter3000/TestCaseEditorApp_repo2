@@ -201,19 +201,40 @@ namespace TestCaseEditorApp.Services
 
         private ViewConfiguration CreateLLMLearningConfiguration(object? context)
         {
-            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating LLM Learning configuration");
+            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating LLM Learning configuration using proper ViewModels");
             
-            // TODO: Create proper LLMLearning domain ViewModels when this feature is implemented
-            // For now, return a simple placeholder configuration until the domain is built
-            return new ViewConfiguration(
-                sectionName: "LLM Learning",
-                titleViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("LLM Learning"),
-                headerViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("LLM Learning Header"),
-                contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("LLM Learning functionality coming soon..."),
-                navigationViewModel: null,
-                notificationViewModel: null,
-                context: context
-            );
+            try
+            {
+                // ✅ Use proper LLMLearningViewModel instead of placeholders
+                var titleVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("LLM Learning");
+                var headerVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Learning Configuration");
+                var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.ViewModels.LLMLearningViewModel>() 
+                            ?? new TestCaseEditorApp.MVVM.ViewModels.LLMLearningViewModel();
+                
+                return new ViewConfiguration(
+                    sectionName: "LLM Learning",
+                    titleViewModel: titleVM,
+                    headerViewModel: headerVM,
+                    contentViewModel: mainVM,        // ViewModel → DataTemplate renders LLMLearningView
+                    navigationViewModel: null,
+                    notificationViewModel: null,
+                    context: context
+                );
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[ViewConfigurationService] Failed to create LLMLearning configuration");
+                
+                return new ViewConfiguration(
+                    sectionName: "LLM Learning (Error)",
+                    titleViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"LLM Learning Error: {ex.Message}"),
+                    headerViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"LLM Learning Header Error: {ex.Message}"),
+                    contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"LLM Learning Main Error: {ex.Message}"),
+                    navigationViewModel: null,
+                    notificationViewModel: null,
+                    context: context
+                );
+            }
         }
 
         private ViewConfiguration CreateRequirementsConfiguration(object? context)
