@@ -158,7 +158,19 @@ namespace TestCaseEditorApp.Services
                 try
                 {
                     using var response = await _httpClient.GetAsync(config.Endpoint).ConfigureAwait(false);
-                    status.IsAvailable = response.IsSuccessStatusCode;
+                    
+                    // For AnythingLLM, auth errors (401, 403) indicate service is running but needs auth
+                    if (config.Type == ServiceType.AnythingLLM)
+                    {
+                        status.IsAvailable = response.IsSuccessStatusCode || 
+                                           response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
+                                           response.StatusCode == System.Net.HttpStatusCode.Forbidden;
+                    }
+                    else
+                    {
+                        status.IsAvailable = response.IsSuccessStatusCode;
+                    }
+                    
                     status.IsStarting = false;
                     status.StatusMessage = status.IsAvailable 
                         ? $"{serviceName} service is available" 

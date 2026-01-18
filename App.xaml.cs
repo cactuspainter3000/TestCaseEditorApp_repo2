@@ -624,7 +624,7 @@ namespace TestCaseEditorApp
                 serviceMonitor.AddService(new ServiceMonitorConfig
                 {
                     Name = "AnythingLLM",
-                    Endpoint = "http://localhost:3001/api/system/status",
+                    Endpoint = "http://localhost:3001/api/v1/workspaces",
                     CheckInterval = TimeSpan.FromSeconds(10),
                     Type = ServiceType.AnythingLLM
                 });
