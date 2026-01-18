@@ -19,6 +19,8 @@
         xmlns:dummyviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Dummy.Views"
         xmlns:reqvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels"
         xmlns:reqviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.Views"
+        xmlns:projvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Project.ViewModels"
+        xmlns:projviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Project.Views"
         xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models"
         xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
         Height="665" Width="1200"
@@ -381,6 +383,11 @@
 
         <DataTemplate DataType="{x:Type opvm:OpenProject_NavigationViewModel}">
             <opviews:OpenProject_NavigationView />
+        </DataTemplate>
+
+        <!-- Project Domain DataTemplates -->
+        <DataTemplate DataType="{x:Type projvm:Project_MainViewModel}">
+            <projviews:Project_MainView />
         </DataTemplate>
 
         <!-- DUMMY DOMAIN DataTemplates - Perfect AI Guide Reference Implementation -->
