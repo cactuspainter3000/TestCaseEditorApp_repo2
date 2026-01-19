@@ -419,7 +419,7 @@ namespace TestCaseEditorApp.Services
                     // Create simplified analysis result since AnalyzeRequirementAsync only returns bool
                     var analysis = new RequirementAnalysis
                     {
-                        QualityScore = 4, // Mock score (1-10 scale)
+                        OriginalQualityScore = 4, // Mock score (1-10 scale)
                         IsAnalyzed = true,
                         Timestamp = DateTime.Now
                     };
@@ -543,7 +543,7 @@ namespace TestCaseEditorApp.Services
                     // Create simplified analysis result
                     var analysis = new RequirementAnalysis
                     {
-                        QualityScore = 3 + (i % 3), // Mock scores between 3-5
+                        OriginalQualityScore = 3 + (i % 3), // Mock scores between 3-5
                         IsAnalyzed = true,
                         Timestamp = DateTime.Now
                     };
@@ -552,7 +552,7 @@ namespace TestCaseEditorApp.Services
                 }
 
                 // Generate flow-specific recommendations
-                var qualityScore = analysisResults.Values.Average(a => a.QualityScore);
+                var qualityScore = analysisResults.Values.Average(a => a.OriginalQualityScore);
                 recommendations.Add($"Average requirement quality score: {qualityScore:F2}/5.0");
 
                 if (qualityScore < 3.0)

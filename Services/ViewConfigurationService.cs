@@ -38,7 +38,6 @@ namespace TestCaseEditorApp.Services
         private WorkspaceHeaderViewModel? _workspaceHeader;
         private TestCaseGenerator_HeaderVM? _testCaseGeneratorHeader;
         private TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel? _testCaseGeneratorNotification;
-        private object? _projectContent;
         private object? _testCaseCreationContent;
         
         // Cached navigation views - critical for idempotency

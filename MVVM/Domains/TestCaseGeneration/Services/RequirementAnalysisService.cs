@@ -462,7 +462,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                     analysis.ErrorMessage = "🚨 CRITICAL WARNING: AI FABRICATED TECHNICAL DETAILS NOT IN ORIGINAL REQUIREMENT 🚨\n\n" +
                                            "This analysis contains invented specifications that could mislead engineers. " +
                                            "All recommendations have been removed for safety. Manual review required.";
-                    analysis.QualityScore = Math.Max(1, analysis.QualityScore - 3); // Reduce quality score as penalty
+                    analysis.OriginalQualityScore = Math.Max(1, analysis.OriginalQualityScore - 3); // Reduce quality score as penalty
                     
                     // Clear all recommendations to prevent misleading guidance
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] Removing {analysis.Recommendations?.Count ?? 0} recommendations due to fabrication");
@@ -490,12 +490,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                         analysis.ErrorMessage = "⚠️  CAUTION: POSSIBLE AI FABRICATION DETECTED  ⚠️\n\n" +
                                                "AI analysis may contain technical details not in the original requirement. " +
                                                "Please verify all recommendations against the source material.";
-                        analysis.QualityScore = Math.Max(1, analysis.QualityScore - 2); // Smaller penalty for suspected fabrication
+                        analysis.OriginalQualityScore = Math.Max(1, analysis.OriginalQualityScore - 2); // Smaller penalty for suspected fabrication
                     }
                 }
 
                 // Log what we got from the LLM for debugging
-                TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] LLM response for {requirement.Item}: QualityScore={analysis.QualityScore}, Issues={analysis.Issues?.Count ?? 0}, Recommendations={analysis.Recommendations?.Count ?? 0}, HallucinationCheck={analysis.HallucinationCheck}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] LLM response for {requirement.Item}: OriginalQualityScore={analysis.OriginalQualityScore}, Issues={analysis.Issues?.Count ?? 0}, Recommendations={analysis.Recommendations?.Count ?? 0}, HallucinationCheck={analysis.HallucinationCheck}");
                 
                 // Validate that recommendations have required fields (now cleans up invalid ones)
                 ValidateRecommendationQuality(analysis, requirement.Item ?? "UNKNOWN");
@@ -541,7 +541,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             {
                 IsAnalyzed = false,
                 ErrorMessage = errorMessage,
-                QualityScore = 0,
+                OriginalQualityScore = 0,
                 Issues = new System.Collections.Generic.List<AnalysisIssue>(),
                 Recommendations = new System.Collections.Generic.List<AnalysisRecommendation>(),
                 FreeformFeedback = string.Empty,

@@ -48,7 +48,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
                 analysis.IsAnalyzed = true;
                 analysis.ErrorMessage = null;
 
-                TestCaseEditorApp.Services.Logging.Log.Info($"[{ParserName}Parser] JSON parsing successful for {requirementId}: Score={analysis.QualityScore}, Issues={analysis.Issues?.Count ?? 0}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[{ParserName}Parser] JSON parsing successful for {requirementId}: Score={analysis.OriginalQualityScore}, Issues={analysis.Issues?.Count ?? 0}");
 
                 return analysis;
             }
@@ -106,9 +106,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
             }
 
             // Handle backward compatibility: if QualityScore is set, treat it as OriginalQualityScore
-            if (analysis.OriginalQualityScore == 0 && analysis.QualityScore > 0)
+            if (analysis.OriginalQualityScore == 0 && analysis.OriginalQualityScore > 0)
             {
-                analysis.OriginalQualityScore = analysis.QualityScore;
+                analysis.OriginalQualityScore = analysis.OriginalQualityScore;
             }
 
             // Validate original quality score is in valid range
@@ -166,7 +166,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
             {
                 IsAnalyzed = false,
                 ErrorMessage = errorMessage,
-                QualityScore = 0,
+                OriginalQualityScore = 0,
                 Issues = new System.Collections.Generic.List<AnalysisIssue>(),
                 FreeformFeedback = string.Empty,
                 Timestamp = DateTime.Now

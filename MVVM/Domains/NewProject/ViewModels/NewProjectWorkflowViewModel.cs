@@ -22,6 +22,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         
         private readonly AnythingLLMService _anythingLLMService;
         private readonly ToastNotificationService _toastService;
+        private readonly JamaConnectService _jamaConnectService;
         
         // Event fired when project creation is completed
         public event EventHandler<NewProjectCompletedEventArgs>? ProjectCompleted;
@@ -82,6 +83,19 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         [ObservableProperty]
         private bool hasProjectName = false;
         
+        // Jama Connect integration
+        [ObservableProperty]
+        private bool hasJamaConnection = false;
+        
+        [ObservableProperty]
+        private bool isTestingConnection = false;
+        
+        [ObservableProperty]
+        private string jamaConnectionStatus = "Not connected to Jama";
+        
+        [ObservableProperty]
+        private bool hasJamaRequirements = false;
+        
         // Computed properties for smart button UX
         public string CreateProjectButtonText
         {
@@ -129,6 +143,8 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         public ICommand CreateProjectCommand { get; }
         public ICommand ValidateWorkspaceCommand { get; }
         public new ICommand CancelCommand { get; }
+        public ICommand TestJamaConnectionCommand { get; }
+        public ICommand ImportFromJamaCommand { get; }
 
         // Events
         public event EventHandler<NewProjectCompletedEventArgs>? ProjectCreated;
@@ -138,7 +154,8 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             INewProjectMediator newProjectMediator,
             ILogger<NewProjectWorkflowViewModel> logger,
             AnythingLLMService anythingLLMService, 
-            ToastNotificationService toastService)
+            ToastNotificationService toastService,
+            JamaConnectService jamaConnectService)
             : base(newProjectMediator, logger)
         {
             // Store properly typed mediator
@@ -146,11 +163,14 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             
                         _anythingLLMService = anythingLLMService ?? throw new ArgumentNullException(nameof(anythingLLMService));
             _toastService = toastService ?? throw new ArgumentNullException(nameof(toastService));
+            _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
             SelectDocumentCommand = new RelayCommand(SelectDocument);
             ChooseProjectSaveLocationCommand = new RelayCommand(ChooseProjectSaveLocation);
             CreateProjectCommand = new RelayCommand(CreateProject);
             ValidateWorkspaceCommand = new AsyncRelayCommand(ValidateWorkspaceAsync, CanValidateWorkspace);
             CancelCommand = new RelayCommand(() => Cancel());
+            TestJamaConnectionCommand = new AsyncRelayCommand(TestJamaConnectionAsync);
+            ImportFromJamaCommand = new AsyncRelayCommand(ImportFromJamaAsync, CanImportFromJama);
             
             // Initialize state
             Initialize();
@@ -693,6 +713,80 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, "[NewProject] Error saving form data to mediator");
                 // Don't interrupt user workflow for persistence errors
+            }
+        }
+        
+        // Jama Connect Integration Methods
+        
+        private async Task TestJamaConnectionAsync()
+        {
+            IsTestingConnection = true;
+            JamaConnectionStatus = "Testing connection...";
+            
+            try
+            {
+                if (!_jamaConnectService.IsConfigured)
+                {
+                    JamaConnectionStatus = "Jama not configured. Set environment variables: JAMA_BASE_URL, JAMA_CLIENT_ID, JAMA_CLIENT_SECRET";
+                    HasJamaConnection = false;
+                    return;
+                }
+                
+                var (success, message) = await _jamaConnectService.TestConnectionAsync();
+                
+                if (success)
+                {
+                    JamaConnectionStatus = "Connected to Jama Connect";
+                    HasJamaConnection = true;
+                    _toastService.ShowToast("Jama connection test successful!", durationSeconds: 3, type: ToastType.Success);
+                }
+                else
+                {
+                    JamaConnectionStatus = $"Connection failed: {message}";
+                    HasJamaConnection = false;
+                    _toastService.ShowToast($"Jama connection failed: {message}", durationSeconds: 5, type: ToastType.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                JamaConnectionStatus = $"Error testing connection: {ex.Message}";
+                HasJamaConnection = false;
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "Failed to test Jama connection");
+                _toastService.ShowToast($"Error testing Jama connection: {ex.Message}", durationSeconds: 5, type: ToastType.Error);
+            }
+            finally
+            {
+                IsTestingConnection = false;
+            }
+        }
+        
+        private bool CanImportFromJama()
+        {
+            return HasJamaConnection && !IsTestingConnection;
+        }
+        
+        private async Task ImportFromJamaAsync()
+        {
+            try
+            {
+                // TODO: Implement Jama import dialog/workflow
+                // This would show a dialog to select Jama project and requirements
+                // For now, just show a placeholder message
+                _toastService.ShowToast("Jama import feature coming soon!", durationSeconds: 3, type: ToastType.Info);
+                
+                // Example of what this would do:
+                // 1. Show dialog to select Jama project
+                // 2. Show dialog to select requirements from that project  
+                // 3. Import selected requirements as a temporary document
+                // 4. Set SelectedDocumentPath to the imported requirements file
+                // 5. Update HasSelectedDocument and HasJamaRequirements
+                
+                TestCaseEditorApp.Services.Logging.Log.Info("Jama import requested - feature not yet implemented");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "Failed to import from Jama");
+                _toastService.ShowToast($"Error importing from Jama: {ex.Message}", durationSeconds: 5, type: ToastType.Error);
             }
         }
     }

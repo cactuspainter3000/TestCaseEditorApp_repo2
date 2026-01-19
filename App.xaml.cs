@@ -359,7 +359,17 @@ namespace TestCaseEditorApp
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_NotificationViewModel>();
                     
                     // NewProject domain ViewModels - using proper domain ViewModels
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel>(provider =>
+                    {
+                        var newProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator>();
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel>>();
+                        var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
+                        var toastNotificationService = provider.GetRequiredService<ToastNotificationService>();
+                        var jamaConnectService = provider.GetRequiredService<JamaConnectService>();
+                        
+                        return new TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel(
+                            newProjectMediator, logger, anythingLLMService, toastNotificationService, jamaConnectService);
+                    });
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectHeaderViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.DummyNewProjectTitleViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.DummyNewProjectNavigationViewModel>();
@@ -482,9 +492,6 @@ namespace TestCaseEditorApp
                     });
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementsWorkspaceViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>();
-                    
-                    // NewProject domain ViewModels - proper DI registration
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel>();
 
                     // Core application services
                     services.AddSingleton<ChatGptExportService>();

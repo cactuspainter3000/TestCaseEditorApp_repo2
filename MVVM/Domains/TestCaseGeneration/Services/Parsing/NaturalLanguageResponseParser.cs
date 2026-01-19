@@ -63,7 +63,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
                         var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"\**(\d+)\**");
                         if (match.Success && int.TryParse(match.Groups[1].Value, out int score))
                         {
-                            analysis.QualityScore = Math.Max(1, Math.Min(10, score));
+                            analysis.OriginalQualityScore = Math.Max(1, Math.Min(10, score));
                             TestCaseEditorApp.Services.Logging.Log.Debug($"[{ParserName}Parser] Parsed quality score: {score} from line: '{trimmed}'");
                         }
                     }
@@ -225,9 +225,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
         private void PostProcessAnalysis(RequirementAnalysis analysis, string requirementId)
         {
             // Set default original quality score if not found
-            if (analysis.OriginalQualityScore == 0 && analysis.QualityScore > 0)
+            if (analysis.OriginalQualityScore == 0 && analysis.OriginalQualityScore > 0)
             {
-                analysis.OriginalQualityScore = analysis.QualityScore;
+                analysis.OriginalQualityScore = analysis.OriginalQualityScore;
             }
             
             if (analysis.OriginalQualityScore == 0)
@@ -267,7 +267,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
             // Mark as successfully analyzed
             analysis.IsAnalyzed = true;
 
-            TestCaseEditorApp.Services.Logging.Log.Info($"[{ParserName}Parser] Natural language parsing successful for {requirementId}: Score={analysis.QualityScore}, Issues={analysis.Issues.Count}, ImprovedReq={!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement)}, Freeform={!string.IsNullOrWhiteSpace(analysis.FreeformFeedback)}");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[{ParserName}Parser] Natural language parsing successful for {requirementId}: Score={analysis.OriginalQualityScore}, Issues={analysis.Issues.Count}, ImprovedReq={!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement)}, Freeform={!string.IsNullOrWhiteSpace(analysis.FreeformFeedback)}");
         }
     }
 }

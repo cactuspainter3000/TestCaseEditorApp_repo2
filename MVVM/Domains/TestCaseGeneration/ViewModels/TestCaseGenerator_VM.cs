@@ -823,7 +823,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// <summary>
         /// Analysis quality score for current requirement
         /// </summary>
-        public double AnalysisQualityScore => SelectedRequirement?.Analysis?.QualityScore ?? 0.0;
+        public double AnalysisQualityScore => SelectedRequirement?.Analysis?.OriginalQualityScore ?? 0.0;
 
         // ===== ABSTRACT METHOD IMPLEMENTATIONS =====
         

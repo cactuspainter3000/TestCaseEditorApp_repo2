@@ -72,7 +72,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// <summary>
         /// Gets the quality score of the current requirement's analysis
         /// </summary>
-        public int AnalysisQualityScore => CurrentRequirement?.Analysis?.QualityScore ?? 0;
+        public int AnalysisQualityScore => CurrentRequirement?.Analysis?.OriginalQualityScore ?? 0;
 
         /// <summary>
         /// Current requirement for analysis
@@ -226,7 +226,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             _logger.LogDebug("OnAnalysisUpdated fired for: {RequirementId}", requirement.Item);
             _logger.LogDebug("Current requirement: {CurrentId}", CurrentRequirement?.Item);
             _logger.LogDebug("Analysis IsAnalyzed: {IsAnalyzed}, Score: {Score}", 
-                requirement.Analysis?.IsAnalyzed, requirement.Analysis?.QualityScore);
+                requirement.Analysis?.IsAnalyzed, requirement.Analysis?.OriginalQualityScore);
             
             // Only refresh if this is the currently displayed requirement
             if (CurrentRequirement?.Item == requirement.Item)
@@ -461,7 +461,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             var analysis = requirement.Analysis;
             var summary = $"=== ANALYSIS RESULT INSPECTION ===\n" +
                          $"IsAnalyzed: {analysis.IsAnalyzed}\n" +
-                         $"QualityScore: {analysis.QualityScore}\n" +
+                         $"OriginalQualityScore: {analysis.OriginalQualityScore}\n" +
                          $"Issues Count: {analysis.Issues?.Count ?? 0}\n" +
                          $"Recommendations Count: {analysis.Recommendations?.Count ?? 0}\n" +
                          $"Has Freeform Feedback: {!string.IsNullOrEmpty(analysis.FreeformFeedback)}\n" +
@@ -531,7 +531,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         {
             var analysis = CurrentRequirement?.Analysis;
             
-            TestCaseEditorApp.Services.Logging.Log.Info($"[AnalysisVM] RefreshAnalysisDisplay called. CurrentReq: {CurrentRequirement?.Item}, HasAnalysis: {analysis?.IsAnalyzed}, Score: {analysis?.QualityScore}");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[AnalysisVM] RefreshAnalysisDisplay called. CurrentReq: {CurrentRequirement?.Item}, HasAnalysis: {analysis?.IsAnalyzed}, Score: {analysis?.OriginalQualityScore}");
 
             // Reset editing state when refreshing analysis - default should be read-only view
             if (IsEditingRequirement)
