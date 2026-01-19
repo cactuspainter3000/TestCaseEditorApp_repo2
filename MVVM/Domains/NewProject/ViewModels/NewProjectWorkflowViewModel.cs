@@ -13,6 +13,7 @@ using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.ViewModels;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
 
 namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
 {
@@ -172,7 +173,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         public IAsyncRelayCommand ImportFromJamaCommand { get; }
         public IAsyncRelayCommand LoadJamaProjectsCommand { get; }
         public IAsyncRelayCommand LoadRequirementsCommand { get; }
-        public IAsyncRelayCommand ImportSelectedRequirementsCommand { get; }
+        public IAsyncRelayCommand<object> ImportSelectedRequirementsCommand { get; }
 
         // Events
         public event EventHandler<NewProjectCompletedEventArgs>? ProjectCreated;
@@ -199,7 +200,9 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             ImportFromJamaCommand = new AsyncRelayCommand(ImportFromJamaAsync);
             LoadJamaProjectsCommand = new AsyncRelayCommand(LoadJamaProjectsAsync);
             LoadRequirementsCommand = new AsyncRelayCommand(LoadRequirementsAsync, () => SelectedProject != null);
-            ImportSelectedRequirementsCommand = new AsyncRelayCommand(ImportSelectedRequirementsAsync, () => SelectedProject != null && RequirementsCount > 0);
+            ImportSelectedRequirementsCommand = new AsyncRelayCommand<object>(ImportSelectedRequirementsAsync, (param) => {
+                return param != null || SelectedProject != null;
+            });
             
             // Initialize import mode to Jama by default
             IsJamaImportMode = true;
@@ -220,6 +223,41 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             
             // Initialize state
             Initialize();
+            
+            // Subscribe to domain events
+            _mediator.Subscribe<NewProjectEvents.RequirementsImported>(OnRequirementsImported);
+            
+            // Auto-load Jama projects if in Jama mode and configured
+            _ = Task.Run(async () =>
+            {
+                if (IsJamaImportMode)
+                {
+                    try
+                    {
+                        // Check if Jama is configured before attempting to load
+                        var (isConfigured, message) = await _mediator.TestJamaConnectionAsync();
+                        if (isConfigured)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info("[NewProject] Auto-loading Jama projects on startup");
+                            
+                            // Switch back to UI thread for the actual loading which updates UI collections
+                            await System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
+                            {
+                                await LoadJamaProjectsAsync();
+                            });
+                        }
+                        else
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[NewProject] Jama not configured for auto-load: {message}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[NewProject] Failed to auto-load Jama projects: {ex.Message}");
+                        // Don't throw - just log and continue
+                    }
+                }
+            });
             
             // Set title for BaseDomainViewModel
             Title = "New Project Workflow";
@@ -840,13 +878,17 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 foreach (var project in projects)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Info($"[LoadJamaProjects] Adding project: {project.Name} (ID: {project.Id}, Key: {project.Key})");
-                    AvailableProjects.Add(new JamaProjectItem
+                    var projectItem = new JamaProjectItem
                     {
                         Id = project.Id,
                         Name = project.Name,
                         Key = project.Key,
-                        Description = project.Description
-                    });
+                        Description = project.Description,
+                        CreatedDate = project.CreatedDate,
+                        ModifiedDate = project.ModifiedDate
+                    };
+                    
+                    AvailableProjects.Add(projectItem);
                 }
                 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[LoadJamaProjects] Final AvailableProjects count: {AvailableProjects.Count}");
@@ -887,7 +929,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 
                 var requirements = await _mediator.GetJamaRequirementsAsync(SelectedProject.Id);
                 RequirementsCount = requirements.Count;
-                SelectedProject.RequirementCount = requirements.Count;
                 
                 _toastService.ShowToast($"Found {requirements.Count} requirements", durationSeconds: 3, type: ToastType.Success);
                 TestCaseEditorApp.Services.Logging.Log.Info($"Found {requirements.Count} requirements in Jama project {SelectedProject.Name}");
@@ -904,8 +945,14 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             }
         }
         
-        private async Task ImportSelectedRequirementsAsync()
+        private async Task ImportSelectedRequirementsAsync(object? parameter)
         {
+            // If a parameter was passed (from CommandParameter), use it to set SelectedProject
+            if (parameter is JamaProjectItem projectItem)
+            {
+                SelectedProject = projectItem;
+            }
+            
             if (SelectedProject == null) return;
             
             try
@@ -923,7 +970,16 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 // Hide project selection since we're done
                 ShowProjectSelection = false;
                 
+                // Publish requirements imported event via mediator
+                _mediator.PublishEvent(new NewProjectEvents.RequirementsImported
+                {
+                    ProjectName = SelectedProject.Name,
+                    RequirementCount = 0, // Will be updated by the import process
+                    FilePath = tempPath
+                });
+                
                 _toastService.ShowToast($"Successfully imported requirements from {SelectedProject.Name}!", durationSeconds: 5, type: ToastType.Success);
+                TestCaseEditorApp.Services.Logging.Log.Info($"Successfully imported requirements from Jama project {SelectedProject.Name} to {tempPath}");
                 TestCaseEditorApp.Services.Logging.Log.Info($"Successfully imported requirements from Jama project {SelectedProject.Name} to {tempPath}");
             }
             catch (Exception ex)
@@ -931,6 +987,29 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"Failed to import requirements from Jama project {SelectedProject?.Name}");
                 _toastService.ShowToast($"Error importing requirements: {ex.Message}", durationSeconds: 5, type: ToastType.Error);
             }
+        }
+        
+        /// <summary>
+        /// Handle requirements imported event to update UI status
+        /// </summary>
+        private void OnRequirementsImported(NewProjectEvents.RequirementsImported evt)
+        {
+            // Ensure UI updates happen on the UI thread
+            System.Windows.Application.Current?.Dispatcher?.Invoke(() =>
+            {
+                JamaConnectionStatus = $"{evt.ProjectName} requirements imported";
+            });
+        }
+        
+        /// <summary>
+        /// Cleanup subscriptions when the ViewModel is disposed
+        /// </summary>
+        public override void Dispose()
+        {
+            // Unsubscribe from mediator events
+            _mediator.Unsubscribe<NewProjectEvents.RequirementsImported>(OnRequirementsImported);
+            
+            base.Dispose();
         }
     }
 
@@ -950,12 +1029,21 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         public string Name { get; set; } = "";
         public string Key { get; set; } = "";
         public string Description { get; set; } = "";
+        public string CreatedDate { get; set; } = "";
+        public string ModifiedDate { get; set; } = "";
         
-        [ObservableProperty]
-        private int requirementCount = 0;
-        
-        public string DisplayText => RequirementCount > 0 
-            ? $"{Name} ({RequirementCount} requirements)" 
-            : Name;
+        public string DisplayText => Name;
+            
+        public string FormattedCreatedDate 
+        {
+            get 
+            {
+                if (DateTime.TryParse(CreatedDate, out var date))
+                {
+                    return date.ToString("MMM dd, yyyy");
+                }
+                return "";
+            }
+        }
     }
 }

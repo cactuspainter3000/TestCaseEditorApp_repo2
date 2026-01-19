@@ -198,7 +198,7 @@ namespace TestCaseEditorApp.Services
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Token obtained: {hasToken}");
                     if (hasToken)
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Token preview: {_accessToken.Substring(0, Math.Min(20, _accessToken.Length))}...");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Token preview: {_accessToken?.Substring(0, Math.Min(20, _accessToken.Length))}...");
                     }
                     return hasToken;
                 }
@@ -368,6 +368,45 @@ namespace TestCaseEditorApp.Services
         }
 
         /// <summary>
+        /// Get the count of items (requirements/test cases) in a project
+        /// </summary>
+        public async Task<int> GetProjectRequirementCountAsync(int projectId, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await EnsureAccessTokenAsync();
+                
+                // Get all items from the project to count them
+                // This is simple and reliable, though potentially slower for very large projects
+                var url = $"{_baseUrl}/rest/v1/items?project={projectId}";
+                var response = await _httpClient.GetAsync(url, cancellationToken);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                    var result = JsonSerializer.Deserialize<JamaItemsResponse>(json, new JsonSerializerOptions 
+                    { 
+                        PropertyNameCaseInsensitive = true 
+                    });
+                    
+                    var count = result?.Data?.Count ?? 0;
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Project {projectId} has {count} items");
+                    return count;
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"Failed to get requirement count for project {projectId}: {response.StatusCode}");
+                    return 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"Error getting requirement count for project {projectId}");
+                return 0;
+            }
+        }
+
+        /// <summary>
         /// Convert Jama items to our Requirement model
         /// </summary>
         public List<Requirement> ConvertToRequirements(List<JamaItem> jamaItems)
@@ -432,6 +471,33 @@ namespace TestCaseEditorApp.Services
         public string ProjectKey { get; set; } = "";
         public string Text1 { get; set; } = "";
     }
+    
+    /// <summary>
+    /// Custom JSON converter that handles status fields that can be either string or number
+    /// Different Jama instances/configurations may return status as string ("Active") or number (1)
+    /// </summary>
+    public class FlexibleStringConverter : JsonConverter<string?>
+    {
+        public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            switch (reader.TokenType)
+            {
+                case JsonTokenType.String:
+                    return reader.GetString();
+                case JsonTokenType.Number:
+                    return reader.GetInt32().ToString();
+                case JsonTokenType.Null:
+                    return null;
+                default:
+                    throw new JsonException($"Unable to convert token type '{reader.TokenType}' to string.");
+            }
+        }
+
+        public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options)
+        {
+            writer.WriteStringValue(value);
+        }
+    }
 
     public class JamaItemsResponse
     {
@@ -452,7 +518,11 @@ namespace TestCaseEditorApp.Services
     {
         public string? Name { get; set; }
         public string? Description { get; set; }
+        
+        [JsonConverter(typeof(FlexibleStringConverter))]
         public string? Status { get; set; }
+        
+        [JsonConverter(typeof(FlexibleStringConverter))]
         public string? Priority { get; set; }
         // Add more fields as needed based on your Jama configuration
     }

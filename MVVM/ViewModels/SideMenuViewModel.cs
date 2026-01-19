@@ -174,7 +174,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             OpenProjectCommand = new RelayCommand(NavigateToOpenProject, CanExecuteProjectCommands);
             SaveProjectCommand = new RelayCommand(() => { /* TODO: Implement save */ }, CanExecuteProjectActions);
             ProjectNavigationCommand = new RelayCommand(NavigateToProject);
-            RequirementsNavigationCommand = new RelayCommand(NavigateToRequirements);
+            RequirementsNavigationCommand = new RelayCommand(NavigateToRequirements, CanAccessRequirements);
             TestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToTestCaseGenerator);
             NewProjectNavigationCommand = new RelayCommand(NavigateToNewProject, CanExecuteProjectCommands);
             DummyNavigationCommand = new RelayCommand(NavigateToDummy);
@@ -437,6 +437,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             return IsAnythingLLMReady && HasRequirements; // Analysis requires LLM
         }
+
+        private bool CanAccessRequirements()
+        {
+            return HasRequirements; // Only allow Requirements navigation when project has requirements loaded
+        }
         
         #endregion
         
@@ -676,6 +681,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             (ImportAdditionalCommand as IRelayCommand)?.NotifyCanExecuteChanged();
             (BatchAnalyzeCommand as IRelayCommand)?.NotifyCanExecuteChanged();
             (UnloadProjectCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+            (RequirementsNavigationCommand as IRelayCommand)?.NotifyCanExecuteChanged();
         }
         
         

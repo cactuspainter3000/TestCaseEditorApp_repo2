@@ -1172,6 +1172,11 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         {
             try
             {
+                if (!_jamaConnectService.IsConfigured)
+                {
+                    throw new InvalidOperationException("Jama not configured. Set environment variables: JAMA_BASE_URL, JAMA_CLIENT_ID, JAMA_CLIENT_SECRET");
+                }
+
                 var projects = await _jamaConnectService.GetProjectsAsync(CancellationToken.None);
                 _logger.LogInformation($"[NewProject] Retrieved {projects.Count} Jama projects");
                 return projects;

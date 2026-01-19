@@ -139,6 +139,17 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Events
         }
 
         /// <summary>
+        /// Fired when requirements are successfully imported from Jama
+        /// </summary>
+        public class RequirementsImported
+        {
+            public string ProjectName { get; set; } = string.Empty;
+            public int RequirementCount { get; set; }
+            public string FilePath { get; set; } = string.Empty;
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
+
+        /// <summary>
         /// Fired when workspace dirty state changes (has unsaved changes)
         /// </summary>
         public class WorkspaceDirtyStateChanged
