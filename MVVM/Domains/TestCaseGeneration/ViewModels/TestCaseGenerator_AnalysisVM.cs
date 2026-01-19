@@ -9,25 +9,29 @@ using System.Text;
 using System.Windows;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services; // For LlmServiceHealthMonitor, RequirementAnalysisCache, IRequirementAnalysisService
+using TestCaseEditorApp.MVVM.Domains.Requirements.Services; // Requirements domain for analysis engine
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Events;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
     /// <summary>
     /// ViewModel for displaying and managing LLM-powered requirement analysis.
-    /// Refactored to use domain mediator instead of bridge interface.
+    /// ARCHITECTURAL MIGRATION: Now delegates to Requirements domain analysis engine.
+    /// This eliminates duplication and makes Requirements domain the single source of truth.
     /// </summary>
     public partial class TestCaseGenerator_AnalysisVM : BaseDomainViewModel
     {
         private new readonly ITestCaseGenerationMediator _mediator;
         private readonly ITextGenerationService? _llmService;
-        private readonly IRequirementAnalysisService _analysisService;
+        private readonly TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.IRequirementAnalysisService _analysisService; // Legacy - will be replaced
+        private readonly IRequirementAnalysisEngine? _requirementsAnalysisEngine; // NEW: Delegate to Requirements domain
         private readonly IEditDetectionService? _editDetectionService;
         private readonly ILLMLearningService? _learningService;
         private Requirement? _currentRequirement;
@@ -137,7 +141,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             }
         }
 
-        public TestCaseGenerator_AnalysisVM(ITestCaseGenerationMediator mediator, ILogger<TestCaseGenerator_AnalysisVM> logger, IRequirementAnalysisService analysisService, IEditDetectionService? editDetectionService = null, ITextGenerationService? llmService = null, ILLMLearningService? learningService = null)
+        public TestCaseGenerator_AnalysisVM(ITestCaseGenerationMediator mediator, ILogger<TestCaseGenerator_AnalysisVM> logger, TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.IRequirementAnalysisService analysisService, IEditDetectionService? editDetectionService = null, ITextGenerationService? llmService = null, ILLMLearningService? learningService = null)
             : base(mediator, logger)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
@@ -145,6 +149,17 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             _editDetectionService = editDetectionService;
             _llmService = llmService;
             _learningService = learningService;
+
+            // ARCHITECTURAL MIGRATION: Get Requirements domain analysis engine
+            _requirementsAnalysisEngine = App.ServiceProvider?.GetService<IRequirementAnalysisEngine>();
+            if (_requirementsAnalysisEngine == null)
+            {
+                logger.LogWarning("[TestCaseGenerator_AnalysisVM] Requirements domain analysis engine not available - falling back to legacy service");
+            }
+            else
+            {
+                logger.LogInformation("[TestCaseGenerator_AnalysisVM] Successfully connected to Requirements domain analysis engine");
+            }
 
             // Subscribe to domain events
             _mediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
@@ -169,8 +184,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             InvalidateCurrentCacheCommand = new RelayCommand(InvalidateCurrentCache, () => CurrentRequirement != null);
 
             Title = "Requirement Analysis";
-            // Initial load
-            RefreshAnalysisDisplay();
+            // Initial state managed by event handlers when requirements are loaded
         }
         
         // ===== DOMAIN EVENT HANDLERS =====
@@ -181,7 +195,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected e)
         {
             CurrentRequirement = e.Requirement;
-            RefreshAnalysisDisplay();
+            // Update analysis display from current requirement's analysis state
+            UpdateAnalysisPropertiesFromEvent(e.Requirement?.Analysis);
             OnPropertyChanged(nameof(HasAnalysis));
             OnPropertyChanged(nameof(AnalysisQualityScore));
             OnPropertyChanged(nameof(CacheStatistics));
@@ -196,6 +211,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         
         /// <summary>
         /// Handle requirement analysis completion from mediator
+        /// FIXED ARCHITECTURE: Update ViewModel state directly from event data, don't read model state
         /// </summary>
         private void OnRequirementAnalyzed(TestCaseGenerationEvents.RequirementAnalyzed e)
         {
@@ -209,9 +225,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                     EditingRequirementText = string.Empty;
                 }
                 
-                RefreshAnalysisDisplay();
-                OnPropertyChanged(nameof(HasAnalysis));
-                OnPropertyChanged(nameof(AnalysisQualityScore));
+                // ARCHITECTURAL FIX: Update properties directly from event data
+                var analysis = e.Analysis ?? e.Requirement?.Analysis;
+                UpdateAnalysisPropertiesFromEvent(analysis);
             }
         }
         
@@ -231,16 +247,99 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             // Only refresh if this is the currently displayed requirement
             if (CurrentRequirement?.Item == requirement.Item)
             {
-                _logger.LogDebug("Match found! Refreshing display for {RequirementId}", requirement.Item);
+                _logger.LogDebug("Match found! Updating analysis display for {RequirementId}", requirement.Item);
                 System.Windows.Application.Current?.Dispatcher?.Invoke(() =>
                 {
-                    RefreshAnalysisDisplay();
+                    // ARCHITECTURAL FIX: Update properties directly from event data
+                    UpdateAnalysisPropertiesFromEvent(requirement.Analysis);
                 });
+            }
+        }
+
+        /// <summary>
+        /// ARCHITECTURAL FIX: Update ViewModel properties from event data instead of reading model state.
+        /// This implements proper mediator pattern where ViewModels respond to events, not poll state.
+        /// </summary>
+        private void UpdateAnalysisPropertiesFromEvent(RequirementAnalysis? analysis)
+        {
+            _logger.LogDebug("[AnalysisVM] Updating analysis properties from event data");
+
+            // Reset editing state when refreshing analysis - default should be read-only view
+            if (IsEditingRequirement)
+            {
+                IsEditingRequirement = false;
+                EditingRequirementText = string.Empty;
+            }
+
+            if (analysis?.IsAnalyzed == true)
+            {
+                HasAnalysis = true;
+                QualityScore = analysis.OriginalQualityScore; // Show user's original requirement quality
+                Issues = analysis.Issues ?? new List<AnalysisIssue>();
+                
+                // Force a fresh list assignment to ensure UI updates properly
+                var newRecommendations = analysis.Recommendations?.ToList() ?? new List<AnalysisRecommendation>();
+                Recommendations = newRecommendations;
+                
+                // Log SuggestedEdit status for debugging
+                _logger.LogDebug("[AnalysisVM] Loaded {Count} recommendations", newRecommendations.Count);
+                for (int i = 0; i < newRecommendations.Count; i++)
+                {
+                    var rec = newRecommendations[i];
+                    var hasEdit = !string.IsNullOrEmpty(rec.SuggestedEdit);
+                    if (!hasEdit)
+                    {
+                        _logger.LogWarning("[AnalysisVM] Recommendation '{Category}' is missing SuggestedEdit - blue border will not appear!", rec.Category);
+                    }
+                }
+                
+                FreeformFeedback = analysis.FreeformFeedback ?? string.Empty;
+                AnalysisTimestamp = $"Analyzed on {analysis.Timestamp:MMM d, yyyy 'at' h:mm tt}";
+                
+                // Check if analysis contains error state
+                if (!string.IsNullOrEmpty(analysis.ErrorMessage))
+                {
+                    _logger.LogWarning("[AnalysisVM] Analysis has ErrorMessage: '{ErrorMessage}' - setting status message", analysis.ErrorMessage);
+                    AnalysisStatusMessage = analysis.ErrorMessage;
+                }
+                else
+                {
+                    // Clear status message for successful analysis
+                    _logger.LogDebug("[AnalysisVM] Analysis successful - clearing status message");
+                    AnalysisStatusMessage = string.Empty;
+                }
+                
+                _logger.LogDebug("[AnalysisVM] Analysis properties updated from event - Quality: {Score}, Issues: {IssueCount}", 
+                    analysis.OriginalQualityScore, Issues.Count);
             }
             else
             {
-                TestCaseEditorApp.Services.Logging.Log.Info($"[AnalysisVM] No match - not refreshing (user viewing different requirement)");
+                // No analysis or failed analysis
+                HasAnalysis = false;
+                QualityScore = 0;
+                Issues = new List<AnalysisIssue>();
+                Recommendations = new List<AnalysisRecommendation>();
+                FreeformFeedback = string.Empty;
+                AnalysisTimestamp = string.Empty;
+                
+                // CRITICAL: Always clear status message for no analysis - show clean "Analyze Now" interface
+                AnalysisStatusMessage = string.Empty;
+                
+                _logger.LogDebug("[AnalysisVM] Cleared analysis properties - no valid analysis in event");
             }
+
+            // Notify UI of all relevant property changes
+            OnPropertyChanged(nameof(HasAnalysis));
+            OnPropertyChanged(nameof(QualityScore));
+            OnPropertyChanged(nameof(HasIssues));
+            OnPropertyChanged(nameof(HasRecommendations));
+            OnPropertyChanged(nameof(HasFreeformFeedback));
+            OnPropertyChanged(nameof(HasImprovedRequirement));
+            OnPropertyChanged(nameof(ImprovedRequirement));
+            OnPropertyChanged(nameof(HasNoAnalysis));
+            OnPropertyChanged(nameof(AnalysisStatusMessage));
+            
+            _logger.LogDebug("[AnalysisVM] UpdateAnalysisPropertiesFromEvent complete - QualityScore: {QualityScore}, HasAnalysis: {HasAnalysis}", QualityScore, HasAnalysis);
         }
 
         public ICommand AnalyzeRequirementCommand { get; }
@@ -494,24 +593,52 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             var requirement = CurrentRequirement;
             if (requirement == null) return;
 
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] AnalyzeRequirementAsync started - delegating to mediator");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] AnalyzeRequirementAsync started");
 
             try
             {
-                // Delegate to mediator which manages all analysis state and coordination
-                var success = await _mediator.AnalyzeRequirementAsync(requirement);
+                bool success;
                 
-                if (success)
+                // ARCHITECTURAL MIGRATION: Prefer Requirements domain analysis engine
+                if (_requirementsAnalysisEngine != null)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Analysis completed successfully via mediator");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Using Requirements domain analysis engine");
+                    
+                    try
+                    {
+                        var analysis = await _requirementsAnalysisEngine.AnalyzeRequirementAsync(
+                            requirement, 
+                            progressMessage => {
+                                AnalysisStatusMessage = progressMessage;
+                                TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Progress: {progressMessage}");
+                            });
+                            
+                        requirement.Analysis = analysis;
+                        success = analysis.IsAnalyzed;
+                        
+                        if (success)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Requirements domain analysis completed successfully");
+                        }
+                        else
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[AnalysisVM] Requirements domain analysis failed: {analysis.ErrorMessage}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnalysisVM] Requirements domain analysis threw exception - falling back to mediator");
+                        success = await _mediator.AnalyzeRequirementAsync(requirement);
+                    }
                 }
                 else
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnalysisVM] Analysis failed via mediator");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Falling back to mediator analysis");
+                    success = await _mediator.AnalyzeRequirementAsync(requirement);
                 }
-
-                // Refresh display - requirement.Analysis will have been updated by mediator
-                RefreshAnalysisDisplay();
+                
+                // Update analysis display from newly updated requirement analysis
+                UpdateAnalysisPropertiesFromEvent(requirement.Analysis);
 
                 // Single UI refresh to avoid duplicate displays
                 OnPropertyChanged(nameof(Recommendations));
@@ -523,87 +650,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             }
             catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnalysisVM] Error delegating analysis to mediator");
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnalysisVM] Error during analysis");
+                AnalysisStatusMessage = $"Analysis error: {ex.Message}";
             }
-        }
-
-        private void RefreshAnalysisDisplay()
-        {
-            var analysis = CurrentRequirement?.Analysis;
-            
-            TestCaseEditorApp.Services.Logging.Log.Info($"[AnalysisVM] RefreshAnalysisDisplay called. CurrentReq: {CurrentRequirement?.Item}, HasAnalysis: {analysis?.IsAnalyzed}, Score: {analysis?.OriginalQualityScore}");
-
-            // Reset editing state when refreshing analysis - default should be read-only view
-            if (IsEditingRequirement)
-            {
-                IsEditingRequirement = false;
-                EditingRequirementText = string.Empty;
-            }
-
-            if (analysis?.IsAnalyzed == true)
-            {
-                HasAnalysis = true;
-                QualityScore = analysis.OriginalQualityScore; // Show user's original requirement quality
-                Issues = analysis.Issues;
-                
-                // Force a fresh list assignment to ensure UI updates properly
-                var newRecommendations = analysis.Recommendations?.ToList() ?? new List<AnalysisRecommendation>();
-                Recommendations = newRecommendations;
-                
-                // Log SuggestedEdit status for debugging
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Loaded {newRecommendations.Count} recommendations");
-                for (int i = 0; i < newRecommendations.Count; i++)
-                {
-                    var rec = newRecommendations[i];
-                    var hasEdit = !string.IsNullOrEmpty(rec.SuggestedEdit);
-                    var editPreview = hasEdit ? rec.SuggestedEdit?.Substring(0, Math.Min(50, rec.SuggestedEdit?.Length ?? 0)) + "..." : "<MISSING>";
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Rec {i+1} '{rec.Category}': SuggestedEdit='{editPreview}', HasSuggestedEdit={hasEdit}, Length={rec.SuggestedEdit?.Length ?? 0}");
-                    
-                    if (!hasEdit)
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnalysisVM] WARNING: Recommendation '{rec.Category}' is missing SuggestedEdit - blue border will not appear!");
-                    }
-                }
-                
-                FreeformFeedback = analysis.FreeformFeedback ?? string.Empty;
-                AnalysisTimestamp = $"Analyzed on {analysis.Timestamp:MMM d, yyyy 'at' h:mm tt}";
-                
-                // Check if analysis contains error state
-                if (!string.IsNullOrEmpty(analysis.ErrorMessage))
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnalysisVM] Analysis has ErrorMessage: '{analysis.ErrorMessage}' - setting status message");
-                    AnalysisStatusMessage = analysis.ErrorMessage;
-                }
-                else
-                {
-                    // Clear status message for successful analysis
-                    TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] Analysis successful - clearing status message");
-                    AnalysisStatusMessage = string.Empty;
-                }
-            }
-            else
-            {
-                HasAnalysis = false;
-                QualityScore = 0;
-                Issues = new List<AnalysisIssue>();
-                Recommendations = new List<AnalysisRecommendation>();
-                FreeformFeedback = string.Empty;
-                AnalysisTimestamp = string.Empty;
-                
-                // Clear status message when no analysis - show clean "Analyze Now" interface
-                AnalysisStatusMessage = string.Empty;
-            }
-
-            // Ensure all analysis properties are notified for UI binding
-            OnPropertyChanged(nameof(QualityScore));
-            OnPropertyChanged(nameof(HasIssues));
-            OnPropertyChanged(nameof(HasRecommendations));
-            OnPropertyChanged(nameof(HasFreeformFeedback));
-            OnPropertyChanged(nameof(HasImprovedRequirement));
-            OnPropertyChanged(nameof(ImprovedRequirement));
-            OnPropertyChanged(nameof(HasNoAnalysis));
-            
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] RefreshAnalysisDisplay complete - QualityScore: {QualityScore}, HasAnalysis: {HasAnalysis}");
         }
 
         [ObservableProperty]
@@ -743,7 +792,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         protected override bool CanRefresh() => true;
         protected override async Task RefreshAsync()
         {
-            RefreshAnalysisDisplay();
+            // Refresh current requirement analysis from current state
+            UpdateAnalysisPropertiesFromEvent(CurrentRequirement?.Analysis);
             await Task.CompletedTask;
         }
         protected override bool CanCancel() => IsAnalyzing;

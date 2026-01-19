@@ -97,9 +97,55 @@
                     
                     <Button Content="Analyze Now"
                             Command="{Binding AnalyzeRequirementCommand}"
-                            Style="{StaticResource ActionButton}"
                             HorizontalAlignment="Center"
-                            Margin="0,12,0,0"/>
+                            Margin="0,12,0,0"
+                            Padding="24,12"
+                            FontSize="14"
+                            FontWeight="SemiBold"
+                            Background="#4CAF50"
+                            Foreground="White"
+                            BorderBrush="#45A049"
+                            BorderThickness="1"
+                            Cursor="Hand"
+                            IsTabStop="True">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                    CornerRadius="4"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center"
+                                                                Content="{TemplateBinding Content}"
+                                                                TextBlock.Foreground="{TemplateBinding Foreground}"
+                                                                TextBlock.FontSize="{TemplateBinding FontSize}"
+                                                                TextBlock.FontWeight="{TemplateBinding FontWeight}"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="#45A049"/>
+                                                    <Setter Property="BorderBrush" Value="#3E8E41"/>
+                                                </Trigger>
+                                                <Trigger Property="IsPressed" Value="True">
+                                                    <Setter Property="Background" Value="#3E8E41"/>
+                                                    <Setter Property="BorderBrush" Value="#357A3A"/>
+                                                </Trigger>
+                                                <Trigger Property="IsEnabled" Value="False">
+                                                    <Setter Property="Background" Value="#666666"/>
+                                                    <Setter Property="BorderBrush" Value="#555555"/>
+                                                    <Setter Property="Foreground" Value="#AAAAAA"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                 </StackPanel>
             </StackPanel>
 

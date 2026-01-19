@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
              xmlns:local="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.Views"
+             xmlns:reqviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.Views"
              mc:Ignorable="d"
              MinHeight="400" MinWidth="800"
              HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
@@ -189,12 +190,12 @@
                 </Grid>
                 
                 <!-- Analysis timer (next to the analysis button) -->
-                <TextBlock Text="{Binding AnalysisVM.AnalysisElapsedTime}" 
+                <TextBlock Text="{Binding RequirementAnalysisVM.AnalysisElapsedTime}" 
                            FontSize="12" 
                            Foreground="#888888" 
                            VerticalAlignment="Center"
                            Margin="8,0,0,0"
-                           Visibility="{Binding AnalysisVM.AnalysisElapsedTime, Converter={StaticResource StringNotEmptyToVisibilityConverter}}"/>
+                           Visibility="{Binding RequirementAnalysisVM.AnalysisElapsedTime, Converter={StaticResource StringNotEmptyToVisibilityConverter}}"/>
 
             </StackPanel>
 
@@ -230,8 +231,11 @@
         </DockPanel>
 
         <!-- support content area -->
-        <Border Grid.Row="1" Background="Transparent" CornerRadius="6" Padding="8">
-            <ContentControl Content="{Binding}">
+        <Border Grid.Row="1" Background="Transparent" CornerRadius="6" Padding="8" 
+                VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+            <ContentControl Content="{Binding}" 
+                            VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                            VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch">
                 <ContentControl.Style>
                     <Style TargetType="ContentControl">
                         <Setter Property="ContentTemplate">
@@ -438,7 +442,9 @@
                                 <Setter Property="ContentTemplate">
                                     <Setter.Value>
                                         <DataTemplate>
-                                            <local:TestCaseGenerator_AnalysisControl />
+                                            <reqviews:Requirements_AnalysisControl 
+                                                VerticalAlignment="Stretch" 
+                                                HorizontalAlignment="Stretch" />
                                         </DataTemplate>
                                     </Setter.Value>
                                 </Setter>

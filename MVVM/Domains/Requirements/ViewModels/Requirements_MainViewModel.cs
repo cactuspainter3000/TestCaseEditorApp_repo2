@@ -305,7 +305,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     // Synchronize requirement with Analysis VM (NEW: Service-based architecture)
                     if (RequirementAnalysisVM != null)
                     {
+                        _logger.LogInformation("[Requirements_MainVM] Setting RequirementAnalysisVM.CurrentRequirement to {RequirementItem}", value?.Item ?? "null");
                         RequirementAnalysisVM.CurrentRequirement = value;
+                    }
+                    else
+                    {
+                        _logger.LogWarning("[Requirements_MainVM] RequirementAnalysisVM is null! Cannot set CurrentRequirement");
                     }
                 }
             }

@@ -1,6 +1,9 @@
 using System;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -96,6 +99,24 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         [ObservableProperty]
         private bool hasJamaRequirements = false;
         
+        [ObservableProperty]
+        private ObservableCollection<JamaProjectItem> availableProjects = new();
+        
+        [ObservableProperty]
+        private JamaProjectItem? selectedProject;
+        
+        [ObservableProperty]
+        private bool isLoadingProjects = false;
+        
+        [ObservableProperty]
+        private bool isLoadingRequirements = false;
+        
+        [ObservableProperty]
+        private int requirementsCount = 0;
+        
+        [ObservableProperty]
+        private bool showProjectSelection = false;
+        
         // Computed properties for smart button UX
         public string CreateProjectButtonText
         {
@@ -143,8 +164,11 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         public ICommand CreateProjectCommand { get; }
         public ICommand ValidateWorkspaceCommand { get; }
         public new ICommand CancelCommand { get; }
-        public ICommand TestJamaConnectionCommand { get; }
-        public ICommand ImportFromJamaCommand { get; }
+        public IAsyncRelayCommand TestJamaConnectionCommand { get; }
+        public IAsyncRelayCommand ImportFromJamaCommand { get; }
+        public IAsyncRelayCommand LoadJamaProjectsCommand { get; }
+        public IAsyncRelayCommand LoadRequirementsCommand { get; }
+        public IAsyncRelayCommand ImportSelectedRequirementsCommand { get; }
 
         // Events
         public event EventHandler<NewProjectCompletedEventArgs>? ProjectCreated;
@@ -171,6 +195,27 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             CancelCommand = new RelayCommand(() => Cancel());
             TestJamaConnectionCommand = new AsyncRelayCommand(TestJamaConnectionAsync);
             ImportFromJamaCommand = new AsyncRelayCommand(ImportFromJamaAsync, CanImportFromJama);
+            LoadJamaProjectsCommand = new AsyncRelayCommand(LoadJamaProjectsAsync, () => HasJamaConnection);
+            LoadRequirementsCommand = new AsyncRelayCommand(LoadRequirementsAsync, () => SelectedProject != null);
+            ImportSelectedRequirementsCommand = new AsyncRelayCommand(ImportSelectedRequirementsAsync, () => SelectedProject != null && RequirementsCount > 0);
+            
+            // Property change handlers for command state
+            PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(HasJamaConnection))
+                {
+                    LoadJamaProjectsCommand.NotifyCanExecuteChanged();
+                }
+                if (e.PropertyName == nameof(SelectedProject))
+                {
+                    LoadRequirementsCommand.NotifyCanExecuteChanged();
+                    ImportSelectedRequirementsCommand.NotifyCanExecuteChanged();
+                }
+                if (e.PropertyName == nameof(RequirementsCount))
+                {
+                    ImportSelectedRequirementsCommand.NotifyCanExecuteChanged();
+                }
+            };
             
             // Initialize state
             Initialize();
@@ -769,24 +814,132 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         {
             try
             {
-                // TODO: Implement Jama import dialog/workflow
-                // This would show a dialog to select Jama project and requirements
-                // For now, just show a placeholder message
-                _toastService.ShowToast("Jama import feature coming soon!", durationSeconds: 3, type: ToastType.Info);
+                // Show project selection section
+                ShowProjectSelection = !ShowProjectSelection;
                 
-                // Example of what this would do:
-                // 1. Show dialog to select Jama project
-                // 2. Show dialog to select requirements from that project  
-                // 3. Import selected requirements as a temporary document
-                // 4. Set SelectedDocumentPath to the imported requirements file
-                // 5. Update HasSelectedDocument and HasJamaRequirements
-                
-                TestCaseEditorApp.Services.Logging.Log.Info("Jama import requested - feature not yet implemented");
+                if (ShowProjectSelection && AvailableProjects.Count == 0)
+                {
+                    await LoadJamaProjectsAsync();
+                }
             }
             catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, "Failed to import from Jama");
-                _toastService.ShowToast($"Error importing from Jama: {ex.Message}", durationSeconds: 5, type: ToastType.Error);
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "Failed to toggle Jama import");
+                _toastService.ShowToast($"Error accessing Jama: {ex.Message}", durationSeconds: 5, type: ToastType.Error);
+            }
+        }
+        
+        private async Task LoadJamaProjectsAsync()
+        {
+            try
+            {
+                IsLoadingProjects = true;
+                _toastService.ShowToast("Loading Jama projects...", durationSeconds: 2, type: ToastType.Info);
+                
+                var projects = await _jamaConnectService.GetProjectsAsync(CancellationToken.None);
+                
+                AvailableProjects.Clear();
+                foreach (var project in projects)
+                {
+                    AvailableProjects.Add(new JamaProjectItem
+                    {
+                        Id = project.Id,
+                        Name = project.Name,
+                        Key = project.Key,
+                        Description = project.Description
+                    });
+                }
+                
+                _toastService.ShowToast($"Found {AvailableProjects.Count} Jama projects", durationSeconds: 3, type: ToastType.Success);
+                TestCaseEditorApp.Services.Logging.Log.Info($"Loaded {AvailableProjects.Count} Jama projects");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "Failed to load Jama projects");
+                _toastService.ShowToast($"Error loading projects: {ex.Message}", durationSeconds: 5, type: ToastType.Error);
+            }
+            finally
+            {
+                IsLoadingProjects = false;
+            }
+        }
+        
+        private async Task LoadRequirementsAsync()
+        {
+            if (SelectedProject == null) return;
+            
+            try
+            {
+                IsLoadingRequirements = true;
+                _toastService.ShowToast($"Loading requirements from {SelectedProject.Name}...", durationSeconds: 2, type: ToastType.Info);
+                
+                var jamaItems = await _jamaConnectService.GetRequirementsAsync(SelectedProject.Id, CancellationToken.None);
+                RequirementsCount = jamaItems.Count;
+                SelectedProject.RequirementCount = jamaItems.Count;
+                
+                _toastService.ShowToast($"Found {RequirementsCount} requirements", durationSeconds: 3, type: ToastType.Success);
+                TestCaseEditorApp.Services.Logging.Log.Info($"Found {RequirementsCount} requirements in Jama project {SelectedProject.Name}");
+            }
+            catch (Exception ex)
+            {
+                RequirementsCount = 0;
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"Failed to load requirements from Jama project {SelectedProject?.Name}");
+                _toastService.ShowToast($"Error loading requirements: {ex.Message}", durationSeconds: 5, type: ToastType.Error);
+            }
+            finally
+            {
+                IsLoadingRequirements = false;
+            }
+        }
+        
+        private async Task ImportSelectedRequirementsAsync()
+        {
+            if (SelectedProject == null) return;
+            
+            try
+            {
+                _toastService.ShowToast("Importing requirements...", durationSeconds: 2, type: ToastType.Info);
+                
+                // Get the requirements data
+                var jamaItems = await _jamaConnectService.GetRequirementsAsync(SelectedProject.Id, CancellationToken.None);
+                var requirements = _jamaConnectService.ConvertToRequirements(jamaItems);
+                
+                // Create a temporary file to store the requirements
+                var tempPath = Path.Combine(Path.GetTempPath(), $"JamaRequirements_{SelectedProject.Key}_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
+                
+                // Write requirements to file in a format similar to Word docs
+                var content = new StringBuilder();
+                content.AppendLine($"Requirements from Jama Project: {SelectedProject.Name} ({SelectedProject.Key})");
+                content.AppendLine($"Imported on: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                content.AppendLine();
+                
+                foreach (var req in requirements)
+                {
+                    content.AppendLine($"{req.Item}: {req.Name}");
+                    if (!string.IsNullOrEmpty(req.Description))
+                    {
+                        content.AppendLine(req.Description);
+                    }
+                    content.AppendLine();
+                }
+                
+                await File.WriteAllTextAsync(tempPath, content.ToString());
+                
+                // Set as selected document
+                SelectedDocumentPath = tempPath;
+                HasSelectedDocument = true;
+                HasJamaRequirements = true;
+                
+                // Hide project selection since we're done
+                ShowProjectSelection = false;
+                
+                _toastService.ShowToast($"Successfully imported {requirements.Count} requirements from {SelectedProject.Name}!", durationSeconds: 5, type: ToastType.Success);
+                TestCaseEditorApp.Services.Logging.Log.Info($"Successfully imported {requirements.Count} requirements from Jama project {SelectedProject.Name}");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"Failed to import requirements from Jama project {SelectedProject?.Name}");
+                _toastService.ShowToast($"Error importing requirements: {ex.Message}", durationSeconds: 5, type: ToastType.Error);
             }
         }
     }
@@ -799,5 +952,20 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         public bool AutoExportEnabled { get; set; }
         public string ProjectSavePath { get; set; } = "";
         public string ProjectName { get; set; } = "";
+    }
+    
+    public partial class JamaProjectItem : ObservableObject
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public string Key { get; set; } = "";
+        public string Description { get; set; } = "";
+        
+        [ObservableProperty]
+        private int requirementCount = 0;
+        
+        public string DisplayText => RequirementCount > 0 
+            ? $"{Name} ({RequirementCount} requirements)" 
+            : Name;
     }
 }

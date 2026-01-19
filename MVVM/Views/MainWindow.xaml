@@ -21,6 +21,8 @@
         xmlns:reqviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.Views"
         xmlns:projvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Project.ViewModels"
         xmlns:projviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Project.Views"
+        xmlns:sharedvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Shared.ViewModels"
+        xmlns:sharedviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Shared.Views"
         xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models"
         xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
         Height="665" Width="1200"
@@ -63,6 +65,11 @@
 
         <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_CreationVM}">
             <tcgmodeviews:TestCaseGenerator_CreationView />
+        </DataTemplate>
+
+        <!-- Shared Analysis ViewModel - consolidates duplicate analysis controls -->
+        <DataTemplate DataType="{x:Type sharedvm:SharedAnalysisViewModel}">
+            <sharedviews:SharedAnalysisView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:WorkspaceHeaderViewModel}">

@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Services;
 
@@ -29,6 +32,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private readonly IRequirementAnalysisEngine _analysisEngine;
         private readonly ILogger<RequirementAnalysisViewModel> _logger;
         private CancellationTokenSource? _analysisCancellation;
+
+        // Timer for tracking analysis duration
+        private System.Timers.Timer? _analysisTimer;
+        private DateTime _analysisStartTime;
 
         // UI State Properties  
         [ObservableProperty]
@@ -66,6 +73,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         [ObservableProperty]
         private string engineStatusText = string.Empty;
 
+        [ObservableProperty]
+        private string analysisElapsedTime = string.Empty;
+
         [ObservableProperty] 
         private bool isEditingRequirement;
 
@@ -82,6 +92,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         partial void OnIsAnalyzingChanged(bool value)
         {
             OnPropertyChanged(nameof(HasNoAnalysis));
+            
+            // Start/stop timer when analysis state changes
+            if (value)
+            {
+                StartAnalysisTimer();
+            }
+            else
+            {
+                StopAnalysisTimer();
+            }
         }
 
         // Current requirement being analyzed
@@ -91,10 +111,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             get => _currentRequirement;
             set
             {
+                _logger.LogInformation("[RequirementAnalysisVM] CurrentRequirement setter called. Old={OldReq}, New={NewReq}", 
+                    _currentRequirement?.Item ?? "null", value?.Item ?? "null");
+                
                 if (SetProperty(ref _currentRequirement, value))
                 {
                     RefreshAnalysisDisplay();
-                    ((RelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
+                    ((AsyncRelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
                 }
             }
         }
@@ -130,7 +153,39 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// </summary>
         private async Task AnalyzeRequirementAsync()
         {
-            if (CurrentRequirement == null) return;
+            _logger.LogInformation("[RequirementAnalysisVM] AnalyzeRequirementAsync called. CurrentRequirement={HasRequirement}", CurrentRequirement != null);
+            
+            if (CurrentRequirement == null) 
+            {
+                _logger.LogWarning("[RequirementAnalysisVM] Cannot analyze: no requirement selected");
+                
+                // Try to find the selected requirement from the service provider
+                try
+                {
+                    var mainViewModel = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>();
+                    if (mainViewModel?.SelectedRequirement != null)
+                    {
+                        _logger.LogInformation("[RequirementAnalysisVM] Found selected requirement from MainViewModel: {RequirementItem}", mainViewModel.SelectedRequirement.Item);
+                        CurrentRequirement = mainViewModel.SelectedRequirement;
+                    }
+                    else
+                    {
+                        _logger.LogWarning("[RequirementAnalysisVM] MainViewModel SelectedRequirement is also null");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[RequirementAnalysisVM] Error trying to get selected requirement from MainViewModel");
+                }
+                
+                // If still null after trying to sync, show error
+                if (CurrentRequirement == null)
+                {
+                    AnalysisStatusMessage = "Please select a requirement from the list to analyze";
+                    OnPropertyChanged(nameof(AnalysisStatusMessage));
+                    return;
+                }
+            }
 
             _logger.LogDebug("[RequirementAnalysisVM] Starting analysis for {RequirementId}", CurrentRequirement.Item);
 
@@ -271,7 +326,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// </summary>
         private bool CanAnalyzeRequirement()
         {
-            return CurrentRequirement != null && !IsAnalyzing;
+            // Always allow the button to be clicked - we'll handle the no-requirement case in the command itself
+            return !IsAnalyzing;
         }
 
         /// <summary>
@@ -329,7 +385,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             if (e.PropertyName == nameof(IsAnalyzing))
             {
                 ((RelayCommand)CancelAnalysisCommand).NotifyCanExecuteChanged();
-                ((RelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
+                ((AsyncRelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
                 ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
                 OnPropertyChanged(nameof(HasNoAnalysis)); // Computed property depends on IsAnalyzing
             }
@@ -351,10 +407,40 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
         }
 
+        private void StartAnalysisTimer()
+        {
+            AnalysisElapsedTime = "";
+            _analysisStartTime = DateTime.Now;
+            
+            _analysisTimer?.Stop();
+            _analysisTimer = new System.Timers.Timer(1000); // Update every second
+            _analysisTimer.Elapsed += (_, _) =>
+            {
+                var elapsed = DateTime.Now - _analysisStartTime;
+                AnalysisElapsedTime = $"{elapsed.TotalSeconds:F0}s";
+            };
+            _analysisTimer.Start();
+        }
+
+        private void StopAnalysisTimer()
+        {
+            _analysisTimer?.Stop();
+            _analysisTimer?.Dispose();
+            _analysisTimer = null;
+
+            if (_analysisStartTime != default)
+            {
+                var totalElapsed = DateTime.Now - _analysisStartTime;
+                AnalysisElapsedTime = $"Completed in {totalElapsed.TotalSeconds:F0}s";
+            }
+        }
+
         public void Dispose()
         {
             _analysisCancellation?.Cancel();
             _analysisCancellation?.Dispose();
+            _analysisTimer?.Stop();
+            _analysisTimer?.Dispose();
         }
     }
 }

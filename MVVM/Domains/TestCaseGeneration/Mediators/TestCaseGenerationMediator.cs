@@ -361,6 +361,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         {
             if (requirement == null) throw new ArgumentNullException(nameof(requirement));
             
+            // Clear any stale analysis errors when navigating with a requirement
+            if (requirement.Analysis != null)
+            {
+                requirement.Analysis.ErrorMessage = string.Empty;
+            }
+            
             NavigateToStep("Assumptions", null);
             PublishEvent(new TestCaseGenerationEvents.StepChanged 
             { 
@@ -379,6 +385,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         {
             if (requirement == null) throw new ArgumentNullException(nameof(requirement));
             
+            // Clear any stale analysis errors when navigating with a requirement
+            if (requirement.Analysis != null)
+            {
+                requirement.Analysis.ErrorMessage = string.Empty;
+            }
+            
             NavigateToStep("Questions", null);
             PublishEvent(new TestCaseGenerationEvents.StepChanged 
             { 
@@ -396,6 +408,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         public void NavigateToTestCaseCreation(Requirement requirement)
         {
             if (requirement == null) throw new ArgumentNullException(nameof(requirement));
+            
+            // Clear any stale analysis errors when navigating with a requirement
+            if (requirement.Analysis != null)
+            {
+                requirement.Analysis.ErrorMessage = string.Empty;
+            }
             
             NavigateToStep("TestCaseCreation", null);
             PublishEvent(new TestCaseGenerationEvents.StepChanged 
@@ -823,6 +841,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         public void SelectRequirement(Requirement requirement)
         {
             if (requirement == null) throw new ArgumentNullException(nameof(requirement));
+            
+            // Clear any stale analysis state when selecting a new requirement to ensure clean UI
+            if (requirement.Analysis != null && !requirement.Analysis.IsAnalyzed)
+            {
+                // If analysis failed or is incomplete, remove it entirely for clean state
+                requirement.Analysis = null;
+                _logger.LogDebug("Removed failed analysis state for requirement: {RequirementId}", requirement.GlobalId);
+            }
             
             // Track current requirement for auto-sync functionality
             _currentRequirement = requirement;
@@ -1323,11 +1349,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                     }
                 });
                 
-                // Set the first requirement as current if available
+                // Set the first requirement as current if available - use SelectRequirement to ensure clean state
                 if (e.Requirements.Count > 0)
                 {
-                    CurrentRequirement = e.Requirements.First();
-                    _logger.LogDebug("Set current requirement to: {RequirementId}", CurrentRequirement.GlobalId);
+                    SelectRequirement(e.Requirements.First());
+                    _logger.LogDebug("Selected first requirement during import: {RequirementId}", CurrentRequirement?.GlobalId);
                 }
                 
                 _logger.LogInformation("✅ Successfully imported {Count} requirements from cross-domain event", e.Requirements.Count);
