@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+using System.Windows;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -36,6 +39,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         // Timer for tracking analysis duration
         private System.Timers.Timer? _analysisTimer;
         private DateTime _analysisStartTime;
+        
+        // Smart clipboard functionality
+        private System.Windows.Threading.DispatcherTimer? _clipboardMonitorTimer;
+        private string _lastClipboardContent = string.Empty;
+        private bool _isWaitingForExternalResponse;
 
         // UI State Properties  
         [ObservableProperty]
@@ -79,9 +87,17 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         [ObservableProperty] 
         private bool isEditingRequirement;
 
+        [ObservableProperty]
+        private string editingRequirementText = string.Empty;
+
+        // Smart clipboard button text
+        [ObservableProperty]
+        private string copyAnalysisButtonText = "LLM Analysis Request → Clipboard";
+        
         // Computed properties for UI binding
         public bool HasNoAnalysis => !HasAnalysis && !IsAnalyzing;
         public bool HasFreeformFeedback => !string.IsNullOrWhiteSpace(FreeformFeedback);
+        public bool HasRecommendations => Recommendations?.Count > 0;
         
         // Override property change notifications to trigger HasNoAnalysis updates
         partial void OnHasAnalysisChanged(bool value)
@@ -102,6 +118,20 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 StopAnalysisTimer();
             }
+        }
+
+        partial void OnIsEditingRequirementChanged(bool value)
+        {
+            ((RelayCommand)CancelEditRequirementCommand).NotifyCanExecuteChanged();
+            ((RelayCommand)SaveRequirementCommand).NotifyCanExecuteChanged();
+            OnPropertyChanged(nameof(CopyAnalysisButtonText));
+        }
+
+        partial void OnEditingRequirementTextChanged(string value)
+        {
+            ((RelayCommand)SaveRequirementCommand).NotifyCanExecuteChanged();
+            ((RelayCommand)CopyAnalysisPromptCommand).NotifyCanExecuteChanged();
+            UpdateCopyButtonText();
         }
 
         // Current requirement being analyzed
@@ -128,6 +158,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public ICommand RefreshEngineStatusCommand { get; }
         public ICommand EditRequirementCommand { get; }
         public ICommand CancelEditRequirementCommand { get; }
+        public ICommand SaveRequirementCommand { get; }
+        public ICommand CopyAnalysisPromptCommand { get; }
 
         public RequirementAnalysisViewModel(
             IRequirementAnalysisEngine analysisEngine,
@@ -142,6 +174,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             RefreshEngineStatusCommand = new RelayCommand(RefreshEngineStatus);
             EditRequirementCommand = new RelayCommand(StartEditingRequirement, CanEditRequirement);
             CancelEditRequirementCommand = new RelayCommand(CancelEditingRequirement, () => IsEditingRequirement);
+            SaveRequirementCommand = new RelayCommand(SaveRequirementEdit, CanSaveRequirement);
+            CopyAnalysisPromptCommand = new RelayCommand(CopyToClipboard, CanCopyToClipboard);
 
             // Initialize engine status
             RefreshEngineStatus();
@@ -199,6 +233,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 IsAnalyzing = true;
                 HasAnalysis = false;
                 AnalysisStatusMessage = "Initializing analysis...";
+                
+                // Start clipboard monitoring for external LLM workflow
+                StartClipboardMonitoring();
 
                 // Delegate business logic to the analysis engine
                 var analysis = await _analysisEngine.AnalyzeRequirementAsync(
@@ -249,9 +286,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private void UpdateUIFromAnalysis(RequirementAnalysis analysis)
         {
             HasAnalysis = true;
+            
+            // DEBUG: Log the quality score source and value
+            _logger.LogInformation("[RequirementAnalysisVM] Quality Score Debug: OriginalQualityScore={OriginalScore}, IsAnalyzed={IsAnalyzed}, HasImproved={HasImproved}, ImprovedScore={ImprovedScore}", 
+                analysis.OriginalQualityScore, analysis.IsAnalyzed, !string.IsNullOrWhiteSpace(analysis.ImprovedRequirement), analysis.ImprovedQualityScore);
+                
             QualityScore = analysis.OriginalQualityScore; // Show user's original requirement quality
             Issues = analysis.Issues ?? new List<AnalysisIssue>();
             Recommendations = analysis.Recommendations ?? new List<AnalysisRecommendation>();
+            OnPropertyChanged(nameof(HasRecommendations)); // Update computed property
             FreeformFeedback = analysis.FreeformFeedback ?? string.Empty;
             ImprovedRequirement = analysis.ImprovedRequirement;
             HasImprovedRequirement = !string.IsNullOrWhiteSpace(analysis.ImprovedRequirement);
@@ -279,6 +322,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 QualityScore = 0;
                 Issues = new List<AnalysisIssue>();
                 Recommendations = new List<AnalysisRecommendation>();
+                OnPropertyChanged(nameof(HasRecommendations)); // Update computed property
                 FreeformFeedback = string.Empty;
                 ImprovedRequirement = null;
                 HasImprovedRequirement = false;
@@ -356,6 +400,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// </summary>
         private void StartEditingRequirement()
         {
+            EditingRequirementText = ImprovedRequirement ?? string.Empty;
             IsEditingRequirement = true;
             _logger.LogDebug("[RequirementAnalysisVM] Started editing requirement");
         }
@@ -365,6 +410,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// </summary>
         private void CancelEditingRequirement()
         {
+            EditingRequirementText = string.Empty;
             IsEditingRequirement = false;
             _logger.LogDebug("[RequirementAnalysisVM] Cancelled requirement editing");
         }
@@ -375,6 +421,407 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private bool CanEditRequirement()
         {
             return HasImprovedRequirement && !IsAnalyzing;
+        }
+
+        private void SaveRequirementEdit()
+        {
+            if (CurrentRequirement?.Analysis != null && !string.IsNullOrWhiteSpace(EditingRequirementText))
+            {
+                CurrentRequirement.Analysis.ImprovedRequirement = EditingRequirementText.Trim();
+                ImprovedRequirement = EditingRequirementText.Trim();
+                HasImprovedRequirement = true;
+                IsEditingRequirement = false;
+                _logger.LogDebug("[RequirementAnalysisVM] Saved edited requirement");
+            }
+        }
+
+        private bool CanSaveRequirement()
+        {
+            return IsEditingRequirement && !string.IsNullOrWhiteSpace(EditingRequirementText);
+        }
+
+        private void CopyToClipboard()
+        {
+            try
+            {
+                _logger.LogInformation("[RequirementAnalysisVM] CopyToClipboard called. ButtonText='{ButtonText}', IsEditing={IsEditing}, HasRequirement={HasRequirement}", 
+                    CopyAnalysisButtonText, IsEditingRequirement, CurrentRequirement != null);
+                
+                if (CopyAnalysisButtonText.Contains("Clipboard →"))
+                {
+                    // Smart clipboard: Paste external response
+                    _logger.LogInformation("[RequirementAnalysisVM] Executing paste operation");
+                    PasteExternalAnalysisFromClipboard();
+                    return;
+                }
+                
+                if (CopyAnalysisButtonText == "Copy to Clipboard" && IsEditingRequirement && !string.IsNullOrWhiteSpace(EditingRequirementText))
+                {
+                    // Copy edited requirement text when actively editing
+                    _logger.LogInformation("[RequirementAnalysisVM] Copying edited requirement text: '{Text}'", EditingRequirementText?.Substring(0, Math.Min(100, EditingRequirementText?.Length ?? 0)));
+                    System.Windows.Clipboard.SetText(EditingRequirementText.Trim());
+                    _logger.LogInformation("[RequirementAnalysisVM] Copied edited requirement text to clipboard");
+                }
+                else if (CurrentRequirement != null)
+                {
+                    // Default: Generate comprehensive analysis prompt for external LLM
+                    _logger.LogInformation("[RequirementAnalysisVM] Generating comprehensive analysis prompt for requirement {RequirementId}", CurrentRequirement.Item);
+                    
+                    var analysisPrompt = GenerateComprehensiveAnalysisPrompt(CurrentRequirement);
+                    
+                    _logger.LogInformation("[RequirementAnalysisVM] Generated prompt of length {Length} characters", analysisPrompt.Length);
+                    
+                    System.Windows.Clipboard.SetText(analysisPrompt);
+                    
+                    // Update state for clipboard monitoring
+                    _lastClipboardContent = analysisPrompt;
+                    CopyAnalysisButtonText = "⏳ Waiting for external response...";
+                    _isWaitingForExternalResponse = true;
+                    
+                    _logger.LogInformation("[RequirementAnalysisVM] Copied comprehensive analysis prompt to clipboard");
+                }
+                else
+                {
+                    _logger.LogWarning("[RequirementAnalysisVM] No valid copy operation matched. ButtonText='{ButtonText}', CurrentRequirement={HasReq}, IsEditing={IsEdit}", 
+                        CopyAnalysisButtonText, CurrentRequirement != null, IsEditingRequirement);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementAnalysisVM] Failed to copy to clipboard");
+            }
+        }
+
+        /// <summary>
+        /// Generate comprehensive analysis prompt for external LLM including all requirement details,
+        /// supplemental data, refined versions, and complete analysis methodology
+        /// </summary>
+        private string GenerateComprehensiveAnalysisPrompt(Requirement requirement)
+        {
+            var sb = new System.Text.StringBuilder();
+            
+            // Header
+            sb.AppendLine("=== EXTERNAL LLM ANALYSIS REQUEST ===");
+            sb.AppendLine();
+            sb.AppendLine("Please analyze this requirement using the methodology shown below.");
+            if (!string.IsNullOrWhiteSpace(ImprovedRequirement))
+            {
+                sb.AppendLine("Compare your analysis with the AnythingLLM refined version included.");
+            }
+            sb.AppendLine();
+            
+            // Original requirement
+            sb.AppendLine("ORIGINAL REQUIREMENT:");
+            sb.AppendLine("=" + new string('=', 50));
+            sb.AppendLine($"ID: {requirement.Item}");
+            sb.AppendLine($"Name: {requirement.Name}");
+            sb.AppendLine($"Description: {requirement.Description}");
+            
+            // Add supplemental tables if available
+            if (requirement.Tables?.Count > 0)
+            {
+                sb.AppendLine();
+                sb.AppendLine("Supplemental Tables:");
+                foreach (var table in requirement.Tables)
+                {
+                    sb.AppendLine($"### {table.EditableTitle}");
+                    if (table.Table?.Count > 0)
+                    {
+                        foreach (var row in table.Table)
+                        {
+                            sb.AppendLine("| " + string.Join(" | ", row) + " |");
+                        }
+                    }
+                    sb.AppendLine();
+                }
+            }
+            
+            // Add loose content if available
+            if (requirement.LooseContent?.Paragraphs?.Count > 0)
+            {
+                sb.AppendLine("Supplemental Paragraphs:");
+                foreach (var para in requirement.LooseContent.Paragraphs)
+                {
+                    sb.AppendLine($"- {para}");
+                }
+                sb.AppendLine();
+            }
+            
+            if (requirement.LooseContent?.Tables?.Count > 0)
+            {
+                sb.AppendLine("Supplemental Loose Tables:");
+                foreach (var table in requirement.LooseContent.Tables)
+                {
+                    sb.AppendLine($"### {table.EditableTitle}");
+                    if (table.Rows?.Count > 0)
+                    {
+                        foreach (var row in table.Rows)
+                        {
+                            sb.AppendLine("| " + string.Join(" | ", row) + " |");
+                        }
+                    }
+                    sb.AppendLine();
+                }
+            }
+            
+            sb.AppendLine();
+            
+            // AnythingLLM refined version (if available)
+            if (!string.IsNullOrWhiteSpace(ImprovedRequirement))
+            {
+                sb.AppendLine("ANYTHINGLM REFINED VERSION:");
+                sb.AppendLine("=" + new string('=', 50));
+                sb.AppendLine(ImprovedRequirement);
+                sb.AppendLine();
+            }
+            else if (IsEditingRequirement && !string.IsNullOrWhiteSpace(EditingRequirementText))
+            {
+                sb.AppendLine("CURRENT EDITED VERSION:");
+                sb.AppendLine("=" + new string('=', 50));
+                sb.AppendLine(EditingRequirementText);
+                sb.AppendLine();
+            }
+            
+            // Complete analysis methodology
+            sb.AppendLine("ANALYSIS METHODOLOGY & SYSTEM INSTRUCTIONS:");
+            sb.AppendLine("=" + new string('=', 50));
+            sb.AppendLine();
+            
+            try
+            {
+                sb.AppendLine(TestCaseEditorApp.Services.AnythingLLMService.GetOptimalSystemPrompt());
+            }
+            catch
+            {
+                // Fallback analysis instructions if system prompt not available
+                sb.AppendLine("Please analyze this requirement for:");
+                sb.AppendLine("1. Clarity and specificity");
+                sb.AppendLine("2. Testability and verifiability");
+                sb.AppendLine("3. Completeness and consistency");
+                sb.AppendLine("4. Technical accuracy");
+                sb.AppendLine("5. Potential ambiguities or conflicts");
+            }
+            
+            sb.AppendLine();
+            
+            // Instructions for external LLM
+            sb.AppendLine("=" + new string('=', 50));
+            sb.AppendLine("INSTRUCTIONS FOR YOUR ANALYSIS:");
+            sb.AppendLine();
+            if (!string.IsNullOrWhiteSpace(ImprovedRequirement))
+            {
+                sb.AppendLine("1. Compare the original requirement with the AnythingLLM refined version");
+                sb.AppendLine("2. Apply the analysis methodology above to create your own refined version");
+                sb.AppendLine("3. Identify any differences in approach or interpretation");
+            }
+            else
+            {
+                sb.AppendLine("1. Apply the analysis methodology above to the original requirement");
+                sb.AppendLine("2. Create your own refined version");
+                sb.AppendLine("3. Identify areas for improvement");
+            }
+            sb.AppendLine("4. Provide your assessment of the requirement's quality and clarity");
+            sb.AppendLine("5. Suggest improvements or highlight potential issues");
+            sb.AppendLine();
+            sb.AppendLine("Please return your analysis in a structured format showing:");
+            sb.AppendLine("- Your refined requirement text");
+            if (!string.IsNullOrWhiteSpace(ImprovedRequirement))
+            {
+                sb.AppendLine("- Comparison with AnythingLLM's version");
+            }
+            sb.AppendLine("- Quality assessment and recommendations");
+            sb.AppendLine();
+            sb.AppendLine("Generated: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+
+            return sb.ToString();
+        }
+
+        private bool CanCopyToClipboard()
+        {
+            // Can copy if we have a requirement (for analysis prompt) or if actively editing (for edited text)
+            return CurrentRequirement != null;
+        }
+
+        /// <summary>
+        /// Start clipboard monitoring for external LLM workflow
+        /// </summary>
+        private void StartClipboardMonitoring()
+        {
+            try
+            {
+                _clipboardMonitorTimer?.Stop();
+                _clipboardMonitorTimer = new System.Windows.Threading.DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(1000) // Check every second
+                };
+                _clipboardMonitorTimer.Tick += OnClipboardMonitorTick;
+                _clipboardMonitorTimer.Start();
+                
+                _logger.LogDebug("[RequirementAnalysisVM] Started clipboard monitoring for external LLM workflow");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[RequirementAnalysisVM] Failed to start clipboard monitoring: {Error}", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Monitor clipboard for external LLM responses
+        /// </summary>
+        private void OnClipboardMonitorTick(object? sender, EventArgs e)
+        {
+            try
+            {
+                // Check clipboard content
+                var currentClipboard = System.Windows.Clipboard.GetText();
+                if (string.IsNullOrWhiteSpace(currentClipboard) || currentClipboard == _lastClipboardContent)
+                    return;
+
+                // Update tracking
+                _lastClipboardContent = currentClipboard;
+
+                // Check if this looks like an external LLM response (heuristic)
+                if (_isWaitingForExternalResponse && IsLikelyExternalLLMResponse(currentClipboard))
+                {
+                    CopyAnalysisButtonText = "Clipboard → LLM Analysis Response";
+                    _logger.LogInformation("[RequirementAnalysisVM] Detected potential external LLM response in clipboard");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[RequirementAnalysisVM] Error monitoring clipboard: {Error}", ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Heuristic to detect if clipboard content is likely an external LLM response
+        /// </summary>
+        private bool IsLikelyExternalLLMResponse(string content)
+        {
+            if (string.IsNullOrWhiteSpace(content) || content.Length < 100) return false;
+
+            // Look for common LLM response patterns
+            var indicators = new[]
+            {
+                "quality score", "analysis", "assessment", "recommendation",
+                "improved version", "clarity", "issues", "feedback",
+                "score:", "rating"
+            };
+
+            var lowContent = content.ToLowerInvariant();
+            var indicatorCount = indicators.Count(indicator => lowContent.Contains(indicator));
+            
+            return indicatorCount >= 2;
+        }
+
+        /// <summary>
+        /// Paste external LLM analysis from clipboard and process
+        /// </summary>
+        private void PasteExternalAnalysisFromClipboard()
+        {
+            try
+            {
+                var clipboardContent = System.Windows.Clipboard.GetText();
+                if (string.IsNullOrWhiteSpace(clipboardContent))
+                {
+                    _logger.LogWarning("[RequirementAnalysisVM] No content in clipboard to paste");
+                    return;
+                }
+
+                // Extract improved requirement if available
+                var improvedText = ExtractImprovedRequirementFromResponse(clipboardContent);
+                if (!string.IsNullOrWhiteSpace(improvedText))
+                {
+                    EditingRequirementText = improvedText;
+                    IsEditingRequirement = true;
+                    _logger.LogInformation("[RequirementAnalysisVM] Extracted improved requirement from clipboard");
+                }
+
+                // Reset UI state
+                _isWaitingForExternalResponse = false;
+                CopyAnalysisButtonText = "LLM Analysis Request → Clipboard";
+                
+                _logger.LogInformation("[RequirementAnalysisVM] Processed external LLM analysis from clipboard");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementAnalysisVM] Failed to process external LLM analysis");
+                
+                // Reset UI state on error
+                _isWaitingForExternalResponse = false;
+                CopyAnalysisButtonText = "LLM Analysis Request → Clipboard";
+            }
+        }
+
+        /// <summary>
+        /// Extract improved requirement text from external LLM response using heuristics
+        /// </summary>
+        private string ExtractImprovedRequirementFromResponse(string response)
+        {
+            var lines = response.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+            
+            // Look for "IMPROVED" or "REVISED" sections
+            for (int i = 0; i < lines.Length; i++)
+            {
+                var line = lines[i].Trim();
+                var upperLine = line.ToUpperInvariant();
+                
+                if ((upperLine.Contains("IMPROVED") || upperLine.Contains("REVISED") || upperLine.Contains("BETTER")) && 
+                    (upperLine.Contains("REQUIREMENT") || upperLine.Contains("VERSION")))
+                {
+                    // Try to find content after this header
+                    if (i + 1 < lines.Length)
+                    {
+                        var nextLine = lines[i + 1].Trim();
+                        if (nextLine.Length > 50) // Reasonable requirement length
+                        {
+                            return nextLine;
+                        }
+                    }
+                }
+            }
+            
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// Update the copy button text based on current state
+        /// </summary>
+        private void UpdateCopyButtonText()
+        {
+            if (CopyAnalysisButtonText.Contains("Clipboard →") || CopyAnalysisButtonText.Contains("⏳"))
+            {
+                // Don't update if we're in a special clipboard state
+                return;
+            }
+            
+            // Only show "Copy to Clipboard" when actively editing (IsEditingRequirement = true)
+            if (IsEditingRequirement && !string.IsNullOrWhiteSpace(EditingRequirementText))
+            {
+                CopyAnalysisButtonText = "Copy to Clipboard";
+            }
+            else
+            {
+                // Default state - always generate comprehensive analysis prompt
+                CopyAnalysisButtonText = "LLM Analysis Request → Clipboard";
+            }
+        }
+
+        /// <summary>
+        /// Stop clipboard monitoring and clean up resources
+        /// </summary>
+        private void StopClipboardMonitoring()
+        {
+            try
+            {
+                _clipboardMonitorTimer?.Stop();
+                _clipboardMonitorTimer = null;
+                _logger.LogDebug("[RequirementAnalysisVM] Stopped clipboard monitoring");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[RequirementAnalysisVM] Error stopping clipboard monitoring: {Error}", ex.Message);
+            }
         }
 
         protected override void OnPropertyChanged(PropertyChangedEventArgs e)
@@ -400,6 +847,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             else if (e.PropertyName == nameof(IsEditingRequirement))
             {
                 ((RelayCommand)CancelEditRequirementCommand).NotifyCanExecuteChanged();
+                ((RelayCommand)SaveRequirementCommand).NotifyCanExecuteChanged();
             }
             else if (e.PropertyName == nameof(FreeformFeedback))
             {
@@ -441,6 +889,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _analysisCancellation?.Dispose();
             _analysisTimer?.Stop();
             _analysisTimer?.Dispose();
+            StopClipboardMonitoring();
         }
     }
 }

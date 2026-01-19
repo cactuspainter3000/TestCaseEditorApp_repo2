@@ -34,9 +34,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views
                 w.SizeChanged -= HostWindow_SizeChanged;
                 
             // Clean up property change subscription - type-safe cleanup
-            if (DataContext is TestCaseGeneration.ViewModels.TestCaseGenerator_VM viewModel)
+            if (DataContext is TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel viewModel &&
+                viewModel.RequirementAnalysisVM != null)
             {
-                // viewModel.PropertyChanged -= OnViewModelPropertyChanged; // Commented out - method doesn't exist
+                viewModel.RequirementAnalysisVM.PropertyChanged -= OnAnalysisViewModelPropertyChanged;
             }
         }
 

@@ -188,9 +188,13 @@
                         Padding="12"
                         Margin="0,0,0,12">
                     <StackPanel>
-                        <TextBlock Text="Quality Score" 
+                        <TextBlock Text="Original Quality Score" 
                                    Style="{StaticResource Text.H3}"
                                    Margin="0,0,0,6"/>
+                        <TextBlock Text="(Your requirement before LLM improvement)" 
+                                   FontSize="12"
+                                   Foreground="#888888"
+                                   Margin="0,0,0,8"/>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding QualityScore}" 
                                        FontSize="32" 
