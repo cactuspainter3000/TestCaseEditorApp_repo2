@@ -163,6 +163,10 @@ namespace TestCaseEditorApp
                     
                     // Register the focused RequirementAnalysisViewModel for Requirements domain
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel>();
+                    
+                    // Register the shared analysis ViewModel for cross-domain usage (DRY principle)
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Shared.ViewModels.SharedAnalysisViewModel>();
+                    
                     services.AddSingleton<AnythingLLMService>(provider =>
                         new AnythingLLMService()); // Let it get baseUrl and apiKey from defaults/user config
                     services.AddSingleton<TestCaseAnythingLLMService>();
