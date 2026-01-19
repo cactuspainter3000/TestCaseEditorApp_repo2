@@ -30,11 +30,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private readonly ILogger<RequirementAnalysisViewModel> _logger;
         private CancellationTokenSource? _analysisCancellation;
 
-        // UI State Properties
+        // UI State Properties  
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(HasNoAnalysis))]
         private bool hasAnalysis;
 
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(HasNoAnalysis))]
         private bool isAnalyzing;
 
         [ObservableProperty]
@@ -70,6 +72,28 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         // Computed properties for UI binding
         public bool HasNoAnalysis => !HasAnalysis && !IsAnalyzing;
         public bool HasFreeformFeedback => !string.IsNullOrWhiteSpace(FreeformFeedback);
+        
+        // Override property change notifications to trigger HasNoAnalysis updates
+        partial void OnHasAnalysisChanged(bool value)
+        {
+            OnPropertyChanged(nameof(HasNoAnalysis));
+        }
+        
+        partial void OnIsAnalyzingChanged(bool value)
+        {
+            OnPropertyChanged(nameof(HasNoAnalysis));
+        }
+        
+        // Override property change notifications to trigger HasNoAnalysis updates
+        partial void OnHasAnalysisChanged(bool value)
+        {
+            OnPropertyChanged(nameof(HasNoAnalysis));
+        }
+        
+        partial void OnIsAnalyzingChanged(bool value)
+        {
+            OnPropertyChanged(nameof(HasNoAnalysis));
+        }
 
         // Current requirement being analyzed
         private Requirement? _currentRequirement;
@@ -202,10 +226,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             if (analysis?.IsAnalyzed == true)
             {
                 UpdateUIFromAnalysis(analysis);
+                _logger.LogDebug("[RequirementAnalysisVM] Displayed existing analysis for {RequirementId}", CurrentRequirement?.Item);
             }
             else
             {
-                // Clear display for requirements without analysis
+                // Clear display for requirements without analysis - ensure complete state reset
                 HasAnalysis = false;
                 QualityScore = 0;
                 Issues = new List<AnalysisIssue>();
@@ -214,7 +239,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 ImprovedRequirement = null;
                 HasImprovedRequirement = false;
                 AnalysisTimestamp = string.Empty;
-                AnalysisStatusMessage = string.Empty;
+                AnalysisStatusMessage = string.Empty; // Critical: Clear any stale error messages
+                
+                // Clear any stale analysis data from the requirement to prevent UI inconsistencies
+                if (CurrentRequirement?.Analysis != null && !CurrentRequirement.Analysis.IsAnalyzed)
+                {
+                    CurrentRequirement.Analysis.ErrorMessage = null; // Clear persisted error state
+                }
+                
+                _logger.LogDebug("[RequirementAnalysisVM] Cleared display state for {RequirementId}", CurrentRequirement?.Item);
             }
         }
 

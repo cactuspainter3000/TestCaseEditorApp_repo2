@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
              xmlns:local="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.Views"
+             xmlns:req="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.Views"
              mc:Ignorable="d"
              MinHeight="400" MinWidth="800"
              HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
@@ -436,7 +437,7 @@
                                 <Setter Property="ContentTemplate">
                                     <Setter.Value>
                                         <DataTemplate>
-                                            <local:TestCaseGenerator_AnalysisControl />
+                                            <req:Requirements_AnalysisControl />
                                         </DataTemplate>
                                     </Setter.Value>
                                 </Setter>
