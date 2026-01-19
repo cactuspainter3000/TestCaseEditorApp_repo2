@@ -23,6 +23,12 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         
         private readonly AnythingLLMService _anythingLLMService;
         private readonly ToastNotificationService _toastService;
+
+        [ObservableProperty]
+        private string jamaConnectionStatus = "Ready to connect";
+
+        [ObservableProperty]
+        private bool hasConnectionError = false;
         
         // Event fired when project creation is completed
         public event EventHandler<NewProjectCompletedEventArgs>? ProjectCompleted;
@@ -91,10 +97,11 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         private bool isTestingConnection = false;
         
         [ObservableProperty]
-        private string jamaConnectionStatus = "Not connected to Jama";
-        
-        [ObservableProperty]
         private bool hasJamaRequirements = false;
+        
+        // Import mode toggle - true = Jama (default), false = Document
+        [ObservableProperty]
+        private bool isJamaImportMode = true;
         
         [ObservableProperty]
         private ObservableCollection<JamaProjectItem> availableProjects = new();
@@ -190,17 +197,16 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             CancelCommand = new RelayCommand(() => Cancel());
             TestJamaConnectionCommand = new AsyncRelayCommand(TestJamaConnectionAsync);
             ImportFromJamaCommand = new AsyncRelayCommand(ImportFromJamaAsync);
-            LoadJamaProjectsCommand = new AsyncRelayCommand(LoadJamaProjectsAsync, () => HasJamaConnection);
+            LoadJamaProjectsCommand = new AsyncRelayCommand(LoadJamaProjectsAsync);
             LoadRequirementsCommand = new AsyncRelayCommand(LoadRequirementsAsync, () => SelectedProject != null);
             ImportSelectedRequirementsCommand = new AsyncRelayCommand(ImportSelectedRequirementsAsync, () => SelectedProject != null && RequirementsCount > 0);
+            
+            // Initialize import mode to Jama by default
+            IsJamaImportMode = true;
             
             // Property change handlers for command state
             PropertyChanged += (s, e) =>
             {
-                if (e.PropertyName == nameof(HasJamaConnection))
-                {
-                    LoadJamaProjectsCommand.NotifyCanExecuteChanged();
-                }
                 if (e.PropertyName == nameof(SelectedProject))
                 {
                     LoadRequirementsCommand.NotifyCanExecuteChanged();
@@ -823,7 +829,8 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             try
             {
                 IsLoadingProjects = true;
-                _toastService.ShowToast("Loading Jama projects...", durationSeconds: 2, type: ToastType.Info);
+                HasConnectionError = false;
+                JamaConnectionStatus = "Connecting to Jama...";
                 
                 TestCaseEditorApp.Services.Logging.Log.Info("[LoadJamaProjects] Starting to load projects...");
                 var projects = await _mediator.GetJamaProjectsAsync();
@@ -843,18 +850,30 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 }
                 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[LoadJamaProjects] Final AvailableProjects count: {AvailableProjects.Count}");
-                _toastService.ShowToast($"Found {AvailableProjects.Count} Jama projects", durationSeconds: 3, type: ToastType.Success);
+                JamaConnectionStatus = $"Found {AvailableProjects.Count} projects";
                 TestCaseEditorApp.Services.Logging.Log.Info($"Loaded {AvailableProjects.Count} Jama projects");
             }
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, "Failed to load Jama projects");
-                _toastService.ShowToast($"Error loading projects: {ex.Message}", durationSeconds: 5, type: ToastType.Error);
+                HasConnectionError = true;
+                // Surface the actual exception message so the UI explains the failure (e.g. not configured)
+                JamaConnectionStatus = ex.Message ?? "Connection failed";
+
+                // Use mediator to broadcast simple error notification with details
+                await _mediator.NotifyConnectionErrorAsync($"Jama connection failed: {ex.Message}");
             }
             finally
             {
                 IsLoadingProjects = false;
             }
+        }
+
+        [RelayCommand]
+        private void SwitchImportMode()
+        {
+            IsJamaImportMode = !IsJamaImportMode;
+            TestCaseEditorApp.Services.Logging.Log.Info($"Switched import mode to: {(IsJamaImportMode ? "Jama" : "Document")}");
         }
         
         private async Task LoadRequirementsAsync()
