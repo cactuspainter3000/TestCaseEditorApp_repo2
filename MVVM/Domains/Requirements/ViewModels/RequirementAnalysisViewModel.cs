@@ -83,17 +83,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             OnPropertyChanged(nameof(HasNoAnalysis));
         }
-        
-        // Override property change notifications to trigger HasNoAnalysis updates
-        partial void OnHasAnalysisChanged(bool value)
-        {
-            OnPropertyChanged(nameof(HasNoAnalysis));
-        }
-        
-        partial void OnIsAnalyzingChanged(bool value)
-        {
-            OnPropertyChanged(nameof(HasNoAnalysis));
-        }
 
         // Current requirement being analyzed
         private Requirement? _currentRequirement;
