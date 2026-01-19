@@ -20,9 +20,15 @@
             <!-- Register converters here so they're available app-wide -->
             <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
             <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" CollapseWhenFalse="True" />
+            <conv:BoolToVisibilityConverter x:Key="BoolToVis" CollapseWhenFalse="True" />
             <conv:InvertedBoolToVisibilityConverter x:Key="InvertedBoolToVis" />
+            <conv:InvertBoolConverter x:Key="InvertBoolConverter" />
             <conv:AddOneConverter x:Key="AddOneConverter" />
             <conv:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+            <conv:NullToVisibilityConverter x:Key="NullToCollapsedConverter" />
+            <conv:EmptyStringToCollapsedConverter x:Key="EmptyStringToCollapsedConverter" />
+            <conv:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
+            <conv:ZeroToVisibilityConverter x:Key="ZeroToVisibleConverter" Invert="True" />
             <conv:AnalysisStatusToColorConverter x:Key="AnalysisStatusToColorConverter" />
             <conv:AnalysisStatusToTextConverter x:Key="AnalysisStatusToTextConverter" />
             <conv:ProgressToWidthConverter x:Key="ProgressToWidthConverter" />
