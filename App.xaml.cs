@@ -369,10 +369,9 @@ namespace TestCaseEditorApp
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel>>();
                         var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
                         var toastNotificationService = provider.GetRequiredService<ToastNotificationService>();
-                        var jamaConnectService = provider.GetRequiredService<JamaConnectService>();
                         
                         return new TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel(
-                            newProjectMediator, logger, anythingLLMService, toastNotificationService, jamaConnectService);
+                            newProjectMediator, logger, anythingLLMService, toastNotificationService);
                     });
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectHeaderViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.DummyNewProjectTitleViewModel>();
@@ -404,12 +403,13 @@ namespace TestCaseEditorApp
                         var smartImporter = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.SmartRequirementImporter>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
                         var workspaceValidationService = provider.GetRequiredService<IWorkspaceValidationService>();
+                        var jamaConnectService = provider.GetRequiredService<JamaConnectService>();
                         var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
                         var eventReplay = provider.GetService<EventReplayService>();
                         
                         return new NewProjectMediator(logger, uiCoordinator, persistenceService, 
                             fileDialogService, anythingLLMService, notificationService, requirementService,
-                            smartImporter, testCaseGenerationMediator, workspaceValidationService, performanceMonitor, eventReplay);
+                            smartImporter, testCaseGenerationMediator, workspaceValidationService, jamaConnectService, performanceMonitor, eventReplay);
                     });
 
                     // === OPEN PROJECT DOMAIN ===

@@ -211,6 +211,28 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         /// Clears draft project information when project is created or cancelled.
         /// </summary>
         void ClearDraftProjectInfo();
+        
+        // ===== JAMA CONNECT INTEGRATION =====
+        
+        /// <summary>
+        /// Test connection to Jama Connect service
+        /// </summary>
+        Task<(bool Success, string Message)> TestJamaConnectionAsync();
+        
+        /// <summary>
+        /// Get available Jama projects
+        /// </summary>
+        Task<List<JamaProject>> GetJamaProjectsAsync();
+        
+        /// <summary>
+        /// Get requirements from a specific Jama project
+        /// </summary>
+        Task<List<Requirement>> GetJamaRequirementsAsync(int projectId);
+        
+        /// <summary>
+        /// Import requirements from Jama and create temporary file
+        /// </summary>
+        Task<string> ImportJamaRequirementsAsync(int projectId, string projectName, string projectKey);
     }
     
     /// <summary>

@@ -121,8 +121,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 _workspaceManagementMediator,
                 logger,
                 _applicationServices.AnythingLLMService, 
-                _applicationServices.ToastService,
-                _applicationServices.JamaConnectService);
+                _applicationServices.ToastService);
             
             return workflowViewModel;
         }

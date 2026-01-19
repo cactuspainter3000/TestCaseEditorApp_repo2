@@ -206,9 +206,9 @@
                 </Border>
             </StackPanel>
 
-            <!-- Step 2: Import from Jama -->
+            <!-- Step 2: Import Requirements (Method 1) - From Jama Connect -->
             <StackPanel Grid.Row="1" Margin="0,0,0,15">
-                <TextBlock Text="Import from Jama" 
+                <TextBlock Text="Import Requirements - From Jama Connect" 
                            FontSize="18" 
                            FontWeight="SemiBold" 
                            Foreground="DarkOrange" 
@@ -455,9 +455,9 @@
                 </Border>
             </StackPanel>
 
-            <!-- Step 3: Select Requirements -->
+            <!-- Step 3: Import Requirements (Method 2) - From Document -->
             <StackPanel Grid.Row="2" Margin="0,0,0,15">
-                <TextBlock Text="Select Requirements" 
+                <TextBlock Text="Import Requirements - From Document" 
                            FontSize="18" 
                            FontWeight="SemiBold" 
                            Foreground="DarkOrange" 
@@ -480,7 +480,7 @@
                     </Border.Style>
                     <Grid>
                         <StackPanel>
-                            <TextBlock Text="Select the Word document containing your requirements." 
+                            <TextBlock Text="Select a Word document containing your requirements. This is an alternative to importing from Jama Connect above." 
                                    Foreground="#CCCCCC" 
                                    TextWrapping="Wrap" 
                                    Margin="0,0,0,15"

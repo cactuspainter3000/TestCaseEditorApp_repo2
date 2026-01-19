@@ -300,10 +300,22 @@ namespace TestCaseEditorApp.Services
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Raw JSON response (first 1000 chars): {json.Substring(0, Math.Min(json.Length, 1000))}");
+                    
                     var result = JsonSerializer.Deserialize<JamaProjectsResponse>(json, new JsonSerializerOptions 
                     { 
                         PropertyNameCaseInsensitive = true 
                     });
+                    
+                    // Log the first few projects to see what data is actually being mapped
+                    if (result?.Data?.Any() == true)
+                    {
+                        for (int i = 0; i < Math.Min(3, result.Data.Count); i++)
+                        {
+                            var p = result.Data[i];
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Project {i}: Id={p.Id}, Name='{p.Name}', Key='{p.Key}', Desc='{p.Description}'");
+                        }
+                    }
                     
                     return result?.Data ?? new List<JamaProject>();
                 }
@@ -398,9 +410,27 @@ namespace TestCaseEditorApp.Services
     public class JamaProject
     {
         public int Id { get; set; }
+        public string ProjectKey { get; set; } = "";
+        public bool IsFolder { get; set; }
+        public string CreatedDate { get; set; } = "";
+        public string ModifiedDate { get; set; } = "";
+        public int CreatedBy { get; set; }
+        public int ModifiedBy { get; set; }
+        public JamaProjectFields? Fields { get; set; }
+        public string Type { get; set; } = "";
+        
+        // Convenience properties for UI binding
+        public string Name => Fields?.Name ?? "";
+        public string Key => ProjectKey;
+        public string Description => Fields?.Description ?? "";
+    }
+    
+    public class JamaProjectFields
+    {
         public string Name { get; set; } = "";
-        public string Key { get; set; } = "";
         public string Description { get; set; } = "";
+        public string ProjectKey { get; set; } = "";
+        public string Text1 { get; set; } = "";
     }
 
     public class JamaItemsResponse
