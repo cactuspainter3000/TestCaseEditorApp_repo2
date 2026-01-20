@@ -136,6 +136,17 @@ namespace TestCaseEditorApp.Services
         {
             var previousTitle = _title;
             
+            // Always ensure we have current project name when updating title
+            if (string.IsNullOrWhiteSpace(_currentProject) && _coordinator?.WorkspaceManagement != null)
+            {
+                var workspaceInfo = _coordinator.WorkspaceManagement.GetCurrentWorkspaceInfo();
+                if (workspaceInfo != null && !string.IsNullOrWhiteSpace(workspaceInfo.Name))
+                {
+                    _currentProject = workspaceInfo.Name;
+                    _logger?.LogDebug("NavigationService: Auto-restored project name during title update: {ProjectName}", _currentProject);
+                }
+            }
+            
             // Map section codes to proper display names
             string sectionName = _currentSection.ToLower() switch
             {
@@ -166,6 +177,8 @@ namespace TestCaseEditorApp.Services
         public void NavigateToSection(string section, string? context = null)
         {
             _currentSection = section;
+            // Only update project context if explicitly provided
+            // Preserve existing project name when context is null
             if (context != null)
             {
                 _currentProject = context;
