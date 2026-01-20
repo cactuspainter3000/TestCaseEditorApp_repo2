@@ -116,13 +116,14 @@ namespace TestCaseEditorApp.Services
                     _logger?.LogInformation("NavigationService: Section changed to: {Section}", e.NewSection);
                     _currentSection = e.NewSection ?? "TestCase";
                     
-                    // Get current project name if available for context
-                    if (_currentProject == null)
+                    // Always ensure we have the current project name when sections change
+                    if (string.IsNullOrWhiteSpace(_currentProject))
                     {
                         var workspaceInfo = _coordinator.WorkspaceManagement?.GetCurrentWorkspaceInfo();
                         if (workspaceInfo != null && !string.IsNullOrWhiteSpace(workspaceInfo.Name))
                         {
                             _currentProject = workspaceInfo.Name;
+                            _logger?.LogDebug("NavigationService: Restored project name on section change: {ProjectName}", _currentProject);
                         }
                     }
                     
