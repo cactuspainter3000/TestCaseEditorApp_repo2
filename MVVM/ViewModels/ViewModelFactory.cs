@@ -241,5 +241,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             var logger = loggerFactory?.CreateLogger<DefaultNotificationViewModel>();
             return new DefaultNotificationViewModel(logger);
         }
+
+        public TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel CreateNotificationWorkspaceViewModel()
+        {
+            return _applicationServices.ServiceProvider?.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>() 
+                ?? throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
+        }
     }
 }

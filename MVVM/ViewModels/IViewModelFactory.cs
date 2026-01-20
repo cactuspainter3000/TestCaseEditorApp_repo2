@@ -44,6 +44,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         NotificationAreaViewModel CreateNotificationAreaViewModel();
         DefaultNotificationViewModel CreateDefaultNotificationViewModel();
         
+        // Domain-specific notification VM - replaces legacy TestCaseGeneratorNotificationViewModel
+        TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel CreateNotificationWorkspaceViewModel();
+        
         // Domain ViewModels (proper DI approach)
         // WorkspaceManagementViewModel removed - use WorkspaceProjectViewModel instead
         ChatGptExportAnalysisViewModel CreateChatGptExportAnalysisViewModel();

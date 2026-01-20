@@ -10,9 +10,19 @@ using TestCaseEditorApp.MVVM.ViewModels;
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
     /// <summary>
-    /// Domain-specific notification ViewModel for Test Case Generator
+    /// [DEPRECATED] Domain-specific notification ViewModel for Test Case Generator
     /// Shows AnythingLLM status and requirements progress when Test Case Generator is active
+    /// 
+    /// ⚠️ LEGACY CODE: This ViewModel violates the proper domain architecture.
+    /// Please use TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel instead.
+    /// 
+    /// MIGRATION PATH:
+    /// 1. Use NotificationMediator.UpdateLlmStatus() for LLM status updates
+    /// 2. Use NotificationMediator.UpdateRequirementsProgress() for progress updates  
+    /// 3. Use NotificationMediator.UpdateCurrentRequirement() for requirement selection
+    /// 4. Update MainWindow.xaml DataTemplate to use NotificationWorkspaceViewModel
     /// </summary>
+    [Obsolete("Use NotificationWorkspaceViewModel from Notification domain instead. This class violates domain boundaries.", false)]
     public partial class TestCaseGeneratorNotificationViewModel : BaseDomainViewModel, IDisposable
     {
 

@@ -23,6 +23,7 @@
         xmlns:projviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Project.Views"
         xmlns:sharedvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Shared.ViewModels"
         xmlns:sharedviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Shared.Views"
+        xmlns:notificationvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Notification.ViewModels"
         xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models"
         xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
         Height="665" Width="1200"
@@ -89,11 +90,12 @@
             </Border>
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGeneratorNotificationViewModel}">
-            <!-- Test Case Generator notification area layout -->
+        <DataTemplate DataType="{x:Type notificationvm:NotificationWorkspaceViewModel}">
+            <!-- Notification workspace layout - Domain-agnostic notification display -->
             <Border Background="#222222" 
                     Padding="10,4"
-                    Height="28">
+                    Height="28"
+                    Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -102,13 +104,13 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     
-                    <!-- AnythingLLM Status -->
+                    <!-- LLM Status -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal">
                         <Ellipse Width="8" Height="8" 
-                                Fill="{Binding AnythingLlmStatusColor}" 
+                                Fill="{Binding LlmStatusColor}" 
                                 VerticalAlignment="Center" 
                                 Margin="0,0,6,0"/>
-                        <TextBlock Text="{Binding AnythingLlmStatusText}" 
+                        <TextBlock Text="{Binding LlmStatusText}" 
                                   FontSize="11" 
                                   Foreground="#BBBBBB" 
                                   VerticalAlignment="Center"/>

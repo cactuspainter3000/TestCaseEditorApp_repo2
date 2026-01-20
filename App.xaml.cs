@@ -348,6 +348,12 @@ namespace TestCaseEditorApp
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_TitleViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_NotificationViewModel>();
                     
+                    // === NOTIFICATION DOMAIN REGISTRATION ===
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator, TestCaseEditorApp.MVVM.Domains.Notification.Mediators.NotificationMediator>();
+                    
+                    // Notification domain ViewModels
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
+                    
                     // NewProject domain ViewModels - using proper domain ViewModels
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel>(provider =>
                     {
@@ -375,7 +381,7 @@ namespace TestCaseEditorApp
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_NavigationVM>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_HeaderVM>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>();
+                    // DEPRECATED: TestCaseGeneratorNotificationViewModel - use NotificationWorkspaceViewModel instead
 
                     services.AddSingleton<INewProjectMediator>(provider =>
                     {
