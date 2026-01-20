@@ -59,14 +59,7 @@
                     <TextBlock Text="{Binding RequirementsProgressText}" 
                               FontSize="11" 
                               Foreground="#BBBBBB" 
-                              VerticalAlignment="Center"
-                              Margin="0,0,8,0"/>
-                    <ProgressBar Width="60" Height="4" 
-                                VerticalAlignment="Center"
-                                Value="{Binding RequirementsProgress}"
-                                Maximum="100"
-                                Background="#333333"
-                                Foreground="#51CF66"/>
+                              VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
         </Border>
