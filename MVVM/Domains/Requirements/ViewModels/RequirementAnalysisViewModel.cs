@@ -34,6 +34,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
     {
         private readonly IRequirementAnalysisEngine _analysisEngine;
         private readonly ILogger<RequirementAnalysisViewModel> _logger;
+        private readonly TestCaseEditorApp.Services.IEditDetectionService? _editDetectionService;
+        private readonly TestCaseEditorApp.Services.ILLMLearningService? _learningService;
         private CancellationTokenSource? _analysisCancellation;
 
         // Timer for tracking analysis duration
@@ -43,6 +45,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         // Smart clipboard functionality
         private System.Windows.Threading.DispatcherTimer? _clipboardMonitorTimer;
         private string _lastClipboardContent = string.Empty;
+        private string? _pendingExternalAnalysis;
         private bool _isWaitingForExternalResponse;
 
         // UI State Properties  
@@ -163,10 +166,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         public RequirementAnalysisViewModel(
             IRequirementAnalysisEngine analysisEngine,
-            ILogger<RequirementAnalysisViewModel> logger)
+            ILogger<RequirementAnalysisViewModel> logger,
+            TestCaseEditorApp.Services.IEditDetectionService? editDetectionService = null,
+            TestCaseEditorApp.Services.ILLMLearningService? learningService = null)
         {
             _analysisEngine = analysisEngine ?? throw new ArgumentNullException(nameof(analysisEngine));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _editDetectionService = editDetectionService;
+            _learningService = learningService;
 
             // Initialize commands
             AnalyzeRequirementCommand = new AsyncRelayCommand(AnalyzeRequirementAsync, CanAnalyzeRequirement);
@@ -412,6 +419,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             EditingRequirementText = string.Empty;
             IsEditingRequirement = false;
+            
+            // Clear any pending external analysis since edit was cancelled
+            _pendingExternalAnalysis = null;
+            
             _logger.LogDebug("[RequirementAnalysisVM] Cancelled requirement editing");
         }
 
@@ -427,11 +438,34 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             if (CurrentRequirement?.Analysis != null && !string.IsNullOrWhiteSpace(EditingRequirementText))
             {
-                CurrentRequirement.Analysis.ImprovedRequirement = EditingRequirementText.Trim();
-                ImprovedRequirement = EditingRequirementText.Trim();
+                var newImprovedText = EditingRequirementText.Trim();
+                var originalImprovedText = CurrentRequirement.Analysis.ImprovedRequirement ?? string.Empty;
+                
+                // Update the improved requirement
+                CurrentRequirement.Analysis.ImprovedRequirement = newImprovedText;
+                ImprovedRequirement = newImprovedText;
                 HasImprovedRequirement = true;
+                
+                // Check for learning feedback if we have significant changes
+                if (newImprovedText != originalImprovedText)
+                {
+                    // If this was from external analysis, use the external learning workflow
+                    if (!string.IsNullOrWhiteSpace(_pendingExternalAnalysis))
+                    {
+                        _ = FeedLearningToAnythingLLM(_pendingExternalAnalysis);
+                        _pendingExternalAnalysis = null; // Clear after processing
+                    }
+                    else
+                    {
+                        // Regular text edit detection
+                        _ = CheckForLearningFeedbackAsync(originalImprovedText, newImprovedText, "improved requirement");
+                    }
+                }
+                
                 IsEditingRequirement = false;
-                _logger.LogDebug("[RequirementAnalysisVM] Saved edited requirement");
+                EditingRequirementText = string.Empty;
+                
+                _logger.LogInformation("[RequirementAnalysisVM] Saved edited requirement text");
             }
         }
 
@@ -734,7 +768,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 {
                     EditingRequirementText = improvedText;
                     IsEditingRequirement = true;
-                    _logger.LogInformation("[RequirementAnalysisVM] Extracted improved requirement from clipboard");
+                    
+                    // Store the external analysis for learning feedback when user saves
+                    _pendingExternalAnalysis = clipboardContent;
+                    
+                    _logger.LogInformation("[RequirementAnalysisVM] Extracted improved requirement from clipboard - learning will trigger on save");
                 }
 
                 // Reset UI state
@@ -782,6 +820,112 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
             
             return string.Empty;
+        }
+
+        /// <summary>
+        /// Check if user edit should trigger learning feedback
+        /// </summary>
+        private async Task CheckForLearningFeedbackAsync(string originalText, string editedText, string context)
+        {
+            try
+            {
+                _logger.LogDebug("[RequirementAnalysisVM] CheckForLearningFeedbackAsync called - Original: '{Original}', Edited: '{Edited}', Context: '{Context}'", 
+                    originalText, editedText, context);
+                
+                // Skip if either text is empty
+                if (string.IsNullOrWhiteSpace(originalText) || string.IsNullOrWhiteSpace(editedText))
+                {
+                    _logger.LogDebug("[RequirementAnalysisVM] Original or edited text is empty - learning feedback skipped");
+                    return;
+                }
+
+                // Get EditDetectionService - should be injected via DI
+                if (_editDetectionService == null)
+                {
+                    _logger.LogWarning("[RequirementAnalysisVM] EditDetectionService not injected - check DI registration chain");
+                    return;
+                }
+
+                _logger.LogDebug("[RequirementAnalysisVM] Calling EditDetectionService.ProcessTextEditAsync");
+                // Trigger learning feedback detection
+                await _editDetectionService.ProcessTextEditAsync(originalText, editedText, context);
+                _logger.LogDebug("[RequirementAnalysisVM] EditDetectionService.ProcessTextEditAsync completed");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementAnalysisVM] Error checking for learning feedback");
+            }
+        }
+
+        /// <summary>
+        /// Feed learning data to AnythingLLM system for external LLM integration
+        /// </summary>
+        private async Task FeedLearningToAnythingLLM(string learningData)
+        {
+            try
+            {
+                if (_learningService == null)
+                {
+                    _logger.LogInformation("[RequirementAnalysisVM] LLM learning service not available - skipping learning feedback");
+                    return;
+                }
+
+                var requirement = CurrentRequirement;
+                if (requirement == null)
+                {
+                    _logger.LogWarning("[RequirementAnalysisVM] No current requirement for learning feedback");
+                    return;
+                }
+
+                // Check if learning service is available
+                if (!await _learningService.IsLearningFeedbackAvailableAsync())
+                {
+                    _logger.LogWarning("[RequirementAnalysisVM] Learning feedback not available");
+                    return;
+                }
+
+                // Extract texts for comparison
+                var originalText = requirement.Description;
+                var externalLLMText = ExtractImprovedRequirementFromResponse(learningData);
+                
+                if (string.IsNullOrWhiteSpace(externalLLMText))
+                {
+                    _logger.LogWarning("[RequirementAnalysisVM] Could not extract refined requirement from external LLM response");
+                    return;
+                }
+
+                // Use the same consent workflow as manual edits
+                var (userConsent, feedback) = await _learningService.PromptUserForLearningConsentAsync(
+                    originalText, externalLLMText, 100.0); // External LLM changes considered 100% change
+
+                if (userConsent && feedback != null)
+                {
+                    // Populate additional context for external LLM integration
+                    feedback.RequirementId = requirement.Item;
+                    feedback.OriginalRequirement = originalText;
+                    feedback.FeedbackCategory = "External LLM Integration";
+                    feedback.Context = "Learning from external LLM analysis and user acceptance";
+                    feedback.UserComments = "User accepted external LLM analysis via clipboard paste";
+
+                    var success = await _learningService.SendLearningFeedbackAsync(feedback);
+                    if (success)
+                    {
+                        _logger.LogInformation("[RequirementAnalysisVM] Learning feedback sent successfully for requirement {RequirementId}", requirement.Item);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("[RequirementAnalysisVM] Failed to send learning feedback for requirement {RequirementId}", requirement.Item);
+                    }
+                }
+                else
+                {
+                    _logger.LogInformation("[RequirementAnalysisVM] User declined to send learning feedback for external LLM integration");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementAnalysisVM] Failed to send learning data to AnythingLLM");
+            }
         }
 
         /// <summary>

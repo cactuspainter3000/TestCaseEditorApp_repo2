@@ -106,7 +106,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 var analysisLogger = App.ServiceProvider?.GetService<ILogger<RequirementAnalysisViewModel>>() ?? 
                     new LoggerFactory().CreateLogger<RequirementAnalysisViewModel>();
                 
-                RequirementAnalysisVM = new RequirementAnalysisViewModel(analysisEngine, analysisLogger);
+                // Include learning services for proper LLM learning functionality
+                var editDetectionService = App.ServiceProvider?.GetService<TestCaseEditorApp.Services.IEditDetectionService>();
+                var learningService = App.ServiceProvider?.GetService<TestCaseEditorApp.Services.ILLMLearningService>();
+                
+                RequirementAnalysisVM = new RequirementAnalysisViewModel(analysisEngine, analysisLogger, editDetectionService, learningService);
             }
             else
             {
