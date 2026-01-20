@@ -255,16 +255,40 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.ViewModels
             _logger?.LogInformation("Notification workspace reset to defaults");
         }
 
+        // ===== BASE DOMAIN VIEWMODEL IMPLEMENTATIONS =====
+        // Notification ViewModels don't need save/cancel/refresh operations
+        
+        protected override bool CanSave() => false; // No save operations for notifications
+        protected override bool CanCancel() => false; // No cancel operations for notifications
+        protected override bool CanRefresh() => true; // Can refresh status
+        
+        protected override async Task SaveAsync()
+        {
+            // No save operation needed for notification display
+            await Task.CompletedTask;
+        }
+        
+        protected override void Cancel()
+        {
+            // No cancel operation needed for notification display
+
+        }
+        
+        protected override async Task RefreshAsync()
+        {
+            // Refresh by resetting to defaults and requesting current status from all domains
+            ResetToDefaults();
+            _logger?.LogInformation("Notification workspace refreshed");
+            await Task.CompletedTask;
+        }
+
         /// <summary>
         /// Clean up resources
         /// </summary>
-        protected override void Dispose(bool disposing)
+        public override void Dispose()
         {
-            if (disposing)
-            {
-                _logger?.LogDebug("NotificationWorkspaceViewModel disposing");
-            }
-            base.Dispose(disposing);
+            _logger?.LogDebug("NotificationWorkspaceViewModel disposing");
+            base.Dispose();
         }
     }
 }

@@ -4,10 +4,10 @@ using System.Collections.Generic;
 namespace TestCaseEditorApp.MVVM.Domains.Notification.Events
 {
     /// <summary>
-    /// Domain events for the Notification system
+    /// Domain event container for the Notification system
     /// Handles cross-domain status updates and progress tracking
     /// </summary>
-    public static class NotificationEvents
+    public class NotificationEvents
     {
         /// <summary>
         /// Event for LLM connection status changes

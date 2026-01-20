@@ -145,16 +145,21 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.Mediators
             base.MarkAsRegistered();
         }
 
+        // ===== NAVIGATION METHODS (Required by BaseDomainMediator) =====
+        // Notification domain doesn't need navigation, so these are no-ops
+        
+        public override bool CanNavigateBack() => false;
+        public override bool CanNavigateForward() => false;
+        public override void NavigateToInitialStep() { } // No-op - always at "initial" state
+        public override void NavigateToFinalStep() { } // No-op - always at "final" state
+
         /// <summary>
         /// Clean up resources
         /// </summary>
-        protected override void Dispose(bool disposing)
+        public override void Dispose()
         {
-            if (disposing)
-            {
-                _logger.LogDebug("NotificationMediator disposing");
-            }
-            base.Dispose(disposing);
+            _logger.LogDebug("NotificationMediator disposing");
+            base.Dispose();
         }
     }
 }

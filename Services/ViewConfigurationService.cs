@@ -37,7 +37,7 @@ namespace TestCaseEditorApp.Services
         // Cached view models - created once and reused
         private WorkspaceHeaderViewModel? _workspaceHeader;
         private TestCaseGenerator_HeaderVM? _testCaseGeneratorHeader;
-        private TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel? _testCaseGeneratorNotification;
+        private TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel? _notificationWorkspace;
         private object? _testCaseCreationContent;
         
         // Cached navigation views - critical for idempotency
@@ -348,7 +348,7 @@ namespace TestCaseEditorApp.Services
                 sectionName: "Import",
                 headerViewModel: _workspaceHeader,
                 contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Import Requirements"),
-                notificationViewModel: EnsureTestCaseGeneratorNotification(), // FIX: Use Test Case Generator notification for Requirements Import
+                notificationViewModel: EnsureNotificationWorkspace(), // FIX: Use proper Notification domain for Requirements Import
                 context: context
             );
         }
@@ -621,15 +621,15 @@ namespace TestCaseEditorApp.Services
                 ?? throw new InvalidOperationException("TitleViewModel not initialized in TestCaseGenerationMediator");
         }
 
-        private TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel EnsureTestCaseGeneratorNotification()
+        private TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel EnsureNotificationWorkspace()
         {
-            if (_testCaseGeneratorNotification == null)
+            if (_notificationWorkspace == null)
             {
                 // Get the notification ViewModel from the service provider
-                _testCaseGeneratorNotification = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>()
-                    ?? throw new InvalidOperationException("TestCaseGeneratorNotificationViewModel not registered in DI container");
+                _notificationWorkspace = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>()
+                    ?? throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
             }
-            return _testCaseGeneratorNotification;
+            return _notificationWorkspace;
         }
 
         /// <summary>
