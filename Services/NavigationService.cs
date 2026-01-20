@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
+using TestCaseEditorApp.MVVM.Domains.OpenProject.Events;
 using TestCaseEditorApp.MVVM.Utils;
 
 namespace TestCaseEditorApp.Services
@@ -90,7 +91,13 @@ namespace TestCaseEditorApp.Services
             if (_coordinator?.WorkspaceManagement != null)
             {
                 _coordinator.WorkspaceManagement.Subscribe<NewProjectEvents.ProjectOpened>(e => {
-                    _logger?.LogInformation("NavigationService: Project opened: {ProjectName}", e.WorkspaceName);
+                    _logger?.LogInformation("NavigationService: NewProject opened: {ProjectName}", e.WorkspaceName);
+                    _currentProject = e.WorkspaceName;
+                    UpdateCurrentTitle();
+                });
+                
+                _coordinator.WorkspaceManagement.Subscribe<OpenProjectEvents.ProjectOpened>(e => {
+                    _logger?.LogInformation("NavigationService: OpenProject opened: {ProjectName}", e.WorkspaceName);
                     _currentProject = e.WorkspaceName;
                     UpdateCurrentTitle();
                 });
