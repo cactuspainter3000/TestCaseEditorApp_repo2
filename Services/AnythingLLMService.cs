@@ -956,6 +956,77 @@ CRITICAL: The IMPROVED REQUIREMENT should use [brackets] when information is mis
         }
 
         /// <summary>
+        /// Uploads RAG training documents with scoring instructions to a workspace
+        /// </summary>
+        public async Task<bool> UploadRagTrainingDocumentsAsync(string slug, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Uploading RAG training documents to workspace '{slug}'");
+                
+                // Get the base directory (same logic as optimization guide)
+                var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                var binParent = Directory.GetParent(baseDir); // bin folder
+                var outputParent = binParent?.Parent; // Debug folder parent
+                var projectRoot = outputParent?.Parent?.FullName; // Project root
+                var configDir = !string.IsNullOrEmpty(projectRoot) 
+                    ? Path.Combine(projectRoot, "Config")
+                    : Path.Combine(baseDir, "Config");
+                
+                // RAG documents to upload
+                var ragDocuments = new[]
+                {
+                    "RAG-JSON-Schema-Training.md",
+                    "RAG-Learning-Examples.md",
+                    "RAG-Optimization-Summary.md"
+                };
+                
+                bool allUploadsSuccessful = true;
+                
+                foreach (var docName in ragDocuments)
+                {
+                    var docPath = Path.Combine(configDir, docName);
+                    
+                    if (!File.Exists(docPath))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] RAG document not found at: {docPath}");
+                        allUploadsSuccessful = false;
+                        continue;
+                    }
+                    
+                    var docContent = await File.ReadAllTextAsync(docPath, cancellationToken);
+                    var uploadSuccess = await UploadDocumentAsync(slug, docName, docContent, cancellationToken);
+                    
+                    if (uploadSuccess)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Successfully uploaded RAG document: {docName}");
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Failed to upload RAG document: {docName}");
+                        allUploadsSuccessful = false;
+                    }
+                }
+                
+                if (allUploadsSuccessful)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Successfully uploaded all RAG training documents to workspace '{slug}'");
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Some RAG training documents failed to upload to workspace '{slug}'");
+                }
+                
+                return allUploadsSuccessful;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error uploading RAG training documents to workspace '{slug}'");
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Uploads a document with specified name and content to a workspace using proper AnythingLLM protocol
         /// </summary>
         public async Task<bool> UploadDocumentAsync(string slug, string documentName, string content, CancellationToken cancellationToken = default)
@@ -1345,6 +1416,16 @@ CRITICAL: The IMPROVED REQUIREMENT should use [brackets] when information is mis
                 if (!uploadResult)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Failed to upload optimization guide for workspace '{workspaceName}', but continuing...");
+                    configurationSuccessful = false;
+                }
+
+                onProgress?.Invoke("Uploading RAG training documents...");
+
+                // Step 4: Upload RAG training documents with scoring instructions
+                var ragUploadResult = await UploadRagTrainingDocumentsAsync(workspace.Slug, cancellationToken);
+                if (!ragUploadResult)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Failed to upload RAG training documents for workspace '{workspaceName}', but continuing...");
                     configurationSuccessful = false;
                 }
 

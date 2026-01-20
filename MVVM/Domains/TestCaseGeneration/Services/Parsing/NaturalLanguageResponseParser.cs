@@ -55,14 +55,19 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
                 {
                     var trimmed = line.Trim();
                     
-                    // Parse quality score - handle markdown formatting like **QUALITY SCORE: **55**
+                    // Parse quality score - handle both old and new formats
                     if (trimmed.ToUpper().StartsWith("QUALITY") || trimmed.ToUpper().StartsWith("SCORE") || 
-                        (trimmed.ToUpper().Contains("QUALITY") && trimmed.ToUpper().Contains("SCORE")))
+                        trimmed.ToUpper().StartsWith("ORIGINAL") ||
+                        (trimmed.ToUpper().Contains("QUALITY") && trimmed.ToUpper().Contains("SCORE")) ||
+                        (trimmed.ToUpper().Contains("ORIGINAL") && trimmed.ToUpper().Contains("REQUIREMENT") && trimmed.ToUpper().Contains("QUALITY")))
                     {
                         // Match patterns like "55", "**55**", "SCORE: 55", etc.
                         var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"\**(\d+)\**");
                         if (match.Success && int.TryParse(match.Groups[1].Value, out int score))
                         {
+                            // DEBUG: Log exactly what we're parsing as the original score
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[{ParserName}Parser] DEBUG SCORE PARSING - Setting OriginalQualityScore to {score} from line: '{trimmed}' - This should be the USER's original requirement score, NOT the LLM's improved score!");
+                            
                             analysis.OriginalQualityScore = Math.Max(1, Math.Min(10, score));
                             TestCaseEditorApp.Services.Logging.Log.Debug($"[{ParserName}Parser] Parsed quality score: {score} from line: '{trimmed}'");
                         }

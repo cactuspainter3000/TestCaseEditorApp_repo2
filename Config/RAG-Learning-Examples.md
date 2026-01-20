@@ -2,26 +2,33 @@
 
 This document contains training examples to optimize AnythingLLM's RAG system for requirement analysis and test case generation.
 
+## 🚨 CRITICAL SCORING INSTRUCTION 
+
+**ALWAYS rate the ORIGINAL requirement quality, not your improved version!**
+- Most real-world requirements have quality issues (scores 3-7 are normal)
+- Perfect 10/10 scores should be rare and only for truly excellent original requirements
+- Be honest about original requirement quality to help users improve their writing
+
 ## Requirement Analysis Examples
 
 ### GOOD Requirements
 
-**Example 1: Clear and Testable**
+**Example 1: Clear and Testable (Well-Written Original)**
 ```
 DECAGON-REQ_RC-5: The Test System shall perform Tier 1 Boundary Scan coverage, defined as direct JTAG interface access to 95% or more of UUT interconnected nodes, within 30 seconds of test initiation.
 
-Quality Score: 9/10
+ORIGINAL Quality Score: 9/10
 - Clear scope: Boundary scan coverage
 - Measurable criteria: 95% coverage threshold  
 - Specific timeframe: 30 seconds
 - Testable: Can verify coverage percentage and timing
 ```
 
-**Example 2: Specific and Actionable**
+**Example 2: Specific and Actionable (Excellent Original)**
 ```
 SYS-REQ-042: The system shall detect input voltage variations exceeding ±5% of nominal 28VDC and generate a fault signal within 100 milliseconds of detection.
 
-Quality Score: 10/10
+ORIGINAL Quality Score: 10/10
 - Precise thresholds: ±5% of 28VDC
 - Clear action: Generate fault signal
 - Timing constraint: 100ms response time
@@ -34,29 +41,43 @@ Quality Score: 10/10
 ```
 SYS-REQ-013: The system shall provide user-friendly operation.
 
-Quality Score: 2/10
-Issues:
+ORIGINAL Quality Score: 2/10
+Issues in Original:
 - "User-friendly" is subjective and unmeasurable
 - No specific criteria or metrics
 - Cannot determine pass/fail conditions
 - Missing operational context
 
-Improved Version: "The system shall complete standard user workflows (power-on, configuration, test execution) with no more than 3 button presses per workflow and provide visual feedback within 2 seconds of each user action."
+Improved Version (would score 8/10): "The system shall complete standard user workflows (power-on, configuration, test execution) with no more than 3 button presses per workflow and provide visual feedback within 2 seconds of each user action."
 ```
 
 **Example 2: Multiple Requirements in One**
 ```
 COMM-REQ-008: The communication interface shall support Ethernet and RS-485 protocols and be backwards compatible.
 
-Quality Score: 3/10
-Issues:
+ORIGINAL Quality Score: 3/10
+Issues in Original:
 - Multiple protocols in single requirement (violates atomicity)
 - "Backwards compatible" is vague
 - Missing performance specifications
 
-Improved Version: Split into separate requirements:
+Improved Version (would score 7/10): Split into separate requirements:
 - "COMM-REQ-008A: The communication interface shall support Ethernet 10/100 Mbps communication according to IEEE 802.3 standards."
 - "COMM-REQ-008B: The communication interface shall support RS-485 communication at 9600-115200 baud rates according to TIA-485-A standards."
+```
+
+**Example 3: Common Real-World Quality Levels**
+```
+TEST-REQ-045: The system should work fast and be reliable.
+
+ORIGINAL Quality Score: 4/10
+Issues in Original:
+- "Fast" and "reliable" are not quantified
+- No measurable performance criteria
+- "Should" is weak requirement language
+- Missing context for operations
+
+Improved Version (would score 9/10): "The TEST system shall complete each automated test sequence within 15 seconds with a mean time between failures (MTBF) of at least 1000 hours under normal operating conditions."
 ```
 
 ## Test Case Generation Examples

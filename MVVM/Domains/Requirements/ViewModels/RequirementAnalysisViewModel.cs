@@ -314,6 +314,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _logger.LogInformation("[RequirementAnalysisVM] UpdateUIFromAnalysis called with OriginalQualityScore: {OriginalScore}, ImprovedQualityScore: {ImprovedScore}", 
                 analysis.OriginalQualityScore, analysis.ImprovedQualityScore);
             
+            // DEBUG: Log the actual analysis object properties to see what we're getting
+            _logger.LogWarning("[RequirementAnalysisVM] DEBUG SCORE INVESTIGATION - OriginalQualityScore: {Original}, ImprovedQualityScore: {Improved}, Legacy QualityScore property: {Legacy}",
+                analysis.OriginalQualityScore, analysis.ImprovedQualityScore, analysis.QualityScore);
+            
             HasAnalysis = true;
             
             // Ensure we're showing the ORIGINAL requirement score, not the LLM's self-rated improved score

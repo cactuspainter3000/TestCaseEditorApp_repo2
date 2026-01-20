@@ -77,6 +77,22 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             // Clear cached workspace slug when context changes
             _currentWorkspaceSlug = null;
             TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Workspace context set to: {workspaceName ?? "<none>"}");
+            
+            // Auto-sync RAG documents if workspace context is set (project opened)
+            if (!string.IsNullOrEmpty(workspaceName))
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await EnsureRagDocumentsAreSyncedAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] Failed to auto-sync RAG documents: {ex.Message}");
+                    }
+                });
+            }
         }
 
         /// <summary>
@@ -1320,6 +1336,151 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         }
 
         /// <summary>
+        /// Ensures RAG training documents are synced with the current workspace.
+        /// Automatically detects if local RAG documents are newer and re-uploads if needed.
+        /// </summary>
+        private async Task EnsureRagDocumentsAreSyncedAsync(CancellationToken cancellationToken = default)
+        {
+            if (_anythingLLMService == null || string.IsNullOrEmpty(_projectWorkspaceName))
+            {
+                return;
+            }
+
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[RAG Sync] Checking if RAG documents need sync for workspace: {_projectWorkspaceName}");
+
+                // Get or create the workspace slug
+                var workspaceSlug = await EnsureWorkspaceConfiguredAsync(null, cancellationToken);
+                if (string.IsNullOrEmpty(workspaceSlug))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG Sync] Could not get workspace slug for: {_projectWorkspaceName}");
+                    return;
+                }
+
+                // Check if RAG documents need updating
+                if (await ShouldUpdateRagDocumentsAsync(workspaceSlug, cancellationToken))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[RAG Sync] RAG documents are outdated, uploading updates...");
+                    
+                    var uploadSuccess = await _anythingLLMService.UploadRagTrainingDocumentsAsync(workspaceSlug, cancellationToken);
+                    if (uploadSuccess)
+                    {
+                        await UpdateRagSyncTimestampAsync(workspaceSlug);
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[RAG Sync] Successfully synced RAG documents for workspace: {_projectWorkspaceName}");
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG Sync] Failed to upload RAG documents for workspace: {_projectWorkspaceName}");
+                    }
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[RAG Sync] RAG documents are up-to-date for workspace: {_projectWorkspaceName}");
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[RAG Sync] Error during RAG document sync for workspace: {_projectWorkspaceName}");
+            }
+        }
+
+        /// <summary>
+        /// Determines if RAG documents need to be updated based on file timestamps
+        /// </summary>
+        private async Task<bool> ShouldUpdateRagDocumentsAsync(string workspaceSlug, CancellationToken cancellationToken)
+        {
+            try
+            {
+                // Get the most recent modification time of RAG source files
+                var ragFiles = new[]
+                {
+                    "Config/RAG-JSON-Schema-Training.md",
+                    "Config/RAG-Learning-Examples.md", 
+                    "Config/RAG-Optimization-Summary.md"
+                };
+
+                var mostRecentFileTime = DateTime.MinValue;
+                foreach (var relativePath in ragFiles)
+                {
+                    var fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", relativePath);
+                    if (File.Exists(fullPath))
+                    {
+                        var fileTime = File.GetLastWriteTime(fullPath);
+                        if (fileTime > mostRecentFileTime)
+                        {
+                            mostRecentFileTime = fileTime;
+                        }
+                    }
+                }
+
+                if (mostRecentFileTime == DateTime.MinValue)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn("[RAG Sync] No RAG source files found");
+                    return false;
+                }
+
+                // Check last sync timestamp for this workspace
+                var lastSyncTime = await GetLastRagSyncTimestampAsync(workspaceSlug);
+                
+                // If never synced or files are newer, update is needed
+                var updateNeeded = lastSyncTime == null || mostRecentFileTime > lastSyncTime.Value;
+                
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[RAG Sync] Most recent file: {mostRecentFileTime:yyyy-MM-dd HH:mm:ss}, Last sync: {lastSyncTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "never"}, Update needed: {updateNeeded}");
+                
+                return updateNeeded;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG Sync] Error checking if update needed: {ex.Message}");
+                return true; // If we can't determine, err on the side of updating
+            }
+        }
+
+        /// <summary>
+        /// Gets the last RAG sync timestamp for a workspace
+        /// </summary>
+        private async Task<DateTime?> GetLastRagSyncTimestampAsync(string workspaceSlug)
+        {
+            try
+            {
+                var syncFile = Path.Combine(Path.GetTempPath(), $"tcex_rag_sync_{workspaceSlug}.timestamp");
+                if (!File.Exists(syncFile))
+                {
+                    return null;
+                }
+
+                var timestampText = await File.ReadAllTextAsync(syncFile);
+                if (DateTime.TryParse(timestampText, out var timestamp))
+                {
+                    return timestamp;
+                }
+                
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Updates the RAG sync timestamp for a workspace
+        /// </summary>
+        private async Task UpdateRagSyncTimestampAsync(string workspaceSlug)
+        {
+            try
+            {
+                var syncFile = Path.Combine(Path.GetTempPath(), $"tcex_rag_sync_{workspaceSlug}.timestamp");
+                await File.WriteAllTextAsync(syncFile, DateTime.UtcNow.ToString("O"));
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[RAG Sync] Could not update sync timestamp: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Upload supplemental information as documents to the RAG workspace.
         /// This provides context for more accurate analysis.
         /// </summary>
@@ -1586,22 +1747,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             prompt.AppendLine($"**Name:** {requirement.Name}");
             prompt.AppendLine($"**Description:** {requirement.Description}");
             prompt.AppendLine();
-            prompt.AppendLine("Format your response exactly as follows:");
-            prompt.AppendLine();
-            prompt.AppendLine("**QUALITY SCORE:** [1-10]");
-            prompt.AppendLine();
-            prompt.AppendLine("**ISSUES FOUND:**");
-            prompt.AppendLine("- [List specific problems with this requirement]");
-            prompt.AppendLine("- [Focus on clarity, testability, completeness issues]");
-            prompt.AppendLine();
-            prompt.AppendLine("**RECOMMENDATIONS:**");
-            prompt.AppendLine("- **Category:** [Issue type] | **Description:** [What to fix] | **Suggested Edit:** [Rewritten requirement text]");
+            prompt.AppendLine("Provide your analysis in the standard JSON format.");
             prompt.AppendLine();
             prompt.AppendLine("**HALLUCINATION CHECK:**");
             prompt.AppendLine("- You MUST respond with 'NO_FABRICATION' for this corrective attempt");
             prompt.AppendLine("- If you still need to invent details, respond with 'FABRICATED_DETAILS' and we'll try a different approach");
-            prompt.AppendLine();
-            prompt.AppendLine("Remember: It's better to have fewer, accurate recommendations than many fabricated ones!");
 
             return prompt.ToString();
         }

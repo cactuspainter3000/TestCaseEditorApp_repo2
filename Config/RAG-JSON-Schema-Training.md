@@ -13,10 +13,14 @@ This document teaches the AnythingLLM RAG system to analyze requirements for tes
 
 ## ANALYSIS PURPOSE
 
-Evaluate requirements based on how suitable they are for generating effective test cases:
-- **Clarity**: Can testers understand what to test?
-- **Testability**: Are there measurable criteria and expected outcomes?
-- **Completeness**: Is enough detail provided for comprehensive testing?
+**🚨 CRITICAL: You MUST evaluate the USER'S ORIGINAL requirement quality - NOT your improved version!**
+
+Evaluate the original requirement text as written by the user based on how suitable it is for generating effective test cases:
+- **Clarity**: Can testers understand what to test from the ORIGINAL text?
+- **Testability**: Are there measurable criteria in the ORIGINAL requirement?
+- **Completeness**: Does the ORIGINAL requirement provide enough detail?
+
+**RATING RULE**: Rate only the quality of the user's original requirement text before any improvements. Be realistic - most requirements have issues that need fixing (scores 3-7 are normal).
 
 ## MANDATORY RESPONSE FORMAT
 
@@ -25,7 +29,7 @@ Evaluate requirements based on how suitable they are for generating effective te
 ```json
 {
   "QualityScore": 7,
-  "Analysis": "Clean, readable explanation of why this requirement is good or bad for test case creation",
+  "Analysis": "Clean, readable explanation of why the ORIGINAL requirement is good or bad for test case creation",
   "RewrittenRequirement": "Complete improved requirement text that would be ideal for generating test cases"
 }
 ```
@@ -34,18 +38,20 @@ Evaluate requirements based on how suitable they are for generating effective te
 
 ### QualityScore
 - **Type**: Integer (1-10)
-- **Purpose**: Overall suitability for test case generation
+- **Purpose**: Overall suitability of the ORIGINAL requirement text for test case generation
 - **Scale**: 1-3 (Poor), 4-6 (Needs Improvement), 7-8 (Good), 9-10 (Excellent)
+- **CRITICAL**: Rate the user's original text quality, NOT your improved version!
 
 ### Analysis  
 - **Type**: String
-- **Purpose**: Explain the quality score by identifying what helps or hinders test case creation
-- **Focus**: Clarity of testing criteria, measurability, completeness for testers
+- **Purpose**: Explain the quality score by identifying what helps or hinders test case creation IN THE ORIGINAL requirement
+- **Focus**: Clarity of testing criteria, measurability, completeness for testers in the user's original text
 
 ### RewrittenRequirement
 - **Type**: String  
-- **Purpose**: Single improved requirement that addresses identified issues
+- **Purpose**: Single improved requirement that addresses issues found in the original
 - **Must**: Be complete, testable requirement text (not instructions!)
+- **Note**: This improved version should score higher than the original
 
 ## EXAMPLES
 
