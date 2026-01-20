@@ -151,8 +151,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 
                 if (SetProperty(ref _currentRequirement, value))
                 {
-                    RefreshAnalysisDisplay();
+                    // Event-driven: Let property change notifications handle UI updates
+                    OnPropertyChanged(nameof(HasAnalysis));
+                    OnPropertyChanged(nameof(HasNoAnalysis));
                     ((AsyncRelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
+                    
+                    // Update UI state based on current requirement's analysis
+                    RefreshAnalysisDisplay();
                 }
             }
         }

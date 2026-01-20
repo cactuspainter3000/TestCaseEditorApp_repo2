@@ -69,8 +69,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 Children = new ObservableCollection<MenuContentItem>()
             };
             
-            // Load initial requirements from Requirements domain mediator
-            RefreshRequirementsFromMediator();
+            // Subscribe to mediator events for pure event-driven updates
+            _requirementsMediator.Subscribe<RequirementsEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
+            _requirementsMediator.Subscribe<RequirementsEvents.RequirementSelected>(OnRequirementSelectedByMediator);
         }
 
         /// <summary>
@@ -90,8 +91,36 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             TestCaseEditorApp.Services.Logging.Log.Debug($"🔔 [Requirements_NavigationViewModel] Requirements collection changed: Action={e.Action}, AffectedRequirements={e.AffectedRequirements?.Count ?? 0}, NewCount={e.NewCount}");
             
-            // Refresh the local requirements collection from Requirements domain mediator
-            RefreshRequirementsFromMediator();
+            // Event-driven update: Sync local collection with mediator state
+            _requirements.Clear();
+            
+            foreach (var req in _requirementsMediator.Requirements)
+            {
+                _requirements.Add(req);
+            }
+            
+            // Update current requirement and index
+            var currentRequirement = _requirementsMediator.CurrentRequirement;
+            if (currentRequirement != null && _requirements.Contains(currentRequirement))
+            {
+                SelectedRequirement = currentRequirement;
+                SelectedRequirementIndex = _requirements.IndexOf(currentRequirement);
+            }
+            else if (_requirements.Count > 0)
+            {
+                SelectedRequirement = _requirements[0];
+                SelectedRequirementIndex = 0;
+            }
+            else
+            {
+                SelectedRequirement = null;
+                SelectedRequirementIndex = -1;
+            }
+            
+            // Update command states and dropdown
+            NotifyNavigationCommandsCanExecuteChanged();
+            UpdateDropdownItems(_requirements);
+            OnPropertyChanged(nameof(RequirementPositionDisplay));
             
             // Handle selection based on new collection state
             if (RequirementsView.Count == 0)
@@ -328,7 +357,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             if (string.IsNullOrEmpty(query))
             {
-                RefreshRequirementsFromMediator();
+                // Event-driven: Let collection changed events handle refresh
+                _logger.LogInformation("[NavigationVM] Empty search query - relying on collection events for refresh");
                 return;
             }
             
@@ -349,32 +379,23 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         }
 
         /// <summary>
-        /// Refresh local requirements collection from Requirements domain mediator
+        /// Handle requirement selected via mediator events (prevent circular events)
         /// </summary>
-        private void RefreshRequirementsFromMediator()
+        private void OnRequirementSelectedByMediator(RequirementsEvents.RequirementSelected e)
         {
-            _requirements.Clear();
+            _logger.LogInformation("[NavigationVM] Requirement selected via mediator event: {RequirementId}", e.Requirement?.Item ?? "null");
             
-            foreach (var req in _requirementsMediator.Requirements)
+            if (e.Requirement != null && _requirements.Contains(e.Requirement))
             {
-                _requirements.Add(req);
+                // Update navigation state to match mediator selection
+                SelectedRequirement = e.Requirement;
+                SelectedRequirementIndex = _requirements.IndexOf(e.Requirement);
+                
+                // Update command states
+                NotifyNavigationCommandsCanExecuteChanged();
+                
+                OnPropertyChanged(nameof(RequirementPositionDisplay));
             }
-            
-            // Set SelectedRequirement to match the mediator's CurrentRequirement
-            var currentRequirement = _requirementsMediator.CurrentRequirement;
-            if (currentRequirement != null)
-            {
-                SelectedRequirement = currentRequirement;
-                var index = _requirements.IndexOf(currentRequirement);
-                if (index >= 0)
-                {
-                    SelectedRequirementIndex = index;
-                }
-            }
-            
-            UpdateDropdownItems(_requirements);
-            OnPropertyChanged(nameof(RequirementPositionDisplay));
-            NotifyNavigationCommandsCanExecuteChanged();
         }
 
         /// <summary>
@@ -446,7 +467,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         protected override async Task RefreshAsync()
         {
-            RefreshRequirementsFromMediator();
+            // Pure event-driven: No manual refresh, everything handled by mediator events
+            _logger.LogInformation("[NavigationVM] RefreshAsync called - relying on mediator events for updates");
             await Task.CompletedTask;
         }
 
