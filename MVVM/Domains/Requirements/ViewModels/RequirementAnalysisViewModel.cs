@@ -101,6 +101,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public bool HasNoAnalysis => !HasAnalysis && !IsAnalyzing;
         public bool HasFreeformFeedback => !string.IsNullOrWhiteSpace(FreeformFeedback);
         public bool HasRecommendations => Recommendations?.Count > 0;
+        public bool HasIssues => Issues?.Count > 0;
+        public bool ShouldHideCopyButton => false; // Requirements domain doesn't have unsaved editing changes concept
         
         // Override property change notifications to trigger HasNoAnalysis updates
         partial void OnHasAnalysisChanged(bool value)
@@ -183,6 +185,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             CancelEditRequirementCommand = new RelayCommand(CancelEditingRequirement, () => IsEditingRequirement);
             SaveRequirementCommand = new RelayCommand(SaveRequirementEdit, CanSaveRequirement);
             CopyAnalysisPromptCommand = new RelayCommand(CopyToClipboard, CanCopyToClipboard);
+
+            // Subscribe to requirement navigation events from Requirements mediator
+            var mediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
+            if (mediator != null)
+            {
+                mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementSelected>(OnRequirementSelected);
+                _logger.LogInformation("[RequirementAnalysisVM] Subscribed to RequirementSelected events from Requirements mediator");
+            }
+            else
+            {
+                _logger.LogWarning("[RequirementAnalysisVM] Could not subscribe to mediator - Requirements mediator not found in DI");
+            }
 
             // Initialize engine status
             RefreshEngineStatus();
@@ -292,6 +306,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// </summary>
         private void UpdateUIFromAnalysis(RequirementAnalysis analysis)
         {
+            _logger.LogInformation("[RequirementAnalysisVM] UpdateUIFromAnalysis called with QualityScore: {QualityScore}, Issues: {IssueCount}, HasImproved: {HasImproved}", 
+                analysis.OriginalQualityScore, analysis.Issues?.Count ?? 0, !string.IsNullOrWhiteSpace(analysis.ImprovedRequirement));
+            Console.WriteLine($"*** [RequirementAnalysisVM] UpdateUIFromAnalysis: Score={analysis.OriginalQualityScore}, Issues={analysis.Issues?.Count ?? 0}, Improved={!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement)} ***");
+            
             HasAnalysis = true;
             
             // DEBUG: Log the quality score source and value
@@ -302,6 +320,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             Issues = analysis.Issues ?? new List<AnalysisIssue>();
             Recommendations = analysis.Recommendations ?? new List<AnalysisRecommendation>();
             OnPropertyChanged(nameof(HasRecommendations)); // Update computed property
+            OnPropertyChanged(nameof(HasIssues)); // Update computed property
             FreeformFeedback = analysis.FreeformFeedback ?? string.Empty;
             ImprovedRequirement = analysis.ImprovedRequirement;
             HasImprovedRequirement = !string.IsNullOrWhiteSpace(analysis.ImprovedRequirement);
@@ -317,6 +336,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             var analysis = CurrentRequirement?.Analysis;
 
+            _logger.LogInformation("[RequirementAnalysisVM] RefreshAnalysisDisplay called for requirement: {RequirementId}, HasAnalysis: {HasAnalysis}", 
+                CurrentRequirement?.Item ?? "null", analysis?.IsAnalyzed ?? false);
+            Console.WriteLine($"*** [RequirementAnalysisVM] RefreshAnalysisDisplay: {CurrentRequirement?.Item ?? "null"}, HasAnalysis: {analysis?.IsAnalyzed ?? false} ***");
+
             if (analysis?.IsAnalyzed == true)
             {
                 UpdateUIFromAnalysis(analysis);
@@ -330,6 +353,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 Issues = new List<AnalysisIssue>();
                 Recommendations = new List<AnalysisRecommendation>();
                 OnPropertyChanged(nameof(HasRecommendations)); // Update computed property
+                OnPropertyChanged(nameof(HasIssues)); // Update computed property
                 FreeformFeedback = string.Empty;
                 ImprovedRequirement = null;
                 HasImprovedRequirement = false;
@@ -1025,6 +1049,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 var totalElapsed = DateTime.Now - _analysisStartTime;
                 AnalysisElapsedTime = $"Completed in {totalElapsed.TotalSeconds:F0}s";
             }
+        }
+
+        /// <summary>
+        /// Handles requirement navigation events from the Requirements mediator
+        /// </summary>
+        private void OnRequirementSelected(TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementSelected e)
+        {
+            _logger.LogInformation("[RequirementAnalysisVM] OnRequirementSelected called with requirement: {RequirementId}", e.Requirement?.GlobalId ?? "null");
+            
+            // Update current requirement and refresh analysis display
+            CurrentRequirement = e.Requirement;
+            
+            _logger.LogInformation("[RequirementAnalysisVM] CurrentRequirement updated, HasAnalysis: {HasAnalysis}", HasAnalysis);
         }
 
         public void Dispose()

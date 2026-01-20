@@ -337,7 +337,8 @@
 - [ ] Constructor takes `I{Domain}Mediator` and `ILogger<VM>`
 - [ ] Registered in App.xaml.cs with `AddTransient<VM>()`
 - [ ] DataTemplate created for ViewModel type
-- [ ] DataTemplate registered in ResourceDictionary
+- [ ] DataTemplate registered in ResourceDictionary  
+- [ ] **DataTemplate maps to CORRECT view** (`grep -A1 "DataType.*YourViewModel" MainWindow.xaml` → verify view matches domain)
 - [ ] App.xaml includes ResourceDictionary (if new file)
 - [ ] **No factory methods exist** (`grep -r "CreateYourVM\|new YourVM"` returns no results)
 - [ ] **No direct instantiation** (all creation goes through DI container)
@@ -389,6 +390,7 @@
 | **Symptom** | **Usually Missing** | **Find Complete Example** |
 |-------------|--------------------|-----------------------|
 | ViewModel assigned but view blank | DataTemplate registration | `grep -r "DataTemplate.*VM" App.xaml` |
+| **DataItem=null binding errors** | **Wrong view in DataTemplate** | `grep -A1 "DataType.*YourViewModel" MainWindow.xaml` |
 | StaticResource not found error | Resource not in App.xaml | `grep -r "StaticResource.*ResourceName"` |
 | Cross-domain events not firing | HandleBroadcastNotification missing | `grep -r "HandleBroadcastNotification" --include="*.cs"` |
 | Converter not found | App.xaml converter registration | `grep -r "x:Key.*ConverterName" App.xaml` |
@@ -402,6 +404,9 @@ grep -r "AddTransient.*YourViewModel" App.xaml.cs
 
 # Verify DataTemplate exists  
 grep -r "DataType.*YourViewModel" App.xaml
+
+# Verify DataTemplate maps to CORRECT view (prevents DataItem=null errors)
+grep -A1 "DataType.*YourViewModel" MainWindow.xaml
 
 # Verify converter registration
 grep -r "YourConverter.*x:Key" App.xaml  

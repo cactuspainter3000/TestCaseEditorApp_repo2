@@ -19,10 +19,6 @@
         <views:WorkspaceHeaderView />
     </DataTemplate>
     
-    <DataTemplate DataType="{x:Type tcgvm:TestCaseGeneratorViewModel}">
-        <tcgviews:TestCaseGeneratorRequirements_View />
-    </DataTemplate>
-    
     <!-- TestCaseGeneration Domain - Main workspace view -->
     <DataTemplate DataType="{x:Type tcgmodevm:TestCaseGeneratorMode_MainVM}">
         <tcgmodeviews:TestCaseGeneratorMainView />

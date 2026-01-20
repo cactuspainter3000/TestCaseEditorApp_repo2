@@ -145,21 +145,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // Save any dirty table changes before navigating away
             SaveDirtyTableChanges();
             
-            // Update mediator's CurrentRequirement - this is the single source of truth
-            _mediator.CurrentRequirement = e.Requirement;
-            OnPropertyChanged(nameof(SelectedRequirement));
+            // Update via SelectedRequirement setter to ensure all synchronization happens
+            // This ensures RequirementAnalysisVM gets updated properly
+            SelectedRequirement = e.Requirement;
             
             Console.WriteLine($"*** [Requirements_MainViewModel] About to update UI: {e.Requirement?.Item} - {e.Requirement?.Name} ***");
             
-            // Re-populate chips from requirement data
-            UpdateVisibleChipsFromRequirement(SelectedRequirement);
+            // Load requirement content (tables and paragraphs)
+            LoadRequirementContent(SelectedRequirement);
             
-            // Update analysis state
+            // Update analysis state properties
             OnPropertyChanged(nameof(HasAnalysis));
             OnPropertyChanged(nameof(AnalysisQualityScore));
-            
-            // Load requirement content (simple clear/reload like TestCaseGenerator)
-            LoadRequirementContent(SelectedRequirement);
             
             Console.WriteLine($"*** [Requirements_MainViewModel] UI update complete ***");
         }

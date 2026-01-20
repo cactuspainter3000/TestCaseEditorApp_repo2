@@ -145,7 +145,8 @@
                                   Style="{StaticResource ActionToggleButtonSelected}"
                                   Margin="2"
                                   IsChecked="{Binding IsAnalysisSelected, Mode=TwoWay}"
-                                  ToolTip="View AI-powered requirement quality analysis">
+                                  ToolTip="View AI-powered requirement quality analysis"
+                                  Loaded="AnalysisButton_Loaded">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition/>
@@ -188,12 +189,12 @@
                 </Grid>
                 
                 <!-- Analysis timer (next to the analysis button) -->
-                <TextBlock Text="{Binding AnalysisVM.AnalysisElapsedTime}" 
+                <TextBlock Text="{Binding RequirementAnalysisVM.AnalysisElapsedTime}" 
                            FontSize="12" 
                            Foreground="#888888" 
                            VerticalAlignment="Center"
                            Margin="8,0,0,0"
-                           Visibility="{Binding AnalysisVM.AnalysisElapsedTime, Converter={StaticResource StringNotEmptyToVisibilityConverter}}"/>
+                           Visibility="{Binding RequirementAnalysisVM.AnalysisElapsedTime, Converter={StaticResource StringNotEmptyToVisibilityConverter}}"/>
 
             </StackPanel>
 

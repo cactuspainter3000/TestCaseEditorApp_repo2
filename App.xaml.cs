@@ -429,7 +429,6 @@ namespace TestCaseEditorApp
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProject_NavigationViewModel>();
 
                     // ViewModels and header VM
-                    services.AddTransient<TestCaseGeneratorViewModel>();
                     services.AddTransient<RequirementGenerationViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementImportExportViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorSplashViewModel>();
