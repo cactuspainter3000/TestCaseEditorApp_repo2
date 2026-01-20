@@ -65,11 +65,19 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
                         var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"\**(\d+)\**");
                         if (match.Success && int.TryParse(match.Groups[1].Value, out int score))
                         {
-                            // DEBUG: Log exactly what we're parsing as the original score
-                            TestCaseEditorApp.Services.Logging.Log.Info($"[{ParserName}Parser] DEBUG SCORE PARSING - Setting OriginalQualityScore to {score} from line: '{trimmed}' - This should be the USER's original requirement score, NOT the LLM's improved score!");
+                            // Convert 0-100 scale scores to 1-10 scale
+                            int normalizedScore = score;
+                            if (score > 10 && score <= 100)
+                            {
+                                normalizedScore = Math.Max(1, (int)Math.Round(score / 10.0));
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[{ParserName}Parser] Converted 0-100 scale score {score} to 1-10 scale: {normalizedScore}");
+                            }
                             
-                            analysis.OriginalQualityScore = Math.Max(1, Math.Min(10, score));
-                            TestCaseEditorApp.Services.Logging.Log.Debug($"[{ParserName}Parser] Parsed quality score: {score} from line: '{trimmed}'");
+                            // DEBUG: Log exactly what we're parsing as the original score
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[{ParserName}Parser] DEBUG SCORE PARSING - Setting OriginalQualityScore to {normalizedScore} from line: '{trimmed}' - This should be the USER's original requirement score, NOT the LLM's improved score!");
+                            
+                            analysis.OriginalQualityScore = Math.Max(1, Math.Min(10, normalizedScore));
+                            TestCaseEditorApp.Services.Logging.Log.Debug($"[{ParserName}Parser] Parsed quality score: {score} -> normalized to {normalizedScore}");
                         }
                     }
                     // Parse section headers

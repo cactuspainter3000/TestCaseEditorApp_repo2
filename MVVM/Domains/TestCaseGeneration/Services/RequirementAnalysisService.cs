@@ -1403,14 +1403,38 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 var mostRecentFileTime = DateTime.MinValue;
                 foreach (var relativePath in ragFiles)
                 {
-                    var fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", relativePath);
-                    if (File.Exists(fullPath))
+                    // Try multiple path resolution strategies to find the files
+                    var possiblePaths = new[]
+                    {
+                        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", relativePath),
+                        Path.Combine(Directory.GetCurrentDirectory(), relativePath),
+                        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, relativePath),
+                        relativePath
+                    };
+                    
+                    string fullPath = null;
+                    foreach (var candidate in possiblePaths)
+                    {
+                        var resolved = Path.GetFullPath(candidate);
+                        if (File.Exists(resolved))
+                        {
+                            fullPath = resolved;
+                            break;
+                        }
+                    }
+                    
+                    if (fullPath != null)
                     {
                         var fileTime = File.GetLastWriteTime(fullPath);
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[RAG Sync] Found RAG file: {fullPath}, Modified: {fileTime:yyyy-MM-dd HH:mm:ss}");
                         if (fileTime > mostRecentFileTime)
                         {
                             mostRecentFileTime = fileTime;
                         }
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG Sync] Could not find RAG file: {relativePath}");
                     }
                 }
 
@@ -1426,7 +1450,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 // If never synced or files are newer, update is needed
                 var updateNeeded = lastSyncTime == null || mostRecentFileTime > lastSyncTime.Value;
                 
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[RAG Sync] Most recent file: {mostRecentFileTime:yyyy-MM-dd HH:mm:ss}, Last sync: {lastSyncTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "never"}, Update needed: {updateNeeded}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[RAG Sync] Most recent file: {mostRecentFileTime:yyyy-MM-dd HH:mm:ss}, Last sync: {lastSyncTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "NEVER"}, Update needed: {updateNeeded}");
                 
                 return updateNeeded;
             }

@@ -872,6 +872,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 if (projectCreated.Workspace != null)
                 {
                     _ = LoadFromProjectAsync(projectCreated.Workspace);
+                    // Trigger automatic RAG document sync for analysis service
+                    _analysisService?.SetWorkspaceContext(projectCreated.WorkspaceName);
                 }
             }
             else if (notification is NewProjectEvents.ProjectOpened newProjectOpened)
@@ -879,6 +881,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 if (newProjectOpened.Workspace != null)
                 {
                     _ = LoadFromProjectAsync(newProjectOpened.Workspace);
+                    // Trigger automatic RAG document sync for analysis service
+                    _analysisService?.SetWorkspaceContext(newProjectOpened.WorkspaceName);
                 }
             }
             else if (notification is OpenProjectEvents.ProjectOpened openProjectOpened)
@@ -889,6 +893,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     _logger.LogInformation("🚀 RequirementsMediator: About to call LoadFromProjectAsync for workspace with {RequirementCount} requirements", 
                         openProjectOpened.Workspace.Requirements?.Count ?? 0);
                     _ = LoadFromProjectAsync(openProjectOpened.Workspace);
+                    // Trigger automatic RAG document sync for analysis service
+                    _analysisService?.SetWorkspaceContext(openProjectOpened.WorkspaceName);
                 }
                 else
                 {
