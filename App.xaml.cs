@@ -486,7 +486,7 @@ namespace TestCaseEditorApp
                         return vm;
                     });
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementsWorkspaceViewModel>();
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>();
+                    // REMOVED: TestCaseGeneratorNotificationViewModel - use NotificationWorkspaceViewModel from Notification domain instead
 
                     // Core application services
                     services.AddSingleton<ChatGptExportService>();
