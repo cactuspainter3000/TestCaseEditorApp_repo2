@@ -52,7 +52,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// Display text for requirements progress
         /// </summary>
         [ObservableProperty]
-        private string requirementsProgressText = "Requirements w/Test Cases: 0/0";
+        private string requirementsProgressText = "0 requirements | 0% analyzed | 0% with test cases";
 
         /// <summary>
         /// Progress percentage for requirements (0-100)
@@ -113,15 +113,21 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// <summary>
         /// Update requirements progress information
         /// </summary>
-        public void UpdateRequirementsProgress(int total, int withTestCases)
+        public void UpdateRequirementsProgress(int total, int withTestCases, int analyzed = 0)
         {
             TotalRequirements = total;
             RequirementsWithTestCases = withTestCases;
-            RequirementsProgressText = $"Requirements w/Test Cases: {withTestCases}/{total}";
-            RequirementsProgress = total > 0 ? (double)withTestCases / total * 100 : 0.0;
+            
+            // Calculate percentages
+            var analyzedPercentage = total > 0 ? (double)analyzed / total * 100 : 0.0;
+            var testCasesPercentage = total > 0 ? (double)withTestCases / total * 100 : 0.0;
+            
+            // Use the same format as OpenProject: "X requirements | Y% analyzed | Z% assigned test cases"
+            RequirementsProgressText = $"{total} requirements | {analyzedPercentage:F0}% analyzed | {testCasesPercentage:F0}% with test cases";
+            RequirementsProgress = testCasesPercentage;
 
-            _logger?.LogInformation("Requirements progress updated: {WithTestCases}/{Total} ({Progress:F1}%)", 
-                withTestCases, total, RequirementsProgress);
+            _logger?.LogInformation("Requirements progress updated: {Analyzed}/{Total} analyzed ({AnalyzedProgress:F1}%), {WithTestCases}/{Total} with test cases ({TestCasesProgress:F1}%)", 
+                analyzed, total, analyzedPercentage, withTestCases, total, testCasesPercentage);
         }
 
         /// <summary>
@@ -143,7 +149,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         public void ResetStatus()
         {
             UpdateAnythingLlmStatus(false);
-            UpdateRequirementsProgress(0, 0);
+            UpdateRequirementsProgress(0, 0, 0);
             UpdateCurrentRequirementVerificationMethod(null);
             _logger?.LogInformation("Test case generator notification status reset");
         }
