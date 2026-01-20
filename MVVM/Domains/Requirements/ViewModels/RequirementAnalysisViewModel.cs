@@ -311,17 +311,17 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// </summary>
         private void UpdateUIFromAnalysis(RequirementAnalysis analysis)
         {
-            _logger.LogInformation("[RequirementAnalysisVM] UpdateUIFromAnalysis called with QualityScore: {QualityScore}, Issues: {IssueCount}, HasImproved: {HasImproved}", 
-                analysis.OriginalQualityScore, analysis.Issues?.Count ?? 0, !string.IsNullOrWhiteSpace(analysis.ImprovedRequirement));
-            Console.WriteLine($"*** [RequirementAnalysisVM] UpdateUIFromAnalysis: Score={analysis.OriginalQualityScore}, Issues={analysis.Issues?.Count ?? 0}, Improved={!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement)} ***");
+            _logger.LogInformation("[RequirementAnalysisVM] UpdateUIFromAnalysis called with OriginalQualityScore: {OriginalScore}, ImprovedQualityScore: {ImprovedScore}", 
+                analysis.OriginalQualityScore, analysis.ImprovedQualityScore);
             
             HasAnalysis = true;
             
-            // DEBUG: Log the quality score source and value
-            _logger.LogInformation("[RequirementAnalysisVM] Quality Score Debug: OriginalQualityScore={OriginalScore}, IsAnalyzed={IsAnalyzed}, HasImproved={HasImproved}, ImprovedScore={ImprovedScore}", 
-                analysis.OriginalQualityScore, analysis.IsAnalyzed, !string.IsNullOrWhiteSpace(analysis.ImprovedRequirement), analysis.ImprovedQualityScore);
-                
-            QualityScore = analysis.OriginalQualityScore; // Show user's original requirement quality
+            // Ensure we're showing the ORIGINAL requirement score, not the LLM's self-rated improved score
+            QualityScore = analysis.OriginalQualityScore; // This should be the user's original requirement quality
+            
+            // Log what we're actually displaying
+            _logger.LogInformation("[RequirementAnalysisVM] Displaying QualityScore: {DisplayScore} (should be original, not improved)", QualityScore);
+            
             Issues = analysis.Issues ?? new List<AnalysisIssue>();
             Recommendations = analysis.Recommendations ?? new List<AnalysisRecommendation>();
             OnPropertyChanged(nameof(HasRecommendations)); // Update computed property

@@ -188,23 +188,23 @@
                         Padding="12"
                         Margin="0,0,0,12">
                     <StackPanel>
-                        <TextBlock Text="Original Quality Score" 
+                        <TextBlock Text="Original Requirement Quality" 
                                    Style="{StaticResource Text.H3}"
                                    Margin="0,0,0,6"/>
-                        <TextBlock Text="(Your requirement before LLM improvement)" 
+                        <TextBlock Text="(Score before any improvements)" 
                                    FontSize="12"
                                    Foreground="#888888"
                                    Margin="0,0,0,8"/>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding QualityScore}" 
-                                       FontSize="32" 
-                                       FontWeight="Bold"
+                                       FontSize="18" 
+                                       FontWeight="SemiBold"
                                        Foreground="{DynamicResource AccentBrush}"/>
                             <TextBlock Text=" / 10" 
-                                       FontSize="20" 
+                                       FontSize="14" 
                                        Foreground="#888888"
                                        VerticalAlignment="Bottom"
-                                       Margin="4,0,0,4"/>
+                                       Margin="2,0,0,2"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>

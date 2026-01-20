@@ -647,7 +647,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         // Analysis properties
         public bool HasAnalysis => RequirementAnalysisVM?.HasAnalysis == true;
-        public string AnalysisQualityScore => "—"; // TODO: Implement analysis quality
+        public string AnalysisQualityScore => HasAnalysis && RequirementAnalysisVM?.QualityScore > 0 ? 
+            RequirementAnalysisVM.QualityScore.ToString() : "—"; // Show original requirement score
         public bool HasMeta => VisibleChips?.Any() == true;
 
         // ==== COMMAND IMPLEMENTATIONS ====
