@@ -25,6 +25,11 @@ namespace TestCaseEditorApp.Services
         event EventHandler<string>? TitleChanged;
         
         /// <summary>
+        /// Get the current title for ViewModel initialization
+        /// </summary>
+        string GetCurrentTitle();
+        
+        /// <summary>
         /// Navigate to a section and update breadcrumb trail
         /// </summary>
         void NavigateToSection(string section, string? context = null);
@@ -75,6 +80,16 @@ namespace TestCaseEditorApp.Services
         public string Title => _title;
         
         public event EventHandler<string>? TitleChanged;
+        
+        /// <summary>
+        /// Get the current title for ViewModel initialization
+        /// </summary>
+        public string GetCurrentTitle()
+        {
+            // Ensure current title is up-to-date before returning it
+            UpdateCurrentTitle();
+            return _title;
+        }
         
         public void Initialize(IViewAreaCoordinator? coordinator = null)
         {

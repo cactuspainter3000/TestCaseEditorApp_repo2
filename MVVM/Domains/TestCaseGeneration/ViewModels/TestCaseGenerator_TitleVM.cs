@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
+using TestCaseEditorApp.Services;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 {
@@ -16,6 +17,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
     public partial class TestCaseGenerator_TitleVM : ObservableObject
     {
         private readonly ITestCaseGenerationMediator _mediator;
+        private readonly INavigationService? _navigationService;
         
         // ==================== Observable Properties ====================
         
@@ -56,6 +58,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         public TestCaseGenerator_TitleVM(ITestCaseGenerationMediator mediator)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
+            _navigationService = App.ServiceProvider?.GetService(typeof(INavigationService)) as INavigationService;
             
             // Subscribe to workflow state changes to update save status
             _mediator.Subscribe<TestCaseGenerationEvents.WorkflowStateChanged>(OnWorkflowStateChanged);
@@ -122,21 +125,17 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         {
             try
             {
-                var workspaceMediator = App.ServiceProvider?.GetService(typeof(INewProjectMediator)) as INewProjectMediator;
-                if (workspaceMediator != null)
+                if (_navigationService != null)
                 {
-                    var workspaceInfo = workspaceMediator.GetCurrentWorkspaceInfo();
-                    if (workspaceInfo != null && !string.IsNullOrWhiteSpace(workspaceInfo.Name))
-                    {
-                        Title = $"Test Case Generator - {workspaceInfo.Name}";
-                        System.Diagnostics.Debug.WriteLine($"[TitleVM] InitializeTitle: Set title to '{Title}' from workspace mediator");
-                        return;
-                    }
+                    Title = _navigationService.GetCurrentTitle();
+                    System.Diagnostics.Debug.WriteLine($"[TitleVM] InitializeTitle: Set title to '{Title}' from NavigationService");
                 }
-                
-                // Fallback to default title
-                Title = "Test Case Generator";
-                System.Diagnostics.Debug.WriteLine($"[TitleVM] InitializeTitle: Using default title (no project context available)");
+                else
+                {
+                    // Fallback to default title if NavigationService not available
+                    Title = "Test Case Generator";
+                    System.Diagnostics.Debug.WriteLine($"[TitleVM] InitializeTitle: NavigationService not available, using default title");
+                }
             }
             catch (Exception ex)
             {
