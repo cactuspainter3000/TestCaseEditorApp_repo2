@@ -69,7 +69,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             
             // Make save indicator visible immediately
             WorkspaceFilePath = "project";
-            System.Diagnostics.Debug.WriteLine($"[TitleVM] Constructor: WorkspaceFilePath={WorkspaceFilePath}");
+            
+            // Initialize title with current project context if available
+            InitializeTitle();
+            
+            System.Diagnostics.Debug.WriteLine($"[TitleVM] Constructor: WorkspaceFilePath={WorkspaceFilePath}, Title={Title}");
         }
 
         // ==================== Public Methods ====================
@@ -106,6 +110,38 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 SaveStatusText = LastSavedTimestamp.HasValue 
                     ? $"Saved {LastSavedTimestamp:HH:mm:ss}"
                     : "No changes";
+            }
+        }
+        
+        // ==================== Private Methods ====================
+        
+        /// <summary>
+        /// Initialize the title with current project context if available
+        /// </summary>
+        private void InitializeTitle()
+        {
+            try
+            {
+                var workspaceMediator = App.ServiceProvider?.GetService(typeof(INewProjectMediator)) as INewProjectMediator;
+                if (workspaceMediator != null)
+                {
+                    var workspaceInfo = workspaceMediator.GetCurrentWorkspaceInfo();
+                    if (workspaceInfo != null && !string.IsNullOrWhiteSpace(workspaceInfo.Name))
+                    {
+                        Title = $"Test Case Generator - {workspaceInfo.Name}";
+                        System.Diagnostics.Debug.WriteLine($"[TitleVM] InitializeTitle: Set title to '{Title}' from workspace mediator");
+                        return;
+                    }
+                }
+                
+                // Fallback to default title
+                Title = "Test Case Generator";
+                System.Diagnostics.Debug.WriteLine($"[TitleVM] InitializeTitle: Using default title (no project context available)");
+            }
+            catch (Exception ex)
+            {
+                Title = "Test Case Generator";
+                System.Diagnostics.Debug.WriteLine($"[TitleVM] InitializeTitle: Exception occurred, using default title: {ex.Message}");
             }
         }
         
