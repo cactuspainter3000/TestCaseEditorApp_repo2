@@ -1138,6 +1138,46 @@ public class ServiceResult<T>
 | `UpdateSaveStatus(mediator)` | ViewModel managing foreign state | ViewModel reflects own mediator state |
 | UI properties in events | UI concerns in domain events | Domain data only in events |
 
+### **🚨 CRITICAL: Architecture Migration "Fix vs. Delete" Anti-Pattern**
+**STOP ✋ Delete Old Code Instead of Fixing Old Code to Work with New Architecture**
+
+| **❌ Wrong Approach** | **🚨 Why Wrong** | **✅ Correct Pattern** |
+|----------------------|------------------|------------------------|
+| Make `Requirements_NavigationVM` work with shared system | Hybrid architecture - confusing patterns | Delete `Requirements_NavigationVM`, use only `NavigationViewModel` |
+| Fix legacy methods to support new ViewModels | Multiple code paths for same function | Delete legacy methods entirely |
+| Update old integration points to bridge architectures | Complexity, build failures, technical debt | Replace old integration with clean new implementation |
+| Keep both old and new implementations | Developers confused which pattern to follow | Single architectural pattern across codebase |
+
+**🎯 Core Principle**: 
+> **When changing foundational patterns, DELETE the old implementation entirely rather than trying to FIX it to work with the new pattern.**  
+> Architecture evolution fails when you maintain dual patterns instead of clean cut-overs.
+
+**🚨 Common Failure Pattern:**
+```
+❌ 1. Implement new shared NavigationViewModel
+❌ 2. Try to make Requirements_NavigationViewModel work with shared system  
+❌ 3. Update references to bridge old and new
+❌ 4. Get compilation errors from hybrid architecture
+❌ 5. Keep "fixing" integration points
+❌ 6. End up with confusing hybrid mess
+```
+
+**✅ Correct Migration Pattern:**
+```
+✅ 1. Implement new shared NavigationViewModel
+✅ 2. DELETE Requirements_NavigationViewModel entirely  
+✅ 3. DELETE all references to old ViewModels
+✅ 4. UPDATE only integration points to use new architecture
+✅ 5. Clean build with pure new architecture
+```
+
+**🎯 Build Success Indicators:**
+- ✅ **Old code completely removed** (no dead files)
+- ✅ **New code is the only option** (no pattern confusion)
+- ✅ **Integration points have clear targets** (no bridging logic)
+- ✅ **Clean compilation** (no hybrid conflicts)
+- ✅ **Single architectural pattern** (consistent codebase)
+
 ### **🚨 CRITICAL: LLM Response Post-Processing Anti-Pattern**
 **STOP ✋ Do NOT Post-Process LLM Responses - Fix the Prompt Instead**
 

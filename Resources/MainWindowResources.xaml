@@ -77,9 +77,6 @@
     </Style>
     
     <!-- Palette (tweak these brushes to change look) -->
-    <!-- Backwards-compatibility aliases for code that still uses the old keys -->
-    <SolidColorBrush x:Key="MenuListForeground" Color="{Binding Color, Source={StaticResource MenuForeground}}"/>
-    <SolidColorBrush x:Key="MenuListBackground" Color="{Binding Color, Source={StaticResource MenuBackground}}"/>
     <SolidColorBrush x:Key="MenuBackground" Color="#252525"/>
     <SolidColorBrush x:Key="MenuForeground" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="MenuHover" Color="#2E2E2E"/>

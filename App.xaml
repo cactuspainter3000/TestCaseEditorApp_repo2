@@ -47,8 +47,6 @@
                 <!-- ===================================== -->
                 <!-- CORE STYLES                           -->
                 <!-- ===================================== -->
-                <!-- Colors.xaml now references DesignSystem, kept for backward compatibility -->
-                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/Colors.xaml" />
                 
                 <!-- Component styles (reference DesignSystem tokens) -->
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/ButtonStyles.xaml" />

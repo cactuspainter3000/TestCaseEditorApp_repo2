@@ -316,7 +316,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             
             // DEBUG: Log the actual analysis object properties to see what we're getting
             _logger.LogWarning("[RequirementAnalysisVM] DEBUG SCORE INVESTIGATION - OriginalQualityScore: {Original}, ImprovedQualityScore: {Improved}, Legacy QualityScore property: {Legacy}",
-                analysis.OriginalQualityScore, analysis.ImprovedQualityScore, analysis.QualityScore);
+                analysis.OriginalQualityScore, analysis.ImprovedQualityScore, analysis.OriginalQualityScore); // Use OriginalQualityScore instead of obsolete QualityScore
             
             HasAnalysis = true;
             
@@ -525,8 +525,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 if (CopyAnalysisButtonText == "Copy to Clipboard" && IsEditingRequirement && !string.IsNullOrWhiteSpace(EditingRequirementText))
                 {
                     // Copy edited requirement text when actively editing
-                    _logger.LogInformation("[RequirementAnalysisVM] Copying edited requirement text: '{Text}'", EditingRequirementText?.Substring(0, Math.Min(100, EditingRequirementText?.Length ?? 0)));
-                    System.Windows.Clipboard.SetText(EditingRequirementText.Trim());
+                    var textLength = EditingRequirementText?.Length ?? 0;
+                    _logger.LogInformation("[RequirementAnalysisVM] Copying edited requirement text: '{Text}'", EditingRequirementText?.Substring(0, Math.Min(100, textLength)));
+                    if (!string.IsNullOrWhiteSpace(EditingRequirementText))
+                    {
+                        System.Windows.Clipboard.SetText(EditingRequirementText.Trim());
+                    }
                     _logger.LogInformation("[RequirementAnalysisVM] Copied edited requirement text to clipboard");
                 }
                 else if (CurrentRequirement != null)

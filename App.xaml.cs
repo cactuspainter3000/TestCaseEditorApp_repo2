@@ -329,14 +329,7 @@ namespace TestCaseEditorApp
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>>();
                         return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel(reqMediator, logger);
                     });
-                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>(provider =>
-                    {
-                        // Use RequirementsMediator as independent data source for navigation
-                        var reqMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
-                        var logger = provider.GetService<Microsoft.Extensions.Logging.ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>>();
-                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel(reqMediator, logger!);
-                    });
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NotificationViewModel>();
+                    // Requirements uses shared NavigationViewModel and NotificationWorkspaceViewModel
                     
                     // Project domain ViewModels
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Project.ViewModels.Project_MainViewModel>();
@@ -351,8 +344,8 @@ namespace TestCaseEditorApp
                     // === NOTIFICATION DOMAIN REGISTRATION ===
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator, TestCaseEditorApp.MVVM.Domains.Notification.Mediators.NotificationMediator>();
                     
-                    // Notification domain ViewModels
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
+                    // Notification domain ViewModels - singleton to maintain event subscriptions
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
                     
                     // NewProject domain ViewModels - using proper domain ViewModels
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel>(provider =>
@@ -378,7 +371,7 @@ namespace TestCaseEditorApp
 
                     // === TEST CASE GENERATION DOMAIN WORKSPACE VIEWMODELS ===
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels.TestCaseGeneratorMode_MainVM>();
-                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_NavigationVM>();
+                    // TestCase domains use shared NavigationViewModel for consistent navigation
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_HeaderVM>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
                     // DEPRECATED: TestCaseGeneratorNotificationViewModel - use NotificationWorkspaceViewModel instead
@@ -585,6 +578,13 @@ namespace TestCaseEditorApp
                 var startupMediator = _host.Services.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Startup.Mediators.IStartupMediator>();
                 startupMediator.MarkAsRegistered();
                 
+                // Mark Notification mediator as registered for notification domain
+                var notificationMediatorService = _host.Services.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator>();
+                if (notificationMediatorService is TestCaseEditorApp.MVVM.Domains.Notification.Mediators.NotificationMediator notificationMediator)
+                {
+                    notificationMediator.MarkAsRegistered();
+                }
+                
                 // Wire cross-domain commands - enable workspace commands in header
                 if (testCaseGenMediator is MVVM.Domains.TestCaseGeneration.Mediators.TestCaseGenerationMediator tcgMediator)
                 {
@@ -634,6 +634,36 @@ namespace TestCaseEditorApp
                 // Start monitoring all configured services
                 serviceMonitor.StartAll();
                 logger.LogInformation("Service monitoring started for AnythingLLM");
+                
+                // Auto-start AnythingLLM service if not running
+                try
+                {
+                    var anythingLLMService = _host.Services.GetRequiredService<AnythingLLMService>();
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            logger.LogInformation("Attempting to auto-start AnythingLLM service...");
+                            var result = await anythingLLMService.EnsureServiceRunningAsync();
+                            if (result.Success)
+                            {
+                                logger.LogInformation("AnythingLLM auto-start completed successfully");
+                            }
+                            else
+                            {
+                                logger.LogWarning("AnythingLLM auto-start failed: {Message}", result.Message);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, "Error during AnythingLLM auto-start");
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to initiate AnythingLLM auto-start");
+                }
             }
             catch (Exception ex)
             {

@@ -37,7 +37,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Views
         private void OnWindowLocationChanged(object? sender, EventArgs e)
         {
             // Close dropdown when window moves
-            if (DataContext is Requirements_NavigationViewModel vm && vm.RequirementsDropdown != null)
+            if (DataContext is TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel vm && vm.RequirementsDropdown != null)
             {
                 vm.RequirementsDropdown.IsExpanded = false;
             }
@@ -46,7 +46,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Views
         private void RequirementItem_Click(object sender, RoutedEventArgs e)
         {
             // Close the popup after item selection
-            if (DataContext is Requirements_NavigationViewModel vm && vm.RequirementsDropdown != null)
+            if (DataContext is TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel vm && vm.RequirementsDropdown != null)
             {
                 vm.RequirementsDropdown.IsExpanded = false;
             }

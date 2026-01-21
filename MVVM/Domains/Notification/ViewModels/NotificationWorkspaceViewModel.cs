@@ -122,6 +122,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.ViewModels
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _logger?.LogInformation("NotificationWorkspaceViewModel initialized");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[NotificationWorkspaceVM] MEDIATOR DEBUG: NotificationWorkspaceViewModel created and subscribing to events");
             
             // Subscribe to all notification events
             SubscribeToEvents();
@@ -149,6 +150,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.ViewModels
         /// </summary>
         private void OnLlmStatusChanged(NotificationEvents.LlmStatusChanged eventData)
         {
+            TestCaseEditorApp.Services.Logging.Log.Info($"[NotificationWorkspaceVM] MEDIATOR DEBUG: OnLlmStatusChanged received - Connected={eventData.IsConnected}, Text={eventData.StatusText}");
             IsLlmConnected = eventData.IsConnected;
             LlmStatusText = eventData.StatusText;
             LlmProvider = eventData.Provider;

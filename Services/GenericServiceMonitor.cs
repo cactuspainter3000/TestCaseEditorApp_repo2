@@ -225,6 +225,7 @@ namespace TestCaseEditorApp.Services
             {
                 case ServiceType.AnythingLLM:
                     // Notify via AnythingLLM mediator
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[ServiceMonitor] MEDIATOR DEBUG: NotifyStatusChange for AnythingLLM - Available={status.IsAvailable}, Starting={status.IsStarting}, Message={status.StatusMessage}");
                     var anythingLLMStatus = new AnythingLLMStatus
                     {
                         IsAvailable = status.IsAvailable,

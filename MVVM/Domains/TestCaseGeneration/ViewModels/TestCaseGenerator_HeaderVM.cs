@@ -51,6 +51,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         // Workspace dirty state - reflects mediator's IsDirty state for UI binding
         [ObservableProperty] private bool isDirty = false;
         
+        // Workspace save properties (to match XAML binding expectations)
+        [ObservableProperty] private string? workspaceFilePath;
+        [ObservableProperty] private bool canUndoLastSave;
+        [ObservableProperty] private DateTime? lastSaveTimestamp;
+        
         // Requirement fields for the current requirement
         [ObservableProperty] private string requirementDescription = string.Empty;
         [ObservableProperty] private string requirementMethod = string.Empty;
@@ -85,6 +90,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         public ICommand? LoadWorkspaceCommand { get; set; }
         public ICommand? ReloadCommand { get; set; }
         public ICommand? SaveWorkspaceCommand { get; set; }
+        public ICommand? UndoLastSaveCommand { get; set; }
         public ICommand? ExportAllToJamaCommand { get; set; }
         public ICommand? HelpCommand { get; set; }
 

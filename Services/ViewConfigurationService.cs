@@ -40,9 +40,6 @@ namespace TestCaseEditorApp.Services
         private TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel? _notificationWorkspace;
         private object? _testCaseCreationContent;
         
-        // Cached navigation views - critical for idempotency
-        private object? _cachedRequirementsNavigationView;
-        
         public ViewConfiguration? CurrentConfiguration { get; private set; }
 
         public ViewConfigurationService(
@@ -78,17 +75,17 @@ namespace TestCaseEditorApp.Services
                 // Startup domain - works correctly
                 "startup" => CreateStartupConfiguration(context),
                 
-                // Project domain - fix case mismatch
-                "project" => CreateProjectConfiguration(context),
+                // Project domain - fixed case mismatch
+                "project" or "Project" => CreateProjectConfiguration(context),
                 
                 // Requirements domain - works correctly  
                 "requirements" => CreateRequirementsConfiguration(context),
                 
-                // TestCaseGenerator domain - fix case mismatch  
-                "testcasegenerator" or "test case generator" => DebugAndCallTestCaseGenerator(context),
+                // TestCaseGenerator domain - fixed case mismatch  
+                "testcasegenerator" or "test case generator" or "TestCaseGenerator" => DebugAndCallTestCaseGenerator(context),
                 
-                // TestCaseCreation domain - fix case mismatch
-                "testcasecreation" or "test case creation" => CreateTestCaseCreationConfiguration(context),
+                // TestCaseCreation domain - fixed case mismatch
+                "testcasecreation" or "test case creation" or "TestCaseCreation" => CreateTestCaseCreationConfiguration(context),
                 
                 // TestFlow domain
                 "testflow" => CreateTestFlowConfiguration(context),
@@ -99,14 +96,14 @@ namespace TestCaseEditorApp.Services
                 // Import domain
                 "import" => CreateImportConfiguration(context),
                 
-                // NewProject domain - fix case mismatch
-                "newproject" or "new project" => CreateNewProjectConfiguration(context),
+                // NewProject domain - fixed case mismatch
+                "newproject" or "new project" or "NewProject" => CreateNewProjectConfiguration(context),
                 
-                // OpenProject domain - fix case mismatch  
-                "openproject" or "open project" => CreateOpenProjectConfiguration(context),
+                // OpenProject domain - fixed case mismatch  
+                "openproject" or "open project" or "OpenProject" => CreateOpenProjectConfiguration(context),
                 
-                // Dummy domain - fix case mismatch
-                "dummy" => CreateDummyConfiguration(context),
+                // Dummy domain - fixed case mismatch
+                "dummy" or "Dummy" => CreateDummyConfiguration(context),
                 
                 _ => CreateDefaultConfiguration(context)
             };
@@ -244,13 +241,13 @@ namespace TestCaseEditorApp.Services
             // Resolve all ViewModels from DI container (use Requirements-specific header for requirement details)
             var requirementsHeaderVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>();
             var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>();
-            var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>();
+            var sharedNavigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel>();
             var sharedNotificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
             
             // Fail-fast validation (AI Guide requirement)
             if (requirementsHeaderVM == null) throw new InvalidOperationException("Requirements_HeaderViewModel not registered in DI container");
             if (mainVM == null) throw new InvalidOperationException("Requirements_MainViewModel not registered in DI container");
-            if (navigationVM == null) throw new InvalidOperationException("Requirements_NavigationViewModel not registered in DI container");
+            if (sharedNavigationVM == null) throw new InvalidOperationException("NavigationViewModel not registered in DI container");
             if (sharedNotificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
             
             TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] All Requirements ViewModels resolved successfully");
@@ -265,7 +262,7 @@ namespace TestCaseEditorApp.Services
                 titleViewModel: titleVM,         // Shared TestCaseGeneration title
                 headerViewModel: requirementsHeaderVM,       // Use Requirements-specific header to show requirement details
                 contentViewModel: mainVM,        // ViewModel → DataTemplate renders Requirements_MainView
-                navigationViewModel: navigationVM, // ViewModel → DataTemplate renders Requirements_NavigationView
+                navigationViewModel: sharedNavigationVM, // Shared navigation ViewModel for consistent UX across working domains
                 notificationViewModel: sharedNotificationVM, // Use shared TestCaseGenerator notification (same as OpenProject_Mode)
                 context: context
             );
@@ -305,8 +302,8 @@ namespace TestCaseEditorApp.Services
                 // ✅ Use same notification view as TestCaseGenerator for consistency
                 var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
                 
-                // ✅ Use same navigation view as TestCaseGenerator for consistency
-                var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_NavigationVM>();
+                // ✅ Use shared navigation ViewModel for consistency across working domains
+                var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel>();
 
                 var config = new ViewConfiguration(
                     sectionName: "TestCaseCreation",
@@ -331,11 +328,14 @@ namespace TestCaseEditorApp.Services
         {
             EnsureWorkspaceHeader();
 
+            var sharedNotificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
+            if (sharedNotificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
+            
             return new ViewConfiguration(
                 sectionName: "TestFlow",
-                headerViewModel: _workspaceHeader,
-                contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Test Flow"),
-                notificationViewModel: new TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel(App.ServiceProvider?.GetService<Microsoft.Extensions.Logging.ILogger<TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel>>()),
+                headerViewModel: GetWorkspaceHeader(),
+                contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Test Flow Designer"),
+                notificationViewModel: sharedNotificationVM, // SHARED: Same notification area for all domains
                 context: context
             );
         }
@@ -344,11 +344,14 @@ namespace TestCaseEditorApp.Services
         {
             EnsureWorkspaceHeader();
 
+            var sharedNotificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
+            if (sharedNotificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
+            
             return new ViewConfiguration(
                 sectionName: "Import",
                 headerViewModel: _workspaceHeader,
                 contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Import Requirements"),
-                notificationViewModel: EnsureNotificationWorkspace(), // FIX: Use proper Notification domain for Requirements Import
+                notificationViewModel: sharedNotificationVM, // SHARED: Same notification area for all domains
                 context: context
             );
         }
@@ -380,14 +383,14 @@ namespace TestCaseEditorApp.Services
             var titleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
             var headerVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_HeaderVM>();
             var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels.TestCaseGeneratorMode_MainVM>();
-            var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_NavigationVM>();
+            var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel>();
             var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
             
             // Fail-fast validation (AI Guide requirement)
             if (titleVM == null) throw new InvalidOperationException("TestCaseGenerator_TitleVM not registered in DI container");
             if (headerVM == null) throw new InvalidOperationException("TestCaseGenerator_HeaderVM not registered in DI container");
             if (mainVM == null) throw new InvalidOperationException("TestCaseGeneratorMode_MainVM not registered in DI container");
-            if (navigationVM == null) throw new InvalidOperationException("TestCaseGenerator_NavigationVM not registered in DI container");
+            if (navigationVM == null) throw new InvalidOperationException("NavigationViewModel not registered in DI container");
             if (notificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
             
             TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] All TestCaseGenerator ViewModels resolved successfully");
@@ -398,8 +401,8 @@ namespace TestCaseEditorApp.Services
                 titleViewModel: titleVM,         // ViewModel → DataTemplate renders TestCaseGenerator_TitleView
                 headerViewModel: headerVM,       // ViewModel → DataTemplate renders TestCaseGenerator_HeaderView
                 contentViewModel: mainVM,        // ViewModel → DataTemplate renders TestCaseGeneratorMainView
-                navigationViewModel: navigationVM, // ViewModel → DataTemplate renders TestCaseGenerator_NavigationControl
-                notificationViewModel: notificationVM, // ViewModel → DataTemplate renders TestCaseGeneratorNotificationView
+                navigationViewModel: navigationVM, // Shared navigation ViewModel for consistent UX across working domains
+                notificationViewModel: notificationVM, // SHARED: Same notification area for all domains
                 context: context
             );
         }
@@ -456,12 +459,12 @@ namespace TestCaseEditorApp.Services
 
                 // Return ViewModels directly (same pattern as StartUp domain) - no manual UserControl creation
                 return new ViewConfiguration(
-                    sectionName: "Dummy Domain",
-                    titleViewModel: dummyTitleVM,         // ViewModel, not UserControl
-                    headerViewModel: dummyHeaderVM,       // ViewModel, not UserControl
-                    contentViewModel: dummyMainVM,        // ViewModel, not UserControl
+                    sectionName: "Dummy",
+                    titleViewModel: dummyTitleVM, // ViewModel, not UserControl
+                    headerViewModel: dummyHeaderVM, // ViewModel, not UserControl
+                    contentViewModel: dummyMainVM, // ViewModel, not UserControl
                     navigationViewModel: dummyNavigationVM, // ViewModel, not UserControl
-                    notificationViewModel: dummyNotificationVM, // ViewModel, not UserControl
+                    notificationViewModel: dummyNotificationVM, // Domain-specific notification (test/reference implementation)
                     context: context
                 );
             }
@@ -543,14 +546,14 @@ namespace TestCaseEditorApp.Services
                 var sharedTitleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
                 var requirementsHeaderVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>();
                 var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel>();
-                var sharedNavigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>();
+                var sharedNavigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel>();
                 var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
                 
                 // Fail-fast validation (AI Guide requirement)
                 if (sharedTitleVM == null) throw new InvalidOperationException("TestCaseGenerator_TitleVM not registered in DI container");
                 if (requirementsHeaderVM == null) throw new InvalidOperationException("Requirements_HeaderViewModel not registered in DI container");
                 if (mainVM == null) throw new InvalidOperationException("OpenProjectWorkflowViewModel not registered in DI container");
-                if (sharedNavigationVM == null) throw new InvalidOperationException("Requirements_NavigationViewModel not registered in DI container");
+                if (sharedNavigationVM == null) throw new InvalidOperationException("NavigationViewModel not registered in DI container");
                 if (notificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
                 
                 TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] All OpenProject ViewModels resolved successfully");
@@ -604,6 +607,12 @@ namespace TestCaseEditorApp.Services
             _workspaceHeader.UpdateSaveStatus(_workspaceManagementMediator);
         }
 
+        private WorkspaceHeaderViewModel GetWorkspaceHeader()
+        {
+            EnsureWorkspaceHeader();
+            return _workspaceHeader!;
+        }
+
         private void EnsureTestCaseGeneratorHeader()
         {
             if (_testCaseGeneratorHeader == null)
@@ -630,77 +639,6 @@ namespace TestCaseEditorApp.Services
                     ?? throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
             }
             return _notificationWorkspace;
-        }
-
-        /// <summary>
-        /// Ensure Requirements navigation view is cached and reused for idempotency
-        /// </summary>
-        private object EnsureRequirementsNavigationView()
-        {
-            if (_cachedRequirementsNavigationView == null)
-            {
-                // Create new navigation view and ViewModel
-                var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>();
-                if (navigationVM == null)
-                {
-                    throw new InvalidOperationException("Requirements_NavigationViewModel not registered in DI container");
-                }
-
-                var navigationControl = new TestCaseEditorApp.MVVM.Domains.Requirements.Views.RequirementsNavigationView();
-                navigationControl.DataContext = navigationVM;
-                _cachedRequirementsNavigationView = navigationControl;
-                
-                System.Diagnostics.Debug.WriteLine($"[ViewConfigurationService] Created cached Requirements navigation view: {_cachedRequirementsNavigationView.GetHashCode()}, DataContext: {navigationControl.DataContext?.GetType().Name}");
-                Console.WriteLine($"*** [ViewConfigurationService] Cached navigation view created with DataContext: {navigationControl.DataContext?.GetType().Name} ***");
-            }
-            else
-            {
-                // CRITICAL FIX: When reusing cached view, get a fresh ViewModel and ensure it's properly initialized
-                var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>();
-                if (navigationVM == null)
-                {
-                    throw new InvalidOperationException("Requirements_NavigationViewModel not registered in DI container");
-                }
-
-                if (_cachedRequirementsNavigationView is System.Windows.FrameworkElement cachedElement)
-                {
-                    // Set the fresh ViewModel as DataContext
-                    cachedElement.DataContext = navigationVM;
-                    
-                    // CRITICAL: Force the navigation ViewModel to refresh its data from the mediator
-                    try
-                    {
-                        // Call the known RefreshRequirementsFromMediator method
-                        var refreshMethod = navigationVM.GetType().GetMethod("RefreshRequirementsFromMediator", 
-                            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                        if (refreshMethod != null)
-                        {
-                            refreshMethod.Invoke(navigationVM, null);
-                            System.Diagnostics.Debug.WriteLine($"[ViewConfigurationService] Successfully called RefreshRequirementsFromMediator on NavigationVM");
-                            Console.WriteLine($"*** [ViewConfigurationService] RefreshRequirementsFromMediator called successfully ***");
-                        }
-                        else
-                        {
-                            // Fallback - check mediator state
-                            var mediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
-                            if (mediator != null)
-                            {
-                                System.Diagnostics.Debug.WriteLine($"[ViewConfigurationService] Mediator available - Requirements count: {mediator.Requirements.Count}, Current: {mediator.CurrentRequirement?.Item ?? "null"}");
-                                Console.WriteLine($"*** [ViewConfigurationService] Mediator has {mediator.Requirements.Count} requirements, Current: {mediator.CurrentRequirement?.Item ?? "null"} ***");
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[ViewConfigurationService] Error refreshing NavigationVM: {ex.Message}");
-                        Console.WriteLine($"*** [ViewConfigurationService] Error refreshing NavigationVM: {ex.Message} ***");
-                    }
-                    
-                    System.Diagnostics.Debug.WriteLine($"[ViewConfigurationService] Re-set DataContext on cached view: {cachedElement.DataContext?.GetType().Name}");
-                    Console.WriteLine($"*** [ViewConfigurationService] Fixed cached view DataContext: {cachedElement.DataContext?.GetType().Name} ***");
-                }
-            }
-            return _cachedRequirementsNavigationView;
         }
 
         #endregion

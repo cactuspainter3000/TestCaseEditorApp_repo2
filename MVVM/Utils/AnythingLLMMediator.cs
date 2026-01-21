@@ -24,8 +24,39 @@ namespace TestCaseEditorApp.MVVM.Utils
         /// <param name="status">The current AnythingLLM status</param>
         public static void NotifyStatusUpdated(AnythingLLMStatus status)
         {
+            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available={status.IsAvailable}, Starting={status.IsStarting}, Message={status.StatusMessage}");
             _lastStatus = status; // Store for late subscribers
             StatusUpdated?.Invoke(status);
+            
+            // Bridge to NotificationMediator for unified notification system
+            try
+            {
+                var notificationMediator = App.ServiceProvider?.GetService(typeof(TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator)) as TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator;
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLMMediator] MEDIATOR DEBUG: NotificationMediator resolved: {(notificationMediator != null ? "SUCCESS" : "FAILED")}");
+                if (notificationMediator != null)
+                {
+                    string statusText;
+                    if (status.IsStarting)
+                    {
+                        statusText = "LLM: Connecting...";
+                    }
+                    else if (status.IsAvailable)
+                    {
+                        statusText = "LLM: AnythingLLM";
+                    }
+                    else
+                    {
+                        statusText = "LLM: Disconnected";
+                    }
+                    
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLMMediator] MEDIATOR DEBUG: Calling UpdateLlmStatus - Connected={status.IsAvailable}, Text={statusText}");
+                    notificationMediator.UpdateLlmStatus(status.IsAvailable, statusText, "AnythingLLM", null);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLMMediator] Failed to notify NotificationMediator: {ex.Message}");
+            }
         }
         
         /// <summary>

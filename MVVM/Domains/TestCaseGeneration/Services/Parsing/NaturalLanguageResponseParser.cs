@@ -280,7 +280,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
             // Mark as successfully analyzed
             analysis.IsAnalyzed = true;
 
-            TestCaseEditorApp.Services.Logging.Log.Info($"[{ParserName}Parser] Natural language parsing successful for {requirementId}: Score={analysis.OriginalQualityScore}, Issues={analysis.Issues.Count}, ImprovedReq={!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement)}, Freeform={!string.IsNullOrWhiteSpace(analysis.FreeformFeedback)}");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[{ParserName}Parser] Natural language parsing successful for {requirementId}: Score={analysis.OriginalQualityScore}, Issues={analysis.Issues?.Count ?? 0}, ImprovedReq={!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement)}, Freeform={!string.IsNullOrWhiteSpace(analysis.FreeformFeedback)}");
         }
     }
 }

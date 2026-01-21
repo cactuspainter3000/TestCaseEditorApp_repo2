@@ -375,7 +375,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                     {
                         var index = selectedIndices[i];
                         var para = SelectedParagraphVMs[index];
-                        para.PropertyChanged -= ParagraphViewModel_PropertyChanged;
+                        if (para != null)
+                        {
+                            para.PropertyChanged -= ParagraphViewModel_PropertyChanged;
+                        }
                         SelectedParagraphVMs.RemoveAt(index);
                     }
 

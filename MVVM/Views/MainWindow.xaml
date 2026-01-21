@@ -218,13 +218,7 @@
             <reqviews:RequirementsHeaderView />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type reqvm:Requirements_NavigationViewModel}">
-            <reqviews:RequirementsNavigationView />
-        </DataTemplate>
-
-        <DataTemplate DataType="{x:Type reqvm:Requirements_NotificationViewModel}">
-            <reqviews:RequirementsNotificationView />
-        </DataTemplate>
+        <!-- Requirements uses shared NavigationViewModel and NotificationWorkspaceViewModel -->
 
         <DataTemplate DataType="{x:Type vm:LLMLearningViewModel}">
             <views:LLMLearningView />
@@ -331,8 +325,8 @@
             </Style.Triggers>
         </Style>
 
-        <!-- DataTemplate for TestCaseGenerator_NavigationVM -->
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_NavigationVM}">
+        <!-- DataTemplate for NavigationViewModel (shared navigation for working domains) -->
+        <DataTemplate DataType="{x:Type tcgvm:NavigationViewModel}">
             <tcgmodeviews:TestCaseGenerator_NavigationControl />
         </DataTemplate>
 

@@ -107,7 +107,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
             try
             {
                 _logger.LogDebug("[AnalysisEngine] Validating engine health");
-
+                
                 // Validate that the underlying analysis service is responsive
                 var testRequirement = new Requirement 
                 { 
@@ -118,6 +118,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
 
                 // Quick validation without full analysis
                 var isHealthy = _analysisService.GeneratePromptForInspection(testRequirement) != null;
+                await Task.CompletedTask; // Ensure proper async behavior
 
                 _logger.LogDebug("[AnalysisEngine] Health check result: {IsHealthy}", isHealthy);
                 return isHealthy;

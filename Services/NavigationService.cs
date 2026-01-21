@@ -45,11 +45,6 @@ namespace TestCaseEditorApp.Services
         void ClearNavigation();
         
         /// <summary>
-        /// Update the application title based on current section/context (legacy method)
-        /// </summary>
-        void UpdateTitle(string section, string? context = null);
-        
-        /// <summary>
         /// Initialize service with workspace coordinator for project event handling
         /// </summary>
         void Initialize(IViewAreaCoordinator? coordinator = null);
@@ -218,12 +213,6 @@ namespace TestCaseEditorApp.Services
             _currentProject = null;
             _logger?.LogInformation("Navigation cleared: '{PreviousTitle}' → '{NewTitle}'", previousTitle, _title);
             TitleChanged?.Invoke(this, _title);
-        }
-        
-        // Legacy method for backward compatibility
-        public void UpdateTitle(string section, string? context = null)
-        {
-            NavigateToSection(section, context);
         }
     }
 }

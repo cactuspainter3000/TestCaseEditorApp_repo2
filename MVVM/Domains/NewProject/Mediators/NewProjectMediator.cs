@@ -268,6 +268,9 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     ShowNotification("No active workspace to save", DomainNotificationType.Warning);
                     return;
                 }
+                
+                // Ensure proper async behavior
+                await Task.CompletedTask;
 
                 ShowProgress("Saving project...", 50);
                 

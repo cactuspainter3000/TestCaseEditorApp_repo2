@@ -1412,7 +1412,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                         relativePath
                     };
                     
-                    string fullPath = null;
+                    string? fullPath = null;
                     foreach (var candidate in possiblePaths)
                     {
                         var resolved = Path.GetFullPath(candidate);
