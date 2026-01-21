@@ -53,12 +53,12 @@ namespace TestCaseEditorApp.Services
             NavigationArea = new ConfigurableNavigationAreaViewModel(navigationMediator);
             NotificationArea = new ConfigurableNotificationAreaViewModel(navigationMediator);
 
-            System.Diagnostics.Debug.WriteLine("*** ViewAreaCoordinator: About to subscribe to SectionChangeRequested ***");
+            // System.Diagnostics.Debug.WriteLine("*** ViewAreaCoordinator: About to subscribe to SectionChangeRequested ***");
             
             // Subscribe to navigation requests
             _navigationMediator.Subscribe<NavigationEvents.SectionChangeRequested>(OnSectionChangeRequested);
             
-            System.Diagnostics.Debug.WriteLine("*** ViewAreaCoordinator: Successfully subscribed to SectionChangeRequested ***");
+            // System.Diagnostics.Debug.WriteLine("*** ViewAreaCoordinator: Successfully subscribed to SectionChangeRequested ***");
             
             // NOTE: Removed SideMenu.SectionChanged subscription to prevent circular calls
             // The flow should be: SideMenu → NavigateToSection → SectionChangeRequested → OnSectionChangeRequested
@@ -70,11 +70,11 @@ namespace TestCaseEditorApp.Services
 
         private void OnSectionChangeRequested(NavigationEvents.SectionChangeRequested request)
         {
-            Console.WriteLine($"*** ViewAreaCoordinator: OnSectionChangeRequested called with '{request.SectionName}' ***");
+            // Console.WriteLine($"*** ViewAreaCoordinator: OnSectionChangeRequested called with '{request.SectionName}' ***");
             
             // Write to log file for easier debugging
-            System.IO.File.AppendAllText(@"c:\temp\navigation-debug.log", 
-                $"[{DateTime.Now:HH:mm:ss}] ViewAreaCoordinator: OnSectionChangeRequested('{request.SectionName}')\n");
+            // System.IO.File.AppendAllText(@"c:\temp\navigation-debug.log", 
+            //     $"[{DateTime.Now:HH:mm:ss}] ViewAreaCoordinator: OnSectionChangeRequested('{request.SectionName}')\n");
                 
             TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Section change requested: '{request.SectionName}' - delegating to configuration service");
             

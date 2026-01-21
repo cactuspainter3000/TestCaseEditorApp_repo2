@@ -37,6 +37,15 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         [ObservableProperty]
         private int totalCount;
 
+        // Additional properties for XAML binding compatibility
+        public string RequirementPositionDisplay => CurrentIndex > 0 ? $"{CurrentIndex} / {TotalCount}" : "—";
+
+        public string? SearchQuery
+        {
+            get => SearchText;
+            set => SearchText = value;
+        }
+
         public NavigationViewModel()
         {
             InitializeDropdown();
@@ -118,8 +127,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             RequirementsDropdown!.IsExpanded = false;
             
             // Update position indicator
-            var index = Requirements.IndexOf(requirement);
-            CurrentIndex = index >= 0 ? index + 1 : 0;
+            UpdateIndexCounters();
             
             _logger?.LogDebug("Selected requirement: {RequirementName} (position {Index}/{Total})", 
                 requirement.Name, CurrentIndex, TotalCount);
@@ -168,6 +176,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         {
             TotalCount = Requirements.Count;
             CurrentIndex = SelectedRequirement != null ? Requirements.IndexOf(SelectedRequirement) + 1 : 0;
+            OnPropertyChanged(nameof(RequirementPositionDisplay));
         }
     }
     

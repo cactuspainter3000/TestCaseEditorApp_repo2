@@ -29,22 +29,22 @@ namespace TestCaseEditorApp.MVVM.Utils
             var previousSection = _currentSection;
             // DON'T update _currentSection yet - let the coordinator decide if navigation should proceed
             
-            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator: NavigateToSection('{sectionName}') called ***");
-            Console.WriteLine($"*** NavigationMediator: NavigateToSection('{sectionName}') called ***");
+            // System.Diagnostics.Debug.WriteLine($"*** NavigationMediator: NavigateToSection('{sectionName}') called ***");
+            // Console.WriteLine($"*** NavigationMediator: NavigateToSection('{sectionName}') called ***");
             
             // Write to log file for easier debugging
-            System.IO.File.AppendAllText(@"c:\temp\navigation-debug.log", 
-                $"[{DateTime.Now:HH:mm:ss}] NavigationMediator: NavigateToSection('{sectionName}') called\n");
+            // System.IO.File.AppendAllText(@"c:\temp\navigation-debug.log", 
+            //     $"[{DateTime.Now:HH:mm:ss}] NavigationMediator: NavigateToSection('{sectionName}') called\n");
             
             _logger?.LogDebug("Navigation request: {PreviousSection} -> {NewSection}", 
                 previousSection, sectionName);
             
             // Publish section change request - coordinator will decide if it should proceed
-            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator: Publishing SectionChangeRequested ***");
-            Console.WriteLine($"*** NavigationMediator: Publishing SectionChangeRequested for '{sectionName}' ***");
+            // System.Diagnostics.Debug.WriteLine($"*** NavigationMediator: Publishing SectionChangeRequested ***");
+            // Console.WriteLine($"*** NavigationMediator: Publishing SectionChangeRequested for '{sectionName}' ***");
             
-            System.IO.File.AppendAllText(@"c:\temp\navigation-debug.log", 
-                $"[{DateTime.Now:HH:mm:ss}] NavigationMediator: Publishing SectionChangeRequested for '{sectionName}'\n");
+            // System.IO.File.AppendAllText(@"c:\temp\navigation-debug.log", 
+            //     $"[{DateTime.Now:HH:mm:ss}] NavigationMediator: Publishing SectionChangeRequested for '{sectionName}'\n");
                 
             Publish(new NavigationEvents.SectionChangeRequested(sectionName, context));
         }
@@ -57,7 +57,7 @@ namespace TestCaseEditorApp.MVVM.Utils
             var previousSection = _currentSection;
             _currentSection = sectionName;
             
-            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator: CompleteNavigation - Publishing SectionChanged('{previousSection}' -> '{sectionName}') ***");
+            // System.Diagnostics.Debug.WriteLine($"*** NavigationMediator: CompleteNavigation - Publishing SectionChanged('{previousSection}' -> '{sectionName}') ***");
             _logger?.LogDebug("Navigation completed: {PreviousSection} -> {NewSection}", 
                 previousSection, sectionName);
                 
@@ -120,7 +120,7 @@ namespace TestCaseEditorApp.MVVM.Utils
         public void Subscribe<T>(Action<T> handler) where T : class
         {
             var eventType = typeof(T);
-            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Subscribe<{eventType.Name}>: Subscribing handler ***");
+            // System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Subscribe<{eventType.Name}>: Subscribing handler ***");
             
             var handlers = _subscribers.GetOrAdd(eventType, _ => new List<object>());
             
@@ -129,7 +129,7 @@ namespace TestCaseEditorApp.MVVM.Utils
                 handlers.Add(handler);
             }
             
-            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Subscribe<{eventType.Name}>: Total handlers now: {handlers.Count} ***");
+            // System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Subscribe<{eventType.Name}>: Total handlers now: {handlers.Count} ***");
             
             _logger?.LogTrace("Subscribed to {EventType}, total handlers: {Count}", 
                 eventType.Name, handlers.Count);
@@ -156,7 +156,7 @@ namespace TestCaseEditorApp.MVVM.Utils
             var eventType = typeof(T);
             
             // DEBUG: Add detailed diagnostic logging
-            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Checking for handlers ***");
+            // System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Checking for handlers ***");
             
             if (!_subscribers.TryGetValue(eventType, out var handlers))
             {
@@ -164,9 +164,9 @@ namespace TestCaseEditorApp.MVVM.Utils
                 return;
             }
             
-            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Found {handlers.Count} handlers ***");
+            // System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Found {handlers.Count} handlers ***");
             
-            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Found {handlers.Count} handlers ***");
+            // System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Found {handlers.Count} handlers ***");
 
             List<object> handlersCopy;
             lock (handlers)
@@ -177,7 +177,7 @@ namespace TestCaseEditorApp.MVVM.Utils
             _logger?.LogTrace("Publishing {EventType} to {Count} handlers", 
                 eventType.Name, handlersCopy.Count);
 
-            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Invoking {handlersCopy.Count} handlers ***");
+            // System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Invoking {handlersCopy.Count} handlers ***");
             
             foreach (var handler in handlersCopy)
             {
@@ -185,18 +185,18 @@ namespace TestCaseEditorApp.MVVM.Utils
                 {
                     if (handler is Action<T> typedHandler)
                     {
-                        System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Invoking handler ***");
+                        // System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Invoking handler ***");
                         typedHandler(navigationEvent);
-                        System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Handler completed ***");
+                        // System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Handler completed ***");
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Handler type mismatch! ***");
+                        // System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Handler type mismatch! ***");
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Handler threw exception: {ex.Message} ***");
+                    // System.Diagnostics.Debug.WriteLine($"*** NavigationMediator.Publish<{eventType.Name}>: Handler threw exception: {ex.Message} ***");
                     _logger?.LogError(ex, "Error handling {EventType}", eventType.Name);
                 }
             }
