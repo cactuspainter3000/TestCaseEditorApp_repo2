@@ -209,13 +209,17 @@ namespace TestCaseEditorApp.Services
                 var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.ViewModels.LLMLearningViewModel>() 
                             ?? new TestCaseEditorApp.MVVM.ViewModels.LLMLearningViewModel();
                 
+                // ✅ Use shared navigation and notification like TestCaseGenerator
+                var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel>();
+                var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
+                
                 return new ViewConfiguration(
                     sectionName: "LLM Learning",
                     titleViewModel: titleVM,
                     headerViewModel: headerVM,
                     contentViewModel: mainVM,        // ViewModel → DataTemplate renders LLMLearningView
-                    navigationViewModel: null,
-                    notificationViewModel: null,
+                    navigationViewModel: navigationVM, // Shared navigation ViewModel for consistent UX across working domains
+                    notificationViewModel: notificationVM, // Shared notification with LLM status
                     context: context
                 );
             }
