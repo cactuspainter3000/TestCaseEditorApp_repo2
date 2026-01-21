@@ -129,6 +129,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.ViewModels
             
             // Initialize with default state
             ResetToDefaults();
+            
+            // Request current LLM status to initialize LED correctly
+            TestCaseEditorApp.Services.Logging.Log.Info($"[NotificationWorkspaceVM] MEDIATOR DEBUG: Requesting current LLM status");
+            AnythingLLMMediator.RequestCurrentStatus();
         }
 
         /// <summary>

@@ -228,20 +228,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
 
 
-        public NotificationAreaViewModel CreateNotificationAreaViewModel()
-        {
-            var loggerFactory = _applicationServices.LoggerFactory;
-            var logger = loggerFactory?.CreateLogger<NotificationAreaViewModel>();
-            return new NotificationAreaViewModel(logger);
-        }
-
-        public DefaultNotificationViewModel CreateDefaultNotificationViewModel()
-        {
-            var loggerFactory = _applicationServices.LoggerFactory;
-            var logger = loggerFactory?.CreateLogger<DefaultNotificationViewModel>();
-            return new DefaultNotificationViewModel(logger);
-        }
-
+        // Old notification ViewModels deleted - now using shared NotificationWorkspaceViewModel
+        
         public TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel CreateNotificationWorkspaceViewModel()
         {
             return App.ServiceProvider?.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>() 

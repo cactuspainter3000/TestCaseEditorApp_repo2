@@ -41,9 +41,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // REMOVED: TestCaseGenerator_HeaderVM CreateTestCaseGeneratorHeaderViewModel - now handled by mediator
         // REMOVED: NewProjectWorkflowViewModel CreateNewProjectWorkflowViewModel - use DI container directly
 
-        NotificationAreaViewModel CreateNotificationAreaViewModel();
-        DefaultNotificationViewModel CreateDefaultNotificationViewModel();
-        
+        // REMOVED: NotificationAreaViewModel, DefaultNotificationViewModel - obsolete notification system deleted
+
         // Domain-specific notification VM - replaces legacy TestCaseGeneratorNotificationViewModel
         TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel CreateNotificationWorkspaceViewModel();
         

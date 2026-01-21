@@ -67,12 +67,64 @@ namespace TestCaseEditorApp.MVVM.Utils
         {
             if (_lastStatus != null)
             {
-                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLMMediator] Broadcasting last known status: Available={_lastStatus.IsAvailable}, Starting={_lastStatus.IsStarting}, Message={_lastStatus.StatusMessage}");
-                StatusUpdated?.Invoke(_lastStatus);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLMMediator] Broadcasting last known status via NotifyStatusUpdated: Available={_lastStatus.IsAvailable}, Starting={_lastStatus.IsStarting}, Message={_lastStatus.StatusMessage}");
+                NotifyStatusUpdated(_lastStatus); // Use NotifyStatusUpdated to trigger the bridge
             }
             else
             {
-                TestCaseEditorApp.Services.Logging.Log.Info("[AnythingLLMMediator] No previous status available to broadcast");
+                TestCaseEditorApp.Services.Logging.Log.Info("[AnythingLLMMediator] No previous status available - triggering fresh status check");
+                // Trigger a fresh status check from the service
+                TriggerFreshStatusCheck();
+            }
+        }
+
+        /// <summary>
+        /// Trigger a fresh status check when no cached status is available
+        /// </summary>
+        private static async void TriggerFreshStatusCheck()
+        {
+            try
+            {
+                var anythingLLMService = App.ServiceProvider?.GetService(typeof(TestCaseEditorApp.Services.AnythingLLMService)) as TestCaseEditorApp.Services.AnythingLLMService;
+                if (anythingLLMService != null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info("[AnythingLLMMediator] Triggering fresh status check from AnythingLLMService");
+                    // This will call OnStatusUpdated which calls NotifyStatusUpdated
+                    var isAvailable = await anythingLLMService.IsServiceAvailableAsync();
+                    string statusMessage = isAvailable ? "AnythingLLM ready" : "AnythingLLM unavailable";
+                    
+                    var freshStatus = new AnythingLLMStatus
+                    {
+                        IsAvailable = isAvailable,
+                        IsStarting = false,
+                        StatusMessage = statusMessage
+                    };
+                    NotifyStatusUpdated(freshStatus);
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn("[AnythingLLMMediator] AnythingLLMService not available for fresh status check");
+                    // Fallback: Report disconnected status
+                    var fallbackStatus = new AnythingLLMStatus
+                    {
+                        IsAvailable = false,
+                        IsStarting = false,
+                        StatusMessage = "LLM: Service not available"
+                    };
+                    NotifyStatusUpdated(fallbackStatus);
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnythingLLMMediator] Fresh status check failed");
+                // Fallback: Report disconnected status
+                var errorStatus = new AnythingLLMStatus
+                {
+                    IsAvailable = false,
+                    IsStarting = false,
+                    StatusMessage = "LLM: Status check failed"
+                };
+                NotifyStatusUpdated(errorStatus);
             }
         }
         

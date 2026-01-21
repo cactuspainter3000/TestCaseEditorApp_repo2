@@ -77,18 +77,7 @@
             <views:WorkspaceHeaderView />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type vm:DefaultNotificationViewModel}">
-            <!-- Simple default notification area - shows minimal ready state -->
-            <Border Background="#222222" 
-                    Padding="10,4"
-                    Height="28">
-                <TextBlock Text="{Binding DefaultText}" 
-                          FontSize="11" 
-                          Foreground="#666666" 
-                          VerticalAlignment="Center"
-                          HorizontalAlignment="Center"/>
-            </Border>
-        </DataTemplate>
+        <!-- DefaultNotificationViewModel DataTemplate deleted - obsolete notification system -->
 
         <DataTemplate DataType="{x:Type notificationvm:NotificationWorkspaceViewModel}">
             <!-- Notification workspace layout - Domain-agnostic notification display -->

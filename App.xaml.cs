@@ -435,7 +435,7 @@ namespace TestCaseEditorApp
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementAnalysisViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.ChatGptExportAnalysisViewModel>();
                     services.AddSingleton<WorkspaceHeaderViewModel>(); // workspace header shared instance
-                    services.AddTransient<NotificationAreaViewModel>(); // notification area for status indicators
+                    // Old NotificationAreaViewModel deleted - now using shared NotificationWorkspaceViewModel
                     
                     services.AddTransient<MainViewModel>(provider =>
                     {

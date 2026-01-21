@@ -1922,15 +1922,27 @@ CRITICAL: The IMPROVED REQUIREMENT should use [brackets] when information is mis
         /// <summary>
         /// Raises the StatusUpdated event
         /// </summary>
-        private void OnStatusUpdated(string status)
+        private async void OnStatusUpdated(string status)
         {
             StatusUpdated?.Invoke(status);
             TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] {status}");
             
+            // Determine actual availability using proper service check, not text matching
+            bool isActuallyAvailable = false;
+            try
+            {
+                isActuallyAvailable = await IsServiceAvailableAsync();
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Availability check result: {isActuallyAvailable}");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Availability check failed: {ex.Message}");
+            }
+            
             // Publish status via mediator for cross-cutting concerns (spinner, status indicators)
             var anythingLLMStatus = new AnythingLLMStatus
             {
-                IsAvailable = status.Contains("ready") || status.Contains("already running"),
+                IsAvailable = isActuallyAvailable, // Use actual availability, not text matching
                 IsStarting = status.Contains("Starting") || status.Contains("waiting") || status.Contains("Checking"),
                 StatusMessage = status
             };
