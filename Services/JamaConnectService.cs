@@ -452,11 +452,25 @@ namespace TestCaseEditorApp.Services
                 var name = item.Name;
                 var description = item.Description;
                 
-                // If name is empty, try to create a meaningful name from available data
+                // ENHANCED DEBUGGING: Log the actual API response structure
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] RAW API ITEM {item.Id}: " +
+                    $"Name='{item.Name}', Description='{item.Description}', " +
+                    $"Fields.Name='{item.Fields?.Name}', Fields.Description='{item.Fields?.Description}', " +
+                    $"ItemType={item.ItemType}, DocumentKey='{item.DocumentKey}', GlobalId='{item.GlobalId}'");
+                
+                // Try multiple field sources for name
                 if (string.IsNullOrWhiteSpace(name))
                 {
-                    name = $"Item {itemId}";
+                    name = item.Fields?.Name;  // Fallback to Fields.Name
                 }
+                
+                // Try multiple field sources for description  
+                if (string.IsNullOrWhiteSpace(description))
+                {
+                    description = item.Fields?.Description;  // Fallback to Fields.Description
+                }
+                
+                // Use the actual name or empty string - NO fake name generation
                 
                 // Enhanced debugging for field mapping
                 TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {item.Id}: " +
@@ -467,12 +481,20 @@ namespace TestCaseEditorApp.Services
                 var requirement = new Requirement
                 {
                     Item = itemId,
-                    Name = name,
+                    Name = name ?? "",  // Use actual name or empty string
                     Description = description ?? "",
                     GlobalId = item.GlobalId ?? "",
                     Status = item.Status ?? item.Fields?.Status ?? "",
                     RequirementType = item.ItemType?.ToString() ?? "Unknown",
                     Project = item.Project?.ToString() ?? "",
+                    // Initialize LooseContent with description as paragraph content
+                    LooseContent = new RequirementLooseContent()
+                    {
+                        Paragraphs = !string.IsNullOrWhiteSpace(description) 
+                            ? new List<string> { description } 
+                            : new List<string>(),
+                        Tables = new List<LooseTable>() // Empty for now, could be enhanced later
+                    }
                 };
                 
                 requirements.Add(requirement);

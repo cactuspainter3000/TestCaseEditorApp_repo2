@@ -185,6 +185,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             UpdateDropdownDisplayText();
             UpdateIndexCounters();
             
+            // Broadcast requirement selection to all domains using proper architectural pattern
+            _mediator?.BroadcastToAllDomains(new TestCaseGenerationEvents.RequirementSelected
+            {
+                Requirement = requirement,
+                SelectedBy = "NavigationViewModel",
+                Timestamp = DateTime.Now
+            });
+            
             _logger?.LogDebug("Selected requirement: {RequirementName} (position {Index}/{Total})", 
                 requirement.Name, CurrentIndex, TotalCount);
         }

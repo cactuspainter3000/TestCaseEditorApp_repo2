@@ -294,7 +294,7 @@ namespace TestCaseEditorApp
                     });
                     
                     // Requirements domain ViewModels - Navigation as Singleton to maintain state
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>(provider =>
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>(provider =>
                     {
                         var reqMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
                         var testCaseGenMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.ITestCaseGenerationMediator>();

@@ -912,6 +912,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 ClearRequirements();
                 IsDirty = false;
             }
+            else if (notification is TestCaseGenerationEvents.RequirementSelected requirementSelected)
+            {
+                // Handle requirement selection broadcast from TestCaseGeneration domain
+                _logger.LogDebug("Received broadcast RequirementSelected: {RequirementId}", requirementSelected.Requirement?.GlobalId);
+                
+                // Republish as Requirements domain event for local subscribers
+                PublishEvent(new RequirementsEvents.RequirementSelected
+                {
+                    Requirement = requirementSelected.Requirement,
+                    SelectedBy = requirementSelected.SelectedBy,
+                    SelectedAt = requirementSelected.Timestamp
+                });
+            }
             else if (notification is TestCaseEditorApp.MVVM.Events.CrossDomainMessages.ImportRequirementsRequest importRequest)
             {
                 _ = ImportRequirementsAsync(importRequest.DocumentPath, importRequest.PreferJamaParser ? "Jama" : "Auto");
