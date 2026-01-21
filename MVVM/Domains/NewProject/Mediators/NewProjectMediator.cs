@@ -713,29 +713,64 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     
                     try
                     {
-                        // Use SmartRequirementImporter for automatic format detection and fallback
-                        var importResult = await _smartImporter.ImportRequirementsAsync(documentPath);
-                        
-                        if (importResult.Success)
+                        // Check if this is a JSON file from Jama import
+                        if (documentPath.EndsWith(".json", StringComparison.OrdinalIgnoreCase) && 
+                            Path.GetFileName(documentPath).StartsWith("JamaRequirements_", StringComparison.OrdinalIgnoreCase))
                         {
-                            importedRequirements = importResult.Requirements;
-                            _logger.LogInformation("✅ Successfully imported {Count} requirements using {Method}", 
-                                importedRequirements.Count, importResult.ImportMethod);
+                            _logger.LogInformation("📄 Detected Jama JSON file, loading requirements directly");
                             
-                            // Broadcast imported requirements to TestCaseGenerationMediator for UI sync
-                            BroadcastToAllDomains(new TestCaseGenerationEvents.RequirementsImported
+                            // Load requirements directly from JSON file created by Jama import
+                            var jsonContent = await File.ReadAllTextAsync(documentPath);
+                            var jamaWorkspace = JsonSerializer.Deserialize<Workspace>(jsonContent);
+                            
+                            if (jamaWorkspace?.Requirements != null)
                             {
-                                Requirements = importedRequirements,
-                                SourceFile = documentPath,
-                                ImportType = importResult.ImportMethod,
-                                ImportTime = importResult.ImportDuration
-                            });
+                                importedRequirements = jamaWorkspace.Requirements;
+                                _logger.LogInformation("✅ Successfully loaded {Count} requirements from Jama JSON file", 
+                                    importedRequirements.Count);
+                                
+                                // Broadcast imported requirements to TestCaseGenerationMediator for UI sync
+                                BroadcastToAllDomains(new TestCaseGenerationEvents.RequirementsImported
+                                {
+                                    Requirements = importedRequirements,
+                                    SourceFile = jamaWorkspace.SourceDocPath ?? "Jama Connect",
+                                    ImportType = "Jama Connect API",
+                                    ImportTime = TimeSpan.FromSeconds(1) // Approximate since we already imported
+                                });
+                            }
+                            else
+                            {
+                                requirementsImportedSuccessfully = false;
+                                _logger.LogWarning("⚠️ Jama JSON file contains no requirements");
+                                ShowNotification("Jama import file contains no requirements.", DomainNotificationType.Warning);
+                            }
                         }
                         else
                         {
-                            requirementsImportedSuccessfully = false;
-                            _logger.LogWarning("⚠️ Smart importer failed: {Error}", importResult.ErrorMessage);
-                            ShowNotification(importResult.UserMessage, DomainNotificationType.Warning);
+                            // Use SmartRequirementImporter for Word documents and other formats
+                            var importResult = await _smartImporter.ImportRequirementsAsync(documentPath);
+                            
+                            if (importResult.Success)
+                            {
+                                importedRequirements = importResult.Requirements;
+                                _logger.LogInformation("✅ Successfully imported {Count} requirements using {Method}", 
+                                    importedRequirements.Count, importResult.ImportMethod);
+                                
+                                // Broadcast imported requirements to TestCaseGenerationMediator for UI sync
+                                BroadcastToAllDomains(new TestCaseGenerationEvents.RequirementsImported
+                                {
+                                    Requirements = importedRequirements,
+                                    SourceFile = documentPath,
+                                    ImportType = importResult.ImportMethod,
+                                    ImportTime = importResult.ImportDuration
+                                });
+                            }
+                            else
+                            {
+                                requirementsImportedSuccessfully = false;
+                                _logger.LogWarning("⚠️ Smart importer failed: {Error}", importResult.ErrorMessage);
+                                ShowNotification(importResult.UserMessage, DomainNotificationType.Warning);
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -842,8 +877,11 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         {
             try
             {
-                // Check if a project is currently open
-                if (_currentWorkspaceInfo != null)
+                // Check if a real project is currently open (not just the auto-generated Default Workspace)
+                if (_currentWorkspaceInfo != null && 
+                    !string.IsNullOrEmpty(_currentWorkspaceInfo.Name) && 
+                    _currentWorkspaceInfo.Name != "Default Workspace" &&
+                    !_currentWorkspaceInfo.Path.Contains("default-workspace"))
                 {
                     string message = $"You currently have project '{_currentWorkspaceInfo.Name}' open.";
                     if (_currentWorkspaceInfo.HasUnsavedChanges)

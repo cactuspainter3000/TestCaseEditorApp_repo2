@@ -341,19 +341,47 @@ namespace TestCaseEditorApp.Services
                 // Ensure we have a valid access token for OAuth
                 await EnsureAccessTokenAsync();
                 
-                // Get items of type "requirement" from the project
+                // Get items from the project - we'll filter for requirements after getting the data
                 var url = $"{_baseUrl}/rest/v1/items?project={projectId}";
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Fetching items from: {url}");
+                
                 var response = await _httpClient.GetAsync(url, cancellationToken);
                 
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Raw JSON response: {json.Substring(0, Math.Min(500, json.Length))}...");
+                    
                     var result = JsonSerializer.Deserialize<JamaItemsResponse>(json, new JsonSerializerOptions 
                     { 
                         PropertyNameCaseInsensitive = true 
                     });
                     
-                    return result?.Data ?? new List<JamaItem>();
+                    var allItems = result?.Data ?? new List<JamaItem>();
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Retrieved {allItems.Count} total items from project {projectId}");
+                    
+                    // Log analysis of item types to understand what we're getting
+                    var itemTypeGroups = allItems.GroupBy(i => i.ItemType).OrderByDescending(g => g.Count());
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item types found:");
+                    foreach (var group in itemTypeGroups.Take(5))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"  Type {group.Key}: {group.Count()} items");
+                    }
+                    
+                    // Log details of first few items to understand structure
+                    for (int i = 0; i < Math.Min(3, allItems.Count); i++)
+                    {
+                        var item = allItems[i];
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {i}: Id={item.Id}, DocumentKey={item.DocumentKey}, ItemType={item.ItemType}, Fields={item.Fields != null}");
+                        if (item.Fields != null)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info($"  Fields: Name='{item.Fields.Name}', Description='{item.Fields.Description}', Status='{item.Fields.Status}'");
+                        }
+                    }
+                    
+                    // For now, return all items - we'll improve filtering as we learn more about the item types
+                    // Common Jama item types: Requirements are often type 53, 55, etc. but this varies by instance
+                    return allItems;
                 }
                 else
                 {
@@ -413,23 +441,49 @@ namespace TestCaseEditorApp.Services
         {
             var requirements = new List<Requirement>();
             
+            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Converting {jamaItems.Count} Jama items to requirements");
+            
             foreach (var item in jamaItems)
             {
+                // Enhanced field mapping with better fallbacks
+                var itemId = item.Item ?? item.DocumentKey ?? item.GlobalId ?? $"JAMA-{item.Id}";
+                
+                // Access Name and Description directly from the item, not from Fields
+                var name = item.Name;
+                var description = item.Description;
+                
+                // If name is empty, try to create a meaningful name from available data
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    name = $"Item {itemId}";
+                }
+                
+                // Enhanced debugging for field mapping
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {item.Id}: " +
+                    $"Item='{item.Item}', DocumentKey='{item.DocumentKey}', GlobalId='{item.GlobalId}', " +
+                    $"ItemType={item.ItemType}, Name='{item.Name}', " +
+                    $"Description.Length={item.Description?.Length ?? 0}");
+                
                 var requirement = new Requirement
                 {
-                    Item = item.DocumentKey ?? $"JAMA-{item.Id}",
-                    Name = item.Fields?.Name ?? "Untitled Requirement",
-                    Description = item.Fields?.Description ?? "",
+                    Item = itemId,
+                    Name = name,
+                    Description = description ?? "",
                     GlobalId = item.GlobalId ?? "",
-                    // Map other fields as needed
-                    Status = item.Fields?.Status ?? "",
-                    RequirementType = item.ItemType?.ToString() ?? "Requirement",
+                    Status = item.Status ?? item.Fields?.Status ?? "",
+                    RequirementType = item.ItemType?.ToString() ?? "Unknown",
                     Project = item.Project?.ToString() ?? "",
-                    // Add more field mappings as needed
                 };
                 
                 requirements.Add(requirement);
             }
+            
+            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Converted {requirements.Count} requirements successfully");
+            
+            // Log summary of field population
+            var withNames = requirements.Count(r => !r.Name.StartsWith("Item "));
+            var withDescriptions = requirements.Count(r => !string.IsNullOrWhiteSpace(r.Description));
+            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Field population: {withNames} with real names, {withDescriptions} with descriptions");
             
             return requirements;
         }
@@ -512,6 +566,12 @@ namespace TestCaseEditorApp.Services
         public int? Project { get; set; }
         public int? ItemType { get; set; }
         public JamaItemFields? Fields { get; set; }
+        
+        // Direct properties that exist in actual Jama response
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+        public string? Status { get; set; }
+        public string? Item { get; set; }  // The Item ID like "DECAGON-CMP-7"
     }
 
     public class JamaItemFields

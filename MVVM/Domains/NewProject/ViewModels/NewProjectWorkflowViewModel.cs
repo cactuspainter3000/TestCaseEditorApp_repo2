@@ -131,8 +131,19 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                     return "⚠️ Create AnythingLLM Workspace First";
                 if (!IsWorkspaceCreated)
                     return "⚠️ Workspace Not Validated";
-                if (!HasSelectedDocument)
-                    return "⚠️ Select Requirements Document";
+                    
+                // Check requirements source based on import mode
+                if (IsJamaImportMode)
+                {
+                    if (SelectedProject == null)
+                        return "⚠️ Select Jama Project";
+                }
+                else
+                {
+                    if (!HasSelectedDocument)
+                        return "⚠️ Select Requirements Document";
+                }
+                
                 if (!HasProjectName)
                     return "⚠️ Enter Project Name";
                 if (!HasProjectSavePath)
@@ -151,15 +162,26 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                     return "First create an AnythingLLM workspace above";
                 if (!IsWorkspaceCreated)
                     return "Click 'Create Workspace' to validate your workspace setup";
-                if (!HasSelectedDocument)
-                    return "Select a Word document containing your requirements";
+                    
+                // Check requirements source based on import mode
+                if (IsJamaImportMode)
+                {
+                    if (SelectedProject == null)
+                        return "Select a Jama project to import requirements from";
+                }
+                else
+                {
+                    if (!HasSelectedDocument)
+                        return "Select a Word document containing your requirements";
+                }
+                
                 if (!HasProjectName)
                     return "Enter a name for your new project";
                 if (!HasProjectSavePath)
                     return "Choose where to save your project file";
                 if (IsProjectCreated)
                     return "Project has been successfully created!";
-                return "All prerequisites met - ready to create project!";
+                return $"All prerequisites met - ready to create project with {(IsJamaImportMode ? "Jama" : "document")} requirements!";
             }
         }
 
@@ -413,17 +435,39 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             OnPropertyChanged(nameof(CreateProjectButtonTooltip));
         }
 
+        partial void OnSelectedProjectChanged(JamaProjectItem? value)
+        {
+            // Update CanProceed when Jama project selection changes
+            UpdateCanProceed();
+            
+            // Notify command states
+            LoadRequirementsCommand.NotifyCanExecuteChanged();
+            ImportSelectedRequirementsCommand.NotifyCanExecuteChanged();
+        }
+
+        partial void OnIsJamaImportModeChanged(bool value)
+        {
+            // Update CanProceed when import mode changes (affects requirements source validation)
+            UpdateCanProceed();
+        }
+
         private void UpdateCanProceed()
         {
             var oldCanProceed = CanProceed;
             
+            // Check if we have requirements source: either a document file (in document mode) or selected Jama project (in Jama mode)
+            bool hasRequirementsSource = IsJamaImportMode ? (SelectedProject != null) : HasSelectedDocument;
+            
             // All required fields must be filled - allow even if project is open (user will get warning dialog)
-            var newCanProceed = HasWorkspaceName && HasSelectedDocument && HasProjectSavePath && HasProjectName && IsWorkspaceCreated;
+            var newCanProceed = HasWorkspaceName && hasRequirementsSource && HasProjectSavePath && HasProjectName && IsWorkspaceCreated;
             
             // Debug logging to help troubleshoot
             TestCaseEditorApp.Services.Logging.Log.Debug($"[UpdateCanProceed] " +
                 $"HasWorkspaceName={HasWorkspaceName}, " +
+                $"IsJamaImportMode={IsJamaImportMode}, " +
+                $"SelectedProject={(SelectedProject != null ? SelectedProject.Name : "null")}, " +
                 $"HasSelectedDocument={HasSelectedDocument}, " +
+                $"HasRequirementsSource={hasRequirementsSource}, " +
                 $"HasProjectSavePath={HasProjectSavePath}, " +
                 $"HasProjectName={HasProjectName}, " +
                 $"IsWorkspaceCreated={IsWorkspaceCreated}, " +
@@ -441,7 +485,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 CanProceed = CanProceed,
                 HasWorkspaceName = HasWorkspaceName,
                 IsWorkspaceCreated = IsWorkspaceCreated,
-                HasSelectedDocument = HasSelectedDocument,
+                HasSelectedDocument = hasRequirementsSource, // Use requirements source status
                 HasProjectName = HasProjectName,
                 HasProjectSavePath = HasProjectSavePath
             };
@@ -523,11 +567,32 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
 
             try
             {
+                string documentPathToUse = SelectedDocumentPath;
+                
+                // Check if we're in Jama import mode with a selected project
+                if (IsJamaImportMode && SelectedProject != null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Creating project with Jama import from project: {SelectedProject.Name} (ID: {SelectedProject.Id})");
+                    
+                    try
+                    {
+                        // Import requirements from Jama and get the temporary file path
+                        documentPathToUse = await _mediator.ImportJamaRequirementsAsync(SelectedProject.Id, SelectedProject.Name, SelectedProject.Key);
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Jama import successful, temporary file created: {documentPathToUse}");
+                    }
+                    catch (Exception jamaEx)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Error(jamaEx, $"[PROJECT] Failed to import from Jama project {SelectedProject.Name}");
+                        _mediator.ShowNotification($"Failed to import requirements from Jama project '{SelectedProject.Name}': {jamaEx.Message}", DomainNotificationType.Error);
+                        return;
+                    }
+                }
+                
                 // Debug: Log the parameters being passed
-                TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Calling CreateNewProjectWithWarningAsync with documentPath: '{SelectedDocumentPath}'");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Calling CreateNewProjectWithWarningAsync with documentPath: '{documentPathToUse}'");
                 
                 // Call the workspace management mediator to complete the project creation with proper warning handling
-                var creationSuccessful = await _mediator.CreateNewProjectWithWarningAsync(WorkspaceName, ProjectName, ProjectSavePath, SelectedDocumentPath);
+                var creationSuccessful = await _mediator.CreateNewProjectWithWarningAsync(WorkspaceName, ProjectName, ProjectSavePath, documentPathToUse);
                 
                 // Always mark project as created if method completed without exception
                 // Even if requirements import failed, the project file was still created successfully
