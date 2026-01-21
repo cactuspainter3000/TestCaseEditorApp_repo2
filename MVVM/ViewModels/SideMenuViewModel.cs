@@ -862,7 +862,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 _logger?.LogInformation("Testing requirement import from Jama project {ProjectId}", projectId);
                 
                 var jamaItems = await _jamaConnectService.GetRequirementsAsync(projectId);
-                var requirements = _jamaConnectService.ConvertToRequirements(jamaItems);
+                var requirements = await _jamaConnectService.ConvertToRequirementsAsync(jamaItems);
                 
                 MessageBox.Show(
                     $"Successfully imported {requirements.Count} requirements from Jama!\n\n" +

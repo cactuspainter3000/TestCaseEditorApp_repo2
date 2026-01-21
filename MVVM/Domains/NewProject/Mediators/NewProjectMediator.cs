@@ -1237,7 +1237,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             try
             {
                 var jamaItems = await _jamaConnectService.GetRequirementsAsync(projectId, CancellationToken.None);
-                var requirements = _jamaConnectService.ConvertToRequirements(jamaItems);
+                var requirements = await _jamaConnectService.ConvertToRequirementsAsync(jamaItems);
                 _logger.LogInformation($"[NewProject] Retrieved {requirements.Count} requirements from Jama project {projectId}");
                 return requirements;
             }
@@ -1257,7 +1257,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             {
                 // Get the requirements data from Jama
                 var jamaItems = await _jamaConnectService.GetRequirementsAsync(projectId, CancellationToken.None);
-                var requirements = _jamaConnectService.ConvertToRequirements(jamaItems);
+                var requirements = await _jamaConnectService.ConvertToRequirementsAsync(jamaItems);
 
                 // Set source project information
                 foreach (var req in requirements)
