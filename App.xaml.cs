@@ -12,6 +12,7 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
@@ -445,7 +446,14 @@ namespace TestCaseEditorApp
                         
                         return new MainViewModel(viewModelFactory, navigationService, logger);
                     });
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel>();
+                    // Shared NavigationViewModel - SINGLETON to maintain state across domains
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel>(provider =>
+                    {
+                        var testCaseMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
+                        var requirementsMediator = provider.GetRequiredService<IRequirementsMediator>();
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel>>();
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel(testCaseMediator, logger, requirementsMediator);
+                    });
 
                     // New domain ViewModels for consolidation
                     // UIModalManagementViewModel REMOVED - Cross-cutting infrastructure violation, use domain mediators
@@ -489,10 +497,11 @@ namespace TestCaseEditorApp
                     {
                         var newProjectMediator = provider.GetRequiredService<INewProjectMediator>();
                         var openProjectMediator = provider.GetRequiredService<IOpenProjectMediator>();
+                        var requirementsMediator = provider.GetRequiredService<IRequirementsMediator>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
                         var testCaseCreationMediator = provider.GetRequiredService<ITestCaseCreationMediator>();
                         
-                        return new ViewConfigurationService(newProjectMediator, openProjectMediator, testCaseGenerationMediator, testCaseCreationMediator);
+                        return new ViewConfigurationService(newProjectMediator, openProjectMediator, requirementsMediator, testCaseGenerationMediator, testCaseCreationMediator);
                     });
                     
                     services.AddSingleton<IViewModelFactory>(provider =>

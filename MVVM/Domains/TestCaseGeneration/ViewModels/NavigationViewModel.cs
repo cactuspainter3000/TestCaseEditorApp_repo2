@@ -5,9 +5,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using TestCaseEditorApp.MVVM.Models.DataDrivenMenu;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Events;
+using TestCaseGenerationEvents = TestCaseEditorApp.MVVM.Events.TestCaseGenerationEvents;
 using System.Linq;
 using System.Windows.Input;
 using Microsoft.Extensions.Logging;
@@ -17,6 +19,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
     public partial class NavigationViewModel : ObservableObject
     {
         private readonly ITestCaseGenerationMediator? _mediator;
+        private readonly IRequirementsMediator? _requirementsMediator;
         private readonly ILogger<NavigationViewModel>? _logger;
 
         [ObservableProperty]
@@ -51,15 +54,28 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             InitializeDropdown();
         }
 
-        public NavigationViewModel(ITestCaseGenerationMediator mediator, ILogger<NavigationViewModel> logger)
+        public NavigationViewModel(ITestCaseGenerationMediator mediator, ILogger<NavigationViewModel> logger, IRequirementsMediator? requirementsMediator = null)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _requirementsMediator = requirementsMediator; // Optional for cross-domain compatibility
+            
             InitializeDropdown();
             
-            // Subscribe to requirement changes from the mediator
+            // Subscribe to requirement changes from TestCaseGeneration domain
             _mediator.Subscribe<TestCaseGenerationEvents.RequirementsImported>(OnRequirementsImported);
             _mediator.Subscribe<TestCaseGenerationEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
+            
+            // Subscribe to requirement changes from Requirements domain (if available)
+            if (_requirementsMediator != null)
+            {
+                _requirementsMediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChangedFromRequirementsDomain);
+                _logger?.LogInformation("NavigationViewModel subscribed to Requirements domain events");
+            }
+            else
+            {
+                _logger?.LogWarning("NavigationViewModel: RequirementsMediator not available - won't receive Requirements domain events");
+            }
         }
 
         private void InitializeDropdown()
@@ -84,8 +100,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         private void OnRequirementsCollectionChanged(TestCaseGenerationEvents.RequirementsCollectionChanged evt)
         {
-            _logger?.LogInformation("NavigationViewModel received RequirementsCollectionChanged: {Action}, Count: {Count}", 
+            _logger?.LogInformation("NavigationViewModel received TestCaseGenerationEvents.RequirementsCollectionChanged: {Action}, Count: {Count}", 
                 evt.Action, evt.AffectedRequirements.Count);
+            UpdateRequirements(evt.AffectedRequirements);
+        }
+
+        private void OnRequirementsCollectionChangedFromRequirementsDomain(TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementsCollectionChanged evt)
+        {
+            _logger?.LogInformation("NavigationViewModel received RequirementsEvents.RequirementsCollectionChanged: {Action}, Count: {Count}", 
+                evt.Action, evt.AffectedRequirements.Count);
+            
             UpdateRequirements(evt.AffectedRequirements);
         }
 
@@ -94,11 +118,17 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// </summary>
         public void UpdateRequirements(IEnumerable<Requirement> newRequirements)
         {
+            if (RequirementsDropdown == null)
+            {
+                _logger?.LogWarning("RequirementsDropdown is null, reinitializing");
+                InitializeDropdown();
+            }
+            
             Requirements.Clear();
             RequirementsDropdown!.Children.Clear();
 
             if (newRequirements?.Any() == true)
-            {
+            {                
                 // Sort requirements using natural numeric order (same as RequirementsIndexViewModel)
                 var sortedRequirements = newRequirements.OrderBy(r => r, new RequirementNaturalComparer()).ToList();
                 
@@ -115,15 +145,34 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                     });
                 }
                 
-                RequirementsDropdown.Text = $"Requirements ({Requirements.Count})";
                 SelectedRequirement = Requirements.FirstOrDefault();
+                UpdateDropdownDisplayText();
                 UpdateIndexCounters();
             }
             else
             {
-                RequirementsDropdown.Text = "No requirements loaded";
                 SelectedRequirement = null;
+                UpdateDropdownDisplayText();
                 UpdateIndexCounters();
+            }
+        }
+
+        /// <summary>
+        /// Update the dropdown display text based on the currently selected requirement
+        /// </summary>
+        private void UpdateDropdownDisplayText()
+        {
+            if (SelectedRequirement != null)
+            {
+                RequirementsDropdown!.Text = $"{SelectedRequirement.Item} — {SelectedRequirement.Name}";
+            }
+            else if (Requirements.Any())
+            {
+                RequirementsDropdown!.Text = $"Requirements ({Requirements.Count})";
+            }
+            else
+            {
+                RequirementsDropdown!.Text = "No requirements loaded";
             }
         }
 
@@ -132,7 +181,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             SelectedRequirement = requirement;
             RequirementsDropdown!.IsExpanded = false;
             
-            // Update position indicator
+            // Update dropdown display text and position indicator
+            UpdateDropdownDisplayText();
             UpdateIndexCounters();
             
             _logger?.LogDebug("Selected requirement: {RequirementName} (position {Index}/{Total})", 

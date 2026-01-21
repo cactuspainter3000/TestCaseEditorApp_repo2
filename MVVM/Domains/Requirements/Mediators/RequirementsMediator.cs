@@ -768,12 +768,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                         }
                         
                         // ✅ Even when data is current, notify header to refresh display when project is activated
-                        PublishEvent(new RequirementsEvents.RequirementsCollectionChanged
+                        var eventData = new RequirementsEvents.RequirementsCollectionChanged
                         {
                             Action = "ProjectActivated",
                             AffectedRequirements = _requirements.ToList(),
                             NewCount = _requirements.Count
-                        });
+                        };
+                        _logger.LogInformation("🔔 RequirementsMediator publishing RequirementsCollectionChanged: {Action}, Count: {Count}", eventData.Action, eventData.NewCount);
+                        Console.WriteLine($"🔔 RequirementsMediator publishing RequirementsCollectionChanged: {eventData.Action}, Count: {eventData.NewCount}");
+                        PublishEvent(eventData);
                         
                         // ✅ Always notify about requirement selection to update header (even if null)
                         PublishEvent(new RequirementsEvents.RequirementSelected
@@ -818,12 +821,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     }
 
                     // CRITICAL: Publish event on UI thread to avoid threading violations
-                    PublishEvent(new RequirementsEvents.RequirementsCollectionChanged
+                    var loadEventData = new RequirementsEvents.RequirementsCollectionChanged
                     {
                         Action = "Load",
                         AffectedRequirements = _requirements.ToList(),
                         NewCount = _requirements.Count
-                    });
+                    };
+                    _logger.LogInformation("🔔 RequirementsMediator publishing RequirementsCollectionChanged: {Action}, Count: {Count}", loadEventData.Action, loadEventData.NewCount);
+                    Console.WriteLine($"🔔 RequirementsMediator publishing RequirementsCollectionChanged: {loadEventData.Action}, Count: {loadEventData.NewCount}");
+                    PublishEvent(loadEventData);
                     
                     IsDirty = false;
                     _logger.LogInformation("Loaded {Count} requirements from project", _requirements.Count);

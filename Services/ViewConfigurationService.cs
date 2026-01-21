@@ -12,6 +12,7 @@ using TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 
 namespace TestCaseEditorApp.Services
 {
@@ -31,6 +32,7 @@ namespace TestCaseEditorApp.Services
     {
         private readonly INewProjectMediator _workspaceManagementMediator;
         private readonly IOpenProjectMediator _openProjectMediator;
+        private readonly IRequirementsMediator _requirementsMediator;
         private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
         private readonly ITestCaseCreationMediator _testCaseCreationMediator;
         
@@ -45,11 +47,13 @@ namespace TestCaseEditorApp.Services
         public ViewConfigurationService(
             INewProjectMediator workspaceManagementMediator,
             IOpenProjectMediator openProjectMediator,
+            IRequirementsMediator requirementsMediator,
             ITestCaseGenerationMediator testCaseGenerationMediator,
             ITestCaseCreationMediator testCaseCreationMediator)
         {
             _workspaceManagementMediator = workspaceManagementMediator ?? throw new ArgumentNullException(nameof(workspaceManagementMediator));
             _openProjectMediator = openProjectMediator ?? throw new ArgumentNullException(nameof(openProjectMediator));
+            _requirementsMediator = requirementsMediator ?? throw new ArgumentNullException(nameof(requirementsMediator));
             _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
             _testCaseCreationMediator = testCaseCreationMediator ?? throw new ArgumentNullException(nameof(testCaseCreationMediator));
         }
@@ -173,6 +177,9 @@ namespace TestCaseEditorApp.Services
                 
                 TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Project ViewModels created successfully");
 
+                // 🔍 DEBUG: Check if TestCaseGenerationMediator has requirements when in Project mode
+                Console.WriteLine($"🔍 ViewConfigurationService (Project mode): TestCaseGenerationMediator.Requirements.Count = {_testCaseGenerationMediator?.Requirements?.Count ?? 0}");
+
                 // Return ViewModels directly (same pattern as Friday working version - shared title/header)
                 return new ViewConfiguration(
                     sectionName: "Project",
@@ -259,7 +266,10 @@ namespace TestCaseEditorApp.Services
             if (sharedNotificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
             
             TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] All Requirements ViewModels resolved successfully");
-
+            
+            // 🔍 DEBUG: Check if RequirementsMediator has requirements when switching to Requirements mode
+            Console.WriteLine($"🔍 ViewConfigurationService (Requirements mode): RequirementsMediator.Requirements.Count = {_requirementsMediator?.Requirements?.Count ?? 0}");
+            
             // Return ViewModels directly - DataTemplates automatically render corresponding Views
             // Note: Requirements domain shares TestCaseGenerator title for consistency
             var titleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();

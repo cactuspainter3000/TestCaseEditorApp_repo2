@@ -64,7 +64,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 ?? throw new InvalidOperationException("TestCaseCreationMediator not found in DI container");
             var openProjectMediator = App.ServiceProvider?.GetRequiredService<TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.IOpenProjectMediator>()
                 ?? throw new InvalidOperationException("OpenProjectMediator not found in DI container");
-            return new ViewConfigurationService(_workspaceManagementMediator!, openProjectMediator, _testCaseGenerationMediator!, testCaseCreationMediator);
+            var requirementsMediator = App.ServiceProvider?.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>()
+                ?? throw new InvalidOperationException("RequirementsMediator not found in DI container");
+            return new ViewConfigurationService(_workspaceManagementMediator!, openProjectMediator, requirementsMediator, _testCaseGenerationMediator!, testCaseCreationMediator);
         }
         public WorkspaceHeaderViewModel CreateWorkspaceHeaderViewModel()
         {
