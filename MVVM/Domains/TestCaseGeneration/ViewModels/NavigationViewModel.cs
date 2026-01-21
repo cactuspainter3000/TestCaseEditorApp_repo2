@@ -59,6 +59,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             
             // Subscribe to requirement changes from the mediator
             _mediator.Subscribe<TestCaseGenerationEvents.RequirementsImported>(OnRequirementsImported);
+            _mediator.Subscribe<TestCaseGenerationEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
         }
 
         private void InitializeDropdown()
@@ -79,6 +80,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         private void OnRequirementsImported(TestCaseGenerationEvents.RequirementsImported evt)
         {
             UpdateRequirements(evt.Requirements);
+        }
+
+        private void OnRequirementsCollectionChanged(TestCaseGenerationEvents.RequirementsCollectionChanged evt)
+        {
+            _logger?.LogInformation("NavigationViewModel received RequirementsCollectionChanged: {Action}, Count: {Count}", 
+                evt.Action, evt.AffectedRequirements.Count);
+            UpdateRequirements(evt.AffectedRequirements);
         }
 
         /// <summary>
@@ -109,15 +117,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 
                 RequirementsDropdown.Text = $"Requirements ({Requirements.Count})";
                 SelectedRequirement = Requirements.FirstOrDefault();
-                TotalCount = Requirements.Count;
-                CurrentIndex = SelectedRequirement != null ? 1 : 0;
+                UpdateIndexCounters();
             }
             else
             {
                 RequirementsDropdown.Text = "No requirements loaded";
                 SelectedRequirement = null;
-                TotalCount = 0;
-                CurrentIndex = 0;
+                UpdateIndexCounters();
             }
         }
 
