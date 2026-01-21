@@ -161,12 +161,14 @@ namespace TestCaseEditorApp.Services
                 var projectMainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Project.ViewModels.Project_MainViewModel>();
                 var sharedTitleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
                 var sharedHeaderVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_HeaderVM>();
+                var sharedNavigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel>();
                 var sharedNotificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
                 
                 // Verify ViewModels were created
                 if (projectMainVM == null) throw new InvalidOperationException("Project_MainViewModel not resolved");
                 if (sharedTitleVM == null) throw new InvalidOperationException("TestCaseGenerator_TitleVM not resolved");
                 if (sharedHeaderVM == null) throw new InvalidOperationException("TestCaseGenerator_HeaderVM not resolved");
+                if (sharedNavigationVM == null) throw new InvalidOperationException("NavigationViewModel not resolved");
                 if (sharedNotificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not resolved");
                 
                 TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Project ViewModels created successfully");
@@ -177,7 +179,7 @@ namespace TestCaseEditorApp.Services
                     titleViewModel: sharedTitleVM,               // Use shared TestCaseGeneration title
                     headerViewModel: sharedHeaderVM,             // Use shared TestCaseGeneration header
                     contentViewModel: projectMainVM,             // Return ViewModel directly
-                    navigationViewModel: null,                   // No specific navigation for Project
+                    navigationViewModel: sharedNavigationVM,     // Use shared navigation for consistent UX across working domains
                     notificationViewModel: sharedNotificationVM, // Use shared notification with LLM status
                     context: context
                 );

@@ -122,8 +122,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         public SideMenuViewModel(INewProjectMediator newProjectMediator, IOpenProjectMediator openProjectMediator, INavigationMediator navigationMediator, ITestCaseGenerationMediator testCaseGenerationMediator, IRequirementsMediator requirementsMediator, TestCaseAnythingLLMService testCaseAnythingLLMService, JamaConnectService jamaConnectService, ILogger<SideMenuViewModel> logger)
         {
-            Console.WriteLine("*** SideMenuViewModel constructor called! ***");
-            System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel constructor called! ***");
+            //// ("*** SideMenuViewModel constructor called! ***");
+            //// ("*** SideMenuViewModel constructor called! ***");
             
             _newProjectMediator = newProjectMediator ?? throw new ArgumentNullException(nameof(newProjectMediator));
             _openProjectMediator = openProjectMediator ?? throw new ArgumentNullException(nameof(openProjectMediator));
@@ -134,7 +134,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             
-            Console.WriteLine("*** SideMenuViewModel constructor: Dependencies resolved successfully ***");
+            //// ("*** SideMenuViewModel constructor: Dependencies resolved successfully ***");
             
             try
             {
@@ -144,21 +144,21 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 // Subscribe to requirements state changes for command availability
                 SetupRequirementsEventSubscriptions();
                 
-                Console.WriteLine("*** SideMenuViewModel constructor: About to initialize commands ***");
+                //// ("*** SideMenuViewModel constructor: About to initialize commands ***");
                 InitializeCommands();
                 
-                Console.WriteLine("*** SideMenuViewModel constructor: About to initialize menu items ***");
+                //// ("*** SideMenuViewModel constructor: About to initialize menu items ***");
                 InitializeMenuItems();
                 
-                Console.WriteLine("*** SideMenuViewModel constructor: About to initialize side menu ***");
+                //// ("*** SideMenuViewModel constructor: About to initialize side menu ***");
                 InitializeSideMenu();
                 
-                Console.WriteLine("*** SideMenuViewModel constructor: Initialization completed ***");
+                //// ("*** SideMenuViewModel constructor: Initialization completed ***");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"*** SideMenuViewModel constructor: ERROR during initialization: {ex.Message} ***");
-                Console.WriteLine($"*** SideMenuViewModel constructor: Stack trace: {ex.StackTrace} ***");
+                //// ($"*** SideMenuViewModel constructor: ERROR during initialization: {ex.Message} ***");
+                //// ($"*** SideMenuViewModel constructor: Stack trace: {ex.StackTrace} ***");
                 throw;
             }
             // Removed TestCaseGenerator menu initialization - using Requirements domain directly
@@ -201,7 +201,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private async Task CreateNewProjectAsync()
         {
-            Console.WriteLine("*** SideMenuViewModel.CreateNewProject called! ***");
+            //// ("*** SideMenuViewModel.CreateNewProject called! ***");
             await _newProjectMediator.CreateNewProjectAsync();
         }
         
@@ -213,23 +213,23 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             try
             {
                 _logger.LogInformation("UnloadProject button clicked - starting project unload");
-                Console.WriteLine("*** SideMenuViewModel.UnloadProject called! ***");
+// ("*** SideMenuViewModel.UnloadProject called! ***");
                 
                 await _newProjectMediator.CloseProjectAsync();
                 
                 _logger.LogInformation("Project unload completed successfully");
-                Console.WriteLine("*** Project unload completed successfully ***");
+// ("*** Project unload completed successfully ***");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during project unload: {Message}", ex.Message);
-                Console.WriteLine($"*** Error during project unload: {ex.Message} ***");
+// ($"*** Error during project unload: {ex.Message} ***");
             }
         }
         private void NavigateToProject()
         {
-            System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToProject called! ***");
-            Console.WriteLine("*** SideMenuViewModel.NavigateToProject called! ***");
+// ("*** SideMenuViewModel.NavigateToProject called! ***");
+// ("*** SideMenuViewModel.NavigateToProject called! ***");
             
             SelectedSection = "Project"; // Update selected section to trigger SectionChanged event
             
@@ -240,28 +240,28 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToTestCaseCreation called! ***");
-                Console.WriteLine("*** SideMenuViewModel.NavigateToTestCaseCreation called! ***");
+// ("*** SideMenuViewModel.NavigateToTestCaseCreation called! ***");
+// ("*** SideMenuViewModel.NavigateToTestCaseCreation called! ***");
                 
-                Console.WriteLine($"*** Navigating to TestCaseCreation section, current selected: {SelectedSection} ***");
+// ($"*** Navigating to TestCaseCreation section, current selected: {SelectedSection} ***");
                 SelectedSection = "TestCaseCreation"; // Update selected section to trigger SectionChanged event
                 
-                Console.WriteLine("*** About to call NavigateToSection('TestCaseCreation') ***");
+// ("*** About to call NavigateToSection('TestCaseCreation') ***");
                 _navigationMediator.NavigateToSection("TestCaseCreation");
-                Console.WriteLine("*** NavigateToSection call completed ***");
+// ("*** NavigateToSection call completed ***");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"*** ERROR in NavigateToTestCaseCreation: {ex.Message} ***");
-                System.Diagnostics.Debug.WriteLine($"*** ERROR in NavigateToTestCaseCreation: {ex.Message} ***");
-                System.Diagnostics.Debug.WriteLine($"*** Stack trace: {ex.StackTrace} ***");
+// ($"*** ERROR in NavigateToTestCaseCreation: {ex.Message} ***");
+// ($"*** ERROR in NavigateToTestCaseCreation: {ex.Message} ***");
+// ($"*** Stack trace: {ex.StackTrace} ***");
             }
         }
         
         private void NavigateToTestCaseGenerator()
         {
-            System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToTestCaseGenerator called! ***");
-            Console.WriteLine("*** SideMenuViewModel.NavigateToTestCaseGenerator called! ***");
+// ("*** SideMenuViewModel.NavigateToTestCaseGenerator called! ***");
+// ("*** SideMenuViewModel.NavigateToTestCaseGenerator called! ***");
             
             // Add debug logging to file
             try 
@@ -271,7 +271,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"*** Failed to write to log: {ex.Message} ***");
+// ($"*** Failed to write to log: {ex.Message} ***");
             }
             
             // Find the Test Case Generator menu item for debug logging only
@@ -280,33 +280,33 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 
             if (testCaseGenMenuItem != null)
             {
-                Console.WriteLine($"*** Found Test Case Generator menu item. Current IsExpanded: {testCaseGenMenuItem.IsExpanded} ***");
-                Console.WriteLine($"*** Children count: {testCaseGenMenuItem.Children?.Count ?? 0} ***");
-                Console.WriteLine($"*** IsDropdown: {testCaseGenMenuItem.IsDropdown} ***");
+// ($"*** Found Test Case Generator menu item. Current IsExpanded: {testCaseGenMenuItem.IsExpanded} ***");
+// ($"*** Children count: {testCaseGenMenuItem.Children?.Count ?? 0} ***");
+// ($"*** IsDropdown: {testCaseGenMenuItem.IsDropdown} ***");
                 
                 // DON'T manually toggle - let the ToggleButton handle expansion via IsChecked binding
                 // The ToggleButton's IsChecked="{Binding IsExpanded, Mode=TwoWay}" will handle this
-                Console.WriteLine($"*** Letting ToggleButton handle expansion, current IsExpanded: {testCaseGenMenuItem.IsExpanded} ***");
+// ($"*** Letting ToggleButton handle expansion, current IsExpanded: {testCaseGenMenuItem.IsExpanded} ***");
                 
                 // List children for debugging
                 if (testCaseGenMenuItem.Children != null && testCaseGenMenuItem.Children.Count > 0)
                 {
-                    Console.WriteLine("*** Children list: ***");
+// ("*** Children list: ***");
                     foreach (var child in testCaseGenMenuItem.Children.OfType<MenuAction>())
                     {
-                        Console.WriteLine($"  - {child.Id}: {child.Text}");
+// ($"  - {child.Id}: {child.Text}");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("*** No children found or Children collection is null! ***");
+// ("*** No children found or Children collection is null! ***");
                 }
             }
             
             // Always navigate to the TestCaseGenerator section regardless of expansion state
             SelectedSection = "TestCaseGenerator";
-            Console.WriteLine($"*** About to call NavigationMediator.NavigateToSection('TestCaseGenerator') ***");
-            Console.WriteLine($"*** NavigationMediator is null: {_navigationMediator == null} ***");
+// ($"*** About to call NavigationMediator.NavigateToSection('TestCaseGenerator') ***");
+// ($"*** NavigationMediator is null: {_navigationMediator == null} ***");
             
             try 
             {
@@ -320,8 +320,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         private void NavigateToRequirements()
         {
-            System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToRequirements called! ***");
-            Console.WriteLine("*** SideMenuViewModel.NavigateToRequirements called! ***");
+// ("*** SideMenuViewModel.NavigateToRequirements called! ***");
+// ("*** SideMenuViewModel.NavigateToRequirements called! ***");
             
             // Write to log file for visibility
             try {
@@ -329,26 +329,26 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             } catch { /* ignore */ }
             
             // CRITICAL DEBUG: Force case-insensitive navigation
-            System.Diagnostics.Debug.WriteLine("*** FORCING NAVIGATION TO 'requirements' (lowercase) ***");
-            Console.WriteLine("*** FORCING NAVIGATION TO 'requirements' (lowercase) ***");
+// ("*** FORCING NAVIGATION TO 'requirements' (lowercase) ***");
+// ("*** FORCING NAVIGATION TO 'requirements' (lowercase) ***");
             
-            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator is null: {_navigationMediator == null} ***");
-            Console.WriteLine($"*** NavigationMediator is null: {_navigationMediator == null} ***");
+// ($"*** NavigationMediator is null: {_navigationMediator == null} ***");
+// ($"*** NavigationMediator is null: {_navigationMediator == null} ***");
             
             SelectedSection = "Requirements"; // Update selected section to trigger SectionChanged event
             
             try 
             {
-                System.Diagnostics.Debug.WriteLine("*** About to call NavigateToSection ***");
-                Console.WriteLine("*** About to call NavigateToSection ***");
+// ("*** About to call NavigateToSection ***");
+// ("*** About to call NavigateToSection ***");
                 _navigationMediator?.NavigateToSection("requirements"); // Force lowercase
-                System.Diagnostics.Debug.WriteLine("*** NavigateToSection call completed ***");
-                Console.WriteLine("*** NavigateToSection call completed ***");
+// ("*** NavigateToSection call completed ***");
+// ("*** NavigateToSection call completed ***");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"*** EXCEPTION in NavigateToSection: {ex.Message} ***");
-                Console.WriteLine($"*** EXCEPTION in NavigateToSection: {ex.Message} ***");
+// ($"*** EXCEPTION in NavigateToSection: {ex.Message} ***");
+// ($"*** EXCEPTION in NavigateToSection: {ex.Message} ***");
                 System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: EXCEPTION: {ex.Message}\n{ex.StackTrace}\n");
             }
         }
@@ -365,13 +365,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             catch (Exception ex)
             {
                 // Error handling is done in the mediator, but log here for completeness
-                System.Diagnostics.Debug.WriteLine($"Error in ImportAdditionalAsync: {ex.Message}");
+// ($"Error in ImportAdditionalAsync: {ex.Message}");
             }
         }
         
         private void NavigateToNewProject()
         {
-            Console.WriteLine("*** SideMenuViewModel.NavigateToNewProject called! ***");
+// ("*** SideMenuViewModel.NavigateToNewProject called! ***");
             
             SelectedSection = "NewProject"; // Update selected section to trigger SectionChanged event
             
@@ -380,8 +380,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         private void NavigateToDummy()
         {
-            System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToDummy called! ***");
-            Console.WriteLine("*** SideMenuViewModel.NavigateToDummy called! ***");
+// ("*** SideMenuViewModel.NavigateToDummy called! ***");
+// ("*** SideMenuViewModel.NavigateToDummy called! ***");
             
             SelectedSection = "Dummy"; // Update selected section to trigger SectionChanged event
             
@@ -390,8 +390,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         private void NavigateToLLMLearning()
         {
-            System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToLLMLearning called! ***");
-            Console.WriteLine("*** SideMenuViewModel.NavigateToLLMLearning called! ***");
+// ("*** SideMenuViewModel.NavigateToLLMLearning called! ***");
+// ("*** SideMenuViewModel.NavigateToLLMLearning called! ***");
             
             SelectedSection = "LLMLearning"; // Update selected section to trigger SectionChanged event
             
@@ -400,8 +400,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         private void NavigateToStartup()
         {
-            System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToStartup called! ***");
-            Console.WriteLine("*** SideMenuViewModel.NavigateToStartup called! ***");
+// ("*** SideMenuViewModel.NavigateToStartup called! ***");
+// ("*** SideMenuViewModel.NavigateToStartup called! ***");
             
             SelectedSection = "startup"; // Update selected section to trigger SectionChanged event
             
@@ -448,7 +448,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         private void NavigateToOpenProject()
         {
-            Console.WriteLine("*** SideMenuViewModel.NavigateToOpenProject called! ***");
+// ("*** SideMenuViewModel.NavigateToOpenProject called! ***");
             
             SelectedSection = "OpenProject"; // Update selected section to trigger SectionChanged event
             
@@ -700,7 +700,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // _mediator.Publish(stateEvent);
             
             // For now, just demonstrate the pattern
-            System.Diagnostics.Debug.WriteLine($"Publishing global state change: {description}");
+// ($"Publishing global state change: {description}");
         }
         
         /// <summary>
