@@ -135,6 +135,48 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.Mediators
             
             // Process cross-domain notifications and convert to notification events as needed
             // This allows other domains to trigger notification updates without direct coupling
+            
+            // Handle Requirements domain events
+            if (notification is TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementSelected reqSelected)
+            {
+                // Translate to notification event
+                var notificationEvent = new NotificationEvents.CurrentRequirementChanged
+                {
+                    RequirementId = reqSelected.Requirement?.GlobalId ?? "Unknown",
+                    RequirementTitle = reqSelected.Requirement?.Name ?? "Unknown",
+                    VerificationMethod = reqSelected.Requirement?.Method.ToString(),
+                    SourceDomain = "Requirements"
+                };
+                PublishEvent(notificationEvent);
+                _logger.LogDebug("Translated RequirementSelected to CurrentRequirementChanged");
+            }
+            else if (notification is TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementsCollectionChanged reqCollectionChanged)
+            {
+                // Update requirements progress
+                UpdateRequirementsProgress(
+                    reqCollectionChanged.NewCount,
+                    reqCollectionChanged.NewCount, // Assume all are "analyzed" for now
+                    0, // Test cases count - would need more detailed tracking
+                    "Requirements");
+                _logger.LogDebug("Translated RequirementsCollectionChanged to RequirementsProgressChanged");
+            }
+            else if (notification is TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.WorkflowStateChanged workflowChanged)
+            {
+                // Translate to domain status change
+                var statusEvent = new NotificationEvents.DomainStatusChanged
+                {
+                    DomainName = "Requirements",
+                    StatusMessage = workflowChanged.PropertyName == "IsDirty" && (bool)(workflowChanged.NewValue ?? false) ? "Modified" : "Ready",
+                    StatusType = "Info",
+                    AdditionalData = new Dictionary<string, object>
+                    {
+                        ["PropertyName"] = workflowChanged.PropertyName ?? "Unknown",
+                        ["NewValue"] = workflowChanged.NewValue ?? "null"
+                    }
+                };
+                PublishEvent(statusEvent);
+                _logger.LogDebug("Translated WorkflowStateChanged to DomainStatusChanged");
+            }
         }
 
         /// <summary>

@@ -786,7 +786,7 @@ namespace TestCaseEditorApp.Services
                 // If no paragraphs were extracted but we have content, fall back to the full HTML as text
                 if (looseContent.Paragraphs.Count == 0 && !string.IsNullOrWhiteSpace(doc.DocumentNode.InnerText))
                 {
-                    var plainText = doc.DocumentNode.InnerText.Trim();
+                    var plainText = CleanHtmlText(doc.DocumentNode.InnerText);
                     if (!string.IsNullOrWhiteSpace(plainText))
                     {
                         looseContent.Paragraphs.Add(plainText);
@@ -901,6 +901,27 @@ namespace TestCaseEditorApp.Services
         }
 
         /// <summary>
+        /// Clean and decode HTML text content, converting entities to proper text and stripping HTML tags
+        /// </summary>
+        private string CleanHtmlText(string htmlText)
+        {
+            if (string.IsNullOrWhiteSpace(htmlText))
+                return string.Empty;
+
+            // Use HtmlAgilityPack to properly strip HTML tags and decode entities
+            var doc = new HtmlDocument();
+            doc.LoadHtml(htmlText);
+            
+            // Extract plain text (automatically decodes HTML entities)
+            var plainText = doc.DocumentNode.InnerText;
+            
+            // Clean up extra whitespace
+            plainText = System.Text.RegularExpressions.Regex.Replace(plainText, @"\s+", " ");
+            
+            return plainText.Trim();
+        }
+
+        /// <summary>
         /// Extract paragraphs from HTML, excluding table content
         /// </summary>
         private void ExtractParagraphs(HtmlNode node, List<string> paragraphs, int itemId)
@@ -923,7 +944,7 @@ namespace TestCaseEditorApp.Services
                 {
                     foreach (var pNode in paragraphNodes)
                     {
-                        var text = pNode.InnerText.Trim();
+                        var text = CleanHtmlText(pNode.InnerText);
                         if (!string.IsNullOrWhiteSpace(text))
                         {
                             paragraphs.Add(text);
@@ -940,7 +961,7 @@ namespace TestCaseEditorApp.Services
                     {
                         foreach (var divNode in divNodes)
                         {
-                            var text = divNode.InnerText.Trim();
+                            var text = CleanHtmlText(divNode.InnerText);
                             if (!string.IsNullOrWhiteSpace(text))
                             {
                                 paragraphs.Add(text);
@@ -958,7 +979,7 @@ namespace TestCaseEditorApp.Services
                         var listContent = new List<string>();
                         foreach (var li in listItems)
                         {
-                            var text = li.InnerText.Trim();
+                            var text = CleanHtmlText(li.InnerText);
                             if (!string.IsNullOrWhiteSpace(text))
                             {
                                 listContent.Add($"• {text}");
@@ -1040,7 +1061,7 @@ namespace TestCaseEditorApp.Services
                 {
                     Item = itemId,
                     Name = name ?? "",  // Use actual name or empty string
-                    Description = description ?? "",
+                    Description = CleanHtmlText(description ?? ""),
                     GlobalId = item.GlobalId ?? "",
                     Status = item.Status ?? item.Fields?.Status ?? "",
                     RequirementType = item.ItemType?.ToString() ?? "Unknown",

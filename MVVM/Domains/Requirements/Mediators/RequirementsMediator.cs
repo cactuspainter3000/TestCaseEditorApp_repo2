@@ -13,6 +13,7 @@ using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services; // For SmartRequirementImporter
+using TestCaseEditorApp.MVVM.Domains.Notification.Mediators; // For INotificationMediator
 using System.Windows;
 
 namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
@@ -45,11 +46,17 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 if (_currentRequirement != value)
                 {
                     _currentRequirement = value;
-                    PublishEvent(new RequirementsEvents.RequirementSelected
+                    var eventData = new RequirementsEvents.RequirementSelected
                     {
                         Requirement = value!,
                         SelectedBy = "Mediator"
-                    });
+                    };
+                    PublishEvent(eventData);
+                    
+                    // Broadcast to notification system for cross-domain coordination
+                    var notificationMediator = App.ServiceProvider?.GetService(typeof(TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator)) as TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator;
+                    notificationMediator?.HandleBroadcastNotification(eventData);
+                    
                     _logger.LogDebug("Current requirement changed to: {RequirementId}", value?.GlobalId ?? "null");
                 }
             }
@@ -63,12 +70,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 if (_isDirty != value)
                 {
                     _isDirty = value;
-                    PublishEvent(new RequirementsEvents.WorkflowStateChanged
+                    var workflowEvent = new RequirementsEvents.WorkflowStateChanged
                     {
                         PropertyName = nameof(IsDirty),
                         NewValue = value,
                         OldValue = _isDirty
-                    });
+                    };
+                    PublishEvent(workflowEvent);
+                    
+                    // Broadcast to notification system
+                    var notificationMediator = App.ServiceProvider?.GetService(typeof(TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator)) as TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator;
+                    notificationMediator?.HandleBroadcastNotification(workflowEvent);
+                    
                     _logger.LogDebug("IsDirty changed to: {IsDirty}", value);
                 }
             }
@@ -183,12 +196,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                         ImportDuration = importResult.ImportDuration
                     });
 
-                    PublishEvent(new RequirementsEvents.RequirementsCollectionChanged
+                    var collectionEvent = new RequirementsEvents.RequirementsCollectionChanged
                     {
                         Action = "Import",
                         AffectedRequirements = importResult.Requirements,
                         NewCount = _requirements.Count
-                    });
+                    };
+                    PublishEvent(collectionEvent);
+                    
+                    // Broadcast to notification system
+                var notificationMediator = App.ServiceProvider?.GetService(typeof(TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator)) as TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator;
 
                     IsDirty = true;
                     HideProgress();

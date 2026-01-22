@@ -49,5 +49,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.Mediators
         /// Publish notification events
         /// </summary>
         void PublishEvent<T>(T eventData) where T : class;
+
+        /// <summary>
+        /// Handle broadcast notifications from other domains for translation to notification events
+        /// </summary>
+        void HandleBroadcastNotification<T>(T notification) where T : class;
     }
 }
