@@ -15,6 +15,130 @@
     </UserControl.Resources>
 
     <Grid Background="{StaticResource Brush.Background.Menu}">
+        <!-- TEMPORARY: Jama Troubleshooting Interface -->
+        <Grid x:Name="JamaTroubleshootingGrid" Visibility="Visible">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel VerticalAlignment="Top" HorizontalAlignment="Center" MaxWidth="800" Margin="40">
+                    
+                    <!-- Troubleshooting Header -->
+                    <TextBlock Text="🔧 Jama Connect Troubleshooting"
+                               FontSize="28"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource Brush.Accent.Primary}"
+                               TextAlignment="Center"
+                               Margin="0,0,0,20"/>
+                    
+                    <!-- Instructions -->
+                    <TextBlock Text="Temporary interface for testing Jama Connect rich content extraction"
+                               FontSize="14"
+                               Foreground="#CCCCCC"
+                               TextAlignment="Center"
+                               Margin="0,0,0,20"/>
+                    
+                    <!-- Test Button -->
+                    <Button Content="📥 Download Decagon Requirements (Project 636)"
+                            Command="{Binding TestJamaCommand}"
+                            Background="{StaticResource Brush.Accent.Primary}"
+                            Foreground="White"
+                            Padding="20,10"
+                            FontSize="14"
+                            FontWeight="SemiBold"
+                            Margin="0,0,0,10"
+                            HorizontalAlignment="Center"
+                            MinWidth="300"/>
+                    
+                    <!-- Copy Button -->
+                    <Button Content="📋 Copy All Results &amp; Logs"
+                            Command="{Binding CopyAllDataCommand}"
+                            Background="#6C757D"
+                            Foreground="White"
+                            Padding="15,8"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Margin="0,0,0,20"
+                            HorizontalAlignment="Center"
+                            MinWidth="250"
+                            Visibility="{Binding CopyButtonVisibility}"/>
+                    
+                    <!-- Status Display -->
+                    <TextBlock Text="{Binding StatusMessage}"
+                               FontSize="12"
+                               Foreground="{Binding StatusColor}"
+                               TextAlignment="Center"
+                               Margin="0,0,0,15"
+                               Visibility="{Binding StatusVisibility}"/>
+                    
+                    <!-- Results TextBox -->
+                    <Border Background="#2D2D30"
+                            BorderBrush="#3F3F46"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Margin="0,0,0,20"
+                            Visibility="{Binding ResultsVisibility}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" 
+                                      HorizontalScrollBarVisibility="Auto"
+                                      MaxHeight="400">
+                            <TextBox Text="{Binding ResultsText, Mode=OneWay}"
+                                     Background="Transparent"
+                                     Foreground="#CCCCCC"
+                                     BorderThickness="0"
+                                     FontFamily="Consolas"
+                                     FontSize="11"
+                                     Padding="10"
+                                     IsReadOnly="True"
+                                     TextWrapping="Wrap"/>
+                        </ScrollViewer>
+                    </Border>
+                    
+                    <!-- Live Log Display -->
+                    <TextBlock Text="📝 Live Logs"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource Brush.Accent.Primary}"
+                               Margin="0,10,0,10"
+                               Visibility="{Binding LogsVisibility}"/>
+                    
+                    <Border Background="#1E1E1E"
+                            BorderBrush="#444444"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Margin="0,0,0,20"
+                            Visibility="{Binding LogsVisibility}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" 
+                                      HorizontalScrollBarVisibility="Auto"
+                                      MaxHeight="300"
+                                      x:Name="LogScrollViewer">
+                            <TextBox Text="{Binding LogText, Mode=OneWay}"
+                                     Background="Transparent"
+                                     Foreground="#AAAAAA"
+                                     BorderThickness="0"
+                                     FontFamily="Consolas"
+                                     FontSize="10"
+                                     Padding="8"
+                                     IsReadOnly="True"
+                                     TextWrapping="NoWrap"
+                                     TextChanged="LogTextBox_TextChanged"/>
+                        </ScrollViewer>
+                    </Border>
+                    
+                    <!-- Toggle to show original content -->
+                    <Button Content="Show Original Startup Content"
+                            Click="ToggleOriginalContent_Click"
+                            Background="Transparent"
+                            Foreground="#888888"
+                            BorderBrush="#555555"
+                            BorderThickness="1"
+                            Padding="10,5"
+                            FontSize="11"
+                            Margin="0,20,0,0"
+                            HorizontalAlignment="Center"/>
+                    
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+        
+        <!-- ORIGINAL CONTENT (Hidden by default) -->
+        <Grid x:Name="OriginalContentGrid" Visibility="Collapsed">
         <ScrollViewer VerticalScrollBarVisibility="Auto" 
                       HorizontalScrollBarVisibility="Disabled">
             <StackPanel VerticalAlignment="Top" 
@@ -75,5 +199,20 @@
             
         </StackPanel>
         </ScrollViewer>
+        
+        <!-- Toggle back to troubleshooting -->
+        <Button Content="Back to Jama Troubleshooting"
+                Click="ToggleTroubleshooting_Click"
+                Background="{StaticResource Brush.Accent.Primary}"
+                Foreground="White"
+                Padding="15,8"
+                FontSize="12"
+                FontWeight="SemiBold"
+                Margin="20"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"/>
+        
+        </Grid>
+        
     </Grid>
 </UserControl>

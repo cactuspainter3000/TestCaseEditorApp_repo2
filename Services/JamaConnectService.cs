@@ -345,9 +345,9 @@ namespace TestCaseEditorApp.Services
                 // Ensure we have a valid access token for OAuth
                 await EnsureAccessTokenAsync();
                 
-                // Get items from the project - we'll filter for requirements after getting the data
-                var url = $"{_baseUrl}/rest/v1/items?project={projectId}";
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Fetching items from: {url}");
+                // Get all items from the project, then filter for requirements (itemType=193)
+                var url = $"{_baseUrl}/rest/v1/items?project={projectId}&maxResults=50";
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Fetching all items from: {url}");
                 
                 var response = await _httpClient.GetAsync(url, cancellationToken);
                 
@@ -387,7 +387,78 @@ namespace TestCaseEditorApp.Services
                     }
                     
                     var allItems = result?.Data ?? new List<JamaItem>();
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Retrieved {allItems.Count} total items from project {projectId}");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Retrieved {allItems.Count} items from first page");
+                    
+                    // Check if there are more items to fetch (pagination)
+                    if (allItems.Count == 50) // Full page means there might be more
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] First page is full (50 items), checking for more pages to find REQ_RC items...");
+                        
+                        int pageNumber = 2;
+                        int startIndex = 50;
+                        bool hasMorePages = true;
+                        
+                        while (hasMorePages && pageNumber <= 10) // Safety limit of 10 pages (500 items)
+                        {
+                            var nextPageUrl = $"{_baseUrl}/rest/v1/items?project={projectId}&maxResults=50&startAt={startIndex}";
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Fetching page {pageNumber}: startAt={startIndex}");
+                            
+                            var nextPageResponse = await _httpClient.GetAsync(nextPageUrl, cancellationToken);
+                            if (nextPageResponse.IsSuccessStatusCode)
+                            {
+                                var nextPageJson = await nextPageResponse.Content.ReadAsStringAsync(cancellationToken);
+                                var nextPageResult = JsonSerializer.Deserialize<JamaItemsResponse>(nextPageJson, new JsonSerializerOptions 
+                                { 
+                                    PropertyNameCaseInsensitive = true 
+                                });
+                                
+                                var pageItems = nextPageResult?.Data ?? new List<JamaItem>();
+                                allItems.AddRange(pageItems);
+                                
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Page {pageNumber}: Retrieved {pageItems.Count} items (total: {allItems.Count})");
+                                
+                                // Check for REQ_RC items in this page
+                                var reqRcInPage = pageItems.Where(item => item.DocumentKey?.Contains("REQ_RC") == true).ToList();
+                                if (reqRcInPage.Count > 0)
+                                {
+                                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Found {reqRcInPage.Count} REQ_RC items in page {pageNumber}!");
+                                    foreach (var reqItem in reqRcInPage.Take(3))
+                                    {
+                                        TestCaseEditorApp.Services.Logging.Log.Info($"  REQ_RC: {reqItem.DocumentKey} (type {reqItem.ItemType}) - {reqItem.Fields?.Name}");
+                                    }
+                                }
+                                
+                                // Continue if we got a full page
+                                hasMorePages = pageItems.Count == 50;
+                                startIndex += 50;
+                                pageNumber++;
+                            }
+                            else
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to fetch page {pageNumber}: {nextPageResponse.StatusCode}");
+                                break;
+                            }
+                        }
+                        
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Pagination complete: {allItems.Count} total items from {pageNumber - 1} pages");
+                    }
+                    
+                    // Final REQ_RC analysis
+                    var allReqRcItems = allItems.Where(item => item.DocumentKey?.Contains("REQ_RC") == true).ToList();
+                    if (allReqRcItems.Count > 0)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] FOUND {allReqRcItems.Count} REQ_RC items total!");
+                        foreach (var reqItem in allReqRcItems.Take(5))
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info($"  {reqItem.DocumentKey} (type {reqItem.ItemType}) - {reqItem.Fields?.Name}");
+                        }
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] No REQ_RC items found in any of the {allItems.Count} items");
+                    }
+                    
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Final total: {allItems.Count} items from project {projectId}");
                     
                     // Log analysis of item types to understand what we're getting
                     var itemTypeGroups = allItems.GroupBy(i => i.ItemType).OrderByDescending(g => g.Count());
@@ -408,9 +479,11 @@ namespace TestCaseEditorApp.Services
                         }
                     }
                     
-                    // For now, return all items - we'll improve filtering as we learn more about the item types
-                    // Common Jama item types: Requirements are often type 53, 55, etc. but this varies by instance
-                    return allItems;
+                    // Filter for only requirements (itemType 193)
+                    var requirements = allItems.Where(item => item.ItemType == 193).ToList();
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Filtered to {requirements.Count} requirements (itemType=193) from {allItems.Count} total items");
+                    
+                    return requirements;
                 }
                 else
                 {
