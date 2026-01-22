@@ -354,36 +354,23 @@ namespace TestCaseEditorApp.Services
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync(cancellationToken);
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Raw JSON response: {json.Substring(0, Math.Min(500, json.Length))}...");
-                    
-                    // RICH CONTENT INVESTIGATION: Write full API response to file for analysis
-                    try
-                    {
-                        var debugFile = Path.Combine(Environment.CurrentDirectory, $"jama_api_response_{projectId}_{DateTime.Now:yyyyMMdd_HHmmss}.json");
-                        await File.WriteAllTextAsync(debugFile, json, cancellationToken);
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Full API response saved to: {debugFile}");
-                    }
-                    catch (Exception ex)
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Error(ex, "[JamaConnect] Failed to save API response to file");
-                    }
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Received API response: {json.Length} characters");
                     
                     var result = JsonSerializer.Deserialize<JamaItemsResponse>(json, new JsonSerializerOptions 
                     { 
                         PropertyNameCaseInsensitive = true 
                     });
                     
-                    // ALSO parse the JSON to access dynamic fields
-                    _lastApiResponseJson?.Dispose(); // Dispose previous document
+                    // Parse JSON for rich content extraction from dynamic fields
+                    _lastApiResponseJson?.Dispose();
                     _lastApiResponseJson = null;
                     try
                     {
                         _lastApiResponseJson = JsonDocument.Parse(json);
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Parsed JSON document for rich content extraction");
                     }
                     catch (Exception ex)
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to parse JSON document for rich content extraction: {ex.Message}");
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Could not parse JSON for rich content extraction: {ex.Message}");
                     }
                     
                     var allItems = result?.Data ?? new List<JamaItem>();
@@ -392,7 +379,7 @@ namespace TestCaseEditorApp.Services
                     // Check if there are more items to fetch (pagination)
                     if (allItems.Count == 50) // Full page means there might be more
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] First page is full (50 items), checking for more pages to find REQ_RC items...");
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] First page full, fetching additional pages...");
                         
                         int pageNumber = 2;
                         int startIndex = 50;
@@ -415,18 +402,7 @@ namespace TestCaseEditorApp.Services
                                 var pageItems = nextPageResult?.Data ?? new List<JamaItem>();
                                 allItems.AddRange(pageItems);
                                 
-                                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Page {pageNumber}: Retrieved {pageItems.Count} items (total: {allItems.Count})");
-                                
-                                // Check for REQ_RC items in this page
-                                var reqRcInPage = pageItems.Where(item => item.DocumentKey?.Contains("REQ_RC") == true).ToList();
-                                if (reqRcInPage.Count > 0)
-                                {
-                                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Found {reqRcInPage.Count} REQ_RC items in page {pageNumber}!");
-                                    foreach (var reqItem in reqRcInPage.Take(3))
-                                    {
-                                        TestCaseEditorApp.Services.Logging.Log.Info($"  REQ_RC: {reqItem.DocumentKey} (type {reqItem.ItemType}) - {reqItem.Fields?.Name}");
-                                    }
-                                }
+                                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Page {pageNumber}: Retrieved {pageItems.Count} items (total: {allItems.Count})");
                                 
                                 // Continue if we got a full page
                                 hasMorePages = pageItems.Count == 50;
@@ -440,48 +416,12 @@ namespace TestCaseEditorApp.Services
                             }
                         }
                         
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Pagination complete: {allItems.Count} total items from {pageNumber - 1} pages");
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Pagination complete: {allItems.Count} total items from {pageNumber - 1} pages");
                     }
                     
-                    // Final REQ_RC analysis
-                    var allReqRcItems = allItems.Where(item => item.DocumentKey?.Contains("REQ_RC") == true).ToList();
-                    if (allReqRcItems.Count > 0)
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] FOUND {allReqRcItems.Count} REQ_RC items total!");
-                        foreach (var reqItem in allReqRcItems.Take(5))
-                        {
-                            TestCaseEditorApp.Services.Logging.Log.Info($"  {reqItem.DocumentKey} (type {reqItem.ItemType}) - {reqItem.Fields?.Name}");
-                        }
-                    }
-                    else
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] No REQ_RC items found in any of the {allItems.Count} items");
-                    }
-                    
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Final total: {allItems.Count} items from project {projectId}");
-                    
-                    // Log analysis of item types to understand what we're getting
-                    var itemTypeGroups = allItems.GroupBy(i => i.ItemType).OrderByDescending(g => g.Count());
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item types found:");
-                    foreach (var group in itemTypeGroups.Take(5))
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"  Type {group.Key}: {group.Count()} items");
-                    }
-                    
-                    // Log details of first few items to understand structure
-                    for (int i = 0; i < Math.Min(3, allItems.Count); i++)
-                    {
-                        var item = allItems[i];
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {i}: Id={item.Id}, DocumentKey={item.DocumentKey}, ItemType={item.ItemType}, Fields={item.Fields != null}");
-                        if (item.Fields != null)
-                        {
-                            TestCaseEditorApp.Services.Logging.Log.Info($"  Fields: Name='{item.Fields.Name}', Description='{item.Fields.Description}', Status='{item.Fields.Status}'");
-                        }
-                    }
-                    
-                    // Filter for only requirements (itemType 193)
+                    // Filter for only requirements (itemType 193) and log summary
                     var requirements = allItems.Where(item => item.ItemType == 193).ToList();
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Filtered to {requirements.Count} requirements (itemType=193) from {allItems.Count} total items");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Retrieved {requirements.Count} requirements from {allItems.Count} total items");
                     
                     return requirements;
                 }
@@ -1065,7 +1005,7 @@ namespace TestCaseEditorApp.Services
                             }
                         }
                     }
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Created JSON lookup for {jsonItemLookup.Count} items");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Created JSON lookup for rich content extraction: {jsonItemLookup.Count} items");
                 }
                 catch (Exception ex)
                 {
@@ -1082,29 +1022,6 @@ namespace TestCaseEditorApp.Services
                 var name = item.Name;
                 var description = item.Description;
                 
-                // ENHANCED DEBUGGING: Log the actual API response structure
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] RAW API ITEM {item.Id}: " +
-                    $"Name='{item.Name}', Description='{item.Description}', " +
-                    $"Fields.Name='{item.Fields?.Name}', Fields.Description='{item.Fields?.Description}', " +
-                    $"ItemType={item.ItemType}, DocumentKey='{item.DocumentKey}', GlobalId='{item.GlobalId}'");
-                
-                // RICH CONTENT INVESTIGATION: Check if Description contains HTML
-                if (!string.IsNullOrEmpty(description))
-                {
-                    var hasHtml = description.Contains("<") && description.Contains(">");
-                    var hasTable = description.Contains("<table", StringComparison.OrdinalIgnoreCase);
-                    var hasParagraphs = description.Contains("<p>", StringComparison.OrdinalIgnoreCase);
-                    
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {item.Id} Description analysis: HTML={hasHtml}, Tables={hasTable}, Paragraphs={hasParagraphs}");
-                    
-                    if (hasHtml)
-                    {
-                        // Log first 500 chars of HTML content for analysis
-                        var preview = description.Length > 500 ? description.Substring(0, 500) + "..." : description;
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {item.Id} HTML Preview: {preview}");
-                    }
-                }
-                
                 // Try multiple field sources for name
                 if (string.IsNullOrWhiteSpace(name))
                 {
@@ -1118,13 +1035,7 @@ namespace TestCaseEditorApp.Services
                 }
                 
                 // Use the actual name or empty string - NO fake name generation
-                
-                // Enhanced debugging for field mapping
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {item.Id}: " +
-                    $"Item='{item.Item}', DocumentKey='{item.DocumentKey}', GlobalId='{item.GlobalId}', " +
-                    $"ItemType={item.ItemType}, Name='{item.Name}', " +
-                    $"Description.Length={item.Description?.Length ?? 0}");
-                
+
                 var requirement = new Requirement
                 {
                     Item = itemId,
@@ -1157,25 +1068,7 @@ namespace TestCaseEditorApp.Services
                 requirements.Add(requirement);
             }
             
-            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Converted {requirements.Count} requirements successfully");
-            
-            // Log summary of field population
-            var withNames = requirements.Count(r => !r.Name.StartsWith("Item "));
-            var withDescriptions = requirements.Count(r => !string.IsNullOrWhiteSpace(r.Description));
-            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Field population: {withNames} with real names, {withDescriptions} with descriptions");
-            
-            // RICH CONTENT INVESTIGATION: Write converted requirements to file for analysis
-            try
-            {
-                var outputFile = Path.Combine(Environment.CurrentDirectory, $"jama_converted_requirements_{DateTime.Now:yyyyMMdd_HHmmss}.json");
-                var json = JsonSerializer.Serialize(requirements, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(outputFile, json);
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Converted requirements saved to: {outputFile}");
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[JamaConnect] Failed to save converted requirements to file");
-            }
+            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Successfully converted {requirements.Count} Jama items to requirements");
             
             return requirements;
         }
