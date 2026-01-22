@@ -440,19 +440,18 @@ namespace TestCaseEditorApp
                     
                     services.AddTransient<MainViewModel>(provider =>
                     {
-                        var viewModelFactory = provider.GetRequiredService<IViewModelFactory>();
+                        var viewAreaCoordinator = provider.GetRequiredService<IViewAreaCoordinator>();
                         var navigationService = provider.GetRequiredService<INavigationService>();
                         var logger = provider.GetService<ILogger<MainViewModel>>();
                         
-                        return new MainViewModel(viewModelFactory, navigationService, logger);
+                        return new MainViewModel(viewAreaCoordinator, navigationService, logger);
                     });
                     // Shared NavigationViewModel - SINGLETON to maintain state across domains
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel>(provider =>
                     {
-                        var testCaseMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
                         var requirementsMediator = provider.GetRequiredService<IRequirementsMediator>();
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel>>();
-                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel(testCaseMediator, logger, requirementsMediator);
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel(requirementsMediator, logger);
                     });
 
                     // New domain ViewModels for consolidation
@@ -504,24 +503,15 @@ namespace TestCaseEditorApp
                         return new ViewConfigurationService(newProjectMediator, openProjectMediator, requirementsMediator, testCaseGenerationMediator, testCaseCreationMediator);
                     });
                     
-                    services.AddSingleton<IViewModelFactory>(provider =>
-                    {
-                        var applicationServices = provider.GetRequiredService<IApplicationServices>();
-                        var newProjectMediator = provider.GetRequiredService<INewProjectMediator>();
-                        var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
-                        return new ViewModelFactory(applicationServices, newProjectMediator, testCaseGenerationMediator);
-                    });
-                    
                     // ViewAreaCoordinator registration - required for workspace coordination
                     services.AddSingleton<IViewAreaCoordinator>(provider =>
                     {
-                        var viewModelFactory = provider.GetRequiredService<IViewModelFactory>();
                         var navigationMediator = provider.GetRequiredService<INavigationMediator>();
                         var newProjectMediator = provider.GetRequiredService<INewProjectMediator>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
                         var viewConfigurationService = provider.GetRequiredService<IViewConfigurationService>();
                         var sideMenuViewModel = provider.GetRequiredService<SideMenuViewModel>();
-                        return new ViewAreaCoordinator(viewModelFactory, navigationMediator, newProjectMediator, testCaseGenerationMediator, viewConfigurationService, sideMenuViewModel);
+                        return new ViewAreaCoordinator(navigationMediator, newProjectMediator, testCaseGenerationMediator, viewConfigurationService, sideMenuViewModel);
                     });
                     
                     services.AddSingleton<IApplicationServices, ApplicationServices>();

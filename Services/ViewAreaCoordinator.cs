@@ -30,7 +30,6 @@ namespace TestCaseEditorApp.Services
         public INewProjectMediator WorkspaceManagement => _workspaceManagementMediator;
 
         public ViewAreaCoordinator(
-            IViewModelFactory viewModelFactory, 
             INavigationMediator navigationMediator,
             INewProjectMediator workspaceManagementMediator,
             ITestCaseGenerationMediator testCaseGenerationMediator,

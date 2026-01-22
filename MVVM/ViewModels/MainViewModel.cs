@@ -31,7 +31,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // === SIMPLE CONTAINER FIELDS ===
         // MainViewModel should only manage 4 workspace areas, no coordination logic
         private readonly IViewAreaCoordinator _viewAreaCoordinator;
-        private readonly IViewModelFactory _viewModelFactory;
         private readonly ILogger<MainViewModel>? _logger;
         private readonly INavigationService _navigationService;
         private string _displayName = "Systems ATE APP";
@@ -97,10 +96,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// According to architectural guidelines: MainViewModel should be a simple container that 
         /// sets up 5 workspace areas. Once workspace assigned ? hands-off.
         /// </summary>
-        public MainViewModel(IViewModelFactory viewModelFactory, INavigationService navigationService, ILogger<MainViewModel>? logger = null)
+        public MainViewModel(IViewAreaCoordinator viewAreaCoordinator, INavigationService navigationService, ILogger<MainViewModel>? logger = null)
         {
             System.Diagnostics.Debug.WriteLine($"*** MainViewModel constructor called! Instance: {GetHashCode()} ***");
-            _viewModelFactory = viewModelFactory ?? throw new ArgumentNullException(nameof(viewModelFactory));
+            _viewAreaCoordinator = viewAreaCoordinator ?? throw new ArgumentNullException(nameof(viewAreaCoordinator));
             _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
             _logger = logger;
             
@@ -124,8 +123,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 _logger?.LogInformation("MainViewModel: DisplayName updated to '{DisplayName}'", DisplayName);
             };
             
-            // Initialize unified navigation system - this is the ONLY responsibility
-            _viewAreaCoordinator = _viewModelFactory.CreateViewAreaCoordinator();
+            // ViewAreaCoordinator injected directly via DI - no factory needed
             
             // Initialize NavigationService with coordinator for proper title management
             _navigationService.Initialize(_viewAreaCoordinator);
