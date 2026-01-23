@@ -449,6 +449,22 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         {
             // Update CanProceed when import mode changes (affects requirements source validation)
             UpdateCanProceed();
+            
+            // Load projects when switching to Jama mode
+            if (value && !IsLoadingProjects)
+            {
+                _ = System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
+                {
+                    try
+                    {
+                        await LoadJamaProjectsAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Error(ex, "Failed to load projects when switching to Jama mode");
+                    }
+                });
+            }
         }
 
         private void UpdateCanProceed()
@@ -929,6 +945,13 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         
         private async Task LoadJamaProjectsAsync()
         {
+            // Guard against concurrent loading
+            if (IsLoadingProjects)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info("[LoadJamaProjects] Already loading projects, skipping");
+                return;
+            }
+            
             try
             {
                 IsLoadingProjects = true;

@@ -55,6 +55,19 @@
                             Padding="15,8"
                             FontSize="12"
                             FontWeight="SemiBold"
+                            Margin="0,0,0,10"
+                            HorizontalAlignment="Center"
+                            MinWidth="250"
+                            Visibility="{Binding CopyButtonVisibility}"/>
+                    
+                    <!-- Enhanced Features Test Button -->
+                    <Button Content="🚀 Test Enhanced API Features (Cookbook)"
+                            Command="{Binding TestEnhancedFeaturesCommand}"
+                            Background="#28A745"
+                            Foreground="White"
+                            Padding="15,8"
+                            FontSize="12"
+                            FontWeight="SemiBold"
                             Margin="0,0,0,20"
                             HorizontalAlignment="Center"
                             MinWidth="250"
@@ -67,6 +80,98 @@
                                TextAlignment="Center"
                                Margin="0,0,0,15"
                                Visibility="{Binding StatusVisibility}"/>
+                    
+                    <!-- Sample Field Display -->
+                    <Border Background="#2A2A2E"
+                            BorderBrush="#404040"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="15"
+                            Margin="0,0,0,20"
+                            Visibility="{Binding FieldDisplayVisibility}">
+                        <StackPanel>
+                            <TextBlock Text="📋 Sample Field Values (First Requirement)"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource Brush.Accent.Primary}"
+                                       Margin="0,0,0,15"/>
+                            
+                            <!-- CreatedBy Field -->
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="CreatedBy:"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="#BBBBBB"
+                                           VerticalAlignment="Top"
+                                           Margin="0,5,0,0"/>
+                                <TextBox Grid.Column="1"
+                                         Text="{Binding SampleCreatedBy, Mode=OneWay}"
+                                         Background="#1E1E1E"
+                                         Foreground="#CCCCCC"
+                                         BorderBrush="#555555"
+                                         BorderThickness="1"
+                                         Padding="8,5"
+                                         IsReadOnly="True"
+                                         FontFamily="Segoe UI"
+                                         FontSize="11"/>
+                            </Grid>
+                            
+                            <!-- Project Field -->
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Project:"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="#BBBBBB"
+                                           VerticalAlignment="Top"
+                                           Margin="0,5,0,0"/>
+                                <TextBox Grid.Column="1"
+                                         Text="{Binding SampleProject, Mode=OneWay}"
+                                         Background="#1E1E1E"
+                                         Foreground="#CCCCCC"
+                                         BorderBrush="#555555"
+                                         BorderThickness="1"
+                                         Padding="8,5"
+                                         IsReadOnly="True"
+                                         FontFamily="Segoe UI"
+                                         FontSize="11"/>
+                            </Grid>
+                            
+                            <!-- RequirementDetail Field -->
+                            <Grid Margin="0,0,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="RequirementDetail:"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="#BBBBBB"
+                                           VerticalAlignment="Top"
+                                           Margin="0,5,0,0"/>
+                                <TextBox Grid.Column="1"
+                                         Text="{Binding SampleRequirementDetail, Mode=OneWay}"
+                                         Background="#1E1E1E"
+                                         Foreground="#CCCCCC"
+                                         BorderBrush="#555555"
+                                         BorderThickness="1"
+                                         Padding="8,5"
+                                         IsReadOnly="True"
+                                         FontFamily="Segoe UI"
+                                         FontSize="11"
+                                         Height="80"
+                                         TextWrapping="Wrap"
+                                         VerticalScrollBarVisibility="Auto"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
                     
                     <!-- Results TextBox -->
                     <Border Background="#2D2D30"

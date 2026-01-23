@@ -23,7 +23,7 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 
-                <!-- AnythingLLM Status -->
+                <!-- AnythingLLM Status - Left Side -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal">
                     <Ellipse Width="8" Height="8" 
                             Fill="{Binding AnythingLlmStatusColor}" 
@@ -32,8 +32,20 @@
                     <TextBlock Text="{Binding AnythingLlmStatusText}" 
                               FontSize="11" 
                               Foreground="#BBBBBB" 
-                              VerticalAlignment="Center"/>
+                              VerticalAlignment="Center"
+                              TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
+                
+                <!-- Center Content - Expanded Text -->
+                <TextBlock Grid.Column="1" 
+                          Text="{Binding RequirementsProgressText}"
+                          FontSize="11" 
+                          Foreground="#BBBBBB" 
+                          VerticalAlignment="Center"
+                          TextTrimming="CharacterEllipsis"
+                          TextWrapping="NoWrap"
+                          Margin="10,0,10,0"
+                          HorizontalAlignment="Stretch"/>
                 
                 <!-- Current Requirement Verification Method -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" 
@@ -57,12 +69,9 @@
                               Margin="8,0,0,0"/>
                 </StackPanel>
                 
-                <!-- Requirements Progress -->
+                <!-- Right Side Status -->
                 <StackPanel Grid.Column="3" Orientation="Horizontal">
-                    <TextBlock Text="{Binding RequirementsProgressText}" 
-                              FontSize="11" 
-                              Foreground="#BBBBBB" 
-                              VerticalAlignment="Center"/>
+                    <!-- Space for future status indicators -->
                 </StackPanel>
             </Grid>
         </Border>

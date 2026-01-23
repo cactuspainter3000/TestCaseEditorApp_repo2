@@ -155,10 +155,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 
                 //// ("*** SideMenuViewModel constructor: Initialization completed ***");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                //// ($"*** SideMenuViewModel constructor: ERROR during initialization: {ex.Message} ***");
-                //// ($"*** SideMenuViewModel constructor: Stack trace: {ex.StackTrace} ***");
+                //// ("*** SideMenuViewModel constructor: ERROR during initialization ***");
                 throw;
             }
             // Removed TestCaseGenerator menu initialization - using Requirements domain directly
@@ -250,11 +249,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 _navigationMediator.NavigateToSection("TestCaseCreation");
 // ("*** NavigateToSection call completed ***");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-// ($"*** ERROR in NavigateToTestCaseCreation: {ex.Message} ***");
-// ($"*** ERROR in NavigateToTestCaseCreation: {ex.Message} ***");
-// ($"*** Stack trace: {ex.StackTrace} ***");
+// ("*** ERROR in NavigateToTestCaseCreation ***");
             }
         }
         
@@ -269,9 +266,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 System.IO.File.AppendAllText(@"c:\temp\navigation-debug.log", 
                     $"[{DateTime.Now:HH:mm:ss}] SideMenuViewModel.NavigateToTestCaseGenerator() called\n");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-// ($"*** Failed to write to log: {ex.Message} ***");
+// ("*** Failed to write to log ***");
             }
             
             // Find the Test Case Generator menu item for debug logging only
@@ -362,10 +359,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 await _newProjectMediator.ImportAdditionalRequirementsAsync();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Error handling is done in the mediator, but log here for completeness
-// ($"Error in ImportAdditionalAsync: {ex.Message}");
+// ("Error in ImportAdditionalAsync");
             }
         }
         

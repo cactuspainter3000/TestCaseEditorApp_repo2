@@ -362,9 +362,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
                     // Get selected indices for replacement
                     var selectedIndices = new List<int>();
-                    for (int i = 0; i < SelectedParagraphVMs.Count; i++)
+                    for (int i = 0; i < (SelectedParagraphVMs?.Count ?? 0); i++)
                     {
-                        if (SelectedParagraphVMs[i]?.IsSelected == true)
+                        if (SelectedParagraphVMs?[i]?.IsSelected == true)
                         {
                             selectedIndices.Add(i);
                         }
@@ -374,27 +374,27 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                     for (int i = selectedIndices.Count - 1; i >= 0; i--)
                     {
                         var index = selectedIndices[i];
-                        var para = SelectedParagraphVMs[index];
+                        var para = SelectedParagraphVMs?[index];
                         if (para != null)
                         {
                             para.PropertyChanged -= ParagraphViewModel_PropertyChanged;
                         }
-                        SelectedParagraphVMs.RemoveAt(index);
+                        SelectedParagraphVMs?.RemoveAt(index);
                     }
 
                     // Insert new paragraphs at the first selected position
-                    int insertIndex = selectedIndices.Any() ? selectedIndices[0] : SelectedParagraphVMs.Count;
+                    int insertIndex = selectedIndices.Any() ? selectedIndices[0] : (SelectedParagraphVMs?.Count ?? 0);
                     for (int i = 0; i < editedItems.Count; i++)
                     {
                         var newPara = new ParagraphViewModel(editedItems[i]) { IncludeInPrompt = true };
                         newPara.PropertyChanged += ParagraphViewModel_PropertyChanged;
-                        SelectedParagraphVMs.Insert(insertIndex + i, newPara);
+                        SelectedParagraphVMs?.Insert(insertIndex + i, newPara);
                     }
 
                     // Persist changes to the requirement's LooseContent
                     if (SelectedRequirement?.LooseContent != null)
                     {
-                        var allParagraphs = SelectedParagraphVMs.Select(p => p.Text).ToList();
+                        var allParagraphs = SelectedParagraphVMs?.Select(p => p.Text).ToList() ?? new List<string>();
                         SelectedRequirement.LooseContent.Paragraphs = allParagraphs;
                         _logger.LogDebug("Updated requirement LooseContent with {Count} paragraphs", allParagraphs.Count);
                     }
