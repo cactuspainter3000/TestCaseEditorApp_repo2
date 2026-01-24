@@ -271,9 +271,12 @@ namespace TestCaseEditorApp.Services
             Console.WriteLine($"🔍 ViewConfigurationService (Requirements mode): RequirementsMediator.Requirements.Count = {_requirementsMediator?.Requirements?.Count ?? 0}");
             
             // Return ViewModels directly - DataTemplates automatically render corresponding Views
-            // Note: Requirements domain shares TestCaseGenerator title for consistency
+            // Note: Update title to show project name when switching to Requirements
             var titleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
             if (titleVM == null) throw new InvalidOperationException("TestCaseGenerator_TitleVM not registered (used for Requirements title)");
+            
+            // Update title to show current project name when in Requirements mode
+            UpdateTitleForRequirementsMode(titleVM);
 
             return new ViewConfiguration(
                 sectionName: "Requirements",
@@ -657,6 +660,36 @@ namespace TestCaseEditorApp.Services
                     ?? throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
             }
             return _notificationWorkspace;
+        }
+
+        /// <summary>
+        /// Update shared title ViewModel when switching to Requirements mode
+        /// </summary>
+        private void UpdateTitleForRequirementsMode(TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM titleVM)
+        {
+            try
+            {
+                // Get current workspace name from workspace management
+                var workspaceInfo = _workspaceManagementMediator?.GetCurrentWorkspaceInfo();
+                var projectName = workspaceInfo?.Name;
+                
+                if (!string.IsNullOrEmpty(projectName))
+                {
+                    titleVM.Title = $"Test Case Generator - {projectName}";
+                }
+                else
+                {
+                    titleVM.Title = "Test Case Generator - Requirements";
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewConfigurationService] Updated title for Requirements mode: {titleVM.Title}");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[ViewConfigurationService] Error updating title for Requirements mode: {ex.Message}");
+                // Fallback
+                titleVM.Title = "Test Case Generator - Requirements";
+            }
         }
 
         #endregion

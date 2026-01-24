@@ -18,8 +18,9 @@ namespace TestCaseEditorApp.Services
     /// <summary>
     /// Service for integrating with Jama Connect REST API
     /// Provides direct access to requirements and test case management
+    /// Implements IJamaConnectService following Architectural Guide AI patterns
     /// </summary>
-    public class JamaConnectService
+    public partial class JamaConnectService : IJamaConnectService
     {
         private readonly HttpClient _httpClient;
         private readonly string _baseUrl;
@@ -2052,5 +2053,267 @@ namespace TestCaseEditorApp.Services
         public int StartIndex { get; set; }
         public int ResultCount { get; set; }
         public int TotalResults { get; set; }
+    }
+
+    /// <summary>
+    /// Enhanced enum decoding implementation following Architectural Guide AI patterns
+    /// </summary>
+    public partial class JamaConnectService
+    {
+        /// <summary>
+        /// Convert Jama items to requirements with enhanced enum decoding
+        /// Follows Architectural Guide AI patterns for service implementation
+        /// </summary>
+        public async Task<List<Requirement>> ConvertToRequirementsWithEnumDecodingAsync(List<JamaItem> items, int projectId, CancellationToken cancellationToken = default)
+        {
+            if (items == null || items.Count == 0) return new List<Requirement>();
+
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Converting {items.Count} items with enhanced enum decoding");
+                
+                // Start with standard conversion and enhance with enum decoding
+                var requirements = await ConvertToRequirementsAsync(items);
+                
+                // Build enum lookup table for this project
+                var enumLookups = await BuildEnumLookupTableAsync(projectId, cancellationToken);
+                
+                // Enhance each requirement with decoded enum values
+                foreach (var requirement in requirements)
+                {
+                    await EnhanceRequirementWithDecodedFieldsAsync(requirement, items, enumLookups);
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Successfully enhanced {requirements.Count} requirements");
+                return requirements;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[JamaConnect] Enhanced conversion failed: {ex.Message}");
+                // Graceful fallback to standard conversion
+                return await ConvertToRequirementsAsync(items);
+            }
+        }
+
+        /// <summary>
+        /// Build enum lookup table for enhanced field decoding
+        /// </summary>
+        private async Task<Dictionary<string, Dictionary<int, string>>> BuildEnumLookupTableAsync(int projectId, CancellationToken cancellationToken)
+        {
+            var lookupTable = new Dictionary<string, Dictionary<int, string>>();
+            
+            try
+            {
+                // Define key fields that need enum decoding
+                var enumFields = new[] 
+                {
+                    "verification_methods$193", "validation_methods$193", "validation_evidence$193",
+                    "validation_conclusion$193", "project_defined$193", "doors_relationship$193",
+                    "robust_requirement$193"
+                };
+
+                foreach (var fieldName in enumFields)
+                {
+                    try
+                    {
+                        var url = $"{_baseUrl}/rest/v1/projects/{projectId}/picklistoptions?filteredField={fieldName}";
+                        var response = await _httpClient.GetAsync(url, cancellationToken);
+                        
+                        if (response?.IsSuccessStatusCode == true)
+                        {
+                            var json = await response.Content.ReadAsStringAsync();
+                            var doc = JsonDocument.Parse(json);
+                            
+                            if (doc.RootElement.TryGetProperty("data", out var dataArray))
+                            {
+                                var enumValues = new Dictionary<int, string>();
+                                
+                                foreach (var item in dataArray.EnumerateArray())
+                                {
+                                    if (item.TryGetProperty("id", out var idProp) &&
+                                        item.TryGetProperty("name", out var nameProp) &&
+                                        idProp.TryGetInt32(out var id))
+                                    {
+                                        enumValues[id] = nameProp.GetString() ?? $"[ID {id}]";
+                                    }
+                                }
+                                
+                                if (enumValues.Count > 0)
+                                {
+                                    lookupTable[fieldName] = enumValues;
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to load enum values for {fieldName}: {ex.Message}");
+                    }
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Built lookup table for {lookupTable.Count} enum fields");
+                return lookupTable;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[JamaConnect] Error building enum lookup: {ex.Message}");
+                return new Dictionary<string, Dictionary<int, string>>();
+            }
+        }
+
+        /// <summary>
+        /// Enhance a requirement with decoded enum field values
+        /// </summary>
+        private async Task EnhanceRequirementWithDecodedFieldsAsync(Requirement requirement, List<JamaItem> originalItems, Dictionary<string, Dictionary<int, string>> enumLookups)
+        {
+            try
+            {
+                // Find the original Jama item for this requirement
+                var jamaItem = originalItems.FirstOrDefault(item => 
+                    item.Id.ToString() == requirement.ApiId || 
+                    item.GlobalId == requirement.GlobalId);
+                
+                if (jamaItem?.Fields != null)
+                {
+                    // Get the fields as a dynamic object to access custom field IDs
+                    var fieldsJson = System.Text.Json.JsonSerializer.Serialize(jamaItem.Fields);
+                    using var jsonDoc = JsonDocument.Parse(fieldsJson);
+                    var fields = jsonDoc.RootElement;
+                    
+                    // Enhance with decoded enum values for known fields
+                    requirement.VerificationMethodText = GetFieldValue(fields, "verification_methods$193", enumLookups);
+                    requirement.ValidationMethodText = GetFieldValue(fields, "validation_methods$193", enumLookups);
+                    requirement.ValidationEvidence = GetFieldValue(fields, "validation_evidence$193", enumLookups);
+                    requirement.ValidationConclusion = GetFieldValue(fields, "validation_conclusion$193", enumLookups);
+                    requirement.ProjectDefined = GetFieldValue(fields, "project_defined$193", enumLookups);
+                    requirement.DoorsRelationship = GetFieldValue(fields, "doors_relationship$193", enumLookups);
+                    requirement.RobustRequirement = GetFieldValue(fields, "robust_requirement$193", enumLookups);
+                    
+                    // Populate other enhanced fields from known properties
+                    requirement.KeyCharacteristics = jamaItem.Fields.KeyCharacteristics ?? string.Empty;
+                    requirement.Fdal = jamaItem.Fields.FDAL ?? string.Empty;
+                    
+                    // Try to get robust rationale from dynamic fields
+                    if (fields.TryGetProperty("robust_rationale$193", out var rationale))
+                    {
+                        requirement.RobustRationale = rationale.GetString() ?? string.Empty;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Error enhancing requirement {requirement.GlobalId}: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// Get field value with enum decoding if available
+        /// </summary>
+        private string GetFieldValue(JsonElement fields, string fieldName, Dictionary<string, Dictionary<int, string>> enumLookups)
+        {
+            try
+            {
+                if (fields.TryGetProperty(fieldName, out var fieldValue))
+                {
+                    return DecodeEnumField(fieldValue, fieldName, enumLookups);
+                }
+                return string.Empty;
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Decode enum field value using lookup table
+        /// </summary>
+        private string DecodeEnumField(JsonElement fieldValue, string fieldName, Dictionary<string, Dictionary<int, string>> enumLookups)
+        {
+            try
+            {
+                if (enumLookups.TryGetValue(fieldName, out var enumDict))
+                {
+                    // Handle single integer value
+                    if (fieldValue.ValueKind == JsonValueKind.Number && fieldValue.TryGetInt32(out var singleId))
+                    {
+                        return enumDict.TryGetValue(singleId, out var value) ? value : $"[Unknown: {singleId}]";
+                    }
+                    
+                    // Handle array of integers
+                    if (fieldValue.ValueKind == JsonValueKind.Array)
+                    {
+                        var decodedValues = new List<string>();
+                        foreach (var arrayElement in fieldValue.EnumerateArray())
+                        {
+                            if (arrayElement.TryGetInt32(out var id))
+                            {
+                                decodedValues.Add(enumDict.TryGetValue(id, out var val) ? val : $"[Unknown: {id}]");
+                            }
+                        }
+                        return string.Join(", ", decodedValues);
+                    }
+                    
+                    // Handle string representation of array like "[1614, 1649]"
+                    if (fieldValue.ValueKind == JsonValueKind.String)
+                    {
+                        var valueStr = fieldValue.GetString();
+                        if (!string.IsNullOrEmpty(valueStr) && valueStr.Contains("["))
+                        {
+                            var ids = ExtractIdsFromArrayString(valueStr);
+                            var decodedValues = ids.Select(id => enumDict.TryGetValue(id, out var val) ? val : $"[Unknown: {id}]").ToList();
+                            return string.Join(", ", decodedValues);
+                        }
+                        
+                        // Try to parse as single integer
+                        if (int.TryParse(valueStr, out var stringId))
+                        {
+                            return enumDict.TryGetValue(stringId, out var value) ? value : $"[Unknown: {stringId}]";
+                        }
+                        
+                        return valueStr ?? string.Empty;
+                    }
+                }
+                
+                // Return the raw value if no enum lookup available
+                return fieldValue.ValueKind == JsonValueKind.String ? 
+                       fieldValue.GetString() ?? string.Empty : 
+                       fieldValue.ToString();
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Error decoding {fieldName}: {ex.Message}");
+                return fieldValue.ValueKind == JsonValueKind.String ? 
+                       fieldValue.GetString() ?? string.Empty : 
+                       fieldValue.ToString();
+            }
+        }
+
+        /// <summary>
+        /// Extract integer IDs from array string format
+        /// </summary>
+        private List<int> ExtractIdsFromArrayString(string arrayString)
+        {
+            var ids = new List<int>();
+            try
+            {
+                // Remove brackets and split by comma
+                var cleanString = arrayString.Trim('[', ']', ' ');
+                var parts = cleanString.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                
+                foreach (var part in parts)
+                {
+                    if (int.TryParse(part.Trim(), out var id))
+                    {
+                        ids.Add(id);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Error parsing array string '{arrayString}': {ex.Message}");
+            }
+            return ids;
+        }
     }
 }

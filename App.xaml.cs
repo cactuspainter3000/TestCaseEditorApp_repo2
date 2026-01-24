@@ -177,7 +177,7 @@ namespace TestCaseEditorApp
                     services.AddSingleton<ILLMLearningService, LLMLearningService>();
                     services.AddSingleton<IEditDetectionService, EditDetectionService>();
                     
-                    // Jama Connect integration service
+                    // Jama Connect integration service - Following Architectural Guide AI patterns
                     services.AddSingleton<JamaConnectService>(provider =>
                     {
                         try
@@ -192,6 +192,9 @@ namespace TestCaseEditorApp
                             return new JamaConnectService("", ""); // This will properly report "not configured" in IsConfigured
                         }
                     });
+                    
+                    // Register interface for testable architecture
+                    services.AddSingleton<IJamaConnectService>(provider => provider.GetRequiredService<JamaConnectService>());
                     
                     // Generic service monitoring
                     services.AddSingleton<GenericServiceMonitor>();

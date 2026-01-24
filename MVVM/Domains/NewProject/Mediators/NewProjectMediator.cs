@@ -1230,15 +1230,15 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         }
 
         /// <summary>
-        /// Get requirements from a specific Jama project
+        /// Get requirements from a specific Jama project with enhanced field data population
         /// </summary>
         public async Task<List<Requirement>> GetJamaRequirementsAsync(int projectId)
         {
             try
             {
                 var jamaItems = await _jamaConnectService.GetRequirementsAsync(projectId, CancellationToken.None);
-                var requirements = await _jamaConnectService.ConvertToRequirementsAsync(jamaItems);
-                _logger.LogInformation($"[NewProject] Retrieved {requirements.Count} requirements from Jama project {projectId}");
+                var requirements = await _jamaConnectService.ConvertToRequirementsWithEnumDecodingAsync(jamaItems, projectId, CancellationToken.None);
+                _logger.LogInformation($"[NewProject] Retrieved {requirements.Count} requirements from Jama project {projectId} with enhanced field data");
                 return requirements;
             }
             catch (Exception ex)
@@ -1255,9 +1255,9 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         {
             try
             {
-                // Get the requirements data from Jama
+                // Get the requirements data from Jama with enhanced field population
                 var jamaItems = await _jamaConnectService.GetRequirementsAsync(projectId, CancellationToken.None);
-                var requirements = await _jamaConnectService.ConvertToRequirementsAsync(jamaItems);
+                var requirements = await _jamaConnectService.ConvertToRequirementsWithEnumDecodingAsync(jamaItems, projectId, CancellationToken.None);
 
                 // Set source project information
                 foreach (var req in requirements)

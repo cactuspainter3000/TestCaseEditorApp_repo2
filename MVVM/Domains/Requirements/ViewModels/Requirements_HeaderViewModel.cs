@@ -122,7 +122,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // Update header description based on selected requirement
             if (e.Requirement != null)
             {
-                RequirementDescription = $"{e.Requirement.Description?.Substring(0, Math.Min(e.Requirement.Description?.Length ?? 0, 100))}{(e.Requirement.Description?.Length > 100 ? "..." : "")}";
+                RequirementDescription = e.Requirement.Description ?? "No description available";
             }
             else
             {

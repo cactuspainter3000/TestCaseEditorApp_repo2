@@ -53,6 +53,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     };
                     PublishEvent(eventData);
                     
+                    // ✅ CROSS-DOMAIN: Publish current requirement changed notification
+                    PublishCurrentRequirementNotification(value);
+                    
                     // Broadcast to notification system for cross-domain coordination
                     var notificationMediator = App.ServiceProvider?.GetService(typeof(TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator)) as TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator;
                     notificationMediator?.HandleBroadcastNotification(eventData);
@@ -784,7 +787,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                             _logger.LogDebug("Set CurrentRequirement to first requirement: {Item}", CurrentRequirement.Item);
                         }
                         
-                        // ✅ Even when data is current, notify header to refresh display when project is activated
+                    // ✅ Even when data is current, notify header to refresh display when project is activated
                         var eventData = new RequirementsEvents.RequirementsCollectionChanged
                         {
                             Action = "ProjectActivated",
@@ -794,6 +797,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                         _logger.LogInformation("🔔 RequirementsMediator publishing RequirementsCollectionChanged: {Action}, Count: {Count}", eventData.Action, eventData.NewCount);
                         Console.WriteLine($"🔔 RequirementsMediator publishing RequirementsCollectionChanged: {eventData.Action}, Count: {eventData.NewCount}");
                         PublishEvent(eventData);
+                        
+                        // ✅ CROSS-DOMAIN: Publish notification events for workspace coordination
+                        PublishRequirementsProgressNotification();
                         
                         // ✅ Always notify about requirement selection to update header (even if null)
                         PublishEvent(new RequirementsEvents.RequirementSelected
@@ -847,6 +853,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     _logger.LogInformation("🔔 RequirementsMediator publishing RequirementsCollectionChanged: {Action}, Count: {Count}", loadEventData.Action, loadEventData.NewCount);
                     Console.WriteLine($"🔔 RequirementsMediator publishing RequirementsCollectionChanged: {loadEventData.Action}, Count: {loadEventData.NewCount}");
                     PublishEvent(loadEventData);
+                    
+                    // ✅ CROSS-DOMAIN: Publish notification events for workspace coordination
+                    PublishRequirementsProgressNotification();
                     
                     IsDirty = false;
                     _logger.LogInformation("Loaded {Count} requirements from project", _requirements.Count);
@@ -1040,6 +1049,71 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[RequirementsMediator] Error handling cross-domain RequirementSelected event");
+            }
+        }
+        
+        /// <summary>
+        /// Publish requirements progress notification for cross-domain workspace coordination
+        /// </summary>
+        private void PublishRequirementsProgressNotification()
+        {
+            try
+            {
+                var totalReqs = _requirements.Count;
+                var analyzedReqs = _requirements.Count(r => r.Analysis != null);
+                var withTestCases = _requirements.Count(r => r.HasGeneratedTestCase);
+                
+                var notificationMediator = App.ServiceProvider?.GetService(typeof(TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator)) 
+                    as TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator;
+                
+                if (notificationMediator != null)
+                {
+                    var progressEvent = new TestCaseEditorApp.MVVM.Domains.Notification.Events.NotificationEvents.RequirementsProgressChanged
+                    {
+                        TotalRequirements = totalReqs,
+                        AnalyzedRequirements = analyzedReqs,
+                        RequirementsWithTestCases = withTestCases,
+                        SourceDomain = "Requirements"
+                    };
+                    
+                    notificationMediator.HandleBroadcastNotification(progressEvent);
+                    _logger.LogDebug("[RequirementsMediator] Published requirements progress: {Total}/{Analyzed}/{WithTestCases}", 
+                        totalReqs, analyzedReqs, withTestCases);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsMediator] Error publishing requirements progress notification");
+            }
+        }
+        
+        /// <summary>
+        /// Publish current requirement changed notification for cross-domain workspace coordination
+        /// </summary>
+        private void PublishCurrentRequirementNotification(Requirement? requirement)
+        {
+            try
+            {
+                var notificationMediator = App.ServiceProvider?.GetService(typeof(TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator)) 
+                    as TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator;
+                
+                if (notificationMediator != null)
+                {
+                    var currentEvent = new TestCaseEditorApp.MVVM.Domains.Notification.Events.NotificationEvents.CurrentRequirementChanged
+                    {
+                        RequirementId = requirement?.GlobalId ?? "None",
+                        RequirementTitle = requirement?.Name ?? "No requirement selected",
+                        VerificationMethod = requirement?.VerificationMethodText ?? "Unassigned"
+                    };
+                    
+                    notificationMediator.HandleBroadcastNotification(currentEvent);
+                    _logger.LogDebug("[RequirementsMediator] Published current requirement changed: {RequirementId}", 
+                        requirement?.GlobalId ?? "null");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsMediator] Error publishing current requirement notification");
             }
         }
     }
