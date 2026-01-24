@@ -196,6 +196,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// Handle cross-domain broadcast notifications
         /// </summary>
         void HandleBroadcastNotification<T>(T notification) where T : class;
+
+        /// <summary>
+        /// Determine if the current data source is from Jama Connect
+        /// Used by ViewConfigurationService for proper view routing
+        /// </summary>
+        bool IsJamaDataSource();
     }
 
     /// <summary>

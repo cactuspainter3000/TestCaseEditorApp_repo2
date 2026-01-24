@@ -122,7 +122,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // Update header description based on selected requirement
             if (e.Requirement != null)
             {
-                RequirementDescription = e.Requirement.Description ?? "No description available";
+                // Show ID + Name format for clean header display
+                var idPart = !string.IsNullOrEmpty(e.Requirement.Item) ? e.Requirement.Item : e.Requirement.GlobalId ?? "Unknown";
+                var namePart = e.Requirement.Name ?? "Unnamed requirement";
+                RequirementDescription = $"{idPart}: {namePart}";
             }
             else
             {

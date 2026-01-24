@@ -203,6 +203,10 @@
             <reqviews:RequirementsMainView />
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type reqvm:JamaRequirementsMainViewModel}">
+            <reqviews:JamaRequirementsMainView />
+        </DataTemplate>
+
         <DataTemplate DataType="{x:Type reqvm:Requirements_HeaderViewModel}">
             <reqviews:RequirementsHeaderView />
         </DataTemplate>

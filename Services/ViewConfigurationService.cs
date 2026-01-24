@@ -255,13 +255,40 @@ namespace TestCaseEditorApp.Services
             // ✅ PHASE 2: Convert to AI Guide standard - ViewModels + DataTemplates pattern
             // Resolve all ViewModels from DI container (use Requirements-specific header for requirement details)
             var requirementsHeaderVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>();
-            var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>();
+            
+            // Determine if this is a Jama import or document import
+            var currentWorkspace = _openProjectMediator?.GetCurrentWorkspace();
+            var isJamaImport = _requirementsMediator?.IsJamaDataSource() == true;
+            
+            // 🔍 DEBUG: Log workspace detection details
+            Console.WriteLine($"🔍 [ViewConfig] RequirementsMediator.IsJamaDataSource(): {isJamaImport}");
+            Console.WriteLine($"🔍 [ViewConfig] Using {(isJamaImport ? "Jama-optimized" : "document")} Requirements view");
+            
+            // Select appropriate main view based on import source
+            object? mainVM;
+            if (isJamaImport)
+            {
+                // Use Jama-optimized view for structured content
+                mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.JamaRequirementsMainViewModel>();
+                TestCaseEditorApp.Services.Logging.Log.Info($"[ViewConfigurationService] Using Jama-optimized Requirements view for: {currentWorkspace?.SourceDocPath ?? "unknown source"}");
+            }
+            else
+            {
+                // Use traditional document-focused view  
+                mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>();
+                TestCaseEditorApp.Services.Logging.Log.Info($"[ViewConfigurationService] Using document Requirements view for: {currentWorkspace?.SourceDocPath ?? "unknown source"}");
+            }
+            
             var sharedNavigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel>();
             var sharedNotificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
             
             // Fail-fast validation (AI Guide requirement)
             if (requirementsHeaderVM == null) throw new InvalidOperationException("Requirements_HeaderViewModel not registered in DI container");
-            if (mainVM == null) throw new InvalidOperationException("Requirements_MainViewModel not registered in DI container");
+            if (mainVM == null) 
+            {
+                var viewType = isJamaImport ? "JamaRequirementsMainViewModel" : "Requirements_MainViewModel";
+                throw new InvalidOperationException($"{viewType} not registered in DI container");
+            }
             if (sharedNavigationVM == null) throw new InvalidOperationException("NavigationViewModel not registered in DI container");
             if (sharedNotificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
             
@@ -269,6 +296,7 @@ namespace TestCaseEditorApp.Services
             
             // 🔍 DEBUG: Check if RequirementsMediator has requirements when switching to Requirements mode
             Console.WriteLine($"🔍 ViewConfigurationService (Requirements mode): RequirementsMediator.Requirements.Count = {_requirementsMediator?.Requirements?.Count ?? 0}");
+            Console.WriteLine($"🔍 ViewConfigurationService: Using {(isJamaImport ? "Jama-optimized" : "document")} view for Requirements");
             
             // Return ViewModels directly - DataTemplates automatically render corresponding Views
             // Note: Update title to show project name when switching to Requirements
@@ -282,7 +310,7 @@ namespace TestCaseEditorApp.Services
                 sectionName: "Requirements",
                 titleViewModel: titleVM,         // Shared TestCaseGeneration title
                 headerViewModel: requirementsHeaderVM,       // Use Requirements-specific header to show requirement details
-                contentViewModel: mainVM,        // ViewModel → DataTemplate renders Requirements_MainView
+                contentViewModel: mainVM,        // ViewModel → DataTemplate renders appropriate Requirements view
                 navigationViewModel: sharedNavigationVM, // Shared navigation ViewModel for consistent UX across working domains
                 notificationViewModel: sharedNotificationVM, // Use shared TestCaseGenerator notification (same as OpenProject_Mode)
                 context: context

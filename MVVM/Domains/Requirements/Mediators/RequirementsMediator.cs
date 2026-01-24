@@ -945,6 +945,22 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             }
         }
 
+        /// <summary>
+        /// Determine if the current data source is from Jama Connect
+        /// Used by ViewConfigurationService for proper view routing
+        /// </summary>
+        public bool IsJamaDataSource()
+        {
+            // Check if any requirements have Jama-specific characteristics
+            if (Requirements.Count == 0) return false;
+            
+            // Look for typical Jama patterns in requirements
+            return Requirements.Any(req => 
+                !string.IsNullOrEmpty(req.GlobalId) || // Jama imports typically have GlobalId
+                (!string.IsNullOrEmpty(req.Item) && req.Item.Contains("-")) // Jama item format like "TSP-REQ-001"
+            );
+        }
+
         // ===== MEDIATOR BASE FUNCTIONALITY =====
 
         public new void PublishEvent<T>(T eventData) where T : class
