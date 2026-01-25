@@ -889,6 +889,7 @@ grep -r "new.*Service" --include="*.cs" | grep -v "Test"  # Should find minimal 
 - ✅ New architectural patterns (edit services, validation layers)  
 - ✅ LLM integration features (external data sources)
 - ✅ Data persistence changes (file formats, storage patterns)
+- ✅ **COMPLETE: IWorkspaceContext service** - Centralized workspace access eliminates service locator anti-patterns
 
 **Optional For**:
 - 🤔 Simple UI-only changes within one domain
@@ -1068,6 +1069,126 @@ public void HandleBroadcastNotification(object notification)
 - **Behavioral preservation**: All interactions work identically
 - **Reusability**: Templates work across different contexts
 - **Clean data binding**: No complex conditional logic in templates
+
+---
+
+## 🗂️ CROSS-DOMAIN WORKSPACE ACCESS PATTERN
+
+### **IWorkspaceContext Service - Centralized Workspace Management**
+
+The **IWorkspaceContext** service provides clean, cached workspace access across all domains, eliminating complex dependency chains and service locator anti-patterns.
+
+#### **⭐ Purpose & Benefits**
+- **Centralized Access**: Single source for workspace data across all domains
+- **Performance**: Cached workspace with file change monitoring
+- **Clean Dependencies**: Simple constructor injection replaces complex mediator chains
+- **Thread Safety**: Proper locking and change notifications
+- **Architectural Compliance**: Eliminates service locator anti-patterns
+
+#### **🔄 Implementation Pattern**
+```csharp
+// ✅ CORRECT - Clean constructor injection
+public class RequirementsMediator : BaseDomainMediator<RequirementsEvents>
+{
+    private readonly IWorkspaceContext _workspaceContext;
+    
+    public RequirementsMediator(
+        ILogger<RequirementsMediator> logger,
+        IDomainUICoordinator uiCoordinator,
+        IRequirementService requirementService,
+        IWorkspaceContext workspaceContext) // Simple injection
+        : base(logger, uiCoordinator, "Requirements")
+    {
+        _workspaceContext = workspaceContext ?? throw new ArgumentNullException(nameof(workspaceContext));
+    }
+    
+    public bool IsJamaDataSource()
+    {
+        var workspace = _workspaceContext.CurrentWorkspace;
+        return !string.IsNullOrEmpty(workspace?.ImportSource) && 
+               string.Equals(workspace.ImportSource, "Jama", StringComparison.OrdinalIgnoreCase);
+    }
+}
+```
+
+#### **❌ Anti-Pattern Replaced**
+```csharp
+// ❌ OLD - Complex dependency chain with service locator
+public bool IsJamaDataSource()
+{
+    // Complex: INewProjectMediator → GetCurrentWorkspaceInfo() → file loading → JSON parsing
+    var workspaceInfo = _workspaceManagementMediator.GetCurrentWorkspaceInfo();
+    if (workspaceInfo == null) return false;
+    
+    Workspace? currentWorkspace = null;
+    try
+    {
+        if (File.Exists(workspaceInfo.Path))
+        {
+            var jsonContent = File.ReadAllText(workspaceInfo.Path);
+            currentWorkspace = JsonSerializer.Deserialize<Workspace>(jsonContent);
+        }
+    }
+    catch (Exception ex) { /* error handling */ }
+    
+    return string.Equals(currentWorkspace?.ImportSource, "Jama", StringComparison.OrdinalIgnoreCase);
+}
+```
+
+#### **🏗️ Service Registration Pattern**
+```csharp
+// App.xaml.cs - Core services section
+services.AddSingleton<IPersistenceService, JsonPersistenceService>();
+services.AddSingleton<IWorkspaceValidationService, WorkspaceValidationService>();
+services.AddSingleton<IWorkspaceContext, WorkspaceContextService>(); // Add after validation service
+```
+
+#### **🔍 Interface Definition**
+```csharp
+public interface IWorkspaceContext
+{
+    /// <summary>Current workspace (cached with file monitoring)</summary>
+    Workspace? CurrentWorkspace { get; }
+    
+    /// <summary>Fired when workspace changes (file updates or external changes)</summary>
+    event EventHandler<WorkspaceChangedEventArgs>? WorkspaceChanged;
+    
+    /// <summary>Force refresh from file system</summary>
+    Task RefreshAsync();
+    
+    /// <summary>Notify of external workspace changes</summary>
+    void NotifyWorkspaceChanged();
+}
+```
+
+#### **✅ Usage Guidelines**
+
+**When to Use IWorkspaceContext:**
+- ✅ Any cross-domain workspace data access
+- ✅ ImportSource checking for view routing
+- ✅ Workspace metadata access (project name, file paths, etc.)
+- ✅ Eliminating complex dependency chains for simple workspace access
+
+**When NOT to Use:**
+- ❌ Workspace modification operations (use INewProjectMediator for writes)
+- ❌ File I/O operations beyond workspace reading
+- ❌ Complex workspace validation (use IWorkspaceValidationService)
+
+#### **🎯 Architectural Impact**
+
+| **Before IWorkspaceContext** | **After IWorkspaceContext** |
+|------------------------------|----------------------------|
+| Complex dependency chain: Domain → INewProjectMediator → GetCurrentWorkspaceInfo() → file operations | Simple injection: Domain → IWorkspaceContext → CurrentWorkspace |
+| Service locator anti-pattern: `App.ServiceProvider?.GetService<T>()` | Constructor injection: Clean DI pattern |
+| Multiple file reads for same data | Single cached instance with change monitoring |
+| 24-line IsJamaDataSource() method with error handling | 8-line method with clean logic |
+| Cross-domain complexity for simple data access | Dedicated service for common pattern |
+
+#### **🔧 Implementation Files**
+- **Interface**: [Services/IWorkspaceContext.cs](Services/IWorkspaceContext.cs)
+- **Implementation**: [Services/WorkspaceContextService.cs](Services/WorkspaceContextService.cs) 
+- **Registration**: [App.xaml.cs](App.xaml.cs) (line ~71)
+- **Usage Example**: [MVVM/Domains/Requirements/Mediators/RequirementsMediator.cs](MVVM/Domains/Requirements/Mediators/RequirementsMediator.cs) (IsJamaDataSource method)
 
 ---
 
