@@ -134,7 +134,7 @@
             </Grid.ColumnDefinitions>
 
             <!-- Main content display -->
-            <Border Grid.Column="0" Background="{StaticResource Brush.Background.Card}" 
+            <Border Grid.Column="0" Background="Transparent" 
                     CornerRadius="6" Padding="16" Margin="0,0,4,0">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <ScrollViewer.Resources>
