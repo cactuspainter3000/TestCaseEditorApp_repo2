@@ -1143,6 +1143,20 @@ services.AddSingleton<IWorkspaceValidationService, WorkspaceValidationService>()
 services.AddSingleton<IWorkspaceContext, WorkspaceContextService>(); // Add after validation service
 ```
 
+#### **📋 Service Lifetime Guidelines**
+
+| **Lifetime** | **Use For** | **Rationale** | **Example** |
+|--------------|-------------|---------------|-------------|
+| **Singleton** | Stateful services, caches, shared resources | Single instance across app, maintains state | `IWorkspaceContext`, `IPersistenceService` |
+| **Transient** | ViewModels, stateless services | New instance per injection, no shared state | ViewModels, lightweight services |
+| **Scoped** | Request-bound services | Per-request lifetime (not commonly used in WPF) | Web API scenarios only |
+
+**🎯 Key Rules:**
+- ✅ **ViewModels**: Always `AddTransient` - each workspace/view gets fresh instance
+- ✅ **Mediators**: Always `AddSingleton` - domain coordination requires shared state
+- ✅ **Context Services**: Always `AddSingleton` - shared workspace state and caching
+- ✅ **Stateless Utilities**: `AddTransient` - no shared state needed
+
 #### **🔍 Interface Definition**
 ```csharp
 public interface IWorkspaceContext
@@ -1171,8 +1185,20 @@ public interface IWorkspaceContext
 
 **When NOT to Use:**
 - ❌ Workspace modification operations (use INewProjectMediator for writes)
-- ❌ File I/O operations beyond workspace reading
+- ❌ File I/O operations beyond workspace reading  
 - ❌ Complex workspace validation (use IWorkspaceValidationService)
+
+#### **🔄 IWorkspaceContext vs INewProjectMediator Boundaries**
+
+| **Operation** | **Use Service** | **Rationale** |
+|---------------|-----------------|---------------|
+| **Read workspace data** | `IWorkspaceContext.CurrentWorkspace` | Cached, optimized for frequent access |
+| **Check ImportSource** | `IWorkspaceContext.CurrentWorkspace.ImportSource` | Simple property access |
+| **Create new workspace** | `INewProjectMediator.CreateWorkspace()` | Write operation requiring validation |
+| **Save workspace changes** | `INewProjectMediator.SaveWorkspace()` | Write operation with file I/O |
+| **Import requirements** | `INewProjectMediator` → `IWorkspaceContext.NotifyWorkspaceChanged()` | Write then notify cache |
+
+**🎯 Pattern**: Use IWorkspaceContext for **reading**, INewProjectMediator for **writing** + cache notification
 
 #### **🎯 Architectural Impact**
 
