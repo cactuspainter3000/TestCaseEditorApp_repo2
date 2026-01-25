@@ -1064,7 +1064,7 @@ namespace TestCaseEditorApp.Services
                 var doc = new HtmlDocument();
                 doc.LoadHtml(htmlContent);
 
-                // Extract tables
+                // Extract tables first
                 var tableNodes = doc.DocumentNode.SelectNodes("//table");
                 if (tableNodes != null)
                 {
@@ -1075,25 +1075,31 @@ namespace TestCaseEditorApp.Services
                         {
                             looseContent.Tables.Add(table);
                         }
+                        
+                        // Remove the table from the document so it doesn't appear in paragraphs
+                        tableNode.Remove();
                     }
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: Extracted {looseContent.Tables.Count} tables from HTML");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: Extracted {looseContent.Tables.Count} tables from HTML and removed them from text content");
                 }
 
-                // Extract paragraphs (exclude content within tables)
+                // Extract paragraphs from the remaining content (after tables removed)
                 ExtractParagraphs(doc.DocumentNode, looseContent.Paragraphs, itemId);
 
-                // If no paragraphs were extracted but we have content, fall back to the full HTML as text
+                // If no paragraphs were extracted but we have content, fall back to the cleaned text
                 if (looseContent.Paragraphs.Count == 0 && !string.IsNullOrWhiteSpace(doc.DocumentNode.InnerText))
                 {
                     var plainText = CleanHtmlText(doc.DocumentNode.InnerText);
                     if (!string.IsNullOrWhiteSpace(plainText))
                     {
                         looseContent.Paragraphs.Add(plainText);
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: Fallback to plain text extraction");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: Fallback to plain text extraction from cleaned content");
                     }
                 }
+                
+                // Store the cleaned description (with tables removed) for use in requirement description
+                looseContent.CleanedDescription = CleanHtmlText(doc.DocumentNode.InnerText);
 
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: HTML parsing complete - {looseContent.Tables.Count} tables, {looseContent.Paragraphs.Count} paragraphs");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: HTML parsing complete - {looseContent.Tables.Count} tables, {looseContent.Paragraphs.Count} paragraphs, cleaned description prepared");
             }
             catch (Exception ex)
             {
@@ -1184,8 +1190,27 @@ namespace TestCaseEditorApp.Services
                             var cellText = CleanHtmlText(cell.InnerText);
                             row.Add(cellText);
                         }
-                        table.Rows.Add(row);
+                        
+                        // Clean up trailing empty cells at parse time
+                        while (row.Count > 0 && string.IsNullOrWhiteSpace(row[row.Count - 1]))
+                        {
+                            row.RemoveAt(row.Count - 1);
+                        }
+                        
+                        // Only add rows that have actual content
+                        if (row.Count > 0 && row.Any(cell => !string.IsNullOrWhiteSpace(cell)))
+                        {
+                            table.Rows.Add(row);
+                        }
                     }
+                }
+
+                // Also clean up column headers to match data columns
+                while (table.ColumnHeaders.Count > 0 && table.Rows.Any() && 
+                       table.ColumnHeaders.Count > table.Rows.Max(r => r.Count))
+                {
+                    table.ColumnHeaders.RemoveAt(table.ColumnHeaders.Count - 1);
+                    table.ColumnKeys.RemoveAt(table.ColumnKeys.Count - 1);
                 }
 
                 // Set a default title if none was found

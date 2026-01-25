@@ -29,9 +29,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private bool isAnalysisSelected;
 
         [ObservableProperty]
-        private bool isTablesSelected;
-
-        [ObservableProperty]
         private bool isMetadataSelected;
 
         [ObservableProperty]
@@ -42,12 +39,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         [ObservableProperty]
         private bool hasAnalysis;
-
-        [ObservableProperty]
-        private bool hasTables;
-
-        [ObservableProperty]
-        private int tableCount;
 
         [ObservableProperty]
         private bool canGenerateTests;
@@ -61,7 +52,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         // Tab selection commands
         public ICommand SelectRichContentCommand { get; }
         public ICommand SelectAnalysisCommand { get; }
-        public ICommand SelectTablesCommand { get; }
+
         public ICommand SelectMetadataCommand { get; }
 
         // Action commands
@@ -79,7 +70,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // Initialize commands
             SelectRichContentCommand = new RelayCommand(() => SelectTab("RichContent"));
             SelectAnalysisCommand = new RelayCommand(() => SelectTab("Analysis"));
-            SelectTablesCommand = new RelayCommand(() => SelectTab("Tables"));
+
             SelectMetadataCommand = new RelayCommand(() => SelectTab("Metadata"));
 
             QuickAnalyzeCommand = new RelayCommand(ExecuteQuickAnalyze, () => HasCurrentRequirement);
@@ -143,16 +134,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             switch (e.PropertyName)
             {
                 case nameof(IsRichContentSelected) when IsRichContentSelected:
-                    IsAnalysisSelected = IsTablesSelected = IsMetadataSelected = false;
+                    IsAnalysisSelected = IsMetadataSelected = false;
                     break;
                 case nameof(IsAnalysisSelected) when IsAnalysisSelected:
-                    IsRichContentSelected = IsTablesSelected = IsMetadataSelected = false;
-                    break;
-                case nameof(IsTablesSelected) when IsTablesSelected:
-                    IsRichContentSelected = IsAnalysisSelected = IsMetadataSelected = false;
+                    IsRichContentSelected = IsMetadataSelected = false;
                     break;
                 case nameof(IsMetadataSelected) when IsMetadataSelected:
-                    IsRichContentSelected = IsAnalysisSelected = IsTablesSelected = false;
+                    IsRichContentSelected = IsAnalysisSelected = false;
                     break;
             }
         }
@@ -161,7 +149,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             IsRichContentSelected = tabName == "RichContent";
             IsAnalysisSelected = tabName == "Analysis";
-            IsTablesSelected = tabName == "Tables";
             IsMetadataSelected = tabName == "Metadata";
 
             _logger.LogDebug("[JamaRequirementsMainVM] Selected tab: {TabName}", tabName);
@@ -206,10 +193,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             
             if (CurrentRequirement != null)
             {
-                // Update table information
-                HasTables = CurrentRequirement.Tables?.Count > 0;
-                TableCount = CurrentRequirement.Tables?.Count ?? 0;
-
                 // Update analysis state
                 UpdateAnalysisState();
 
@@ -219,8 +202,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
             else
             {
-                HasTables = false;
-                TableCount = 0;
                 HasAnalysis = false;
                 CanGenerateTests = false;
                 QualityScoreDisplay = "Not analyzed";

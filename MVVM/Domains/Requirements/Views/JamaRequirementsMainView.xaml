@@ -15,6 +15,13 @@
         <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         <conv:StringNotEmptyToVisibilityConverter x:Key="StringNotEmptyToVisibilityConverter" />
         <conv:InvertedBoolToVisibilityConverter x:Key="InvertedBoolToVisibilityConverter" />
+        <conv:StringToParagraphsConverter x:Key="StringToParagraphsConverter" />
+        <conv:RequirementContentConverter x:Key="RequirementContentConverter" />
+        
+        <!-- DataTemplate for paragraph content -->
+        <DataTemplate x:Key="ParagraphTemplate">
+            <TextBlock Text="{Binding}" Style="{StaticResource ParagraphStyle}" />
+        </DataTemplate>
         <Style x:Key="RichContentStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
             <Setter Property="FontSize" Value="14" />
@@ -32,6 +39,13 @@
             <Setter Property="Foreground" Value="{StaticResource Brush.Text.Secondary}" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Margin" Value="0,4" />
+        </Style>
+        <Style x:Key="ParagraphStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="LineHeight" Value="20" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,0,0,12" />
         </Style>
     </UserControl.Resources>
 
@@ -70,25 +84,6 @@
                         <Border Grid.Column="1" Style="{StaticResource BadgeStyle}"
                                 Visibility="{Binding HasAnalysis, Converter={StaticResource BoolToVisibilityConverter}}">
                             <TextBlock Text="✓" Foreground="White" FontSize="10"/>
-                        </Border>
-                    </Grid>
-                </ToggleButton>
-
-                <!-- Tables tab -->
-                <ToggleButton Style="{StaticResource ActionToggleButtonSelected}"
-                              Margin="8,0,0,0"
-                              IsChecked="{Binding IsTablesSelected, Mode=TwoWay}"
-                              ToolTip="{Binding TableCount, StringFormat={}{0} tables found}"
-                              Visibility="{Binding HasTables, Converter={StaticResource BoolToVisibilityConverter}}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="Tables" VerticalAlignment="Center" Margin="6,0" 
-                                   Foreground="{StaticResource Brush.Accent.Primary}"/>
-                        <Border Grid.Column="1" Style="{StaticResource BadgeStyle}">
-                            <TextBlock Text="{Binding TableCount}" Foreground="White" FontSize="11"/>
                         </Border>
                     </Grid>
                 </ToggleButton>
@@ -163,26 +158,41 @@
                                                                Margin="0,0,0,16" />
                                                 </StackPanel>
                                                 
-                                                <!-- Rich description with HTML rendering -->
-                                                <TextBlock Text="Description:" Style="{StaticResource SectionHeaderStyle}" 
-                                                           Visibility="{Binding CurrentRequirement.Description, Converter={StaticResource StringNotEmptyToVisibilityConverter}}" />
-                                                <!-- TODO: Replace with HTML rendering control for rich content -->
-                                                <TextBlock Text="{Binding CurrentRequirement.Description}" 
-                                                           Style="{StaticResource RichContentStyle}"
-                                                           Foreground="{StaticResource Brush.Text.Primary}" />
+                                                <!-- Rich content display with inline tables -->
+                                                <ItemsControl ItemsSource="{Binding CurrentRequirement, Converter={StaticResource RequirementContentConverter}}"
+                                                             Visibility="{Binding HasCurrentRequirement, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <ContentPresenter Content="{Binding}" />
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
                                                 
                                                 <!-- Key characteristics -->
                                                 <TextBlock Text="Key Characteristics:" Style="{StaticResource SectionHeaderStyle}" 
                                                            Visibility="{Binding CurrentRequirement.KeyCharacteristics, Converter={StaticResource StringNotEmptyToVisibilityConverter}}" />
-                                                <TextBlock Text="{Binding CurrentRequirement.KeyCharacteristics}" 
-                                                           Style="{StaticResource RichContentStyle}"
-                                                           Foreground="{StaticResource Brush.Text.Primary}" />
+                                                <!-- Key characteristics with paragraph formatting -->
+                                                <ItemsControl ItemsSource="{Binding CurrentRequirement.KeyCharacteristics, Converter={StaticResource StringToParagraphsConverter}}"
+                                                             Visibility="{Binding CurrentRequirement.KeyCharacteristics, Converter={StaticResource StringNotEmptyToVisibilityConverter}}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="{Binding}" Style="{StaticResource ParagraphStyle}" />
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
                                                 
                                                 <!-- Rationale (if available from Jama) -->
                                                 <TextBlock Text="Rationale:" Style="{StaticResource SectionHeaderStyle}" 
                                                            Visibility="{Binding CurrentRequirement.Rationale, Converter={StaticResource StringNotEmptyToVisibilityConverter}}" />
-                                                <TextBlock Text="{Binding CurrentRequirement.Rationale}" 
-                                                           Style="{StaticResource RichContentStyle}" />
+                                                <!-- Rationale with paragraph formatting -->
+                                                <ItemsControl ItemsSource="{Binding CurrentRequirement.Rationale, Converter={StaticResource StringToParagraphsConverter}}"
+                                                             Visibility="{Binding CurrentRequirement.Rationale, Converter={StaticResource StringNotEmptyToVisibilityConverter}}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="{Binding}" Style="{StaticResource ParagraphStyle}" />
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
                                                            
                                                 <!-- No requirement selected state -->
                                                 <StackPanel Visibility="{Binding HasCurrentRequirement, Converter={StaticResource InvertedBoolToVisibilityConverter}}"
@@ -211,18 +221,6 @@
                                                 <DataTemplate>
                                                     <!-- Embed the existing analysis control -->
                                                     <req:Requirements_AnalysisControl />
-                                                </DataTemplate>
-                                            </Setter.Value>
-                                        </Setter>
-                                    </DataTrigger>
-                                    
-                                    <!-- Tables View Template -->
-                                    <DataTrigger Binding="{Binding IsTablesSelected}" Value="True">
-                                        <Setter Property="ContentTemplate">
-                                            <Setter.Value>
-                                                <DataTemplate>
-                                                    <!-- Embed the existing tables control -->
-                                                    <req:Requirements_TablesControl />
                                                 </DataTemplate>
                                             </Setter.Value>
                                         </Setter>
