@@ -296,6 +296,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     CreatedUtc = DateTime.UtcNow,
                     LastSavedUtc = DateTime.UtcNow,
                     SaveCount = 1 // Will be incremented in future versions
+                    // Note: ImportSource will be auto-detected during load if missing
                 };
                 
                 // 3. Validate workspace data before save
@@ -782,6 +783,30 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 }
                 
                 // 3. Create workspace object with imported requirements
+                
+                // Determine ImportSource based on actual import type
+                string importSource;
+                
+                // Debug: Check file path detection
+                string lowerPath = documentPath.ToLowerInvariant();
+                bool containsJama = lowerPath.Contains("jamarequirements");
+                bool isJson = lowerPath.EndsWith(".json");
+                _logger.LogInformation("🔍 DEBUG: File path detection - Path: '{0}', ContainsJama: {1}, IsJson: {2}", 
+                    documentPath, containsJama, isJson);
+                
+                if (containsJama && isJson)
+                {
+                    // This is a Jama JSON file - preserve original ImportSource = "Jama"
+                    importSource = "Jama";
+                    _logger.LogInformation("🎯 Setting ImportSource to 'Jama' - detected Jama JSON file");
+                }
+                else
+                {
+                    // Document import - user explicitly chose document import method
+                    importSource = "Document";
+                    _logger.LogInformation("🎯 Setting ImportSource to 'Document' - user chose document import method");
+                }
+                
                 var workspace = new Workspace
                 {
                     Name = projectName,
@@ -791,8 +816,13 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     LastSavedUtc = DateTime.UtcNow,
                     SaveCount = 0,
                     SourceDocPath = documentPath,
+                    ImportSource = importSource,  // 🎯 Set based on actual content type
                     Requirements = importedRequirements
                 };
+                
+                // 🔍 Debug: Verify ImportSource before saving
+                _logger.LogInformation($"🔍 DEBUG: About to save workspace with ImportSource = '{workspace.ImportSource}'");
+                Console.WriteLine($"🔍 DEBUG: About to save workspace with ImportSource = '{workspace.ImportSource}'");
 
                 // 4. Save workspace configuration
                 UpdateProgress("Saving workspace configuration...", 80);
@@ -1009,7 +1039,10 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             };
             
             // TODO: Load actual workspace data
-            var workspace = new Workspace { Name = workspaceName };
+            var workspace = new Workspace { 
+                Name = workspaceName,
+                ImportSource = "Manual"  // 🎯 Empty/manual workspace
+            };
             
             var projectOpenedEvent = new NewProjectEvents.ProjectOpened 
             { 
@@ -1281,14 +1314,30 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     LastSavedUtc = DateTime.UtcNow,
                     JamaProject = projectName,
                     Requirements = requirements,
-                    SourceDocPath = $"Jama Project: {projectName} ({projectKey})"
+                    SourceDocPath = $"Jama Project: {projectName} ({projectKey})",
+                    ImportSource = "Jama"  // 🎯 Definitive flag for view routing
                 };
 
-                // Serialize workspace to JSON file
-                await File.WriteAllTextAsync(tempPath, JsonSerializer.Serialize(workspace, new JsonSerializerOptions 
-                { 
-                    WriteIndented = true 
-                }));
+                // 🔍 DEBUG: Log the ImportSource before saving
+                _logger.LogInformation($"🔍 DEBUG: About to save Jama workspace with ImportSource = '{workspace.ImportSource}'");
+                Console.WriteLine($"🔍 DEBUG: About to save Jama workspace with ImportSource = '{workspace.ImportSource}'");
+
+                // Save workspace using the standard WorkspaceService.Save method for consistency
+                global::WorkspaceService.Save(tempPath, workspace);
+
+                // 🔍 DEBUG: Verify the saved file contains ImportSource
+                var savedJson = File.ReadAllText(tempPath);
+                if (savedJson.Contains("ImportSource"))
+                {
+                    _logger.LogInformation("✅ DEBUG: Saved JSON contains ImportSource field");
+                    Console.WriteLine("✅ DEBUG: Saved JSON contains ImportSource field");
+                }
+                else
+                {
+                    _logger.LogError("❌ DEBUG: Saved JSON missing ImportSource field!");
+                    Console.WriteLine("❌ DEBUG: Saved JSON missing ImportSource field!");
+                    Console.WriteLine($"Saved JSON snippet: {savedJson.Substring(0, Math.Min(500, savedJson.Length))}");
+                }
 
                 _logger.LogInformation($"[NewProject] Successfully imported {requirements.Count} requirements from Jama project {projectName} to {tempPath}");
                 return tempPath;

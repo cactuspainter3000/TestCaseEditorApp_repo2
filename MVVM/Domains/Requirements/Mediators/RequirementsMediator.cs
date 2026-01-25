@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -951,14 +952,41 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// </summary>
         public bool IsJamaDataSource()
         {
-            // Check if any requirements have Jama-specific characteristics
-            if (Requirements.Count == 0) return false;
+            // Use WorkspaceManagementMediator to get workspace information
+            var workspaceManagementMediator = App.ServiceProvider?.GetService(typeof(TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator)) as TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator;
             
-            // Look for typical Jama patterns in requirements
-            return Requirements.Any(req => 
-                !string.IsNullOrEmpty(req.GlobalId) || // Jama imports typically have GlobalId
-                (!string.IsNullOrEmpty(req.Item) && req.Item.Contains("-")) // Jama item format like "TSP-REQ-001"
-            );
+            // Get workspace info which contains path to the actual workspace file
+            var workspaceInfo = workspaceManagementMediator?.GetCurrentWorkspaceInfo();
+            
+            if (workspaceInfo == null)
+            {
+                return false;
+            }
+            
+            // Load the actual workspace file to get ImportSource
+            Workspace? currentWorkspace = null;
+            try
+            {
+                if (File.Exists(workspaceInfo.Path))
+                {
+                    var jsonContent = File.ReadAllText(workspaceInfo.Path);
+                    currentWorkspace = System.Text.Json.JsonSerializer.Deserialize<Workspace>(jsonContent);
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[RequirementsMediator] Error loading workspace file");
+                return false;
+            }
+            
+            // Check ImportSource flag - this is the authoritative source for view routing
+            if (!string.IsNullOrEmpty(currentWorkspace?.ImportSource))
+            {
+                return string.Equals(currentWorkspace.ImportSource, "Jama", StringComparison.OrdinalIgnoreCase);
+            }
+            
+            // Default to document view if ImportSource is missing/empty
+            return false;
         }
 
         // ===== MEDIATOR BASE FUNCTIONALITY =====

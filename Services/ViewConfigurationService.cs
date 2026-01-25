@@ -60,19 +60,7 @@ namespace TestCaseEditorApp.Services
 
         public ViewConfiguration GetConfigurationForSection(string sectionName, object? context = null)
         {
-            Console.WriteLine($"*** ViewConfigurationService: GetConfigurationForSection called with '{sectionName}' ***");
-            Console.WriteLine($"*** ViewConfigurationService: sectionName.ToLowerInvariant() = '{sectionName?.ToLowerInvariant()}' ***");
-            
-            // Write to log file for easier debugging
-            File.AppendAllText(@"c:\temp\navigation-debug.log", 
-                $"[{DateTime.Now:HH:mm:ss}] ViewConfigurationService: GetConfigurationForSection('{sectionName}') - lowercase: '{sectionName?.ToLowerInvariant()}'\n");
-            
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewConfigurationService] GetConfigurationForSection called with: '{sectionName}' (lowercase: '{sectionName?.ToLowerInvariant()}')");
-            
-            // Debug: Add console output to see what's happening
-            System.Diagnostics.Debug.WriteLine($"*** ViewConfigurationService: GetConfigurationForSection('{sectionName}') ***");
-            Console.WriteLine($"*** ViewConfigurationService: GetConfigurationForSection('{sectionName}') ***");
-            Console.WriteLine($"*** Lowercase: '{sectionName?.ToLowerInvariant()}' ***");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewConfigurationService] GetConfigurationForSection called with: '{sectionName}'");
             
             return sectionName?.ToLowerInvariant() switch
             {
@@ -252,17 +240,11 @@ namespace TestCaseEditorApp.Services
         {
             TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating Requirements configuration using AI Guide standard pattern");
             
-            // ✅ PHASE 2: Convert to AI Guide standard - ViewModels + DataTemplates pattern
             // Resolve all ViewModels from DI container (use Requirements-specific header for requirement details)
             var requirementsHeaderVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>();
             
             // Determine if this is a Jama import or document import
-            var currentWorkspace = _openProjectMediator?.GetCurrentWorkspace();
             var isJamaImport = _requirementsMediator?.IsJamaDataSource() == true;
-            
-            // 🔍 DEBUG: Log workspace detection details
-            Console.WriteLine($"🔍 [ViewConfig] RequirementsMediator.IsJamaDataSource(): {isJamaImport}");
-            Console.WriteLine($"🔍 [ViewConfig] Using {(isJamaImport ? "Jama-optimized" : "document")} Requirements view");
             
             // Select appropriate main view based on import source
             object? mainVM;
@@ -270,13 +252,13 @@ namespace TestCaseEditorApp.Services
             {
                 // Use Jama-optimized view for structured content
                 mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.JamaRequirementsMainViewModel>();
-                TestCaseEditorApp.Services.Logging.Log.Info($"[ViewConfigurationService] Using Jama-optimized Requirements view for: {currentWorkspace?.SourceDocPath ?? "unknown source"}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[ViewConfigurationService] Using Jama-optimized Requirements view");
             }
             else
             {
                 // Use traditional document-focused view  
                 mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>();
-                TestCaseEditorApp.Services.Logging.Log.Info($"[ViewConfigurationService] Using document Requirements view for: {currentWorkspace?.SourceDocPath ?? "unknown source"}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[ViewConfigurationService] Using document Requirements view");
             }
             
             var sharedNavigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel>();
@@ -293,10 +275,6 @@ namespace TestCaseEditorApp.Services
             if (sharedNotificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
             
             TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] All Requirements ViewModels resolved successfully");
-            
-            // 🔍 DEBUG: Check if RequirementsMediator has requirements when switching to Requirements mode
-            Console.WriteLine($"🔍 ViewConfigurationService (Requirements mode): RequirementsMediator.Requirements.Count = {_requirementsMediator?.Requirements?.Count ?? 0}");
-            Console.WriteLine($"🔍 ViewConfigurationService: Using {(isJamaImport ? "Jama-optimized" : "document")} view for Requirements");
             
             // Return ViewModels directly - DataTemplates automatically render corresponding Views
             // Note: Update title to show project name when switching to Requirements

@@ -11,8 +11,8 @@ public static class WorkspaceService
 {
     static readonly JsonSerializerOptions _json = new()
     {
-        WriteIndented = true,
-        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+        WriteIndented = true
+        // Removed DefaultIgnoreCondition.WhenWritingNull - ImportSource should always be included
     };
 
     private static Microsoft.Extensions.Logging.ILogger? GetLogger()
@@ -372,6 +372,31 @@ public static class WorkspaceService
             // Add migration methods here as schema evolves
             // Example: if (ws.Version == 1) MigrateV1ToV2(ws);
             ws.Version = Workspace.SchemaVersion;
+        }
+
+        // Auto-detect ImportSource for existing workspaces (helpful for troubleshooting)
+        if (string.IsNullOrEmpty(ws.ImportSource))
+        {
+            TestCaseEditorApp.Services.Logging.Log.Info($"[Load] ImportSource is missing - attempting auto-detection...");
+            
+            // Check if this looks like a Jama workspace (has GlobalId values in requirements)
+            var hasJamaIds = ws.Requirements?.Any(r => !string.IsNullOrEmpty(r.GlobalId)) ?? false;
+            
+            if (hasJamaIds)
+            {
+                ws.ImportSource = "Jama";
+                TestCaseEditorApp.Services.Logging.Log.Info($"[Load] Auto-detected Jama workspace (has GlobalId values), set ImportSource = 'Jama'");
+            }
+            else if (!string.IsNullOrEmpty(ws.SourceDocPath))
+            {
+                ws.ImportSource = "Document";
+                TestCaseEditorApp.Services.Logging.Log.Info($"[Load] Auto-detected Document workspace (has SourceDocPath), set ImportSource = 'Document'");
+            }
+            else
+            {
+                ws.ImportSource = "Manual";
+                TestCaseEditorApp.Services.Logging.Log.Info($"[Load] Auto-detected Manual workspace (fallback), set ImportSource = 'Manual'");
+            }
         }
 
         // Probe: log what came back
