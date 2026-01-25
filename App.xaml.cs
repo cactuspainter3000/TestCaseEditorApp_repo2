@@ -285,6 +285,7 @@ namespace TestCaseEditorApp
                         var requirementService = provider.GetRequiredService<IRequirementService>();
                         var analysisService = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService>();
                         var scrubber = provider.GetRequiredService<IRequirementDataScrubber>();
+                        var workspaceManagementMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator>();
                         var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
                         var eventReplay = provider.GetService<TestCaseEditorApp.MVVM.Utils.EventReplayService>();
                         
@@ -293,7 +294,7 @@ namespace TestCaseEditorApp
                         
                         return new TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator(
                             logger, uiCoordinator, requirementService, analysisService, scrubber, 
-                            analysisEngine, performanceMonitor, eventReplay);
+                            workspaceManagementMediator, analysisEngine, performanceMonitor, eventReplay);
                     });
                     
                     // Requirements domain ViewModels - Navigation as Singleton to maintain state
