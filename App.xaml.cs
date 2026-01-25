@@ -68,6 +68,7 @@ namespace TestCaseEditorApp
                     // Core / persistence services
                     services.AddSingleton<IPersistenceService, JsonPersistenceService>();
                     services.AddSingleton<IWorkspaceValidationService, WorkspaceValidationService>();
+                    services.AddSingleton<IWorkspaceContext, WorkspaceContextService>();
 
                     // Toast notification system
                     services.AddSingleton<ToastNotificationService>(provider => 
@@ -285,7 +286,7 @@ namespace TestCaseEditorApp
                         var requirementService = provider.GetRequiredService<IRequirementService>();
                         var analysisService = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService>();
                         var scrubber = provider.GetRequiredService<IRequirementDataScrubber>();
-                        var workspaceManagementMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator>();
+                        var workspaceContext = provider.GetRequiredService<IWorkspaceContext>();
                         var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
                         var eventReplay = provider.GetService<TestCaseEditorApp.MVVM.Utils.EventReplayService>();
                         
@@ -294,7 +295,7 @@ namespace TestCaseEditorApp
                         
                         return new TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator(
                             logger, uiCoordinator, requirementService, analysisService, scrubber, 
-                            workspaceManagementMediator, analysisEngine, performanceMonitor, eventReplay);
+                            workspaceContext, analysisEngine, performanceMonitor, eventReplay);
                     });
                     
                     // Requirements domain ViewModels - Navigation as Singleton to maintain state

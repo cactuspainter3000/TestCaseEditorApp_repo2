@@ -31,7 +31,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         private readonly IRequirementDataScrubber _scrubber;
         private readonly SmartRequirementImporter _smartImporter;
         private readonly ObservableCollection<Requirement> _requirements;
-        private readonly TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator _workspaceManagementMediator;
+        private readonly IWorkspaceContext _workspaceContext;
         
         private Requirement? _currentRequirement;
         private bool _isDirty;
@@ -136,7 +136,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             IRequirementService requirementService,
             TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService analysisService,
             IRequirementDataScrubber scrubber,
-            TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator workspaceManagementMediator,
+            IWorkspaceContext workspaceContext,
             IRequirementAnalysisEngine? analysisEngine = null, // NEW: Optional for transition period
             PerformanceMonitoringService? performanceMonitor = null,
             EventReplayService? eventReplay = null)
@@ -145,7 +145,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             _requirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
             _analysisService = analysisService ?? throw new ArgumentNullException(nameof(analysisService));
             _scrubber = scrubber ?? throw new ArgumentNullException(nameof(scrubber));
-            _workspaceManagementMediator = workspaceManagementMediator ?? throw new ArgumentNullException(nameof(workspaceManagementMediator));
+            _workspaceContext = workspaceContext ?? throw new ArgumentNullException(nameof(workspaceContext));
             _analysisEngine = analysisEngine; // Optional during transition
             _smartImporter = new SmartRequirementImporter(requirementService, 
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<SmartRequirementImporter>.Instance);
@@ -955,32 +955,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// </summary>
         public bool IsJamaDataSource()
         {
-            // Get workspace info which contains path to the actual workspace file
-            var workspaceInfo = _workspaceManagementMediator.GetCurrentWorkspaceInfo();
+            // Use centralized workspace context for clean access
+            var currentWorkspace = _workspaceContext.CurrentWorkspace;
             
-            if (workspaceInfo == null)
+            if (currentWorkspace == null)
             {
-                return false;
-            }
-            
-            // Load the actual workspace file to get ImportSource
-            Workspace? currentWorkspace = null;
-            try
-            {
-                if (File.Exists(workspaceInfo.Path))
-                {
-                    var jsonContent = File.ReadAllText(workspaceInfo.Path);
-                    currentWorkspace = System.Text.Json.JsonSerializer.Deserialize<Workspace>(jsonContent);
-                }
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[RequirementsMediator] Error loading workspace file");
                 return false;
             }
             
             // Check ImportSource flag - this is the authoritative source for view routing
-            if (!string.IsNullOrEmpty(currentWorkspace?.ImportSource))
+            if (!string.IsNullOrEmpty(currentWorkspace.ImportSource))
             {
                 return string.Equals(currentWorkspace.ImportSource, "Jama", StringComparison.OrdinalIgnoreCase);
             }
