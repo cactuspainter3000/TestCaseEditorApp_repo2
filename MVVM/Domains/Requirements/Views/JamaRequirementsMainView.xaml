@@ -168,18 +168,20 @@
                                                            Visibility="{Binding CurrentRequirement.Description, Converter={StaticResource StringNotEmptyToVisibilityConverter}}" />
                                                 <!-- TODO: Replace with HTML rendering control for rich content -->
                                                 <TextBlock Text="{Binding CurrentRequirement.Description}" 
-                                                           Style="{StaticResource RichContentStyle}" />
+                                                           Style="{StaticResource RichContentStyle}"
+                                                           Foreground="{StaticResource Brush.Text.Primary}" />
                                                 
                                                 <!-- Key characteristics -->
                                                 <TextBlock Text="Key Characteristics:" Style="{StaticResource SectionHeaderStyle}" 
                                                            Visibility="{Binding CurrentRequirement.KeyCharacteristics, Converter={StaticResource StringNotEmptyToVisibilityConverter}}" />
                                                 <TextBlock Text="{Binding CurrentRequirement.KeyCharacteristics}" 
-                                                           Style="{StaticResource RichContentStyle}" />
+                                                           Style="{StaticResource RichContentStyle}"
+                                                           Foreground="{StaticResource Brush.Text.Primary}" />
                                                 
-                                                <!-- Comments (if available from Jama) -->
-                                                <TextBlock Text="Comments:" Style="{StaticResource SectionHeaderStyle}" 
-                                                           Visibility="{Binding CurrentRequirement.Comments, Converter={StaticResource StringNotEmptyToVisibilityConverter}}" />
-                                                <TextBlock Text="{Binding CurrentRequirement.Comments}" 
+                                                <!-- Rationale (if available from Jama) -->
+                                                <TextBlock Text="Rationale:" Style="{StaticResource SectionHeaderStyle}" 
+                                                           Visibility="{Binding CurrentRequirement.Rationale, Converter={StaticResource StringNotEmptyToVisibilityConverter}}" />
+                                                <TextBlock Text="{Binding CurrentRequirement.Rationale}" 
                                                            Style="{StaticResource RichContentStyle}" />
                                                            
                                                 <!-- No requirement selected state -->
