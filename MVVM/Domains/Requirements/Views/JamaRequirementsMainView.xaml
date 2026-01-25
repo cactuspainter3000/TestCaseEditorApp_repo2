@@ -14,6 +14,7 @@
     <UserControl.Resources>
         <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         <conv:StringNotEmptyToVisibilityConverter x:Key="StringNotEmptyToVisibilityConverter" />
+        <conv:InvertedBoolToVisibilityConverter x:Key="InvertedBoolToVisibilityConverter" />
         <Style x:Key="RichContentStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
             <Setter Property="FontSize" Value="14" />
@@ -150,10 +151,16 @@
                                             <StackPanel>
                                                 <!-- Requirement header -->
                                                 <StackPanel Visibility="{Binding HasCurrentRequirement, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                    <TextBlock Text="{Binding CurrentRequirement.Item, StringFormat={}{0}: {1}, FallbackValue='No requirement selected'}" 
-                                                               Style="{StaticResource SectionHeaderStyle}" FontSize="18" />
+                                                    <TextBlock Text="{Binding CurrentRequirement.Item}" 
+                                                               Style="{StaticResource SectionHeaderStyle}" 
+                                                               FontSize="18" 
+                                                               Foreground="{StaticResource Brush.Accent.Primary}"
+                                                               Margin="0,0,0,4" />
                                                     <TextBlock Text="{Binding CurrentRequirement.Name}" 
-                                                               Style="{StaticResource SectionHeaderStyle}" FontSize="16" FontWeight="Medium" />
+                                                               Style="{StaticResource SectionHeaderStyle}" 
+                                                               FontSize="16" 
+                                                               FontWeight="Medium" 
+                                                               Margin="0,0,0,16" />
                                                 </StackPanel>
                                                 
                                                 <!-- Rich description with HTML rendering -->
@@ -174,6 +181,21 @@
                                                            Visibility="{Binding CurrentRequirement.Comments, Converter={StaticResource StringNotEmptyToVisibilityConverter}}" />
                                                 <TextBlock Text="{Binding CurrentRequirement.Comments}" 
                                                            Style="{StaticResource RichContentStyle}" />
+                                                           
+                                                <!-- No requirement selected state -->
+                                                <StackPanel Visibility="{Binding HasCurrentRequirement, Converter={StaticResource InvertedBoolToVisibilityConverter}}"
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            Margin="0,40">
+                                                    <TextBlock Text="No requirement selected" 
+                                                               Style="{StaticResource SectionHeaderStyle}"
+                                                               HorizontalAlignment="Center"
+                                                               Foreground="{StaticResource Brush.Text.Secondary}" />
+                                                    <TextBlock Text="Select a requirement from the navigation to view its details" 
+                                                               Style="{StaticResource RichContentStyle}"
+                                                               HorizontalAlignment="Center"
+                                                               Foreground="{StaticResource Brush.Text.Secondary}" />
+                                                </StackPanel>
                                             </StackPanel>
                                         </DataTemplate>
                                     </Setter.Value>
