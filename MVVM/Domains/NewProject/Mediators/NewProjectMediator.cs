@@ -538,6 +538,22 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 var workspacePath = _currentWorkspaceInfo.Path;
                 _currentWorkspaceInfo = null;
                 
+                // Clear workspace context cache when project is unloaded
+                var workspaceContextService = App.ServiceProvider?.GetService<TestCaseEditorApp.Services.IWorkspaceContext>();
+                if (workspaceContextService is TestCaseEditorApp.Services.WorkspaceContextService contextService)
+                {
+                    _logger.LogInformation("🧹 Clearing workspace context cache on project unload");
+                    contextService.NotifyWorkspaceChanged(null, null, TestCaseEditorApp.Services.WorkspaceChangeType.Unloaded);
+                }
+                
+                // Clear view configuration to ensure fresh routing on next project load
+                var viewConfigService = App.ServiceProvider?.GetService<TestCaseEditorApp.Services.ViewConfigurationService>();
+                if (viewConfigService != null)
+                {
+                    _logger.LogInformation("🧹 Clearing view configuration on project unload");
+                    viewConfigService.ClearCurrentConfiguration();
+                }
+                
                 var projectClosedEvent = new NewProjectEvents.ProjectClosed 
                 { 
                     WorkspacePath = workspacePath 

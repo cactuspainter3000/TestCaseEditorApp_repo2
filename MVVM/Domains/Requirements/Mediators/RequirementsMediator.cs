@@ -958,18 +958,28 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             // Use centralized workspace context for clean access
             var currentWorkspace = _workspaceContext.CurrentWorkspace;
             
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementsMediator] IsJamaDataSource() - currentWorkspace: {(currentWorkspace == null ? "NULL" : "exists")}");
+            if (currentWorkspace != null)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementsMediator] ImportSource: '{currentWorkspace.ImportSource ?? "NULL"}'");
+            }
+            
             if (currentWorkspace == null)
             {
+                TestCaseEditorApp.Services.Logging.Log.Debug("[RequirementsMediator] IsJamaDataSource() returning false (no workspace)");
                 return false;
             }
             
             // Check ImportSource flag - this is the authoritative source for view routing
             if (!string.IsNullOrEmpty(currentWorkspace.ImportSource))
             {
-                return string.Equals(currentWorkspace.ImportSource, "Jama", StringComparison.OrdinalIgnoreCase);
+                var isJama = string.Equals(currentWorkspace.ImportSource, "Jama", StringComparison.OrdinalIgnoreCase);
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementsMediator] IsJamaDataSource() returning {isJama} (ImportSource comparison)");
+                return isJama;
             }
             
             // Default to document view if ImportSource is missing/empty
+            TestCaseEditorApp.Services.Logging.Log.Debug("[RequirementsMediator] IsJamaDataSource() returning false (empty ImportSource)");
             return false;
         }
 

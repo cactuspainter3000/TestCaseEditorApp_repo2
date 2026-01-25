@@ -44,6 +44,16 @@ namespace TestCaseEditorApp.Services
         
         public ViewConfiguration? CurrentConfiguration { get; private set; }
 
+        /// <summary>
+        /// Clears the current configuration. Called when workspace is unloaded to ensure
+        /// fresh view routing on next project load.
+        /// </summary>
+        public void ClearCurrentConfiguration()
+        {
+            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Clearing current configuration on workspace unload");
+            CurrentConfiguration = null;
+        }
+
         public ViewConfigurationService(
             INewProjectMediator workspaceManagementMediator,
             IOpenProjectMediator openProjectMediator,
@@ -238,13 +248,14 @@ namespace TestCaseEditorApp.Services
 
         private ViewConfiguration CreateRequirementsConfiguration(object? context)
         {
-            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating Requirements configuration using AI Guide standard pattern");
+            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating Requirements configuration");
             
             // Resolve all ViewModels from DI container (use Requirements-specific header for requirement details)
             var requirementsHeaderVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>();
             
             // Determine if this is a Jama import or document import
             var isJamaImport = _requirementsMediator?.IsJamaDataSource() == true;
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewConfigurationService] Using {(isJamaImport ? "Jama" : "document")} view configuration");
             
             // Select appropriate main view based on import source
             object? mainVM;
@@ -252,13 +263,11 @@ namespace TestCaseEditorApp.Services
             {
                 // Use Jama-optimized view for structured content
                 mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.JamaRequirementsMainViewModel>();
-                TestCaseEditorApp.Services.Logging.Log.Info($"[ViewConfigurationService] Using Jama-optimized Requirements view");
             }
             else
             {
                 // Use traditional document-focused view  
                 mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>();
-                TestCaseEditorApp.Services.Logging.Log.Info($"[ViewConfigurationService] Using document Requirements view");
             }
             
             var sharedNavigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel>();
@@ -273,8 +282,6 @@ namespace TestCaseEditorApp.Services
             }
             if (sharedNavigationVM == null) throw new InvalidOperationException("NavigationViewModel not registered in DI container");
             if (sharedNotificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
-            
-            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] All Requirements ViewModels resolved successfully");
             
             // Return ViewModels directly - DataTemplates automatically render corresponding Views
             // Note: Update title to show project name when switching to Requirements
