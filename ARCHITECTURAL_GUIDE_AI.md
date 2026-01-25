@@ -1000,6 +1000,142 @@ MVVM/
 | Multiple UI entry points | Single entry point with domain coordination |
 | Service location pattern | Constructor injection with mediator flow |
 
+---
+
+## 🔗 JAMA IMPORT IMPLEMENTATION PATTERN
+
+### **Jama Connect Service Architecture**
+
+The **JamaConnectService** implements a robust import workflow with OAuth authentication, steel trap validation, and comprehensive error handling.
+
+#### **🏗️ Implementation Chain**
+```
+🌐 Jama Import Workflow
+│
+├── 🔐 **Authentication**
+│   ├── OAuth 2.0 with client credentials flow
+│   ├── FromConfiguration() factory pattern for settings
+│   ├── Steel trap validation on token response
+│   └── Bearer token automatic header injection
+│
+├── 📋 **Requirements Import**
+│   ├── Fetch project details and item types
+│   ├── Recursive requirement retrieval with parent-child relationships
+│   ├── Field mapping and data transformation
+│   └── Comprehensive error handling and logging
+│
+└── 🚨 **Steel Trap Validation** (Critical Pattern)
+    ├── Validate response structure before processing
+    ├── Log detailed failure information for debugging
+    ├── Fail fast on malformed data
+    └── Prevent runtime errors with comprehensive checks
+```
+
+#### **⭐ Steel Trap Pattern - Validation Best Practice**
+```csharp
+// ✅ CORRECT - Steel trap validation pattern
+public async Task<bool> AuthenticateAsync()
+{
+    // ... API call logic ...
+    
+    try
+    {
+        var tokenResponse = JsonSerializer.Deserialize<OAuthTokenResponse>(content);
+        
+        // 🚨 STEEL TRAP: Validate token response structure
+        if (tokenResponse == null)
+        {
+            TestCaseEditorApp.Services.Logging.Log.ValidationFailure(
+                "OAuth token deserialization", 
+                "Returned null - check OAuthTokenResponse JsonPropertyName attributes");
+            return false;
+        }
+        
+        if (!tokenResponse.IsValid)
+        {
+            TestCaseEditorApp.Services.Logging.Log.ValidationFailure(
+                "OAuth token response", 
+                $"AccessToken: '{tokenResponse.AccessToken ?? "NULL"}', Raw response: {content}");
+            return false;
+        }
+        
+        // Success: Token validated and ready to use
+        _accessToken = tokenResponse.AccessToken;
+        TestCaseEditorApp.Services.Logging.Log.Info("[JamaConnect] ✅ OAuth steel trap validation passed!");
+        return true;
+    }
+    catch (Exception ex)
+    {
+        TestCaseEditorApp.Services.Logging.Log.Exception(ex, "[JamaConnect] Failed to deserialize OAuth response");
+        TestCaseEditorApp.Services.Logging.Log.Error("[JamaConnect] 🚨 STEEL TRAP: Check OAuthTokenResponse class structure!");
+        return false;
+    }
+}
+```
+
+#### **🎯 Steel Trap Guidelines**
+
+**When to Use Steel Trap Validation:**
+- ✅ External API response processing (JSON deserialization)
+- ✅ Authentication token validation
+- ✅ Complex object construction from external data
+- ✅ Any scenario where malformed data could cause runtime failures
+
+**Steel Trap Implementation Rules:**
+1. **Validate Early**: Check object structure immediately after deserialization
+2. **Log Diagnostics**: Use `Log.ValidationFailure()` with context and details
+3. **Fail Fast**: Return false/throw immediately on validation failure
+4. **Provide Context**: Include raw response data in failure logs
+5. **Success Confirmation**: Log successful validation for debugging
+
+#### **🔄 Jama Import Service Registration**
+```csharp
+// App.xaml.cs - External service registration
+services.AddSingleton<JamaConnectService>(provider =>
+{
+    var jamaConnectService = JamaConnectService.FromConfiguration();
+    return jamaConnectService;
+});
+```
+
+#### **🌐 Cross-Domain Import Flow**
+```
+📋 Jama Requirements Import
+│
+├── 🎯 **UI Trigger** (Any Domain)
+│   └── User clicks "Import from Jama"
+│
+├── 📡 **WorkspaceManagement Domain**
+│   ├── JamaConnectService.AuthenticateAsync()
+│   ├── JamaConnectService.FetchProjectRequirementsAsync(projectId)
+│   ├── Transform Jama items → Workspace.Requirements
+│   ├── Set workspace.ImportSource = "Jama"
+│   └── BroadcastToAllDomains(RequirementsImported)
+│
+└── 👂 **TestCaseGeneration Domain**
+    ├── Receive RequirementsImported event
+    ├── Update mediator Requirements collection
+    ├── Trigger view refresh via domain events
+    └── ViewConfigurationService routes to JamaRequirementsMainViewModel
+```
+
+#### **🔧 Implementation Files**
+- **Service**: [Services/JamaConnectService.cs](Services/JamaConnectService.cs) 
+- **Interface**: [Services/IJamaConnectService.cs](Services/IJamaConnectService.cs)
+- **Models**: [MVVM/Models/Jama/](MVVM/Models/Jama/) (JamaProject, JamaItem, etc.)
+- **Configuration**: [Config/defaults.catalog.template.json](Config/defaults.catalog.template.json) (Jama settings)
+
+#### **📊 Steel Trap Validation Benefits**
+
+| **Without Steel Trap** | **With Steel Trap** |
+|------------------------|---------------------|
+| Runtime NullReferenceException | Immediate validation failure with context |
+| Silent property access failures | Explicit "AccessToken: NULL" logging |
+| Unclear JSON structure issues | "Check OAuthTokenResponse class structure" guidance |
+| Generic deserialization errors | Specific validation failure categories |
+
+---
+
 ### **Cross-Domain Communication Workflow Template**
 ```csharp
 // ✅ CORRECT: Initiating Domain
