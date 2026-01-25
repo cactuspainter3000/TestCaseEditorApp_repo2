@@ -11,6 +11,7 @@ using RequirementsMediator = TestCaseEditorApp.MVVM.Domains.Requirements.Mediato
 using TestCaseEditorApp.MVVM.Domains.Requirements.Events;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.ViewModels;
+using TestCaseEditorApp.Services;
 
 namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 {
@@ -22,6 +23,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
     public partial class Requirements_HeaderViewModel : BaseDomainViewModel
     {
         private new readonly IRequirementsMediator _mediator;
+        private readonly IWorkspaceContext _workspaceContext;
 
         [ObservableProperty]
         private int totalRequirements;
@@ -62,10 +64,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         public Requirements_HeaderViewModel(
             IRequirementsMediator mediator,
+            IWorkspaceContext workspaceContext,
             ILogger<Requirements_HeaderViewModel> logger)
             : base(mediator, logger)
         {
             _mediator = mediator ?? throw new System.ArgumentNullException(nameof(mediator));
+            _workspaceContext = workspaceContext ?? throw new System.ArgumentNullException(nameof(workspaceContext));
 
             // Initialize workspace commands
             SaveWorkspaceCommand = new RelayCommand(SaveWorkspace, () => IsDirty);
@@ -119,13 +123,30 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         private void OnRequirementSelected(RequirementsEvents.RequirementSelected e)
         {
-            // Update header description based on selected requirement
+            // Update header description based on selected requirement and ImportSource
             if (e.Requirement != null)
             {
-                // Show ID + Name format for clean header display
-                var idPart = !string.IsNullOrEmpty(e.Requirement.Item) ? e.Requirement.Item : e.Requirement.GlobalId ?? "Unknown";
-                var namePart = e.Requirement.Name ?? "Unnamed requirement";
-                RequirementDescription = $"{idPart}: {namePart}";
+                var workspace = _workspaceContext.CurrentWorkspace;
+                var isJamaImport = !string.IsNullOrEmpty(workspace?.ImportSource) && 
+                                 string.Equals(workspace.ImportSource, "Jama", System.StringComparison.OrdinalIgnoreCase);
+                
+                if (isJamaImport)
+                {
+                    // Jama Import: Show requirement name only (until better use is determined)
+                    RequirementDescription = e.Requirement.Name ?? "Unnamed requirement";
+                }
+                else
+                {
+                    // Document Import: Show filtered requirement details (remove supplemental/table data)
+                    var idPart = !string.IsNullOrEmpty(e.Requirement.Item) ? e.Requirement.Item : e.Requirement.GlobalId ?? "Unknown";
+                    var namePart = e.Requirement.Name ?? "Unnamed requirement";
+                    
+                    // Filter out supplemental and table data - show clean description
+                    var description = FilterDocumentRequirementDetails(e.Requirement);
+                    RequirementDescription = !string.IsNullOrEmpty(description) ? 
+                        $"{idPart}: {description}" : 
+                        $"{idPart}: {namePart}";
+                }
             }
             else
             {
@@ -197,6 +218,49 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 OnPropertyChanged(nameof(RequirementsStatus));
                 OnPropertyChanged(nameof(AnalysisStatus));
             }
+        }
+
+        /// <summary>
+        /// Filter requirement details for document imports - remove supplemental and table data
+        /// </summary>
+        private string FilterDocumentRequirementDetails(TestCaseEditorApp.MVVM.Models.Requirement requirement)
+        {
+            // For document imports, show clean description by filtering out supplemental/table data
+            var description = requirement.Description;
+            
+            if (string.IsNullOrEmpty(description))
+            {
+                return requirement.Name ?? "No description available";
+            }
+            
+            // Filter logic: Remove common supplemental content patterns
+            var filtered = description;
+            
+            // Remove table-like content (lines with multiple pipe characters)
+            var lines = filtered.Split('\n', '\r').Where(line => !string.IsNullOrWhiteSpace(line)).ToArray();
+            var cleanLines = lines.Where(line => 
+                !line.Contains("|") || // Remove table rows
+                line.Split('|').Length < 3 // Keep lines that aren't table-formatted
+            ).ToArray();
+            
+            // Remove supplemental markers and metadata
+            cleanLines = cleanLines.Where(line =>
+                !line.TrimStart().StartsWith("Supplemental:", System.StringComparison.OrdinalIgnoreCase) &&
+                !line.TrimStart().StartsWith("Table:", System.StringComparison.OrdinalIgnoreCase) &&
+                !line.TrimStart().StartsWith("Figure:", System.StringComparison.OrdinalIgnoreCase) &&
+                !line.TrimStart().StartsWith("Note:", System.StringComparison.OrdinalIgnoreCase)
+            ).ToArray();
+            
+            // Take first meaningful sentence/paragraph for header display
+            var cleanDescription = string.Join(" ", cleanLines).Trim();
+            
+            // Limit length for header display
+            if (cleanDescription.Length > 150)
+            {
+                cleanDescription = cleanDescription.Substring(0, 147) + "...";
+            }
+            
+            return string.IsNullOrEmpty(cleanDescription) ? requirement.Name ?? "No description available" : cleanDescription;
         }
 
         // Workspace management methods

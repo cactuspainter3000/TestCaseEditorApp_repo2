@@ -332,8 +332,9 @@ namespace TestCaseEditorApp
                     {
                         // Use RequirementsMediator as independent data source for header
                         var reqMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
+                        var workspaceContext = provider.GetRequiredService<IWorkspaceContext>();
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>>();
-                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel(reqMediator, logger);
+                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel(reqMediator, workspaceContext, logger);
                     });
                     
                     // Jama-optimized Requirements ViewModel for rich structured content display
