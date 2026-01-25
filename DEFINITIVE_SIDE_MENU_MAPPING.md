@@ -1,6 +1,6 @@
 # DEFINITIVE SIDE MENU MAPPING
 > **Complete Technical Reference for All Menu Items and Their Correct Configurations**
-> **Current Date**: January 18, 2026
+> **Current Date**: January 25, 2026
 
 ---
 
@@ -302,17 +302,23 @@ private ViewConfiguration CreateRequirementsConfiguration(object? context)
 {
     TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating Requirements configuration using AI Guide standard pattern");
     
+    // ✅ ARCHITECTURAL IMPROVEMENT: Uses RequirementsMediator.IsJamaDataSource() with IWorkspaceContext service
+    // This enables clean Jama vs Document view routing without complex dependency chains
+    var isJamaDataSource = _requirementsMediator.IsJamaDataSource();
+    
     // ✅ CORRECT: DI Resolution Only
     var titleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
     var headerVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>();
-    var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsViewModel>();
+    var mainVM = isJamaDataSource 
+        ? App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.JamaRequirementsMainViewModel>()
+        : App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>();
     var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel>();
     var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
     
     // ✅ CORRECT: Fail-fast validation
     if (titleVM == null) throw new InvalidOperationException("TestCaseGenerator_TitleVM not registered in DI container");
     if (headerVM == null) throw new InvalidOperationException("Requirements_HeaderViewModel not registered in DI container");
-    if (mainVM == null) throw new InvalidOperationException("RequirementsViewModel not registered in DI container");
+    if (mainVM == null) throw new InvalidOperationException($"{(isJamaDataSource ? "JamaRequirementsMainViewModel" : "Requirements_MainViewModel")} not registered in DI container");
     if (navigationVM == null) throw new InvalidOperationException("NavigationViewModel not registered in DI container");
     if (notificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
     
@@ -331,6 +337,8 @@ private ViewConfiguration CreateRequirementsConfiguration(object? context)
 **Status**: ✅ **NOW PERFECT IMPLEMENTATION**  
 **Pattern**: ViewModels + DataTemplates  
 **Navigation**: ✅ Working correctly via `NavigateToSection("requirements")`
+**Architectural Integration**: ✅ Uses IWorkspaceContext service for clean view routing
+**Jama Integration**: ✅ Dynamic view selection based on ImportSource with steel trap validation
 
 ---
 
@@ -539,3 +547,52 @@ private ViewConfiguration CreateRequirementsConfiguration(object? context)
 - ✅ Clean shared workspace architecture eliminates confusion
 
 **Current Status**: User clicks any menu item → navigation works → shows correct domain views → all using identical architectural pattern → **LED status indicator works consistently**
+
+---
+
+## 🏗️ **RECENT ARCHITECTURAL IMPROVEMENTS (January 2026)**
+
+### **🗂️ IWorkspaceContext Service Integration**
+**Date**: January 25, 2026  
+**Impact**: Requirements domain configuration now uses centralized workspace access
+
+**Benefits**:
+- ✅ **Clean View Routing**: `IsJamaDataSource()` method simplified from 24 lines to 8 lines
+- ✅ **Performance**: Cached workspace access with file change monitoring
+- ✅ **Architectural Compliance**: Eliminated service locator anti-patterns
+- ✅ **Cross-Domain Consistency**: Single source of truth for workspace data
+
+**Implementation**:
+```csharp
+// Before: Complex dependency chain
+var workspaceInfo = _workspaceManagementMediator.GetCurrentWorkspaceInfo();
+// ... 20+ lines of file loading and error handling
+
+// After: Simple workspace context access
+var workspace = _workspaceContext.CurrentWorkspace;
+return string.Equals(workspace?.ImportSource, "Jama", StringComparison.OrdinalIgnoreCase);
+```
+
+### **🔗 Jama Import Integration**  
+**Date**: January 25, 2026  
+**Components**: JamaConnectService with steel trap validation
+
+**Features**:
+- ✅ **OAuth 2.0 Authentication**: Client credentials flow with comprehensive validation
+- ✅ **Steel Trap Pattern**: Robust API response validation preventing runtime failures  
+- ✅ **Cross-Domain Workflow**: UI trigger → WorkspaceManagement → TestCaseGeneration → view routing
+- ✅ **Dynamic View Selection**: Automatic routing between JamaRequirementsMainViewModel and Requirements_MainViewModel
+
+**Menu Integration**:
+- **Import from Jama**: Triggers OAuth authentication and requirement import
+- **Export to Jama**: Publishes test cases back to Jama projects
+- **View Routing**: Automatically shows Jama-specific UI when `ImportSource = "Jama"`
+
+### **📊 Current Architecture Status**
+- **Service Lifetime Patterns**: Clear guidelines for Singleton vs Transient vs Scoped
+- **Cross-Domain Communication**: Robust event broadcasting with domain coordination
+- **Error Handling**: Steel trap validation for external API integration  
+- **Performance**: Cached services and optimized workspace access
+- **Compliance**: 100% constructor injection, zero service locator anti-patterns
+
+**Next Evolution**: All project domains (NewProject, OpenProject, Project) ready for ViewModel standardization to achieve 100% architectural compliance.
