@@ -1295,28 +1295,58 @@ namespace TestCaseEditorApp.Services
 
         /// <summary>
         /// Clean and decode HTML text content, converting entities to proper text and stripping HTML tags
+        /// Preserves original paragraph structure and line breaks from Jama GUI
         /// </summary>
         private string CleanHtmlText(string htmlText)
         {
             if (string.IsNullOrWhiteSpace(htmlText))
                 return string.Empty;
 
-            // First, decode HTML entities using System.Net.WebUtility
-            var decodedText = System.Net.WebUtility.HtmlDecode(htmlText);
-            
-            // Then use HtmlAgilityPack to strip any remaining HTML tags
-            var doc = new HtmlDocument();
-            doc.LoadHtml(decodedText);
-            
-            // Extract plain text
-            var plainText = doc.DocumentNode.InnerText;
-            
-            // Clean up extra whitespace
-            plainText = System.Text.RegularExpressions.Regex.Replace(plainText, @"\s+", " ");
-            
-            return plainText.Trim();
+            try
+            {
+                // First decode HTML entities
+                var decoded = System.Net.WebUtility.HtmlDecode(htmlText);
+                
+                // If no HTML tags, just clean whitespace and return
+                if (!decoded.Contains("<") || !decoded.Contains(">"))
+                {
+                    return System.Text.RegularExpressions.Regex.Replace(decoded.Trim(), @"\s+", " ");
+                }
+
+                // Parse HTML and extract plain text (this avoids duplication)
+                var doc = new HtmlDocument();
+                doc.LoadHtml(decoded);
+
+                // Simple text extraction using InnerText (no complex parsing)
+                var plainText = doc.DocumentNode.InnerText;
+                
+                if (string.IsNullOrWhiteSpace(plainText))
+                    return string.Empty;
+
+                // Basic formatting cleanup only
+                // 1. Normalize multiple spaces/tabs to single space
+                plainText = System.Text.RegularExpressions.Regex.Replace(plainText, @"[ \t]+", " ");
+                
+                // 2. Normalize line breaks
+                plainText = System.Text.RegularExpressions.Regex.Replace(plainText, @"\r\n|\r|\n", "\n");
+                
+                // 3. Remove excessive blank lines (more than 2 newlines)
+                plainText = System.Text.RegularExpressions.Regex.Replace(plainText, @"\n{3,}", "\n\n");
+                
+                // 4. Trim final result
+                return plainText.Trim();
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Error cleaning HTML text: {ex.Message}");
+                // Fallback: basic HTML tag removal
+                var fallback = System.Text.RegularExpressions.Regex.Replace(htmlText, @"<[^>]+>", "");
+                return System.Net.WebUtility.HtmlDecode(fallback).Trim();
+            }
         }
 
+        /// <summary>
+        /// Extract text from HTML nodes while preserving paragraph structure and line breaks
         /// <summary>
         /// Extract paragraphs from HTML, excluding table content
         /// </summary>

@@ -417,7 +417,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // if (SessionLooseSelectionStore.TryGetTableSelected(RequirementId, TableKey, out var stored))
             //     IsSelected = stored;
             // else
-            IsSelected = true;
+            IsSelected = false; // Start tables in read-only mode, user can click to select/edit
+            IsEditing = false;  // Explicitly ensure tables start in read-only mode
 
             _hydratingFromSession = false;
         }

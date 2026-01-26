@@ -416,7 +416,7 @@
                                 <Setter Property="ContentTemplate">
                                     <Setter.Value>
                                         <DataTemplate>
-                                            <local:TestCaseGenerator_TablesControl ShowLocalToolbar="False" />
+                                            <req:Requirements_TablesControl ShowLocalToolbar="False" />
                                         </DataTemplate>
                                     </Setter.Value>
                                 </Setter>
