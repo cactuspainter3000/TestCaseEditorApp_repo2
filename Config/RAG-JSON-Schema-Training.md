@@ -11,6 +11,18 @@ This document teaches the AnythingLLM RAG system to analyze requirements for tes
 4. Start response with { and end with }
 5. Use proper JSON syntax with escaped quotes
 
+## CRITICAL: ISSUE DESCRIPTION FORMAT
+
+**FOR ISSUES ARRAY - USE PAST TENSE TO INDICATE WHAT WAS FIXED:**
+- ❌ WRONG: "The term UUT is not explicitly stated as a requirement"
+- ✅ CORRECT: "Explicitly stated that UUT refers to Unit Under Test and must be included for clarity"
+
+**FOR RECOMMENDATIONS - USE PRESENT/FUTURE TENSE FOR SUGGESTIONS:**
+- ✅ CORRECT: "Define acceptable parameters that constitute a simple connection"
+- ✅ CORRECT: "Add specific timing requirements for test completion"
+
+This format indicates that issues describe what has been addressed/fixed in the improved requirement.
+
 ## ANALYSIS PURPOSE
 
 **🚨 CRITICAL: You MUST evaluate the USER'S ORIGINAL requirement quality - NOT your improved version!**
@@ -30,7 +42,7 @@ Evaluate the original requirement text as written by the user based on how suita
 {
   "QualityScore": 7,
   "Analysis": "Clean, readable explanation of why the ORIGINAL requirement is good or bad for test case creation",
-  "RewrittenRequirement": "Complete improved requirement text that would be ideal for generating test cases"
+  "ImprovedRequirement": "Complete improved requirement text that would be ideal for generating test cases"
 }
 ```
 
