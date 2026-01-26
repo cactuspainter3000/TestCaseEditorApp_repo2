@@ -242,25 +242,24 @@ namespace TestCaseEditorApp.Converters
                 GridLinesVisibility = System.Windows.Controls.DataGridGridLinesVisibility.All,
                 HorizontalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
                 VerticalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
-                Background = new SolidColorBrush(Color.FromRgb(30, 30, 30)), // #1E1E1E
-                Foreground = new SolidColorBrush(Colors.White),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(70, 130, 180)), // Accent color
+                Background = System.Windows.Application.Current.TryFindResource("Brush.Background.Menu") as System.Windows.Media.Brush,
+                Foreground = System.Windows.Application.Current.TryFindResource("Brush.Text.Primary") as System.Windows.Media.Brush,
+                BorderBrush = System.Windows.Application.Current.TryFindResource("Brush.Border.Default") as System.Windows.Media.Brush,
                 BorderThickness = new Thickness(1),
-                RowBackground = new SolidColorBrush(Color.FromRgb(37, 37, 38)), // #252526
-                AlternatingRowBackground = new SolidColorBrush(Color.FromRgb(45, 45, 48)), // #2D2D30
+                RowBackground = System.Windows.Application.Current.TryFindResource("Brush.Background.Menu") as System.Windows.Media.Brush,
+                AlternatingRowBackground = System.Windows.Application.Current.TryFindResource("Brush.Background.Menu.Hover") as System.Windows.Media.Brush,
                 ColumnHeaderHeight = 32,
                 Margin = new Thickness(0, 8, 0, 16)
             };
 
             // Create a darker column header style to match the theme
             var headerStyle = new Style(typeof(System.Windows.Controls.Primitives.DataGridColumnHeader));
-            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.BackgroundProperty, new SolidColorBrush(Color.FromRgb(45, 45, 48)))); // Dark background
-            // Dark orange accent color: RGB(255, 140, 0)
-            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.ForegroundProperty, new SolidColorBrush(Color.FromRgb(255, 140, 0)))); // Dark orange accent color text
-            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.FontWeightProperty, FontWeights.SemiBold));
-            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.FontSizeProperty, 11.0));
+            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.BackgroundProperty, System.Windows.Application.Current.TryFindResource("Brush.Background.Header") as System.Windows.Media.Brush));
+            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.ForegroundProperty, System.Windows.Application.Current.TryFindResource("Brush.Text.Primary") as System.Windows.Media.Brush));
+            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.FontWeightProperty, System.Windows.Application.Current.TryFindResource("FontWeight.SemiBold") ?? FontWeights.SemiBold));
+            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.FontSizeProperty, System.Windows.Application.Current.TryFindResource("FontSize.Caption") ?? 12.0));
             headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.PaddingProperty, new Thickness(8, 6, 8, 6)));
-            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(255, 140, 0))));
+            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.BorderBrushProperty, System.Windows.Application.Current.TryFindResource("Brush.Border.Default") as System.Windows.Media.Brush));
             headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.BorderThicknessProperty, new Thickness(0, 0, 1, 1)));
             headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.HorizontalContentAlignmentProperty, HorizontalAlignment.Left));
             dataGrid.ColumnHeaderStyle = headerStyle;
