@@ -342,7 +342,8 @@ namespace TestCaseEditorApp
                     {
                         var reqMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.JamaRequirementsMainViewModel>>();
-                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.JamaRequirementsMainViewModel(reqMediator, logger);
+                        var requirementAnalysisVM = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel>();
+                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.JamaRequirementsMainViewModel(reqMediator, logger, requirementAnalysisVM);
                     });
                     
                     // Requirements uses shared NavigationViewModel and NotificationWorkspaceViewModel

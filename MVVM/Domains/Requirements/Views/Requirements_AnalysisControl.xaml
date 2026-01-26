@@ -22,12 +22,19 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         
+        <!-- No Analysis State - Just requirement text -->
+        <Grid Grid.Row="0"
+              Visibility="{Binding HasNoAnalysis, Converter={StaticResource BoolToVisibilityConverter}}">
+            <!-- This would show just the requirement text and Run Analysis button -->
+            <!-- Implementation depends on how requirement text is displayed -->
+        </Grid>
+        
         <!-- Analysis Results State -->
         <ScrollViewer Grid.Row="0"
                       VerticalScrollBarVisibility="Auto" 
                       HorizontalScrollBarVisibility="Disabled"
                       Padding="12"
-                      Visibility="Visible">
+                      Visibility="{Binding HasAnalysis, Converter={StaticResource BoolToVisibilityConverter}}">
             
             <Grid>
                 <Grid.RowDefinitions>
@@ -39,7 +46,7 @@
                 </Grid.RowDefinitions>
                 
                 <!-- Header Section -->
-                <Grid Grid.Row="0" Margin="0,0,0,20">
+                <Grid Grid.Row="0" Margin="0,0,0,8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
@@ -345,9 +352,9 @@
         
         <!-- Error message at bottom -->
         <Grid Grid.Row="1"
-              Visibility="Visible"
+              Visibility="{Binding AnalysisStatusMessage, Converter={StaticResource StringNotEmptyToVisibilityConverter}}"
               Margin="12">
-            <TextBlock Text="[ERROR MESSAGE]" 
+            <TextBlock Text="{Binding AnalysisStatusMessage}" 
                        FontSize="14" 
                        Foreground="#CC6666" 
                        HorizontalAlignment="Center"

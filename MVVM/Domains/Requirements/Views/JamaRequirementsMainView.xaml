@@ -68,26 +68,6 @@
                                Foreground="{StaticResource Brush.Accent.Primary}"/>
                 </ToggleButton>
 
-                <!-- Analysis tab -->
-                <ToggleButton Style="{StaticResource ActionToggleButtonSelected}"
-                              Margin="8,0,0,0"
-                              IsChecked="{Binding IsAnalysisSelected, Mode=TwoWay}"
-                              ToolTip="Requirement analysis and quality assessment">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="Analysis" VerticalAlignment="Center" Margin="6,0" 
-                                   Foreground="{StaticResource Brush.Accent.Primary}"/>
-                        <!-- Analysis status indicator -->
-                        <Border Grid.Column="1" Style="{StaticResource BadgeStyle}"
-                                Visibility="{Binding HasAnalysis, Converter={StaticResource BoolToVisibilityConverter}}">
-                            <TextBlock Text="✓" Foreground="White" FontSize="10"/>
-                        </Border>
-                    </Grid>
-                </ToggleButton>
-
                 <!-- Metadata tab -->
                 <ToggleButton Style="{StaticResource ActionToggleButtonSelected}"
                               Margin="8,0,0,0"
@@ -101,12 +81,56 @@
             <!-- Right: Action buttons -->
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                 
-                <!-- Run Analysis button -->
-                <Button Content="Run Analysis"
-                        Command="{Binding QuickAnalyzeCommand}"
-                        ToolTip="Run quality analysis on current requirement"
-                        Style="{StaticResource PillActionButtonStyle}"
-                        Visibility="{Binding HasCurrentRequirement, Converter={StaticResource BoolToVisibilityConverter}}" />
+                <!-- Analysis timer (counter next to Run Analysis button) -->
+                <TextBlock Text="{Binding AnalysisElapsedTime}" 
+                           FontSize="12" 
+                           Foreground="#888888" 
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0"
+                           Visibility="{Binding AnalysisElapsedTime, Converter={StaticResource StringNotEmptyToVisibilityConverter}}"/>
+                
+                <!-- Run Analysis button with tracer -->
+                <Grid>
+                    <Button Content="Run Analysis"
+                            Command="{Binding QuickAnalyzeCommand}"
+                            ToolTip="Run quality analysis on current requirement"
+                            Style="{StaticResource PillActionButtonStyle}"
+                            Visibility="{Binding HasCurrentRequirement, Converter={StaticResource BoolToVisibilityConverter}}" />
+                    
+                    <!-- Animated tracer border overlay (appears only during analysis) -->
+                    <Border x:Name="AnalysisTracerBorder"
+                            Background="Transparent"
+                            BorderThickness="2"
+                            CornerRadius="{StaticResource Radius.SM}"
+                            Margin="0"
+                            IsHitTestVisible="False"
+                            Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Border.BorderBrush>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#FF4A90E2" Offset="0"/>
+                                <GradientStop Color="#FF50C878" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.BorderBrush>
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsAnalyzing}" Value="True">
+                                        <DataTrigger.EnterActions>
+                                            <BeginStoryboard>
+                                                <Storyboard RepeatBehavior="Forever">
+                                                    <ColorAnimation Storyboard.TargetProperty="BorderBrush.(LinearGradientBrush.GradientStops)[0].Color"
+                                                                    From="#FF4A90E2" To="#FF50C878" Duration="0:0:1"/>
+                                                    <ColorAnimation Storyboard.TargetProperty="BorderBrush.(LinearGradientBrush.GradientStops)[1].Color"
+                                                                    From="#FF50C878" To="#FF4A90E2" Duration="0:0:1"/>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </DataTrigger.EnterActions>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                    </Border>
+                </Grid>
 
             </StackPanel>
         </DockPanel>
@@ -182,6 +206,15 @@
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
+                                                
+                                                <!-- Analysis Results Section -->
+                                                <Border Margin="0,20,0,0"
+                                                        Visibility="{Binding HasAnalysis, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                    <StackPanel>
+                                                        <!-- Include the full analysis control which has its own header -->
+                                                        <req:Requirements_AnalysisControl />
+                                                    </StackPanel>
+                                                </Border>
                                                            
                                                 <!-- No requirement selected state -->
                                                 <StackPanel Visibility="{Binding HasCurrentRequirement, Converter={StaticResource InvertedBoolToVisibilityConverter}}"
@@ -202,20 +235,9 @@
                                     </Setter.Value>
                                 </Setter>
                                 
-                                <!-- Analysis View Template -->
+                                
+                                <!-- Metadata View Template -->
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsAnalysisSelected}" Value="True">
-                                        <Setter Property="ContentTemplate">
-                                            <Setter.Value>
-                                                <DataTemplate>
-                                                    <!-- Embed the existing analysis control -->
-                                                    <req:Requirements_AnalysisControl />
-                                                </DataTemplate>
-                                            </Setter.Value>
-                                        </Setter>
-                                    </DataTrigger>
-                                    
-                                    <!-- Metadata View Template -->
                                     <DataTrigger Binding="{Binding IsMetadataSelected}" Value="True">
                                         <Setter Property="ContentTemplate">
                                             <Setter.Value>

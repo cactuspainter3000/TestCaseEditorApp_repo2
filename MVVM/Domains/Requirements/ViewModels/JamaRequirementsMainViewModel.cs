@@ -49,6 +49,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         [ObservableProperty]
         private string analysisSummary = "No analysis performed yet.";
 
+        [ObservableProperty]
+        private bool isAnalyzing;
+
+        [ObservableProperty]
+        private string analysisElapsedTime = "";
+
+        // Analysis ViewModel for the Requirements_AnalysisControl
+        public RequirementAnalysisViewModel RequirementAnalysisVM { get; }
+
+        // Analysis timer
+        private System.Timers.Timer? _analysisTimer;
+        private DateTime _analysisStartTime;
+
         // Tab selection commands
         public ICommand SelectRichContentCommand { get; }
         public ICommand SelectAnalysisCommand { get; }
@@ -62,10 +75,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         public JamaRequirementsMainViewModel(
             IRequirementsMediator mediator,
-            ILogger<JamaRequirementsMainViewModel> logger)
+            ILogger<JamaRequirementsMainViewModel> logger,
+            RequirementAnalysisViewModel requirementAnalysisVM)
             : base(mediator, logger)
         {
             _mediator = mediator;
+            RequirementAnalysisVM = requirementAnalysisVM ?? throw new ArgumentNullException(nameof(requirementAnalysisVM));
 
             // Initialize commands
             SelectRichContentCommand = new RelayCommand(() => SelectTab("RichContent"));
@@ -161,6 +176,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 CurrentRequirement = eventData.Requirement;
                 UpdateRequirementState();
 
+                // Update the RequirementAnalysisVM with the current requirement
+                RequirementAnalysisVM.CurrentRequirement = eventData.Requirement;
+
                 _logger.LogDebug("[JamaRequirementsMainVM] Requirement selected: {RequirementId}", 
                     eventData.Requirement?.GlobalId ?? "null");
             }
@@ -177,6 +195,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 if (eventData.Requirement?.GlobalId == CurrentRequirement?.GlobalId)
                 {
                     UpdateAnalysisState();
+                    
+                    // Update the RequirementAnalysisVM with the current requirement so it shows the analysis
+                    RequirementAnalysisVM.CurrentRequirement = eventData.Requirement;
+                    
                     _logger.LogDebug("[JamaRequirementsMainVM] Analysis updated for requirement: {RequirementId}", 
                         eventData.Requirement?.GlobalId ?? "unknown");
                 }
@@ -239,7 +261,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
         }
 
-        private void ExecuteQuickAnalyze()
+        private async void ExecuteQuickAnalyze()
         {
             try
             {
@@ -248,13 +270,70 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 _logger.LogInformation("[JamaRequirementsMainVM] Starting quick analysis for requirement: {RequirementId}", 
                     CurrentRequirement.GlobalId);
 
-                // TODO: Trigger analysis through mediator
-                // The existing analysis infrastructure should handle this
-                _logger.LogDebug("[JamaRequirementsMainVM] Quick analyze requested - delegating to analysis system");
+                // Start analysis timer
+                StartAnalysisTimer();
+                IsAnalyzing = true;
+
+                // Trigger analysis through mediator
+                bool success = await _mediator.AnalyzeRequirementAsync(CurrentRequirement);
+                
+                // Stop analysis timer
+                StopAnalysisTimer();
+                IsAnalyzing = false;
+                
+                if (success)
+                {
+                    _logger.LogDebug("[JamaRequirementsMainVM] Quick analyze completed successfully");
+                    // Analysis results will be updated via the RequirementAnalyzed event
+                    // which is already handled by OnRequirementAnalyzed method
+                }
+                else
+                {
+                    _logger.LogWarning("[JamaRequirementsMainVM] Quick analyze failed");
+                }
             }
             catch (Exception ex)
             {
+                StopAnalysisTimer();
+                IsAnalyzing = false;
                 _logger.LogError(ex, "[JamaRequirementsMainVM] Error executing quick analyze");
+            }
+        }
+
+        private void StartAnalysisTimer()
+        {
+            _analysisStartTime = DateTime.Now;
+            AnalysisElapsedTime = "";
+            
+            _analysisTimer?.Stop();
+            _analysisTimer = new System.Timers.Timer(1000); // Update every second
+            _analysisTimer.Elapsed += UpdateAnalysisTimer;
+            _analysisTimer.AutoReset = true;
+            _analysisTimer.Start();
+        }
+
+        private void UpdateAnalysisTimer(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            var elapsed = DateTime.Now - _analysisStartTime;
+            
+            // Dispatch to UI thread
+            System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+            {
+                AnalysisElapsedTime = $"{elapsed.TotalSeconds:F0}s";
+            });
+        }
+
+        private void StopAnalysisTimer()
+        {
+            _analysisTimer?.Stop();
+            var totalElapsed = DateTime.Now - _analysisStartTime;
+            if (totalElapsed.TotalSeconds > 0)
+            {
+                AnalysisElapsedTime = $"Completed in {totalElapsed.TotalSeconds:F0}s";
+            }
+            else
+            {
+                AnalysisElapsedTime = "";
             }
         }
 
@@ -310,6 +389,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         public override void Dispose()
         {
+            _analysisTimer?.Stop();
+            _analysisTimer?.Dispose();
             PropertyChanged -= OnTabSelectionChanged;
             base.Dispose();
         }
