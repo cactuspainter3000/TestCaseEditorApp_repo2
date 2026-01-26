@@ -1205,12 +1205,44 @@ namespace TestCaseEditorApp.Services
                     }
                 }
 
-                // Also clean up column headers to match data columns
-                while (table.ColumnHeaders.Count > 0 && table.Rows.Any() && 
-                       table.ColumnHeaders.Count > table.Rows.Max(r => r.Count))
+                // Clean up empty columns more aggressively
+                if (table.Rows.Any())
                 {
-                    table.ColumnHeaders.RemoveAt(table.ColumnHeaders.Count - 1);
-                    table.ColumnKeys.RemoveAt(table.ColumnKeys.Count - 1);
+                    // Find the maximum number of non-empty columns across all rows
+                    var maxUsefulColumns = 0;
+                    foreach (var row in table.Rows)
+                    {
+                        // Find the last non-empty cell in this row
+                        var lastContentIndex = -1;
+                        for (int i = row.Count - 1; i >= 0; i--)
+                        {
+                            if (!string.IsNullOrWhiteSpace(row[i]))
+                            {
+                                lastContentIndex = i;
+                                break;
+                            }
+                        }
+                        maxUsefulColumns = Math.Max(maxUsefulColumns, lastContentIndex + 1);
+                    }
+
+                    // Trim all rows to this size and update headers accordingly
+                    for (int i = 0; i < table.Rows.Count; i++)
+                    {
+                        var row = table.Rows[i];
+                        while (row.Count > maxUsefulColumns)
+                        {
+                            row.RemoveAt(row.Count - 1);
+                        }
+                    }
+
+                    // Trim headers to match
+                    while (table.ColumnHeaders.Count > maxUsefulColumns)
+                    {
+                        table.ColumnHeaders.RemoveAt(table.ColumnHeaders.Count - 1);
+                        table.ColumnKeys.RemoveAt(table.ColumnKeys.Count - 1);
+                    }
+                    
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: Cleaned table to {maxUsefulColumns} useful columns");
                 }
 
                 // Set a default title if none was found

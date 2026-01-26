@@ -178,11 +178,8 @@ namespace TestCaseEditorApp.Converters
         /// </summary>
         private static EditableDataControl.Controls.EditableDataControl? CreateEditableDataControl(LooseTable table)
         {
-            System.Diagnostics.Debug.WriteLine($"Table has {table.Rows.Count} rows");
-            
             if (!table.Rows.Any())
             {
-                System.Diagnostics.Debug.WriteLine("No table rows found");
                 return null; // Return null if no data
             }
 
@@ -207,8 +204,6 @@ namespace TestCaseEditorApp.Converters
                 columns.Add(new ColumnDefinitionModel { Header = "CCA Part Number", BindingPath = "Col0" });
                 columns.Add(new ColumnDefinitionModel { Header = "CCA Description", BindingPath = "Col1" });
             }
-            
-            System.Diagnostics.Debug.WriteLine($"Using headers: [{string.Join(", ", columns.Select(c => c.Header))}]");
 
             // Create data rows - data is already cleaned at parse time
             var rows = new System.Collections.ObjectModel.ObservableCollection<TableRowModel>();
@@ -217,9 +212,10 @@ namespace TestCaseEditorApp.Converters
             {
                 var tableRow = new TableRowModel();
                 
-                for (int colIndex = 0; colIndex < columns.Count && colIndex < sourceRow.Count; colIndex++)
+                // Only create data for the columns we actually defined
+                for (int colIndex = 0; colIndex < columns.Count; colIndex++)
                 {
-                    var cellValue = sourceRow[colIndex] ?? string.Empty;
+                    var cellValue = colIndex < sourceRow.Count ? (sourceRow[colIndex] ?? string.Empty) : string.Empty;
                     tableRow[$"Col{colIndex}"] = cellValue;
                 }
                 
@@ -229,7 +225,7 @@ namespace TestCaseEditorApp.Converters
             // Create the ViewModel
             var editorViewModel = EditableTableEditorViewModel.From("Table Data", columns, rows);
             
-            // Create the control
+            // Create the control and disable filler column
             var tableControl = new EditableDataControl.Controls.EditableDataControl
             {
                 EditorViewModel = editorViewModel,
@@ -238,7 +234,28 @@ namespace TestCaseEditorApp.Converters
                 Background = new SolidColorBrush(Color.FromRgb(45, 45, 48)) // Dark background to match theme
             };
 
-            System.Diagnostics.Debug.WriteLine($"Created EditableDataControl with {columns.Count} columns and {rows.Count} rows");
+            // Access the internal DataGrid and disable the filler column
+            tableControl.Loaded += (s, e) => 
+            {
+                if (tableControl.Template?.FindName("PART_DataGrid", tableControl) is System.Windows.Controls.DataGrid dataGrid)
+                {
+                    dataGrid.ColumnHeaderHeight = 30;
+                    dataGrid.RowHeight = 25;
+                    // Key fix: Disable the filler column that's adding the blank column
+                    dataGrid.HorizontalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto;
+                    dataGrid.CanUserResizeColumns = true;
+                    
+                    // Force column width to be evenly distributed without filler
+                    if (dataGrid.Columns.Count > 0)
+                    {
+                        foreach (var column in dataGrid.Columns)
+                        {
+                            column.Width = new System.Windows.Controls.DataGridLength(1, System.Windows.Controls.DataGridLengthUnitType.Star);
+                        }
+                    }
+                }
+            };
+
             return tableControl;
         }
 
