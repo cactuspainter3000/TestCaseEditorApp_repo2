@@ -60,7 +60,9 @@ namespace TestCaseEditorApp.Converters
                         Text = paragraph,
                         TextWrapping = TextWrapping.Wrap,
                         Margin = new Thickness(0, 0, 0, 12),
-                        LineHeight = 20
+                        LineHeight = 20,
+                        Foreground = System.Windows.Application.Current.TryFindResource("Brush.Text.Secondary") as System.Windows.Media.Brush,
+                        FontSize = 14
                     };
                     contentElements.Add(textBlock);
                 }
