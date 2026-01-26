@@ -28,17 +28,32 @@
             <Setter Property="LineHeight" Value="20" />
             <Setter Property="TextWrapping" Value="Wrap" />
             <Setter Property="Margin" Value="0,8,0,8" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsAnalyzing}" Value="True">
+                    <Setter Property="Opacity" Value="0.6" />
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
         <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}" />
             <Setter Property="FontSize" Value="16" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Margin" Value="0,16,0,8" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsAnalyzing}" Value="True">
+                    <Setter Property="Opacity" Value="0.6" />
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
         <Style x:Key="MetadataValueStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource Brush.Text.Secondary}" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Margin" Value="0,4" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsAnalyzing}" Value="True">
+                    <Setter Property="Opacity" Value="0.6" />
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
         <Style x:Key="ParagraphStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
@@ -46,6 +61,11 @@
             <Setter Property="LineHeight" Value="20" />
             <Setter Property="TextWrapping" Value="Wrap" />
             <Setter Property="Margin" Value="0,0,0,12" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsAnalyzing}" Value="True">
+                    <Setter Property="Opacity" Value="0.6" />
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
     </UserControl.Resources>
 
@@ -105,30 +125,6 @@
                             Margin="0"
                             IsHitTestVisible="False"
                             Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVisibilityConverter}}">
-                        <Border.BorderBrush>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                <GradientStop Color="#FF4A90E2" Offset="0"/>
-                                <GradientStop Color="#FF50C878" Offset="1"/>
-                            </LinearGradientBrush>
-                        </Border.BorderBrush>
-                        <Border.Style>
-                            <Style TargetType="Border">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsAnalyzing}" Value="True">
-                                        <DataTrigger.EnterActions>
-                                            <BeginStoryboard>
-                                                <Storyboard RepeatBehavior="Forever">
-                                                    <ColorAnimation Storyboard.TargetProperty="BorderBrush.(LinearGradientBrush.GradientStops)[0].Color"
-                                                                    From="#FF4A90E2" To="#FF50C878" Duration="0:0:1"/>
-                                                    <ColorAnimation Storyboard.TargetProperty="BorderBrush.(LinearGradientBrush.GradientStops)[1].Color"
-                                                                    From="#FF50C878" To="#FF4A90E2" Duration="0:0:1"/>
-                                                </Storyboard>
-                                            </BeginStoryboard>
-                                        </DataTrigger.EnterActions>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Border.Style>
                     </Border>
                 </Grid>
 

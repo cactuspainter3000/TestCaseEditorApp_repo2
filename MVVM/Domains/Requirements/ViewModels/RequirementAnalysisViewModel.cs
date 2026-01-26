@@ -754,6 +754,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 // Check if this looks like an external LLM response (heuristic)
                 if (_isWaitingForExternalResponse && IsLikelyExternalLLMResponse(currentClipboard))
                 {
+                    _isWaitingForExternalResponse = false; // Reset waiting state
                     CopyAnalysisButtonText = "Clipboard → LLM Analysis Response";
                     _logger.LogInformation("[RequirementAnalysisVM] Detected potential external LLM response in clipboard");
                 }
