@@ -105,19 +105,7 @@ namespace TestCaseEditorApp.Converters
                 Margin = new Thickness(0, 0, 0, 16)
             };
 
-            // Add table title if available - use muted text color for metadata labels
-            if (!string.IsNullOrWhiteSpace(looseTable.EditableTitle))
-            {
-                var titleBlock = new TextBlock
-                {
-                    Text = looseTable.EditableTitle,
-                    FontWeight = FontWeights.Normal,
-                    FontSize = 12,
-                    Margin = new Thickness(0, 0, 0, 8),
-                    Foreground = System.Windows.Application.Current.TryFindResource("Brush.Text.Tertiary") as System.Windows.Media.Brush
-                };
-                panel.Children.Add(titleBlock);
-            }
+            // Table title hidden - redundant with other views
 
             // Create read-only DataGrid for table display
             var tableControl = CreateReadOnlyDataGrid(looseTable);
