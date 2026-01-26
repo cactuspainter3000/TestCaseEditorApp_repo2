@@ -162,9 +162,9 @@
                                                                Foreground="{StaticResource Brush.Accent.Primary}"
                                                                Margin="0,0,0,4" />
                                                     <TextBlock Text="{Binding CurrentRequirement.Name}" 
-                                                               Style="{StaticResource SectionHeaderStyle}" 
                                                                FontSize="16" 
                                                                FontWeight="Medium" 
+                                                               Foreground="{StaticResource Brush.Text.Primary}"
                                                                Margin="0,0,0,16" />
                                                 </StackPanel>
                                                 
