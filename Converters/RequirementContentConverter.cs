@@ -111,7 +111,7 @@ namespace TestCaseEditorApp.Converters
                     Text = looseTable.EditableTitle,
                     FontWeight = FontWeights.SemiBold,
                     Margin = new Thickness(0, 0, 0, 8),
-                    Foreground = new SolidColorBrush(Color.FromRgb(255, 165, 0)) // Orange accent
+                    Foreground = System.Windows.Application.Current.TryFindResource("Brush.Accent.Primary") as System.Windows.Media.Brush
                 };
                 panel.Children.Add(titleBlock);
             }
