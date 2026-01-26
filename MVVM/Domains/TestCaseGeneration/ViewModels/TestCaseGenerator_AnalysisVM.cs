@@ -57,16 +57,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// </summary>
         public bool ShouldHideCopyButton => _mediator.HasUnsavedEditingChanges;
         
-        // Clipboard monitoring for external LLM workflow
-        private System.Windows.Threading.DispatcherTimer? _clipboardMonitorTimer;
-        private string _lastClipboardContent = string.Empty;
-        private string _copiedPromptHash = string.Empty;
-        
         [ObservableProperty]
         private string _copyAnalysisButtonText = "Copy Analysis Prompt to Clipboard";
-        
-        [ObservableProperty]
-        private bool _isWaitingForExternalResponse = false;
         
         [ObservableProperty]
         private string _analysisElapsedTime = "";
@@ -119,27 +111,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             }
         }
 
-        /// <summary>
-        /// Cache statistics for display in UI
-        /// </summary>
-        public RequirementAnalysisCache.CacheStatistics? CacheStatistics => _analysisService.CacheStatistics;
-
-        /// <summary>
-        /// Human-readable cache performance summary
-        /// </summary>
-        public string CachePerformanceText
-        {
-            get
-            {
-                var stats = CacheStatistics;
-                if (stats == null) return "Cache: Disabled";
-
-                if (stats.TotalRequests == 0)
-                    return "Cache: No requests yet";
-
-                return $"Cache: {stats.CacheHits}/{stats.TotalRequests} hits ({stats.HitRate:F1}%), {stats.TotalTimeSaved.TotalSeconds:F0}s saved";
-            }
-        }
+        // Cache functionality moved to Requirements domain
 
         public TestCaseGenerator_AnalysisVM(ITestCaseGenerationMediator mediator, ILogger<TestCaseGenerator_AnalysisVM> logger, TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.IRequirementAnalysisService analysisService, IEditDetectionService? editDetectionService = null, ITextGenerationService? llmService = null, ILLMLearningService? learningService = null)
             : base(mediator, logger)
@@ -174,14 +146,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             EditRequirementCommand = new RelayCommand(EditRequirement, CanEditRequirement);
             SaveRequirementCommand = new RelayCommand(SaveRequirementEdit, CanSaveRequirement);
             CancelEditRequirementCommand = new RelayCommand(CancelRequirementEdit);
-            CopyAnalysisPromptCommand = new RelayCommand(ExecuteSmartClipboardAction, CanExecuteSmartClipboardAction);
+            CopyAnalysisPromptCommand = new RelayCommand(CopyAnalysisPromptToClipboard, CanExecuteSmartClipboardAction);
             
-            // Start clipboard monitoring for external LLM workflow
-            StartClipboardMonitoring();
-            
-            // Cache management commands
-            ClearCacheCommand = new RelayCommand(ClearAnalysisCache, () => _analysisService.CacheStatistics?.TotalEntries > 0);
-            InvalidateCurrentCacheCommand = new RelayCommand(InvalidateCurrentCache, () => CurrentRequirement != null);
+            // Note: Cache management moved to Requirements domain
+            // Note: Clipboard monitoring now handled by RequirementAnalysisViewModel
 
             Title = "Requirement Analysis";
             // Initial state managed by event handlers when requirements are loaded
@@ -199,14 +167,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             UpdateAnalysisPropertiesFromEvent(e.Requirement?.Analysis);
             OnPropertyChanged(nameof(HasAnalysis));
             OnPropertyChanged(nameof(AnalysisQualityScore));
-            OnPropertyChanged(nameof(CacheStatistics));
-            OnPropertyChanged(nameof(CachePerformanceText));
             OnPropertyChanged(nameof(ServiceStatusText));
             
             // Update command states
             ((AsyncRelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
             ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
-            ((RelayCommand)InvalidateCurrentCacheCommand).NotifyCanExecuteChanged();
         }
         
         /// <summary>
@@ -349,9 +314,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         public ICommand CopyAnalysisPromptCommand { get; }
         public IAsyncRelayCommand? ReAnalyzeCommand { get; private set; }
         
-        // Cache management commands
-        public ICommand ClearCacheCommand { get; }
-        public ICommand InvalidateCurrentCacheCommand { get; }
+        // Cache management commands moved to Requirements domain
 
         private bool CanAnalyzeRequirement()
         {
@@ -510,45 +473,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             }
         }
 
-        /// <summary>
-        /// Debug method to see the actual LLM response that was parsed.
-        /// </summary>
-        public string InspectLastAnalysisResult()
-        {
-            var requirement = CurrentRequirement;
-            if (requirement?.Analysis == null)
-                return "No analysis result available.";
-
-            var analysis = requirement.Analysis;
-            var summary = $"=== ANALYSIS RESULT INSPECTION ===\n" +
-                         $"IsAnalyzed: {analysis.IsAnalyzed}\n" +
-                         $"OriginalQualityScore: {analysis.OriginalQualityScore}\n" +
-                         $"Issues Count: {analysis.Issues?.Count ?? 0}\n" +
-                         $"Recommendations Count: {analysis.Recommendations?.Count ?? 0}\n" +
-                         $"Has Freeform Feedback: {!string.IsNullOrEmpty(analysis.FreeformFeedback)}\n" +
-                         $"Timestamp: {analysis.Timestamp}\n";
-
-            if (analysis.Recommendations?.Any() == true)
-            {
-                summary += "\n=== RECOMMENDATIONS DETAIL ===\n";
-                for (int i = 0; i < analysis.Recommendations.Count; i++)
-                {
-                    var rec = analysis.Recommendations[i];
-                    summary += $"Recommendation {i + 1}:\n" +
-                              $"  Category: {rec.Category}\n" +
-                              $"  Description: {rec.Description}\n" +
-                              $"  SuggestedEdit: {rec.SuggestedEdit ?? "(none)"}\n" +
-                              $"  Has SuggestedEdit: {!string.IsNullOrEmpty(rec.SuggestedEdit)}\n\n";
-                }
-            }
-
-            if (!string.IsNullOrEmpty(analysis.ErrorMessage))
-            {
-                summary += $"\n=== ERROR MESSAGE ===\n{analysis.ErrorMessage}\n";
-            }
-
-            return summary;
-        }
+        // Debug inspection methods removed - functionality moved to Requirements domain
 
         private async Task AnalyzeRequirementAsync()
         {
@@ -606,8 +531,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 OnPropertyChanged(nameof(Recommendations));
                 OnPropertyChanged(nameof(HasAnalysis));
                 OnPropertyChanged(nameof(ServiceStatusText)); // Update service status display
-                OnPropertyChanged(nameof(CacheStatistics)); // Update cache statistics
-                OnPropertyChanged(nameof(CachePerformanceText)); // Update cache performance text
                 TestCaseEditorApp.Services.Logging.Log.Debug("[AnalysisVM] UI refresh for analysis results");
             }
             catch (Exception ex)
@@ -706,46 +629,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         }
         public bool HasNoAnalysis => !HasAnalysis;
 
-        // ===== CACHE MANAGEMENT =====
-        
-        private void ClearAnalysisCache()
-        {
-            try
-            {
-                _analysisService.ClearAnalysisCache();
-                OnPropertyChanged(nameof(CacheStatistics));
-                OnPropertyChanged(nameof(CachePerformanceText));
-                
-                // Update command states
-                ((RelayCommand)ClearCacheCommand).NotifyCanExecuteChanged();
-                
-                TestCaseEditorApp.Services.Logging.Log.Info("[AnalysisVM] User cleared analysis cache");
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnalysisVM] Error clearing cache");
-            }
-        }
-        
-        private void InvalidateCurrentCache()
-        {
-            try
-            {
-                var requirement = CurrentRequirement;
-                if (requirement?.GlobalId != null)
-                {
-                    _analysisService.InvalidateCache(requirement.GlobalId);
-                    OnPropertyChanged(nameof(CacheStatistics));
-                    OnPropertyChanged(nameof(CachePerformanceText));
-                    
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnalysisVM] User invalidated cache for requirement {requirement.GlobalId}");
-                }
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnalysisVM] Error invalidating current cache");
-            }
-        }
+        // Cache management moved to Requirements domain
 
         // ===== ABSTRACT METHOD IMPLEMENTATIONS =====
         
@@ -835,287 +719,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// </summary>
         private bool CanExecuteSmartClipboardAction()
         {
-            return CurrentRequirement != null && IsEditingRequirement && !string.IsNullOrWhiteSpace(EditingRequirementText);
+            return CurrentRequirement != null;
         }
 
-        /// <summary>
-        /// Start clipboard monitoring for external LLM workflow
-        /// </summary>
-        private void StartClipboardMonitoring()
-        {
-            try
-            {
-                _clipboardMonitorTimer = new System.Windows.Threading.DispatcherTimer
-                {
-                    Interval = TimeSpan.FromMilliseconds(1000) // Check every second
-                };
-                _clipboardMonitorTimer.Tick += OnClipboardMonitorTick;
-                _clipboardMonitorTimer.Start();
-                
-                _logger.LogDebug("[AnalysisVM] Started clipboard monitoring for external LLM workflow");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "[AnalysisVM] Failed to start clipboard monitoring: {Error}", ex.Message);
-            }
-        }
+        // Clipboard monitoring functionality moved to RequirementAnalysisViewModel
 
-        /// <summary>
-        /// Monitor clipboard for external LLM response
-        /// </summary>
-        private void OnClipboardMonitorTick(object? sender, EventArgs e)
-        {
-            try
-            {
-                if (!IsWaitingForExternalResponse) return;
+        // External analysis processing moved to RequirementAnalysisViewModel
 
-                // Check clipboard content
-                var currentClipboard = Clipboard.GetText();
-                if (string.IsNullOrWhiteSpace(currentClipboard) || currentClipboard == _lastClipboardContent)
-                    return;
-
-                // Update tracking
-                _lastClipboardContent = currentClipboard;
-
-                // Check if this looks like an external LLM response (heuristic)
-                if (IsLikelyExternalLLMResponse(currentClipboard))
-                {
-                    CopyAnalysisButtonText = "🔄 Paste Analysis from Clipboard";
-                    _logger.LogInformation("[AnalysisVM] Detected potential external LLM response in clipboard");
-                    System.Diagnostics.Debug.WriteLine("[AnalysisVM] 🔄 Clipboard contains potential external LLM response - button updated");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "[AnalysisVM] Error monitoring clipboard: {Error}", ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Heuristic to detect if clipboard content is likely an external LLM response
-        /// </summary>
-        private bool IsLikelyExternalLLMResponse(string content)
-        {
-            if (string.IsNullOrWhiteSpace(content) || content.Length < 100) return false;
-
-            // Look for common LLM response patterns
-            var indicators = new[]
-            {
-                "refined requirement", "analysis", "assessment", "recommendation",
-                "improved version", "clarity", "structured format", "comparison",
-                "quality", "interpretation", "approach"
-            };
-
-            var lowContent = content.ToLowerInvariant();
-            var indicatorCount = indicators.Count(indicator => lowContent.Contains(indicator));
-            
-            // Also check if it's substantially different from our prompt
-            var isSubstantiallyDifferent = content.Length != _copiedPromptHash.Length;
-            
-            return indicatorCount >= 3 || isSubstantiallyDifferent;
-        }
-
-        /// <summary>
-        /// Smart clipboard action: Copy prompt or paste external response
-        /// </summary>
-        private void ExecuteSmartClipboardAction()
-        {
-            if (CopyAnalysisButtonText.Contains("Paste"))
-            {
-                PasteExternalAnalysisFromClipboard();
-            }
-            else
-            {
-                CopyAnalysisPromptToClipboard();
-            }
-        }
-
-        /// <summary>
-        /// Paste external LLM analysis from clipboard and process for learning
-        /// </summary>
-        private async void PasteExternalAnalysisFromClipboard()
-        {
-            try
-            {
-                var clipboardContent = Clipboard.GetText();
-                if (string.IsNullOrWhiteSpace(clipboardContent))
-                {
-                    _logger.LogWarning("[AnalysisVM] No content in clipboard to paste");
-                    return;
-                }
-
-                var requirement = CurrentRequirement;
-                if (requirement == null)
-                {
-                    _logger.LogWarning("[AnalysisVM] No current requirement for external analysis integration");
-                    return;
-                }
-
-                _logger.LogInformation("[AnalysisVM] Processing external LLM analysis for requirement {RequirementId}", requirement.Item);
-
-                // Extract refined requirement text from external response (basic heuristic)
-                var refinedText = ExtractRefinedRequirementFromResponse(clipboardContent);
-                if (!string.IsNullOrWhiteSpace(refinedText))
-                {
-                    // Start editing state with original text, then update to refined text to show changes
-                    _mediator.StartEditingRequirement(requirement, requirement.Description ?? "");
-                    _mediator.UpdateEditingText(refinedText);
-                    EditingRequirementText = refinedText;
-                    IsEditingRequirement = true;
-                    _logger.LogInformation("[AnalysisVM] Started editing mode with external LLM analysis");
-                }
-
-                // Extract and update analysis results from external LLM
-                UpdateAnalysisFromExternalResponse(clipboardContent);
-
-                // Note: Learning feedback is handled when user clicks Update, not during paste
-                // This allows users to review the pasted content before triggering learning workflow
-
-                // Reset UI state
-                IsWaitingForExternalResponse = false;
-                CopyAnalysisButtonText = "Copy Analysis Prompt to Clipboard";
-                
-                System.Diagnostics.Debug.WriteLine("[AnalysisVM] ✅ External LLM analysis integrated successfully");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[AnalysisVM] Failed to process external LLM analysis");
-                System.Diagnostics.Debug.WriteLine($"[AnalysisVM] ❌ Error processing external analysis: {ex.Message}");
-                
-                // Reset UI state on error
-                IsWaitingForExternalResponse = false;
-                CopyAnalysisButtonText = "Copy Analysis Prompt to Clipboard";
-            }
-        }
-
-        /// <summary>
-        /// Extract refined requirement text from external LLM response using heuristics
-        /// </summary>
-        private string ExtractRefinedRequirementFromResponse(string response)
-        {
-            try
-            {
-                var lines = response.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-                
-                // Look for "IMPROVED REQUIREMENT" section specifically
-                for (int i = 0; i < lines.Length; i++)
-                {
-                    var line = lines[i].Trim();
-                    var upperLine = line.ToUpperInvariant();
-                    
-                    if (upperLine.Contains("IMPROVED REQUIREMENT") && upperLine.Contains(":"))
-                    {
-                        // Extract content after the colon on the same line
-                        var colonIndex = line.IndexOf(':');
-                        if (colonIndex >= 0 && colonIndex < line.Length - 1)
-                        {
-                            var sameLine = line.Substring(colonIndex + 1).Trim();
-                            if (!string.IsNullOrWhiteSpace(sameLine) && sameLine.Length > 50)
-                            {
-                                return sameLine;
-                            }
-                        }
-                        
-                        // If not on same line, look at next lines
-                        for (int j = i + 1; j < lines.Length; j++)
-                        {
-                            var nextLine = lines[j].Trim();
-                            if (string.IsNullOrWhiteSpace(nextLine)) continue;
-                            
-                            var upperNextLine = nextLine.ToUpperInvariant();
-                            // Stop at next major section
-                            if (upperNextLine.StartsWith("RECOMMENDATIONS") || 
-                                upperNextLine.StartsWith("HALLUCINATION") ||
-                                upperNextLine.StartsWith("OVERALL") ||
-                                upperNextLine.Contains("ASSESSMENT"))
-                            {
-                                break;
-                            }
-                            
-                            if (nextLine.Length > 50) // Reasonable length for a requirement
-                            {
-                                return nextLine;
-                            }
-                        }
-                    }
-                }
-                
-                // Fallback: Look for other patterns like "refined requirement", "rewrite", etc.
-                for (int i = 0; i < lines.Length; i++)
-                {
-                    var line = lines[i].Trim();
-                    var upperLine = line.ToUpperInvariant();
-                    
-                    if ((upperLine.Contains("REFINED") && upperLine.Contains("REQUIREMENT")) ||
-                        (upperLine.Contains("REWRITE") || upperLine.Contains("REWRITTEN")) ||
-                        (upperLine.Contains("IMPROVED") && upperLine.Contains("VERSION")))
-                    {
-                        // Check if content is on the same line after colon
-                        var colonIndex = line.IndexOf(':');
-                        if (colonIndex >= 0 && colonIndex < line.Length - 1)
-                        {
-                            var sameLine = line.Substring(colonIndex + 1).Trim();
-                            if (!string.IsNullOrWhiteSpace(sameLine) && sameLine.Length > 50)
-                            {
-                                return sameLine;
-                            }
-                        }
-                        
-                        // Look at subsequent lines
-                        for (int j = i + 1; j < lines.Length && j < i + 5; j++) // Look ahead max 5 lines
-                        {
-                            var nextLine = lines[j].Trim();
-                            if (string.IsNullOrWhiteSpace(nextLine)) continue;
-                            
-                            var upperNextLine = nextLine.ToUpperInvariant();
-                            // Skip section headers
-                            if (upperNextLine.Contains(":") && (upperNextLine.Contains("RECOMMENDATIONS") || 
-                                upperNextLine.Contains("ISSUES") || upperNextLine.Contains("ASSESSMENT")))
-                                break;
-                                
-                            if (nextLine.Length > 50) // Reasonable length for a requirement
-                            {
-                                return nextLine;
-                            }
-                        }
-                    }
-                }
-                
-                // Final fallback: Look for a substantial paragraph that might be the improved requirement
-                var paragraphs = response.Split(new[] { "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
-                foreach (var para in paragraphs)
-                {
-                    var cleaned = para.Trim();
-                    var upperPara = cleaned.ToUpperInvariant();
-                    
-                    // Skip analysis sections
-                    if (upperPara.StartsWith("QUALITY SCORE") || 
-                        upperPara.StartsWith("ISSUES FOUND") ||
-                        upperPara.StartsWith("STRENGTHS") ||
-                        upperPara.StartsWith("RECOMMENDATIONS") ||
-                        upperPara.StartsWith("HALLUCINATION") ||
-                        upperPara.StartsWith("OVERALL"))
-                        continue;
-                        
-                    // Look for requirement-like language
-                    if (cleaned.Length > 100 && 
-                        (cleaned.ToLowerInvariant().Contains("shall") || 
-                         cleaned.ToLowerInvariant().Contains("must") || 
-                         cleaned.ToLowerInvariant().Contains("system") ||
-                         cleaned.ToLowerInvariant().Contains("interface")))
-                    {
-                        return cleaned;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "[AnalysisVM] Error extracting refined text from external response");
-            }
-            
-            _logger.LogWarning("[AnalysisVM] Could not extract improved requirement from external response");
-            return string.Empty;
-        }
+        // Text extraction methods moved to RequirementAnalysisViewModel
 
         /// <summary>
         /// Extract and update analysis results from external LLM response
@@ -1709,17 +1320,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 var analysisPrompt = sb.ToString();
                 Clipboard.SetText(analysisPrompt);
                 
-                // Store hash for detection and start monitoring
-                _copiedPromptHash = analysisPrompt;
-                _lastClipboardContent = analysisPrompt;
-                IsWaitingForExternalResponse = true;
-                CopyAnalysisButtonText = "⏳ Waiting for external response...";
+                // Note: Clipboard monitoring for external responses now handled by RequirementAnalysisViewModel
                 
-                // Log success and provide fallback notification
+                // Log success
                 _logger.LogInformation("[AnalysisVM] Generated external LLM analysis prompt for requirement {RequirementId}", requirement.Item);
                 
                 // Provide immediate feedback via debug output (visible in development)
-                System.Diagnostics.Debug.WriteLine("[AnalysisVM] ✅ Analysis prompt copied to clipboard - monitoring for external LLM response");
+                System.Diagnostics.Debug.WriteLine("[AnalysisVM] ✅ Analysis prompt copied to clipboard");
             }
             catch (Exception ex)
             {
@@ -1737,8 +1344,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         
         public override void Dispose()
         {
-            _clipboardMonitorTimer?.Stop();
-            _clipboardMonitorTimer = null;
+            // Note: Clipboard monitoring timer disposed by RequirementAnalysisViewModel
             
             _timerUpdateTimer?.Stop();
             _timerUpdateTimer = null;

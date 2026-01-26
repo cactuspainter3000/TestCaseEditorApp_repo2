@@ -80,11 +80,11 @@
             <!-- Left: Content view tabs -->
             <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
                 
-                <!-- Rich Content tab -->
+                <!-- Requirement Details tab -->
                 <ToggleButton Style="{StaticResource ActionToggleButtonSelected}"
                               IsChecked="{Binding IsRichContentSelected, Mode=TwoWay}"
                               ToolTip="Full requirement description with rich formatting">
-                    <TextBlock Text="Rich Content" VerticalAlignment="Center" Margin="12,0" 
+                    <TextBlock Text="Details" VerticalAlignment="Center" Margin="12,0" 
                                Foreground="{StaticResource Brush.Accent.Primary}"/>
                 </ToggleButton>
 

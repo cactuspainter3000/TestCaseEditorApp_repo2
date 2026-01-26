@@ -549,6 +549,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     CopyAnalysisButtonText = "⏳ Waiting for external response...";
                     _isWaitingForExternalResponse = true;
                     
+                    // Start clipboard monitoring
+                    StartClipboardMonitoring();
+                    
                     _logger.LogInformation("[RequirementAnalysisVM] Copied comprehensive analysis prompt to clipboard");
                 }
                 else
@@ -720,6 +723,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             try
             {
+                _logger.LogInformation("[RequirementAnalysisVM] Starting clipboard monitoring...");
                 _clipboardMonitorTimer?.Stop();
                 _clipboardMonitorTimer = new System.Windows.Threading.DispatcherTimer
                 {
@@ -728,11 +732,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 _clipboardMonitorTimer.Tick += OnClipboardMonitorTick;
                 _clipboardMonitorTimer.Start();
                 
-                _logger.LogDebug("[RequirementAnalysisVM] Started clipboard monitoring for external LLM workflow");
+                _logger.LogInformation("[RequirementAnalysisVM] Clipboard monitoring started successfully. IsWaitingForExternalResponse: {IsWaiting}", _isWaitingForExternalResponse);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[RequirementAnalysisVM] Failed to start clipboard monitoring: {Error}", ex.Message);
+                _logger.LogError(ex, "[RequirementAnalysisVM] Failed to start clipboard monitoring: {Error}", ex.Message);
             }
         }
 
@@ -743,20 +747,32 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             try
             {
+                _logger.LogDebug("[RequirementAnalysisVM] Clipboard monitor tick - checking...");
+                
                 // Check clipboard content
                 var currentClipboard = System.Windows.Clipboard.GetText();
+                _logger.LogDebug("[RequirementAnalysisVM] Current clipboard length: {Length}, Last length: {LastLength}", 
+                    currentClipboard?.Length ?? 0, _lastClipboardContent?.Length ?? 0);
+                
                 if (string.IsNullOrWhiteSpace(currentClipboard) || currentClipboard == _lastClipboardContent)
+                {
+                    _logger.LogDebug("[RequirementAnalysisVM] No clipboard change detected");
                     return;
+                }
 
                 // Update tracking
                 _lastClipboardContent = currentClipboard;
 
-                // Check if this looks like an external LLM response (heuristic)
-                if (_isWaitingForExternalResponse && IsLikelyExternalLLMResponse(currentClipboard))
+                // Check if clipboard content changed while waiting for external response
+                if (_isWaitingForExternalResponse)
                 {
                     _isWaitingForExternalResponse = false; // Reset waiting state
                     CopyAnalysisButtonText = "Clipboard → LLM Analysis Response";
-                    _logger.LogInformation("[RequirementAnalysisVM] Detected potential external LLM response in clipboard");
+                    _logger.LogInformation("[RequirementAnalysisVM] Detected clipboard content change - external response ready");
+                }
+                else
+                {
+                    _logger.LogDebug("[RequirementAnalysisVM] Clipboard changed but not waiting for external response");
                 }
             }
             catch (Exception ex)
