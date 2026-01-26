@@ -115,7 +115,8 @@
                             Command="{Binding QuickAnalyzeCommand}"
                             ToolTip="Run quality analysis on current requirement"
                             Style="{StaticResource PillActionButtonStyle}"
-                            Visibility="{Binding HasCurrentRequirement, Converter={StaticResource BoolToVisibilityConverter}}" />
+                            Visibility="{Binding HasCurrentRequirement, Converter={StaticResource BoolToVisibilityConverter}}"
+                            Loaded="RunAnalysisButton_Loaded" />
                     
                     <!-- Animated tracer border overlay (appears only during analysis) -->
                     <Border x:Name="AnalysisTracerBorder"
