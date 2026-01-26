@@ -54,8 +54,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Editor ViewModel for embedded editing
         [ObservableProperty] private EditableTableEditorViewModel? editorViewModel;
 
-        // UI editing state
-        [ObservableProperty] private bool isEditing;
+        // Debug tracking removed - forcing read-only mode
+
 
         // Save and Cancel commands for embedded editing
         public IRelayCommand SaveTableCommand => new RelayCommand(SaveTable);
@@ -78,7 +78,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             ObservableCollection<TableRowModel>? rows,
             ProviderBackplane? innerBackplane = null)
         {
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[CTOR]  #{GetHashCode()} req={requirementId} key={tableKey}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[CTOR] LooseTableViewModel #{GetHashCode()} req={requirementId} key={tableKey} title='{title}'");
 
             RequirementId = requirementId ?? string.Empty;
             TableKey = tableKey ?? string.Empty;
@@ -90,6 +90,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             NormalizeRows();
             TryLoadFromSession();
+            
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[CTOR] LooseTableViewModel #{GetHashCode()} completed - IsSelected={IsSelected}");
         }
 
         // If IDs change later, try to load a session copy then.
@@ -137,9 +139,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [RelayCommand]
         private void EditTable()
         {
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[EditTable] #{GetHashCode()} ENTERING EDIT MODE - Req: {RequirementId}, Table: {TableKey}");
+            
             // Create editor ViewModel and enter embedded edit mode
             EditorViewModel = EditableTableEditorViewModel.From(Title, Columns, Rows);
-            IsEditing = true;
+            // Removed IsEditing = true assignment
         }
 
         private void SaveTable()
@@ -178,8 +182,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 AfterEditCommit();
             }
             
-            // Exit edit mode
-            IsEditing = false;
+            // Exit edit mode - removed IsEditing assignment
         }
 
         private void CancelEdit()
@@ -187,19 +190,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Clear editor ViewModel without applying changes
             EditorViewModel = null;
             
-            // Exit edit mode
-            IsEditing = false;
+            // Exit edit mode - removed IsEditing assignment
         }
 
         private void ExitEditingMode()
         {
-            // If not editing, nothing to do
-            if (!IsEditing) return;
-
             // If there's no editor VM, just exit
             if (EditorViewModel is null)
             {
-                IsEditing = false;
                 return;
             }
 
@@ -392,15 +390,22 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private void TryLoadFromSession()
         {
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[TryLoadFromSession] #{GetHashCode()} Starting - _sessionHydratedOnce={_sessionHydratedOnce}");
+            
             if (_sessionHydratedOnce) return;
 
             if (string.IsNullOrWhiteSpace(RequirementId) ||
                 string.IsNullOrWhiteSpace(TableKey))
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[TryLoadFromSession] #{GetHashCode()} Skipping - missing IDs");
                 return;
+            }
 
             _sessionHydratedOnce = true;
             _hydratingFromSession = true;
 
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[TryLoadFromSession] #{GetHashCode()} Setting IsSelected=false");
+            
             // TODO: Session persistence
             //if (SessionTableStore.TryGet(RequirementId, TableKey, out var snap))
             //{
@@ -418,9 +423,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             //     IsSelected = stored;
             // else
             IsSelected = false; // Start tables in read-only mode, user can click to select/edit
-            IsEditing = false;  // Explicitly ensure tables start in read-only mode
+            // Removed IsEditing assignment - forcing read-only mode
 
             _hydratingFromSession = false;
+            
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[TryLoadFromSession] #{GetHashCode()} Completed - IsSelected={IsSelected}");
         }
 
         // ---------------- ProviderBackplane ----------------

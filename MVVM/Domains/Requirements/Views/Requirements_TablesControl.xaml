@@ -4,7 +4,6 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:helpers="clr-namespace:TestCaseEditorApp.Helpers"
-             xmlns:edc="clr-namespace:EditableDataControl.Controls"
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="500">
 
@@ -128,9 +127,9 @@
                                     </Button>
                                 </Grid>
 
-                                <!-- Content: either read-only DataGrid or embedded editor -->
+                                <!-- Content: read-only DataGrid only - EditableDataControl removed for Requirements domain -->
                                 <StackPanel>
-                                    <!-- Read-only DataGrid (shown when not editing) -->
+                                    <!-- Read-only DataGrid (always visible) -->
                                     <DataGrid ItemsSource="{Binding Rows}"
                                           ColumnHeaderStyle="{StaticResource DarkColumnHeaderStyle}"
                                           CellStyle="{StaticResource DarkCellStyle}"
@@ -145,84 +144,10 @@
                                           EnableColumnVirtualization="True"
                                           ScrollViewer.CanContentScroll="True"
                                           VirtualizingPanel.IsVirtualizing="True"
-                                          VirtualizingPanel.VirtualizationMode="Recycling">
-                                    <DataGrid.Style>
-                                        <Style TargetType="DataGrid" BasedOn="{StaticResource DarkDataGridStyle}">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </DataGrid.Style>
-                                </DataGrid>
+                                          VirtualizingPanel.VirtualizationMode="Recycling"
+                                          Style="{StaticResource DarkDataGridStyle}"/>
 
-                                <!-- Embedded EditableDataControl (shown when editing) -->
-                                <Border Background="#2D2D30"
-                                        BorderBrush="{DynamicResource AccentBrush}"
-                                        BorderThickness="2"
-                                        CornerRadius="4"
-                                        MinHeight="200"
-                                        Margin="0,8,0,0"
-                                        MouseLeftButtonDown="Border_MouseLeftButtonDown"
-                                        Cursor="Hand"
-                                        UseLayoutRounding="True"
-                                        SnapsToDevicePixels="True"
-                                        TextOptions.TextRenderingMode="ClearType"
-                                        TextOptions.TextFormattingMode="Display">
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <Border.Effect>
-                                        <DropShadowEffect Color="{DynamicResource Accent.Primary}"
-                                                          BlurRadius="3"
-                                                          ShadowDepth="0"
-                                                          Opacity="0.4"/>
-                                    </Border.Effect>
-                                    <Grid>
-                                        <!-- Status text at top right of editing border -->
-                                        <TextBlock HorizontalAlignment="Right" 
-                                                   VerticalAlignment="Top"
-                                                   Margin="0,-12,12,0"
-                                                   Padding="8,3"
-                                                   Background="#2D2D30"
-                                                   FontSize="11"
-                                                   FontWeight="SemiBold"
-                                                   UseLayoutRounding="True"
-                                                   SnapsToDevicePixels="True"
-                                                   TextOptions.TextRenderingMode="ClearType"
-                                                   TextOptions.TextFormattingMode="Display">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Text" Value="do NOT include in Requirements Analysis"/>
-                                                    <Setter Property="Foreground" Value="#999999"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                            <Setter Property="Text" Value="include in Requirements Analysis"/>
-                                                            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                        
-                                        <edc:EditableDataControl EditorViewModel="{Binding EditorViewModel}"
-                                                                 Background="#2D2D30"
-                                                                 Padding="8"
-                                                                 UseLayoutRounding="True"
-                                                                 SnapsToDevicePixels="True"
-                                                                 TextOptions.TextRenderingMode="ClearType"
-                                                                 TextOptions.TextFormattingMode="Display"/>
-                                    </Grid>
-                                </Border>
+                                    <!-- EditableDataControl completely removed for Requirements domain -->
                             </StackPanel>
                         </StackPanel>
                         </Border>

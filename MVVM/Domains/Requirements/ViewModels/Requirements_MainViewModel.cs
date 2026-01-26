@@ -14,9 +14,11 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Views;
 using TestCaseEditorApp.MVVM.Events;
+using EditableDataControl.ViewModels;
 using RequirementsEvents = TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.Services;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Helpers;
 // COMPLETED: IRequirementAnalysisService moved to Requirements domain
 using TestCaseEditorApp.MVVM.Domains.Requirements.Services; // IRequirementAnalysisService now in Requirements domain
 using TestCaseEditorApp.MVVM.Mediators;
@@ -35,8 +37,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private readonly ITextEditingDialogService _textEditingDialogService;
 
         // Optional lightweight providers
-        private readonly Func<Requirement?, IEnumerable<LooseTableViewModel>>? _tableProvider;
-        private readonly Func<Requirement?, IEnumerable<string>>? _paragraphProvider;
+        // Direct table management - no provider pattern
+        private readonly Dictionary<string, List<LooseTableViewModel>> _tableViewModelCache = new Dictionary<string, List<LooseTableViewModel>>();
 
         // Optional richer provider that can provide VMs directly.
         internal object? RequirementsCore { get; set; }
@@ -56,17 +58,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             IPersistenceService persistence,
             ITextEditingDialogService textEditingDialogService,
             ILogger<Requirements_MainViewModel> logger,
-            IRequirementAnalysisService? analysisService = null,
-            Func<Requirement?, IEnumerable<LooseTableViewModel>>? tableProvider = null,
-            Func<Requirement?, IEnumerable<string>>? paragraphProvider = null)
+            IRequirementAnalysisService? analysisService = null)
             : base(mediator, logger)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             // REMOVED: TestCaseGenerationMediator dependency - Requirements domain now independent
             _persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
             _textEditingDialogService = textEditingDialogService ?? throw new ArgumentNullException(nameof(textEditingDialogService));
-            _tableProvider = tableProvider;
-            _paragraphProvider = paragraphProvider;
 
             // Subscribe to Requirements domain events ONLY - Requirements domain independence
             _mediator.Subscribe<RequirementsEvents.RequirementSelected>(OnRequirementSelected);
@@ -169,11 +167,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             try
             {
                 var selectedRequirement = _mediator.CurrentRequirement;
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] SaveDirtyTableChanges called. TableProvider: {_tableProvider != null}, SelectedReq: {selectedRequirement?.GlobalId ?? "NULL"}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] SaveDirtyTableChanges called. SelectedReq: {selectedRequirement?.GlobalId ?? "NULL"}");
                 
-                if (_tableProvider != null && selectedRequirement != null)
+                if (selectedRequirement != null)
                 {
-                    var tables = _tableProvider(selectedRequirement);
+                    var tables = GetLooseTableVMsForRequirement(selectedRequirement);
                     var tableList = tables?.ToList() ?? new List<LooseTableViewModel>();
                     TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] Found {tableList.Count} tables for requirement {selectedRequirement.GlobalId}");
                     
@@ -188,7 +186,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 }
                 else
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] Cannot save dirty tables - TableProvider: {_tableProvider != null}, SelectedReq: {selectedRequirement != null}");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] Cannot save dirty tables - SelectedReq: {selectedRequirement != null}");
                 }
             }
             catch (Exception ex)
@@ -831,46 +829,40 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
             if (requirement == null) return;
 
-            // Load tables if provider available
-            if (_tableProvider != null)
+            // Load tables using direct management
+            try
             {
-                try
+                var tables = GetLooseTableVMsForRequirement(requirement);
+                foreach (var table in tables)
                 {
-                    var tables = _tableProvider(requirement);
-                    foreach (var table in tables)
-                    {
-                        SelectedTableVMs.Add(table);
-                    }
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] Loaded {SelectedTableVMs.Count} tables for requirement {requirement.GlobalId}");
+                    SelectedTableVMs.Add(table);
                 }
-                catch (Exception ex)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Error(ex, "[LoadRequirementContent] Table provider failed");
-                    // Continue loading other content even if table loading fails
-                }
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Requirements_MainViewModel] Loaded {SelectedTableVMs.Count} tables for requirement {requirement.GlobalId}");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[LoadRequirementContent] Table loading failed");
+                // Continue loading other content even if table loading fails
             }
 
-            // Load paragraphs if provider available
-            if (_paragraphProvider != null)
+            // Load paragraphs using direct management
+            try
             {
-                try
+                var paragraphs = GetLooseParagraphsForRequirement(requirement);
+                foreach (var paragraph in paragraphs)
                 {
-                    var paragraphs = _paragraphProvider(requirement);
-                    foreach (var paragraph in paragraphs)
-                    {
-                        var paraVM = new ParagraphViewModel(paragraph) 
-                        { 
-                            IsSelected = false 
-                        };
-                        paraVM.PropertyChanged += ParagraphViewModel_PropertyChanged;
-                        SelectedParagraphVMs.Add(paraVM);
-                    }
+                    var paraVM = new ParagraphViewModel(paragraph) 
+                    { 
+                        IsSelected = false 
+                    };
+                    paraVM.PropertyChanged += ParagraphViewModel_PropertyChanged;
+                    SelectedParagraphVMs.Add(paraVM);
                 }
-                catch (Exception ex)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Error(ex, "[LoadRequirementContent] Paragraph provider failed");
-                    // Continue with the rest of the method
-                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[LoadRequirementContent] Paragraph loading failed");
+                // Continue with the rest of the method
             }
 
             // Update presence flags
@@ -987,6 +979,102 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
             
             base.Dispose();
+        }
+
+        /// <summary>
+        /// Get table ViewModels for requirement - direct management without provider
+        /// </summary>
+        private IEnumerable<LooseTableViewModel> GetLooseTableVMsForRequirement(Requirement? req)
+        {
+            if (req == null) return Enumerable.Empty<LooseTableViewModel>();
+            
+            var requirementId = req.GlobalId ?? req.Item ?? string.Empty;
+            
+            // Return cached instances if available
+            if (_tableViewModelCache.ContainsKey(requirementId))
+            {
+                return _tableViewModelCache[requirementId];
+            }
+            
+            var outList = new List<LooseTableViewModel>();
+            
+            // Extract tables from requirement content (similar to TestCaseGenerator logic)
+            if (req.LooseContent?.Tables != null && req.LooseContent.Tables.Count > 0)
+            {
+                int idx = 0;
+                foreach (var looseTable in req.LooseContent.Tables)
+                {
+                    if (looseTable == null) continue;
+                    
+                    // Convert LooseTable to TableDto using the standard conversion service
+                    var dto = TestCaseEditorApp.Services.TableConversionService.ConvertLooseTableToDto(looseTable);
+                    
+                    var tableKey = !string.IsNullOrWhiteSpace(dto.Title)
+                        ? $"table:{idx}:{SanitizeKey(dto.Title)}"
+                        : $"table:{idx}";
+                        
+                    var cols = new ObservableCollection<ColumnDefinitionModel>();
+                    if (dto.Columns != null)
+                    {
+                        for (int i = 0; i < dto.Columns.Count; i++)
+                        {
+                            var header = dto.Columns[i] ?? $"Column {i + 1}";
+                            var bp = string.IsNullOrWhiteSpace(dto.Columns[i]) ? $"c{i}" : dto.Columns[i];
+                            cols.Add(new ColumnDefinitionModel { Header = header, BindingPath = bp });
+                        }
+                    }
+                    
+                    var rows = new ObservableCollection<TableRowModel>();
+                    if (dto.Rows != null)
+                    {
+                        foreach (var rowData in dto.Rows)
+                        {
+                            var row = new TableRowModel();
+                            if (rowData != null)
+                            {
+                                for (int colIdx = 0; colIdx < cols.Count && colIdx < rowData.Count; colIdx++)
+                                {
+                                    row[cols[colIdx].BindingPath ?? $"Column_{colIdx}"] = rowData[colIdx] ?? string.Empty;
+                                }
+                            }
+                            rows.Add(row);
+                        }
+                    }
+                    
+                    var ltv = new LooseTableViewModel(requirementId, tableKey, dto.Title ?? $"Table {idx + 1}", cols, rows);
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[REQUIREMENTS DOMAIN] Created table '{ltv.Title}' - IsEditing property removed, forcing read-only mode");
+                    // Removed IsEditing assignment - tables will default to read-only mode
+                    outList.Add(ltv);
+                    idx++;
+                }
+                
+                if (outList.Count > 0)
+                {
+                    // Cache the instances for reuse
+                    _tableViewModelCache[requirementId] = outList;
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[GetLooseTableVMsForRequirement] Created and cached {outList.Count} tables for requirement: {requirementId}");
+                }
+            }
+            
+            return outList;
+        }
+        
+        /// <summary>
+        /// Get paragraph content for requirement - direct management without provider  
+        /// </summary>
+        private IEnumerable<string> GetLooseParagraphsForRequirement(Requirement? req)
+        {
+            if (req?.LooseContent?.Paragraphs == null) return Enumerable.Empty<string>();
+            return req.LooseContent.Paragraphs.Where(p => !string.IsNullOrWhiteSpace(p));
+        }
+        
+        /// <summary>
+        /// Sanitize key for table identification
+        /// </summary>
+        private static string SanitizeKey(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return string.Empty;
+            return System.Text.RegularExpressions.Regex.Replace(input.Trim().ToLowerInvariant(), @"[^\w\-_]", "_");
         }
     }
 

@@ -116,8 +116,8 @@ namespace TestCaseEditorApp.Converters
                 panel.Children.Add(titleBlock);
             }
 
-            // Create EditableDataControl for proper table display
-            var tableControl = CreateEditableDataControl(looseTable);
+            // Create read-only DataGrid for table display
+            var tableControl = CreateReadOnlyDataGrid(looseTable);
             if (tableControl != null)
             {
                 panel.Children.Add(tableControl);
@@ -174,9 +174,9 @@ namespace TestCaseEditorApp.Converters
         }
 
         /// <summary>
-        /// Creates an EditableDataControl to display table data with proper MVVM binding
+        /// Creates a read-only DataGrid to display table data
         /// </summary>
-        private static EditableDataControl.Controls.EditableDataControl? CreateEditableDataControl(LooseTable table)
+        private static UIElement? CreateReadOnlyDataGrid(LooseTable table)
         {
             if (!table.Rows.Any())
             {
@@ -188,14 +188,18 @@ namespace TestCaseEditorApp.Converters
             
             if (table.ColumnHeaders.Any())
             {
-                // Use headers from Jama API
+                // Use headers from Jama API, but skip empty headers
                 for (int i = 0; i < table.ColumnHeaders.Count; i++)
                 {
-                    columns.Add(new ColumnDefinitionModel
+                    var headerText = table.ColumnHeaders[i]?.Trim();
+                    if (!string.IsNullOrWhiteSpace(headerText))
                     {
-                        Header = table.ColumnHeaders[i],
-                        BindingPath = $"Col{i}"
-                    });
+                        columns.Add(new ColumnDefinitionModel
+                        {
+                            Header = headerText,
+                            BindingPath = $"Col{i}"
+                        });
+                    }
                 }
             }
             else
@@ -222,41 +226,59 @@ namespace TestCaseEditorApp.Converters
                 rows.Add(tableRow);
             }
 
-            // Create the ViewModel
-            var editorViewModel = EditableTableEditorViewModel.From("Table Data", columns, rows);
+            // For Jama requirements, create a read-only DataGrid instead of EditableDataControl
+            // This matches how doc imports display tables in Requirements_TablesControl.xaml
             
-            // Create the control and disable filler column
-            var tableControl = new EditableDataControl.Controls.EditableDataControl
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementContentConverter] Creating read-only DataGrid for table with {columns.Count} columns and {rows.Count} rows");
+            
+            var dataGrid = new System.Windows.Controls.DataGrid
             {
-                EditorViewModel = editorViewModel,
-                Margin = new Thickness(0, 8, 0, 16),
-                MinHeight = 200, // Ensure table has reasonable height
-                Background = new SolidColorBrush(Color.FromRgb(45, 45, 48)) // Dark background to match theme
+                ItemsSource = rows,
+                AutoGenerateColumns = false,
+                HeadersVisibility = System.Windows.Controls.DataGridHeadersVisibility.Column,
+                CanUserAddRows = false,
+                IsReadOnly = true,
+                MinHeight = 140,
+                GridLinesVisibility = System.Windows.Controls.DataGridGridLinesVisibility.All,
+                HorizontalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
+                VerticalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
+                Background = new SolidColorBrush(Color.FromRgb(30, 30, 30)), // #1E1E1E
+                Foreground = new SolidColorBrush(Colors.White),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(70, 130, 180)), // Accent color
+                BorderThickness = new Thickness(1),
+                RowBackground = new SolidColorBrush(Color.FromRgb(37, 37, 38)), // #252526
+                AlternatingRowBackground = new SolidColorBrush(Color.FromRgb(45, 45, 48)), // #2D2D30
+                ColumnHeaderHeight = 32,
+                Margin = new Thickness(0, 8, 0, 16)
             };
 
-            // Access the internal DataGrid and disable the filler column
-            tableControl.Loaded += (s, e) => 
+            // Create a darker column header style to match the theme
+            var headerStyle = new Style(typeof(System.Windows.Controls.Primitives.DataGridColumnHeader));
+            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.BackgroundProperty, new SolidColorBrush(Color.FromRgb(45, 45, 48)))); // Dark background
+            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.ForegroundProperty, new SolidColorBrush(Color.FromRgb(70, 130, 180)))); // Accent color text
+            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.FontWeightProperty, FontWeights.SemiBold));
+            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.FontSizeProperty, 11.0));
+            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.PaddingProperty, new Thickness(8, 6, 8, 6)));
+            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(70, 130, 180))));
+            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.BorderThicknessProperty, new Thickness(0, 0, 1, 1)));
+            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.HorizontalContentAlignmentProperty, HorizontalAlignment.Left));
+            dataGrid.ColumnHeaderStyle = headerStyle;
+
+            // Create columns dynamically
+            foreach (var column in columns)
             {
-                if (tableControl.Template?.FindName("PART_DataGrid", tableControl) is System.Windows.Controls.DataGrid dataGrid)
+                var dataGridColumn = new System.Windows.Controls.DataGridTextColumn
                 {
-                    dataGrid.ColumnHeaderHeight = 30;
-                    dataGrid.RowHeight = 25;
-                    // Key fix: Disable the filler column that's adding the blank column
-                    dataGrid.HorizontalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto;
-                    dataGrid.CanUserResizeColumns = true;
-                    
-                    // Force column width to be evenly distributed without filler
-                    if (dataGrid.Columns.Count > 0)
-                    {
-                        foreach (var column in dataGrid.Columns)
-                        {
-                            column.Width = new System.Windows.Controls.DataGridLength(1, System.Windows.Controls.DataGridLengthUnitType.Star);
-                        }
-                    }
-                }
-            };
+                    Header = column.Header,
+                    Binding = new System.Windows.Data.Binding($"[{column.BindingPath}]"),
+                    IsReadOnly = true
+                };
+                dataGrid.Columns.Add(dataGridColumn);
+            }
 
-            return tableControl;
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementContentConverter] Read-only DataGrid created - no editing buttons, just table display");
+
+            return dataGrid;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

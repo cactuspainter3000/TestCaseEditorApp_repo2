@@ -233,14 +233,14 @@
                                 <!-- Spacer column 4 takes remaining space -->
                                 
                                 <!-- Save/Cancel buttons on the right -->
-                                <!-- Bind to the host VM (LooseTableViewModel) via TemplatedParent.DataContext -->
+                                <!-- Bind to the parent DataTemplate's DataContext (LooseTableViewModel) -->
                                 <Button Grid.Column="5" Content="Save" 
-                                    Command="{Binding DataContext.SaveTableCommand, RelativeSource={RelativeSource TemplatedParent}}" 
+                                    Command="{Binding Path=DataContext.SaveTableCommand, RelativeSource={RelativeSource AncestorType={x:Type Border}}}" 
                                     Style="{StaticResource PillActionButtonStyle}"
                                     Margin="0,0,8,0" 
                                     Padding="10,4"/>
                                 <Button Grid.Column="6" Content="Cancel" 
-                                    Command="{Binding DataContext.CancelEditCommand, RelativeSource={RelativeSource TemplatedParent}}" 
+                                    Command="{Binding Path=DataContext.CancelEditCommand, RelativeSource={RelativeSource AncestorType={x:Type Border}}}" 
                                     Style="{StaticResource PillActionButtonStyle}"
                                     Margin="0,0,0,0" 
                                     Padding="10,4"/>

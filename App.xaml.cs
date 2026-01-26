@@ -308,25 +308,8 @@ namespace TestCaseEditorApp
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>>();
                         var analysisService = provider.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService>();
                         
-                        // Get the TestCaseGenerator_VM to access table and paragraph providers through its CoreVM
-                        var testCaseGeneratorVM = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_VM>();
-                        
-                        // Create provider functions that delegate to the core VM (if available)
-                        Func<Requirement?, IEnumerable<LooseTableViewModel>> tableProvider = (req) => 
-                        {
-                            if (testCaseGeneratorVM.TestCaseGenerator != null)
-                                return testCaseGeneratorVM.TestCaseGenerator.GetLooseTableVMsForRequirement(req);
-                            return Enumerable.Empty<LooseTableViewModel>();
-                        };
-                        Func<Requirement?, IEnumerable<string>> paragraphProvider = (req) => 
-                        {
-                            if (testCaseGeneratorVM.TestCaseGenerator != null)
-                                return testCaseGeneratorVM.TestCaseGenerator.GetLooseParagraphsForRequirement(req);
-                            return Enumerable.Empty<string>();
-                        };
-                        
                         return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel(
-                            reqMediator, persistence, textEditingService, logger, analysisService, tableProvider, paragraphProvider);
+                            reqMediator, persistence, textEditingService, logger, analysisService);
                     });
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>(provider =>
                     {
