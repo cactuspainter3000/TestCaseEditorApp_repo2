@@ -101,31 +101,20 @@
             <!-- Right: Action buttons -->
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                 
-                <!-- Quick Analyze button -->
-                <Button Content="Quick Analyze"
+                <!-- Run Analysis button -->
+                <Button Content="Run Analysis"
                         Command="{Binding QuickAnalyzeCommand}"
-                        Margin="0,0,8,0"
-                        ToolTip="Run quick quality analysis on current requirement"
+                        ToolTip="Run quality analysis on current requirement"
                         Style="{StaticResource PillActionButtonStyle}"
                         Visibility="{Binding HasCurrentRequirement, Converter={StaticResource BoolToVisibilityConverter}}" />
 
-                <!-- Generate Tests button -->
-                <Button Content="Generate Tests"
-                        Command="{Binding GenerateTestsCommand}"
-                        ToolTip="Generate test cases for this requirement"
-                        Style="{StaticResource PillActionButtonStyle}"
-                        Visibility="{Binding CanGenerateTests, Converter={StaticResource BoolToVisibilityConverter}}"
-                        Background="{StaticResource Brush.Accent.Primary}"
-                        Foreground="White" />
             </StackPanel>
         </DockPanel>
 
         <!-- Main content area with side-by-side layout -->
         <Grid Grid.Row="1" Margin="8,4,8,8">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2*"/>      <!-- Main content -->
-                <ColumnDefinition Width="8"/>       <!-- Splitter -->
-                <ColumnDefinition Width="1*"/>      <!-- Analysis panel -->
+                <ColumnDefinition Width="*"/>      <!-- Main content takes full width -->
             </Grid.ColumnDefinitions>
 
             <!-- Main content display -->
@@ -284,58 +273,6 @@
             </Border>
 
             <!-- Splitter -->
-            <GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Stretch" 
-                         Background="Transparent" ShowsPreview="False" />
-
-            <!-- Analysis side panel -->
-            <Border Grid.Column="2" Background="{StaticResource Brush.Background.Card}" 
-                    CornerRadius="6" Padding="16" Margin="4,0,0,0">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <ScrollViewer.Resources>
-                        <Style TargetType="ScrollBar" BasedOn="{StaticResource CustomScrollBarStyle}"/>
-                    </ScrollViewer.Resources>
-                    
-                    <StackPanel>
-                        <TextBlock Text="Quick Analysis" Style="{StaticResource SectionHeaderStyle}" />
-                        
-                        <!-- Quality Score -->
-                        <StackPanel Visibility="{Binding HasCurrentRequirement, Converter={StaticResource BoolToVisibilityConverter}}">
-                            <TextBlock Text="Quality Score" FontWeight="Medium" Margin="0,8,0,4" />
-                            <Border Background="{StaticResource Brush.Background.Menu}" CornerRadius="4" Padding="8">
-                                <TextBlock Text="{Binding QualityScoreDisplay, FallbackValue='Not analyzed'}" 
-                                           HorizontalAlignment="Center" FontSize="24" FontWeight="Bold" />
-                            </Border>
-                        </StackPanel>
-                        
-                        <!-- Quick actions -->
-                        <TextBlock Text="Quick Actions" FontWeight="Medium" Margin="0,16,0,8" />
-                        <StackPanel>
-                            <Button Content="Analyze Quality" 
-                                    Command="{Binding QuickAnalyzeCommand}"
-                                    Style="{StaticResource PillActionButtonStyle}" 
-                                    Margin="0,4" HorizontalAlignment="Stretch" />
-                            <Button Content="Generate Tests" 
-                                    Command="{Binding GenerateTestsCommand}"
-                                    Style="{StaticResource PillActionButtonStyle}" 
-                                    Margin="0,4" HorizontalAlignment="Stretch"
-                                    Background="{StaticResource Brush.Accent.Primary}" Foreground="White" />
-                            <Button Content="View in TestGen" 
-                                    Command="{Binding ViewInTestGenCommand}"
-                                    Style="{StaticResource PillActionButtonStyle}" 
-                                    Margin="0,4" HorizontalAlignment="Stretch" />
-                        </StackPanel>
-                        
-                        <!-- Analysis summary -->
-                        <StackPanel Visibility="{Binding HasAnalysis, Converter={StaticResource BoolToVisibilityConverter}}">
-                            <TextBlock Text="Analysis Summary" FontWeight="Medium" Margin="0,16,0,8" />
-                            <Border Background="{StaticResource Brush.Background.Menu}" CornerRadius="4" Padding="8">
-                                <TextBlock Text="{Binding AnalysisSummary}" Style="{StaticResource MetadataValueStyle}" 
-                                           TextWrapping="Wrap" />
-                            </Border>
-                        </StackPanel>
-                    </StackPanel>
-                </ScrollViewer>
-            </Border>
         </Grid>
     </Grid>
 </UserControl>
