@@ -234,7 +234,7 @@ namespace TestCaseEditorApp.Converters
                 HorizontalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
                 VerticalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
                 Background = System.Windows.Application.Current.TryFindResource("Brush.Background.Menu") as System.Windows.Media.Brush,
-                Foreground = System.Windows.Application.Current.TryFindResource("Brush.Text.Primary") as System.Windows.Media.Brush,
+                Foreground = System.Windows.Application.Current.TryFindResource("Brush.Text.Secondary") as System.Windows.Media.Brush,
                 BorderBrush = System.Windows.Application.Current.TryFindResource("Brush.Border.Default") as System.Windows.Media.Brush,
                 BorderThickness = new Thickness(1),
                 RowBackground = System.Windows.Application.Current.TryFindResource("Brush.Background.Menu") as System.Windows.Media.Brush,
@@ -246,7 +246,7 @@ namespace TestCaseEditorApp.Converters
             // Create a darker column header style to match the theme
             var headerStyle = new Style(typeof(System.Windows.Controls.Primitives.DataGridColumnHeader));
             headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.BackgroundProperty, System.Windows.Application.Current.TryFindResource("Brush.Background.Header") as System.Windows.Media.Brush));
-            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.ForegroundProperty, System.Windows.Application.Current.TryFindResource("Brush.Text.Primary") as System.Windows.Media.Brush));
+            headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.ForegroundProperty, System.Windows.Application.Current.TryFindResource("Brush.Text.Secondary") as System.Windows.Media.Brush));
             headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.FontWeightProperty, System.Windows.Application.Current.TryFindResource("FontWeight.SemiBold") ?? FontWeights.SemiBold));
             headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.FontSizeProperty, System.Windows.Application.Current.TryFindResource("FontSize.Caption") ?? 12.0));
             headerStyle.Setters.Add(new Setter(System.Windows.Controls.Primitives.DataGridColumnHeader.PaddingProperty, new Thickness(8, 6, 8, 6)));
