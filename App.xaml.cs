@@ -206,7 +206,6 @@ namespace TestCaseEditorApp
                     {
                         var newProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator>();
                         var openProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.IOpenProjectMediator>();
-                        var projectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Project.Mediators.IProjectMediator>();
                         var navigationMediator = provider.GetRequiredService<INavigationMediator>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
                         var requirementsMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
@@ -214,7 +213,7 @@ namespace TestCaseEditorApp
                         var jamaConnectService = provider.GetRequiredService<JamaConnectService>();
                         var logger = provider.GetRequiredService<ILogger<SideMenuViewModel>>();
                         
-                        return new SideMenuViewModel(newProjectMediator, openProjectMediator, projectMediator, navigationMediator, 
+                        return new SideMenuViewModel(newProjectMediator, openProjectMediator, navigationMediator, 
                             testCaseGenerationMediator, requirementsMediator, testCaseAnythingLLMService, jamaConnectService, logger);
                     });
 
@@ -247,17 +246,6 @@ namespace TestCaseEditorApp
                         return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.TestCaseGenerationMediator(logger, uiCoordinator, requirementService, 
                             analysisService, llmService, scrubber, performanceMonitor, eventReplay);
                     });
-                    
-                    services.AddSingleton<ITestCaseCreationMediator>(provider =>
-                    {
-                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators.TestCaseCreationMediator>>();
-                        var uiCoordinator = provider.GetRequiredService<IDomainUICoordinator>();
-                        var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
-                        var eventReplay = provider.GetService<EventReplayService>();
-                        
-                        return new TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators.TestCaseCreationMediator(
-                            logger, uiCoordinator, performanceMonitor, eventReplay);
-                    });
 
                     services.AddSingleton<ITestFlowMediator>(provider =>
                     {
@@ -277,9 +265,6 @@ namespace TestCaseEditorApp
                     // === STARTUP DOMAIN REGISTRATION ===
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Startup.Mediators.IStartupMediator, TestCaseEditorApp.MVVM.Domains.Startup.Mediators.StartupMediator>();
                     
-                    // === PROJECT DOMAIN REGISTRATION ===
-                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Project.Mediators.IProjectMediator, TestCaseEditorApp.MVVM.Domains.Project.Mediators.ProjectMediator>();
-                    
                     // === REQUIREMENTS DOMAIN REGISTRATION ===
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>(provider =>
                     {
@@ -289,6 +274,7 @@ namespace TestCaseEditorApp
                         var analysisService = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService>();
                         var scrubber = provider.GetRequiredService<IRequirementDataScrubber>();
                         var workspaceContext = provider.GetRequiredService<IWorkspaceContext>();
+                        var newProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator>();
                         var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
                         var eventReplay = provider.GetService<TestCaseEditorApp.MVVM.Utils.EventReplayService>();
                         
@@ -297,7 +283,7 @@ namespace TestCaseEditorApp
                         
                         return new TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator(
                             logger, uiCoordinator, requirementService, analysisService, scrubber, 
-                            workspaceContext, analysisEngine, performanceMonitor, eventReplay);
+                            workspaceContext, newProjectMediator, analysisEngine, performanceMonitor, eventReplay);
                     });
                     
                     // Requirements domain ViewModels - Navigation as Singleton to maintain state
@@ -334,7 +320,6 @@ namespace TestCaseEditorApp
                     // Requirements uses shared NavigationViewModel and NotificationWorkspaceViewModel
                     
                     // Project domain ViewModels
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Project.ViewModels.Project_MainViewModel>();
                     
                     // Dummy domain ViewModels - updated naming convention
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_MainViewModel>();
@@ -465,9 +450,6 @@ namespace TestCaseEditorApp
                     // RequirementImportExportViewModel (legacy root version) REMOVED - duplicate of domain version
                     // Use TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementImportExportViewModel
                     // ChatGptExportAnalysisViewModel is registered in its domain
-
-                    // Test Case Creation domain ViewModels
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreationMainVM>();
                     
                     // Test Case Generation domain ViewModels - proper DI registration
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_VM>(provider =>
@@ -499,9 +481,8 @@ namespace TestCaseEditorApp
                         var openProjectMediator = provider.GetRequiredService<IOpenProjectMediator>();
                         var requirementsMediator = provider.GetRequiredService<IRequirementsMediator>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
-                        var testCaseCreationMediator = provider.GetRequiredService<ITestCaseCreationMediator>();
-                        
-                        return new ViewConfigurationService(newProjectMediator, openProjectMediator, requirementsMediator, testCaseGenerationMediator, testCaseCreationMediator);
+
+                        return new ViewConfigurationService(newProjectMediator, openProjectMediator, requirementsMediator, testCaseGenerationMediator);
                     });
                     
                     // ViewAreaCoordinator registration - required for workspace coordination
@@ -554,9 +535,6 @@ namespace TestCaseEditorApp
                 var testCaseGenMediator = _host.Services.GetRequiredService<ITestCaseGenerationMediator>();
                 testCaseGenMediator.MarkAsRegistered();
                 
-                var testCaseCreationMediator = _host.Services.GetRequiredService<ITestCaseCreationMediator>();
-                testCaseCreationMediator.MarkAsRegistered();
-                
                 var testFlowMediator = _host.Services.GetRequiredService<ITestFlowMediator>();
                 testFlowMediator.MarkAsRegistered();
                 
@@ -598,7 +576,6 @@ namespace TestCaseEditorApp
                 var navigationMediator = _host.Services.GetRequiredService<INavigationMediator>();
                 domainCoordinator.RegisterDomainMediator("Navigation", navigationMediator);
                 domainCoordinator.RegisterDomainMediator("TestCaseGeneration", testCaseGenMediator);
-                domainCoordinator.RegisterDomainMediator("TestCaseCreation", testCaseCreationMediator);
                 domainCoordinator.RegisterDomainMediator("TestFlow", testFlowMediator);
                 domainCoordinator.RegisterDomainMediator("NewProject", newProjectMediator);
                 domainCoordinator.RegisterDomainMediator("OpenProject", openProjectMediator);

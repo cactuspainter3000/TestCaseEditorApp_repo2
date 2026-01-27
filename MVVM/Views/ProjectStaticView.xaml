@@ -1,0 +1,30 @@
+<UserControl x:Class="TestCaseEditorApp.MVVM.Views.ProjectStaticView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource Brush.Background.Menu}">
+    <Grid>
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+            <TextBlock Text="Project Management" 
+                       FontSize="28" 
+                       FontWeight="Bold" 
+                       Foreground="{StaticResource Brush.Accent.Primary}"
+                       TextAlignment="Center"
+                       Margin="0,0,0,20"/>
+            
+            <TextBlock Text="Manage your test case projects and workspaces" 
+                       FontSize="14" 
+                       Foreground="{StaticResource Brush.Text.Primary}"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       MaxWidth="400"
+                       Margin="0,0,0,20"/>
+            
+            <TextBlock Text="Use the navigation options to create, open, or manage your projects." 
+                       FontSize="12" 
+                       Foreground="{StaticResource Brush.Text.Tertiary}"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       MaxWidth="400"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

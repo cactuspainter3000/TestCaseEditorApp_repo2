@@ -9,6 +9,7 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Events;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Events;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.Services;
@@ -32,6 +33,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         private readonly SmartRequirementImporter _smartImporter;
         private readonly ObservableCollection<Requirement> _requirements;
         private readonly IWorkspaceContext _workspaceContext;
+        private readonly INewProjectMediator _newProjectMediator;
         
         private Requirement? _currentRequirement;
         private bool _isDirty;
@@ -137,6 +139,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService analysisService,
             IRequirementDataScrubber scrubber,
             IWorkspaceContext workspaceContext,
+            INewProjectMediator newProjectMediator,
             IRequirementAnalysisEngine? analysisEngine = null, // NEW: Optional for transition period
             PerformanceMonitoringService? performanceMonitor = null,
             EventReplayService? eventReplay = null)
@@ -146,6 +149,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             _analysisService = analysisService ?? throw new ArgumentNullException(nameof(analysisService));
             _scrubber = scrubber ?? throw new ArgumentNullException(nameof(scrubber));
             _workspaceContext = workspaceContext ?? throw new ArgumentNullException(nameof(workspaceContext));
+            _newProjectMediator = newProjectMediator ?? throw new ArgumentNullException(nameof(newProjectMediator));
             _analysisEngine = analysisEngine; // Optional during transition
             _smartImporter = new SmartRequirementImporter(requirementService, 
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<SmartRequirementImporter>.Instance);
@@ -557,6 +561,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 PublishRequirementsProgressNotification();
 
                 _logger.LogInformation("Requirement analysis completed for {RequirementId}", requirement.GlobalId);
+                
+                // Auto-save after successful analysis
+                try
+                {
+                    await _newProjectMediator.SaveProjectAsync();
+                    _logger.LogInformation("Auto-saved workspace after requirement analysis for {RequirementId}", requirement.GlobalId);
+                }
+                catch (Exception saveEx)
+                {
+                    _logger.LogWarning(saveEx, "Auto-save failed after analysis for {RequirementId}", requirement.GlobalId);
+                    // Don't fail the analysis operation if save fails
+                }
+                
                 return true;
             }
             catch (Exception ex)

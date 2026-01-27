@@ -19,8 +19,6 @@
         xmlns:dummyviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Dummy.Views"
         xmlns:reqvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels"
         xmlns:reqviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.Views"
-        xmlns:projvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Project.ViewModels"
-        xmlns:projviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Project.Views"
         xmlns:sharedvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Shared.ViewModels"
         xmlns:sharedviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Shared.Views"
         xmlns:notificationvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Notification.ViewModels"
@@ -371,10 +369,6 @@
             <opviews:OpenProject_NavigationView />
         </DataTemplate>
 
-        <!-- Project Domain DataTemplates -->
-        <DataTemplate DataType="{x:Type projvm:Project_MainViewModel}">
-            <projviews:Project_MainView />
-        </DataTemplate>
 
         <!-- DUMMY DOMAIN DataTemplates - Perfect AI Guide Reference Implementation -->
         <DataTemplate DataType="{x:Type dummyvm:DummyMainWorkspaceViewModel}">

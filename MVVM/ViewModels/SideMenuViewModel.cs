@@ -11,7 +11,6 @@ using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
-using TestCaseEditorApp.MVVM.Domains.Project.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Events;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Events;
@@ -31,7 +30,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     {
         private readonly INewProjectMediator _newProjectMediator;
         private readonly IOpenProjectMediator _openProjectMediator;
-        private readonly IProjectMediator _projectMediator;
         private readonly INavigationMediator _navigationMediator;
         private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
         private readonly IRequirementsMediator _requirementsMediator;
@@ -122,14 +120,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty]
         private bool autoExportForChatGpt = false;
 
-        public SideMenuViewModel(INewProjectMediator newProjectMediator, IOpenProjectMediator openProjectMediator, IProjectMediator projectMediator, INavigationMediator navigationMediator, ITestCaseGenerationMediator testCaseGenerationMediator, IRequirementsMediator requirementsMediator, TestCaseAnythingLLMService testCaseAnythingLLMService, JamaConnectService jamaConnectService, ILogger<SideMenuViewModel> logger)
+        public SideMenuViewModel(INewProjectMediator newProjectMediator, IOpenProjectMediator openProjectMediator, INavigationMediator navigationMediator, ITestCaseGenerationMediator testCaseGenerationMediator, IRequirementsMediator requirementsMediator, TestCaseAnythingLLMService testCaseAnythingLLMService, JamaConnectService jamaConnectService, ILogger<SideMenuViewModel> logger)
         {
             //// ("*** SideMenuViewModel constructor called! ***");
             //// ("*** SideMenuViewModel constructor called! ***");
             
             _newProjectMediator = newProjectMediator ?? throw new ArgumentNullException(nameof(newProjectMediator));
             _openProjectMediator = openProjectMediator ?? throw new ArgumentNullException(nameof(openProjectMediator));
-            _projectMediator = projectMediator ?? throw new ArgumentNullException(nameof(projectMediator));
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
             _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
             _requirementsMediator = requirementsMediator ?? throw new ArgumentNullException(nameof(requirementsMediator));
@@ -192,9 +189,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             AnalyzeUnanalyzedCommand = new RelayCommand(NavigateToRequirements); // Navigate to requirements for analysis
             ReAnalyzeModifiedCommand = new RelayCommand(NavigateToRequirements); // Navigate to requirements for re-analysis
             GenerateAnalysisCommandCommand = new RelayCommand(NavigateToRequirements); // Navigate to requirements for analysis commands
-            GenerateTestCaseCommandCommand = new RelayCommand(NavigateToTestCaseCreation);
+            GenerateTestCaseCommandCommand = new RelayCommand(NavigateToTestCaseGenerator); // Navigate to test case generator
             ToggleAutoExportCommand = new RelayCommand(() => AutoExportForChatGpt = !AutoExportForChatGpt);
-            ExportForChatGptCommand = new RelayCommand(NavigateToTestCaseCreation); // Navigate to test case creation for export
+            ExportForChatGptCommand = new RelayCommand(NavigateToTestCaseGenerator); // Navigate to test case generator for export
             ExportAllToJamaCommand = new AsyncRelayCommand(ExportAllToJamaAsync);
             
             // Demo command for testing state management
@@ -215,15 +212,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             try
             {
                 _logger.LogInformation("[SideMenuViewModel] Save Project called");
-                var success = await _projectMediator.SaveProjectAsync();
-                if (success)
-                {
-                    _logger.LogInformation("[SideMenuViewModel] Project saved successfully");
-                }
-                else
-                {
-                    _logger.LogWarning("[SideMenuViewModel] Project save failed");
-                }
+                await _newProjectMediator.SaveProjectAsync();
+                _logger.LogInformation("[SideMenuViewModel] Save Project completed");
             }
             catch (Exception ex)
             {

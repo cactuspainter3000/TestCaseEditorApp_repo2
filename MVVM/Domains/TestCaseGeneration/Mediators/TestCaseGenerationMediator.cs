@@ -70,6 +70,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         private TestCaseGenerator_TitleVM? _titleViewModel;
         private object? _selectedStep;
         private object? _currentStepViewModel;
+        private INewProjectMediator? _workspaceMediator;
         
         public Requirement? CurrentRequirement 
         { 
@@ -733,6 +734,20 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 // Mark workspace as dirty since analysis data has been added/updated
                 IsDirty = true;
                 
+                // Auto-save after analysis completes
+                if (_workspaceMediator != null)
+                {
+                    try
+                    {
+                        await _workspaceMediator.SaveProjectAsync();
+                        _logger.LogInformation("Workspace auto-saved after requirement analysis");
+                    }
+                    catch (Exception saveEx)
+                    {
+                        _logger.LogWarning(saveEx, "Auto-save failed after requirement analysis");
+                    }
+                }
+                
                 _logger.LogInformation("Requirement analysis completed for {RequirementId}", requirement.GlobalId);
                 IsAnalyzing = false;
                 return true;
@@ -1242,6 +1257,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         public void WireWorkspaceCommands(INewProjectMediator workspaceMediator)
         {
             if ((_headerViewModel == null && _titleViewModel == null) || workspaceMediator == null) return;
+            _workspaceMediator = workspaceMediator;
 
             // Wire commands to both header and title ViewModels
             if (_headerViewModel != null)
