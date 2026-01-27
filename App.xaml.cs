@@ -429,7 +429,7 @@ namespace TestCaseEditorApp
 
                     // ViewModels and header VM
                     // REMOVED: RequirementGenerationViewModel - dead code, never resolved
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementImportExportViewModel>();
+                    // REMOVED: RequirementImportExportViewModel - dead code, never resolved (functionality in services/mediators)
                     // REMOVED: TestCaseGeneratorSplashViewModel - dead code, never used
                     // REMOVED: TestCaseGeneratorSplashScreenViewModel - dead code, never used
                     // REMOVED: RequirementAnalysisViewModel (TestCaseGeneration namespace) - duplicate of Requirements domain version, deleted
