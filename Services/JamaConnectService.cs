@@ -769,6 +769,16 @@ namespace TestCaseEditorApp.Services
                 Tables = new List<LooseTable>()
             };
 
+            // Metadata/system fields that should NOT be displayed as user-facing content
+            // These contain IDs, keys, and other technical data that users don't need to see
+            var metadataFieldsToSkip = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "documentKey", "globalId", "name", "text2", "id", "key", "itemType",
+                "project", "createdBy", "modifiedBy", "createdDate", "modifiedDate",
+                "parentId", "childItemType", "sortOrder", "release", "status",
+                "synchronizedItem", "lockedBy", "lastLockedDate", "baselinedApplicableItems"
+            };
+
             TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: Scanning all fields for rich content");
 
             var fieldsToScan = new List<(string name, string content)>();
@@ -786,6 +796,13 @@ namespace TestCaseEditorApp.Services
                 {
                     try
                     {
+                        // Skip metadata/system fields that shouldn't be displayed as content
+                        if (metadataFieldsToSkip.Contains(field.Name))
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Skipping metadata field '{field.Name}'");
+                            continue;
+                        }
+                        
                         if (field.Value.ValueKind == JsonValueKind.String)
                         {
                             var value = field.Value.GetString();
@@ -867,11 +884,8 @@ namespace TestCaseEditorApp.Services
                             
                             if (!isDuplicateParagraph)
                             {
-                                // Optionally prefix with field name for context
-                                var contextualParagraph = fieldName != "description" 
-                                    ? $"[{fieldName}] {paragraph}" 
-                                    : paragraph;
-                                looseContent.Paragraphs.Add(contextualParagraph);
+                                // Add paragraph content without field name prefix (cleaner for users)
+                                looseContent.Paragraphs.Add(paragraph);
                                 totalParagraphsFound++;
                             }
                             else
@@ -883,7 +897,7 @@ namespace TestCaseEditorApp.Services
                 }
                 else if (!string.IsNullOrWhiteSpace(content))
                 {
-                    // Plain text content - add as paragraph with context (check for duplicates)
+                    // Plain text content - add as paragraph (check for duplicates)
                     var normalizedContent = content.Trim();
                     bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara =>
                         existingPara.Trim().Equals(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
@@ -892,10 +906,8 @@ namespace TestCaseEditorApp.Services
                     
                     if (!isDuplicateParagraph)
                     {
-                        var contextualParagraph = fieldName != "description" 
-                            ? $"[{fieldName}] {normalizedContent}" 
-                            : normalizedContent;
-                        looseContent.Paragraphs.Add(contextualParagraph);
+                        // Add content without field name prefix (cleaner for users)
+                        looseContent.Paragraphs.Add(normalizedContent);
                         totalParagraphsFound++;
                     }
                     else
@@ -940,6 +952,15 @@ namespace TestCaseEditorApp.Services
                 Tables = new List<LooseTable>()
             };
 
+            // Metadata/system fields that should NOT be displayed as user-facing content
+            var metadataFieldsToSkip = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "documentKey", "globalId", "name", "text2", "id", "key", "itemType",
+                "project", "createdBy", "modifiedBy", "createdDate", "modifiedDate",
+                "parentId", "childItemType", "sortOrder", "release", "status",
+                "synchronizedItem", "lockedBy", "lastLockedDate", "baselinedApplicableItems"
+            };
+
             TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {item.Id}: Scanning all fields for rich content");
 
             var fieldsToScan = new List<(string name, string content)>();
@@ -960,6 +981,13 @@ namespace TestCaseEditorApp.Services
                 {
                     try
                     {
+                        // Skip metadata/system fields that shouldn't be displayed as content
+                        if (metadataFieldsToSkip.Contains(property.Name))
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {item.Id}: Skipping metadata field '{property.Name}'");
+                            continue;
+                        }
+                        
                         var value = property.GetValue(item.Fields);
                         if (value is string stringValue && !string.IsNullOrWhiteSpace(stringValue))
                         {
@@ -983,6 +1011,10 @@ namespace TestCaseEditorApp.Services
                 {
                     foreach (var kvp in fieldsDictionary)
                     {
+                        // Skip metadata/system fields
+                        if (metadataFieldsToSkip.Contains(kvp.Key))
+                            continue;
+                            
                         if (kvp.Value is string stringValue && !string.IsNullOrWhiteSpace(stringValue))
                         {
                             fieldsToScan.Add((kvp.Key, stringValue));
@@ -1037,11 +1069,8 @@ namespace TestCaseEditorApp.Services
                             
                             if (!isDuplicateParagraph)
                             {
-                                // Optionally prefix with field name for context
-                                var contextualParagraph = fieldName != "description" 
-                                    ? $"[{fieldName}] {paragraph}" 
-                                    : paragraph;
-                                looseContent.Paragraphs.Add(contextualParagraph);
+                                // Add paragraph content without field name prefix (cleaner for users)
+                                looseContent.Paragraphs.Add(paragraph);
                                 totalParagraphsFound++;
                             }
                             else
@@ -1053,7 +1082,7 @@ namespace TestCaseEditorApp.Services
                 }
                 else if (!string.IsNullOrWhiteSpace(content))
                 {
-                    // Plain text content - add as paragraph with context (check for duplicates)
+                    // Plain text content - add as paragraph (check for duplicates)
                     var normalizedContent = content.Trim();
                     bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara =>
                         existingPara.Trim().Equals(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
@@ -1062,10 +1091,8 @@ namespace TestCaseEditorApp.Services
                     
                     if (!isDuplicateParagraph)
                     {
-                        var contextualParagraph = fieldName != "description" 
-                            ? $"[{fieldName}] {normalizedContent}" 
-                            : normalizedContent;
-                        looseContent.Paragraphs.Add(contextualParagraph);
+                        // Add content without field name prefix (cleaner for users)
+                        looseContent.Paragraphs.Add(normalizedContent);
                         totalParagraphsFound++;
                     }
                     else
