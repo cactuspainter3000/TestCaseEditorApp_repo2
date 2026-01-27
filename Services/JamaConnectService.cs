@@ -1383,6 +1383,7 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Clean and decode HTML text content, converting entities to proper text and stripping HTML tags
         /// Preserves original paragraph structure and line breaks from Jama GUI
+        /// Removes table content since tables are parsed separately as structured data
         /// </summary>
         private string CleanHtmlText(string htmlText)
         {
@@ -1404,7 +1405,17 @@ namespace TestCaseEditorApp.Services
                 var doc = new HtmlDocument();
                 doc.LoadHtml(decoded);
 
-                // Simple text extraction using InnerText (no complex parsing)
+                // Remove table nodes to avoid duplicate content - tables are parsed separately as structured data
+                var tableNodes = doc.DocumentNode.SelectNodes(".//table")?.ToList();
+                if (tableNodes != null)
+                {
+                    foreach (var tableNode in tableNodes)
+                    {
+                        tableNode.Remove();
+                    }
+                }
+
+                // Extract text after removing tables
                 var plainText = doc.DocumentNode.InnerText;
                 
                 if (string.IsNullOrWhiteSpace(plainText))
