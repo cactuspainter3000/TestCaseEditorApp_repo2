@@ -4,34 +4,61 @@
 
 ---
 
+## 🚨 TESTCASEGENERATION DOMAIN DEPRECATION (CRITICAL - Jan 2026)
+
+### **TestCaseGeneration Domain is DEPRECATED**
+The `TestCaseGeneration` domain was a monolithic "black hole" that caused many problems. It has been broken up into focused, single-responsibility domains:
+
+| **Deprecated Domain** | **Replacement Domains** | **Migration Status** |
+|-----------------------|-------------------------|---------------------|
+| TestCaseGeneration | Requirements, OpenProject, NewProject, Notification, TestCaseGenerator, TestCaseCreation | 🔄 In Progress |
+
+### **Migration Rules**
+1. **DO NOT add new code to TestCaseGeneration** - It is being phased out
+2. **Remove dependencies on TestCaseGeneration** - Use proper domain mediators instead
+3. **Move code to appropriate domains** based on responsibility:
+   - **Requirements operations** → Requirements domain
+   - **Project opening** → OpenProject domain  
+   - **Project creation** → NewProject domain
+   - **Notification/status updates** → Notification domain
+   - **Test case generator UI** → TestCaseGenerator domain (menu-specific only)
+   - **Test case editing** → TestCaseCreation domain
+4. **Delete dead/duplicated/unnecessary code** from TestCaseGeneration after migration
+5. **TestCaseGenerator ≠ TestCaseGeneration**: TestCaseGenerator is a proper domain for TestCaseGenerator menu operations only
+
+### **Cross-Domain Communication Pattern**
+Instead of depending on TestCaseGenerationEvents, use:
+- **Broadcast pattern**: `mediator.BroadcastToAllDomains(event)` 
+- **Domain-specific events**: Each domain handles `HandleBroadcastNotification` for events it cares about
+- **Example**: `NotificationMediator` handles `OpenProjectEvents.ProjectOpened` to update requirements count
+
+---
+
 ## 🏛️ DOMAIN TERMINOLOGY (CRITICAL)
 
-**Two distinct types of "domains" - DO NOT CONFUSE:**
+**Proper Domain Architecture:**
 
-### **Menu Item Domains (_Mode suffix)**
+### **Focused Domains (Current Standard)**
+- **Purpose**: Single-responsibility domains for specific functionality
+- **Naming**: `{FeatureName}` (e.g., Requirements, OpenProject, Notification)
+- **Contains**: Views, ViewModels, Mediators, Events for that specific feature
+- **Pattern**: Each domain owns its data and publishes events for cross-domain communication
+- **Examples**: Requirements, OpenProject, NewProject, Notification, TestCaseGenerator, TestCaseCreation
+
+### **Menu Item Modes (_Mode suffix)**
 - **Purpose**: Handle what displays when specific menu items are clicked
-- **Naming**: `{MenuName}_Mode` (e.g., TestCaseGenerator_Mode, Project_Mode, Requirements_Mode)
-- **Contains**: Views, ViewModels, and responsibilities for that menu selection
-- **Status**: Just one domain among many - no special architectural status
-- **Example**: TestCaseGenerator_Mode = what shows when you click "Test Case Generator" menu item
-
-### **Codebase Domains (no suffix)**
-- **Purpose**: Broader implementation functionality shared across menu items
-- **Naming**: `{FeatureName}` (e.g., TestCaseGeneration, WorkspaceManagement)
-- **Contains**: Core implementation code, services, mediators, business logic
-- **Status**: Reference implementations that _Mode domains copy from
-- **Example**: TestCaseGeneration = the broader codebase for test case generation functionality
-
-**Key Distinction**: TestCaseGenerator_Mode (menu item) vs TestCaseGeneration (codebase implementation)
+- **Naming**: `{MenuName}_Mode` (e.g., TestCaseGenerator_Mode)
+- **Contains**: UI coordination for that menu selection
+- **Status**: Lightweight wrappers that delegate to proper domains
 
 ---
 
 ## 🚨 CRITICAL DOMAIN VIEW RULE
 
 **⚠️ FOR ANY DOMAIN VIEW CREATION**: 
-- **NEVER CREATE CUSTOM VIEWS** - Always copy authentic views from TestCaseGeneration domain
 - **Follow Domain View Creation Chain** (see section below) - Missing steps cause build failures
-- **TestCaseGeneration is the reference implementation** - All domains copy from this source
+- **Copy patterns from working domains** (Requirements, Dummy, OpenProject)
+- **Each domain owns its own views** - No cross-domain view sharing
 
 ---
 
@@ -49,25 +76,38 @@
 
 ## 🏢 DOMAIN IMPLEMENTATION STATUS
 
-| **Domain** | **Header** | **Main** | **Navigation** | **Status** | **Source Pattern** |
-|------------|------------|----------|----------------|------------|-------------------|
-| TestCaseGeneration | ✅ | ✅ | ✅ | **Reference Implementation** | Original domain |
-| Dummy | ✅ | ✅ | ✅ | **Complete** | Created as blueprint |
-| Requirements | ✅ | ✅ | ✅ | **Complete** | Copied from TestCaseGeneration |
-| WorkspaceManagement | ✅ | ✅ | ❌ | **Partial** | TBD |
-| TestCaseCreation | ✅ | ❌ | ❌ | **Partial** | TBD |
+| **Domain** | **Header** | **Main** | **Navigation** | **Status** | **Notes** |
+|------------|------------|----------|----------------|------------|-----------|
+| Requirements | ✅ | ✅ | ✅ | **Complete** | Handles requirement display and analysis |
+| OpenProject | ✅ | ✅ | ✅ | **Complete** | Project opening workflows |
+| NewProject | ✅ | ✅ | ✅ | **Complete** | Project creation workflows |
+| Notification | ✅ | N/A | N/A | **Complete** | Shared status bar (LLM, requirements count) |
+| TestCaseGenerator | ✅ | ✅ | ✅ | **Complete** | Test Case Generator menu operations |
+| TestCaseCreation | ✅ | 🔄 | 🔄 | **Partial** | Test case editing (in progress) |
+| Dummy | ✅ | ✅ | ✅ | **Complete** | Development blueprint |
+| Startup | ✅ | ✅ | ✅ | **Complete** | Initial app state |
+| Project | ✅ | 🔄 | 🔄 | **Partial** | Project management operations |
+| **TestCaseGeneration** | ⚠️ | ⚠️ | ⚠️ | **⛔ DEPRECATED** | Being phased out - migrate code to proper domains |
 
-**🎯 Pattern**: All new domains should copy authentic views from TestCaseGeneration, never fabricate custom views
+**🎯 Pattern**: Each domain is self-contained with its own Mediator, Events, ViewModels, and Views
 
 ---
 
 ## ⚠️ DOMAIN MIGRATION LESSONS LEARNED
 
-### **Critical Failure Points in Requirements Domain Migration (Jan 2026)**
+### **Critical Failure Points in TestCaseGeneration Monolith**
 
-**❌ Failed Approach: Hybrid ViewModels**
-- Mixed Requirements navigation + TestCaseGeneration headers
-- Event domain mismatches (RequirementsEvents ≠ TestCaseGenerationEvents)
+**❌ Problems with Monolithic TestCaseGeneration Domain:**
+- Too many responsibilities in one domain (requirements, projects, notifications, test cases)
+- Complex cross-domain event coordination became unmanageable
+- Difficult to maintain and test
+- Changes had unpredictable side effects
+
+**✅ Solution: Domain Decomposition**
+- Break into focused, single-responsibility domains
+- Each domain owns its data and events
+- Cross-domain communication via broadcast pattern
+- Clear ownership prevents duplicate code
 - Incomplete data initialization chains
 - Complex cross-domain event coordination
 
@@ -92,7 +132,7 @@
 | 1.2 | Map TestCaseGenerator_VM data initialization chains | ✅ **COMPLETE** | Key chain: Event → OnRequirementSelected() → _selectedRequirement = value → UpdateVisibleChipsFromRequirement() → VisibleChips populated with chips for all requirement fields |
 | 1.3 | Document TestCaseGenerator_VM event subscription patterns | ✅ **COMPLETE** | 3 subscriptions: RequirementSelected, RequirementsCollectionChanged, WorkflowStateChanged with proper cleanup |
 | 1.4 | Identify ALL UI binding requirements from views | ✅ **COMPLETE** | Key bindings: IsMetaSelected, IsTablesSelected, IsParagraphsSelected, IsAnalysisSelected, VisibleChipsWithValuesCount, BulkActionsVisible, SelectAllVisibleCommand, ClearAllVisibleCommand, AnalysisVM.*, HasMeta, HasTables, HasParagraphs, HasAnalysis |
-| 1.5 | Map cross-domain event dependencies | ✅ **COMPLETE** | Critical cross-domain consumers: SideMenuViewModel, NavigationViewModel, TestCaseGeneratorNotificationViewModel - ALL depend on TestCaseGenerationEvents. Requirements domain MUST publish to both RequirementsEvents AND TestCaseGenerationEvents for compatibility |
+| 1.5 | Map cross-domain event dependencies | ✅ **COMPLETE** | Cross-domain consumers use domain-specific events. Use RequirementsEvents for Requirements domain. Use broadcast pattern (`BroadcastToAllDomains`) when multiple domains need to respond. |
 
 ### **Phase 2: Complete ViewModel Replication**
 
@@ -150,8 +190,9 @@
 │   └── Register: App.xaml.cs `services.AddTransient<VM>()`
 │
 ├── 🖥️ **View Creation** (REQUIRED FOR DOMAIN UI)
-│   ├── **NEVER CREATE CUSTOM VIEWS** - Always copy from TestCaseGeneration
-│   ├── Source: Find equivalent in `/MVVM/Domains/TestCaseGeneration/Views/`
+│   ├── **NEVER CREATE CUSTOM VIEWS** - Copy from working domains first
+│   ├── Source: Find equivalent in existing domains (Requirements, OpenProject, etc.)
+│   ├── ⚠️ **DO NOT USE TestCaseGeneration** - It is DEPRECATED
 │   ├── Copy: Both `.xaml` and `.xaml.cs` files to new domain
 │   ├── Update: All namespace and class references to new domain
 │   ├── Analyze: `grep` copied XAML for ALL property bindings
@@ -174,9 +215,10 @@
 🏗️ New Domain Views Request
 │
 ├── 🔍 **Source Discovery** (MANDATORY FIRST STEP)
-│   ├── Identify: Equivalent views in TestCaseGeneration domain
-│   ├── Pattern: `TestCaseGeneratorRequirements_View.xaml` → `{Domain}MainView.xaml`
-│   ├── Pattern: `TestCaseGenerator_NavigationControl.xaml` → `{Domain}NavigationView.xaml`
+│   ├── Identify: Equivalent views in working domains (Requirements, OpenProject, NewProject, etc.)
+│   ├── Pattern: `Requirements_MainView.xaml` → `{Domain}MainView.xaml`
+│   ├── Pattern: `Requirements_NavigationView.xaml` → `{Domain}NavigationView.xaml`
+│   ├── ⚠️ **NEVER USE TestCaseGeneration** - It is DEPRECATED
 │   └── **NEVER**: Create custom views from scratch
 │
 ├── 📋 **File Copying** (EXACT DUPLICATION)
@@ -274,7 +316,7 @@
 | **New Domain Event** | `find . -name "*Events.cs" -path "*/Domains/*"` | Event class structure + property patterns |
 | **Cross-Domain Communication** | `grep -r "HandleBroadcastNotification" --include="*.cs"` | Broadcast handling patterns + event types |
 | **New Mediator** | `grep -r "BaseDomainMediator" --include="*.cs"` | Constructor dependencies + registration pattern |
-| **Domain View Creation** | `find . -name "*_VM.cs" -path "*/TestCaseGeneration/*"` | Authentic view source + ViewModel properties + DataTemplate mapping |
+| **Domain View Creation** | `find . -name "*_VM.cs" -path "*/Requirements/*"` | Authentic view source + ViewModel properties + DataTemplate mapping |
 | **Workspace Navigation** | `grep -r "NavigationView" --include="*.xaml"` | Navigation controls + dropdown properties + event handlers |
 
 ### **Critical Registration Points**
@@ -370,10 +412,10 @@
 ### **State Management Quick Lookup**
 | **I need to...** | **Domain Owner** | **Implementation Pattern** | **Event Flow** |
 |-------------------|------------------|----------------------------|----------------|
-| Update dirty state | TestCaseGeneration | `mediator.IsDirty = value` | `WorkflowStateChanged` → ViewModels update |
+| Update dirty state | Domain-specific | `mediator.IsDirty = value` | `WorkflowStateChanged` → ViewModels update |
 | Show save button | UI reflects state | ViewModel binds to mediator state | No direct action needed |
 | Save project | Any ViewModel can trigger | `SaveCommand` → `workspaceMediator.Save()` → `mediator.IsDirty = false` | Local domain update |
-| Handle analysis results | TestCaseGeneration | `mediator.IsDirty = true` (data changed) | `WorkflowStateChanged` → UI updates |
+| Handle analysis results | Domain-specific | `mediator.IsDirty = true` (data changed) | `WorkflowStateChanged` → UI updates |
 | Navigation state | Domain-specific | `mediator.CurrentView = X` | Intra-domain event |
 
 ### **Workspace Coordination Quick Lookup**
@@ -424,12 +466,23 @@ dotnet build --verbosity minimal
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│ TestCaseGeneration │    │ WorkspaceManagement │    │  TestCaseCreation  │
+│   Requirements  │    │    OpenProject  │    │    NewProject   │
 │                 │    │                 │    │                 │
-│ • Requirements  │────│ • Project Ops   │────│ • Test Editing  │
-│ • Assumptions   │    │ • File I/O      │    │ • Validation    │
-│ • Questions     │    │ • Save/Load     │    │ • Export        │
-│ • Generation    │    │                 │    │                 │
+│ • Requirements  │    │ • Open Project  │    │ • Create Project│
+│   Display/Edit  │────│ • Load Files    │────│ • Initialization│
+│ • Navigation    │    │ • Import        │    │                 │
+│                 │    │                 │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│ TestCaseGenerator│    │ TestCaseCreation │    │   Notification  │
+│                 │    │                 │    │                 │
+│ • Generation    │    │ • Test Editing  │    │ • Status Bar    │
+│   Workflow      │────│ • Validation    │────│ • Progress      │
+│ • Analysis      │    │ • Export        │    │ • Alerts        │
+│                 │    │                 │    │                 │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          └───────────────────────┼───────────────────────┘
@@ -444,9 +497,9 @@ dotnet build --verbosity minimal
 ```
 
 ### **Cross-Domain Event Flows**
-- **ProjectCreated/Opened/Closed**: WorkspaceManagement → All Domains
-- **RequirementsImported**: WorkspaceManagement → TestCaseGeneration  
-- **TestCasesGenerated**: TestCaseGeneration → TestCaseCreation
+- **ProjectCreated**: NewProject → Notification, Requirements, All Domains (via broadcast)
+- **ProjectOpened**: OpenProject → Notification, Requirements, All Domains (via broadcast)  
+- **TestCasesGenerated**: TestCaseGenerator → TestCaseCreation
 - **ValidationRequest**: Any Domain → TestFlow
 
 ---
@@ -473,11 +526,11 @@ dotnet build --verbosity minimal
 
 | **Concept** | **Owner Domain** | **How Others Access** |
 |-------------|------------------|----------------------|
-| Dirty State | TestCaseGeneration | Listen to broadcasts |
-| Current Requirement | TestCaseGeneration | Request via coordinator |
+| Dirty State | Domain-specific (each domain owns its own) | Listen to broadcasts |
+| Current Requirement | Requirements | Request via coordinator |
 | Save Operation | WorkspaceManagement | Any domain can trigger |
-| Analysis State | TestCaseGeneration | Internal domain concern |
-| Project Info | WorkspaceManagement | Broadcast on changes |
+| Analysis State | TestCaseGenerator | Internal domain concern |
+| Project Info | OpenProject/NewProject | Broadcast on changes |
 | UI Feedback | Domain that triggered action | Use `IDomainUICoordinator` |
 
 ---
@@ -486,7 +539,7 @@ dotnet build --verbosity minimal
 
 ### **Scenario: After Analysis, Update Save Icon**
 1. `RequirementAnalysisService` completes analysis
-2. `TestCaseGenerationMediator.IsDirty = true`
+2. Domain mediator `.IsDirty = true`
 3. Mediator publishes `WorkflowStateChanged`
 4. `HeaderVM` receives event, updates `IsDirty` property
 5. UI automatically updates via binding
@@ -494,21 +547,21 @@ dotnet build --verbosity minimal
 ### **Scenario: User Clicks Save Button**
 1. HeaderVM `SaveCommand` executed
 2. Command calls `workspaceMediator.SaveProjectAsync()`  
-3. After success: `testCaseGenerationMediator.IsDirty = false`
+3. After success: Domain mediator `.IsDirty = false`
 4. Mediator publishes `WorkflowStateChanged`
 5. HeaderVM updates, save icon changes
 
 ### **Scenario: Load New Project**
-1. WorkspaceManagement loads project
-2. Broadcasts `ProjectOpened` to all domains
-3. TestCaseGeneration receives broadcast
-4. Sets `IsDirty = false` (clean project)
+1. OpenProject domain loads project
+2. Broadcasts `ProjectOpened` to all domains via `BroadcastToAllDomains`
+3. Notification domain receives broadcast, updates requirements count
+4. Requirements domain receives broadcast, loads requirements
 5. All ViewModels update accordingly
 
 ### **Scenario: User Selects "Test Case Generator" from Side Menu**
-1. Side menu calls `viewAreaCoordinator.SetAllWorkspaces("TestCaseGeneration")`
+1. Side menu calls `viewAreaCoordinator.SetAllWorkspaces("TestCaseGenerator")`
 2. ViewAreaCoordinator calls `testCaseMediator.UpdateWorkspaces()`
-3. TestCaseGeneration mediator creates/updates its 4 workspace ViewModels
+3. TestCaseGenerator mediator creates/updates its workspace ViewModels
 4. MainViewModel.HeaderWorkspace = headerVM, MainWorkspace = analysisVM, TitleWorkspace = titleVM, etc.
 5. UI automatically reflects new workspaces
 
@@ -524,26 +577,26 @@ dotnet build --verbosity minimal
 
 ### **MANDATORY First Step: Find Working Example**
 ```csharp
-// Step 1: Find existing working ViewModel
-// Search: grep -r "TestCaseGenerator.*VM" --include="*.cs"
-// Found: TestCaseGenerator_HeaderVM.cs
+// Step 1: Find existing working ViewModel in PROPER domain (NOT TestCaseGeneration)
+// Search: grep -r "Requirements.*VM" --include="*.cs" path="*/Requirements/*"
+// Found: Requirements_MainViewModel.cs
 
 // Step 2: Copy EXACT using statements first
 using System;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using TestCaseEditorApp.MVVM.Events; // <- CRITICAL: Copy all imports from working example
 
 // Step 3: Copy EXACT constructor pattern 
-public MyNew_ViewModel(ITestCaseGenerationMediator mediator, ILogger<MyNew_ViewModel> logger) 
+public MyNew_ViewModel(IRequirementsMediator mediator, ILogger<MyNew_ViewModel> logger) 
     : base(mediator, logger)
 {
     // Step 4: Copy EXACT event subscription pattern
-    _mediator.Subscribe<TestCaseGenerationEvents.RequirementSelected>(OnRequirementSelected);
+    _mediator.Subscribe<RequirementsEvents.RequirementSelected>(OnRequirementSelected);
 }
 
 // Step 5: Check ACTUAL event structure before writing handlers
 // Read the event class definition, don't assume properties exist
-private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected e)
+private void OnRequirementSelected(RequirementsEvents.RequirementSelected e)
 {
     // Copy property access pattern from working example
 }
@@ -558,8 +611,9 @@ private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected 
 ```
 🤔 Before writing any code:
 
-1. FIND: Which existing ViewModel is most similar?
+1. FIND: Which existing ViewModel (in PROPER domain) is most similar?
    └── Copy its using statements EXACTLY
+   └── ⚠️ DO NOT use TestCaseGeneration as source - it is DEPRECATED
 
 2. EXAMINE: What events does the working example use?
    └── Read the actual event class definitions
@@ -670,15 +724,16 @@ private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected 
 
 ---
 
-## � DOMAIN VIEW CREATION LESSONS (Requirements Implementation)
+## 📚 DOMAIN VIEW CREATION LESSONS (Requirements Implementation)
 
 **❌ Critical Mistakes to Avoid:**
 
 ### **Fabricated vs Authentic Views**
 - **Problem**: Creating custom views from scratch instead of copying existing working patterns
 - **Symptom**: Views that look different or have missing functionality compared to source domain
-- **Solution**: Always copy authentic views from TestCaseGeneration domain as source material
-- **Pattern**: `TestCaseGeneratorRequirements_View.xaml` → `RequirementsMainView.xaml`
+- **Solution**: Always copy authentic views from **working proper domains** (Requirements, OpenProject, etc.)
+- **Pattern**: `Requirements_MainView.xaml` → `{NewDomain}MainView.xaml`
+- ⚠️ **DO NOT USE TestCaseGeneration** - It is DEPRECATED
 
 ### **ViewModel Property Mismatches**
 - **Problem**: Copied XAML expects properties that don't exist in new ViewModel
@@ -699,7 +754,7 @@ private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected 
 - **Problem**: `.xaml.cs` files still reference old ViewModel types after copying
 - **Symptom**: Build errors about missing type references
 - **Solution**: Update ALL type references in code-behind to match new ViewModel names
-- **Pattern**: `TestCaseGenerator_NavigationVM` → `Requirements_NavigationViewModel`
+- **Pattern**: `OldDomain_NavigationVM` → `NewDomain_NavigationViewModel`
 
 ### **Duplicate File Conflicts**
 - **Problem**: Multiple versions of same file causing build conflicts
@@ -708,25 +763,26 @@ private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected 
 - **Prevention**: Use git commits instead of backup files
 
 **✅ Proven Success Pattern:**
-1. **Copy Authentic Views**: Use TestCaseGeneration as source, never fabricate
+1. **Copy Authentic Views**: Use working proper domains (Requirements, OpenProject, etc.) as source
 2. **Match ALL Properties**: Ensure ViewModel has every property referenced in XAML
 3. **Complete Registration Chain**: DI → DataTemplate → ViewConfiguration → Using statements
 4. **Update All References**: Code-behind, namespaces, class names
 5. **Clean Build Validation**: Zero errors required before testing UI
 6. **Single File Policy**: Delete duplicates immediately
+7. ⚠️ **NEVER use TestCaseGeneration as source** - It is DEPRECATED
 
 **🎯 Key Insight**: Domain views are NOT custom implementations - they are architectural copies with updated references
 
 ---
 
-## �🚀 QUICK START CHECKLIST
+## 🚀 QUICK START CHECKLIST
 
 ### **Before ANY Implementation**
 - [ ] **Find Similar**: `grep` for similar existing functionality first
 - [ ] **Trace Dependencies**: Follow complete implementation chain  
 - [ ] **Check Broadcasts**: Does HandleBroadcastNotification already handle this?
 - [ ] **Validate Complexity**: If complex, look for simpler existing patterns
-- [ ] **FOR DOMAIN VIEWS**: Always find TestCaseGeneration equivalent first
+- [ ] **FOR DOMAIN VIEWS**: Use proper domains (Requirements, OpenProject, etc.) - NOT TestCaseGeneration
 
 ### **For New ViewModel**
 - [ ] Inherit from `BaseDomainViewModel`
@@ -736,7 +792,7 @@ private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected 
 - [ ] Add ResourceDictionary to App.xaml if new file
 
 ### **For Domain View Creation (FOLLOW CHAIN ABOVE)**
-- [ ] **Find Source**: Identify TestCaseGeneration equivalent view
+- [ ] **Find Source**: Identify proper domain equivalent view (NOT TestCaseGeneration)
 - [ ] **Copy Files**: Both .xaml and .xaml.cs to new domain
 - [ ] **Analyze XAML**: `grep` for ALL property bindings before creating ViewModel
 - [ ] **Match Properties**: Ensure ViewModel has every property referenced in XAML
@@ -756,7 +812,7 @@ private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected 
 - [ ] Validate converter registration in App.xaml
 
 ### **For Domain View Creation (NEW)**
-- [ ] **Copy Authentic Views**: Use TestCaseGeneration as source, never fabricate custom views
+- [ ] **Copy Authentic Views**: Use proper domains (Requirements, OpenProject, etc.) as source - NOT TestCaseGeneration
 - [ ] **Identify ALL Properties**: `grep` XAML for all property bindings before creating ViewModel
 - [ ] **Match Property Types**: Ensure ViewModel properties match exact types expected by XAML
 - [ ] **Complete DI Chain**: ViewModel registration → DataTemplate → ViewConfiguration → Using statements
@@ -775,7 +831,7 @@ private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected 
 - Mixed UI logic with domain state management
 
 **✅ Correct Pattern That Works:**
-1. **Single Source of Truth**: TestCaseGenerationMediator owns IsDirty state
+1. **Single Source of Truth**: Domain mediator owns IsDirty state
 2. **Event-Driven Updates**: Mediator broadcasts WorkflowStateChanged
 3. **Reactive ViewModels**: HeaderVM simply reflects mediator state
 4. **Clear Ownership**: WorkspaceManagement handles save operations
@@ -979,12 +1035,12 @@ MVVM/
 ```
 📁 User Action (Any Domain)
 │
-├── 📡 **WorkspaceManagement Domain**
+├── 📡 **OpenProject/WorkspaceManagement Domain**
 │   ├── Handle file dialog
 │   ├── BroadcastToAllDomains(ImportRequirementsRequest)
 │   └── Set IsAppendMode flag
 │
-└── 👂 **TestCaseGeneration Domain**
+└── 👂 **Requirements Domain**
     ├── Receive via HandleBroadcastNotification
     ├── Process requirements with scrubber service
     ├── Append vs Replace logic based on mode
@@ -1105,18 +1161,18 @@ services.AddSingleton<JamaConnectService>(provider =>
 ├── 🎯 **UI Trigger** (Any Domain)
 │   └── User clicks "Import from Jama"
 │
-├── 📡 **WorkspaceManagement Domain**
+├── 📡 **OpenProject/WorkspaceManagement Domain**
 │   ├── JamaConnectService.AuthenticateAsync()
 │   ├── JamaConnectService.FetchProjectRequirementsAsync(projectId)
 │   ├── Transform Jama items → Workspace.Requirements
 │   ├── Set workspace.ImportSource = "Jama"
 │   └── BroadcastToAllDomains(RequirementsImported)
 │
-└── 👂 **TestCaseGeneration Domain**
+└── 👂 **Requirements Domain**
     ├── Receive RequirementsImported event
     ├── Update mediator Requirements collection
     ├── Trigger view refresh via domain events
-    └── ViewConfigurationService routes to JamaRequirementsMainViewModel
+    └── ViewConfigurationService routes to appropriate MainViewModel
 ```
 
 #### **🔧 Implementation Files**
@@ -1538,7 +1594,8 @@ public class MyViewModel : BaseDomainViewModel
 ### **Template: Mediator State Management**
 ```csharp
 // ✅ CORRECT - Mediator owns state, broadcasts changes
-public class TestCaseGenerationMediator : BaseDomainMediator<TestCaseGenerationEvents>
+// Example pattern for any domain mediator
+public class RequirementsMediator : BaseDomainMediator<RequirementsEvents>
 {
     private bool _isDirty;
     public bool IsDirty
