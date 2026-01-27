@@ -70,12 +70,26 @@ namespace TestCaseEditorApp.Converters
             }
 
             // Add supplemental paragraphs from LooseContent (these are shown separately from the main description)
+            // But filter out any that duplicate the description content
             if (requirement.LooseContent?.Paragraphs?.Any() == true)
             {
+                var descriptionText = requirement.Description?.Trim() ?? "";
+                
                 foreach (var paragraph in requirement.LooseContent.Paragraphs)
                 {
                     if (!string.IsNullOrWhiteSpace(paragraph))
                     {
+                        var normalizedParagraph = paragraph.Trim();
+                        
+                        // Skip if this paragraph duplicates or is contained in the description
+                        if (!string.IsNullOrWhiteSpace(descriptionText) &&
+                            (descriptionText.Equals(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
+                             descriptionText.Contains(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
+                             normalizedParagraph.Contains(descriptionText, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            continue; // Skip duplicate content
+                        }
+                        
                         var textBlock = new TextBlock
                         {
                             Text = $"• {paragraph}",
