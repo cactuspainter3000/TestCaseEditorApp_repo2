@@ -834,9 +834,6 @@ namespace TestCaseEditorApp.Services
             int totalTablesFound = 0;
             int totalParagraphsFound = 0;
             int htmlFieldsFound = 0;
-            
-            // Pre-compute cleaned description for deduplication (paragraphs matching description should be skipped)
-            var cleanedDescription = CleanHtmlText(description ?? "").Trim();
 
             foreach (var (fieldName, content) in fieldsToScan)
             {
@@ -875,7 +872,7 @@ namespace TestCaseEditorApp.Services
                         }
                     }
 
-                    // Merge paragraphs (with deduplication)
+                    // Merge paragraphs
                     // Skip paragraphs from "description" field - that content is already in the Description property
                     if (fieldName != "description")
                     {
@@ -883,26 +880,11 @@ namespace TestCaseEditorApp.Services
                         {
                             if (!string.IsNullOrWhiteSpace(paragraph))
                             {
-                                var normalizedParagraph = paragraph.Trim();
-                                
-                                // Check if paragraph matches the Description content (ignoring bullet prefixes)
-                                if (!string.IsNullOrWhiteSpace(cleanedDescription) && IsTextDuplicate(normalizedParagraph, cleanedDescription))
-                                {
-                                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Skipped paragraph from field '{fieldName}' - matches Description content");
-                                    continue;
-                                }
-                                
-                                // Check for duplicates in already-added paragraphs (ignoring bullet prefixes)
-                                bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara => IsTextDuplicate(normalizedParagraph, existingPara));
-                                
-                                if (!isDuplicateParagraph)
+                                // Only skip exact duplicates to preserve original content
+                                if (!looseContent.Paragraphs.Contains(paragraph))
                                 {
                                     looseContent.Paragraphs.Add(paragraph);
                                     totalParagraphsFound++;
-                                }
-                                else
-                                {
-                                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Skipped duplicate paragraph from field '{fieldName}'");
                                 }
                             }
                         }
@@ -910,27 +892,14 @@ namespace TestCaseEditorApp.Services
                 }
                 else if (!string.IsNullOrWhiteSpace(content) && fieldName != "description")
                 {
-                    // Plain text content from non-description fields - add as paragraph (check for duplicates)
+                    // Plain text content from non-description fields - add as paragraph
                     var normalizedContent = content.Trim();
                     
-                    // Check if content matches the Description (ignoring bullet prefixes)
-                    if (!string.IsNullOrWhiteSpace(cleanedDescription) && IsTextDuplicate(normalizedContent, cleanedDescription))
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Skipped plain text from field '{fieldName}' - matches Description content");
-                        continue;
-                    }
-                    
-                    // Check for duplicates in already-added paragraphs (ignoring bullet prefixes)
-                    bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara => IsTextDuplicate(normalizedContent, existingPara));
-                    
-                    if (!isDuplicateParagraph)
+                    // Only skip exact duplicates to preserve original content
+                    if (!looseContent.Paragraphs.Contains(normalizedContent))
                     {
                         looseContent.Paragraphs.Add(normalizedContent);
                         totalParagraphsFound++;
-                    }
-                    else
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Skipped duplicate plain text paragraph from field '{fieldName}'");
                     }
                 }
             }
@@ -1057,9 +1026,6 @@ namespace TestCaseEditorApp.Services
             int totalTablesFound = 0;
             int totalParagraphsFound = 0;
             int htmlFieldsFound = 0;
-            
-            // Pre-compute cleaned description for deduplication (paragraphs matching description should be skipped)
-            var cleanedDescription = CleanHtmlText(description ?? "").Trim();
 
             foreach (var (fieldName, content) in fieldsToScan)
             {
@@ -1082,7 +1048,7 @@ namespace TestCaseEditorApp.Services
                         totalTablesFound++;
                     }
 
-                    // Merge paragraphs (with deduplication)
+                    // Merge paragraphs
                     // Skip paragraphs from "description" field - that content is already in the Description property
                     if (fieldName != "description")
                     {
@@ -1090,26 +1056,11 @@ namespace TestCaseEditorApp.Services
                         {
                             if (!string.IsNullOrWhiteSpace(paragraph))
                             {
-                                var normalizedParagraph = paragraph.Trim();
-                                
-                                // Check if paragraph matches the Description content (ignoring bullet prefixes)
-                                if (!string.IsNullOrWhiteSpace(cleanedDescription) && IsTextDuplicate(normalizedParagraph, cleanedDescription))
-                                {
-                                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {item.Id}: Skipped paragraph from field '{fieldName}' - matches Description content");
-                                    continue;
-                                }
-                                
-                                // Check for duplicates in already-added paragraphs (ignoring bullet prefixes)
-                                bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara => IsTextDuplicate(normalizedParagraph, existingPara));
-                                
-                                if (!isDuplicateParagraph)
+                                // Only skip exact duplicates to preserve original content
+                                if (!looseContent.Paragraphs.Contains(paragraph))
                                 {
                                     looseContent.Paragraphs.Add(paragraph);
                                     totalParagraphsFound++;
-                                }
-                                else
-                                {
-                                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {item.Id}: Skipped duplicate paragraph from field '{fieldName}'");
                                 }
                             }
                         }
@@ -1117,27 +1068,14 @@ namespace TestCaseEditorApp.Services
                 }
                 else if (!string.IsNullOrWhiteSpace(content) && fieldName != "description")
                 {
-                    // Plain text content from non-description fields - add as paragraph (check for duplicates)
+                    // Plain text content from non-description fields - add as paragraph
                     var normalizedContent = content.Trim();
                     
-                    // Check if content matches the Description (ignoring bullet prefixes)
-                    if (!string.IsNullOrWhiteSpace(cleanedDescription) && IsTextDuplicate(normalizedContent, cleanedDescription))
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {item.Id}: Skipped plain text from field '{fieldName}' - matches Description content");
-                        continue;
-                    }
-                    
-                    // Check for duplicates in already-added paragraphs (ignoring bullet prefixes)
-                    bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara => IsTextDuplicate(normalizedContent, existingPara));
-                    
-                    if (!isDuplicateParagraph)
+                    // Only skip exact duplicates to preserve original content
+                    if (!looseContent.Paragraphs.Contains(normalizedContent))
                     {
                         looseContent.Paragraphs.Add(normalizedContent);
                         totalParagraphsFound++;
-                    }
-                    else
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {item.Id}: Skipped duplicate plain text paragraph from field '{fieldName}'");
                     }
                 }
             }
@@ -1475,42 +1413,6 @@ namespace TestCaseEditorApp.Services
                 var fallback = System.Text.RegularExpressions.Regex.Replace(htmlText, @"<[^>]+>", "");
                 return System.Net.WebUtility.HtmlDecode(fallback).Trim();
             }
-        }
-
-        /// <summary>
-        /// Strip common bullet prefixes from text for comparison purposes
-        /// </summary>
-        private string StripBulletPrefix(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text))
-                return text;
-            
-            var trimmed = text.Trim();
-            
-            // Remove common bullet prefixes: •, -, *, >, etc.
-            if (trimmed.StartsWith("• ")) return trimmed.Substring(2).Trim();
-            if (trimmed.StartsWith("•")) return trimmed.Substring(1).Trim();
-            if (trimmed.StartsWith("- ")) return trimmed.Substring(2).Trim();
-            if (trimmed.StartsWith("* ")) return trimmed.Substring(2).Trim();
-            if (trimmed.StartsWith("> ")) return trimmed.Substring(2).Trim();
-            
-            return trimmed;
-        }
-
-        /// <summary>
-        /// Check if two text strings are duplicates, ignoring bullet prefixes
-        /// </summary>
-        private bool IsTextDuplicate(string text1, string text2)
-        {
-            if (string.IsNullOrWhiteSpace(text1) || string.IsNullOrWhiteSpace(text2))
-                return false;
-            
-            var clean1 = StripBulletPrefix(text1);
-            var clean2 = StripBulletPrefix(text2);
-            
-            return clean1.Equals(clean2, StringComparison.OrdinalIgnoreCase) ||
-                   clean1.Contains(clean2, StringComparison.OrdinalIgnoreCase) ||
-                   clean2.Contains(clean1, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
