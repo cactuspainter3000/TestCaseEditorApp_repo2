@@ -428,7 +428,7 @@ namespace TestCaseEditorApp
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProject_NavigationViewModel>();
 
                     // ViewModels and header VM
-                    services.AddTransient<RequirementGenerationViewModel>();
+                    // REMOVED: RequirementGenerationViewModel - dead code, never resolved
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementImportExportViewModel>();
                     // REMOVED: TestCaseGeneratorSplashViewModel - dead code, never used
                     // REMOVED: TestCaseGeneratorSplashScreenViewModel - dead code, never used
@@ -456,7 +456,7 @@ namespace TestCaseEditorApp
                     // New domain ViewModels for consolidation
                     // UIModalManagementViewModel REMOVED - Cross-cutting infrastructure violation, use domain mediators
                     // LLMServiceManagementViewModel REMOVED - Duplicate of TestCaseGeneration domain LLM infrastructure
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementProcessingViewModel>();
+                    // REMOVED: RequirementProcessingViewModel - dead code, never resolved
                     // RequirementAnalysisManagementViewModel REMOVED - duplicate functionality, use RequirementAnalysisViewModel in TestCaseGeneration domain
                     // WorkspaceManagementViewModel REMOVED - duplicate functionality, use WorkspaceProjectViewModel
                     // NavigationHeaderManagementViewModel REMOVED - Cross-cutting infrastructure violation
