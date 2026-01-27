@@ -69,6 +69,7 @@ namespace TestCaseEditorApp
                     services.AddSingleton<IPersistenceService, JsonPersistenceService>();
                     services.AddSingleton<IWorkspaceValidationService, WorkspaceValidationService>();
                     services.AddSingleton<IWorkspaceContext, WorkspaceContextService>();
+                    services.AddSingleton<RecentFilesService>();
 
                     // Toast notification system
                     services.AddSingleton<ToastNotificationService>(provider => 
@@ -419,8 +420,9 @@ namespace TestCaseEditorApp
                     {
                         var mediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.IOpenProjectMediator>();
                         var persistenceService = provider.GetRequiredService<IPersistenceService>();
+                        var recentFilesService = provider.GetRequiredService<RecentFilesService>();
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel>>();
-                        return new TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel(mediator, persistenceService, logger);
+                        return new TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel(mediator, persistenceService, recentFilesService, logger);
                     });
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProject_TitleViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProject_HeaderViewModel>();

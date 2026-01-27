@@ -23,6 +23,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
         // Domain mediator (properly typed)
         private new readonly IOpenProjectMediator _mediator;
         private readonly IPersistenceService _persistenceService;
+        private readonly RecentFilesService _recentFilesService;
         
         [ObservableProperty]
         private string selectedProjectPath = "";
@@ -83,23 +84,29 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             _logger.LogInformation($"*** IsMainOpenButtonActive changed to: {value} - STACK TRACE: {Environment.StackTrace}");
         }
 
+        // Recent Projects
+        public IReadOnlyList<RecentProjectInfo> RecentProjects => GetRecentProjectsInfo();
+
         // Commands
         public ICommand SelectProjectFileCommand { get; }
         public ICommand OpenSelectedProjectCommand { get; }
         public ICommand ClearSelectionCommand { get; }
         public ICommand OpenFileDirectlyCommand { get; }
+        public ICommand OpenRecentProjectCommand { get; }
 
-        public OpenProjectWorkflowViewModel(IOpenProjectMediator mediator, IPersistenceService persistenceService, ILogger<OpenProjectWorkflowViewModel> logger)
+        public OpenProjectWorkflowViewModel(IOpenProjectMediator mediator, IPersistenceService persistenceService, RecentFilesService recentFilesService, ILogger<OpenProjectWorkflowViewModel> logger)
             : base(mediator, logger)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _persistenceService = persistenceService ?? throw new ArgumentNullException(nameof(persistenceService));
+            _recentFilesService = recentFilesService ?? throw new ArgumentNullException(nameof(recentFilesService));
             
             // Initialize commands
             SelectProjectFileCommand = new RelayCommand(SelectProjectFile);
             OpenSelectedProjectCommand = new AsyncRelayCommand(OpenSelectedProjectAsync, CanOpenSelectedProject);
             ClearSelectionCommand = new RelayCommand(ClearSelection);
             OpenFileDirectlyCommand = new AsyncRelayCommand(OpenFileDirectlyAsync);
+            OpenRecentProjectCommand = new AsyncRelayCommand<string>(OpenRecentProjectAsync);
             
             // Subscribe to domain events
             _mediator.Subscribe<OpenProjectEvents.ProjectFileSelected>(OnProjectFileSelected);
@@ -300,7 +307,8 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             }
 
             // Add to recent projects
-
+            _recentFilesService.AddRecentFile(filePath);
+            OnPropertyChanged(nameof(RecentProjects));
             
             // Open through mediator
             var success = await _mediator.OpenProjectFileAsync(filePath);
@@ -469,5 +477,80 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             _mediator.Unsubscribe<OpenProjectEvents.ProjectOpenFailed>(OnProjectOpenFailed);
             _mediator.Unsubscribe<OpenProjectEvents.WorkspaceLoaded>(OnWorkspaceLoaded);
         }
+
+        /// <summary>
+        /// Gets recent projects with metadata for display
+        /// </summary>
+        private IReadOnlyList<RecentProjectInfo> GetRecentProjectsInfo()
+        {
+            var recentFiles = _recentFilesService.GetRecentFiles();
+            var result = new List<RecentProjectInfo>();
+            
+            foreach (var filePath in recentFiles)
+            {
+                try
+                {
+                    if (!File.Exists(filePath))
+                        continue;
+                        
+                    var fileInfo = new FileInfo(filePath);
+                    var projectName = Path.GetFileNameWithoutExtension(filePath);
+                    
+                    // Try to get requirement count from file
+                    int reqCount = 0;
+                    try
+                    {
+                        var jsonContent = File.ReadAllText(filePath);
+                        using var document = JsonDocument.Parse(jsonContent);
+                        if (document.RootElement.TryGetProperty("Requirements", out var reqsElement) 
+                            && reqsElement.ValueKind == JsonValueKind.Array)
+                        {
+                            reqCount = reqsElement.GetArrayLength();
+                        }
+                    }
+                    catch { /* Ignore parsing errors */ }
+                    
+                    result.Add(new RecentProjectInfo
+                    {
+                        FilePath = filePath,
+                        ProjectName = projectName,
+                        LastModified = fileInfo.LastWriteTime,
+                        RequirementCount = reqCount
+                    });
+                }
+                catch
+                {
+                    // Skip files that can't be read
+                }
+            }
+            
+            return result.AsReadOnly();
+        }
+
+        /// <summary>
+        /// Opens a recent project by file path
+        /// </summary>
+        private async Task OpenRecentProjectAsync(string? filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+                return;
+                
+            _logger.LogInformation($"Opening recent project: {filePath}");
+            await OpenProjectFile(filePath);
+        }
+    }
+
+    /// <summary>
+    /// Model for displaying recent project information
+    /// </summary>
+    public class RecentProjectInfo
+    {
+        public string FilePath { get; set; } = "";
+        public string ProjectName { get; set; } = "";
+        public DateTime LastModified { get; set; }
+        public int RequirementCount { get; set; }
+        
+        public string DisplayText => $"{ProjectName} ({RequirementCount} reqs)";
+        public string LastModifiedText => LastModified.ToString("MMM d, yyyy h:mm tt");
     }
 }
