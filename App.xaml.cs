@@ -432,8 +432,8 @@ namespace TestCaseEditorApp
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementImportExportViewModel>();
                     // REMOVED: TestCaseGeneratorSplashViewModel - dead code, never used
                     // REMOVED: TestCaseGeneratorSplashScreenViewModel - dead code, never used
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementAnalysisViewModel>();
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.ChatGptExportAnalysisViewModel>();
+                    // REMOVED: RequirementAnalysisViewModel (TestCaseGeneration namespace) - duplicate of Requirements domain version, deleted
+                    // REMOVED: ChatGptExportAnalysisViewModel - dead code domain, never used
                     services.AddSingleton<WorkspaceHeaderViewModel>(); // workspace header shared instance
                     // Old NotificationAreaViewModel deleted - now using shared NotificationWorkspaceViewModel
                     
