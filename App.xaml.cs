@@ -206,6 +206,7 @@ namespace TestCaseEditorApp
                     {
                         var newProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator>();
                         var openProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.IOpenProjectMediator>();
+                        var projectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Project.Mediators.IProjectMediator>();
                         var navigationMediator = provider.GetRequiredService<INavigationMediator>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
                         var requirementsMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
@@ -213,7 +214,7 @@ namespace TestCaseEditorApp
                         var jamaConnectService = provider.GetRequiredService<JamaConnectService>();
                         var logger = provider.GetRequiredService<ILogger<SideMenuViewModel>>();
                         
-                        return new SideMenuViewModel(newProjectMediator, openProjectMediator, navigationMediator, 
+                        return new SideMenuViewModel(newProjectMediator, openProjectMediator, projectMediator, navigationMediator, 
                             testCaseGenerationMediator, requirementsMediator, testCaseAnythingLLMService, jamaConnectService, logger);
                     });
 
