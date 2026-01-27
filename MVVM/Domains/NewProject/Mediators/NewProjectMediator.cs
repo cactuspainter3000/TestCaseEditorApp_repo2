@@ -1200,6 +1200,22 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 LastModified = DateTime.Now
             };
             
+            // Clear workspace context cache to ensure fresh data from new project
+            var workspaceContextService = App.ServiceProvider?.GetService<TestCaseEditorApp.Services.IWorkspaceContext>();
+            if (workspaceContextService is TestCaseEditorApp.Services.WorkspaceContextService contextService)
+            {
+                _logger.LogInformation("🔄 Refreshing workspace context cache for opened project");
+                contextService.NotifyWorkspaceChanged(null, notification.Workspace, TestCaseEditorApp.Services.WorkspaceChangeType.Loaded);
+            }
+            
+            // Clear view configuration to ensure fresh routing based on new workspace data
+            var viewConfigService = App.ServiceProvider?.GetService<TestCaseEditorApp.Services.ViewConfigurationService>();
+            if (viewConfigService != null)
+            {
+                _logger.LogInformation("🔄 Clearing view configuration for fresh routing");
+                viewConfigService.ClearCurrentConfiguration();
+            }
+            
             _logger.LogInformation("✅ NewProjectMediator workspace tracking updated for: {WorkspaceName}", 
                 notification.WorkspaceName);
         }
