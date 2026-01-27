@@ -353,10 +353,9 @@ namespace TestCaseEditorApp
                         var newProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator>();
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel>>();
                         var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
-                        var toastNotificationService = provider.GetRequiredService<ToastNotificationService>();
                         
                         return new TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel(
-                            newProjectMediator, logger, anythingLLMService, toastNotificationService);
+                            newProjectMediator, logger, anythingLLMService);
                     });
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectHeaderViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.DummyNewProjectTitleViewModel>();

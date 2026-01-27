@@ -23,7 +23,13 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         private new readonly INewProjectMediator _mediator;
         
         private readonly AnythingLLMService _anythingLLMService;
-        private readonly ToastNotificationService _toastService;
+        
+        // Busy state properties for spinner feedback
+        [ObservableProperty]
+        private bool isCreatingProject = false;
+        
+        [ObservableProperty]
+        private bool isImportingRequirements = false;
 
         [ObservableProperty]
         private string jamaConnectionStatus = "Ready to connect";
@@ -127,6 +133,8 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         {
             get
             {
+                if (IsCreatingProject)
+                    return "🔄 Creating...";
                 if (!HasWorkspaceName)
                     return "⚠️ Create AnythingLLM Workspace First";
                 if (!IsWorkspaceCreated)
@@ -204,15 +212,12 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         public NewProjectWorkflowViewModel(
             INewProjectMediator newProjectMediator,
             ILogger<NewProjectWorkflowViewModel> logger,
-            AnythingLLMService anythingLLMService, 
-            ToastNotificationService toastService)
+            AnythingLLMService anythingLLMService)
             : base(newProjectMediator, logger)
         {
             // Store properly typed mediator
             _mediator = newProjectMediator ?? throw new ArgumentNullException(nameof(newProjectMediator));
-            
-                        _anythingLLMService = anythingLLMService ?? throw new ArgumentNullException(nameof(anythingLLMService));
-            _toastService = toastService ?? throw new ArgumentNullException(nameof(toastService));
+            _anythingLLMService = anythingLLMService ?? throw new ArgumentNullException(nameof(anythingLLMService));
             SelectDocumentCommand = new RelayCommand(SelectDocument);
             ChooseProjectSaveLocationCommand = new RelayCommand(ChooseProjectSaveLocation);
             CreateProjectCommand = new RelayCommand(CreateProject);
@@ -533,10 +538,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                     ProjectName = Path.GetFileNameWithoutExtension(dlg.FileName);
                 }
                 
-                // Provide user feedback
-                var fileName = System.IO.Path.GetFileName(dlg.FileName);
-                _toastService.ShowToast($"Requirements document selected: {fileName}", durationSeconds: 3, type: ToastType.Success);
-                
                 // Update button text
                 OnPropertyChanged(nameof(CreateProjectButtonText));
                 OnPropertyChanged(nameof(CreateProjectButtonTooltip));
@@ -556,10 +557,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 {
                     ProjectName = result.ProjectName;
                 }
-                
-                // Provide user feedback
-                var fileName = Path.GetFileName(result.FilePath);
-                _toastService.ShowToast($"Project save location selected: {fileName}", durationSeconds: 3, type: ToastType.Success);
             }
         }
 
@@ -581,6 +578,9 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
 
             TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Creating project with workspace '{WorkspaceName}', document '{SelectedDocumentPath}', save path '{ProjectSavePath}'");
 
+            IsCreatingProject = true;
+            OnPropertyChanged(nameof(CreateProjectButtonText));
+            
             try
             {
                 string documentPathToUse = SelectedDocumentPath;
@@ -655,6 +655,11 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                     $"Error creating project: {ex.Message}", 
                     DomainNotificationType.Error);
                 _mediator.HideProgress();
+            }
+            finally
+            {
+                IsCreatingProject = false;
+                OnPropertyChanged(nameof(CreateProjectButtonText));
             }
         }
 
@@ -741,12 +746,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                         {
                             // Clear loading state immediately
                             IsValidatingWorkspace = false;
-                            
-                            // Show success toast with configuration status
-                            var statusMessage = configurationSuccessful 
-                                ? $"Project workspace '{WorkspaceName}' created with optimized settings!"
-                                : $"Project workspace '{WorkspaceName}' created (settings will be applied during first analysis)";
-                            _toastService.ShowToast(statusMessage, durationSeconds: 5, type: ToastType.Success);
                             
                             // Clear validation message UI and update status
                             WorkspaceValidationMessage = "";
@@ -896,13 +895,11 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 {
                     JamaConnectionStatus = "Connected to Jama Connect";
                     HasJamaConnection = true;
-                    _toastService.ShowToast("Jama connection test successful!", durationSeconds: 3, type: ToastType.Success);
                 }
                 else
                 {
                     JamaConnectionStatus = $"Connection failed: {message}";
                     HasJamaConnection = false;
-                    _toastService.ShowToast($"Jama connection failed: {message}", durationSeconds: 5, type: ToastType.Error);
                 }
             }
             catch (Exception ex)
@@ -910,7 +907,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 JamaConnectionStatus = $"Error testing connection: {ex.Message}";
                 HasJamaConnection = false;
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, "Failed to test Jama connection");
-                _toastService.ShowToast($"Error testing Jama connection: {ex.Message}", durationSeconds: 5, type: ToastType.Error);
             }
             finally
             {
@@ -939,7 +935,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, "Failed to toggle Jama import");
-                _toastService.ShowToast($"Error accessing Jama: {ex.Message}", durationSeconds: 5, type: ToastType.Error);
             }
         }
         
@@ -1013,19 +1008,16 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             try
             {
                 IsLoadingRequirements = true;
-                _toastService.ShowToast($"Loading requirements from {SelectedProject.Name}...", durationSeconds: 2, type: ToastType.Info);
                 
                 var requirements = await _mediator.GetJamaRequirementsAsync(SelectedProject.Id);
                 RequirementsCount = requirements.Count;
                 
-                _toastService.ShowToast($"Found {requirements.Count} requirements", durationSeconds: 3, type: ToastType.Success);
                 TestCaseEditorApp.Services.Logging.Log.Info($"Found {requirements.Count} requirements in Jama project {SelectedProject.Name}");
             }
             catch (Exception ex)
             {
                 RequirementsCount = 0;
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"Failed to load requirements from Jama project {SelectedProject?.Name}");
-                _toastService.ShowToast($"Error loading requirements: {ex.Message}", durationSeconds: 5, type: ToastType.Error);
             }
             finally
             {
@@ -1045,7 +1037,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             
             try
             {
-                _toastService.ShowToast("Importing requirements...", durationSeconds: 2, type: ToastType.Info);
+                IsImportingRequirements = true;
                 
                 // Import through mediator to create requirements JSON file
                 var tempPath = await _mediator.ImportJamaRequirementsAsync(SelectedProject.Id, SelectedProject.Name, SelectedProject.Key);
@@ -1066,14 +1058,15 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                     FilePath = tempPath
                 });
                 
-                _toastService.ShowToast($"Successfully imported requirements from {SelectedProject.Name}!", durationSeconds: 5, type: ToastType.Success);
-                TestCaseEditorApp.Services.Logging.Log.Info($"Successfully imported requirements from Jama project {SelectedProject.Name} to {tempPath}");
                 TestCaseEditorApp.Services.Logging.Log.Info($"Successfully imported requirements from Jama project {SelectedProject.Name} to {tempPath}");
             }
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"Failed to import requirements from Jama project {SelectedProject?.Name}");
-                _toastService.ShowToast($"Error importing requirements: {ex.Message}", durationSeconds: 5, type: ToastType.Error);
+            }
+            finally
+            {
+                IsImportingRequirements = false;
             }
         }
         

@@ -354,11 +354,21 @@
                                             </ListBox.ItemTemplate>
                                         </ListBox>
                                         
-                                        <!-- Loading overlay -->
+                                        <!-- Loading projects overlay -->
                                         <Border Background="#99000000"
                                                 Visibility="{Binding IsLoadingProjects, Converter={StaticResource BoolToVis}}"
                                                 CornerRadius="4">
                                             <TextBlock Text="🔄 Loading projects..." 
+                                                       Foreground="#DDDDDD" 
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                        </Border>
+                                        
+                                        <!-- Importing requirements overlay -->
+                                        <Border Background="#99000000"
+                                                Visibility="{Binding IsImportingRequirements, Converter={StaticResource BoolToVis}}"
+                                                CornerRadius="4">
+                                            <TextBlock Text="🔄 Importing requirements..." 
                                                        Foreground="#DDDDDD" 
                                                        HorizontalAlignment="Center"
                                                        VerticalAlignment="Center"/>
@@ -583,6 +593,9 @@
                                     <Setter Property="IsEnabled" Value="{Binding CanProceed}"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsProjectCreated}" Value="True">
+                                            <Setter Property="IsEnabled" Value="False"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsCreatingProject}" Value="True">
                                             <Setter Property="IsEnabled" Value="False"/>
                                         </DataTrigger>
                                     </Style.Triggers>
