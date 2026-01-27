@@ -853,28 +853,55 @@ namespace TestCaseEditorApp.Services
                         }
                     }
 
-                    // Merge paragraphs
+                    // Merge paragraphs (with deduplication)
                     foreach (var paragraph in fieldContent.Paragraphs)
                     {
                         if (!string.IsNullOrWhiteSpace(paragraph))
                         {
-                            // Optionally prefix with field name for context
-                            var contextualParagraph = fieldName != "description" 
-                                ? $"[{fieldName}] {paragraph}" 
-                                : paragraph;
-                            looseContent.Paragraphs.Add(contextualParagraph);
-                            totalParagraphsFound++;
+                            // Check for duplicate paragraphs based on content
+                            var normalizedParagraph = paragraph.Trim();
+                            bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara =>
+                                existingPara.Trim().Equals(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
+                                existingPara.Contains(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
+                                normalizedParagraph.Contains(existingPara.Trim(), StringComparison.OrdinalIgnoreCase));
+                            
+                            if (!isDuplicateParagraph)
+                            {
+                                // Optionally prefix with field name for context
+                                var contextualParagraph = fieldName != "description" 
+                                    ? $"[{fieldName}] {paragraph}" 
+                                    : paragraph;
+                                looseContent.Paragraphs.Add(contextualParagraph);
+                                totalParagraphsFound++;
+                            }
+                            else
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Skipped duplicate paragraph from field '{fieldName}'");
+                            }
                         }
                     }
                 }
                 else if (!string.IsNullOrWhiteSpace(content))
                 {
-                    // Plain text content - add as paragraph with context
-                    var contextualParagraph = fieldName != "description" 
-                        ? $"[{fieldName}] {content.Trim()}" 
-                        : content.Trim();
-                    looseContent.Paragraphs.Add(contextualParagraph);
-                    totalParagraphsFound++;
+                    // Plain text content - add as paragraph with context (check for duplicates)
+                    var normalizedContent = content.Trim();
+                    bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara =>
+                        existingPara.Trim().Equals(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
+                        existingPara.Contains(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
+                        normalizedContent.Contains(existingPara.Trim(), StringComparison.OrdinalIgnoreCase));
+                    
+                    if (!isDuplicateParagraph)
+                    {
+                        var contextualParagraph = fieldName != "description" 
+                            ? $"[{fieldName}] {normalizedContent}" 
+                            : normalizedContent;
+                        looseContent.Paragraphs.Add(contextualParagraph);
+                        totalParagraphsFound++;
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Skipped duplicate plain text paragraph from field '{fieldName}'");
+                    }
                 }
             }
 
@@ -996,28 +1023,55 @@ namespace TestCaseEditorApp.Services
                         totalTablesFound++;
                     }
 
-                    // Merge paragraphs
+                    // Merge paragraphs (with deduplication)
                     foreach (var paragraph in fieldContent.Paragraphs)
                     {
                         if (!string.IsNullOrWhiteSpace(paragraph))
                         {
-                            // Optionally prefix with field name for context
-                            var contextualParagraph = fieldName != "description" 
-                                ? $"[{fieldName}] {paragraph}" 
-                                : paragraph;
-                            looseContent.Paragraphs.Add(contextualParagraph);
-                            totalParagraphsFound++;
+                            // Check for duplicate paragraphs based on content
+                            var normalizedParagraph = paragraph.Trim();
+                            bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara =>
+                                existingPara.Trim().Equals(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
+                                existingPara.Contains(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
+                                normalizedParagraph.Contains(existingPara.Trim(), StringComparison.OrdinalIgnoreCase));
+                            
+                            if (!isDuplicateParagraph)
+                            {
+                                // Optionally prefix with field name for context
+                                var contextualParagraph = fieldName != "description" 
+                                    ? $"[{fieldName}] {paragraph}" 
+                                    : paragraph;
+                                looseContent.Paragraphs.Add(contextualParagraph);
+                                totalParagraphsFound++;
+                            }
+                            else
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {item.Id}: Skipped duplicate paragraph from field '{fieldName}'");
+                            }
                         }
                     }
                 }
                 else if (!string.IsNullOrWhiteSpace(content))
                 {
-                    // Plain text content - add as paragraph with context
-                    var contextualParagraph = fieldName != "description" 
-                        ? $"[{fieldName}] {content.Trim()}" 
-                        : content.Trim();
-                    looseContent.Paragraphs.Add(contextualParagraph);
-                    totalParagraphsFound++;
+                    // Plain text content - add as paragraph with context (check for duplicates)
+                    var normalizedContent = content.Trim();
+                    bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara =>
+                        existingPara.Trim().Equals(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
+                        existingPara.Contains(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
+                        normalizedContent.Contains(existingPara.Trim(), StringComparison.OrdinalIgnoreCase));
+                    
+                    if (!isDuplicateParagraph)
+                    {
+                        var contextualParagraph = fieldName != "description" 
+                            ? $"[{fieldName}] {normalizedContent}" 
+                            : normalizedContent;
+                        looseContent.Paragraphs.Add(contextualParagraph);
+                        totalParagraphsFound++;
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {item.Id}: Skipped duplicate plain text paragraph from field '{fieldName}'");
+                    }
                 }
             }
 

@@ -25,12 +25,13 @@ namespace TestCaseEditorApp.Converters
 
             var contentElements = new List<FrameworkElement>();
 
-            // Add description text (use cleaned version if available to avoid table duplication)
+            // Add description text first (use Description, not CleanedDescription to avoid duplication with paragraphs)
             if (!string.IsNullOrWhiteSpace(requirement.Description))
             {
-                var descriptionToUse = requirement.LooseContent?.CleanedDescription ?? requirement.Description;
+                // Use the clean Description field, not CleanedDescription which may contain paragraphs
+                var descriptionToUse = requirement.Description;
                 
-                // Clean description by removing any remaining table data if not already cleaned
+                // Clean description by removing any remaining table data
                 var cleanDescription = CleanDescriptionFromTableData(descriptionToUse, requirement.LooseContent?.Tables);
                 
                 // Split description into paragraphs
@@ -65,6 +66,27 @@ namespace TestCaseEditorApp.Converters
                         FontSize = 14
                     };
                     contentElements.Add(textBlock);
+                }
+            }
+
+            // Add supplemental paragraphs from LooseContent (these are shown separately from the main description)
+            if (requirement.LooseContent?.Paragraphs?.Any() == true)
+            {
+                foreach (var paragraph in requirement.LooseContent.Paragraphs)
+                {
+                    if (!string.IsNullOrWhiteSpace(paragraph))
+                    {
+                        var textBlock = new TextBlock
+                        {
+                            Text = $"• {paragraph}",
+                            TextWrapping = TextWrapping.Wrap,
+                            Margin = new Thickness(0, 0, 0, 8),
+                            LineHeight = 20,
+                            Foreground = System.Windows.Application.Current.TryFindResource("Brush.Text.Secondary") as System.Windows.Media.Brush,
+                            FontSize = 14
+                        };
+                        contentElements.Add(textBlock);
+                    }
                 }
             }
 
