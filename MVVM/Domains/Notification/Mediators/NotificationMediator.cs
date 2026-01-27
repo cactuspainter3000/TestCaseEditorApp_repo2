@@ -177,6 +177,39 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.Mediators
                 PublishEvent(statusEvent);
                 _logger.LogDebug("Translated WorkflowStateChanged to DomainStatusChanged");
             }
+            // Handle OpenProject domain events - update requirements progress when project is opened
+            else if (notification is TestCaseEditorApp.MVVM.Domains.OpenProject.Events.OpenProjectEvents.ProjectOpened openProjectOpened)
+            {
+                var requirementCount = openProjectOpened.Workspace?.Requirements?.Count ?? 0;
+                UpdateRequirementsProgress(
+                    requirementCount,
+                    0, // No requirements analyzed yet on fresh open
+                    0, // No test cases yet on fresh open
+                    "OpenProject");
+                _logger.LogInformation("Updated requirements progress from OpenProjectEvents.ProjectOpened: {Count} requirements", requirementCount);
+            }
+            // Handle NewProject domain events - update requirements progress when project is created/opened
+            else if (notification is TestCaseEditorApp.MVVM.Domains.NewProject.Events.NewProjectEvents.ProjectOpened newProjectOpened)
+            {
+                var requirementCount = newProjectOpened.Workspace?.Requirements?.Count ?? 0;
+                UpdateRequirementsProgress(
+                    requirementCount,
+                    0, // No requirements analyzed yet on fresh open
+                    0, // No test cases yet on fresh open
+                    "NewProject");
+                _logger.LogInformation("Updated requirements progress from NewProjectEvents.ProjectOpened: {Count} requirements", requirementCount);
+            }
+            // Handle NewProject domain events - update requirements progress when project is created
+            else if (notification is TestCaseEditorApp.MVVM.Domains.NewProject.Events.NewProjectEvents.ProjectCreated projectCreated)
+            {
+                var requirementCount = projectCreated.Workspace?.Requirements?.Count ?? 0;
+                UpdateRequirementsProgress(
+                    requirementCount,
+                    0, // No requirements analyzed yet on fresh creation
+                    0, // No test cases yet on fresh creation
+                    "NewProject");
+                _logger.LogInformation("Updated requirements progress from NewProjectEvents.ProjectCreated: {Count} requirements", requirementCount);
+            }
         }
 
         /// <summary>
