@@ -885,22 +885,15 @@ namespace TestCaseEditorApp.Services
                             {
                                 var normalizedParagraph = paragraph.Trim();
                                 
-                                // Check if paragraph matches the Description content (would be duplicate in UI)
-                                bool matchesDescription = !string.IsNullOrWhiteSpace(cleanedDescription) &&
-                                    (cleanedDescription.Equals(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
-                                     cleanedDescription.Contains(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
-                                     normalizedParagraph.Contains(cleanedDescription, StringComparison.OrdinalIgnoreCase));
-                                
-                                if (matchesDescription)
+                                // Check if paragraph matches the Description content (ignoring bullet prefixes)
+                                if (!string.IsNullOrWhiteSpace(cleanedDescription) && IsTextDuplicate(normalizedParagraph, cleanedDescription))
                                 {
                                     TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Skipped paragraph from field '{fieldName}' - matches Description content");
                                     continue;
                                 }
                                 
-                                bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara =>
-                                    existingPara.Trim().Equals(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
-                                    existingPara.Contains(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
-                                    normalizedParagraph.Contains(existingPara.Trim(), StringComparison.OrdinalIgnoreCase));
+                                // Check for duplicates in already-added paragraphs (ignoring bullet prefixes)
+                                bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara => IsTextDuplicate(normalizedParagraph, existingPara));
                                 
                                 if (!isDuplicateParagraph)
                                 {
@@ -920,22 +913,15 @@ namespace TestCaseEditorApp.Services
                     // Plain text content from non-description fields - add as paragraph (check for duplicates)
                     var normalizedContent = content.Trim();
                     
-                    // Check if content matches the Description (would be duplicate in UI)
-                    bool matchesDescription = !string.IsNullOrWhiteSpace(cleanedDescription) &&
-                        (cleanedDescription.Equals(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
-                         cleanedDescription.Contains(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
-                         normalizedContent.Contains(cleanedDescription, StringComparison.OrdinalIgnoreCase));
-                    
-                    if (matchesDescription)
+                    // Check if content matches the Description (ignoring bullet prefixes)
+                    if (!string.IsNullOrWhiteSpace(cleanedDescription) && IsTextDuplicate(normalizedContent, cleanedDescription))
                     {
                         TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Skipped plain text from field '{fieldName}' - matches Description content");
                         continue;
                     }
                     
-                    bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara =>
-                        existingPara.Trim().Equals(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
-                        existingPara.Contains(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
-                        normalizedContent.Contains(existingPara.Trim(), StringComparison.OrdinalIgnoreCase));
+                    // Check for duplicates in already-added paragraphs (ignoring bullet prefixes)
+                    bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara => IsTextDuplicate(normalizedContent, existingPara));
                     
                     if (!isDuplicateParagraph)
                     {
@@ -1106,22 +1092,15 @@ namespace TestCaseEditorApp.Services
                             {
                                 var normalizedParagraph = paragraph.Trim();
                                 
-                                // Check if paragraph matches the Description content (would be duplicate in UI)
-                                bool matchesDescription = !string.IsNullOrWhiteSpace(cleanedDescription) &&
-                                    (cleanedDescription.Equals(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
-                                     cleanedDescription.Contains(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
-                                     normalizedParagraph.Contains(cleanedDescription, StringComparison.OrdinalIgnoreCase));
-                                
-                                if (matchesDescription)
+                                // Check if paragraph matches the Description content (ignoring bullet prefixes)
+                                if (!string.IsNullOrWhiteSpace(cleanedDescription) && IsTextDuplicate(normalizedParagraph, cleanedDescription))
                                 {
                                     TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {item.Id}: Skipped paragraph from field '{fieldName}' - matches Description content");
                                     continue;
                                 }
                                 
-                                bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara =>
-                                    existingPara.Trim().Equals(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
-                                    existingPara.Contains(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
-                                    normalizedParagraph.Contains(existingPara.Trim(), StringComparison.OrdinalIgnoreCase));
+                                // Check for duplicates in already-added paragraphs (ignoring bullet prefixes)
+                                bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara => IsTextDuplicate(normalizedParagraph, existingPara));
                                 
                                 if (!isDuplicateParagraph)
                                 {
@@ -1141,22 +1120,15 @@ namespace TestCaseEditorApp.Services
                     // Plain text content from non-description fields - add as paragraph (check for duplicates)
                     var normalizedContent = content.Trim();
                     
-                    // Check if content matches the Description (would be duplicate in UI)
-                    bool matchesDescription = !string.IsNullOrWhiteSpace(cleanedDescription) &&
-                        (cleanedDescription.Equals(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
-                         cleanedDescription.Contains(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
-                         normalizedContent.Contains(cleanedDescription, StringComparison.OrdinalIgnoreCase));
-                    
-                    if (matchesDescription)
+                    // Check if content matches the Description (ignoring bullet prefixes)
+                    if (!string.IsNullOrWhiteSpace(cleanedDescription) && IsTextDuplicate(normalizedContent, cleanedDescription))
                     {
                         TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {item.Id}: Skipped plain text from field '{fieldName}' - matches Description content");
                         continue;
                     }
                     
-                    bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara =>
-                        existingPara.Trim().Equals(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
-                        existingPara.Contains(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
-                        normalizedContent.Contains(existingPara.Trim(), StringComparison.OrdinalIgnoreCase));
+                    // Check for duplicates in already-added paragraphs (ignoring bullet prefixes)
+                    bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara => IsTextDuplicate(normalizedContent, existingPara));
                     
                     if (!isDuplicateParagraph)
                     {
@@ -1503,6 +1475,42 @@ namespace TestCaseEditorApp.Services
                 var fallback = System.Text.RegularExpressions.Regex.Replace(htmlText, @"<[^>]+>", "");
                 return System.Net.WebUtility.HtmlDecode(fallback).Trim();
             }
+        }
+
+        /// <summary>
+        /// Strip common bullet prefixes from text for comparison purposes
+        /// </summary>
+        private string StripBulletPrefix(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return text;
+            
+            var trimmed = text.Trim();
+            
+            // Remove common bullet prefixes: •, -, *, >, etc.
+            if (trimmed.StartsWith("• ")) return trimmed.Substring(2).Trim();
+            if (trimmed.StartsWith("•")) return trimmed.Substring(1).Trim();
+            if (trimmed.StartsWith("- ")) return trimmed.Substring(2).Trim();
+            if (trimmed.StartsWith("* ")) return trimmed.Substring(2).Trim();
+            if (trimmed.StartsWith("> ")) return trimmed.Substring(2).Trim();
+            
+            return trimmed;
+        }
+
+        /// <summary>
+        /// Check if two text strings are duplicates, ignoring bullet prefixes
+        /// </summary>
+        private bool IsTextDuplicate(string text1, string text2)
+        {
+            if (string.IsNullOrWhiteSpace(text1) || string.IsNullOrWhiteSpace(text2))
+                return false;
+            
+            var clean1 = StripBulletPrefix(text1);
+            var clean2 = StripBulletPrefix(text2);
+            
+            return clean1.Equals(clean2, StringComparison.OrdinalIgnoreCase) ||
+                   clean1.Contains(clean2, StringComparison.OrdinalIgnoreCase) ||
+                   clean2.Contains(clean1, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
