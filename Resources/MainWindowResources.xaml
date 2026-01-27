@@ -29,9 +29,7 @@
         <tcgmodeviews:TestCaseGenerator_NavigationControl />
     </DataTemplate>
     
-    <DataTemplate DataType="{x:Type tcgvm:TestCaseGeneratorSplashScreenViewModel}">
-        <tcgviews:TestCaseGeneratorSplashScreen />
-    </DataTemplate>
+    <!-- REMOVED: TestCaseGeneratorSplashScreenViewModel DataTemplate - dead code, never used -->
 
     <DataTemplate DataType="{x:Type tccvm:TestCaseCreationMainVM}">
         <tccviews:TestCaseCreation_MainView />

@@ -430,8 +430,8 @@ namespace TestCaseEditorApp
                     // ViewModels and header VM
                     services.AddTransient<RequirementGenerationViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementImportExportViewModel>();
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorSplashViewModel>();
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorSplashScreenViewModel>();
+                    // REMOVED: TestCaseGeneratorSplashViewModel - dead code, never used
+                    // REMOVED: TestCaseGeneratorSplashScreenViewModel - dead code, never used
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementAnalysisViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.ChatGptExportAnalysisViewModel>();
                     services.AddSingleton<WorkspaceHeaderViewModel>(); // workspace header shared instance
@@ -484,7 +484,7 @@ namespace TestCaseEditorApp
                         
                         return vm;
                     });
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementsWorkspaceViewModel>();
+                    // REMOVED: RequirementsWorkspaceViewModel - dead code, use Requirements_MainViewModel from Requirements domain
                     // REMOVED: TestCaseGeneratorNotificationViewModel - use NotificationWorkspaceViewModel from Notification domain instead
 
                     // Core application services

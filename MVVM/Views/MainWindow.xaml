@@ -138,10 +138,7 @@
             </Border>
         </DataTemplate>
 
-        <!-- TestCaseGeneratorMainVM DataTemplate - Added for AI Guide compliance -->
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGeneratorMainVM}">
-            <tcgmodeviews:TestCaseGeneratorMainView />
-        </DataTemplate>
+        <!-- REMOVED: TestCaseGeneratorMainVM DataTemplate - dead code, never used -->
 
         <!-- Startup ViewModels DataTemplates -->
         <DataTemplate DataType="{x:Type startupvm:StartUp_TitleViewModel}">
