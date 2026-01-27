@@ -601,6 +601,7 @@ namespace TestCaseEditorApp
                 domainCoordinator.RegisterDomainMediator("NewProject", newProjectMediator);
                 domainCoordinator.RegisterDomainMediator("OpenProject", openProjectMediator);
                 domainCoordinator.RegisterDomainMediator("Requirements", requirementsMediator);
+                domainCoordinator.RegisterDomainMediator("Notification", notificationMediatorService);
                 
                 // Register any extension-provided domain mediators
                 foreach (var domainExtension in extensionManager.DomainExtensions.Values)
