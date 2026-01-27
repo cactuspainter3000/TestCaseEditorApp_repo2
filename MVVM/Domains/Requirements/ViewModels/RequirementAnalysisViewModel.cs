@@ -499,6 +499,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 IsEditingRequirement = false;
                 EditingRequirementText = string.Empty;
                 
+                // Publish RequirementUpdated event so mediator marks workspace as dirty
+                var mediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
+                if (mediator != null)
+                {
+                    mediator.PublishEvent(new TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementUpdated
+                    {
+                        Requirement = CurrentRequirement,
+                        ModifiedFields = new List<string> { "Analysis.ImprovedRequirement" },
+                        UpdatedBy = "RequirementAnalysisViewModel"
+                    });
+                    _logger.LogInformation("[RequirementAnalysisVM] Published RequirementUpdated event for requirement: {RequirementId}", CurrentRequirement.Item);
+                }
+                
                 _logger.LogInformation("[RequirementAnalysisVM] Saved edited requirement text");
             }
         }

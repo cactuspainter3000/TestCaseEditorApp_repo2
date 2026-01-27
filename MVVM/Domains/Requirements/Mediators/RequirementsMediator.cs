@@ -541,6 +541,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     AnalysisTime = duration
                 });
 
+                // Publish RequirementUpdated to mark workspace dirty
+                PublishEvent(new RequirementsEvents.RequirementUpdated
+                {
+                    Requirement = requirement,
+                    ModifiedFields = new List<string> { "Analysis" },
+                    UpdatedBy = "RequirementsMediator.AnalyzeRequirementAsync"
+                });
+
                 IsDirty = true;
                 HideProgress();
                 ShowNotification($"Analysis completed for {requirement.GlobalId}", DomainNotificationType.Success);
@@ -1040,6 +1048,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     _logger.LogDebug("[RequirementsMediator] DomainCoordinator available for cross-domain events");
                 }
                 
+                // Subscribe to RequirementUpdated events (from analysis or other modifications)
+                // This ensures the mediator marks the workspace as dirty when requirements are modified
+                Subscribe<RequirementsEvents.RequirementUpdated>(OnRequirementUpdated);
+                _logger.LogDebug("[RequirementsMediator] Subscribed to RequirementUpdated events");
+                
                 _logger.LogDebug("[RequirementsMediator] Subscribed to cross-domain TestCaseGeneration.RequirementSelected events");
             }
             catch (Exception ex)
@@ -1090,6 +1103,27 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[RequirementsMediator] Error handling cross-domain RequirementSelected event");
+            }
+        }
+
+        /// <summary>
+        /// Handle RequirementUpdated event - marks workspace as dirty when requirements are modified
+        /// This ensures analysis results and improved requirements get saved to the project
+        /// </summary>
+        private void OnRequirementUpdated(RequirementsEvents.RequirementUpdated eventData)
+        {
+            try
+            {
+                _logger.LogInformation("[RequirementsMediator] Requirement updated by {UpdatedBy}: {RequirementId}, Fields: {Fields}",
+                    eventData.UpdatedBy, eventData.Requirement?.Item ?? "unknown", 
+                    string.Join(", ", eventData.ModifiedFields));
+                
+                // Mark workspace as dirty so changes are persisted
+                IsDirty = true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsMediator] Error handling RequirementUpdated event");
             }
         }
         
