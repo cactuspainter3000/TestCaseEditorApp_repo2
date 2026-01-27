@@ -291,7 +291,105 @@ namespace TestCaseEditorApp.Converters
 
             TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementContentConverter] Read-only DataGrid created - no editing buttons, just table display");
 
-            return dataGrid;
+            // Wrap in a container with horizontal scroll navigation buttons for easier scrolling
+            return CreateScrollableTableContainer(dataGrid);
+        }
+
+        /// <summary>
+        /// Creates a container with the DataGrid and horizontal scroll navigation buttons
+        /// </summary>
+        private static UIElement CreateScrollableTableContainer(System.Windows.Controls.DataGrid dataGrid)
+        {
+            // Create the main container
+            var container = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                Margin = dataGrid.Margin
+            };
+
+            // Remove margin from DataGrid since container handles it
+            dataGrid.Margin = new Thickness(0);
+
+            // Add the DataGrid
+            container.Children.Add(dataGrid);
+
+            // Create horizontal scroll navigation bar
+            var scrollNavPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 4, 0, 8)
+            };
+
+            // Button style
+            var buttonStyle = new Style(typeof(Button));
+            buttonStyle.Setters.Add(new Setter(Button.BackgroundProperty, System.Windows.Application.Current.TryFindResource("Brush.Background.Card") as System.Windows.Media.Brush ?? System.Windows.Media.Brushes.DimGray));
+            buttonStyle.Setters.Add(new Setter(Button.ForegroundProperty, System.Windows.Application.Current.TryFindResource("Brush.Text.Primary") as System.Windows.Media.Brush ?? System.Windows.Media.Brushes.White));
+            buttonStyle.Setters.Add(new Setter(Button.BorderBrushProperty, System.Windows.Application.Current.TryFindResource("Brush.Border.Default") as System.Windows.Media.Brush ?? System.Windows.Media.Brushes.Gray));
+            buttonStyle.Setters.Add(new Setter(Button.BorderThicknessProperty, new Thickness(1)));
+            buttonStyle.Setters.Add(new Setter(Button.PaddingProperty, new Thickness(12, 6, 12, 6)));
+            buttonStyle.Setters.Add(new Setter(Button.CursorProperty, System.Windows.Input.Cursors.Hand));
+            buttonStyle.Setters.Add(new Setter(Button.FontSizeProperty, 12.0));
+
+            // Scroll Left button
+            var scrollLeftBtn = new Button
+            {
+                Content = "◀ Scroll Left",
+                Style = buttonStyle,
+                Margin = new Thickness(0, 0, 8, 0)
+            };
+            scrollLeftBtn.Click += (s, e) =>
+            {
+                // Find the ScrollViewer inside the DataGrid and scroll left
+                var scrollViewer = FindVisualChild<ScrollViewer>(dataGrid);
+                if (scrollViewer != null)
+                {
+                    scrollViewer.ScrollToHorizontalOffset(scrollViewer.HorizontalOffset - 150);
+                }
+            };
+
+            // Scroll Right button
+            var scrollRightBtn = new Button
+            {
+                Content = "Scroll Right ▶",
+                Style = buttonStyle
+            };
+            scrollRightBtn.Click += (s, e) =>
+            {
+                var scrollViewer = FindVisualChild<ScrollViewer>(dataGrid);
+                if (scrollViewer != null)
+                {
+                    scrollViewer.ScrollToHorizontalOffset(scrollViewer.HorizontalOffset + 150);
+                }
+            };
+
+            scrollNavPanel.Children.Add(scrollLeftBtn);
+            scrollNavPanel.Children.Add(scrollRightBtn);
+            container.Children.Add(scrollNavPanel);
+
+            return container;
+        }
+
+        /// <summary>
+        /// Helper to find a visual child of a specific type
+        /// </summary>
+        private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+                if (child is T typedChild)
+                {
+                    return typedChild;
+                }
+
+                var result = FindVisualChild<T>(child);
+                if (result != null)
+                {
+                    return result;
+                }
+            }
+            return null;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
