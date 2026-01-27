@@ -69,21 +69,13 @@ namespace TestCaseEditorApp.Converters
                 }
             }
 
-            // Add supplemental paragraphs from LooseContent (that are NOT already in Description)
+            // Add supplemental paragraphs from LooseContent
             if (requirement.LooseContent?.Paragraphs?.Any() == true)
             {
-                // Get Description text for deduplication check
-                var descriptionText = requirement.Description ?? "";
-                
                 foreach (var paragraph in requirement.LooseContent.Paragraphs)
                 {
                     if (!string.IsNullOrWhiteSpace(paragraph))
                     {
-                        // Skip paragraphs that are already part of the Description
-                        var normalizedParagraph = paragraph.Trim();
-                        if (descriptionText.Contains(normalizedParagraph, StringComparison.OrdinalIgnoreCase))
-                            continue;
-                            
                         var textBlock = new TextBlock
                         {
                             Text = $"• {paragraph}",

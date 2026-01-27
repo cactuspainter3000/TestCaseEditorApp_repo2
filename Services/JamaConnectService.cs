@@ -771,12 +771,14 @@ namespace TestCaseEditorApp.Services
 
             // Metadata/system fields that should NOT be displayed as user-facing content
             // These contain IDs, keys, and other technical data that users don't need to see
+            // "description" is handled explicitly - extracting from fields would duplicate it
             var metadataFieldsToSkip = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
                 "documentKey", "globalId", "name", "text2", "id", "key", "itemType",
                 "project", "createdBy", "modifiedBy", "createdDate", "modifiedDate",
                 "parentId", "childItemType", "sortOrder", "release", "status",
-                "synchronizedItem", "lockedBy", "lastLockedDate", "baselinedApplicableItems"
+                "synchronizedItem", "lockedBy", "lastLockedDate", "baselinedApplicableItems",
+                "description"  // Already handled explicitly above - avoid duplicate processing
             };
 
             TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: Scanning all fields for rich content");
@@ -956,12 +958,14 @@ namespace TestCaseEditorApp.Services
             };
 
             // Metadata/system fields that should NOT be displayed as user-facing content
+            // "description" is handled explicitly - extracting from fields would duplicate it
             var metadataFieldsToSkip = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
                 "documentKey", "globalId", "name", "text2", "id", "key", "itemType",
                 "project", "createdBy", "modifiedBy", "createdDate", "modifiedDate",
                 "parentId", "childItemType", "sortOrder", "release", "status",
-                "synchronizedItem", "lockedBy", "lastLockedDate", "baselinedApplicableItems"
+                "synchronizedItem", "lockedBy", "lastLockedDate", "baselinedApplicableItems",
+                "description"  // Already handled explicitly above - avoid duplicate processing
             };
 
             TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {item.Id}: Scanning all fields for rich content");
