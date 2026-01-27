@@ -191,12 +191,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             SaveRequirementCommand = new RelayCommand(SaveRequirementEdit, CanSaveRequirement);
             CopyAnalysisPromptCommand = new RelayCommand(CopyToClipboard, CanCopyToClipboard);
 
-            // Subscribe to requirement navigation events from Requirements mediator
+            // Subscribe to requirement navigation and analysis events from Requirements mediator
             var mediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
             if (mediator != null)
             {
                 mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementSelected>(OnRequirementSelected);
-                _logger.LogInformation("[RequirementAnalysisVM] Subscribed to RequirementSelected events from Requirements mediator");
+                mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementAnalyzed>(OnRequirementAnalyzed);
+                _logger.LogInformation("[RequirementAnalysisVM] Subscribed to RequirementSelected and RequirementAnalyzed events from Requirements mediator");
             }
             else
             {
@@ -823,10 +824,48 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     EditingRequirementText = improvedText;
                     IsEditingRequirement = true;
                     
-                    // Store the external analysis for learning feedback when user saves
+                    // Store the external analysis for learning feedback when user saves the improved requirement
                     _pendingExternalAnalysis = clipboardContent;
                     
-                    _logger.LogInformation("[RequirementAnalysisVM] Extracted improved requirement from clipboard - learning will trigger on save");
+                    _logger.LogInformation("[RequirementAnalysisVM] Extracted improved requirement from clipboard - additional learning will trigger on save");
+                }
+
+                // Extract and update issues from external LLM response
+                var extractedIssues = ExtractIssuesFromExternalResponse(clipboardContent);
+                if (extractedIssues.Count > 0)
+                {
+                    Issues = extractedIssues;
+                    OnPropertyChanged(nameof(HasIssues));
+                    _logger.LogInformation("[RequirementAnalysisVM] Updated {Count} issues from external LLM", extractedIssues.Count);
+                }
+                else
+                {
+                    _logger.LogInformation("[RequirementAnalysisVM] No valid issues found in external LLM response");
+                }
+
+                // Extract quality score if available
+                var qualityScore = ExtractQualityScoreFromExternalResponse(clipboardContent);
+                if (qualityScore.HasValue)
+                {
+                    QualityScore = qualityScore.Value;
+                    _logger.LogInformation("[RequirementAnalysisVM] Updated quality score from external LLM: {Score}", qualityScore.Value);
+                }
+
+                // Mark as having analysis
+                HasAnalysis = true;
+                AnalysisTimestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+                // ALWAYS trigger learning for external LLM analysis (if improved requirement was found)
+                // This feeds the external response to AnythingLLM so it can learn from the external LLM's analysis
+                // The FeedLearningToAnythingLLM method will extract the improved requirement and prompt user for consent
+                if (!string.IsNullOrWhiteSpace(improvedText))
+                {
+                    _ = FeedLearningToAnythingLLM(clipboardContent);
+                    _logger.LogInformation("[RequirementAnalysisVM] Triggered AnythingLLM learning consent prompt from external analysis");
+                }
+                else
+                {
+                    _logger.LogInformation("[RequirementAnalysisVM] No improved requirement found in external response - learning skipped");
                 }
 
                 // Reset UI state
@@ -874,6 +913,221 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
             
             return string.Empty;
+        }
+
+        /// <summary>
+        /// Extract issues from external LLM response
+        /// </summary>
+        private List<AnalysisIssue> ExtractIssuesFromExternalResponse(string response)
+        {
+            var issues = new List<AnalysisIssue>();
+            
+            try
+            {
+                var lines = response.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                bool inIssuesSection = false;
+                
+                foreach (var line in lines)
+                {
+                    var trimmed = line.Trim();
+                    var upper = trimmed.ToUpperInvariant();
+                    
+                    // Check if we're entering issues section
+                    if (upper.StartsWith("ISSUES FOUND") || upper.StartsWith("ISSUES:") || 
+                        upper.StartsWith("ISSUES IDENTIFIED") || upper.Contains("ISSUES FOUND"))
+                    {
+                        inIssuesSection = true;
+                        continue;
+                    }
+                    
+                    // Check if we're leaving issues section
+                    if (inIssuesSection && (upper.StartsWith("STRENGTHS") || upper.StartsWith("IMPROVED") || 
+                                          upper.StartsWith("RECOMMENDATIONS") || upper.StartsWith("OVERALL") ||
+                                          upper.StartsWith("BETTER") || upper.StartsWith("REVISED")))
+                    {
+                        break;
+                    }
+                    
+                    // Extract issue if we're in the section
+                    if (inIssuesSection && (trimmed.StartsWith("*") || trimmed.StartsWith("-") || trimmed.StartsWith("•")))
+                    {
+                        var issue = ParseIssueFromExternalLine(trimmed);
+                        if (issue != null)
+                        {
+                            issues.Add(issue);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[RequirementAnalysisVM] Error extracting issues from external response");
+            }
+            
+            return issues;
+        }
+
+        /// <summary>
+        /// Parse individual issue from line
+        /// </summary>
+        private AnalysisIssue? ParseIssueFromExternalLine(string line)
+        {
+            try
+            {
+                // Remove leading asterisk and trim
+                var content = line.TrimStart('*', '-', '•').Trim();
+                
+                // Pattern 1: "Category Issue (Priority): Description | Fix: Solution"
+                var match1 = System.Text.RegularExpressions.Regex.Match(content, 
+                    @"^(.+?)\s+Issue\s*\((.+?)\):\s*(.+?)(?:\s*\|\s*Fix:\s*(.+))?$", 
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                
+                if (match1.Success && !string.IsNullOrWhiteSpace(match1.Groups[4].Value))
+                {
+                    return CreateIssueFromExternal(match1.Groups[1].Value, match1.Groups[2].Value, 
+                                     match1.Groups[3].Value, match1.Groups[4].Value);
+                }
+                
+                // Pattern 2: "Category (Priority): Description. Fix: Solution" 
+                var match2 = System.Text.RegularExpressions.Regex.Match(content,
+                    @"^(.+?)\s*\((.+?)\):\s*(.+?)\.?\s*(?:Fix|Fixed|Resolution|Resolved):\s*(.+)$",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                
+                if (match2.Success && !string.IsNullOrWhiteSpace(match2.Groups[4].Value))
+                {
+                    return CreateIssueFromExternal(match2.Groups[1].Value, match2.Groups[2].Value,
+                                     match2.Groups[3].Value, match2.Groups[4].Value);
+                }
+                
+                // Pattern 3: Look for any "Fix:" anywhere in the line
+                var fixMatch = System.Text.RegularExpressions.Regex.Match(content,
+                    @"(.+?)(?:Fix|Fixed|Resolution|Resolved):\s*(.+?)(?:\s*\((.+?)\))?$",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                
+                if (fixMatch.Success && !string.IsNullOrWhiteSpace(fixMatch.Groups[2].Value))
+                {
+                    var category = ExtractCategoryFromIssueDescription(fixMatch.Groups[1].Value.Trim());
+                    return CreateIssueFromExternal(category, "Medium", fixMatch.Groups[1].Value, fixMatch.Groups[2].Value);
+                }
+
+                // Pattern 4: Simple "Category: Description" without explicit fix
+                // For external LLMs that don't provide explicit fixes, create issue with description as fix hint
+                var simpleMatch = System.Text.RegularExpressions.Regex.Match(content,
+                    @"^\*?\*?(.+?)\*?\*?\s*[\(:]\s*(.+)$",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                
+                if (simpleMatch.Success)
+                {
+                    var category = simpleMatch.Groups[1].Value.Trim().TrimEnd(':');
+                    var description = simpleMatch.Groups[2].Value.Trim();
+                    
+                    // Look for severity in parentheses
+                    var severityMatch = System.Text.RegularExpressions.Regex.Match(description, @"\((High|Medium|Low)\)", 
+                        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                    var severity = severityMatch.Success ? severityMatch.Groups[1].Value : "Medium";
+                    
+                    if (severityMatch.Success)
+                    {
+                        description = description.Replace(severityMatch.Value, "").Trim();
+                    }
+                    
+                    return new AnalysisIssue
+                    {
+                        Category = category,
+                        Severity = ParseSeverityFromString(severity),
+                        Description = description,
+                        Fix = "See description for suggested improvement"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[RequirementAnalysisVM] Error parsing issue from line: {Line}", line);
+            }
+            
+            return null;
+        }
+
+        /// <summary>
+        /// Helper to create AnalysisIssue with consistent formatting
+        /// </summary>
+        private AnalysisIssue CreateIssueFromExternal(string category, string priority, string description, string fix)
+        {
+            return new AnalysisIssue
+            {
+                Category = category.Trim(),
+                Severity = ParseSeverityFromString(priority.Trim()),
+                Description = description.Trim(),
+                Fix = fix.Trim()
+            };
+        }
+
+        /// <summary>
+        /// Extract likely category from description text when not explicitly provided
+        /// </summary>
+        private string ExtractCategoryFromIssueDescription(string description)
+        {
+            var lowerDesc = description.ToLowerInvariant();
+            
+            if (lowerDesc.Contains("unclear") || lowerDesc.Contains("ambiguous") || lowerDesc.Contains("vague"))
+                return "Clarity";
+            if (lowerDesc.Contains("test") || lowerDesc.Contains("verify") || lowerDesc.Contains("measurable"))
+                return "Testability";
+            if (lowerDesc.Contains("missing") || lowerDesc.Contains("incomplete") || lowerDesc.Contains("specify"))
+                return "Completeness";
+            if (lowerDesc.Contains("multiple") || lowerDesc.Contains("combined") || lowerDesc.Contains("split"))
+                return "Atomicity";
+            if (lowerDesc.Contains("implement") || lowerDesc.Contains("actionable") || lowerDesc.Contains("abstract"))
+                return "Actionability";
+            if (lowerDesc.Contains("consistent") || lowerDesc.Contains("terminology") || lowerDesc.Contains("format"))
+                return "Consistency";
+            
+            return "General";
+        }
+
+        /// <summary>
+        /// Parse severity from priority text
+        /// </summary>
+        private string ParseSeverityFromString(string priority)
+        {
+            var upper = priority.ToUpperInvariant();
+            return upper switch
+            {
+                var p when p.Contains("HIGH") || p.Contains("CRITICAL") => "High",
+                var p when p.Contains("MEDIUM") || p.Contains("MODERATE") => "Medium",
+                var p when p.Contains("LOW") || p.Contains("MINOR") => "Low",
+                _ => "Medium"
+            };
+        }
+
+        /// <summary>
+        /// Extract quality score from external LLM response
+        /// </summary>
+        private int? ExtractQualityScoreFromExternalResponse(string response)
+        {
+            try
+            {
+                var lines = response.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var line in lines)
+                {
+                    var upper = line.ToUpperInvariant();
+                    if (upper.Contains("QUALITY") && upper.Contains("SCORE"))
+                    {
+                        // Try to extract number
+                        var match = System.Text.RegularExpressions.Regex.Match(line, @"(\d+)\s*(?:/\s*100|%)?");
+                        if (match.Success && int.TryParse(match.Groups[1].Value, out int score))
+                        {
+                            return Math.Clamp(score, 0, 100);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[RequirementAnalysisVM] Error extracting quality score");
+            }
+            
+            return null;
         }
 
         /// <summary>
@@ -1092,6 +1346,22 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             CurrentRequirement = e.Requirement;
             
             _logger.LogInformation("[RequirementAnalysisVM] CurrentRequirement updated, HasAnalysis: {HasAnalysis}", HasAnalysis);
+        }
+
+        /// <summary>
+        /// Handle RequirementAnalyzed event from mediator - triggered when "Run Analysis" completes
+        /// </summary>
+        private void OnRequirementAnalyzed(TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementAnalyzed e)
+        {
+            _logger.LogInformation("[RequirementAnalysisVM] OnRequirementAnalyzed called for requirement: {RequirementId}, Success: {Success}", 
+                e.Requirement?.GlobalId ?? "null", e.Success);
+            
+            // If this is the currently selected requirement, refresh the display
+            if (e.Requirement == CurrentRequirement && e.Success && e.Analysis != null)
+            {
+                _logger.LogInformation("[RequirementAnalysisVM] Refreshing display after analysis completion");
+                RefreshAnalysisDisplay();
+            }
         }
 
         public void Dispose()

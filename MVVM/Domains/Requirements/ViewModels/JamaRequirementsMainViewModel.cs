@@ -244,6 +244,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 var score = CurrentRequirement.Analysis.OriginalQualityScore;
                 QualityScoreDisplay = score > 0 ? $"{score:F0}%" : "No score";
 
+                // Show per-requirement completion time if available
+                if (CurrentRequirement.Analysis.AnalysisDurationSeconds > 0)
+                {
+                    AnalysisElapsedTime = $"Completed in {CurrentRequirement.Analysis.AnalysisDurationSeconds:F0}s";
+                }
+                else
+                {
+                    AnalysisElapsedTime = "";
+                }
+
                 // Create analysis summary
                 var issueCount = CurrentRequirement.Analysis.Issues?.Count ?? 0;
                 AnalysisSummary = issueCount switch
@@ -258,6 +268,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 HasAnalysis = false;
                 QualityScoreDisplay = "Not analyzed";
                 AnalysisSummary = "No analysis performed yet.";
+                AnalysisElapsedTime = "";
             }
         }
 

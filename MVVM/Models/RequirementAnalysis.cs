@@ -66,6 +66,12 @@ namespace TestCaseEditorApp.MVVM.Models
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
         /// <summary>
+        /// How long the analysis took to complete (in seconds).
+        /// Used to display "Completed in Xs" per requirement.
+        /// </summary>
+        public double AnalysisDurationSeconds { get; set; }
+
+        /// <summary>
         /// Whether analysis has been performed (vs. pending or failed).
         /// </summary>
         public bool IsAnalyzed { get; set; }

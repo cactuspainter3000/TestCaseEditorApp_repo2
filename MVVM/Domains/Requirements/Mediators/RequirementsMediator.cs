@@ -506,6 +506,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 AnalysisType = "Quality"
             });
 
+            var startTime = DateTime.Now;
+
             try
             {
                 UpdateProgress("Running LLM analysis...", 50);
@@ -525,6 +527,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     analysis = await _analysisService.AnalyzeRequirementAsync(requirement);
                 }
 
+                // Store analysis duration
+                var duration = DateTime.Now - startTime;
+                analysis.AnalysisDurationSeconds = duration.TotalSeconds;
+
                 requirement.Analysis = analysis;
 
                 PublishEvent(new RequirementsEvents.RequirementAnalyzed
@@ -532,12 +538,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     Requirement = requirement,
                     Analysis = analysis,
                     Success = true,
-                    AnalysisTime = TimeSpan.FromSeconds(2) // Placeholder
+                    AnalysisTime = duration
                 });
 
                 IsDirty = true;
                 HideProgress();
                 ShowNotification($"Analysis completed for {requirement.GlobalId}", DomainNotificationType.Success);
+
+                // Update requirements progress notification for header
+                PublishRequirementsProgressNotification();
 
                 _logger.LogInformation("Requirement analysis completed for {RequirementId}", requirement.GlobalId);
                 return true;
@@ -791,7 +800,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                             _logger.LogDebug("Set CurrentRequirement to first requirement: {Item}", CurrentRequirement.Item);
                         }
                         
-                    // ✅ Even when data is current, notify header to refresh display when project is activated
                         var eventData = new RequirementsEvents.RequirementsCollectionChanged
                         {
                             Action = "ProjectActivated",
@@ -799,69 +807,64 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                             NewCount = _requirements.Count
                         };
                         _logger.LogInformation("🔔 RequirementsMediator publishing RequirementsCollectionChanged: {Action}, Count: {Count}", eventData.Action, eventData.NewCount);
-                        Console.WriteLine($"🔔 RequirementsMediator publishing RequirementsCollectionChanged: {eventData.Action}, Count: {eventData.NewCount}");
                         PublishEvent(eventData);
-                        
-                        // ✅ CROSS-DOMAIN: Publish notification events for workspace coordination
-                        PublishRequirementsProgressNotification();
-                        
-                        // ✅ Always notify about requirement selection to update header (even if null)
-                        PublishEvent(new RequirementsEvents.RequirementSelected
-                        {
-                            Requirement = CurrentRequirement
-                        });
-                        
-                        return; // Don't reload - data is already current!
                     }
-                    
-                    _logger.LogInformation("📊 RequirementsMediator: Reloading requirements data (count changed or different data)");
-                    
-                    // Preserve current requirement if possible
-                    var previousCurrentRequirement = CurrentRequirement;
-                    
-                    _requirements.Clear();
-                    foreach (var requirement in sortedRequirements)
+                    else
                     {
-                        _requirements.Add(requirement);
-                    }
-                    
-                    if (_requirements.Count > 0)
-                    {
-                        // Try to preserve current requirement position
-                        if (previousCurrentRequirement != null)
+                        _logger.LogInformation("📊 RequirementsMediator: Reloading requirements data (count changed or different data)");
+                        
+                        // Preserve current requirement if possible
+                        var previousCurrentRequirement = CurrentRequirement;
+                        
+                        _requirements.Clear();
+                        foreach (var requirement in sortedRequirements)
                         {
-                            var matchingReq = _requirements.FirstOrDefault(r => 
-                                r.Item == previousCurrentRequirement.Item || 
-                                r.Name == previousCurrentRequirement.Name);
-                            CurrentRequirement = matchingReq ?? _requirements.First();
-                        }
-                        else
-                        {
-                            CurrentRequirement = _requirements.First();
+                            _requirements.Add(requirement);
                         }
                         
-                        // CRITICAL: Notify ViewModels about the selected requirement
-                        PublishEvent(new RequirementsEvents.RequirementSelected
+                        if (_requirements.Count > 0)
                         {
-                            Requirement = CurrentRequirement
-                        });
-                    }
+                            // Try to preserve current requirement position
+                            if (previousCurrentRequirement != null)
+                            {
+                                var matchingReq = _requirements.FirstOrDefault(r => 
+                                    r.Item == previousCurrentRequirement.Item || 
+                                    r.Name == previousCurrentRequirement.Name);
+                                CurrentRequirement = matchingReq ?? _requirements.First();
+                            }
+                            else
+                            {
+                                CurrentRequirement = _requirements.First();
+                            }
+                            
+                            // CRITICAL: Notify ViewModels about the selected requirement
+                            PublishEvent(new RequirementsEvents.RequirementSelected
+                            {
+                                Requirement = CurrentRequirement
+                            });
+                        }
 
-                    // CRITICAL: Publish event on UI thread to avoid threading violations
-                    var loadEventData = new RequirementsEvents.RequirementsCollectionChanged
-                    {
-                        Action = "Load",
-                        AffectedRequirements = _requirements.ToList(),
-                        NewCount = _requirements.Count
-                    };
-                    _logger.LogInformation("🔔 RequirementsMediator publishing RequirementsCollectionChanged: {Action}, Count: {Count}", loadEventData.Action, loadEventData.NewCount);
-                    Console.WriteLine($"🔔 RequirementsMediator publishing RequirementsCollectionChanged: {loadEventData.Action}, Count: {loadEventData.NewCount}");
-                    PublishEvent(loadEventData);
+                        var loadEventData = new RequirementsEvents.RequirementsCollectionChanged
+                        {
+                            Action = "Load",
+                            AffectedRequirements = _requirements.ToList(),
+                            NewCount = _requirements.Count
+                        };
+                        _logger.LogInformation("🔔 RequirementsMediator publishing RequirementsCollectionChanged: {Action}, Count: {Count}", loadEventData.Action, loadEventData.NewCount);
+                        PublishEvent(loadEventData);
+                        
+                        IsDirty = false;
+                    }
                     
-                    // ✅ CROSS-DOMAIN: Publish notification events for workspace coordination
+                    // ✅ CROSS-DOMAIN: Publish notification events for workspace coordination (single call, final state only)
                     PublishRequirementsProgressNotification();
                     
-                    IsDirty = false;
+                    // ✅ Always notify about requirement selection to update header (even if null)
+                    PublishEvent(new RequirementsEvents.RequirementSelected
+                    {
+                        Requirement = CurrentRequirement
+                    });
+                    
                     _logger.LogInformation("Loaded {Count} requirements from project", _requirements.Count);
                 });
 
