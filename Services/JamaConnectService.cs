@@ -870,76 +870,52 @@ namespace TestCaseEditorApp.Services
                         }
                     }
 
-                    // Merge paragraphs (with deduplication against existing paragraphs AND the description)
-                    foreach (var paragraph in fieldContent.Paragraphs)
+                    // Merge paragraphs (with deduplication)
+                    // Skip paragraphs from "description" field - that content is already in the Description property
+                    if (fieldName != "description")
                     {
-                        if (!string.IsNullOrWhiteSpace(paragraph))
+                        foreach (var paragraph in fieldContent.Paragraphs)
                         {
-                            // Check for duplicate paragraphs based on content
-                            var normalizedParagraph = paragraph.Trim();
-                            
-                            // Skip if this paragraph duplicates the main description
-                            bool duplicatesDescription = !string.IsNullOrWhiteSpace(description) &&
-                                (description.Trim().Equals(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
-                                 description.Contains(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
-                                 normalizedParagraph.Contains(description.Trim(), StringComparison.OrdinalIgnoreCase));
-                            
-                            if (duplicatesDescription)
+                            if (!string.IsNullOrWhiteSpace(paragraph))
                             {
-                                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Skipped paragraph that duplicates description from field '{fieldName}'");
-                                continue;
-                            }
-                            
-                            bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara =>
-                                existingPara.Trim().Equals(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
-                                existingPara.Contains(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
-                                normalizedParagraph.Contains(existingPara.Trim(), StringComparison.OrdinalIgnoreCase));
-                            
-                            if (!isDuplicateParagraph)
-                            {
-                                // Add paragraph content without field name prefix (cleaner for users)
-                                looseContent.Paragraphs.Add(paragraph);
-                                totalParagraphsFound++;
-                            }
-                            else
-                            {
-                                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Skipped duplicate paragraph from field '{fieldName}'");
+                                var normalizedParagraph = paragraph.Trim();
+                                
+                                bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara =>
+                                    existingPara.Trim().Equals(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
+                                    existingPara.Contains(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
+                                    normalizedParagraph.Contains(existingPara.Trim(), StringComparison.OrdinalIgnoreCase));
+                                
+                                if (!isDuplicateParagraph)
+                                {
+                                    looseContent.Paragraphs.Add(paragraph);
+                                    totalParagraphsFound++;
+                                }
+                                else
+                                {
+                                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Skipped duplicate paragraph from field '{fieldName}'");
+                                }
                             }
                         }
                     }
                 }
-                else if (!string.IsNullOrWhiteSpace(content))
+                else if (!string.IsNullOrWhiteSpace(content) && fieldName != "description")
                 {
-                    // Plain text content - add as paragraph (check for duplicates)
+                    // Plain text content from non-description fields - add as paragraph (check for duplicates)
                     var normalizedContent = content.Trim();
                     
-                    // Skip if this content duplicates the main description
-                    bool duplicatesDescription = !string.IsNullOrWhiteSpace(description) &&
-                        (description.Trim().Equals(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
-                         description.Contains(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
-                         normalizedContent.Contains(description.Trim(), StringComparison.OrdinalIgnoreCase));
+                    bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara =>
+                        existingPara.Trim().Equals(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
+                        existingPara.Contains(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
+                        normalizedContent.Contains(existingPara.Trim(), StringComparison.OrdinalIgnoreCase));
                     
-                    if (duplicatesDescription)
+                    if (!isDuplicateParagraph)
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Skipped plain text that duplicates description from field '{fieldName}'");
+                        looseContent.Paragraphs.Add(normalizedContent);
+                        totalParagraphsFound++;
                     }
                     else
                     {
-                        bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara =>
-                            existingPara.Trim().Equals(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
-                            existingPara.Contains(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
-                            normalizedContent.Contains(existingPara.Trim(), StringComparison.OrdinalIgnoreCase));
-                        
-                        if (!isDuplicateParagraph)
-                        {
-                            // Add content without field name prefix (cleaner for users)
-                            looseContent.Paragraphs.Add(normalizedContent);
-                            totalParagraphsFound++;
-                        }
-                        else
-                        {
-                            TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Skipped duplicate plain text paragraph from field '{fieldName}'");
-                        }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Skipped duplicate plain text paragraph from field '{fieldName}'");
                     }
                 }
             }
@@ -1082,76 +1058,52 @@ namespace TestCaseEditorApp.Services
                         totalTablesFound++;
                     }
 
-                    // Merge paragraphs (with deduplication against existing paragraphs AND the description)
-                    foreach (var paragraph in fieldContent.Paragraphs)
+                    // Merge paragraphs (with deduplication)
+                    // Skip paragraphs from "description" field - that content is already in the Description property
+                    if (fieldName != "description")
                     {
-                        if (!string.IsNullOrWhiteSpace(paragraph))
+                        foreach (var paragraph in fieldContent.Paragraphs)
                         {
-                            // Check for duplicate paragraphs based on content
-                            var normalizedParagraph = paragraph.Trim();
-                            
-                            // Skip if this paragraph duplicates the main description
-                            bool duplicatesDescription = !string.IsNullOrWhiteSpace(description) &&
-                                (description.Trim().Equals(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
-                                 description.Contains(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
-                                 normalizedParagraph.Contains(description.Trim(), StringComparison.OrdinalIgnoreCase));
-                            
-                            if (duplicatesDescription)
+                            if (!string.IsNullOrWhiteSpace(paragraph))
                             {
-                                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {item.Id}: Skipped paragraph that duplicates description from field '{fieldName}'");
-                                continue;
-                            }
-                            
-                            bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara =>
-                                existingPara.Trim().Equals(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
-                                existingPara.Contains(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
-                                normalizedParagraph.Contains(existingPara.Trim(), StringComparison.OrdinalIgnoreCase));
-                            
-                            if (!isDuplicateParagraph)
-                            {
-                                // Add paragraph content without field name prefix (cleaner for users)
-                                looseContent.Paragraphs.Add(paragraph);
-                                totalParagraphsFound++;
-                            }
-                            else
-                            {
-                                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {item.Id}: Skipped duplicate paragraph from field '{fieldName}'");
+                                var normalizedParagraph = paragraph.Trim();
+                                
+                                bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara =>
+                                    existingPara.Trim().Equals(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
+                                    existingPara.Contains(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
+                                    normalizedParagraph.Contains(existingPara.Trim(), StringComparison.OrdinalIgnoreCase));
+                                
+                                if (!isDuplicateParagraph)
+                                {
+                                    looseContent.Paragraphs.Add(paragraph);
+                                    totalParagraphsFound++;
+                                }
+                                else
+                                {
+                                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {item.Id}: Skipped duplicate paragraph from field '{fieldName}'");
+                                }
                             }
                         }
                     }
                 }
-                else if (!string.IsNullOrWhiteSpace(content))
+                else if (!string.IsNullOrWhiteSpace(content) && fieldName != "description")
                 {
-                    // Plain text content - add as paragraph (check for duplicates)
+                    // Plain text content from non-description fields - add as paragraph (check for duplicates)
                     var normalizedContent = content.Trim();
                     
-                    // Skip if this content duplicates the main description
-                    bool duplicatesDescription = !string.IsNullOrWhiteSpace(description) &&
-                        (description.Trim().Equals(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
-                         description.Contains(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
-                         normalizedContent.Contains(description.Trim(), StringComparison.OrdinalIgnoreCase));
+                    bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara =>
+                        existingPara.Trim().Equals(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
+                        existingPara.Contains(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
+                        normalizedContent.Contains(existingPara.Trim(), StringComparison.OrdinalIgnoreCase));
                     
-                    if (duplicatesDescription)
+                    if (!isDuplicateParagraph)
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {item.Id}: Skipped plain text that duplicates description from field '{fieldName}'");
+                        looseContent.Paragraphs.Add(normalizedContent);
+                        totalParagraphsFound++;
                     }
                     else
                     {
-                        bool isDuplicateParagraph = looseContent.Paragraphs.Any(existingPara =>
-                            existingPara.Trim().Equals(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
-                            existingPara.Contains(normalizedContent, StringComparison.OrdinalIgnoreCase) ||
-                            normalizedContent.Contains(existingPara.Trim(), StringComparison.OrdinalIgnoreCase));
-                        
-                        if (!isDuplicateParagraph)
-                        {
-                            // Add content without field name prefix (cleaner for users)
-                            looseContent.Paragraphs.Add(normalizedContent);
-                            totalParagraphsFound++;
-                        }
-                        else
-                        {
-                            TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {item.Id}: Skipped duplicate plain text paragraph from field '{fieldName}'");
-                        }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {item.Id}: Skipped duplicate plain text paragraph from field '{fieldName}'");
                     }
                 }
             }

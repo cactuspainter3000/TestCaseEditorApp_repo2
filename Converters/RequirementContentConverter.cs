@@ -69,8 +69,9 @@ namespace TestCaseEditorApp.Converters
                 }
             }
 
-            // Add supplemental paragraphs from LooseContent (these are shown separately from the main description)
-            // But filter out any that duplicate the description content
+            // Add supplemental paragraphs from LooseContent
+            // Note: Deduplication against Description is handled at import time in JamaConnectService
+            // This check remains as a safety net for legacy projects with already-imported data
             if (requirement.LooseContent?.Paragraphs?.Any() == true)
             {
                 var descriptionText = requirement.Description?.Trim() ?? "";
@@ -81,13 +82,13 @@ namespace TestCaseEditorApp.Converters
                     {
                         var normalizedParagraph = paragraph.Trim();
                         
-                        // Skip if this paragraph duplicates or is contained in the description
+                        // Skip if this paragraph duplicates or is contained in the description (safety net for legacy data)
                         if (!string.IsNullOrWhiteSpace(descriptionText) &&
                             (descriptionText.Equals(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
                              descriptionText.Contains(normalizedParagraph, StringComparison.OrdinalIgnoreCase) ||
                              normalizedParagraph.Contains(descriptionText, StringComparison.OrdinalIgnoreCase)))
                         {
-                            continue; // Skip duplicate content
+                            continue;
                         }
                         
                         var textBlock = new TextBlock
