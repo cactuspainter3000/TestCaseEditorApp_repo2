@@ -48,9 +48,6 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             _logger.LogInformation($"*** OnIsProjectSelectedChanged: value={value}");
             OnPropertyChanged(nameof(SelectButtonText));
             OnPropertyChanged(nameof(OpenButtonText));
-            _logger.LogInformation($"*** About to call NotifyCanExecuteChanged from OnIsProjectSelectedChanged");
-            ((AsyncRelayCommand)OpenSelectedProjectCommand).NotifyCanExecuteChanged();
-            _logger.LogInformation($"*** NotifyCanExecuteChanged called from OnIsProjectSelectedChanged");
         }
         
         [ObservableProperty]
@@ -76,22 +73,12 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
         [ObservableProperty]
         private DateTime? lastModified;
 
-        [ObservableProperty]
-        private bool isMainOpenButtonActive = false;
-
-        partial void OnIsMainOpenButtonActiveChanged(bool value)
-        {
-            _logger.LogInformation($"*** IsMainOpenButtonActive changed to: {value} - STACK TRACE: {Environment.StackTrace}");
-        }
-
         // Recent Projects
         public IReadOnlyList<RecentProjectInfo> RecentProjects => GetRecentProjectsInfo();
 
         // Commands
-        public ICommand SelectProjectFileCommand { get; }
-        public ICommand OpenSelectedProjectCommand { get; }
+        public ICommand OpenProjectCommand { get; }
         public ICommand ClearSelectionCommand { get; }
-        public ICommand OpenFileDirectlyCommand { get; }
         public ICommand OpenRecentProjectCommand { get; }
 
         public OpenProjectWorkflowViewModel(IOpenProjectMediator mediator, IPersistenceService persistenceService, RecentFilesService recentFilesService, ILogger<OpenProjectWorkflowViewModel> logger)
@@ -102,10 +89,8 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             _recentFilesService = recentFilesService ?? throw new ArgumentNullException(nameof(recentFilesService));
             
             // Initialize commands
-            SelectProjectFileCommand = new RelayCommand(SelectProjectFile);
-            OpenSelectedProjectCommand = new AsyncRelayCommand(OpenSelectedProjectAsync, CanOpenSelectedProject);
+            OpenProjectCommand = new AsyncRelayCommand(OpenProjectAsync);
             ClearSelectionCommand = new RelayCommand(ClearSelection);
-            OpenFileDirectlyCommand = new AsyncRelayCommand(OpenFileDirectlyAsync);
             OpenRecentProjectCommand = new AsyncRelayCommand<string>(OpenRecentProjectAsync);
             
             // Subscribe to domain events
@@ -115,16 +100,15 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             _mediator.Subscribe<OpenProjectEvents.WorkspaceLoaded>(OnWorkspaceLoaded);
         }
 
-        private void SelectProjectFile()
+        private async Task OpenProjectAsync()
         {
             try
             {
                 IsLoadingProject = true;
                 ProjectStatus = "Selecting project file...";
                 
-                _logger.LogInformation("Selecting project file");
+                _logger.LogInformation("Opening project file dialog");
                 
-                // Use file dialog service through mediator
                 var fileDialog = new OpenFileDialog
                 {
                     Title = "Open Test Case Editor Project",
@@ -147,9 +131,6 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
                         }
                         
                         IsProjectSelected = true;
-                        IsMainOpenButtonActive = true; // Set main button as active
-
-                        ProjectStatus = $"Selected: {ProjectName}";
                         
                         // Get file info
                         if (File.Exists(selectedPath))
@@ -159,6 +140,23 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
                         }
                         
                         _logger.LogInformation($"Project file selected: {selectedPath}");
+                        
+                        // Open immediately
+                        ProjectStatus = "Opening project...";
+                        var success = await _mediator.OpenProjectFileAsync(SelectedProjectPath);
+                        
+                        if (success)
+                        {
+                            _recentFilesService.AddRecentFile(SelectedProjectPath);
+                            OnPropertyChanged(nameof(RecentProjects));
+                            ProjectStatus = "Project opened successfully";
+                            _logger.LogInformation($"Project opened successfully: {SelectedProjectPath}");
+                        }
+                        else
+                        {
+                            ProjectStatus = "Failed to open project";
+                            _logger.LogWarning($"Failed to open project: {SelectedProjectPath}");
+                        }
                     }
                 }
                 else
@@ -169,62 +167,13 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error selecting project file");
-                ProjectStatus = $"Error: {ex.Message}";
-            }
-            finally
-            {
-                IsLoadingProject = false;
-                // Update command states after IsLoadingProject is reset
-                _logger.LogInformation($"*** Calling NotifyCanExecuteChanged for OpenSelectedProjectCommand");
-                ((AsyncRelayCommand)OpenSelectedProjectCommand).NotifyCanExecuteChanged();
-            }
-        }
-
-        private async Task OpenSelectedProjectAsync()
-        {
-            if (string.IsNullOrWhiteSpace(SelectedProjectPath))
-            {
-                return;
-            }
-
-            try
-            {
-                IsLoadingProject = true;
-                ProjectStatus = "Opening project...";
-                
-                _logger.LogInformation($"Opening selected project: {SelectedProjectPath}");
-                
-                // Use mediator to open the project file
-                var success = await _mediator.OpenProjectFileAsync(SelectedProjectPath);
-                
-                if (success)
-                {
-                    ProjectStatus = "Project opened successfully";
-                    _logger.LogInformation($"Project opened successfully: {SelectedProjectPath}");
-                }
-                else
-                {
-                    ProjectStatus = "Failed to open project";
-                    _logger.LogWarning($"Failed to open project: {SelectedProjectPath}");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error opening project: {SelectedProjectPath}");
+                _logger.LogError(ex, "Error opening project file");
                 ProjectStatus = $"Error: {ex.Message}";
             }
             finally
             {
                 IsLoadingProject = false;
             }
-        }
-
-        private bool CanOpenSelectedProject()
-        {
-            var canOpen = IsProjectSelected && !IsLoadingProject && !string.IsNullOrWhiteSpace(SelectedProjectPath);
-            _logger.LogInformation($"*** CanOpenSelectedProject check: IsProjectSelected={IsProjectSelected}, IsLoadingProject={IsLoadingProject}, HasPath={!string.IsNullOrWhiteSpace(SelectedProjectPath)}, Result={canOpen}");
-            return canOpen;
         }
 
         private void ClearSelection()
@@ -236,93 +185,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             RequirementCount = 0;
             LastModified = null;
             
-            ((AsyncRelayCommand)OpenSelectedProjectCommand).NotifyCanExecuteChanged();
-            
             _logger.LogInformation("Project selection cleared");
-        }
-
-        private async Task OpenFileDirectlyAsync()
-        {
-            try
-            {
-                IsLoadingProject = true;
-                ProjectStatus = "Opening file dialog...";
-                
-                var fileDialog = new OpenFileDialog
-                {
-                    Title = "Open Test Case Editor Project",
-                    Filter = "Test Case Editor Session|*.tcex.json|JSON Files|*.json|All Files|*.*",
-                    CheckFileExists = true,
-                    Multiselect = false
-                };
-
-                if (fileDialog.ShowDialog() == true)
-                {
-                    var selectedPath = fileDialog.FileName;
-                    await OpenProjectFile(selectedPath);
-                }
-                else
-                {
-                    ProjectStatus = "No project selected";
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in direct file open");
-                ProjectStatus = $"Error: {ex.Message}";
-            }
-            finally
-            {
-                IsLoadingProject = false;
-            }
-        }
-
-        private async Task OpenProjectFile(string filePath)
-        {
-            // Update UI state
-            SelectedProjectPath = filePath;
-            ProjectName = Path.GetFileNameWithoutExtension(filePath);
-            if (ProjectName.EndsWith(".tcex", StringComparison.OrdinalIgnoreCase))
-            {
-                ProjectName = Path.GetFileNameWithoutExtension(ProjectName);
-            }
-            
-            IsProjectSelected = true;
-            
-            // Get file info
-            if (File.Exists(filePath))
-            {
-                var fileInfo = new FileInfo(filePath);
-                LastModified = fileInfo.LastWriteTime;
-                
-                // Populate metadata for main project display
-                PopulateMainProjectMetadata(filePath);
-            }
-            else
-            {
-                // Clear metadata if file doesn't exist
-                RequirementCount = 0;
-                AnalyzedCount = 0;
-                TestCasesGeneratedCount = 0;
-            }
-
-            // Add to recent projects
-            _recentFilesService.AddRecentFile(filePath);
-            OnPropertyChanged(nameof(RecentProjects));
-            
-            // Open through mediator
-            var success = await _mediator.OpenProjectFileAsync(filePath);
-            
-            if (success)
-            {
-                ProjectStatus = "Project opened successfully";
-                _logger.LogInformation($"Project opened successfully: {filePath}");
-            }
-            else
-            {
-                ProjectStatus = "Failed to open project";
-                _logger.LogWarning($"Failed to open project: {filePath}");
-            }
         }
 
         private void PopulateMainProjectMetadata(string filePath)
@@ -423,8 +286,6 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
                 ProjectName = Path.GetFileNameWithoutExtension(ProjectName);
             }
             ProjectStatus = $"Selected: {ProjectName}";
-            
-            ((AsyncRelayCommand)OpenSelectedProjectCommand).NotifyCanExecuteChanged();
         }
 
         private void OnProjectOpened(OpenProjectEvents.ProjectOpened eventData)
@@ -536,7 +397,47 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
                 return;
                 
             _logger.LogInformation($"Opening recent project: {filePath}");
-            await OpenProjectFile(filePath);
+            
+            try
+            {
+                IsLoadingProject = true;
+                ProjectStatus = "Opening project...";
+                
+                // Set path and populate metadata
+                SelectedProjectPath = filePath;
+                ProjectName = Path.GetFileNameWithoutExtension(filePath);
+                if (ProjectName.EndsWith(".tcex", StringComparison.OrdinalIgnoreCase))
+                {
+                    ProjectName = Path.GetFileNameWithoutExtension(ProjectName);
+                }
+                IsProjectSelected = true;
+                PopulateMainProjectMetadata(filePath);
+                
+                // Open through mediator
+                var success = await _mediator.OpenProjectFileAsync(filePath);
+                
+                if (success)
+                {
+                    _recentFilesService.AddRecentFile(filePath);
+                    OnPropertyChanged(nameof(RecentProjects));
+                    ProjectStatus = "Project opened successfully";
+                    _logger.LogInformation($"Project opened successfully: {filePath}");
+                }
+                else
+                {
+                    ProjectStatus = "Failed to open project";
+                    _logger.LogWarning($"Failed to open project: {filePath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error opening project: {filePath}");
+                ProjectStatus = $"Error: {ex.Message}";
+            }
+            finally
+            {
+                IsLoadingProject = false;
+            }
         }
     }
 

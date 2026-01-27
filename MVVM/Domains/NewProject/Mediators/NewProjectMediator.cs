@@ -878,6 +878,22 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 _logger.LogInformation("📡 Broadcasting ProjectCreated event to other domains: {ProjectName}", displayProjectName);
                 BroadcastToAllDomains(projectCreatedEvent);
                 
+                // Update workspace context for proper view routing (ImportSource-based)
+                var workspaceContextService = App.ServiceProvider?.GetService<TestCaseEditorApp.Services.IWorkspaceContext>();
+                if (workspaceContextService is TestCaseEditorApp.Services.WorkspaceContextService contextService)
+                {
+                    _logger.LogInformation("🔄 Updating workspace context for created project: ImportSource='{ImportSource}'", workspace.ImportSource);
+                    contextService.NotifyWorkspaceChanged(null, workspace, TestCaseEditorApp.Services.WorkspaceChangeType.Loaded);
+                }
+                
+                // Clear view configuration to ensure fresh routing based on new workspace data
+                var viewConfigService = App.ServiceProvider?.GetService<TestCaseEditorApp.Services.ViewConfigurationService>();
+                if (viewConfigService != null)
+                {
+                    _logger.LogInformation("🔄 Clearing view configuration for fresh routing");
+                    viewConfigService.ClearCurrentConfiguration();
+                }
+                
                 // Show success notification with appropriate message based on import success
                 if (requirementsImportedSuccessfully)
                 {
