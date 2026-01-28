@@ -1431,16 +1431,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _logger.LogInformation("[RequirementAnalysisVM] OnRequirementUpdatedEvent called: Event requirement GlobalId={EventReqId}, Current requirement GlobalId={CurrentReqId}", 
                 e.Requirement?.GlobalId ?? "null", CurrentRequirement?.GlobalId ?? "null");
             
-            // If this is the currently selected requirement, refresh to show the updates (e.g., committed improvements)
-            // Compare by GlobalId since the requirement object reference might differ
+            // If this is the currently selected requirement, refresh the analysis display
+            // The Requirement.Description property already implements INotifyPropertyChanged via [ObservableProperty]
+            // so WPF bindings will automatically update when Description changes
             if (e.Requirement != null && CurrentRequirement != null && e.Requirement.GlobalId == CurrentRequirement.GlobalId)
             {
-                _logger.LogInformation("[RequirementAnalysisVM] Match! Refreshing display after requirement update for {RequirementId}", e.Requirement.GlobalId);
-                
-                // Trigger the setter by re-assigning to force WPF to re-evaluate all bindings
-                var temp = CurrentRequirement;
-                CurrentRequirement = null;
-                CurrentRequirement = temp;
+                _logger.LogInformation("[RequirementAnalysisVM] Match! Refreshing analysis display for {RequirementId}", e.Requirement.GlobalId);
+                RefreshAnalysisDisplay();
             }
             else
             {
