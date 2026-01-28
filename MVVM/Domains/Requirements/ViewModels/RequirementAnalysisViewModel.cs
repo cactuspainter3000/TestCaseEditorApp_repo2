@@ -548,16 +548,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 ImprovedRequirement = null;
                 HasImprovedRequirement = false;
                 
-                // Publish event for downstream subscribers (e.g., data persistence, UI updates)
+                // Mediator publishes RequirementUpdated event which handles all downstream updates
                 var mediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
                 if (mediator != null)
                 {
                     mediator.UpdateRequirement(CurrentRequirement, new[] { "Description" });
-                    _logger.LogInformation("[RequirementAnalysisVM] Published RequirementUpdated event after committing improvement");
                 }
-                
-                // Refresh the display to show the updated description
-                OnPropertyChanged(nameof(CurrentRequirement));
                 
                 _logger.LogInformation("[RequirementAnalysisVM] Committed improved requirement: changed from {OldLen} to {NewLen} chars",
                     originalDescription?.Length ?? 0, CurrentRequirement.Description?.Length ?? 0);
