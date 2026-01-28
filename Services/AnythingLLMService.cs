@@ -74,7 +74,7 @@ namespace TestCaseEditorApp.Services
             _baseUrl = (baseUrl ?? "http://localhost:3001").TrimEnd('/');
             
             _httpClient = new HttpClient();
-            _httpClient.Timeout = TimeSpan.FromMinutes(5); // 5 minutes for complex analysis with slower models
+            _httpClient.Timeout = TimeSpan.FromMinutes(2); // 2 minutes per attempt; with 3 retries = 6 min total max
             
             if (!string.IsNullOrEmpty(_apiKey))
             {
@@ -1708,9 +1708,26 @@ CRITICAL: The IMPROVED REQUIREMENT should use [brackets] when information is mis
                     OnStatusUpdated("LLM response received successfully");
                     return result.TextResponse;
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Info("[AnythingLLM] Request was cancelled");
+                    TestCaseEditorApp.Services.Logging.Log.Info("[AnythingLLM] Request was cancelled by user");
+                    return null;
+                }
+                catch (OperationCanceledException ex)
+                {
+                    // Timeout from HttpClient.Timeout - treat as timeout and retry
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Request timeout after {_httpClient.Timeout.TotalMinutes} minutes");
+                    
+                    if (retryCount < MAX_RETRY_ATTEMPTS)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Timeout occurred, retrying in {delayMs}ms... (Attempt {retryCount + 1}/{MAX_RETRY_ATTEMPTS})");
+                        await Task.Delay(delayMs, CancellationToken.None); // Don't use cancellationToken for retry delay
+                        delayMs = Math.Min(delayMs * 2, MAX_RETRY_DELAY_MS);
+                        retryCount++;
+                        continue;
+                    }
+                    
+                    TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Timeout after {MAX_RETRY_ATTEMPTS} retry attempts");
                     return null;
                 }
                 catch (TimeoutException ex)
