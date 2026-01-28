@@ -38,7 +38,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
             if (!requirementList.Any())
                 return new List<LLMTestCase>();
 
-            _logger.LogInformation("Generating test cases for {Count} requirements", requirementList.Count);
+            _logger.LogInformation("Generating test cases for {Count} requirements using workspace '{Workspace}'", 
+                requirementList.Count, WORKSPACE_SLUG);
 
             try
             {
@@ -47,7 +48,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
                 // Create prompt for batch generation with similarity detection
                 var prompt = CreateBatchGenerationPrompt(requirementList);
                 
-                progressCallback?.Invoke("Sending to LLM for test case generation (this may take 1-2 minutes)...", 0, requirementList.Count);
+                progressCallback?.Invoke($"Sending to LLM workspace '{WORKSPACE_SLUG}' (this may take 1-2 minutes)...", 0, requirementList.Count);
                 
                 // Send to LLM with RAG context
                 var response = await _anythingLLMService.SendChatMessageAsync(
@@ -57,11 +58,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
 
                 if (string.IsNullOrEmpty(response))
                 {
-                    var errorMsg = "LLM did not return a response. This could be due to: " +
-                        "1) Timeout (LLM is processing slowly), " +
-                        "2) Connection issues, " +
-                        "3) LLM service not running. " +
-                        "Please check the logs and try again.";
+                    var errorMsg = $"LLM did not return a response. Possible causes: " +
+                        $"1) Workspace '{WORKSPACE_SLUG}' does not exist in AnythingLLM (create it first), " +
+                        "2) Timeout (LLM processing slowly - check AnythingLLM window for activity), " +
+                        "3) Connection issues, " +
+                        "4) LLM service error. " +
+                        "Please check AnythingLLM is running and the workspace exists.";
                     _logger.LogWarning("[TestCaseGeneration] {ErrorMsg}", errorMsg);
                     progressCallback?.Invoke(errorMsg, requirementList.Count, requirementList.Count);
                     return new List<LLMTestCase>();
