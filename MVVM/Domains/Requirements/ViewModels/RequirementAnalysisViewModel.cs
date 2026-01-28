@@ -1428,15 +1428,20 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         private void OnRequirementUpdatedEvent(TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementUpdated e)
         {
-            _logger.LogInformation("[RequirementAnalysisVM] OnRequirementUpdated called for requirement: {RequirementId}", 
-                e.Requirement?.GlobalId ?? "null");
+            _logger.LogInformation("[RequirementAnalysisVM] OnRequirementUpdatedEvent called: Event requirement GlobalId={EventReqId}, Current requirement GlobalId={CurrentReqId}", 
+                e.Requirement?.GlobalId ?? "null", CurrentRequirement?.GlobalId ?? "null");
             
             // If this is the currently selected requirement, refresh to show the updates (e.g., committed improvements)
             // Compare by GlobalId since the requirement object reference might differ
             if (e.Requirement != null && CurrentRequirement != null && e.Requirement.GlobalId == CurrentRequirement.GlobalId)
             {
-                _logger.LogInformation("[RequirementAnalysisVM] Refreshing display after requirement update for {RequirementId}", e.Requirement.GlobalId);
+                _logger.LogInformation("[RequirementAnalysisVM] Match! Refreshing display after requirement update for {RequirementId}", e.Requirement.GlobalId);
                 RefreshAnalysisDisplay();
+            }
+            else
+            {
+                _logger.LogInformation("[RequirementAnalysisVM] No match - skipping refresh. Event={EventReq}, Current={CurrentReq}", 
+                    e.Requirement?.GlobalId ?? "null", CurrentRequirement?.GlobalId ?? "null");
             }
         }
 

@@ -443,6 +443,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         {
             if (requirement == null) throw new ArgumentNullException(nameof(requirement));
 
+            _logger.LogInformation("[RequirementsMediator] UpdateRequirement called for {RequirementId}, publishing RequirementUpdated event", 
+                requirement.GlobalId);
+            
             PublishEvent(new RequirementsEvents.RequirementUpdated
             {
                 Requirement = requirement,
