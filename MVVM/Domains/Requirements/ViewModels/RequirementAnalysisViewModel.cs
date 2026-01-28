@@ -1437,11 +1437,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 _logger.LogInformation("[RequirementAnalysisVM] Match! Refreshing display after requirement update for {RequirementId}", e.Requirement.GlobalId);
                 
-                // Notify that CurrentRequirement properties have changed (for Description bindings)
-                OnPropertyChanged(nameof(CurrentRequirement));
-                
-                // Refresh analysis display if present
-                RefreshAnalysisDisplay();
+                // Trigger the setter by re-assigning to force WPF to re-evaluate all bindings
+                var temp = CurrentRequirement;
+                CurrentRequirement = null;
+                CurrentRequirement = temp;
             }
             else
             {
