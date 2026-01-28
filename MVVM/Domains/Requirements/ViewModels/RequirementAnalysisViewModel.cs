@@ -353,19 +353,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             var analysis = CurrentRequirement?.Analysis;
 
-            _logger.LogInformation("[RequirementAnalysisVM] RefreshAnalysisDisplay called for requirement: {RequirementId}, Analysis={HasAnalysisObject}, IsAnalyzed={IsAnalyzed}, QualityScore={Score}, HasAnalysisProperty={HasAnalysisProp}", 
+            _logger.LogDebug("[RequirementAnalysisVM] RefreshAnalysisDisplay for {RequirementId}: IsAnalyzed={IsAnalyzed}", 
                 CurrentRequirement?.Item ?? "null", 
-                analysis != null, 
-                analysis?.IsAnalyzed ?? false,
-                analysis?.OriginalQualityScore ?? 0,
-                HasAnalysis);
-            Console.WriteLine($"*** [RequirementAnalysisVM] RefreshAnalysisDisplay: {CurrentRequirement?.Item ?? "null"}, Analysis={analysis != null}, IsAnalyzed={analysis?.IsAnalyzed ?? false} ***");
+                analysis?.IsAnalyzed ?? false);
 
             if (analysis?.IsAnalyzed == true)
             {
-                _logger.LogInformation("[RequirementAnalysisVM] Calling UpdateUIFromAnalysis for {RequirementId}", CurrentRequirement?.Item);
                 UpdateUIFromAnalysis(analysis);
-                _logger.LogInformation("[RequirementAnalysisVM] After UpdateUIFromAnalysis - HasAnalysis={HasAnalysis}", HasAnalysis);
             }
             else
             {
