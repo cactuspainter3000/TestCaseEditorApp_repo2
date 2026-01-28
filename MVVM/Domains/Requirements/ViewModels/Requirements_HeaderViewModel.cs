@@ -78,10 +78,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // Subscribe to Requirements events for real-time updates
             if (_mediator is RequirementsMediator concreteMediator)
             {
+                _logger.LogInformation("[HeaderVM] === CONSTRUCTOR: Mediator cast to RequirementsMediator SUCCEEDED, subscribing to events");
                 concreteMediator.Subscribe<RequirementsEvents.RequirementsImported>(OnRequirementsImported);
                 concreteMediator.Subscribe<RequirementsEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
                 concreteMediator.Subscribe<RequirementsEvents.RequirementAnalyzed>(OnRequirementAnalyzed);
                 concreteMediator.Subscribe<RequirementsEvents.RequirementSelected>(OnRequirementSelected);
+                concreteMediator.Subscribe<RequirementsEvents.RequirementUpdated>(OnRequirementUpdated);
+                _logger.LogInformation("[HeaderVM] === CONSTRUCTOR: All subscriptions complete");
+            }
+            else
+            {
+                _logger.LogWarning("[HeaderVM] === CONSTRUCTOR: Mediator is NOT a RequirementsMediator instance! Type: {Type}, Mediator is null: {IsNull}", 
+                    _mediator?.GetType().Name ?? "null", _mediator == null);
             }
 
             // Initialize values
@@ -123,6 +131,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         private void OnRequirementSelected(RequirementsEvents.RequirementSelected e)
         {
+            _logger.LogInformation("[HeaderVM] === OnRequirementSelected called === GlobalId: {GlobalId}, Item: {Item}, SelectedBy: {SelectedBy}", 
+                e?.Requirement?.GlobalId ?? "null", e?.Requirement?.Item ?? "null", e?.SelectedBy ?? "null");
+            
             // Update header description based on selected requirement and ImportSource
             if (e.Requirement != null)
             {
@@ -134,6 +145,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 {
                     // Jama Import: Show requirement name only (until better use is determined)
                     RequirementDescription = e.Requirement.Name ?? "Unnamed requirement";
+                    _logger.LogInformation("[HeaderVM] === Jama import, set RequirementDescription to Name: {Name}", RequirementDescription);
                 }
                 else
                 {
@@ -146,11 +158,39 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     RequirementDescription = !string.IsNullOrEmpty(description) ? 
                         $"{idPart}: {description}" : 
                         $"{idPart}: {namePart}";
+                    _logger.LogInformation("[HeaderVM] === Document import, set RequirementDescription to: {Desc}", RequirementDescription);
                 }
             }
             else
             {
                 RequirementDescription = "Requirements management workspace";
+                _logger.LogInformation("[HeaderVM] === No requirement, reset to default: {Desc}", RequirementDescription);
+            }
+        }
+
+        private void OnRequirementUpdated(RequirementsEvents.RequirementUpdated e)
+        {
+            _logger.LogInformation("[HeaderVM] === OnRequirementUpdated RECEIVED === Event GlobalId: {EventGlobalId}, Current GlobalId: {CurrentGlobalId}, Mediator null: {MediatorNull}", 
+                e?.Requirement?.GlobalId ?? "null", _mediator?.CurrentRequirement?.GlobalId ?? "null", _mediator == null);
+            
+            // If the updated requirement is currently selected, refresh the header description
+            if (e.Requirement != null && _mediator != null && _mediator.CurrentRequirement != null && 
+                e.Requirement.GlobalId == _mediator.CurrentRequirement.GlobalId)
+            {
+                _logger.LogInformation("[HeaderVM] === GlobalIds MATCH - Will call OnRequirementSelected to refresh ===");
+                // Re-trigger requirement selected logic to update description with new data
+                OnRequirementSelected(new RequirementsEvents.RequirementSelected 
+                { 
+                    Requirement = e.Requirement,
+                    SelectedBy = "System",
+                    SelectedAt = System.DateTime.Now
+                });
+                _logger.LogInformation("[HeaderVM] === After OnRequirementSelected, RequirementDescription is now: {Desc}", RequirementDescription);
+            }
+            else
+            {
+                _logger.LogInformation("[HeaderVM] === GlobalIds DO NOT MATCH or mediator null === Requirement null: {ReqNull}, Mediator null: {MedNull}, CurrentReq null: {CurNull}, IDs: {EventId} vs {CurrentId}", 
+                    e?.Requirement == null, _mediator == null, _mediator?.CurrentRequirement == null, e?.Requirement?.GlobalId ?? "null", _mediator?.CurrentRequirement?.GlobalId ?? "null");
             }
         }
 

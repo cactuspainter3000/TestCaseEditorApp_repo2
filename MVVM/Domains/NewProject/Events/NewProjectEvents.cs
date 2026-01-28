@@ -148,6 +148,15 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Events
             public string FilePath { get; set; } = string.Empty;
             public DateTime Timestamp { get; set; } = DateTime.Now;
         }
+        
+        /// <summary>
+        /// Fired when workspace data is modified and needs to be saved
+        /// </summary>
+        public class WorkspaceModified
+        {
+            public string Reason { get; set; } = string.Empty; // e.g., "RequirementUpdated", "TestCaseAdded"
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
 
         /// <summary>
         /// Fired when workspace dirty state changes (has unsaved changes)

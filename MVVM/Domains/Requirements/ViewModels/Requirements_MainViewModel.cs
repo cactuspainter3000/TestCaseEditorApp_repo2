@@ -67,9 +67,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _textEditingDialogService = textEditingDialogService ?? throw new ArgumentNullException(nameof(textEditingDialogService));
 
             // Subscribe to Requirements domain events ONLY - Requirements domain independence
+            _logger.LogInformation("[Requirements_MainVM] === CONSTRUCTOR: Subscribing to mediator events, mediator type: {MediatorType}, is null: {IsNull}", 
+                _mediator?.GetType().Name ?? "null", _mediator == null);
             _mediator.Subscribe<RequirementsEvents.RequirementSelected>(OnRequirementSelected);
             _mediator.Subscribe<RequirementsEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
             _mediator.Subscribe<RequirementsEvents.WorkflowStateChanged>(OnWorkflowStateChanged);
+            _mediator.Subscribe<RequirementsEvents.RequirementUpdated>(OnRequirementUpdated);
+            _logger.LogInformation("[Requirements_MainVM] === CONSTRUCTOR: All subscriptions complete ===");
 
             // Commands
             AddRequirementCommand = new RelayCommand(AddRequirement);
@@ -264,6 +268,35 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private void OnWorkflowStateChanged(RequirementsEvents.WorkflowStateChanged e)
         {
             // Handle workflow changes if needed
+        }
+
+        /// <summary>
+        /// Handle requirement updates (e.g., when description is changed via "Update with Re-write" button)
+        /// </summary>
+        private void OnRequirementUpdated(RequirementsEvents.RequirementUpdated e)
+        {
+            _logger.LogInformation("[Requirements_MainVM] === OnRequirementUpdated RECEIVED === Event GlobalId: {EventGlobalId}, Current GlobalId: {CurrentGlobalId}", 
+                e?.Requirement?.GlobalId ?? "null", _mediator.CurrentRequirement?.GlobalId ?? "null");
+
+            // If the updated requirement is the currently selected one, refresh the UI
+            if (e.Requirement != null && _mediator.CurrentRequirement != null && 
+                e.Requirement.GlobalId == _mediator.CurrentRequirement.GlobalId)
+            {
+                _logger.LogInformation("[Requirements_MainVM] === GlobalIds MATCH - Refreshing requirement content ===");
+                
+                // Reload the requirement content to display the updated description
+                LoadRequirementContent(SelectedRequirement);
+                
+                // Notify UI of property changes
+                OnPropertyChanged(nameof(SelectedRequirement));
+                
+                _logger.LogInformation("[Requirements_MainVM] === Content refresh complete ===");
+            }
+            else
+            {
+                _logger.LogInformation("[Requirements_MainVM] === GlobalIds DO NOT MATCH - Skipping refresh === Event: {EventId}, Current: {CurrentId}", 
+                    e?.Requirement?.GlobalId ?? "null", _mediator.CurrentRequirement?.GlobalId ?? "null");
+            }
         }
 
         // ==== PROPERTIES ====

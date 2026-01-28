@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Models;
@@ -40,8 +41,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         private readonly Dictionary<Requirement, List<string>> _requirementAssumptions = new();
         private readonly Dictionary<Requirement, List<ClarifyingQuestionData>> _requirementQuestions = new();
         
-        // Requirements collection for UI binding
-        private readonly ObservableCollection<Requirement> _requirements = new();
+        // DEPRECATED: Requirements collection removed - use RequirementsMediator instead
+        // private readonly ObservableCollection<Requirement> _requirements = new();
         
         // Domain state management - replaces MainViewModel dependencies
         private Requirement? _currentRequirement;
@@ -116,9 +117,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         }
         
         /// <summary>
-        /// Requirements collection for UI binding across the domain
+        /// DEPRECATED: Requirements collection removed - use RequirementsMediator.Requirements instead
         /// </summary>
-        public ObservableCollection<Requirement> Requirements => _requirements;
+        [Obsolete("Use RequirementsMediator.Requirements instead")]
+        public ObservableCollection<Requirement> Requirements => 
+            App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>()?.Requirements 
+            ?? new ObservableCollection<Requirement>();
         
         public bool IsAnalyzing 
         { 
@@ -1110,18 +1114,17 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             {
                 _logger.LogInformation("🔄 Handling cross-domain RequirementsImported with {Count} requirements", e.Requirements.Count);
                 
-                // Clear existing requirements and add new ones (sorted naturally by numeric suffix)
-                Application.Current.Dispatcher.Invoke(() =>
+                // DEPRECATED: This handler should not be used - requirements are now managed by RequirementsMediator
+                _logger.LogWarning("⚠️ TestCaseGenerationMediator.OnRequirementsImported called - this is deprecated. Requirements should be handled by RequirementsMediator.");
+                
+                // Forward to RequirementsMediator if needed
+                var requirementsMediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
+                if (requirementsMediator != null)
                 {
-                    _requirements.Clear();
-                    // Sort requirements using natural numeric order to ensure RC-5 comes before RC-12, etc.
-                    var sortedRequirements = e.Requirements.OrderBy(r => r.Item ?? r.Name ?? string.Empty, 
-                        new RequirementNaturalComparer()).ToList();
-                    foreach (var requirement in sortedRequirements)
-                    {
-                        _requirements.Add(requirement);
-                    }
-                });
+                    // Requirements are already in RequirementsMediator, no action needed
+                    _logger.LogInformation("Requirements are managed by RequirementsMediator ({Count} requirements)", 
+                        requirementsMediator.Requirements?.Count ?? 0);
+                }
                 
                 // Set the first requirement as current if available - use SelectRequirement to ensure clean state
                 if (e.Requirements.Count > 0)
@@ -1224,24 +1227,18 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 
                 _headerViewModel?.UpdateProjectStatus(null, false);
                 
-                // Clear requirements collection when project is closed (on UI thread)
-                _logger.LogInformation("🔄 Clearing requirements collection on project close...");
-                Application.Current.Dispatcher.Invoke(() =>
+                // DEPRECATED: Requirements clearing should be handled by RequirementsMediator
+                _logger.LogInformation("🔄 Project closed - requirements managed by RequirementsMediator");
+                
+                var collectionEvent = new TestCaseGenerationEvents.RequirementsCollectionChanged
                 {
-                    _logger.LogInformation("🗑️ Before clear: Requirements.Count = {Count}", _requirements.Count);
-                    _requirements.Clear();
-                    _logger.LogInformation("✅ After clear: Requirements.Count = {Count}", _requirements.Count);
-                    
-                    var collectionEvent = new TestCaseGenerationEvents.RequirementsCollectionChanged
-                    {
-                        Action = "Clear",
-                        AffectedRequirements = new List<Requirement>(),
-                        NewCount = 0
-                    };
-                    
-                    _logger.LogInformation("📢 Publishing RequirementsCollectionChanged event: Action=Clear, NewCount=0");
-                    PublishEvent(collectionEvent);
-                });
+                    Action = "Clear",
+                    AffectedRequirements = new List<Requirement>(),
+                    NewCount = 0
+                };
+                
+                _logger.LogInformation("📢 Publishing RequirementsCollectionChanged event: Action=Clear, NewCount=0");
+                PublishEvent(collectionEvent);
                 
                 _logger.LogDebug("Updated header with project closed and cleared requirements");
             }

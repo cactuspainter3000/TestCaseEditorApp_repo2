@@ -1,0 +1,66 @@
+<UserControl x:Class="TestCaseEditorApp.MVVM.Domains.Title.Views.TitleView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Title.ViewModels"
+             mc:Ignorable="d"
+             d:DesignHeight="50" d:DesignWidth="1200"
+             d:DataContext="{d:DesignInstance Type=vm:TitleViewModel}">
+    
+    <Grid HorizontalAlignment="Stretch">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/> <!-- Project Title -->
+            <ColumnDefinition Width="Auto"/> <!-- Actions (Save, Undo) -->
+        </Grid.ColumnDefinitions>
+
+        <!-- Project Title on Left -->
+        <TextBlock Grid.Column="0"
+                   Text="{Binding ProjectTitle}"
+                   Style="{StaticResource WorkspaceTitleText}"
+                   HorizontalAlignment="Left"
+                   VerticalAlignment="Center"
+                   Margin="10,0"/>
+
+        <!-- Actions on Right -->
+        <StackPanel Grid.Column="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Margin="0,0,10,0">
+            
+            <!-- Save button -->
+            <Button Command="{Binding SaveProjectCommand}"
+                    ToolTip="Save Project"
+                    Visibility="{Binding HasProject, Converter={StaticResource BoolToVisibilityConverter}}"
+                    Style="{StaticResource MainWindowButtonControls}">
+                <TextBlock FontFamily="Segoe MDL2 Assets"
+                           FontSize="14"
+                           VerticalAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="&#xE74E;"/> <!-- Save icon -->
+                            <Setter Property="Foreground" Value="#4CAF50"/> <!-- Green = Saved -->
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasUnsavedChanges}" Value="True">
+                                    <Setter Property="Foreground" Value="#9E9E9E"/> <!-- Grey = Unsaved -->
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Button>
+
+            <!-- Undo button -->
+            <Button Command="{Binding UndoLastSaveCommand}"
+                    ToolTip="Undo last save operation"
+                    Style="{StaticResource MainWindowButtonControls}"
+                    Margin="4,0,0,0">
+                <TextBlock Text="&#xE7A7;"
+                           FontFamily="Segoe MDL2 Assets"
+                           FontSize="14"
+                           Foreground="White"/>
+            </Button>
+        </StackPanel>
+    </Grid>
+</UserControl>

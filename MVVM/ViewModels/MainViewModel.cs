@@ -41,6 +41,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty]
         private string modalTitle = string.Empty;
         
+        /// <summary>
+        /// Title domain ViewModel - manages title bar and global actions
+        /// </summary>
+        public object TitleVM { get; }
+        
         // === 6-WORKSPACE PROPERTIES ===
         // All UI areas are managed by ViewAreaCoordinator
         
@@ -96,11 +101,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// According to architectural guidelines: MainViewModel should be a simple container that 
         /// sets up 5 workspace areas. Once workspace assigned ? hands-off.
         /// </summary>
-        public MainViewModel(IViewAreaCoordinator viewAreaCoordinator, INavigationService navigationService, ILogger<MainViewModel>? logger = null)
+        public MainViewModel(IViewAreaCoordinator viewAreaCoordinator, INavigationService navigationService, 
+            TestCaseEditorApp.MVVM.Domains.Title.ViewModels.TitleViewModel titleViewModel, ILogger<MainViewModel>? logger = null)
         {
             System.Diagnostics.Debug.WriteLine($"*** MainViewModel constructor called! Instance: {GetHashCode()} ***");
             _viewAreaCoordinator = viewAreaCoordinator ?? throw new ArgumentNullException(nameof(viewAreaCoordinator));
             _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+            TitleVM = titleViewModel ?? throw new ArgumentNullException(nameof(titleViewModel));
             _logger = logger;
             
             // Initialize modal command - ensure modal starts hidden

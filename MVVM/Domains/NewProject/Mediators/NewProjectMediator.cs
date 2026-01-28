@@ -71,6 +71,25 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
         }
 
+        /// <summary>
+        /// Override BroadcastToAllDomains to also publish WorkspaceModified events locally.
+        /// This ensures UI infrastructure ViewModels (like TitleViewModel) that subscribe 
+        /// directly to this mediator also receive the event.
+        /// </summary>
+        public override void BroadcastToAllDomains<T>(T notification)
+        {
+            // Broadcast to other mediators via DomainCoordinator
+            base.BroadcastToAllDomains(notification);
+            
+            // Also publish locally for direct subscribers (UI infrastructure ViewModels)
+            if (notification is NewProjectEvents.WorkspaceModified workspaceModified)
+            {
+                _logger.LogDebug("[NewProjectMediator] Publishing WorkspaceModified locally for direct subscribers: {Reason}", 
+                    workspaceModified.Reason);
+                PublishEvent(workspaceModified);
+            }
+        }
+
         public override void NavigateToInitialStep()
         {
             NavigateToStep("ProjectSelection");
@@ -281,10 +300,16 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     WorkspacePath = _currentWorkspaceInfo.Path 
                 });
                 
-                // 1. Get current requirements from TestCaseGeneration domain
-                var currentRequirements = _testCaseGenerationMediator?.Requirements?.ToList() ?? new List<Requirement>();
+                // 1. Get current requirements from Requirements domain (primary source)
+                // Fall back to TestCaseGeneration domain for legacy compatibility
+                var requirementsMediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
+                var currentRequirements = requirementsMediator?.Requirements?.ToList() 
+                    ?? _testCaseGenerationMediator?.Requirements?.ToList() 
+                    ?? new List<Requirement>();
                 
-                _logger.LogInformation("Gathering current workspace data - found {RequirementCount} requirements", currentRequirements.Count);
+                _logger.LogInformation("Gathering current workspace data - found {RequirementCount} requirements (from {Source})", 
+                    currentRequirements.Count, 
+                    requirementsMediator?.Requirements?.Any() == true ? "RequirementsMediator" : "TestCaseGenerationMediator");
                 
                 // 2. Build current workspace object with all data
                 var workspace = new Workspace

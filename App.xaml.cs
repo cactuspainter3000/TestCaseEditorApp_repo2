@@ -203,6 +203,8 @@ namespace TestCaseEditorApp
                     services.AddSingleton<GenericServiceMonitor>();
 
                     // ViewModels that need DI
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Title.ViewModels.TitleViewModel>();
+                    
                     services.AddSingleton<SideMenuViewModel>(provider =>
                     {
                         var newProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator>();
@@ -433,9 +435,10 @@ namespace TestCaseEditorApp
                     {
                         var viewAreaCoordinator = provider.GetRequiredService<IViewAreaCoordinator>();
                         var navigationService = provider.GetRequiredService<INavigationService>();
+                        var titleViewModel = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Title.ViewModels.TitleViewModel>();
                         var logger = provider.GetService<ILogger<MainViewModel>>();
                         
-                        return new MainViewModel(viewAreaCoordinator, navigationService, logger);
+                        return new MainViewModel(viewAreaCoordinator, navigationService, titleViewModel, logger);
                     });
                     // Shared NavigationViewModel - SINGLETON to maintain state across domains
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel>(provider =>

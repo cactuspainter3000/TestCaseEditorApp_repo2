@@ -17,6 +17,8 @@
         xmlns:opviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.Views"
         xmlns:dummyvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels"
         xmlns:dummyviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Dummy.Views"
+        xmlns:titlevm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Title.ViewModels"
+        xmlns:titleviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Title.Views"
         xmlns:reqvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels"
         xmlns:reqviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.Views"
         xmlns:sharedvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Shared.ViewModels"
@@ -399,6 +401,10 @@
             <dummyviews:DummyTitleWorkspaceView />
         </DataTemplate>
         
+        <DataTemplate DataType="{x:Type titlevm:TitleViewModel}">
+            <titleviews:TitleView />
+        </DataTemplate>
+        
         <DataTemplate DataType="{x:Type dummyvm:DummyNotificationWorkspaceViewModel}">
             <dummyviews:DummyNotificationWorkspaceView />
         </DataTemplate>
@@ -461,93 +467,52 @@
             <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
                     Style="{StaticResource ContentBorderStyle}">
                 <Grid HorizontalAlignment="Stretch">
-                    <!-- Dynamic Title Area - managed by ViewAreaCoordinator -->
-                    <ContentPresenter Content="{Binding TitleWorkspace}"
-                                      VerticalAlignment="Center"
-                                      HorizontalAlignment="Left"
-                                      Margin="4,0,0,0"/>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/> <!-- Title content -->
+                        <ColumnDefinition Width="Auto"/> <!-- Window controls -->
+                    </Grid.ColumnDefinitions>
                     
-                    <DockPanel HorizontalAlignment="Right" Margin="3">
+                    <!-- Title Domain View - displays project name + save/undo actions -->
+                    <ContentPresenter Grid.Column="0"
+                                      Content="{Binding TitleVM}"
+                                      VerticalAlignment="Center"
+                                      HorizontalAlignment="Stretch"
+                                      Margin="4,0,10,0"/>
+                    
+                    <!-- Window Controls -->
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center">
                         
-                        <Grid VerticalAlignment="Center" HorizontalAlignment="Right">
-                            <Grid.ColumnDefinitions>
-                                <!-- Save Status button -->
-                                <ColumnDefinition Width="Auto"/>
-                                <!-- Undo button -->
-                                <ColumnDefinition Width="Auto"/>
-                                <!-- Minimize, Maximize, Close -->
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
+                        <!-- Minimize -->
+                        <Button Style="{StaticResource MainWindowButtonControls}"
+                                Click="ButtonMinimize_Click">
+                            <TextBlock Text="&#xE90F;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="14"
+                                       Style="{StaticResource WindowControlIconStyle}"/>
+                        </Button>
 
-                            <!-- Save Status button - clean icon only -->
-                            <Button Grid.Column="0"
-                                    Command="{Binding HeaderWorkspace.SaveWorkspaceCommand}"
-                                    ToolTip="{Binding HeaderWorkspace.LastSaveTimestamp}"
-                                    Visibility="{Binding HeaderWorkspace.WorkspaceFilePath, Converter={StaticResource NullToVisibilityConverter}}"
-                                    Style="{StaticResource MainWindowButtonControls}">
-                                <TextBlock FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
-                                           VerticalAlignment="Center">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Text" Value="&#xE74E;"/> <!-- Save icon - 3.5" disc -->
-                                            <Setter Property="Foreground" Value="#4CAF50"/> <!-- Green = Saved -->
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding HeaderWorkspace.IsDirty}" Value="True">
-                                                    <Setter Property="Foreground" Value="#9E9E9E"/> <!-- Light Grey = Unsaved -->
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </Button>
+                        <!-- Maximize/Restore -->
+                        <Button Style="{StaticResource MainWindowButtonControls}"
+                                Click="WindowStateButton_Click"
+                                Margin="4,0">
+                            <TextBlock Text="&#xE923;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="14"
+                                       Style="{StaticResource WindowControlIconStyle}"/>
+                        </Button>
 
-                            <!-- Undo last save button - always visible but enabled/disabled -->
-                            <Button Grid.Column="1"
-                                    Style="{StaticResource MainWindowButtonControls}"
-                                    Command="{Binding HeaderWorkspace.UndoLastSaveCommand}"
-                                    IsEnabled="{Binding HeaderWorkspace.CanUndoLastSave}"
-                                    ToolTip="Undo last save operation">
-                                <TextBlock Text="&#xE7A7;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
-                                           Style="{StaticResource WindowControlIconStyle}"/>
-                            </Button>
-
-                            <!-- Minimize -->
-                            <Button Grid.Column="2"
-                                    Style="{StaticResource MainWindowButtonControls}"
-                                    Click="ButtonMinimize_Click">
-                                <TextBlock Text="&#xE90F;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
-                                           Style="{StaticResource WindowControlIconStyle}"/>
-                            </Button>
-
-                            <!-- Maximize/Restore -->
-                            <Button Grid.Column="3"
-                                    Style="{StaticResource MainWindowButtonControls}"
-                                    Click="WindowStateButton_Click"
-                                    Margin="4,0">
-                                <TextBlock Text="&#xE923;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
-                                           Style="{StaticResource WindowControlIconStyle}"/>
-                            </Button>
-
-                            <!-- Close -->
-                            <Button Grid.Column="4"
-                                    Style="{StaticResource MainWindowCloseButton}"
-                                    Click="CloseButton_Click"
-                                    Margin="4,0">
-                                <TextBlock Text="✕"
-                                           FontSize="14"
-                                           Style="{StaticResource WindowControlIconStyle}"/>
-                            </Button>
-                        </Grid>
-                    </DockPanel>
+                        <!-- Close -->
+                        <Button Style="{StaticResource MainWindowCloseButton}"
+                                Click="CloseButton_Click"
+                                Margin="4,0">
+                            <TextBlock Text="✕"
+                                       FontSize="14"
+                                       Style="{StaticResource WindowControlIconStyle}"/>
+                        </Button>
+                    </StackPanel>
                 </Grid>
             </Border>
 

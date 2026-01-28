@@ -8,7 +8,9 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
+using TestCaseEditorApp.MVVM.Domains.OpenProject.Events;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Events;
@@ -44,6 +46,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Requirements state tracking - use ObservableProperty for automatic command updates
         [ObservableProperty] 
         private bool hasRequirements = false;
+        
+        // Workspace dirty state - indicates unsaved changes
+        [ObservableProperty]
+        private bool hasUnsavedChanges = false;
 
         // AnythingLLM status text for Test Case Generator section
         [ObservableProperty]
@@ -633,6 +639,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Subscribe to Requirements domain events (new independent domain)
             _requirementsMediator.Subscribe<RequirementsEvents.RequirementsImported>(OnRequirementsImported);
             _requirementsMediator.Subscribe<RequirementsEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
+            
+            // Subscribe to OpenProject domain events (for project opening)
+            _openProjectMediator.Subscribe<OpenProjectEvents.ProjectOpened>(OnProjectOpened);
+            
+            // Subscribe to NewProject domain events (for workspace state)
+            _newProjectMediator.Subscribe<NewProjectEvents.WorkspaceModified>(OnWorkspaceModified);
+            _newProjectMediator.Subscribe<NewProjectEvents.ProjectSaved>(OnProjectSaved);
         }
         
         /// <summary>
@@ -642,6 +655,35 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             // TODO: Update menu item states when project loads
             // UpdateMenuItemState calls removed - need to implement with MenuAction system
+        }
+        
+        /// <summary>
+        /// Handle project opened from OpenProject domain
+        /// </summary>
+        private void OnProjectOpened(OpenProjectEvents.ProjectOpened evt)
+        {
+            HasRequirements = evt.Workspace?.Requirements?.Count > 0;
+            HasUnsavedChanges = false; // Fresh project load, no unsaved changes
+            _logger.LogInformation("[SideMenuVM] Project opened, HasRequirements set to {HasReq} ({Count} requirements)", 
+                HasRequirements, evt.Workspace?.Requirements?.Count ?? 0);
+        }
+        
+        /// <summary>
+        /// Handle workspace modifications (data changed, needs save)
+        /// </summary>
+        private void OnWorkspaceModified(NewProjectEvents.WorkspaceModified evt)
+        {
+            HasUnsavedChanges = true;
+            _logger.LogInformation("[SideMenuVM] Workspace modified: {Reason}", evt.Reason);
+        }
+        
+        /// <summary>
+        /// Handle project saved (clear dirty flag)
+        /// </summary>
+        private void OnProjectSaved(NewProjectEvents.ProjectSaved evt)
+        {
+            HasUnsavedChanges = false;
+            _logger.LogInformation("[SideMenuVM] Project saved, unsaved changes cleared");
         }
         
         /// <summary>

@@ -97,6 +97,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 concreteMediator.Subscribe<RequirementsEvents.RequirementSelected>(OnRequirementSelected);
                 concreteMediator.Subscribe<RequirementsEvents.RequirementAnalyzed>(OnRequirementAnalyzed);
+                concreteMediator.Subscribe<RequirementsEvents.RequirementUpdated>(OnRequirementUpdated);
                 
                 // Initialize with current requirement if available
                 CurrentRequirement = concreteMediator.CurrentRequirement;
@@ -206,6 +207,37 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[JamaRequirementsMainVM] Error handling RequirementAnalyzed event");
+            }
+        }
+
+        private void OnRequirementUpdated(RequirementsEvents.RequirementUpdated eventData)
+        {
+            try
+            {
+                _logger.LogInformation("[JamaRequirementsMainVM] === OnRequirementUpdated RECEIVED === Event GlobalId: {EventGlobalId}, Current GlobalId: {CurrentGlobalId}",
+                    eventData?.Requirement?.GlobalId ?? "null", CurrentRequirement?.GlobalId ?? "null");
+
+                // Only refresh if this is the currently selected requirement
+                if (eventData.Requirement != null && CurrentRequirement != null &&
+                    eventData.Requirement.GlobalId == CurrentRequirement.GlobalId)
+                {
+                    _logger.LogInformation("[JamaRequirementsMainVM] === GlobalIds MATCH - Refreshing requirement content ===");
+                    
+                    // Force UI refresh by setting to null first, then to new value
+                    // This ensures WPF binding system detects the property change even if it's the same object reference
+                    CurrentRequirement = null;
+                    CurrentRequirement = eventData.Requirement;
+                    UpdateRequirementState();
+
+                    // Update the RequirementAnalysisVM with the updated requirement
+                    RequirementAnalysisVM.CurrentRequirement = eventData.Requirement;
+                    
+                    _logger.LogInformation("[JamaRequirementsMainVM] === Content refresh complete ===");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[JamaRequirementsMainVM] Error handling RequirementUpdated event");
             }
         }
 

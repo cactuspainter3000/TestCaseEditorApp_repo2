@@ -36,6 +36,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private readonly ILogger<RequirementAnalysisViewModel> _logger;
         private readonly TestCaseEditorApp.Services.IEditDetectionService? _editDetectionService;
         private readonly TestCaseEditorApp.Services.ILLMLearningService? _learningService;
+        private readonly TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator? _mediator;
         private CancellationTokenSource? _analysisCancellation;
 
         // Timer for tracking analysis duration
@@ -194,19 +195,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             CopyAnalysisPromptCommand = new RelayCommand(CopyToClipboard, CanCopyToClipboard);
 
             // Subscribe to requirement navigation and analysis events from Requirements mediator
-            var mediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
-            if (mediator != null)
+            _mediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
+            if (_mediator != null)
             {
-                mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementSelected>(OnRequirementSelected);
-                mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementAnalyzed>(OnRequirementAnalyzed);
-                mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementUpdated>(OnRequirementUpdatedEvent);
+                _mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementSelected>(OnRequirementSelected);
+                _mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementAnalyzed>(OnRequirementAnalyzed);
+                _mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementUpdated>(OnRequirementUpdatedEvent);
                 _logger.LogInformation("[RequirementAnalysisVM] Subscribed to RequirementSelected, RequirementAnalyzed, and RequirementUpdated events from Requirements mediator");
                 
                 // Initialize from mediator's current state (handles late-binding after project already loaded)
-                if (mediator.CurrentRequirement != null)
+                if (_mediator.CurrentRequirement != null)
                 {
-                    _logger.LogInformation("[RequirementAnalysisVM] Initializing from mediator's current requirement: {Item}", mediator.CurrentRequirement.Item);
-                    CurrentRequirement = mediator.CurrentRequirement;
+                    _logger.LogInformation("[RequirementAnalysisVM] Initializing from mediator's current requirement: {Item}", _mediator.CurrentRequirement.Item);
+                    CurrentRequirement = _mediator.CurrentRequirement;
                 }
             }
             else
@@ -532,9 +533,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         private void CommitImprovedRequirement()
         {
+            _logger.LogInformation("[RequirementAnalysisVM] === COMMIT START === Button clicked for requirement: {RequirementId}, Item: {Item}", 
+                CurrentRequirement?.GlobalId ?? "null", CurrentRequirement?.Item ?? "null");
+            
             if (CurrentRequirement == null || string.IsNullOrWhiteSpace(ImprovedRequirement))
             {
-                _logger.LogWarning("[RequirementAnalysisVM] Cannot commit improved requirement - missing data");
+                _logger.LogWarning("[RequirementAnalysisVM] Cannot commit improved requirement - missing data. CurrentRequirement: {HasReq}, ImprovedRequirement: {HasImp}", 
+                    CurrentRequirement != null, !string.IsNullOrWhiteSpace(ImprovedRequirement));
                 return;
             }
 
@@ -550,14 +555,41 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 HasImprovedRequirement = false;
                 
                 // Mediator publishes RequirementUpdated event which handles all downstream updates
-                var mediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
-                if (mediator != null)
+                _logger.LogInformation("[RequirementAnalysisVM] === About to call mediator.UpdateRequirement === Mediator is null: {IsMediatorNull}", _mediator == null);
+                if (_mediator != null)
                 {
-                    mediator.UpdateRequirement(CurrentRequirement, new[] { "Description" });
+                    _logger.LogInformation("[RequirementAnalysisVM] === Calling _mediator.UpdateRequirement === GlobalId: {GlobalId}, Item: {Item}", 
+                        CurrentRequirement.GlobalId, CurrentRequirement.Item);
+                    _mediator.UpdateRequirement(CurrentRequirement, new[] { "Description" });
+                    _logger.LogInformation("[RequirementAnalysisVM] === _mediator.UpdateRequirement COMPLETE ===");
+                }
+                else
+                {
+                    _logger.LogWarning("[RequirementAnalysisVM] === MEDIATOR IS NULL - Event will NOT be published ===");
                 }
                 
                 _logger.LogInformation("[RequirementAnalysisVM] Committed improved requirement: changed from {OldLen} to {NewLen} chars",
                     originalDescription?.Length ?? 0, CurrentRequirement.Description?.Length ?? 0);
+                
+                // Notify that workspace has unsaved changes
+                try
+                {
+                    var projectMediator = App.ServiceProvider?.GetService<MVVM.Domains.NewProject.Mediators.INewProjectMediator>();
+                    if (projectMediator != null)
+                    {
+                        projectMediator.BroadcastToAllDomains(new MVVM.Domains.NewProject.Events.NewProjectEvents.WorkspaceModified 
+                        { 
+                            Reason = "RequirementUpdated"
+                        });
+                        _logger.LogInformation("[RequirementAnalysisVM] Workspace marked as modified");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[RequirementAnalysisVM] Failed to broadcast workspace modified event");
+                }
+                
+                _logger.LogInformation("[RequirementAnalysisVM] === COMMIT END ===");
             }
             catch (Exception ex)
             {

@@ -52,6 +52,25 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
             _workspaceValidationService = workspaceValidationService ?? throw new ArgumentNullException(nameof(workspaceValidationService));
         }
 
+        /// <summary>
+        /// Override BroadcastToAllDomains to also publish ProjectOpened events locally.
+        /// This ensures UI infrastructure ViewModels (like TitleViewModel) that subscribe 
+        /// directly to this mediator also receive the event.
+        /// </summary>
+        public override void BroadcastToAllDomains<T>(T notification)
+        {
+            // Broadcast to other mediators via DomainCoordinator
+            base.BroadcastToAllDomains(notification);
+            
+            // Also publish locally for direct subscribers (UI infrastructure ViewModels)
+            if (notification is OpenProjectEvents.ProjectOpened projectOpened)
+            {
+                _logger.LogDebug("[OpenProjectMediator] Publishing ProjectOpened locally for direct subscribers: {ProjectName}", 
+                    projectOpened.WorkspaceName);
+                PublishEvent(projectOpened);
+            }
+        }
+
         public override void NavigateToInitialStep()
         {
             _logger.LogDebug("[OpenProjectMediator] NavigateToInitialStep - Navigating to main view");
