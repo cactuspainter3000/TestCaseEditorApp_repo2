@@ -1163,12 +1163,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 // Update project title
                 UpdateProjectContext(projectCreated.WorkspaceName);
                 
-                // Load requirements for the created project if workspace data is available
-                if (projectCreated.Workspace != null)
-                {
-                    _logger.LogInformation("🔄 About to load requirements for created project: {ProjectName}", projectCreated.WorkspaceName);
-                    LoadProjectRequirements(projectCreated.WorkspaceName, projectCreated.Workspace);
-                }
+                // Requirements are already loaded by RequirementsMediator
+                // No duplicate loading needed - avoid data inconsistencies
             }
             else if (notification is NewProjectEvents.ProjectOpened projectOpened)
             {
@@ -1185,9 +1181,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 // Update project title
                 UpdateProjectContext(projectOpened.WorkspaceName);
                 
-                // Load requirements for the opened project
-                _logger.LogInformation("🔄 About to load requirements for project: {ProjectName}", projectOpened.WorkspaceName);
-                LoadProjectRequirements(projectOpened.WorkspaceName, projectOpened.Workspace);
+                // Requirements are already loaded by RequirementsMediator
+                // No duplicate loading needed - avoid data inconsistencies
             }
             else if (notification is OpenProjectEvents.ProjectOpened openedProject)
             {
@@ -1215,10 +1210,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 // Update project title
                 UpdateProjectContext(openedProject.WorkspaceName);
                 
-                // Load requirements for the opened project
-                _logger.LogInformation("🔄 About to load requirements for opened project: {ProjectName}", openedProject.WorkspaceName);
-                LoadProjectRequirements(openedProject.WorkspaceName, openedProject.Workspace);
-                _logger.LogInformation("✅ LoadProjectRequirements call completed for: {ProjectName}", openedProject.WorkspaceName);
+                // Requirements are already loaded by RequirementsMediator
+                // No duplicate loading needed - avoid data inconsistencies
             }
             else if (notification is NewProjectEvents.ProjectClosed)
             {
@@ -1261,81 +1254,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         /// <summary>
         /// Loads requirements for the specified project with UI thread safety
         /// </summary>
-        private void LoadProjectRequirements(string projectName, Workspace? workspace)
-        {
-            try
-            {
-                _logger.LogInformation("📋 Loading requirements for project: {ProjectName}", projectName);
-                
-                // DEBUG: Log workspace details
-                if (workspace == null)
-                {
-                    _logger.LogError("🚨 Workspace is NULL in LoadProjectRequirements!");
-                    return;
-                }
-                
-                _logger.LogInformation("📊 Workspace Info: Version={Version}, SourceDoc={SourceDoc}, Requirements.Count={RequirementCount}",
-                    workspace.Version, workspace.SourceDocPath, workspace.Requirements?.Count ?? -1);
-                
-                // Get actual requirements from the loaded workspace
-                var actualRequirements = workspace?.Requirements?.ToList() ?? new List<Requirement>();
-                
-                _logger.LogInformation("✅ Found {Count} actual requirements in workspace", actualRequirements.Count);
-                
-                // DEBUG: Log first few requirement details
-                if (actualRequirements.Count > 0)
-                {
-                    for (int i = 0; i < Math.Min(3, actualRequirements.Count); i++)
-                    {
-                        var req = actualRequirements[i];
-                        _logger.LogInformation("📋 Requirement {Index}: GlobalId={GlobalId}, Item={Item}, Name={Name}",
-                            i + 1, req.GlobalId, req.Item, req.Name);
-                    }
-                }
-                
-                // Update the Requirements collection on UI thread using Dispatcher.Invoke
-                _logger.LogInformation("🧵 Updating UI on dispatcher thread...");
-                System.Windows.Application.Current.Dispatcher.Invoke(() =>
-                {
-                    _logger.LogInformation("🔄 Clearing existing requirements collection...");
-                    var beforeCount = _requirements.Count;
-                    _requirements.Clear();
-                    _logger.LogInformation("🗑️ Cleared {BeforeCount} existing requirements", beforeCount);
-                    
-                    _logger.LogInformation("➕ Adding {Count} real requirements to collection (sorted naturally by numeric suffix)...", actualRequirements.Count);
-                    // Sort requirements using natural numeric order to ensure RC-5 comes before RC-12, etc.
-                    var sortedRequirements = actualRequirements.OrderBy(r => r.Item ?? r.Name ?? string.Empty, 
-                        new RequirementNaturalComparer()).ToList();
-                    foreach (var requirement in sortedRequirements)
-                    {
-                        // Preserve analysis data that was persisted in the project file
-                        // Analysis will be null only if it wasn't previously performed
-                        if (requirement.Analysis != null)
-                        {
-                            _logger.LogDebug("Preserved persisted analysis for requirement: {RequirementId}", requirement.GlobalId);
-                        }
-                        
-                        _requirements.Add(requirement);
-                    }
-                    
-                    var afterCount = _requirements.Count;
-                    _logger.LogInformation("✅ Loaded {Count} requirements for project {ProjectName} - Collection now has {ActualCount} items", 
-                        actualRequirements.Count, projectName, afterCount);
-                    
-                    // Publish event to notify NavigationVM that requirements collection has changed
-                    PublishEvent(new TestCaseGenerationEvents.RequirementsCollectionChanged 
-                    { 
-                        AffectedRequirements = actualRequirements, 
-                        Action = "ProjectOpened",
-                        NewCount = actualRequirements.Count
-                    });
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error loading requirements for project {ProjectName}", projectName);
-            }
-        }
+
 
     }
 
