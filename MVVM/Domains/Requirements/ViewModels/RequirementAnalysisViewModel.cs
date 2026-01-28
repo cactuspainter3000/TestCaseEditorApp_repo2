@@ -556,6 +556,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     _logger.LogInformation("[RequirementAnalysisVM] Published RequirementUpdated event after committing improvement");
                 }
                 
+                // Refresh the display to show the updated description
+                OnPropertyChanged(nameof(CurrentRequirement));
+                
                 _logger.LogInformation("[RequirementAnalysisVM] Committed improved requirement: changed from {OldLen} to {NewLen} chars",
                     originalDescription?.Length ?? 0, CurrentRequirement.Description?.Length ?? 0);
             }
