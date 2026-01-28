@@ -199,7 +199,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementSelected>(OnRequirementSelected);
                 mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementAnalyzed>(OnRequirementAnalyzed);
-                _logger.LogInformation("[RequirementAnalysisVM] Subscribed to RequirementSelected and RequirementAnalyzed events from Requirements mediator");
+                mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementUpdated>(OnRequirementUpdatedEvent);
+                _logger.LogInformation("[RequirementAnalysisVM] Subscribed to RequirementSelected, RequirementAnalyzed, and RequirementUpdated events from Requirements mediator");
                 
                 // Initialize from mediator's current state (handles late-binding after project already loaded)
                 if (mediator.CurrentRequirement != null)
@@ -1421,6 +1422,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             if (e.Requirement == CurrentRequirement && e.Success && e.Analysis != null)
             {
                 _logger.LogInformation("[RequirementAnalysisVM] Refreshing display after analysis completion");
+                RefreshAnalysisDisplay();
+            }
+        }
+
+        private void OnRequirementUpdatedEvent(TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementUpdated e)
+        {
+            _logger.LogInformation("[RequirementAnalysisVM] OnRequirementUpdated called for requirement: {RequirementId}", 
+                e.Requirement?.GlobalId ?? "null");
+            
+            // If this is the currently selected requirement, refresh to show the updates (e.g., committed improvements)
+            if (e.Requirement == CurrentRequirement)
+            {
+                _logger.LogInformation("[RequirementAnalysisVM] Refreshing display after requirement update");
                 RefreshAnalysisDisplay();
             }
         }
