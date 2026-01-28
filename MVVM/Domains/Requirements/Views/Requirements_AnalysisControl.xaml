@@ -123,12 +123,13 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         
-                        <!-- Header with Edit button -->
+                        <!-- Header with Edit and Commit buttons -->
                         <Grid Grid.Row="0" 
                               Margin="0,0,0,8"
                               Visibility="{Binding IsEditingRequirement, Converter={StaticResource InverseBoolToVisibilityConverter}}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             
@@ -140,11 +141,20 @@
                                        VerticalAlignment="Center"/>
                             
                             <Button Grid.Column="1"
+                                    Content="Update Requirement with Re-write"
+                                    Command="{Binding CommitImprovedRequirementCommand}"
+                                    Style="{StaticResource ActionButton}"
+                                    VerticalAlignment="Top"
+                                    Margin="8,0,8,0"
+                                    Background="#2B7A2B"
+                                    Foreground="White"/>
+                            
+                            <Button Grid.Column="2"
                                     Content="Edit"
                                     Command="{Binding EditRequirementCommand}"
                                     Style="{StaticResource ActionButton}"
                                     VerticalAlignment="Top"
-                                    Margin="8,0,0,0"/>
+                                    Margin="0,0,0,0"/>
                         </Grid>
                         
                         <!-- Read-only content -->

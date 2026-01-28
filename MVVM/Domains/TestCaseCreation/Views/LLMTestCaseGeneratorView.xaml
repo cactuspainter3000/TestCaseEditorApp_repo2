@@ -325,19 +325,23 @@
                                             </StackPanel>
 
                                             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                                <Border Background="{StaticResource Brush.State.Info}" 
+                                                <Border Background="{StaticResource Brush.Border.Default}" 
+                                                        BorderBrush="{StaticResource Brush.State.Info}"
+                                                        BorderThickness="1"
                                                         CornerRadius="{StaticResource Radius.SM}" 
                                                         Padding="6,3" 
                                                         Margin="0,0,4,0">
                                                     <TextBlock Text="{Binding Priority}" 
-                                                               Foreground="{StaticResource Brush.Text.OnAccent}" 
+                                                               Foreground="{StaticResource Brush.Text.Secondary}" 
                                                                FontSize="11"/>
                                                 </Border>
-                                                <Border Background="{StaticResource Brush.State.Warning}" 
+                                                <Border Background="{StaticResource Brush.Border.Default}"
+                                                        BorderBrush="{StaticResource Brush.State.Warning}"
+                                                        BorderThickness="1"
                                                         CornerRadius="{StaticResource Radius.SM}" 
                                                         Padding="6,3">
                                                     <TextBlock Text="{Binding GenerationConfidence, StringFormat={}Confidence: {0}%}" 
-                                                               Foreground="{StaticResource Brush.Text.OnAccent}" 
+                                                               Foreground="{StaticResource Brush.Text.Secondary}" 
                                                                FontSize="11"/>
                                                 </Border>
                                             </StackPanel>

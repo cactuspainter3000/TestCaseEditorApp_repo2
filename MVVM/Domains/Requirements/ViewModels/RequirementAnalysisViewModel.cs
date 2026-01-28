@@ -169,6 +169,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public ICommand EditRequirementCommand { get; }
         public ICommand CancelEditRequirementCommand { get; }
         public ICommand SaveRequirementCommand { get; }
+        public ICommand CommitImprovedRequirementCommand { get; }
         public ICommand CopyAnalysisPromptCommand { get; }
 
         public RequirementAnalysisViewModel(
@@ -189,6 +190,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             EditRequirementCommand = new RelayCommand(StartEditingRequirement, CanEditRequirement);
             CancelEditRequirementCommand = new RelayCommand(CancelEditingRequirement, () => IsEditingRequirement);
             SaveRequirementCommand = new RelayCommand(SaveRequirementEdit, CanSaveRequirement);
+            CommitImprovedRequirementCommand = new RelayCommand(CommitImprovedRequirement, CanCommitImprovement);
             CopyAnalysisPromptCommand = new RelayCommand(CopyToClipboard, CanCopyToClipboard);
 
             // Subscribe to requirement navigation and analysis events from Requirements mediator
@@ -525,6 +527,47 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private bool CanSaveRequirement()
         {
             return IsEditingRequirement && !string.IsNullOrWhiteSpace(EditingRequirementText);
+        }
+
+        private void CommitImprovedRequirement()
+        {
+            if (CurrentRequirement == null || string.IsNullOrWhiteSpace(ImprovedRequirement))
+            {
+                _logger.LogWarning("[RequirementAnalysisVM] Cannot commit improved requirement - missing data");
+                return;
+            }
+
+            try
+            {
+                _logger.LogInformation("[RequirementAnalysisVM] Committing improved requirement for {RequirementId}", CurrentRequirement.Item);
+                
+                // Update the requirement description with the improved version
+                var originalDescription = CurrentRequirement.Description;
+                CurrentRequirement.Description = ImprovedRequirement;
+                CurrentRequirement.Analysis.ImprovedRequirement = null; // Clear the improved version
+                ImprovedRequirement = null;
+                HasImprovedRequirement = false;
+                
+                // Publish event for downstream subscribers (e.g., data persistence, UI updates)
+                var mediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
+                if (mediator != null)
+                {
+                    mediator.UpdateRequirement(CurrentRequirement, new[] { "Description" });
+                    _logger.LogInformation("[RequirementAnalysisVM] Published RequirementUpdated event after committing improvement");
+                }
+                
+                _logger.LogInformation("[RequirementAnalysisVM] Committed improved requirement: changed from {OldLen} to {NewLen} chars",
+                    originalDescription?.Length ?? 0, CurrentRequirement.Description?.Length ?? 0);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementAnalysisVM] Failed to commit improved requirement");
+            }
+        }
+
+        private bool CanCommitImprovement()
+        {
+            return !IsEditingRequirement && HasImprovedRequirement && !string.IsNullOrWhiteSpace(ImprovedRequirement);
         }
 
         private void CopyToClipboard()
