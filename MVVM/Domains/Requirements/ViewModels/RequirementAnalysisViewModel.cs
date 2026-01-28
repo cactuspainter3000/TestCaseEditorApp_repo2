@@ -549,9 +549,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 ImprovedRequirement = null;
                 HasImprovedRequirement = false;
                 
-                // Notify UI that CurrentRequirement properties have changed
-                OnPropertyChanged(nameof(CurrentRequirement));
-                
                 // Mediator publishes RequirementUpdated event which handles all downstream updates
                 var mediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
                 if (mediator != null)
@@ -1439,6 +1436,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             if (e.Requirement != null && CurrentRequirement != null && e.Requirement.GlobalId == CurrentRequirement.GlobalId)
             {
                 _logger.LogInformation("[RequirementAnalysisVM] Match! Refreshing display after requirement update for {RequirementId}", e.Requirement.GlobalId);
+                
+                // Notify that CurrentRequirement properties have changed (for Description bindings)
+                OnPropertyChanged(nameof(CurrentRequirement));
+                
+                // Refresh analysis display if present
                 RefreshAnalysisDisplay();
             }
             else
