@@ -74,7 +74,7 @@ namespace TestCaseEditorApp.Services
             _baseUrl = (baseUrl ?? "http://localhost:3001").TrimEnd('/');
             
             _httpClient = new HttpClient();
-            _httpClient.Timeout = TimeSpan.FromMinutes(2); // 2 minutes per attempt; with 3 retries = 6 min total max
+            _httpClient.Timeout = TimeSpan.FromMinutes(4); // 4 minutes per attempt; with 3 retries = 12+ min total max
             
             if (!string.IsNullOrEmpty(_apiKey))
             {
