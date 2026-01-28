@@ -94,21 +94,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         // ===== REQUIREMENTS MANAGEMENT =====
         
         /// <summary>
-        /// Start requirements import workflow
-        /// </summary>
-        Task<bool> ImportRequirementsAsync(string filePath, string importType = "Auto");
-        
-        /// <summary>
-        /// Start requirements analysis for a single requirement
-        /// </summary>
-        Task<bool> AnalyzeRequirementAsync(Requirement requirement);
-        
-        /// <summary>
-        /// Start batch requirements analysis
-        /// </summary>
-        Task<bool> AnalyzeBatchRequirementsAsync(IReadOnlyList<Requirement> requirements);
-        
-        /// <summary>
         /// Select a requirement for further processing
         /// </summary>
         void SelectRequirement(Requirement requirement);

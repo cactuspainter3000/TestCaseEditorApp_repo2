@@ -135,8 +135,7 @@ namespace TestCaseEditorApp
                     services.AddSingleton<RequirementAnalysisPromptBuilder>();
                     services.AddSingleton<ResponseParserManager>();
                     
-                    // Enhanced RequirementAnalysisService with proper dependency injection
-                    // Register for Requirements domain (new interface location)
+                    // RequirementAnalysisService with proper dependency injection
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService, TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService>(provider =>
                     {
                         var primaryLlmService = LlmFactory.Create();
@@ -153,10 +152,6 @@ namespace TestCaseEditorApp
                             cache: cache,
                             anythingLLMService: anythingLLMService);
                     });
-                    
-                    // Also register for TestCaseGeneration domain (legacy interface location) during migration
-                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.IRequirementAnalysisService>(provider =>
-                        provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService>() as TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService);
 
                     // ===== REQUIREMENTS DOMAIN SERVICES (Refactored Architecture) =====
                     
@@ -457,7 +452,7 @@ namespace TestCaseEditorApp
                         var mediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.ITestCaseGenerationMediator>();
                         var persistence = provider.GetRequiredService<IPersistenceService>();
                         var textEditingService = provider.GetRequiredService<ITextEditingDialogService>();
-                        var analysisService = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.IRequirementAnalysisService>();
+                        var analysisService = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService>();
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_VM>>();
                         
                         var vm = new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_VM(

@@ -30,7 +30,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
     {
         private new readonly ITestCaseGenerationMediator _mediator;
         private readonly ITextGenerationService? _llmService;
-        private readonly TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.IRequirementAnalysisService _analysisService; // Legacy - will be replaced
+        private readonly TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService _analysisService; // Legacy - will be replaced
         private readonly IRequirementAnalysisEngine? _requirementsAnalysisEngine; // NEW: Delegate to Requirements domain
         private readonly IEditDetectionService? _editDetectionService;
         private readonly ILLMLearningService? _learningService;
@@ -113,7 +113,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         // Cache functionality moved to Requirements domain
 
-        public TestCaseGenerator_AnalysisVM(ITestCaseGenerationMediator mediator, ILogger<TestCaseGenerator_AnalysisVM> logger, TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.IRequirementAnalysisService analysisService, IEditDetectionService? editDetectionService = null, ITextGenerationService? llmService = null, ILLMLearningService? learningService = null)
+        public TestCaseGenerator_AnalysisVM(ITestCaseGenerationMediator mediator, ILogger<TestCaseGenerator_AnalysisVM> logger, TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService analysisService, IEditDetectionService? editDetectionService = null, ITextGenerationService? llmService = null, ILLMLearningService? learningService = null)
             : base(mediator, logger)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
@@ -484,44 +484,33 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
             try
             {
-                bool success;
-                
-                // ARCHITECTURAL MIGRATION: Prefer Requirements domain analysis engine
-                if (_requirementsAnalysisEngine != null)
+                // Use Requirements domain analysis engine
+                if (_requirementsAnalysisEngine == null)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Using Requirements domain analysis engine");
+                    TestCaseEditorApp.Services.Logging.Log.Error("[AnalysisVM] Requirements analysis engine not available");
+                    AnalysisStatusMessage = "Analysis service not available";
+                    return;
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Using Requirements domain analysis engine");
+                
+                var analysis = await _requirementsAnalysisEngine.AnalyzeRequirementAsync(
+                    requirement, 
+                    progressMessage => {
+                        AnalysisStatusMessage = progressMessage;
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Progress: {progressMessage}");
+                    });
                     
-                    try
-                    {
-                        var analysis = await _requirementsAnalysisEngine.AnalyzeRequirementAsync(
-                            requirement, 
-                            progressMessage => {
-                                AnalysisStatusMessage = progressMessage;
-                                TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Progress: {progressMessage}");
-                            });
-                            
-                        requirement.Analysis = analysis;
-                        success = analysis.IsAnalyzed;
-                        
-                        if (success)
-                        {
-                            TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Requirements domain analysis completed successfully");
-                        }
-                        else
-                        {
-                            TestCaseEditorApp.Services.Logging.Log.Warn($"[AnalysisVM] Requirements domain analysis failed: {analysis.ErrorMessage}");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnalysisVM] Requirements domain analysis threw exception - falling back to mediator");
-                        success = await _mediator.AnalyzeRequirementAsync(requirement);
-                    }
+                requirement.Analysis = analysis;
+                bool success = analysis.IsAnalyzed;
+                
+                if (success)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Requirements domain analysis completed successfully");
                 }
                 else
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[AnalysisVM] Falling back to mediator analysis");
-                    success = await _mediator.AnalyzeRequirementAsync(requirement);
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnalysisVM] Requirements domain analysis failed: {analysis.ErrorMessage}");
                 }
                 
                 // Update analysis display from newly updated requirement analysis

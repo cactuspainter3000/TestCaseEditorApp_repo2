@@ -53,7 +53,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             ITestCaseGenerationMediator mediator,
             IPersistenceService persistence,
             ITextEditingDialogService textEditingDialogService,
-            TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.IRequirementAnalysisService analysisService,
+            TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService analysisService,
             ILogger<TestCaseGenerator_VM> logger,
             Func<Requirement?, IEnumerable<LooseTableViewModel>>? tableProvider = null,
             Func<Requirement?, IEnumerable<string>>? paragraphProvider = null)
