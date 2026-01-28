@@ -1432,9 +1432,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 e.Requirement?.GlobalId ?? "null");
             
             // If this is the currently selected requirement, refresh to show the updates (e.g., committed improvements)
-            if (e.Requirement == CurrentRequirement)
+            // Compare by GlobalId since the requirement object reference might differ
+            if (e.Requirement != null && CurrentRequirement != null && e.Requirement.GlobalId == CurrentRequirement.GlobalId)
             {
-                _logger.LogInformation("[RequirementAnalysisVM] Refreshing display after requirement update");
+                _logger.LogInformation("[RequirementAnalysisVM] Refreshing display after requirement update for {RequirementId}", e.Requirement.GlobalId);
                 RefreshAnalysisDisplay();
             }
         }
