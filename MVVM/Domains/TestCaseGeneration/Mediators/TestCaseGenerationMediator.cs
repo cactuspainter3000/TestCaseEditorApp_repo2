@@ -1308,9 +1308,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                         new RequirementNaturalComparer()).ToList();
                     foreach (var requirement in sortedRequirements)
                     {
-                        // Clear any stale analysis data from previous sessions - analysis should only appear after explicit user action
-                        requirement.Analysis = null;
-                        _logger.LogDebug("Cleared stale analysis data for requirement: {RequirementId}", requirement.GlobalId);
+                        // Preserve analysis data that was persisted in the project file
+                        // Analysis will be null only if it wasn't previously performed
+                        if (requirement.Analysis != null)
+                        {
+                            _logger.LogDebug("Preserved persisted analysis for requirement: {RequirementId}", requirement.GlobalId);
+                        }
                         
                         _requirements.Add(requirement);
                     }

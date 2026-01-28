@@ -162,6 +162,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// </summary>
         private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected e)
         {
+            _logger.LogInformation("[AnalysisVM] OnRequirementSelected - Requirement: {Item}, HasAnalysis: {HasAnalysis}, IsAnalyzed: {IsAnalyzed}",
+                e.Requirement?.Item ?? "null",
+                e.Requirement?.Analysis != null ? "true" : "false",
+                e.Requirement?.Analysis?.IsAnalyzed ?? false);
             CurrentRequirement = e.Requirement;
             // Update analysis display from current requirement's analysis state
             UpdateAnalysisPropertiesFromEvent(e.Requirement?.Analysis);

@@ -50,6 +50,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 if (_currentRequirement != value)
                 {
                     _currentRequirement = value;
+                    _logger.LogInformation("[RequirementsMediator] CurrentRequirement setter - Requirement: {Item}, HasAnalysis: {HasAnalysis}, IsAnalyzed: {IsAnalyzed}",
+                        value?.Item ?? "null",
+                        value?.Analysis != null ? "true" : "false",
+                        value?.Analysis?.IsAnalyzed ?? false);
                     var eventData = new RequirementsEvents.RequirementSelected
                     {
                         Requirement = value!,
@@ -823,6 +827,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                         {
                             CurrentRequirement = _requirements.First();
                             _logger.LogDebug("Set CurrentRequirement to first requirement: {Item}", CurrentRequirement.Item);
+                        }
+                        
+                        // ✅ CRITICAL: Publish RequirementSelected event to refresh UI with current analysis data
+                        // This ensures ViewModels display persisted analysis even when data is "already current"
+                        if (CurrentRequirement != null)
+                        {
+                            PublishEvent(new RequirementsEvents.RequirementSelected
+                            {
+                                Requirement = CurrentRequirement,
+                                SelectedBy = "ProjectActivation"
+                            });
+                            _logger.LogInformation("🔔 RequirementsMediator publishing RequirementSelected for project activation: {Item}", CurrentRequirement.Item);
                         }
                         
                         var eventData = new RequirementsEvents.RequirementsCollectionChanged
