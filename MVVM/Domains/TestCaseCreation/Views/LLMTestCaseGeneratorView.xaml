@@ -23,39 +23,31 @@
 
     <Grid Margin="16">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/> <!-- Title & Controls -->
+            <RowDefinition Height="Auto"/> <!-- Title & Description -->
+            <RowDefinition Height="Auto"/> <!-- Action Buttons -->
             <RowDefinition Height="Auto"/> <!-- Status Bar -->
             <RowDefinition Height="Auto"/> <!-- Coverage Summary -->
             <RowDefinition Height="*"/>    <!-- Results Area -->
         </Grid.RowDefinitions>
 
         <!-- Header Section -->
-        <Grid Grid.Row="0" Margin="0,0,0,16">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-
-            <TextBlock Grid.Row="0" 
-                       Text="LLM Test Case Generator" 
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="LLM Test Case Generator" 
                        FontSize="24" 
                        FontWeight="Bold" 
                        Foreground="{StaticResource Brush.Text.Primary}"
                        Margin="0,0,0,8"/>
 
-            <TextBlock Grid.Row="1" 
-                       Text="Automatically generate test cases with intelligent requirement coverage detection" 
+            <TextBlock Text="Automatically generate test cases with intelligent requirement coverage detection" 
                        FontSize="13" 
                        Foreground="{StaticResource Brush.Text.Secondary}"
                        TextWrapping="Wrap"/>
-        </Grid>
+        </StackPanel>
 
         <!-- Action Buttons -->
-        <StackPanel Grid.Row="0" 
+        <StackPanel Grid.Row="1" 
                     Orientation="Horizontal" 
-                    HorizontalAlignment="Right" 
-                    VerticalAlignment="Top"
-                    Margin="0,4,0,0">
+                    Margin="0,0,0,16">
             <Button Content="Generate All Test Cases" 
                     Command="{Binding GenerateTestCasesCommand}"
                     Style="{StaticResource ActionButton}"
@@ -84,7 +76,7 @@
         </StackPanel>
 
         <!-- Status Bar -->
-        <Border Grid.Row="1" 
+        <Border Grid.Row="2" 
                 Background="{StaticResource Brush.Background.Header}" 
                 BorderBrush="{StaticResource Brush.Border.Default}" 
                 BorderThickness="1" 
@@ -108,22 +100,60 @@
                            Text="{Binding StatusMessage}" 
                            Foreground="{StaticResource Brush.Text.Primary}"/>
 
-                <ProgressBar Grid.Column="2" 
-                             Width="150" 
-                             Height="18"
-                             Minimum="0" 
-                             Maximum="100"
-                             Value="{Binding Progress}"
-                             Visibility="{Binding IsGenerating, Converter={StaticResource BoolToVisibilityConverter}}"
-                             Background="{StaticResource Brush.Background.Menu}"
-                             Foreground="{StaticResource Brush.State.Success}"
-                             BorderBrush="{StaticResource Brush.Border.Default}"
-                             BorderThickness="1"/>
+                <Grid Grid.Column="2"
+                      VerticalAlignment="Center"
+                      Visibility="{Binding IsGenerating, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0"
+                            Background="{StaticResource Brush.Background.Menu}"
+                            BorderBrush="{StaticResource Brush.Border.Default}"
+                            BorderThickness="1"
+                            CornerRadius="3"
+                            Padding="6,2"
+                            Margin="0,0,8,0"
+                            MinWidth="60"
+                            VerticalAlignment="Center">
+                        <TextBlock FontSize="11"
+                                   Foreground="{StaticResource Brush.Text.Primary}"
+                                   HorizontalAlignment="Center">
+                            <Run Text="{Binding ProgressCounter}"/>
+                            <Run Text=" | "/>
+                            <Run Text="{Binding GenerationElapsedTime}"/>
+                        </TextBlock>
+                    </Border>
+
+                    <Grid Grid.Column="1">
+                        <Border Background="{StaticResource Brush.Background.Menu}"
+                                BorderBrush="{StaticResource Brush.Border.Default}"
+                                BorderThickness="1"
+                                CornerRadius="3"
+                                Padding="2">
+                            <ProgressBar Width="180" 
+                                         Height="16"
+                                         Minimum="0" 
+                                         Maximum="100"
+                                         Value="{Binding Progress}"
+                                         Background="{StaticResource Brush.Background.Menu}"
+                                         Foreground="{StaticResource Brush.State.Success}"/>
+                        </Border>
+
+                        <Border x:Name="GenerationTracerBorder"
+                                Background="Transparent"
+                                BorderThickness="2"
+                                CornerRadius="4"
+                                IsHitTestVisible="False"
+                                Visibility="Collapsed"/>
+                    </Grid>
+                </Grid>
             </Grid>
         </Border>
 
         <!-- Coverage Summary -->
-        <Border Grid.Row="2" 
+        <Border Grid.Row="3" 
                 Background="{StaticResource Brush.Background.Header}" 
                 BorderBrush="{StaticResource Brush.Border.Default}" 
                 BorderThickness="1" 
@@ -151,7 +181,7 @@
                              Height="24"
                              Minimum="0" 
                              Maximum="100"
-                             Value="{Binding CoveragePercentage}"
+                             Value="{Binding CoveragePercentage, Mode=OneWay}"
                              Background="{StaticResource Brush.Background.Menu}"
                              Foreground="{StaticResource Brush.State.Success}"
                              BorderBrush="{StaticResource Brush.Border.Default}"
@@ -194,17 +224,54 @@
         </Border>
 
         <!-- Results Area -->
-        <TabControl Grid.Row="3" 
+        <TabControl Grid.Row="4" 
                     Background="{StaticResource Brush.Background.Header}" 
                     BorderBrush="{StaticResource Brush.Border.Default}"
                     BorderThickness="1">
+            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Setter Property="Background" Value="{StaticResource Brush.Background.Header}"/>
+                    <Setter Property="Foreground" Value="{StaticResource Brush.Text.Secondary}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border.Default}"/>
+                    <Setter Property="BorderThickness" Value="1"/>
+                    <Setter Property="Padding" Value="10,6"/>
+                    <Setter Property="Margin" Value="0,0,2,0"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TabItem">
+                                <Border Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}">
+                                    <ContentPresenter ContentSource="Header"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"
+                                                      Margin="6,2"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                    <Style.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="{StaticResource Brush.Background.Menu}"/>
+                            <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+                            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border.Subtle}"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{StaticResource Brush.Background.Menu}"/>
+                            <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </TabControl.Resources>
             
             <!-- Generated Test Cases Tab -->
             <TabItem Header="Generated Test Cases">
                 <TabItem.HeaderTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Generated Test Cases" Margin="0,0,8,0"/>
+                            <TextBlock Text="Generated Test Cases" 
+                                       Margin="0,0,8,0"
+                                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}"/>
                             <Border Background="{StaticResource Brush.State.Success}" 
                                     CornerRadius="10" 
                                     Padding="6,2"
@@ -401,7 +468,9 @@
                 <TabItem.HeaderTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Similar Requirement Groups" Margin="0,0,8,0"/>
+                            <TextBlock Text="Similar Requirement Groups" 
+                                       Margin="0,0,8,0"
+                                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}"/>
                             <Border Background="{StaticResource Brush.State.Info}" 
                                     CornerRadius="10" 
                                     Padding="6,2"

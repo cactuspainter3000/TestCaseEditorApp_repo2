@@ -341,12 +341,14 @@ namespace TestCaseEditorApp.Services
             var titleVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("LLM Test Case Generator");
             var headerVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("");
             var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel>();
-            var navigationVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("");
             var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
             
             // Fail-fast validation
             if (mainVM == null) throw new InvalidOperationException("LLMTestCaseGeneratorViewModel not registered in DI container");
             if (notificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
+            
+            // Create navigation ViewModel wrapper to expose selection properties
+            var navigationVM = new TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreation_NavigationViewModel(mainVM);
             
             TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] LLMTestCaseGenerator ViewModels resolved successfully");
 

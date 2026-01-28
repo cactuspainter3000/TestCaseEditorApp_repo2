@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -29,8 +30,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
         private bool _isGenerating;
         private string _statusMessage = "Ready to generate test cases";
         private double _progress;
+        private string _progressCounter = string.Empty;
+        private string _generationElapsedTime = string.Empty;
         private TestCaseCoverageSummary? _coverageSummary;
         private CancellationTokenSource? _cancellationTokenSource;
+        private System.Timers.Timer? _generationTimer;
+        private DateTime _generationStartTime;
 
         public LLMTestCaseGeneratorViewModel(
             ILogger<LLMTestCaseGeneratorViewModel> logger,
@@ -45,20 +50,29 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
 
             GeneratedTestCases = new ObservableCollection<LLMTestCase>();
             SimilarRequirementGroups = new ObservableCollection<RequirementGroup>();
+            AvailableRequirements = new ObservableCollection<SelectableRequirement>();
+
+            // Load requirements and wrap them for selection
+            LoadAvailableRequirements();
 
             GenerateTestCasesCommand = new AsyncRelayCommand(GenerateTestCasesAsync, CanGenerate);
-            GenerateForSelectionCommand = new AsyncRelayCommand(GenerateForSelectedRequirementsAsync, () => SelectedRequirements.Any());
+            GenerateForSelectionCommand = new AsyncRelayCommand(GenerateForSelectedRequirementsAsync, () => AvailableRequirements.Any(r => r.IsSelected));
             FindSimilarGroupsCommand = new AsyncRelayCommand(FindSimilarRequirementGroupsAsync, CanGenerate);
             DeduplicateTestCasesCommand = new AsyncRelayCommand(DeduplicateTestCasesAsync, () => GeneratedTestCases.Count > 1);
             CancelGenerationCommand = new RelayCommand(CancelGeneration, () => IsGenerating);
             ClearResultsCommand = new RelayCommand(ClearResults, () => GeneratedTestCases.Any());
+            SelectAllCommand = new RelayCommand(SelectAll);
+            ClearSelectionCommand = new RelayCommand(ClearSelection);
         }
 
         // ===== PROPERTIES =====
 
         public ObservableCollection<LLMTestCase> GeneratedTestCases { get; }
         public ObservableCollection<RequirementGroup> SimilarRequirementGroups { get; }
-        public List<Requirement> SelectedRequirements { get; set; } = new List<Requirement>();
+        public ObservableCollection<SelectableRequirement> AvailableRequirements { get; }
+        
+        public int SelectedCount => AvailableRequirements.Count(r => r.IsSelected);
+        public int TotalCount => AvailableRequirements.Count;
 
         public bool IsGenerating
         {
@@ -91,6 +105,18 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
             set => SetProperty(ref _progress, value);
         }
 
+        public string ProgressCounter
+        {
+            get => _progressCounter;
+            set => SetProperty(ref _progressCounter, value);
+        }
+
+        public string GenerationElapsedTime
+        {
+            get => _generationElapsedTime;
+            set => SetProperty(ref _generationElapsedTime, value);
+        }
+
         public TestCaseCoverageSummary? CoverageSummary
         {
             get => _coverageSummary;
@@ -119,6 +145,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
         public IAsyncRelayCommand DeduplicateTestCasesCommand { get; }
         public IRelayCommand CancelGenerationCommand { get; }
         public IRelayCommand ClearResultsCommand { get; }
+        public IRelayCommand SelectAllCommand { get; }
+        public IRelayCommand ClearSelectionCommand { get; }
 
         // ===== COMMAND IMPLEMENTATIONS =====
 
@@ -134,22 +162,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
             await GenerateTestCasesForRequirementsAsync(requirements);
         }
 
-        private async Task GenerateForSelectedRequirementsAsync()
-        {
-            if (!SelectedRequirements.Any())
-            {
-                StatusMessage = "No requirements selected";
-                return;
-            }
-
-            await GenerateTestCasesForRequirementsAsync(SelectedRequirements);
-        }
-
         private async Task GenerateTestCasesForRequirementsAsync(List<Requirement> requirements)
         {
             IsGenerating = true;
             Progress = 0;
-            StatusMessage = $"Generating test cases for {requirements.Count} requirements...";
+            StatusMessage = $"Starting generation for {requirements.Count} requirements...";
+            ProgressCounter = $"0/{requirements.Count}";
+            StartGenerationTimer();
             _cancellationTokenSource = new CancellationTokenSource();
 
             try
@@ -159,6 +178,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
                 // Generate test cases with LLM similarity detection
                 var testCases = await _generationService.GenerateTestCasesAsync(
                     requirements,
+                    (message, current, total) => 
+                    {
+                        StatusMessage = message;
+                        Progress = total > 0 ? (double)current / total * 100 : 0;
+                        ProgressCounter = $"{current}/{total}";
+                    },
                     _cancellationTokenSource.Token);
 
                 Progress = 100;
@@ -199,6 +224,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
                 IsGenerating = false;
                 _cancellationTokenSource?.Dispose();
                 _cancellationTokenSource = null;
+                ProgressCounter = string.Empty;
+                StopGenerationTimer();
             }
         }
 
@@ -314,6 +341,35 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
             }
         }
 
+        private void StartGenerationTimer()
+        {
+            GenerationElapsedTime = string.Empty;
+            _generationStartTime = DateTime.Now;
+
+            _generationTimer?.Stop();
+            _generationTimer?.Dispose();
+            _generationTimer = new System.Timers.Timer(1000);
+            _generationTimer.Elapsed += (_, _) =>
+            {
+                var elapsed = DateTime.Now - _generationStartTime;
+                GenerationElapsedTime = $"{elapsed.TotalSeconds:F0}s";
+            };
+            _generationTimer.Start();
+        }
+
+        private void StopGenerationTimer()
+        {
+            _generationTimer?.Stop();
+            _generationTimer?.Dispose();
+            _generationTimer = null;
+
+            if (_generationStartTime != default)
+            {
+                var totalElapsed = DateTime.Now - _generationStartTime;
+                GenerationElapsedTime = $"Completed in {totalElapsed.TotalSeconds:F0}s";
+            }
+        }
+
         private void CancelGeneration()
         {
             _cancellationTokenSource?.Cancel();
@@ -338,6 +394,104 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
             var requirements = _requirementsMediator.Requirements;
             return requirements != null && requirements.Any();
         }
+
+        // ===== SELECTION MANAGEMENT =====
+
+        private void LoadAvailableRequirements()
+        {
+            AvailableRequirements.Clear();
+            
+            var requirements = _requirementsMediator.Requirements;
+            if (requirements != null)
+            {
+                foreach (var req in requirements)
+                {
+                    var selectable = new SelectableRequirement(req);
+                    selectable.SelectionChanged += OnRequirementSelectionChanged;
+                    AvailableRequirements.Add(selectable);
+                }
+            }
+            
+            UpdateSelectionCounts();
+        }
+
+        private void OnRequirementSelectionChanged(object? sender, EventArgs e)
+        {
+            UpdateSelectionCounts();
+            GenerateForSelectionCommand.NotifyCanExecuteChanged();
+        }
+
+        private void UpdateSelectionCounts()
+        {
+            OnPropertyChanged(nameof(SelectedCount));
+            OnPropertyChanged(nameof(TotalCount));
+            // Only notify command if it's been initialized (avoid NullReferenceException during construction)
+            GenerateForSelectionCommand?.NotifyCanExecuteChanged();
+        }
+
+        private void SelectAll()
+        {
+            foreach (var req in AvailableRequirements)
+            {
+                req.IsSelected = true;
+            }
+        }
+
+        private void ClearSelection()
+        {
+            foreach (var req in AvailableRequirements)
+            {
+                req.IsSelected = false;
+            }
+        }
+
+        private async Task GenerateForSelectedRequirementsAsync()
+        {
+            var selectedReqs = AvailableRequirements
+                .Where(r => r.IsSelected)
+                .Select(r => r.Requirement)
+                .ToList();
+
+            if (!selectedReqs.Any())
+            {
+                StatusMessage = "No requirements selected";
+                return;
+            }
+
+            await GenerateTestCasesForRequirementsAsync(selectedReqs);
+        }
+    }
+
+    /// <summary>
+    /// Wrapper class for requirements to support selection in UI
+    /// </summary>
+    public class SelectableRequirement : ObservableObject
+    {
+        private bool _isSelected;
+        
+        public SelectableRequirement(Requirement requirement)
+        {
+            Requirement = requirement ?? throw new ArgumentNullException(nameof(requirement));
+        }
+
+        public Requirement Requirement { get; }
+        
+        public string Item => Requirement.Item;
+        public string Description => Requirement.Description ?? string.Empty;
+
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                if (SetProperty(ref _isSelected, value))
+                {
+                    SelectionChanged?.Invoke(this, EventArgs.Empty);
+                }
+            }
+        }
+
+        public event EventHandler? SelectionChanged;
     }
 
     /// <summary>

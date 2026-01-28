@@ -193,6 +193,11 @@
             <tccviews:LLMTestCaseGeneratorView />
         </DataTemplate>
 
+        <!-- TestCaseCreation navigation (requirement selection) -->
+        <DataTemplate DataType="{x:Type tccvm:TestCaseCreation_NavigationViewModel}">
+            <tccviews:TestCaseCreation_NavigationView />
+        </DataTemplate>
+
         <!--<DataTemplate DataType="{x:Type startupvm:StartUp_MainViewModel}">
             <startupviews:StartUp_MainView />
         </DataTemplate>-->
@@ -448,7 +453,7 @@
                 <RowDefinition Height="*"/>
                 <!-- workspace content -->
                 <RowDefinition Height="4"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto" MaxHeight="240"/>
                 <!-- bottom navigation area -->
             </Grid.RowDefinitions>
 

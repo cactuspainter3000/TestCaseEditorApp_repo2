@@ -18,6 +18,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
         /// shared test cases with multiple CoveredRequirementIds when appropriate.
         /// </summary>
         /// <param name="requirements">Requirements to generate test cases for</param>
+        /// <param name="progressCallback">Optional callback for progress updates</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>
         /// List of generated test cases with CoveredRequirementIds populated.
@@ -25,6 +26,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
         /// </returns>
         Task<List<LLMTestCase>> GenerateTestCasesAsync(
             IEnumerable<Requirement> requirements,
+            Action<string, int, int>? progressCallback = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -32,10 +34,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
         /// Useful when adding test cases to one requirement at a time.
         /// </summary>
         /// <param name="requirement">Requirement to generate test cases for</param>
+        /// <param name="progressCallback">Optional callback for progress updates</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>List of generated test cases covering this requirement</returns>
         Task<List<LLMTestCase>> GenerateTestCasesForSingleRequirementAsync(
             Requirement requirement,
+            Action<string, int, int>? progressCallback = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>

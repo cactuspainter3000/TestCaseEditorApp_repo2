@@ -31,6 +31,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
 
         public async Task<List<LLMTestCase>> GenerateTestCasesAsync(
             IEnumerable<Requirement> requirements,
+            Action<string, int, int>? progressCallback = null,
             CancellationToken cancellationToken = default)
         {
             var requirementList = requirements.ToList();
@@ -41,8 +42,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
 
             try
             {
+                progressCallback?.Invoke("Preparing test case generation prompt...", 0, requirementList.Count);
+                
                 // Create prompt for batch generation with similarity detection
                 var prompt = CreateBatchGenerationPrompt(requirementList);
+                
+                progressCallback?.Invoke("Sending to LLM for test case generation...", 0, requirementList.Count);
                 
                 // Send to LLM with RAG context
                 var response = await _anythingLLMService.SendChatMessageAsync(
@@ -53,11 +58,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
                 if (string.IsNullOrEmpty(response))
                 {
                     _logger.LogWarning("Empty response from LLM for test case generation");
+                    progressCallback?.Invoke("No response from LLM", requirementList.Count, requirementList.Count);
                     return new List<LLMTestCase>();
                 }
 
+                progressCallback?.Invoke("Parsing test cases from response...", requirementList.Count, requirementList.Count);
+                
                 // Parse JSON response into test cases
                 var testCases = ParseTestCasesFromResponse(response, requirementList);
+                
+                progressCallback?.Invoke($"Completed: Generated {testCases.Count} test cases", requirementList.Count, requirementList.Count);
                 
                 _logger.LogInformation("Generated {Count} test cases covering {ReqCount} requirements",
                     testCases.Count, requirementList.Count);
@@ -73,13 +83,18 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
 
         public async Task<List<LLMTestCase>> GenerateTestCasesForSingleRequirementAsync(
             Requirement requirement,
+            Action<string, int, int>? progressCallback = null,
             CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Generating test cases for requirement {Id}", requirement.Item);
 
             try
             {
+                progressCallback?.Invoke($"Analyzing requirement {requirement.Item}...", 0, 1);
+                
                 var prompt = CreateSingleRequirementPrompt(requirement);
+                
+                progressCallback?.Invoke($"Generating test cases for {requirement.Item}...", 0, 1);
                 
                 var response = await _anythingLLMService.SendChatMessageAsync(
                     WORKSPACE_SLUG,
