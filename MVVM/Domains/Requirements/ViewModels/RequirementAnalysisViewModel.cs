@@ -198,6 +198,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementSelected>(OnRequirementSelected);
                 mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementAnalyzed>(OnRequirementAnalyzed);
                 _logger.LogInformation("[RequirementAnalysisVM] Subscribed to RequirementSelected and RequirementAnalyzed events from Requirements mediator");
+                
+                // Initialize from mediator's current state (handles late-binding after project already loaded)
+                if (mediator.CurrentRequirement != null)
+                {
+                    _logger.LogInformation("[RequirementAnalysisVM] Initializing from mediator's current requirement: {Item}", mediator.CurrentRequirement.Item);
+                    CurrentRequirement = mediator.CurrentRequirement;
+                }
             }
             else
             {
@@ -346,14 +353,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             var analysis = CurrentRequirement?.Analysis;
 
-            _logger.LogInformation("[RequirementAnalysisVM] RefreshAnalysisDisplay called for requirement: {RequirementId}, HasAnalysis: {HasAnalysis}", 
-                CurrentRequirement?.Item ?? "null", analysis?.IsAnalyzed ?? false);
-            Console.WriteLine($"*** [RequirementAnalysisVM] RefreshAnalysisDisplay: {CurrentRequirement?.Item ?? "null"}, HasAnalysis: {analysis?.IsAnalyzed ?? false} ***");
+            _logger.LogInformation("[RequirementAnalysisVM] RefreshAnalysisDisplay called for requirement: {RequirementId}, Analysis={HasAnalysisObject}, IsAnalyzed={IsAnalyzed}, QualityScore={Score}, HasAnalysisProperty={HasAnalysisProp}", 
+                CurrentRequirement?.Item ?? "null", 
+                analysis != null, 
+                analysis?.IsAnalyzed ?? false,
+                analysis?.OriginalQualityScore ?? 0,
+                HasAnalysis);
+            Console.WriteLine($"*** [RequirementAnalysisVM] RefreshAnalysisDisplay: {CurrentRequirement?.Item ?? "null"}, Analysis={analysis != null}, IsAnalyzed={analysis?.IsAnalyzed ?? false} ***");
 
             if (analysis?.IsAnalyzed == true)
             {
+                _logger.LogInformation("[RequirementAnalysisVM] Calling UpdateUIFromAnalysis for {RequirementId}", CurrentRequirement?.Item);
                 UpdateUIFromAnalysis(analysis);
-                _logger.LogDebug("[RequirementAnalysisVM] Displayed existing analysis for {RequirementId}", CurrentRequirement?.Item);
+                _logger.LogInformation("[RequirementAnalysisVM] After UpdateUIFromAnalysis - HasAnalysis={HasAnalysis}", HasAnalysis);
             }
             else
             {
