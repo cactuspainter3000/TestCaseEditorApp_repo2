@@ -365,29 +365,6 @@ public static class WorkspaceService
         var json = File.ReadAllText(path);
         var ws = JsonSerializer.Deserialize<Workspace>(json, _json) ?? new Workspace();
 
-        // Ensure deserialized Analysis objects have IsAnalyzed flag set correctly
-        // JSON deserialization may not properly set IsAnalyzed, so infer it from content
-        if (ws.Requirements != null)
-        {
-            foreach (var req in ws.Requirements)
-            {
-                if (req.Analysis != null && !req.Analysis.IsAnalyzed)
-                {
-                    // If analysis has substantial content, it should be marked as analyzed
-                    bool hasAnalysisContent = (req.Analysis.Issues?.Count ?? 0) > 0 ||
-                                            (req.Analysis.Recommendations?.Count ?? 0) > 0 ||
-                                            !string.IsNullOrEmpty(req.Analysis.ImprovedRequirement) ||
-                                            req.Analysis.OriginalQualityScore > 0;
-                    
-                    if (hasAnalysisContent)
-                    {
-                        req.Analysis.IsAnalyzed = true;
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[Load] Set IsAnalyzed=true for requirement {req.Item} (inferred from analysis content)");
-                    }
-                }
-            }
-        }
-
         // Migration logic for future schema changes
         if (ws.Version < Workspace.SchemaVersion)
         {
