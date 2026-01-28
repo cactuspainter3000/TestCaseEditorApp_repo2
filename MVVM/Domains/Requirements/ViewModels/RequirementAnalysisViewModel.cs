@@ -549,6 +549,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 ImprovedRequirement = null;
                 HasImprovedRequirement = false;
                 
+                // Notify UI that CurrentRequirement properties have changed
+                OnPropertyChanged(nameof(CurrentRequirement));
+                
                 // Mediator publishes RequirementUpdated event which handles all downstream updates
                 var mediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
                 if (mediator != null)
