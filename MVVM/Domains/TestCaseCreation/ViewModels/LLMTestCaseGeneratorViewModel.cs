@@ -166,6 +166,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
         {
             IsGenerating = true;
             Progress = 0;
+            GeneratedTestCases.Clear();
+            CoverageSummary = null;
             StatusMessage = $"Starting generation for {requirements.Count} requirements...";
             ProgressCounter = $"0/{requirements.Count}";
             StartGenerationTimer();
@@ -199,24 +201,24 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
                     // Calculate coverage
                     CoverageSummary = _generationService.CalculateCoverage(requirements, GeneratedTestCases);
 
-                    StatusMessage = $"Generated {testCases.Count} test cases covering {CoveredCount}/{requirements.Count} requirements";
+                    StatusMessage = $"✓ Generated {testCases.Count} test cases covering {CoveredCount}/{requirements.Count} requirements";
                     _logger.LogInformation("Generation complete: {TestCaseCount} test cases, {Coverage}% coverage",
                         testCases.Count, CoveragePercentage);
                 }
                 else
                 {
-                    StatusMessage = "No test cases generated";
+                    StatusMessage = "⚠ No test cases generated - check logs for details (may be timeout, LLM issue, or parsing error)";
                     _logger.LogWarning("No test cases generated for {Count} requirements", requirements.Count);
                 }
             }
             catch (OperationCanceledException)
             {
-                StatusMessage = "Generation cancelled";
+                StatusMessage = "⊘ Generation cancelled by user";
                 _logger.LogInformation("Test case generation cancelled by user");
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Generation failed: {ex.Message}";
+                StatusMessage = $"✕ Generation failed: {ex.Message}";
                 _logger.LogError(ex, "Failed to generate test cases");
             }
             finally

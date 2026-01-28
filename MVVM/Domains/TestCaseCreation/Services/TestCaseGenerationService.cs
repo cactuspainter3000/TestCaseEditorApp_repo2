@@ -47,7 +47,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
                 // Create prompt for batch generation with similarity detection
                 var prompt = CreateBatchGenerationPrompt(requirementList);
                 
-                progressCallback?.Invoke("Sending to LLM for test case generation...", 0, requirementList.Count);
+                progressCallback?.Invoke("Sending to LLM for test case generation (this may take 1-2 minutes)...", 0, requirementList.Count);
                 
                 // Send to LLM with RAG context
                 var response = await _anythingLLMService.SendChatMessageAsync(
@@ -57,8 +57,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
 
                 if (string.IsNullOrEmpty(response))
                 {
-                    _logger.LogWarning("Empty response from LLM for test case generation");
-                    progressCallback?.Invoke("No response from LLM", requirementList.Count, requirementList.Count);
+                    var errorMsg = "LLM did not return a response. This could be due to: " +
+                        "1) Timeout (LLM is processing slowly), " +
+                        "2) Connection issues, " +
+                        "3) LLM service not running. " +
+                        "Please check the logs and try again.";
+                    _logger.LogWarning("[TestCaseGeneration] {ErrorMsg}", errorMsg);
+                    progressCallback?.Invoke(errorMsg, requirementList.Count, requirementList.Count);
                     return new List<LLMTestCase>();
                 }
 
@@ -66,6 +71,17 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
                 
                 // Parse JSON response into test cases
                 var testCases = ParseTestCasesFromResponse(response, requirementList);
+                
+                if (!testCases.Any())
+                {
+                    var errorMsg = "LLM returned a response but no valid test cases were generated. " +
+                        "The LLM may have: 1) Failed to parse the request, 2) Generated invalid JSON, " +
+                        "3) Returned an error message instead of test cases. " +
+                        "Check the debug logs for the raw LLM response.";
+                    _logger.LogWarning("[TestCaseGeneration] {ErrorMsg}", errorMsg);
+                    progressCallback?.Invoke(errorMsg, requirementList.Count, requirementList.Count);
+                    return new List<LLMTestCase>();
+                }
                 
                 progressCallback?.Invoke($"Completed: Generated {testCases.Count} test cases", requirementList.Count, requirementList.Count);
                 
@@ -76,7 +92,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to generate test cases");
+                var errorMsg = $"Test case generation failed: {ex.Message}";
+                _logger.LogError(ex, "[TestCaseGeneration] {ErrorMsg}", errorMsg);
+                progressCallback?.Invoke(errorMsg, requirementList.Count, requirementList.Count);
                 return new List<LLMTestCase>();
             }
         }
@@ -103,20 +121,35 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
 
                 if (string.IsNullOrEmpty(response))
                 {
-                    _logger.LogWarning("Empty response from LLM for requirement {Id}", requirement.Item);
+                    var errorMsg = $"LLM did not return a response for requirement {requirement.Item}. " +
+                        "This could be due to timeout, connection issues, or LLM service problems.";
+                    _logger.LogWarning("[TestCaseGeneration] {ErrorMsg}", errorMsg);
+                    progressCallback?.Invoke(errorMsg, 1, 1);
                     return new List<LLMTestCase>();
                 }
 
                 var testCases = ParseTestCasesFromResponse(response, new[] { requirement });
                 
+                if (!testCases.Any())
+                {
+                    var errorMsg = $"No valid test cases generated for requirement {requirement.Item}. " +
+                        "The LLM may have returned invalid JSON or an error message.";
+                    _logger.LogWarning("[TestCaseGeneration] {ErrorMsg}", errorMsg);
+                    progressCallback?.Invoke(errorMsg, 1, 1);
+                    return new List<LLMTestCase>();
+                }
+                
                 _logger.LogInformation("Generated {Count} test cases for requirement {Id}",
                     testCases.Count, requirement.Item);
                 
+                progressCallback?.Invoke($"Generated {testCases.Count} test cases", 1, 1);
                 return testCases;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to generate test cases for requirement {Id}", requirement.Item);
+                var errorMsg = $"Failed to generate test cases for requirement {requirement.Item}: {ex.Message}";
+                _logger.LogError(ex, "[TestCaseGeneration] {ErrorMsg}", errorMsg);
+                progressCallback?.Invoke(errorMsg, 1, 1);
                 return new List<LLMTestCase>();
             }
         }
@@ -294,8 +327,16 @@ RESPOND WITH JSON ONLY:
         {
             try
             {
+                _logger.LogInformation("[TestCaseGeneration] Parsing response (length: {Length} chars)", response.Length);
+                
+                // Log first 500 chars for debugging
+                var preview = response.Length > 500 ? response.Substring(0, 500) + "..." : response;
+                _logger.LogDebug("[TestCaseGeneration] Response preview: {Preview}", preview);
+                
                 // Extract JSON from response (LLM might include markdown code fences)
                 var json = ExtractJsonFromResponse(response);
+                
+                _logger.LogDebug("[TestCaseGeneration] Extracted JSON (length: {Length} chars)", json.Length);
                 
                 var options = new JsonSerializerOptions
                 {
@@ -306,9 +347,11 @@ RESPOND WITH JSON ONLY:
                 
                 if (result?.TestCases == null)
                 {
-                    _logger.LogWarning("Failed to parse test cases from response");
+                    _logger.LogWarning("[TestCaseGeneration] Failed to deserialize test cases from response");
                     return new List<LLMTestCase>();
                 }
+
+                _logger.LogInformation("[TestCaseGeneration] Parsed {Count} test cases from response", result.TestCases.Count);
 
                 // Validate and assign default values
                 foreach (var tc in result.TestCases)
@@ -326,15 +369,22 @@ RESPOND WITH JSON ONLY:
                         if (firstReq != null)
                         {
                             tc.CoveredRequirementIds.Add(firstReq.Item);
+                            _logger.LogDebug("[TestCaseGeneration] Test case {Id} had no covered requirements, assigned to {ReqId}", tc.Id, firstReq.Item);
                         }
                     }
                 }
 
                 return result.TestCases;
             }
+            catch (JsonException jex)
+            {
+                _logger.LogError(jex, "[TestCaseGeneration] Failed to parse JSON from response - invalid format");
+                _logger.LogDebug("[TestCaseGeneration] JSON error details: {Details}", jex.Message);
+                return new List<LLMTestCase>();
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to parse test cases from response");
+                _logger.LogError(ex, "[TestCaseGeneration] Failed to parse test cases from response");
                 return new List<LLMTestCase>();
             }
         }

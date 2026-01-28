@@ -46,6 +46,11 @@ namespace TestCaseEditorApp.Services
         private const int ANYTHINGLM_PORT = 3001;
         private const int STARTUP_TIMEOUT_SECONDS = 60;
         
+        // Retry configuration
+        private const int MAX_RETRY_ATTEMPTS = 3;
+        private const int INITIAL_RETRY_DELAY_MS = 1000;
+        private const int MAX_RETRY_DELAY_MS = 10000;
+        
         // Global startup coordination to prevent multiple instances from starting simultaneously
         private static bool _globalStartupInProgress = false;
         private static readonly object _globalStartupLock = new object();
@@ -1617,43 +1622,143 @@ CRITICAL: The IMPROVED REQUIREMENT should use [brackets] when information is mis
         /// </summary>
         public async Task<string?> SendChatMessageAsync(string workspaceSlug, string message, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var payload = new
-                {
-                    message = message,
-                    mode = "chat"
-                };
+            int retryCount = 0;
+            int delayMs = INITIAL_RETRY_DELAY_MS;
 
-                var json = JsonSerializer.Serialize(payload);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                
-                var response = await _httpClient.PostAsync($"{_baseUrl}/api/v1/workspace/{workspaceSlug}/chat", content, cancellationToken);
-                
-                if (!response.IsSuccessStatusCode)
+            while (retryCount <= MAX_RETRY_ATTEMPTS)
+            {
+                try
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Failed to send chat message to '{workspaceSlug}': {response.StatusCode}");
+                    var payload = new
+                    {
+                        message = message,
+                        mode = "chat"
+                    };
+
+                    var json = JsonSerializer.Serialize(payload);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+                    
+                    OnStatusUpdated($"[Attempt {retryCount + 1}/{MAX_RETRY_ATTEMPTS + 1}] Sending request to LLM...");
+                    
+                    var response = await _httpClient.PostAsync($"{_baseUrl}/api/v1/workspace/{workspaceSlug}/chat", content, cancellationToken);
+                    
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var errorMsg = $"LLM request failed with status {response.StatusCode}";
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] {errorMsg} - workspace: '{workspaceSlug}'");
+                        
+                        if (response.StatusCode == System.Net.HttpStatusCode.RequestTimeout || 
+                            response.StatusCode == System.Net.HttpStatusCode.GatewayTimeout)
+                        {
+                            if (retryCount < MAX_RETRY_ATTEMPTS)
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Timeout detected, retrying in {delayMs}ms...");
+                                await Task.Delay(delayMs, cancellationToken);
+                                delayMs = Math.Min(delayMs * 2, MAX_RETRY_DELAY_MS);
+                                retryCount++;
+                                continue;
+                            }
+                            else
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] Timeout after {MAX_RETRY_ATTEMPTS} retries");
+                                return null;
+                            }
+                        }
+                        
+                        return null;
+                    }
+
+                    var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+                    
+                    if (string.IsNullOrWhiteSpace(responseJson))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Received empty response from workspace '{workspaceSlug}'");
+                        
+                        if (retryCount < MAX_RETRY_ATTEMPTS)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Empty response, retrying in {delayMs}ms...");
+                            await Task.Delay(delayMs, cancellationToken);
+                            delayMs = Math.Min(delayMs * 2, MAX_RETRY_DELAY_MS);
+                            retryCount++;
+                            continue;
+                        }
+                    }
+                    
+                    var result = JsonSerializer.Deserialize<ChatResponse>(responseJson, new JsonSerializerOptions 
+                    { 
+                        PropertyNameCaseInsensitive = true 
+                    });
+
+                    if (string.IsNullOrEmpty(result?.TextResponse))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] LLM returned empty response text");
+                        
+                        if (retryCount < MAX_RETRY_ATTEMPTS)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Empty text response, retrying in {delayMs}ms...");
+                            await Task.Delay(delayMs, cancellationToken);
+                            delayMs = Math.Min(delayMs * 2, MAX_RETRY_DELAY_MS);
+                            retryCount++;
+                            continue;
+                        }
+                        
+                        return null;
+                    }
+
+                    OnStatusUpdated("LLM response received successfully");
+                    return result.TextResponse;
+                }
+                catch (OperationCanceledException)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info("[AnythingLLM] Request was cancelled");
                     return null;
                 }
-
-                var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
-                var result = JsonSerializer.Deserialize<ChatResponse>(responseJson, new JsonSerializerOptions 
-                { 
-                    PropertyNameCaseInsensitive = true 
-                });
-
-                return result?.TextResponse;
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error sending chat message to workspace '{workspaceSlug}'");
-                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Exception type: {ex.GetType().Name}");
-                if (ex.InnerException != null)
+                catch (TimeoutException ex)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Inner exception: {ex.InnerException.Message}");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Request timeout: {ex.Message}");
+                    
+                    if (retryCount < MAX_RETRY_ATTEMPTS)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Timeout occurred, retrying in {delayMs}ms... (Attempt {retryCount + 1}/{MAX_RETRY_ATTEMPTS})");
+                        await Task.Delay(delayMs, cancellationToken);
+                        delayMs = Math.Min(delayMs * 2, MAX_RETRY_DELAY_MS);
+                        retryCount++;
+                        continue;
+                    }
+                    
+                    TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Timeout after {MAX_RETRY_ATTEMPTS} retry attempts");
+                    return null;
                 }
-                return null;
+                catch (HttpRequestException ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Request error: {ex.Message}");
+                    
+                    if (retryCount < MAX_RETRY_ATTEMPTS)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Connection error, retrying in {delayMs}ms...");
+                        await Task.Delay(delayMs, cancellationToken);
+                        delayMs = Math.Min(delayMs * 2, MAX_RETRY_DELAY_MS);
+                        retryCount++;
+                        continue;
+                    }
+                    
+                    TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnythingLLM] HTTP request failed after retries");
+                    return null;
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Unexpected error sending chat message to workspace '{workspaceSlug}'");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Exception type: {ex.GetType().Name}");
+                    if (ex.InnerException != null)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Inner exception: {ex.InnerException.Message}");
+                    }
+                    return null;
+                }
             }
+
+            TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] Failed to get response after {MAX_RETRY_ATTEMPTS} retry attempts");
+            return null;
         }
 
         /// <summary>
