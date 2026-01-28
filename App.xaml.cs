@@ -174,6 +174,12 @@ namespace TestCaseEditorApp
                     services.AddSingleton<ILLMLearningService, LLMLearningService>();
                     services.AddSingleton<IEditDetectionService, EditDetectionService>();
                     
+                    // ===== TEST CASE CREATION DOMAIN SERVICES (LLM-based generation) =====
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseGenerationService, 
+                                         TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.TestCaseGenerationService>();
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseDeduplicationService, 
+                                         TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.TestCaseDeduplicationService>();
+                    
                     // Jama Connect integration service - Following Architectural Guide AI patterns
                     services.AddSingleton<JamaConnectService>(provider =>
                     {
@@ -355,6 +361,10 @@ namespace TestCaseEditorApp
                     // TestCase domains use shared NavigationViewModel for consistent navigation
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_HeaderVM>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
+                    
+                    // TestCaseCreation domain ViewModels
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel>();
+                    
                     // DEPRECATED: TestCaseGeneratorNotificationViewModel - use NotificationWorkspaceViewModel instead
 
                     services.AddSingleton<INewProjectMediator>(provider =>

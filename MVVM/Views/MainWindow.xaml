@@ -21,6 +21,8 @@
         xmlns:reqviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.Views"
         xmlns:sharedvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Shared.ViewModels"
         xmlns:sharedviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Shared.Views"
+        xmlns:tccvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels"
+        xmlns:tccviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Views"
         xmlns:notificationvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Notification.ViewModels"
         xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models"
         xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
@@ -184,6 +186,11 @@
             <Border Padding="10" Background="Transparent" CornerRadius="6">
                 <TextBlock Text="{Binding Title}" FontSize="16" VerticalAlignment="Center" HorizontalAlignment="Center" />
             </Border>
+        </DataTemplate>
+
+        <!-- TestCaseCreation domain (LLM-based test case generation) -->
+        <DataTemplate DataType="{x:Type tccvm:LLMTestCaseGeneratorViewModel}">
+            <tccviews:LLMTestCaseGeneratorView />
         </DataTemplate>
 
         <!--<DataTemplate DataType="{x:Type startupvm:StartUp_MainViewModel}">

@@ -78,6 +78,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand NewProjectNavigationCommand { get; private set; } = null!;
         public ICommand DummyNavigationCommand { get; private set; } = null!;
         public ICommand LLMLearningNavigationCommand { get; private set; } = null!;
+        public ICommand LLMTestCaseGeneratorNavigationCommand { get; private set; } = null!;
         public ICommand StartupNavigationCommand { get; private set; } = null!;
 
         // Requirements Management Commands
@@ -178,6 +179,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             NewProjectNavigationCommand = new RelayCommand(NavigateToNewProject, CanExecuteProjectCommands);
             DummyNavigationCommand = new RelayCommand(NavigateToDummy);
             LLMLearningNavigationCommand = new RelayCommand(NavigateToLLMLearning);
+            LLMTestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToLLMTestCaseGenerator);
             StartupNavigationCommand = new RelayCommand(NavigateToStartup);
             
             // Requirements commands
@@ -412,6 +414,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _navigationMediator.NavigateToSection("llm learning");
         }
         
+        private void NavigateToLLMTestCaseGenerator()
+        {
+            SelectedSection = "LLMTestCaseGenerator";
+            _navigationMediator.NavigateToSection("LLMTestCaseGenerator");
+        }
+        
         private void NavigateToStartup()
         {
 // ("*** SideMenuViewModel.NavigateToStartup called! ***");
@@ -583,6 +591,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                                     new MenuAction { Id = "llm.export", Text = "Export for ChatGPT", Icon = "💬", Command = ExportForChatGptCommand },
                                     new MenuAction { Id = "llm.toggle", Text = "Toggle Auto Export", Icon = "🔄", Command = ToggleAutoExportCommand }
                                 }
+                            },
+                            new MenuAction
+                            {
+                                Id = "llm-test-case-generator",
+                                Text = "LLM Test Case Generator",
+                                Icon = "🤖✨",
+                                Command = LLMTestCaseGeneratorNavigationCommand
                             },
                             new MenuAction
                             {

@@ -86,6 +86,9 @@ namespace TestCaseEditorApp.Services
                 // LLM Learning domain
                 "llm learning" => CreateLLMLearningConfiguration(context),
                 
+                // LLM Test Case Generator domain
+                "llmtestcasegenerator" or "llm test case generator" or "LLMTestCaseGenerator" => CreateLLMTestCaseGeneratorConfiguration(context),
+                
                 // Import domain
                 "import" => CreateImportConfiguration(context),
                 
@@ -328,6 +331,34 @@ namespace TestCaseEditorApp.Services
                 $"[{DateTime.Now:HH:mm:ss}] DebugAndCallTestCaseGenerator: TestCaseGenerator config created - type: {config?.GetType().Name}\n");
                 
             return config;
+        }
+
+        private ViewConfiguration CreateLLMTestCaseGeneratorConfiguration(object? context)
+        {
+            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating LLMTestCaseGenerator configuration");
+            
+            // Resolve ViewModels from DI container
+            var titleVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("LLM Test Case Generator");
+            var headerVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("");
+            var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel>();
+            var navigationVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("");
+            var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
+            
+            // Fail-fast validation
+            if (mainVM == null) throw new InvalidOperationException("LLMTestCaseGeneratorViewModel not registered in DI container");
+            if (notificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
+            
+            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] LLMTestCaseGenerator ViewModels resolved successfully");
+
+            return new ViewConfiguration(
+                sectionName: "LLMTestCaseGenerator",
+                titleViewModel: titleVM,
+                headerViewModel: headerVM,
+                contentViewModel: mainVM,
+                navigationViewModel: navigationVM,
+                notificationViewModel: notificationVM,
+                context: context
+            );
         }
 
         private ViewConfiguration CreateTestCaseGeneratorConfiguration(object? context)
