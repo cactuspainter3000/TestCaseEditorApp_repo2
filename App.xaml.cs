@@ -165,8 +165,13 @@ namespace TestCaseEditorApp
                     // Register the shared analysis ViewModel for cross-domain usage (DRY principle)
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Shared.ViewModels.SharedAnalysisViewModel>();
                     
+                    // AnythingLLM Service - LLM workspace management and chat operations
                     services.AddSingleton<AnythingLLMService>(provider =>
                         new AnythingLLMService()); // Let it get baseUrl and apiKey from defaults/user config
+                    
+                    // Register interface for testable architecture
+                    services.AddSingleton<IAnythingLLMService>(provider => provider.GetRequiredService<AnythingLLMService>());
+                    
                     services.AddSingleton<TestCaseAnythingLLMService>();
                     
                     // RAG Context Service for tracking and optimizing RAG integration
@@ -246,7 +251,7 @@ namespace TestCaseEditorApp
                     services.AddSingleton<IJamaDocumentParserService, JamaDocumentParserService>(provider =>
                     {
                         var jamaService = provider.GetRequiredService<IJamaConnectService>();
-                        var llmService = provider.GetRequiredService<AnythingLLMService>();
+                        var llmService = provider.GetRequiredService<IAnythingLLMService>();
                         return new JamaDocumentParserService(jamaService, llmService);
                     });
                     

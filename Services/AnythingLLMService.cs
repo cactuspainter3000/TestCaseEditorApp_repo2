@@ -21,7 +21,7 @@ namespace TestCaseEditorApp.Services
     /// Provides workspace management capabilities for creating and listing AnythingLLM workspaces.
     /// Includes auto-start functionality for local AnythingLLM instances.
     /// </summary>
-    public class AnythingLLMService
+    public class AnythingLLMService : IAnythingLLMService
     {
         // Windows API imports for window management
         [DllImport("user32.dll")]

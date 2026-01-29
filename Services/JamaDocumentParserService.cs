@@ -17,12 +17,12 @@ namespace TestCaseEditorApp.Services
     public class JamaDocumentParserService : IJamaDocumentParserService
     {
         private readonly IJamaConnectService _jamaService;
-        private readonly AnythingLLMService _llmService;
+        private readonly IAnythingLLMService _llmService;
         private const string PARSING_WORKSPACE_PREFIX = "jama-doc-parse";
 
         public bool IsConfigured => _jamaService.IsConfigured && _llmService != null;
 
-        public JamaDocumentParserService(IJamaConnectService jamaService, AnythingLLMService llmService)
+        public JamaDocumentParserService(IJamaConnectService jamaService, IAnythingLLMService llmService)
         {
             _jamaService = jamaService ?? throw new ArgumentNullException(nameof(jamaService));
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
@@ -102,6 +102,18 @@ namespace TestCaseEditorApp.Services
                     if (File.Exists(tempFilePath))
                     {
                         try { File.Delete(tempFilePath); } catch { /* Ignore cleanup errors */ }
+                    }
+                    
+                    // Clean up temporary workspace
+                    try
+                    {
+                        await _llmService.DeleteWorkspaceAsync(workspaceSlug, cancellationToken);
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Cleaned up temporary workspace {workspaceSlug}");
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log but don't fail if cleanup errors - workspace cleanup is not critical
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Failed to clean up workspace {workspaceSlug}: {ex.Message}");
                     }
                 }
             }
