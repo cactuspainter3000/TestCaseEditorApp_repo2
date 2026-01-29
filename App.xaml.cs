@@ -220,6 +220,9 @@ namespace TestCaseEditorApp
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseDeduplicationService, 
                                          TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.TestCaseDeduplicationService>();
                     
+                    // Prompt Diagnostics ViewModel (for debugging and comparing LLM responses)
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.PromptDiagnosticsViewModel>();
+                    
                     // Jama Connect integration service - Following Architectural Guide AI patterns
                     services.AddSingleton<JamaConnectService>(provider =>
                     {

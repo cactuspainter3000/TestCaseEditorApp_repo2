@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels"
              xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Models"
+             xmlns:local="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Views"
              mc:Ignorable="d"
              d:DesignHeight="800" d:DesignWidth="1200"
              d:DataContext="{d:DesignInstance Type=vm:LLMTestCaseGeneratorViewModel}"
@@ -535,6 +536,27 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </ScrollViewer>
+            </TabItem>
+            
+            <!-- Prompt Diagnostics Tab -->
+            <TabItem Header="Prompt Diagnostics">
+                <TabItem.HeaderTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🔍 Prompt Diagnostics" 
+                                       Margin="0,0,8,0"
+                                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </TabItem.HeaderTemplate>
+
+                <ContentControl Content="{Binding PromptDiagnostics}">
+                    <ContentControl.ContentTemplate>
+                        <DataTemplate>
+                            <local:PromptDiagnosticsView DataContext="{Binding}"/>
+                        </DataTemplate>
+                    </ContentControl.ContentTemplate>
+                </ContentControl>
             </TabItem>
         </TabControl>
     </Grid>

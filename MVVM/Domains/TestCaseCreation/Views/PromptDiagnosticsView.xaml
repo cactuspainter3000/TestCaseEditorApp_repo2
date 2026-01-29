@@ -1,0 +1,213 @@
+<UserControl x:Class="TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Views.PromptDiagnosticsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels"
+             mc:Ignorable="d"
+             d:DesignHeight="800" d:DesignWidth="1200"
+             d:DataContext="{d:DesignInstance Type=vm:PromptDiagnosticsViewModel}"
+             Background="{StaticResource Brush.Background.Menu}">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Resources/DesignSystem.xaml"/>
+                <ResourceDictionary Source="/Resources/ButtonStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            
+            <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <!-- Header -->
+                <RowDefinition Height="Auto"/> <!-- Metadata -->
+                <RowDefinition Height="Auto"/> <!-- Prompt Section -->
+                <RowDefinition Height="Auto"/> <!-- AnythingLLM Response -->
+                <RowDefinition Height="Auto"/> <!-- External LLM Response -->
+                <RowDefinition Height="Auto"/> <!-- Comparison Results -->
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                <TextBlock Text="Prompt Diagnostics" 
+                           FontSize="24" 
+                           FontWeight="Bold" 
+                           Foreground="{StaticResource Brush.Text.Primary}"
+                           Margin="0,0,0,8"/>
+                <TextBlock Text="View and compare LLM prompts and responses for debugging and optimization" 
+                           FontSize="13" 
+                           Foreground="{StaticResource Brush.Text.Secondary}"
+                           TextWrapping="Wrap"/>
+            </StackPanel>
+
+            <!-- Metadata -->
+            <Border Grid.Row="1" 
+                    Background="{StaticResource Brush.Background.Header}" 
+                    BorderBrush="{StaticResource Brush.Border.Default}" 
+                    BorderThickness="1" 
+                    CornerRadius="{StaticResource Radius.SM}" 
+                    Padding="12"
+                    Margin="0,0,0,12"
+                    Visibility="{Binding HasPrompt, Converter={StaticResource BoolToVisibilityConverter}}">
+                <TextBlock Text="{Binding PromptMetadata}" 
+                           FontFamily="Consolas" 
+                           FontSize="12" 
+                           Foreground="{StaticResource Brush.Text.Secondary}"
+                           TextWrapping="Wrap"/>
+            </Border>
+
+            <!-- Prompt Section -->
+            <StackPanel Grid.Row="2" Margin="0,0,0,16">
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Grid.Column="0" 
+                               Text="Generated Prompt" 
+                               FontSize="16" 
+                               FontWeight="SemiBold" 
+                               Foreground="{StaticResource Brush.Text.Primary}"/>
+                    
+                    <Button Grid.Column="1" 
+                            Content="📋 Copy Prompt" 
+                            Command="{Binding CopyPromptCommand}"
+                            Style="{StaticResource ActionButton}"/>
+                </Grid>
+
+                <Border Background="{StaticResource Brush.Background.Content}" 
+                        BorderBrush="{StaticResource Brush.Border.Default}" 
+                        BorderThickness="1" 
+                        CornerRadius="{StaticResource Radius.SM}">
+                    <TextBox Text="{Binding GeneratedPrompt, Mode=OneWay}" 
+                             IsReadOnly="True"
+                             FontFamily="Consolas"
+                             FontSize="12"
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto"
+                             Height="200"
+                             Padding="8"
+                             Background="Transparent"
+                             BorderThickness="0"/>
+                </Border>
+            </StackPanel>
+
+            <!-- AnythingLLM Response -->
+            <StackPanel Grid.Row="3" Margin="0,0,0,16">
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Grid.Column="0" 
+                               Text="AnythingLLM Response" 
+                               FontSize="16" 
+                               FontWeight="SemiBold" 
+                               Foreground="{StaticResource Brush.Text.Primary}"/>
+                    
+                    <Button Grid.Column="1" 
+                            Content="📋 Copy Response" 
+                            Command="{Binding CopyAnythingLLMResponseCommand}"
+                            Style="{StaticResource ActionButton}"/>
+                </Grid>
+
+                <Border Background="{StaticResource Brush.Background.Content}" 
+                        BorderBrush="{StaticResource Brush.Border.Default}" 
+                        BorderThickness="1" 
+                        CornerRadius="{StaticResource Radius.SM}">
+                    <TextBox Text="{Binding AnythingLLMResponse, Mode=OneWay}" 
+                             IsReadOnly="True"
+                             FontFamily="Consolas"
+                             FontSize="11"
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto"
+                             Height="250"
+                             Padding="8"
+                             Background="Transparent"
+                             BorderThickness="0"/>
+                </Border>
+            </StackPanel>
+
+            <!-- External LLM Response -->
+            <StackPanel Grid.Row="4" Margin="0,0,0,16">
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Grid.Column="0" 
+                               Text="External LLM Response (for comparison)" 
+                               FontSize="16" 
+                               FontWeight="SemiBold" 
+                               Foreground="{StaticResource Brush.Text.Primary}"/>
+                    
+                    <Button Grid.Column="1" 
+                            Content="🗑️ Clear" 
+                            Command="{Binding ClearExternalResponseCommand}"
+                            Style="{StaticResource ActionButton}"
+                            Margin="0,0,8,0"/>
+                    
+                    <Button Grid.Column="2" 
+                            Content="⚖️ Compare Responses" 
+                            Command="{Binding CompareResponsesCommand}"
+                            Style="{StaticResource ActionButton}"
+                            Margin="0,0,8,0"/>
+                </Grid>
+
+                <Border Background="{StaticResource Brush.Background.Content}" 
+                        BorderBrush="{StaticResource Brush.Border.Default}" 
+                        BorderThickness="1" 
+                        CornerRadius="{StaticResource Radius.SM}">
+                    <TextBox Text="{Binding ExternalLLMResponse, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                             FontFamily="Consolas"
+                             FontSize="11"
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto"
+                             Height="250"
+                             Padding="8"
+                             Background="Transparent"
+                             BorderThickness="0"/>
+                </Border>
+            </StackPanel>
+
+            <!-- Comparison Results -->
+            <StackPanel Grid.Row="5" 
+                        Visibility="{Binding HasExternalResponse, Converter={StaticResource BoolToVisibilityConverter}}">
+                <TextBlock Text="Comparison Results" 
+                           FontSize="16" 
+                           FontWeight="SemiBold" 
+                           Foreground="{StaticResource Brush.Text.Primary}"
+                           Margin="0,0,0,8"/>
+
+                <Border Background="{StaticResource Brush.Background.Content}" 
+                        BorderBrush="{StaticResource Brush.Border.Default}" 
+                        BorderThickness="1" 
+                        CornerRadius="{StaticResource Radius.SM}">
+                    <TextBox Text="{Binding ComparisonResults, Mode=OneWay}" 
+                             IsReadOnly="True"
+                             FontFamily="Consolas"
+                             FontSize="12"
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto"
+                             Height="200"
+                             Padding="8"
+                             Background="Transparent"
+                             BorderThickness="0"/>
+                </Border>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

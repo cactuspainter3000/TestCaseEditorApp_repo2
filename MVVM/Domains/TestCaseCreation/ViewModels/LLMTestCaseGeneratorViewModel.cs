@@ -26,6 +26,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
         private readonly ITestCaseGenerationService _generationService;
         private readonly ITestCaseDeduplicationService _deduplicationService;
         private readonly IRequirementsMediator _requirementsMediator;
+        private readonly PromptDiagnosticsViewModel _promptDiagnostics;
         
         private bool _isGenerating;
         private string _statusMessage = "Ready to generate test cases";
@@ -41,12 +42,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
             ILogger<LLMTestCaseGeneratorViewModel> logger,
             ITestCaseGenerationService generationService,
             ITestCaseDeduplicationService deduplicationService,
-            IRequirementsMediator requirementsMediator)
+            IRequirementsMediator requirementsMediator,
+            PromptDiagnosticsViewModel promptDiagnostics)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _generationService = generationService ?? throw new ArgumentNullException(nameof(generationService));
             _deduplicationService = deduplicationService ?? throw new ArgumentNullException(nameof(deduplicationService));
             _requirementsMediator = requirementsMediator ?? throw new ArgumentNullException(nameof(requirementsMediator));
+            _promptDiagnostics = promptDiagnostics ?? throw new ArgumentNullException(nameof(promptDiagnostics));
 
             GeneratedTestCases = new ObservableCollection<LLMTestCase>();
             SimilarRequirementGroups = new ObservableCollection<RequirementGroup>();
@@ -70,6 +73,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
         public ObservableCollection<LLMTestCase> GeneratedTestCases { get; }
         public ObservableCollection<RequirementGroup> SimilarRequirementGroups { get; }
         public ObservableCollection<SelectableRequirement> AvailableRequirements { get; }
+        public PromptDiagnosticsViewModel PromptDiagnostics => _promptDiagnostics;
         
         public int SelectedCount => AvailableRequirements.Count(r => r.IsSelected);
         public int TotalCount => AvailableRequirements.Count;
@@ -177,8 +181,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
             {
                 _logger.LogInformation("Starting test case generation for {Count} requirements", requirements.Count);
 
-                // Generate test cases with LLM similarity detection
-                var testCases = await _generationService.GenerateTestCasesAsync(
+                // Generate test cases with diagnostics
+                var result = await _generationService.GenerateTestCasesWithDiagnosticsAsync(
                     requirements,
                     (message, current, total) => 
                     {
@@ -188,12 +192,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
                     },
                     _cancellationTokenSource.Token);
 
+                // Update diagnostics
+                _promptDiagnostics.UpdatePrompt(result.GeneratedPrompt, requirements.Count, DateTime.Now);
+                _promptDiagnostics.UpdateAnythingLLMResponse(result.LLMResponse);
+
                 Progress = 100;
 
-                if (testCases.Any())
+                if (result.TestCases.Any())
                 {
                     // Add to collection
-                    foreach (var tc in testCases)
+                    foreach (var tc in result.TestCases)
                     {
                         GeneratedTestCases.Add(tc);
                     }
@@ -201,9 +209,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
                     // Calculate coverage
                     CoverageSummary = _generationService.CalculateCoverage(requirements, GeneratedTestCases);
 
-                    StatusMessage = $"✓ Generated {testCases.Count} test cases covering {CoveredCount}/{requirements.Count} requirements";
+                    StatusMessage = $"✓ Generated {result.TestCases.Count} test cases covering {CoveredCount}/{requirements.Count} requirements";
                     _logger.LogInformation("Generation complete: {TestCaseCount} test cases, {Coverage}% coverage",
-                        testCases.Count, CoveragePercentage);
+                        result.TestCases.Count, CoveragePercentage);
                 }
                 else
                 {

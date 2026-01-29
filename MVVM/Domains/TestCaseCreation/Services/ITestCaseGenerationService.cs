@@ -7,6 +7,14 @@ using TestCaseEditorApp.MVVM.Models;
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
 {
     /// <summary>
+    /// Result of test case generation including diagnostics
+    /// </summary>
+    public record TestCaseGenerationResult(
+        List<LLMTestCase> TestCases,
+        string GeneratedPrompt,
+        string LLMResponse);
+
+    /// <summary>
     /// Service for generating test cases from requirements using LLM.
     /// Automatically detects requirement overlap and creates shared test cases when appropriate.
     /// </summary>
@@ -25,6 +33,15 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
         /// Some test cases may cover multiple requirements if they are similar.
         /// </returns>
         Task<List<LLMTestCase>> GenerateTestCasesAsync(
+            IEnumerable<Requirement> requirements,
+            Action<string, int, int>? progressCallback = null,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Generate test cases with full diagnostic information including prompt and response.
+        /// Use this for debugging and prompt analysis.
+        /// </summary>
+        Task<TestCaseGenerationResult> GenerateTestCasesWithDiagnosticsAsync(
             IEnumerable<Requirement> requirements,
             Action<string, int, int>? progressCallback = null,
             CancellationToken cancellationToken = default);

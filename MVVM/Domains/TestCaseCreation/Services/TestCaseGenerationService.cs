@@ -42,14 +42,26 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
             Action<string, int, int>? progressCallback = null,
             CancellationToken cancellationToken = default)
         {
+            var result = await GenerateTestCasesWithDiagnosticsAsync(requirements, progressCallback, cancellationToken);
+            return result.TestCases;
+        }
+
+        public async Task<TestCaseGenerationResult> GenerateTestCasesWithDiagnosticsAsync(
+            IEnumerable<Requirement> requirements,
+            Action<string, int, int>? progressCallback = null,
+            CancellationToken cancellationToken = default)
+        {
             var requirementList = requirements.ToList();
             if (!requirementList.Any())
-                return new List<LLMTestCase>();
+                return new TestCaseGenerationResult(new List<LLMTestCase>(), string.Empty, string.Empty);
 
             _logger.LogInformation("Generating test cases for {Count} requirements using workspace '{Workspace}'", 
                 requirementList.Count, WORKSPACE_SLUG);
 
             var stopwatch = Stopwatch.StartNew();
+            string generatedPrompt = string.Empty;
+            string llmResponse = string.Empty;
+            
             try
             {
                 // Ensure RAG is configured before generation
@@ -66,22 +78,22 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
                 progressCallback?.Invoke("Preparing test case generation prompt...", 0, requirementList.Count);
                 
                 // Create prompt for batch generation with similarity detection
-                var prompt = CreateBatchGenerationPrompt(requirementList);
+                generatedPrompt = CreateBatchGenerationPrompt(requirementList);
                 
                 progressCallback?.Invoke($"Sending to LLM workspace '{WORKSPACE_SLUG}' (this may take 1-2 minutes)...", 0, requirementList.Count);
                 
                 // Send to LLM with RAG context
-                var response = await _anythingLLMService.SendChatMessageAsync(
+                llmResponse = await _anythingLLMService.SendChatMessageAsync(
                     WORKSPACE_SLUG,
-                    prompt,
+                    generatedPrompt,
                     cancellationToken);
 
                 stopwatch.Stop();
 
                 // Track RAG request
-                _ragContextService?.TrackRAGRequest(WORKSPACE_SLUG, prompt, response, !string.IsNullOrEmpty(response), stopwatch.Elapsed);
+                _ragContextService?.TrackRAGRequest(WORKSPACE_SLUG, generatedPrompt, llmResponse, !string.IsNullOrEmpty(llmResponse), stopwatch.Elapsed);
 
-                if (string.IsNullOrEmpty(response))
+                if (string.IsNullOrEmpty(llmResponse))
                 {
                     var errorMsg = $"LLM did not return a response. Possible causes: " +
                         $"1) Workspace '{WORKSPACE_SLUG}' does not exist in AnythingLLM (create it first), " +
@@ -91,13 +103,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
                         "Please check AnythingLLM is running and the workspace exists.";
                     _logger.LogWarning("[TestCaseGeneration] {ErrorMsg}", errorMsg);
                     progressCallback?.Invoke(errorMsg, requirementList.Count, requirementList.Count);
-                    return new List<LLMTestCase>();
+                    return new TestCaseGenerationResult(new List<LLMTestCase>(), generatedPrompt, llmResponse ?? string.Empty);
                 }
 
                 progressCallback?.Invoke("Parsing test cases from response...", requirementList.Count, requirementList.Count);
                 
                 // Parse JSON response into test cases
-                var testCases = ParseTestCasesFromResponse(response, requirementList);
+                var testCases = ParseTestCasesFromResponse(llmResponse, requirementList);
                 
                 if (!testCases.Any())
                 {
@@ -107,7 +119,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
                         "Check the debug logs for the raw LLM response.";
                     _logger.LogWarning("[TestCaseGeneration] {ErrorMsg}", errorMsg);
                     progressCallback?.Invoke(errorMsg, requirementList.Count, requirementList.Count);
-                    return new List<LLMTestCase>();
+                    return new TestCaseGenerationResult(new List<LLMTestCase>(), generatedPrompt, llmResponse);
                 }
                 
                 progressCallback?.Invoke($"Completed: Generated {testCases.Count} test cases", requirementList.Count, requirementList.Count);
@@ -136,7 +148,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
                     });
                 }
 
-                return testCases;
+                return new TestCaseGenerationResult(testCases, generatedPrompt, llmResponse);
             }
             catch (Exception ex)
             {
@@ -146,7 +158,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
                 var errorMsg = $"Test case generation failed: {ex.Message}";
                 _logger.LogError(ex, "[TestCaseGeneration] {ErrorMsg}", errorMsg);
                 progressCallback?.Invoke(errorMsg, requirementList.Count, requirementList.Count);
-                return new List<LLMTestCase>();
+                return new TestCaseGenerationResult(new List<LLMTestCase>(), generatedPrompt, llmResponse);
             }
         }
 
