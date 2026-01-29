@@ -177,6 +177,22 @@ namespace TestCaseEditorApp
                         return new RAGContextService(logger, anythingLLMService);
                     });
                     
+                    // RAG Feedback and Optimization Services
+                    services.AddSingleton<RAGFeedbackService>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<RAGFeedbackService>>();
+                        var ragContextService = provider.GetRequiredService<RAGContextService>();
+                        return new RAGFeedbackService(logger, ragContextService);
+                    });
+
+                    services.AddSingleton<RAGParameterOptimizer>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<RAGParameterOptimizer>>();
+                        var feedbackService = provider.GetRequiredService<RAGFeedbackService>();
+                        var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
+                        return new RAGParameterOptimizer(logger, feedbackService, anythingLLMService);
+                    });
+                    
                     // LLM Learning Feedback Services
                     services.AddSingleton<ITextSimilarityService, TextSimilarityService>();
                     services.AddSingleton<ILLMLearningService, LLMLearningService>();

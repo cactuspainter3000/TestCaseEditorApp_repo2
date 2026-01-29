@@ -799,6 +799,99 @@ namespace TestCaseEditorApp.Services
         }
 
         /// <summary>
+        /// Updates specific RAG parameters for a workspace to optimize performance
+        /// </summary>
+        public async Task<bool> UpdateWorkspaceParametersAsync(
+            string slug, 
+            double temperature,
+            double similarityThreshold,
+            int topN,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    $"[AnythingLLM] Updating workspace parameters for '{slug}': " +
+                    $"Temp={temperature:F2}, Similarity={similarityThreshold:F2}, TopN={topN}");
+
+                // Validate parameters
+                if (temperature < 0.1 || temperature > 0.7)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Invalid temperature: {temperature}. Must be between 0.1 and 0.7");
+                    return false;
+                }
+
+                if (similarityThreshold < 0 || similarityThreshold > 0.5)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Invalid similarity threshold: {similarityThreshold}. Must be between 0 and 0.5");
+                    return false;
+                }
+
+                if (topN < 2 || topN > 8)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Invalid topN: {topN}. Must be between 2 and 8");
+                    return false;
+                }
+
+                // Build update payload
+                var settings = new
+                {
+                    openAiTemp = temperature,
+                    similarityThreshold = similarityThreshold,
+                    topN = topN
+                };
+
+                var json = JsonSerializer.Serialize(settings);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                // Try endpoints to update parameters
+                var endpointsToTry = new[]
+                {
+                    $"{_baseUrl}/api/v1/workspace/{slug}/update",
+                    $"{_baseUrl}/api/v1/workspace/{slug}/settings",
+                    $"{_baseUrl}/api/v1/workspaces/{slug}/settings"
+                };
+
+                foreach (var endpoint in endpointsToTry)
+                {
+                    try
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[AnythingLLM] Trying parameter update endpoint: {endpoint}");
+
+                        // Try POST
+                        var response = await _httpClient.PostAsync(endpoint, content, cancellationToken);
+                        if (response.IsSuccessStatusCode)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info(
+                                $"[AnythingLLM] Successfully updated workspace parameters for '{slug}' using POST");
+                            return true;
+                        }
+
+                        // Try PUT
+                        response = await _httpClient.PutAsync(endpoint, content, cancellationToken);
+                        if (response.IsSuccessStatusCode)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info(
+                                $"[AnythingLLM] Successfully updated workspace parameters for '{slug}' using PUT");
+                            return true;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[AnythingLLM] Exception trying endpoint {endpoint}: {ex.Message}");
+                    }
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] All parameter update endpoints failed for workspace '{slug}'");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error updating workspace parameters for '{slug}'");
+                return false;
+            }
+        }
+        /// <summary>
         /// Attempts to configure API key for authentication
         /// </summary>
         private async Task<bool> TryConfigureApiKeyAsync(CancellationToken cancellationToken = default)
