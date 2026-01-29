@@ -30,73 +30,116 @@
         <!-- Search Controls -->
         <Border Grid.Row="1" Background="#ECF0F1" Padding="20,15" BorderBrush="#BDC3C7" BorderThickness="0,0,0,1">
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="200"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="10"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-
-                <!-- Project Selection -->
-                <TextBlock Grid.Column="0" Text="Project:" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                <ComboBox Grid.Column="1" 
-                          ItemsSource="{Binding AvailableProjects}"
-                          SelectedValue="{Binding SelectedProjectId}"
-                          SelectedValuePath="Id"
-                          DisplayMemberPath="Name"
-                          IsEnabled="{Binding IsJamaConfigured}"
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="10"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <!-- Status Message (more prominent) -->
+                <TextBlock Grid.Row="0" 
+                          Text="{Binding StatusMessage}" 
+                          FontSize="14"
+                          FontWeight="SemiBold"
+                          Foreground="#2C3E50"
+                          TextWrapping="Wrap"
+                          MinHeight="20"
                           VerticalAlignment="Center"/>
                 
-                <!-- Reload Projects Button -->
-                <Button Grid.Column="2" 
-                        Content="🔄"
-                        Command="{Binding LoadProjectsCommand}"
-                        ToolTip="Reload available projects"
-                        IsEnabled="{Binding IsJamaConfigured}"
-                        Background="#28A745"
-                        Foreground="White"
-                        Width="30"
-                        Height="30"
-                        Margin="5,0,0,0"
-                        FontSize="14"
-                        BorderThickness="0"/>
+                <!-- Action Controls -->
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-                <!-- Search Query -->
-                <TextBlock Grid.Column="4" Text="Filter:" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                <TextBox Grid.Column="5" 
-                         Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
-                         IsEnabled="{Binding IsJamaConfigured}"
-                         VerticalAlignment="Center"
-                         Padding="8,5"
-                         ToolTip="Optional: Filter attachments by name or description"/>
-
-                <!-- Search Button -->
-                <Button Grid.Column="7" 
-                        Content="🔍 Search Attachments"
-                        Command="{Binding SearchAttachmentsCommand}"
-                        IsEnabled="{Binding CanSearch}"
-                        Background="#3498DB"
-                        Foreground="White"
-                        Padding="15,8"
-                        BorderThickness="0"
-                        FontWeight="SemiBold"/>
+                    <!-- Attachment Filter Dropdown -->
+                    <TextBlock Grid.Column="0" Text="Select:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,10,0"/>
+                    <Grid Grid.Column="1">
+                        <ComboBox ItemsSource="{Binding AvailableAttachments}"
+                                 SelectedItem="{Binding SelectedAttachmentFilter}"
+                                 VerticalAlignment="Center"
+                                 Padding="8,5"
+                                 ToolTip="Select a specific attachment or leave blank to see all">
+                            <ComboBox.Style>
+                                <Style TargetType="ComboBox">
+                                    <Setter Property="IsEnabled" Value="True"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsBackgroundScanningInProgress}" Value="True">
+                                            <Setter Property="IsEnabled" Value="False"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsJamaConfigured}" Value="False">
+                                            <Setter Property="IsEnabled" Value="False"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ComboBox.Style>
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" MaxWidth="300" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text=" (" Foreground="Gray" Margin="5,0,0,0"/>
+                                        <TextBlock Text="{Binding FileSize, StringFormat={}{0:N0}}" Foreground="Gray"/>
+                                        <TextBlock Text=" bytes)" Foreground="Gray"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
                         
-                <!-- Test Connection Button -->
-                <Button Grid.Column="9" 
-                        Content="🔧 Test"
-                        Command="{Binding TestConnectionCommand}"
-                        ToolTip="Test Jama connection and debug configuration"
-                        Background="#6F42C1"
-                        Foreground="White"
-                        Padding="10,8"
-                        BorderThickness="0"
-                        FontSize="11"/>
+                        <!-- Background Scan Progress Overlay -->
+                        <Border x:Name="BackgroundProgress"
+                               Background="#F0F8FF" 
+                               BorderBrush="#3498DB" 
+                               BorderThickness="1"
+                               CornerRadius="3"
+                               Padding="10,5">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsBackgroundScanningInProgress}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="⏳" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding BackgroundScanProgressText}" 
+                                          FontSize="13" 
+                                          FontWeight="SemiBold"
+                                          Foreground="#2C3E50" 
+                                          VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- Search Button -->
+                    <Button Grid.Column="3" 
+                            Content="🔍 Search Attachments"
+                            Command="{Binding SearchAttachmentsCommand}"
+                            Background="#3498DB"
+                            Foreground="White"
+                            Padding="15,8"
+                            BorderThickness="0"
+                            FontWeight="SemiBold"/>
+                            
+                    <!-- Test Connection Button -->
+                    <Button Grid.Column="5" 
+                            Content="🔧 Test"
+                            Command="{Binding TestConnectionCommand}"
+                            ToolTip="Test Jama connection and debug current workspace"
+                            Background="#6F42C1"
+                            Foreground="White"
+                            Padding="10,8"
+                            BorderThickness="0"
+                            FontSize="11"/>
+                </Grid>
             </Grid>
         </Border>
 

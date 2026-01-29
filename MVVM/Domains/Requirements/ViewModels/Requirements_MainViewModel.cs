@@ -46,6 +46,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         // Analysis VM for LLM-powered requirement analysis (NEW: Focused architecture)
         public RequirementAnalysisViewModel? RequirementAnalysisVM { get; private set; }
 
+        /// <summary>
+        /// ViewModel for Requirements Search in Attachments feature.
+        /// Resolved via DI following architectural patterns.
+        /// </summary>
+        public RequirementsSearchAttachmentsViewModel RequirementsSearchAttachmentsViewModel { get; }
+
         // Expose mediator analysis state for UI binding
         public bool IsAnalyzing => _mediator.IsAnalyzing;
 
@@ -58,6 +64,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             IPersistenceService persistence,
             ITextEditingDialogService textEditingDialogService,
             ILogger<Requirements_MainViewModel> logger,
+            RequirementsSearchAttachmentsViewModel requirementsSearchAttachmentsViewModel,
             IRequirementAnalysisService? analysisService = null)
             : base(mediator, logger)
         {
@@ -65,6 +72,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // REMOVED: TestCaseGenerationMediator dependency - Requirements domain now independent
             _persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
             _textEditingDialogService = textEditingDialogService ?? throw new ArgumentNullException(nameof(textEditingDialogService));
+            RequirementsSearchAttachmentsViewModel = requirementsSearchAttachmentsViewModel ?? throw new ArgumentNullException(nameof(requirementsSearchAttachmentsViewModel));
 
             // Subscribe to Requirements domain events ONLY - Requirements domain independence
             _logger.LogInformation("[Requirements_MainVM] === CONSTRUCTOR: Subscribing to mediator events, mediator type: {MediatorType}, is null: {IsNull}", 

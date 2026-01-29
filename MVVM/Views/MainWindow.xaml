@@ -220,6 +220,11 @@
             <reqviews:RequirementsHeaderView />
         </DataTemplate>
 
+        <!-- Requirements Search in Attachments: proper DataTemplate mapping -->
+        <DataTemplate DataType="{x:Type reqvm:RequirementsSearchAttachmentsViewModel}">
+            <reqviews:RequirementsSearchAttachmentsView />
+        </DataTemplate>
+
         <!-- Requirements uses shared NavigationViewModel and NotificationWorkspaceViewModel -->
 
         <DataTemplate DataType="{x:Type vm:LLMLearningViewModel}">

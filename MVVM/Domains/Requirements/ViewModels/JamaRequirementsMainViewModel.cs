@@ -10,6 +10,7 @@ using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Events;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Models;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 {
@@ -61,6 +62,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         // Analysis ViewModel for the Requirements_AnalysisControl
         public RequirementAnalysisViewModel RequirementAnalysisVM { get; }
 
+        /// <summary>
+        /// ViewModel for Requirements Search in Attachments feature.
+        /// Resolved via DI following architectural patterns.
+        /// </summary>
+        public RequirementsSearchAttachmentsViewModel RequirementsSearchAttachmentsViewModel { get; }
+
         // Analysis timer
         private System.Timers.Timer? _analysisTimer;
         private DateTime _analysisStartTime;
@@ -79,11 +86,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public JamaRequirementsMainViewModel(
             IRequirementsMediator mediator,
             ILogger<JamaRequirementsMainViewModel> logger,
-            RequirementAnalysisViewModel requirementAnalysisVM)
+            RequirementAnalysisViewModel requirementAnalysisVM,
+            RequirementsSearchAttachmentsViewModel requirementsSearchAttachmentsViewModel)
             : base(mediator, logger)
         {
+            _logger.LogInformation("[JamaRequirementsMainVM] Constructor called - Instance ID: {InstanceId}, RequirementsSearchAttachmentsViewModel ID: {SearchVMInstanceId}", GetHashCode(), requirementsSearchAttachmentsViewModel?.GetHashCode());
             _mediator = mediator;
             RequirementAnalysisVM = requirementAnalysisVM ?? throw new ArgumentNullException(nameof(requirementAnalysisVM));
+            RequirementsSearchAttachmentsViewModel = requirementsSearchAttachmentsViewModel ?? throw new ArgumentNullException(nameof(requirementsSearchAttachmentsViewModel));
 
             // Initialize commands
             SelectRichContentCommand = new RelayCommand(() => SelectTab("RichContent"));

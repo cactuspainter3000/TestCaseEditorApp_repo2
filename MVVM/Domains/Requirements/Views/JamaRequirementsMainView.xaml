@@ -279,7 +279,7 @@
                                         <Setter Property="ContentTemplate">
                                             <Setter.Value>
                                                 <DataTemplate>
-                                                    <req:RequirementsSearchAttachmentsView />
+                                                    <req:RequirementsSearchAttachmentsView DataContext="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=DataContext.RequirementsSearchAttachmentsViewModel}" />
                                                 </DataTemplate>
                                             </Setter.Value>
                                         </Setter>

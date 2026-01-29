@@ -245,6 +245,7 @@ namespace TestCaseEditorApp.Services
             {
                 // Use Jama-optimized view for structured content
                 mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.JamaRequirementsMainViewModel>();
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewConfigurationService] Retrieved JamaRequirementsMainViewModel instance {mainVM?.GetHashCode()} for workspace");
             }
             else
             {

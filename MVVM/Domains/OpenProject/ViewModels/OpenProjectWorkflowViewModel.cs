@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
@@ -14,6 +15,7 @@ using TestCaseEditorApp.MVVM.ViewModels;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Events;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using System.Collections.Generic;
 
 namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
@@ -24,6 +26,9 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
         private new readonly IOpenProjectMediator _mediator;
         private readonly IPersistenceService _persistenceService;
         private readonly RecentFilesService _recentFilesService;
+        private readonly IJamaConnectService _jamaConnectService;
+        private readonly IWorkspaceContext _workspaceContext;
+        private bool _isScanning = false;
         
         [ObservableProperty]
         private string selectedProjectPath = "";
@@ -81,12 +86,20 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
         public ICommand ClearSelectionCommand { get; }
         public ICommand OpenRecentProjectCommand { get; }
 
-        public OpenProjectWorkflowViewModel(IOpenProjectMediator mediator, IPersistenceService persistenceService, RecentFilesService recentFilesService, ILogger<OpenProjectWorkflowViewModel> logger)
+        public OpenProjectWorkflowViewModel(
+            IOpenProjectMediator mediator, 
+            IPersistenceService persistenceService, 
+            RecentFilesService recentFilesService, 
+            IJamaConnectService jamaConnectService,
+            IWorkspaceContext workspaceContext,
+            ILogger<OpenProjectWorkflowViewModel> logger)
             : base(mediator, logger)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _persistenceService = persistenceService ?? throw new ArgumentNullException(nameof(persistenceService));
             _recentFilesService = recentFilesService ?? throw new ArgumentNullException(nameof(recentFilesService));
+            _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
+            _workspaceContext = workspaceContext ?? throw new ArgumentNullException(nameof(workspaceContext));
             
             // Initialize commands
             OpenProjectCommand = new AsyncRelayCommand(OpenProjectAsync);
@@ -288,10 +301,27 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             ProjectStatus = $"Selected: {ProjectName}";
         }
 
-        private void OnProjectOpened(OpenProjectEvents.ProjectOpened eventData)
+        private async void OnProjectOpened(OpenProjectEvents.ProjectOpened eventData)
         {
             ProjectStatus = "Project opened successfully";
             ProjectName = eventData.WorkspaceName;
+            
+            // Automatically scan for Jama attachments after project opens
+            // Run in background with a small delay to allow workspace context to initialize
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    // Wait a moment for workspace context to be fully initialized
+                    await Task.Delay(1000); // 1 second delay
+                    _logger.LogInformation("Starting automatic Jama attachment scan after project opening");
+                    await ScanJamaAttachmentsAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error during automatic Jama attachment scan");
+                }
+            });
         }
 
         private void OnProjectOpenFailed(OpenProjectEvents.ProjectOpenFailed eventData)
@@ -438,6 +468,160 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             {
                 IsLoadingProject = false;
             }
+        }
+        
+        /// <summary>
+        /// Automatically triggers background Jama attachment scanning when a project is opened
+        /// </summary>
+        private async Task ScanJamaAttachmentsAsync()
+        {
+            // Prevent concurrent scans
+            if (_isScanning)
+            {
+                _logger.LogInformation("Jama attachment scan already in progress, skipping duplicate scan");
+                return;
+            }
+            
+            _isScanning = true;
+            
+            try
+            {
+                _logger.LogInformation("=== Starting automatic background Jama attachment scan ===");
+                
+                // Check if workspace context is available
+                var currentWorkspace = _workspaceContext.CurrentWorkspace;
+                var currentWorkspaceInfo = _workspaceContext.CurrentWorkspaceInfo;
+                
+                _logger.LogInformation($"Workspace context check - CurrentWorkspace: {(currentWorkspace != null ? "Available" : "NULL")}, CurrentWorkspaceInfo: {(currentWorkspaceInfo != null ? "Available" : "NULL")}");
+                
+                if (currentWorkspace == null || currentWorkspaceInfo == null)
+                {
+                    _logger.LogWarning("Workspace context not available, skipping background attachment scan");
+                    return;
+                }
+                
+                // Check if Jama is configured
+                if (!_jamaConnectService.IsConfigured)
+                {
+                    _logger.LogInformation("Jama Connect not configured, skipping background attachment scan");
+                    return;
+                }
+                
+                // Find the specific Jama project for this workspace  
+                int? targetProjectId = null;
+                
+                // First try to extract project ID from workspace requirements (DECAGON pattern)
+                if (currentWorkspace.Requirements != null && currentWorkspace.Requirements.Count > 0)
+                {
+                    var requirementWithGlobalId = currentWorkspace.Requirements.FirstOrDefault(r => !string.IsNullOrEmpty(r.GlobalId));
+                    if (requirementWithGlobalId != null)
+                    {
+                        _logger.LogInformation($"Found requirement with GlobalId: {requirementWithGlobalId.GlobalId}");
+                        
+                        var projects = await _jamaConnectService.GetProjectsAsync();
+                        if (projects != null && projects.Count > 0)
+                        {
+                            var candidates = projects.Where(p => 
+                                p.Name.Contains("DECAGON", StringComparison.OrdinalIgnoreCase) ||
+                                p.Key.Contains("DECAGON", StringComparison.OrdinalIgnoreCase) ||
+                                p.Id == 636 // Known project ID for DECAGON
+                            ).ToList();
+                            
+                            if (candidates.Any())
+                            {
+                                targetProjectId = candidates.First().Id;
+                                _logger.LogInformation($"Matched workspace requirements to Jama project: {candidates.First().Name} -> ID: {candidates.First().Id}");
+                            }
+                        }
+                    }
+                }
+                
+                // Fallback to configured workspace project
+                if (!targetProjectId.HasValue && !string.IsNullOrEmpty(currentWorkspace.JamaProject))
+                {
+                    var projects = await _jamaConnectService.GetProjectsAsync();
+                    var matchingProject = projects?.FirstOrDefault(p => 
+                        string.Equals(p.Name, currentWorkspace.JamaProject, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (matchingProject != null)
+                    {
+                        targetProjectId = matchingProject.Id;
+                        _logger.LogInformation($"Found matching Jama project for workspace: {currentWorkspace.JamaProject} -> ID: {matchingProject.Id}");
+                    }
+                }
+                
+                if (!targetProjectId.HasValue)
+                {
+                    _logger.LogInformation("Could not determine target Jama project, skipping background attachment scan");
+                    return;
+                }
+
+                _logger.LogInformation($"Triggering background attachment scan for Jama project {targetProjectId.Value}");
+                
+                // Notify Requirements domain to start background attachment scanning
+                var requirementsMediator = App.ServiceProvider?.GetService(typeof(IRequirementsMediator)) as IRequirementsMediator;
+                if (requirementsMediator != null)
+                {
+                    await requirementsMediator.TriggerBackgroundAttachmentScanAsync(targetProjectId.Value);
+                    _logger.LogInformation("Background attachment scan requested via RequirementsMediator");
+                }
+                else
+                {
+                    _logger.LogWarning("IRequirementsMediator not found, cannot trigger background scan");
+                }
+                
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during background Jama attachment scan trigger");
+            }
+            finally
+            {
+                _isScanning = false;
+            }
+        }
+        
+        /// <summary>
+        /// Shows the attachment scan results in a popup dialog
+        /// </summary>
+        private async Task ShowAttachmentResultsAsync(string title, string summary, List<string> items)
+        {
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                var message = summary;
+                if (items.Count > 0)
+                {
+                    message += "\n\n" + string.Join("\n", items.Take(20)); // Limit to first 20 items
+                    if (items.Count > 20)
+                    {
+                        message += $"\n... and {items.Count - 20} more items";
+                    }
+                }
+                
+                MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                _logger.LogInformation($"Attachment scan results shown: {title}");
+            });
+        }
+        
+        /// <summary>
+        /// Formats file size for display
+        /// </summary>
+        private string FormatFileSize(long bytes)
+        {
+            if (bytes == 0) return "0 B";
+            
+            string[] suffixes = { "B", "KB", "MB", "GB" };
+            int suffixIndex = 0;
+            double size = bytes;
+            
+            while (size >= 1024 && suffixIndex < suffixes.Length - 1)
+            {
+                size /= 1024;
+                suffixIndex++;
+            }
+            
+            return $"{size:0.##} {suffixes[suffixIndex]}";
         }
     }
 

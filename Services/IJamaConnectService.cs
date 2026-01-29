@@ -47,6 +47,11 @@ namespace TestCaseEditorApp.Services
         Task<List<JamaAttachment>> GetProjectAttachmentsAsync(int projectId, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Get limited attachments for a project (for faster automatic scanning)
+        /// </summary>
+        Task<List<JamaAttachment>> GetProjectAttachmentsLimitedAsync(int projectId, int maxItems = 20, CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Download attachment by ID
         /// </summary>
         Task<byte[]?> DownloadAttachmentAsync(int attachmentId, CancellationToken cancellationToken = default);

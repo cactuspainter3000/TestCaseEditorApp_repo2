@@ -354,10 +354,11 @@ namespace TestCaseEditorApp
                         var persistence = provider.GetRequiredService<IPersistenceService>();
                         var textEditingService = provider.GetRequiredService<ITextEditingDialogService>();
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>>();
+                        var requirementsSearchAttachmentsViewModel = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel>();
                         var analysisService = provider.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService>();
                         
                         return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel(
-                            reqMediator, persistence, textEditingService, logger, analysisService);
+                            reqMediator, persistence, textEditingService, logger, requirementsSearchAttachmentsViewModel, analysisService);
                     });
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>(provider =>
                     {
@@ -374,17 +375,19 @@ namespace TestCaseEditorApp
                         var reqMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.JamaRequirementsMainViewModel>>();
                         var requirementAnalysisVM = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel>();
-                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.JamaRequirementsMainViewModel(reqMediator, logger, requirementAnalysisVM);
+                        var requirementsSearchAttachmentsViewModel = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel>();
+                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.JamaRequirementsMainViewModel(reqMediator, logger, requirementAnalysisVM, requirementsSearchAttachmentsViewModel);
                     });
 
                     // Requirements Search in Attachments ViewModel for Jama document parsing
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel>(provider =>
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel>(provider =>
                     {
                         var reqMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
                         var jamaConnectService = provider.GetRequiredService<TestCaseEditorApp.Services.IJamaConnectService>();
                         var jamaDocumentParserService = provider.GetRequiredService<TestCaseEditorApp.Services.IJamaDocumentParserService>();
+                        var workspaceContext = provider.GetRequiredService<TestCaseEditorApp.Services.IWorkspaceContext>();
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel>>();
-                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel(reqMediator, jamaConnectService, jamaDocumentParserService, logger);
+                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel(reqMediator, jamaConnectService, jamaDocumentParserService, workspaceContext, logger);
                     });
                     
                     // Requirements uses shared NavigationViewModel and NotificationWorkspaceViewModel
@@ -493,8 +496,10 @@ namespace TestCaseEditorApp
                         var mediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.IOpenProjectMediator>();
                         var persistenceService = provider.GetRequiredService<IPersistenceService>();
                         var recentFilesService = provider.GetRequiredService<RecentFilesService>();
+                        var jamaConnectService = provider.GetRequiredService<IJamaConnectService>();
+                        var workspaceContext = provider.GetRequiredService<IWorkspaceContext>();
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel>>();
-                        return new TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel(mediator, persistenceService, recentFilesService, logger);
+                        return new TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel(mediator, persistenceService, recentFilesService, jamaConnectService, workspaceContext, logger);
                     });
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProject_TitleViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProject_HeaderViewModel>();

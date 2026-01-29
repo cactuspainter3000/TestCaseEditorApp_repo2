@@ -208,6 +208,17 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// Following Architectural Guide AI patterns for domain-specific navigation
         /// </summary>
         void NavigateToRequirementsSearchAttachments();
+
+        /// <summary>
+        /// Trigger background attachment scanning for the specified project
+        /// Called from OpenProject domain when automatic scanning is needed
+        /// </summary>
+        Task TriggerBackgroundAttachmentScanAsync(int projectId);
+        
+        /// <summary>
+        /// Notify about attachment scan progress updates
+        /// </summary>
+        void NotifyAttachmentScanProgress(string progressText);
     }
 
     /// <summary>

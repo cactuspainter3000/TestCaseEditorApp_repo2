@@ -444,12 +444,12 @@
                                 </Setter>
                             </DataTrigger>
 
-                            <!-- Requirements Search in Attachments: show attachment search view -->
+                            <!-- Requirements Search in Attachments: DataTemplate with relative source binding -->
                             <DataTrigger Binding="{Binding SelectedSupportView}" Value="RequirementsSearchAttachments">
                                 <Setter Property="ContentTemplate">
                                     <Setter.Value>
                                         <DataTemplate>
-                                            <req:RequirementsSearchAttachmentsView />
+                                            <req:RequirementsSearchAttachmentsView DataContext="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=DataContext.RequirementsSearchAttachmentsViewModel}" />
                                         </DataTemplate>
                                     </Setter.Value>
                                 </Setter>

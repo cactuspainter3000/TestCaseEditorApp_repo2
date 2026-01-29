@@ -145,5 +145,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Events
             public string TargetView { get; set; } = string.Empty;
             public DateTime Timestamp { get; set; } = DateTime.Now;
         }
+        
+        /// <summary>
+        /// Published to update attachment scanning progress
+        /// </summary>
+        public class AttachmentScanProgress
+        {
+            public string ProgressText { get; set; } = string.Empty;
+            public int ProjectId { get; set; }
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
     }
 }

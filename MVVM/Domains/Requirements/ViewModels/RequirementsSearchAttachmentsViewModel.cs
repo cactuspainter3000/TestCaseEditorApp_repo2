@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -26,6 +27,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private readonly IJamaConnectService _jamaConnectService;
         private readonly IJamaDocumentParserService _documentParserService;
 
+        private readonly IWorkspaceContext _workspaceContext;
+        
         /// <summary>
         /// Constructor for RequirementsSearchAttachmentsViewModel with proper mediator injection
         /// </summary>
@@ -33,24 +36,41 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             IRequirementsMediator mediator,
             IJamaConnectService jamaConnectService,
             IJamaDocumentParserService documentParserService,
+            IWorkspaceContext workspaceContext,
             ILogger<RequirementsSearchAttachmentsViewModel> logger) 
             : base(mediator, logger)
         {
+            _logger.LogInformation("[RequirementsSearchAttachments] Constructor called - Instance ID: {InstanceId}", GetHashCode());
             _mediator = mediator;
             _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
             _documentParserService = documentParserService ?? throw new ArgumentNullException(nameof(documentParserService));
+            _workspaceContext = workspaceContext ?? throw new ArgumentNullException(nameof(workspaceContext));
 
             Title = "Requirements Search in Attachments";
-            StatusMessage = "Initializing Requirements Search in Attachments...";
+            StatusMessage = "Ready to scan attachments when project opens...";
             
-            _logger.LogInformation("[RequirementsSearchAttachments] ViewModel constructor completed. Will load projects when activated.");
+            // Subscribe to mediator progress updates
+            _mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.AttachmentScanProgress>(OnAttachmentScanProgress);
             
-            // Load projects when the view becomes active
-            _ = Task.Run(async () => 
-            {
-                await Task.Delay(100); // Small delay to ensure initialization is complete
-                await LoadAvailableProjectsAsync();
-            });
+            _logger.LogInformation("[RequirementsSearchAttachments] ViewModel constructor completed. Will search current project attachments when activated.");
+            _logger.LogInformation("[RequirementsSearchAttachments] Commands initialized: TestConnectionCommand is {TestCommandStatus}", 
+                TestConnectionCommand != null ? "initialized" : "NULL");
+            
+            // Add minimal attachments for testing until real scan works
+            AddMinimalTestAttachments();
+            
+            // Log when OpenProject workflow should trigger
+            _logger.LogInformation("[RequirementsSearchAttachments] Waiting for OpenProject workflow to trigger real scan...");
+        }
+
+        /// <summary>
+        /// Handle workspace changes (currently disabled to avoid duplicate scans)
+        /// Attachment scanning is now triggered only via OpenProject workflow
+        /// </summary>
+        private async void OnWorkspaceChanged(object? sender, WorkspaceChangedEventArgs e)
+        {
+            _logger.LogInformation("[RequirementsSearchAttachments] Workspace changed - attachment scanning will be triggered by OpenProject workflow");
+            // No automatic scanning here - only scan when project is explicitly opened
         }
 
         // ==== PROPERTIES ====
@@ -62,10 +82,71 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private string searchQuery = string.Empty;
 
         [ObservableProperty]
+        private JamaAttachment? selectedAttachmentFilter;
+
+        [ObservableProperty]
+        private ObservableCollection<JamaAttachment> availableAttachments = new();
+
+        [ObservableProperty]
         private bool isSearching = false;
+        private bool _backgroundScanInProgress = false; // Prevents duplicate scans
+        private int _activeScanCount = 0;
+        private readonly object _scanCountLock = new object();
 
         [ObservableProperty]
         private bool hasResults = false;
+
+        [ObservableProperty]
+        private bool isBackgroundScanningInProgress = false;
+
+        [ObservableProperty]
+        private string backgroundScanProgressText = "";
+
+        [ObservableProperty]
+        private int backgroundScanProgress = 0;
+
+        [ObservableProperty]
+        private int backgroundScanTotal = 0;
+
+        // ==== PROPERTY CHANGE HANDLERS ====
+
+        /// <summary>
+        /// When attachment filter changes, automatically update search results
+        /// </summary>
+        partial void OnSelectedAttachmentFilterChanged(JamaAttachment? value)
+        {
+            if (AvailableAttachments.Count > 0) // Only filter if we have attachments loaded
+            {
+                UpdateSearchResultsFromFilter();
+            }
+        }
+
+        /// <summary>
+        /// Update search results based on current filter selection
+        /// </summary>
+        private void UpdateSearchResultsFromFilter()
+        {
+            SearchResults.Clear();
+            
+            if (SelectedAttachmentFilter != null)
+            {
+                // Show only the selected attachment
+                SearchResults.Add(SelectedAttachmentFilter);
+                StatusMessage = $"📎 Showing: {SelectedAttachmentFilter.Name}";
+            }
+            else if (AvailableAttachments.Count > 0)
+            {
+                // Show all attachments
+                foreach (var attachment in AvailableAttachments)
+                {
+                    SearchResults.Add(attachment);
+                }
+                StatusMessage = $"📎 Showing all {AvailableAttachments.Count} attachments";
+            }
+            
+            HasResults = SearchResults.Count > 0;
+            _logger.LogInformation("[RequirementsSearchAttachments] Filter updated - showing {Count} attachments", SearchResults.Count);
+        }
 
         [ObservableProperty]
         private ObservableCollection<JamaProject> availableProjects = new();
@@ -115,6 +196,38 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             ImportExtractedRequirementsCommand = new AsyncRelayCommand(ImportExtractedRequirementsAsync, CanExecuteImportRequirements);
             LoadProjectsCommand = new AsyncRelayCommand(LoadAvailableProjectsAsync, () => !IsBusy);
             TestConnectionCommand = new AsyncRelayCommand(TestJamaConnectionAsync, () => !IsBusy);
+            
+            _logger.LogInformation("[RequirementsSearchAttachments] Commands initialized in InitializeCommands method");
+        }
+
+        /// <summary>
+        /// Add minimal test attachments for debugging until real scan works
+        /// </summary>
+        private void AddMinimalTestAttachments()
+        {
+            try
+            {
+                _logger.LogInformation("[RequirementsSearchAttachments] Adding minimal test attachment for debugging");
+                
+                // Add just one test attachment so ComboBox isn't empty
+                var testAttachment = new JamaAttachment
+                {
+                    Id = 999,
+                    Name = "Debug Test Attachment",
+                    FileName = "debug_test.pdf",
+                    FileSize = 1024,
+                    MimeType = "application/pdf"
+                };
+                
+                AvailableAttachments.Add(testAttachment);
+                StatusMessage = $"Ready - {AvailableAttachments.Count} test attachment loaded";
+                
+                _logger.LogInformation("[RequirementsSearchAttachments] Minimal test attachment added. AvailableAttachments.Count: {Count}", AvailableAttachments.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsSearchAttachments] Error adding minimal test attachments");
+            }
         }
 
         protected override async Task SaveAsync()
@@ -166,105 +279,321 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         // ==== BUSINESS LOGIC ====
 
-        private async Task LoadAvailableProjectsAsync()
+        /// <summary>
+        /// Load attachments from the current workspace project.
+        /// Uses workspace context to get current project and searches for attachments automatically.
+        /// </summary>
+        /// <summary>
+        /// Legacy method - now redirects to OpenProject workflow
+        /// Attachment scanning should only happen when project is explicitly opened
+        /// </summary>
+        private async Task LoadCurrentWorkspaceAttachmentsAsync()
+        {
+            _logger.LogInformation("[RequirementsSearchAttachments] LoadCurrentWorkspaceAttachmentsAsync called - this is now handled by OpenProject workflow");
+            StatusMessage = "⚠️ Please open a project to load attachments automatically.";
+        }
+        
+        /// <summary>
+        /// Find Jama project by name and automatically search for attachments
+        /// </summary>
+        private async Task FindJamaProjectAndSearchAttachmentsAsync(string projectName)
         {
             try
             {
-                _logger.LogInformation("[RequirementsSearchAttachments] *** LoadAvailableProjectsAsync started ***");
-                IsBusy = true;
-                StatusMessage = "Loading Jama projects...";
+                _logger.LogInformation("[RequirementsSearchAttachments] Looking up Jama project ID for: {ProjectName}", projectName);
+                StatusMessage = $"🔍 Finding Jama project '{projectName}'...";
                 
-                _logger.LogInformation("[RequirementsSearchAttachments] Checking Jama configuration...");
-                IsJamaConfigured = _jamaConnectService.IsConfigured;
-                _logger.LogInformation("[RequirementsSearchAttachments] Jama configured: {IsConfigured}", IsJamaConfigured);
-                
-                if (!IsJamaConfigured)
-                {
-                    StatusMessage = "❌ Jama Connect is not configured. Please configure Jama credentials first.";
-                    return;
-                }
-
-                _logger.LogInformation("[RequirementsSearchAttachments] *** Calling _jamaConnectService.GetProjectsAsync() ***");
                 var projects = await _jamaConnectService.GetProjectsAsync();
-                _logger.LogInformation("[RequirementsSearchAttachments] *** GetProjectsAsync returned {Count} projects ***", projects?.Count ?? 0);
+                var matchingProject = projects?.FirstOrDefault(p => 
+                    string.Equals(p.Name, projectName, StringComparison.OrdinalIgnoreCase));
                 
-                AvailableProjects.Clear();
-                if (projects != null)
+                if (matchingProject != null)
                 {
-                    foreach (var project in projects)
-                    {
-                        _logger.LogDebug("[RequirementsSearchAttachments] Adding project: {ProjectId} - {ProjectName}", project.Id, project.Name);
-                        AvailableProjects.Add(project);
-                    }
+                    SelectedProjectId = matchingProject.Id;
+                    _logger.LogInformation("[RequirementsSearchAttachments] Found Jama project: {ProjectName} -> ID: {ProjectId}", 
+                        projectName, matchingProject.Id);
+                    
+                    StatusMessage = $"📁 Found project: {projectName} (ID: {matchingProject.Id})";
+                    
+                    // Automatically search for attachments using the SearchAttachmentsAsync method
+                    await SearchAttachmentsAsync();
                 }
-
-                StatusMessage = $"✅ Loaded {AvailableProjects.Count} projects. Select a project and search for attachments.";
-                _logger.LogInformation("[RequirementsSearchAttachments] *** Successfully loaded {Count} projects into AvailableProjects collection ***", AvailableProjects.Count);
+                else
+                {
+                    StatusMessage = $"⚠️ Jama project '{projectName}' not found. Available projects might be different.";
+                    _logger.LogWarning("[RequirementsSearchAttachments] Jama project '{ProjectName}' not found in available projects", projectName);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[RequirementsSearchAttachments] Error loading projects");
-                StatusMessage = "❌ Error loading Jama projects";
-                SetError($"Failed to load projects: {ex.Message}");
+                _logger.LogError(ex, "[RequirementsSearchAttachments] Error finding Jama project by name: {ProjectName}", projectName);
+                StatusMessage = $"❌ Error finding project: {ex.Message}";
             }
-            finally
-            {
-                IsBusy = false;
-            }
+        }
+
+        private async Task LoadAvailableProjectsAsync()
+        {
+            // Legacy method - attachment loading now handled exclusively by OpenProject workflow
+            _logger.LogInformation("[RequirementsSearchAttachments] LoadAvailableProjectsAsync called - use OpenProject workflow instead");
+            StatusMessage = "⚠️ Please open a project to load attachments automatically.";
         }
 
         private async Task SearchAttachmentsAsync()
         {
-            if (!CanExecuteSearch()) return;
+            if (!CanExecuteSearch()) 
+            {
+                _logger.LogWarning("[RequirementsSearchAttachments] Cannot execute search - CanExecuteSearch returned false");
+                _logger.LogInformation("[RequirementsSearchAttachments] Debug - IsJamaConfigured: {IsJamaConfigured}, IsSearching: {IsSearching}, IsBusy: {IsBusy}, SelectedProjectId: {SelectedProjectId}", 
+                    IsJamaConfigured, IsSearching, IsBusy, SelectedProjectId);
+                return;
+            }
 
+            await SearchAttachmentsWithProgressAsync(false);
+        }
+
+        /// <summary>
+        /// Start background attachment scanning for the specified project
+        /// Called from OpenProjectWorkflowViewModel when a project is opened
+        /// </summary>
+        public async Task StartBackgroundAttachmentScanAsync(int projectId)
+        {
             try
             {
-                IsSearching = true;
-                IsBusy = true;
-                StatusMessage = $"🔍 Searching attachments in project {SelectedProjectId}...";
+                _logger.LogInformation("[RequirementsSearchAttachments] *** INSTANCE {InstanceId} *** StartBackgroundAttachmentScanAsync called for Project ID: {ProjectId}", GetHashCode(), projectId);
                 
-                _logger.LogInformation("[RequirementsSearchAttachments] Searching attachments for project {ProjectId}", SelectedProjectId);
-
-                var attachments = await _jamaConnectService.GetProjectAttachmentsAsync(SelectedProjectId);
-                
-                // Filter attachments based on search query if provided
-                var filteredAttachments = attachments;
-                if (!string.IsNullOrWhiteSpace(SearchQuery))
+                // Prevent duplicate scans
+                if (_backgroundScanInProgress)
                 {
-                    filteredAttachments = attachments
-                        .Where(a => a.Name.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase))
-                        .ToList();
+                    _logger.LogInformation("[RequirementsSearchAttachments] Background scan already in progress, skipping duplicate request");
+                    return;
                 }
-
-                SearchResults.Clear();
-                foreach (var attachment in filteredAttachments)
-                {
-                    SearchResults.Add(attachment);
-                }
-
-                HasResults = SearchResults.Count > 0;
                 
-                if (HasResults)
+                _backgroundScanInProgress = true;
+                _logger.LogInformation("[RequirementsSearchAttachments] Starting background attachment scan for project {ProjectId}", projectId);
+                
+                // Clear any existing attachments first to show real results
+                Application.Current.Dispatcher.Invoke(() =>
                 {
-                    StatusMessage = $"✅ Found {SearchResults.Count} attachments. Select one to extract requirements.";
+                    AvailableAttachments.Clear();
+                    StatusMessage = $"🔍 Starting scan for project {projectId}...";
+                });
+                
+                // Set the project ID and start scanning in background
+                SelectedProjectId = projectId;
+                
+                // Start the scan on a background thread
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await SearchAttachmentsWithProgressAsync(isBackgroundScan: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "[RequirementsSearchAttachments] Error in background attachment scan");
+                    }
+                    finally
+                    {
+                        _backgroundScanInProgress = false;
+                    }
+                });
+                
+                _logger.LogInformation("[RequirementsSearchAttachments] Background attachment scan initiated for project {ProjectId}", projectId);
+            }
+            catch (Exception ex)
+            {
+                _backgroundScanInProgress = false;
+                _logger.LogError(ex, "[RequirementsSearchAttachments] Error starting background attachment scan");
+            }
+        }
+
+        /// <summary>
+        /// Search attachments with progress tracking support (can be called in background)
+        /// </summary>
+        private async Task SearchAttachmentsWithProgressAsync(bool isBackgroundScan = false)
+        {
+            try
+            {
+                if (isBackgroundScan)
+                {
+                    // Update progress properties on UI thread
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        lock (_scanCountLock)
+                        {
+                            _activeScanCount++;
+                            _logger.LogInformation("[RequirementsSearchAttachments] Starting scan {ScanCount}, setting IsBackgroundScanningInProgress = true", _activeScanCount);
+                        }
+                        IsBackgroundScanningInProgress = true;
+                        BackgroundScanProgressText = $"🔍 Scanning project {SelectedProjectId} for attachments...";
+                        BackgroundScanProgress = 0;
+                        BackgroundScanTotal = 0;
+                    });
+                    
+                    // Give UI time to show the progress overlay
+                    await Task.Delay(200);
                 }
                 else
                 {
-                    StatusMessage = "No attachments found matching your criteria.";
+                    IsSearching = true;
+                    IsBusy = true;
+                }
+                
+                StatusMessage = "🔍 Scanning attachments...";
+                
+                _logger.LogInformation("[RequirementsSearchAttachments] *** SEARCHING ATTACHMENTS ***");
+                _logger.LogInformation("[RequirementsSearchAttachments] Project ID: {ProjectId}", SelectedProjectId);
+                _logger.LogInformation("[RequirementsSearchAttachments] Search Query: '{SearchQuery}'", SearchQuery ?? "(none)");
+                _logger.LogInformation("[RequirementsSearchAttachments] Jama Service Configured: {IsConfigured}", _jamaConnectService.IsConfigured);
+                _logger.LogInformation("[RequirementsSearchAttachments] Background Scan: {IsBackground}", isBackgroundScan);
+
+                if (isBackgroundScan)
+                {
+                    BackgroundScanProgressText = "🔍 Scanning for attachments...";
                 }
 
-                _logger.LogInformation("[RequirementsSearchAttachments] Found {Count} attachments", SearchResults.Count);
+                var attachments = await _jamaConnectService.GetProjectAttachmentsAsync(SelectedProjectId);
+                
+                _logger.LogInformation("[RequirementsSearchAttachments] *** API CALL COMPLETED ***");
+                _logger.LogInformation("[RequirementsSearchAttachments] Raw attachments returned: {Count}", attachments?.Count ?? 0);
+                
+                if (attachments != null && attachments.Any())
+                {
+                    if (isBackgroundScan)
+                    {
+                        BackgroundScanTotal = attachments.Count;
+                        if (attachments.Count == 0)
+                        {
+                            BackgroundScanProgressText = "No attachments found";
+                        }
+                        else
+                        {
+                            BackgroundScanProgressText = "Scanning for attachments 0%";
+                        }
+                    }
+                    
+                    for (int i = 0; i < Math.Min(3, attachments.Count); i++)
+                    {
+                        var att = attachments[i];
+                        _logger.LogInformation("[RequirementsSearchAttachments] Attachment {Index}: Id={Id}, Name='{Name}', FileSize={FileSize}", 
+                            i + 1, att.Id, att.Name, att.FileSize);
+                    }
+                }
+                
+                // Filter attachments based on search query if provided
+                var filteredAttachments = attachments ?? new List<JamaAttachment>();
+                if (!string.IsNullOrWhiteSpace(SearchQuery))
+                {
+                    filteredAttachments = attachments!
+                        .Where(a => a.Name.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                    _logger.LogInformation("[RequirementsSearchAttachments] After filtering by '{SearchQuery}': {Count} attachments", SearchQuery, filteredAttachments.Count);
+                }
+
+                // Update UI on main thread
+                await Application.Current.Dispatcher.InvokeAsync(async () =>
+                {
+                    // Populate available attachments for dropdown (unfiltered)
+                    AvailableAttachments.Clear();
+                    if (attachments != null)
+                    {
+                        int processed = 0;
+                        foreach (var attachment in attachments)
+                        {
+                            AvailableAttachments.Add(attachment);
+                            processed++;
+                            
+                            if (isBackgroundScan)
+                            {
+                                BackgroundScanProgress = processed;
+                                int percentage = (int)((double)processed / attachments.Count * 100);
+                                BackgroundScanProgressText = $"Scanning for attachments {percentage}%";
+                                
+                                // Add small delay to make progress visible
+                                await Task.Delay(100);
+                            }
+                        }
+                    }
+
+                    // Update search results based on current filter
+                    UpdateSearchResultsFromFilter();
+                });
+                
+                if (isBackgroundScan)
+                {
+                    if (attachments?.Count > 0)
+                    {
+                        BackgroundScanProgressText = $"✅ Found {attachments.Count} attachments";
+                    }
+                    else
+                    {
+                        BackgroundScanProgressText = "❌ No attachments found";
+                    }
+                    BackgroundScanProgress = BackgroundScanTotal;
+                }
+                
+                _logger.LogInformation("[RequirementsSearchAttachments] *** SEARCH RESULTS ***");
+                _logger.LogInformation("[RequirementsSearchAttachments] AvailableAttachments.Count: {Count}", AvailableAttachments.Count);
+                _logger.LogInformation("[RequirementsSearchAttachments] SearchResults.Count: {Count}", SearchResults.Count);
+                _logger.LogInformation("[RequirementsSearchAttachments] HasResults: {HasResults}", HasResults);
+                _logger.LogInformation("[RequirementsSearchAttachments] Found {Count} total attachments", AvailableAttachments.Count);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[RequirementsSearchAttachments] Error searching attachments");
                 StatusMessage = "❌ Error searching attachments";
+                
+                if (isBackgroundScan)
+                {
+                    BackgroundScanProgressText = $"❌ Error: {ex.Message.Split('.')[0]}";
+                }
+                
                 SetError($"Failed to search attachments: {ex.Message}");
             }
             finally
             {
-                IsSearching = false;
-                IsBusy = false;
+                if (isBackgroundScan)
+                {
+                    // Update progress completion on UI thread
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        bool allScansComplete = false;
+                        lock (_scanCountLock)
+                        {
+                            _activeScanCount--;
+                            allScansComplete = _activeScanCount <= 0;
+                            _logger.LogInformation("[RequirementsSearchAttachments] Scan completed for project {ProjectId}, remaining scans: {RemainingScans}, setting IsBackgroundScanningInProgress = {IsScanning}", SelectedProjectId, _activeScanCount, !allScansComplete);
+                        }
+                        
+                        if (allScansComplete)
+                        {
+                            IsBackgroundScanningInProgress = false;
+                            int totalAttachments = AvailableAttachments.Count;
+                            BackgroundScanProgressText = totalAttachments > 0 ? $"✅ Found {totalAttachments} total attachments" : "❌ No attachments found";
+                            
+                            // Clear progress after a delay to let user see the final result
+                            _ = Task.Delay(4000).ContinueWith(_ => 
+                            {
+                                Application.Current?.Dispatcher.BeginInvoke(() =>
+                                {
+                                    BackgroundScanProgressText = "";
+                                    BackgroundScanProgress = 0;
+                                    BackgroundScanTotal = 0;
+                                });
+                            });
+                        }
+                        else
+                        {
+                            // Don't update progress text here - let the next scan handle it
+                            _logger.LogInformation("[RequirementsSearchAttachments] Keeping overlay visible for remaining scans");
+                        }
+                    });
+                }
+                else
+                {
+                    IsSearching = false;
+                    IsBusy = false;
+                }
             }
         }
 
@@ -386,13 +715,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             try
             {
+                IsBusy = true;
                 _logger.LogInformation("[RequirementsSearchAttachments] === TESTING JAMA CONNECTION ===");
+                StatusMessage = "🔧 Testing connection...";
+                
                 _logger.LogInformation("[RequirementsSearchAttachments] IsConfigured: {IsConfigured}", _jamaConnectService.IsConfigured);
                 
                 if (!_jamaConnectService.IsConfigured)
                 {
                     _logger.LogWarning("[RequirementsSearchAttachments] Jama service not configured");
-                    StatusMessage = "❌ Jama not configured - check environment variables";
+                    StatusMessage = "❌ Jama not configured - check environment variables (JAMA_BASE_URL, JAMA_TOKEN)";
                     return;
                 }
 
@@ -403,7 +735,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 
                 if (isSuccess)
                 {
-                    StatusMessage = "✅ Jama connection successful - attempting to load projects...";
+                    StatusMessage = "✅ Jama connection successful! Attempting to load workspace attachments...";
                     await LoadAvailableProjectsAsync();
                 }
                 else
@@ -415,6 +747,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 _logger.LogError(ex, "[RequirementsSearchAttachments] Error testing Jama connection");
                 StatusMessage = $"❌ Connection test error: {ex.Message}";
+            }
+            finally
+            {
+                IsBusy = false;
             }
         }
 
@@ -433,6 +769,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private bool CanExecuteImportRequirements()
         {
             return HasExtractedRequirements && !IsImporting && !IsBusy;
+        }
+
+        /// <summary>
+        /// Handle attachment scan progress updates from mediator
+        /// </summary>
+        private void OnAttachmentScanProgress(TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.AttachmentScanProgress progressEvent)
+        {
+            Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                BackgroundScanProgressText = progressEvent.ProgressText;
+                _logger.LogInformation("[RequirementsSearchAttachments] Progress updated via mediator: {ProgressText}", progressEvent.ProgressText);
+            });
         }
     }
 }

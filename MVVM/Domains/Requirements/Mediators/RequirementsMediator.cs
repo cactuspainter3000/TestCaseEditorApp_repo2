@@ -16,6 +16,7 @@ using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services; // For SmartRequirementImporter
 using TestCaseEditorApp.MVVM.Domains.Notification.Mediators; // For INotificationMediator
+using TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels; // For RequirementsSearchAttachmentsViewModel
 using System.Windows;
 
 namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
@@ -1055,6 +1056,90 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[RequirementsMediator] Error navigating to Requirements Search in Attachments");
+            }
+        }
+        
+        /// <summary>
+        /// Trigger background attachment scanning for the specified project
+        /// Called from OpenProject domain when automatic scanning is needed
+        /// </summary>
+        public async Task TriggerBackgroundAttachmentScanAsync(int projectId)
+        {
+            try
+            {
+                _logger.LogInformation("[RequirementsMediator] Triggering background attachment scan for project {ProjectId}", projectId);
+                
+                // Get the RequirementsSearchAttachments ViewModel - now using Singleton registration
+                var searchAttachmentsViewModel = App.ServiceProvider?.GetService(typeof(RequirementsSearchAttachmentsViewModel)) as RequirementsSearchAttachmentsViewModel;
+                if (searchAttachmentsViewModel != null)
+                {
+                    _logger.LogInformation("[RequirementsMediator] Retrieved RequirementsSearchAttachmentsViewModel instance {InstanceId} for background scan", searchAttachmentsViewModel.GetHashCode());
+                    
+                    // Start progress simulation while API call runs
+                    _ = Task.Run(async () => await SimulateAttachmentScanProgressAsync(projectId));
+                    
+                    await searchAttachmentsViewModel.StartBackgroundAttachmentScanAsync(projectId);
+                    _logger.LogInformation("[RequirementsMediator] Background attachment scan started successfully for project {ProjectId}", projectId);
+                }
+                else
+                {
+                    _logger.LogWarning("[RequirementsMediator] RequirementsSearchAttachmentsViewModel not found in service provider");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsMediator] Error triggering background attachment scan for project {ProjectId}", projectId);
+            }
+        }
+
+        /// <summary>
+        /// Notify about attachment scan progress updates
+        /// </summary>
+        public void NotifyAttachmentScanProgress(string progressText)
+        {
+            try
+            {
+                PublishEvent(new TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.AttachmentScanProgress
+                {
+                    ProgressText = progressText,
+                    Timestamp = DateTime.Now
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsMediator] Error notifying attachment scan progress");
+            }
+        }
+
+        /// <summary>
+        /// Simulates attachment scan progress during API calls
+        /// </summary>
+        private async Task SimulateAttachmentScanProgressAsync(int projectId)
+        {
+            try
+            {
+                var progressMessages = new[]
+                {
+                    $"🔗 Connecting to Jama project {projectId}...",
+                    $"📦 Fetching project {projectId} data...",
+                    $"📄 Loading project {projectId} attachments...",
+                    $"🔍 Scanning project {projectId} attachments..."
+                };
+
+                for (int i = 0; i < progressMessages.Length; i++)
+                {
+                    var progress = (i + 1) * 20; // 20%, 40%, 60%, 80%
+                    NotifyAttachmentScanProgress($"{progressMessages[i]} {progress}%");
+                    
+                    await Task.Delay(3000); // Update every 3 seconds
+                }
+                
+                // Final progress message
+                NotifyAttachmentScanProgress($"🔍 Finalizing scan of project {projectId}... 90%");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsMediator] Error in attachment scan progress simulation");
             }
         }
 
