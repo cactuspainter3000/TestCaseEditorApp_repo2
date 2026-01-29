@@ -1684,6 +1684,85 @@ namespace TestCaseEditorApp.Services
         }
 
         /// <summary>
+        /// Get all attachments for a project (documents attached to items in the project)
+        /// </summary>
+        public async Task<List<JamaAttachment>> GetProjectAttachmentsAsync(int projectId, CancellationToken cancellationToken = default)
+        {
+            return await WithRetryAsync(async () =>
+            {
+                await EnsureAccessTokenAsync();
+                
+                var attachments = new List<JamaAttachment>();
+                var startAt = 0;
+                var maxResults = 50;
+                var hasMore = true;
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Fetching attachments for project {projectId}");
+                
+                while (hasMore)
+                {
+                    var url = $"{_baseUrl}/rest/v1/attachments?project={projectId}&startAt={startAt}&maxResults={maxResults}";
+                    var response = await _httpClient.GetAsync(url, cancellationToken);
+                    
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to fetch attachments: {response.StatusCode} - {errorContent}");
+                        break;
+                    }
+                    
+                    var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                    var result = JsonSerializer.Deserialize<JamaAttachmentsResponse>(json, new JsonSerializerOptions 
+                    { 
+                        PropertyNameCaseInsensitive = true 
+                    });
+                    
+                    if (result?.Data != null && result.Data.Count > 0)
+                    {
+                        attachments.AddRange(result.Data);
+                        startAt += result.Data.Count;
+                        
+                        // Check if there are more results
+                        hasMore = result.Meta?.PageInfo?.TotalResults > startAt;
+                        
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Fetched {result.Data.Count} attachments (total: {attachments.Count})");
+                    }
+                    else
+                    {
+                        hasMore = false;
+                    }
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Total attachments found: {attachments.Count}");
+                return attachments;
+            });
+        }
+
+        /// <summary>
+        /// Download attachment by ID
+        /// </summary>
+        public async Task<byte[]?> DownloadAttachmentAsync(int attachmentId, CancellationToken cancellationToken = default)
+        {
+            return await WithRetryAsync(async () =>
+            {
+                await EnsureAccessTokenAsync();
+                
+                var url = $"{_baseUrl}/rest/v1/attachments/{attachmentId}/file";
+                var response = await _httpClient.GetAsync(url, cancellationToken);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to download attachment {attachmentId}: {response.StatusCode} - {errorContent}");
+                    return null;
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Downloaded attachment {attachmentId}");
+                return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+            });
+        }
+
+        /// <summary>
         /// Search items using Abstract Items endpoint for advanced filtering
         /// Based on cookbook pattern for searching with Lucene syntax
         /// </summary>
@@ -2472,5 +2551,58 @@ namespace TestCaseEditorApp.Services
             }
             return ids;
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // Attachment Models
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    public class JamaAttachmentsResponse
+    {
+        public List<JamaAttachment> Data { get; set; } = new();
+        public JamaResponseMeta? Meta { get; set; }
+    }
+
+    public class JamaAttachment
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public string FileName { get; set; } = "";
+        public string MimeType { get; set; } = "";
+        public long FileSize { get; set; }
+        public int Item { get; set; }  // ID of the item this is attached to
+        public int CreatedBy { get; set; }
+        public string CreatedDate { get; set; } = "";
+        
+        // Computed properties for UI
+        public string FileSizeDisplay => FormatFileSize(FileSize);
+        public bool IsPdf => MimeType?.Contains("pdf", StringComparison.OrdinalIgnoreCase) ?? false;
+        public bool IsWord => MimeType?.Contains("word", StringComparison.OrdinalIgnoreCase) ?? 
+                              MimeType?.Contains("msword", StringComparison.OrdinalIgnoreCase) ?? 
+                              FileName.EndsWith(".docx", StringComparison.OrdinalIgnoreCase) ||
+                              FileName.EndsWith(".doc", StringComparison.OrdinalIgnoreCase);
+        public bool IsExcel => MimeType?.Contains("excel", StringComparison.OrdinalIgnoreCase) ?? 
+                               MimeType?.Contains("spreadsheet", StringComparison.OrdinalIgnoreCase) ??
+                               FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase) ||
+                               FileName.EndsWith(".xls", StringComparison.OrdinalIgnoreCase);
+        public bool IsSupportedDocument => IsPdf || IsWord || IsExcel;
+        
+        private static string FormatFileSize(long bytes)
+        {
+            string[] sizes = { "B", "KB", "MB", "GB" };
+            double len = bytes;
+            int order = 0;
+            while (len >= 1024 && order < sizes.Length - 1)
+            {
+                order++;
+                len = len / 1024;
+            }
+            return $"{len:0.##} {sizes[order]}";
+        }
+    }
+
+    public class JamaResponseMeta
+    {
+        public JamaPageInfo? PageInfo { get; set; }
     }
 }

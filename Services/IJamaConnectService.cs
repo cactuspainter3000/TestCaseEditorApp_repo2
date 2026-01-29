@@ -40,5 +40,15 @@ namespace TestCaseEditorApp.Services
         /// Test API connectivity and authentication
         /// </summary>
         Task<(bool Success, string Message)> TestConnectionAsync();
+
+        /// <summary>
+        /// Get all attachments for a project
+        /// </summary>
+        Task<List<JamaAttachment>> GetProjectAttachmentsAsync(int projectId, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Download attachment by ID
+        /// </summary>
+        Task<byte[]?> DownloadAttachmentAsync(int attachmentId, CancellationToken cancellationToken = default);
     }
 }

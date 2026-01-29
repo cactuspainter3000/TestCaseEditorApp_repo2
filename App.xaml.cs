@@ -242,6 +242,14 @@ namespace TestCaseEditorApp
                     // Register interface for testable architecture
                     services.AddSingleton<IJamaConnectService>(provider => provider.GetRequiredService<JamaConnectService>());
                     
+                    // Jama Document Parser Service - LLM-powered requirement extraction from attachments
+                    services.AddSingleton<IJamaDocumentParserService, JamaDocumentParserService>(provider =>
+                    {
+                        var jamaService = provider.GetRequiredService<IJamaConnectService>();
+                        var llmService = provider.GetRequiredService<AnythingLLMService>();
+                        return new JamaDocumentParserService(jamaService, llmService);
+                    });
+                    
                     // Generic service monitoring
                     services.AddSingleton<GenericServiceMonitor>();
 
