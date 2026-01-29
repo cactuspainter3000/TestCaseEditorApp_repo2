@@ -40,7 +40,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             ILogger<RequirementsSearchAttachmentsViewModel> logger) 
             : base(mediator, logger)
         {
-            _logger.LogInformation("[RequirementsSearchAttachments] Constructor called - Instance ID: {InstanceId}", GetHashCode());
+            _logger.LogInformation("[RequirementsSearchAttachments] Constructor completed");
             _mediator = mediator;
             _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
             _documentParserService = documentParserService ?? throw new ArgumentNullException(nameof(documentParserService));
@@ -90,8 +90,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         [ObservableProperty]
         private bool isSearching = false;
         private bool _backgroundScanInProgress = false; // Prevents duplicate scans
-        private int _activeScanCount = 0;
-        private readonly object _scanCountLock = new object();
 
         [ObservableProperty]
         private bool hasResults = false;
@@ -359,7 +357,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             try
             {
-                _logger.LogInformation("[RequirementsSearchAttachments] *** INSTANCE {InstanceId} *** StartBackgroundAttachmentScanAsync called for Project ID: {ProjectId}", GetHashCode(), projectId);
+                _logger.LogInformation("[RequirementsSearchAttachments] Starting background attachment scan for project {ProjectId}", projectId);
                 
                 // Prevent duplicate scans
                 if (_backgroundScanInProgress)
@@ -419,11 +417,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     // Update progress properties on UI thread
                     await Application.Current.Dispatcher.InvokeAsync(() =>
                     {
-                        lock (_scanCountLock)
-                        {
-                            _activeScanCount++;
-                            _logger.LogInformation("[RequirementsSearchAttachments] Starting scan {ScanCount}, setting IsBackgroundScanningInProgress = true", _activeScanCount);
-                        }
                         IsBackgroundScanningInProgress = true;
                         BackgroundScanProgressText = $"🔍 Scanning project {SelectedProjectId} for attachments...";
                         BackgroundScanProgress = 0;
@@ -446,11 +439,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 _logger.LogInformation("[RequirementsSearchAttachments] Search Query: '{SearchQuery}'", SearchQuery ?? "(none)");
                 _logger.LogInformation("[RequirementsSearchAttachments] Jama Service Configured: {IsConfigured}", _jamaConnectService.IsConfigured);
                 _logger.LogInformation("[RequirementsSearchAttachments] Background Scan: {IsBackground}", isBackgroundScan);
-
-                if (isBackgroundScan)
-                {
-                    BackgroundScanProgressText = "🔍 Scanning for attachments...";
-                }
 
                 var attachments = await _jamaConnectService.GetProjectAttachmentsAsync(SelectedProjectId);
                 
@@ -557,36 +545,20 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     // Update progress completion on UI thread
                     await Application.Current.Dispatcher.InvokeAsync(() =>
                     {
-                        bool allScansComplete = false;
-                        lock (_scanCountLock)
-                        {
-                            _activeScanCount--;
-                            allScansComplete = _activeScanCount <= 0;
-                            _logger.LogInformation("[RequirementsSearchAttachments] Scan completed for project {ProjectId}, remaining scans: {RemainingScans}, setting IsBackgroundScanningInProgress = {IsScanning}", SelectedProjectId, _activeScanCount, !allScansComplete);
-                        }
+                        IsBackgroundScanningInProgress = false;
+                        int totalAttachments = AvailableAttachments.Count;
+                        BackgroundScanProgressText = totalAttachments > 0 ? $"✅ Found {totalAttachments} attachments" : "❌ No attachments found";
                         
-                        if (allScansComplete)
+                        // Clear progress after a delay to let user see the final result
+                        _ = Task.Delay(4000).ContinueWith(_ => 
                         {
-                            IsBackgroundScanningInProgress = false;
-                            int totalAttachments = AvailableAttachments.Count;
-                            BackgroundScanProgressText = totalAttachments > 0 ? $"✅ Found {totalAttachments} total attachments" : "❌ No attachments found";
-                            
-                            // Clear progress after a delay to let user see the final result
-                            _ = Task.Delay(4000).ContinueWith(_ => 
+                            Application.Current?.Dispatcher.BeginInvoke(() =>
                             {
-                                Application.Current?.Dispatcher.BeginInvoke(() =>
-                                {
-                                    BackgroundScanProgressText = "";
-                                    BackgroundScanProgress = 0;
-                                    BackgroundScanTotal = 0;
-                                });
+                                BackgroundScanProgressText = "";
+                                BackgroundScanProgress = 0;
+                                BackgroundScanTotal = 0;
                             });
-                        }
-                        else
-                        {
-                            // Don't update progress text here - let the next scan handle it
-                            _logger.LogInformation("[RequirementsSearchAttachments] Keeping overlay visible for remaining scans");
-                        }
+                        });
                     });
                 }
                 else
