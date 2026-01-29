@@ -100,6 +100,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public IAsyncRelayCommand ParseSelectedAttachmentCommand { get; private set; } = null!;
         public IAsyncRelayCommand ImportExtractedRequirementsCommand { get; private set; } = null!;
         public IAsyncRelayCommand LoadProjectsCommand { get; private set; } = null!;
+        public IAsyncRelayCommand TestConnectionCommand { get; private set; } = null!;
 
         // ==== BASE CLASS IMPLEMENTATION ====
 
@@ -113,6 +114,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             ParseSelectedAttachmentCommand = new AsyncRelayCommand(ParseSelectedAttachmentAsync, CanExecuteParseAttachment);
             ImportExtractedRequirementsCommand = new AsyncRelayCommand(ImportExtractedRequirementsAsync, CanExecuteImportRequirements);
             LoadProjectsCommand = new AsyncRelayCommand(LoadAvailableProjectsAsync, () => !IsBusy);
+            TestConnectionCommand = new AsyncRelayCommand(TestJamaConnectionAsync, () => !IsBusy);
         }
 
         protected override async Task SaveAsync()
@@ -375,6 +377,45 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             _logger.LogInformation("[RequirementsSearchAttachments] Manual project reload requested");
             await LoadAvailableProjectsAsync();
+        }
+
+        /// <summary>
+        /// Test Jama connection and configuration - for debugging
+        /// </summary>
+        public async Task TestJamaConnectionAsync()
+        {
+            try
+            {
+                _logger.LogInformation("[RequirementsSearchAttachments] === TESTING JAMA CONNECTION ===");
+                _logger.LogInformation("[RequirementsSearchAttachments] IsConfigured: {IsConfigured}", _jamaConnectService.IsConfigured);
+                
+                if (!_jamaConnectService.IsConfigured)
+                {
+                    _logger.LogWarning("[RequirementsSearchAttachments] Jama service not configured");
+                    StatusMessage = "❌ Jama not configured - check environment variables";
+                    return;
+                }
+
+                StatusMessage = "🔍 Testing Jama connection...";
+                var (isSuccess, message) = await _jamaConnectService.TestConnectionAsync();
+                
+                _logger.LogInformation("[RequirementsSearchAttachments] Connection test result: {Success} - {Message}", isSuccess, message);
+                
+                if (isSuccess)
+                {
+                    StatusMessage = "✅ Jama connection successful - attempting to load projects...";
+                    await LoadAvailableProjectsAsync();
+                }
+                else
+                {
+                    StatusMessage = $"❌ Jama connection failed: {message}";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsSearchAttachments] Error testing Jama connection");
+                StatusMessage = $"❌ Connection test error: {ex.Message}";
+            }
         }
 
         // ==== COMMAND EXECUTORS ====
