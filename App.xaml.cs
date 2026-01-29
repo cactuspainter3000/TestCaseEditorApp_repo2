@@ -213,8 +213,9 @@ namespace TestCaseEditorApp
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.TestCaseGenerationService>>();
                         var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
                         var ragContextService = provider.GetService<RAGContextService>(); // Optional
+                        var ragFeedbackService = provider.GetService<RAGFeedbackIntegrationService>(); // Optional
                         return new TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.TestCaseGenerationService(
-                            logger, anythingLLMService, ragContextService);
+                            logger, anythingLLMService, ragContextService, ragFeedbackService);
                     });
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseDeduplicationService, 
                                          TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.TestCaseDeduplicationService>();

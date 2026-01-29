@@ -22,16 +22,19 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
         private readonly ILogger<TestCaseGenerationService> _logger;
         private readonly AnythingLLMService _anythingLLMService;
         private readonly RAGContextService _ragContextService;
+        private readonly RAGFeedbackIntegrationService _ragFeedbackService;
         private const string WORKSPACE_SLUG = "test-case-generation";
 
         public TestCaseGenerationService(
             ILogger<TestCaseGenerationService> logger,
             AnythingLLMService anythingLLMService,
-            RAGContextService? ragContextService = null)
+            RAGContextService? ragContextService = null,
+            RAGFeedbackIntegrationService? ragFeedbackService = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _anythingLLMService = anythingLLMService ?? throw new ArgumentNullException(nameof(anythingLLMService));
             _ragContextService = ragContextService;
+            _ragFeedbackService = ragFeedbackService;
         }
 
         public async Task<List<LLMTestCase>> GenerateTestCasesAsync(
@@ -112,6 +115,27 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
                 _logger.LogInformation("Generated {Count} test cases covering {ReqCount} requirements in {Duration}ms",
                     testCases.Count, requirementList.Count, stopwatch.ElapsedMilliseconds);
                 
+                // Collect RAG feedback for optimization
+                if (_ragFeedbackService != null)
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await _ragFeedbackService.CollectGenerationFeedbackAsync(
+                                WORKSPACE_SLUG,
+                                testCases,
+                                requirementList,
+                                usedDocuments: null, // TODO: Extract from AnythingLLM response
+                                cancellationToken);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "[TestCaseGeneration] Error collecting RAG feedback");
+                        }
+                    });
+                }
+
                 return testCases;
             }
             catch (Exception ex)
