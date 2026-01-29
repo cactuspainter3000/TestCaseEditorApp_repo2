@@ -169,14 +169,28 @@ namespace TestCaseEditorApp
                         new AnythingLLMService()); // Let it get baseUrl and apiKey from defaults/user config
                     services.AddSingleton<TestCaseAnythingLLMService>();
                     
+                    // RAG Context Service for tracking and optimizing RAG integration
+                    services.AddSingleton<RAGContextService>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<RAGContextService>>();
+                        var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
+                        return new RAGContextService(logger, anythingLLMService);
+                    });
+                    
                     // LLM Learning Feedback Services
                     services.AddSingleton<ITextSimilarityService, TextSimilarityService>();
                     services.AddSingleton<ILLMLearningService, LLMLearningService>();
                     services.AddSingleton<IEditDetectionService, EditDetectionService>();
                     
                     // ===== TEST CASE CREATION DOMAIN SERVICES (LLM-based generation) =====
-                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseGenerationService, 
-                                         TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.TestCaseGenerationService>();
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseGenerationService>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.TestCaseGenerationService>>();
+                        var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
+                        var ragContextService = provider.GetService<RAGContextService>(); // Optional
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.TestCaseGenerationService(
+                            logger, anythingLLMService, ragContextService);
+                    });
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseDeduplicationService, 
                                          TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.TestCaseDeduplicationService>();
                     

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
@@ -14,19 +15,23 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
     /// <summary>
     /// Generates test cases from requirements using LLM with RAG-optimized prompts.
     /// Automatically detects requirement overlap and creates shared test cases.
+    /// Integrates RAG (Retrieval-Augmented Generation) diagnostics for performance optimization.
     /// </summary>
     public class TestCaseGenerationService : ITestCaseGenerationService
     {
         private readonly ILogger<TestCaseGenerationService> _logger;
         private readonly AnythingLLMService _anythingLLMService;
+        private readonly RAGContextService _ragContextService;
         private const string WORKSPACE_SLUG = "test-case-generation";
 
         public TestCaseGenerationService(
             ILogger<TestCaseGenerationService> logger,
-            AnythingLLMService anythingLLMService)
+            AnythingLLMService anythingLLMService,
+            RAGContextService? ragContextService = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _anythingLLMService = anythingLLMService ?? throw new ArgumentNullException(nameof(anythingLLMService));
+            _ragContextService = ragContextService;
         }
 
         public async Task<List<LLMTestCase>> GenerateTestCasesAsync(
@@ -41,8 +46,20 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
             _logger.LogInformation("Generating test cases for {Count} requirements using workspace '{Workspace}'", 
                 requirementList.Count, WORKSPACE_SLUG);
 
+            var stopwatch = Stopwatch.StartNew();
             try
             {
+                // Ensure RAG is configured before generation
+                if (_ragContextService != null)
+                {
+                    progressCallback?.Invoke("Ensuring RAG documents are configured...", 0, requirementList.Count);
+                    var ragConfigured = await _ragContextService.EnsureRAGConfiguredAsync(WORKSPACE_SLUG);
+                    if (!ragConfigured)
+                    {
+                        _logger.LogWarning("[TestCaseGeneration] RAG configuration failed, proceeding without RAG context");
+                    }
+                }
+
                 progressCallback?.Invoke("Preparing test case generation prompt...", 0, requirementList.Count);
                 
                 // Create prompt for batch generation with similarity detection
@@ -55,6 +72,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
                     WORKSPACE_SLUG,
                     prompt,
                     cancellationToken);
+
+                stopwatch.Stop();
+
+                // Track RAG request
+                _ragContextService?.TrackRAGRequest(WORKSPACE_SLUG, prompt, response, !string.IsNullOrEmpty(response), stopwatch.Elapsed);
 
                 if (string.IsNullOrEmpty(response))
                 {
@@ -87,13 +109,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
                 
                 progressCallback?.Invoke($"Completed: Generated {testCases.Count} test cases", requirementList.Count, requirementList.Count);
                 
-                _logger.LogInformation("Generated {Count} test cases covering {ReqCount} requirements",
-                    testCases.Count, requirementList.Count);
+                _logger.LogInformation("Generated {Count} test cases covering {ReqCount} requirements in {Duration}ms",
+                    testCases.Count, requirementList.Count, stopwatch.ElapsedMilliseconds);
                 
                 return testCases;
             }
             catch (Exception ex)
             {
+                stopwatch.Stop();
+                _ragContextService?.TrackRAGRequest(WORKSPACE_SLUG, "", null, false, stopwatch.Elapsed);
+                
                 var errorMsg = $"Test case generation failed: {ex.Message}";
                 _logger.LogError(ex, "[TestCaseGeneration] {ErrorMsg}", errorMsg);
                 progressCallback?.Invoke(errorMsg, requirementList.Count, requirementList.Count);
