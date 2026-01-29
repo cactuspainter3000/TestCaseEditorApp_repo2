@@ -1030,6 +1030,34 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             return false;
         }
 
+        /// <summary>
+        /// Navigate to Requirements Search in Attachments feature
+        /// Following Architectural Guide AI patterns for domain-specific navigation
+        /// </summary>
+        public void NavigateToRequirementsSearchAttachments()
+        {
+            try
+            {
+                _logger.LogInformation("[RequirementsMediator] Navigating to Requirements Search in Attachments");
+                
+                // Publish domain event to coordinate view change within Requirements domain
+                // This follows the Architectural Guide AI pattern for internal domain navigation
+                var navigationEvent = new RequirementsEvents.NavigateToAttachmentSearch
+                {
+                    Timestamp = DateTime.Now,
+                    TargetView = "RequirementsSearchAttachments"
+                };
+                
+                PublishEvent(navigationEvent);
+                
+                _logger.LogInformation("[RequirementsMediator] Navigation event published successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsMediator] Error navigating to Requirements Search in Attachments");
+            }
+        }
+
         // ===== MEDIATOR BASE FUNCTIONALITY =====
 
         public new void PublishEvent<T>(T eventData) where T : class

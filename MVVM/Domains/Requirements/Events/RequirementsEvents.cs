@@ -135,5 +135,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Events
             public TimeSpan Duration { get; set; }
             public DateTime CompletedAt { get; set; } = DateTime.Now;
         }
+
+        /// <summary>
+        /// Published when navigation to Requirements Search in Attachments is requested
+        /// Following Architectural Guide AI patterns for domain navigation events
+        /// </summary>
+        public class NavigateToAttachmentSearch
+        {
+            public string TargetView { get; set; } = string.Empty;
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
     }
 }

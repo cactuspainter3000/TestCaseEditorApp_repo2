@@ -18,11 +18,11 @@ using EditableDataControl.ViewModels;
 using RequirementsEvents = TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.Services;
+using Microsoft.Extensions.DependencyInjection;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Helpers;
 // COMPLETED: IRequirementAnalysisService moved to Requirements domain
 using TestCaseEditorApp.MVVM.Domains.Requirements.Services; // IRequirementAnalysisService now in Requirements domain
 using TestCaseEditorApp.MVVM.Mediators;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 {
@@ -73,6 +73,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _mediator.Subscribe<RequirementsEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
             _mediator.Subscribe<RequirementsEvents.WorkflowStateChanged>(OnWorkflowStateChanged);
             _mediator.Subscribe<RequirementsEvents.RequirementUpdated>(OnRequirementUpdated);
+            _mediator.Subscribe<RequirementsEvents.NavigateToAttachmentSearch>(OnNavigateToAttachmentSearch);
+            _logger.LogInformation("[Requirements_MainVM] === CONSTRUCTOR: NavigateToAttachmentSearch subscription completed for instance {InstanceId} ===", GetHashCode());
             _logger.LogInformation("[Requirements_MainVM] === CONSTRUCTOR: All subscriptions complete ===");
 
             // Commands
@@ -296,6 +298,29 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 _logger.LogInformation("[Requirements_MainVM] === GlobalIds DO NOT MATCH - Skipping refresh === Event: {EventId}, Current: {CurrentId}", 
                     e?.Requirement?.GlobalId ?? "null", _mediator.CurrentRequirement?.GlobalId ?? "null");
+            }
+        }
+
+        /// <summary>
+        /// Handle navigation to Requirements Search in Attachments feature
+        /// </summary>
+        private void OnNavigateToAttachmentSearch(RequirementsEvents.NavigateToAttachmentSearch e)
+        {
+            try
+            {
+                _logger.LogInformation("[Requirements_MainVM] *** NAVIGATION EVENT RECEIVED *** Navigation to Requirements Search in Attachments requested");
+                _logger.LogInformation("[Requirements_MainVM] *** Event details: TargetView={TargetView}, Timestamp={Timestamp} ***", e?.TargetView ?? "null", e?.Timestamp.ToString() ?? "null");
+                _logger.LogInformation("[Requirements_MainVM] *** Current SelectedSupportView: {CurrentView} ***", SelectedSupportView);
+                
+                // Switch to the attachment search view using the existing support view mechanism
+                SelectedSupportView = SupportView.RequirementsSearchAttachments;
+                
+                _logger.LogInformation("[Requirements_MainVM] *** SelectedSupportView changed to: {NewView} ***", SelectedSupportView);
+                _logger.LogInformation("[Requirements_MainVM] *** Successfully switched to Requirements Search in Attachments view ***");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Requirements_MainVM] *** ERROR *** Error handling navigation to attachment search");
             }
         }
 
@@ -1119,6 +1144,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         Meta,
         Tables, 
         Paragraphs,
-        Analysis
+        Analysis,
+        RichContent,
+        Metadata,
+        RequirementsSearchAttachments
     }
 }

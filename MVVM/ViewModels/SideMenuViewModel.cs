@@ -59,6 +59,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty]
         private bool isAnalysisTabActive = false;
 
+        // Project state tracking
+        [ObservableProperty]
+        private bool isProjectLoaded = false;
+
         [ObservableProperty]
         private string? selectedSection;
 
@@ -89,6 +93,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         // Requirements Management Commands
         public ICommand ImportAdditionalCommand { get; private set; } = null!;
+        public ICommand RequirementsSearchAttachmentsCommand { get; private set; } = null!;
         
         // === MISSING COMMANDS FOR UI BINDING ===
         // These commands are bound to in XAML but were missing from the ViewModel
@@ -190,6 +195,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             
             // Requirements commands
             ImportAdditionalCommand = new AsyncRelayCommand(ImportAdditionalAsync, CanImportAdditionalRequirements);
+            RequirementsSearchAttachmentsCommand = new RelayCommand(NavigateToRequirementsSearchAttachments, CanAccessRequirementsSearchAttachments);
             
             // Initialize missing commands with proper navigation
             UnloadProjectCommand = new AsyncRelayCommand(UnloadProjectAsync, CanExecuteProjectActions);
@@ -376,6 +382,30 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
         
         /// <summary>
+        /// Navigate to Requirements Search in Attachments feature
+        /// Uses RequirementsMediator following Architectural Guide AI patterns
+        /// </summary>
+        private void NavigateToRequirementsSearchAttachments()
+        {
+            try
+            {
+                // Set selected section for UI state
+                SelectedSection = "Requirements";
+                
+                // Navigate to Requirements domain first
+                _navigationMediator?.NavigateToSection("requirements");
+                
+                // Use RequirementsMediator to navigate to specific feature within Requirements domain
+                // This follows the Architectural Guide AI pattern for domain-specific navigation
+                _requirementsMediator?.NavigateToRequirementsSearchAttachments();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "[SideMenu] Error navigating to Requirements Search in Attachments");
+            }
+        }
+        
+        /// <summary>
         /// Import additional requirements to existing project (append mode)
         /// </summary>
         private async Task ImportAdditionalAsync()
@@ -469,6 +499,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private bool CanAccessRequirements()
         {
             return HasRequirements; // Only allow Requirements navigation when project has requirements loaded
+        }
+
+        private bool CanAccessRequirementsSearchAttachments()
+        {
+            // Available when project is loaded and Jama service is configured
+            // This allows searching for requirements in Jama attachments even if no requirements are loaded yet
+            return IsProjectLoaded && _jamaConnectService.IsConfigured;
         }
         
         #endregion
@@ -581,7 +618,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                                 IsDropdown = true,
                                 Children = new ObservableCollection<MenuContentItem>
                                 {
-                                    new MenuAction { Id = "requirements.import", Text = "Import Additional Requirements", Icon = "📥", Command = ImportAdditionalCommand }
+                                    new MenuAction { Id = "requirements.import", Text = "Import Additional Requirements", Icon = "📥", Command = ImportAdditionalCommand },
+                                    new MenuAction { Id = "requirements.searchAttachments", Text = "Requirements Search in Attachments", Icon = "🔍", Command = RequirementsSearchAttachmentsCommand }
                                 }
                             },
                             new MenuAction
@@ -644,6 +682,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _openProjectMediator.Subscribe<OpenProjectEvents.ProjectOpened>(OnProjectOpened);
             
             // Subscribe to NewProject domain events (for workspace state)
+            _newProjectMediator.Subscribe<NewProjectEvents.ProjectClosed>(OnProjectClosed);
             _newProjectMediator.Subscribe<NewProjectEvents.WorkspaceModified>(OnWorkspaceModified);
             _newProjectMediator.Subscribe<NewProjectEvents.ProjectSaved>(OnProjectSaved);
         }
@@ -662,10 +701,22 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         private void OnProjectOpened(OpenProjectEvents.ProjectOpened evt)
         {
+            IsProjectLoaded = true; // Track that a project is now loaded
             HasRequirements = evt.Workspace?.Requirements?.Count > 0;
             HasUnsavedChanges = false; // Fresh project load, no unsaved changes
-            _logger.LogInformation("[SideMenuVM] Project opened, HasRequirements set to {HasReq} ({Count} requirements)", 
+            _logger.LogInformation("[SideMenuVM] Project opened, IsProjectLoaded=true, HasRequirements set to {HasReq} ({Count} requirements)", 
                 HasRequirements, evt.Workspace?.Requirements?.Count ?? 0);
+        }
+
+        /// <summary>
+        /// Handle project closed state
+        /// </summary>
+        private void OnProjectClosed(NewProjectEvents.ProjectClosed evt)
+        {
+            IsProjectLoaded = false; // Track that no project is loaded
+            HasRequirements = false; // No requirements when project is closed
+            HasUnsavedChanges = false; // No unsaved changes when project is closed
+            _logger.LogInformation("[SideMenuVM] Project closed, IsProjectLoaded=false");
         }
         
         /// <summary>
@@ -753,6 +804,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             (BatchAnalyzeCommand as IRelayCommand)?.NotifyCanExecuteChanged();
             (UnloadProjectCommand as IRelayCommand)?.NotifyCanExecuteChanged();
             (RequirementsNavigationCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+        }
+
+        /// <summary>
+        /// Called when IsProjectLoaded changes - notify commands that depend on it
+        /// </summary>
+        partial void OnIsProjectLoadedChanged(bool value)
+        {
+            // Notify commands that depend on IsProjectLoaded to re-evaluate their CanExecute
+            (RequirementsSearchAttachmentsCommand as IRelayCommand)?.NotifyCanExecuteChanged();
         }
         
         

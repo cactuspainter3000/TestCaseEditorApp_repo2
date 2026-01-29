@@ -202,6 +202,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// Used by ViewConfigurationService for proper view routing
         /// </summary>
         bool IsJamaDataSource();
+
+        /// <summary>
+        /// Navigate to Requirements Search in Attachments feature
+        /// Following Architectural Guide AI patterns for domain-specific navigation
+        /// </summary>
+        void NavigateToRequirementsSearchAttachments();
     }
 
     /// <summary>

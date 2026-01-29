@@ -55,6 +55,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         [ObservableProperty]
         private string analysisElapsedTime = "";
 
+        [ObservableProperty]
+        private SupportView selectedSupportView = SupportView.RichContent; // Default to rich content view
+
         // Analysis ViewModel for the Requirements_AnalysisControl
         public RequirementAnalysisViewModel RequirementAnalysisVM { get; }
 
@@ -98,6 +101,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 concreteMediator.Subscribe<RequirementsEvents.RequirementSelected>(OnRequirementSelected);
                 concreteMediator.Subscribe<RequirementsEvents.RequirementAnalyzed>(OnRequirementAnalyzed);
                 concreteMediator.Subscribe<RequirementsEvents.RequirementUpdated>(OnRequirementUpdated);
+                concreteMediator.Subscribe<RequirementsEvents.NavigateToAttachmentSearch>(OnNavigateToAttachmentSearch);
+                _logger.LogInformation("[JamaRequirementsMainVM] NavigateToAttachmentSearch subscription completed for instance {InstanceId}", GetHashCode());
                 
                 // Initialize with current requirement if available
                 CurrentRequirement = concreteMediator.CurrentRequirement;
@@ -428,6 +433,29 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // For now, return clean text
             // TODO: Integrate with HTML rendering component for rich display
             return CurrentRequirement.Description;
+        }
+
+        /// <summary>
+        /// Handle navigation to Requirements Search in Attachments feature
+        /// </summary>
+        private void OnNavigateToAttachmentSearch(RequirementsEvents.NavigateToAttachmentSearch e)
+        {
+            try
+            {
+                _logger.LogInformation("[JamaRequirementsMainVM] *** NAVIGATION EVENT RECEIVED *** Navigation to Requirements Search in Attachments requested");
+                _logger.LogInformation("[JamaRequirementsMainVM] *** Event details: TargetView={TargetView}, Timestamp={Timestamp} ***", e?.TargetView ?? "null", e?.Timestamp.ToString() ?? "null");
+                _logger.LogInformation("[JamaRequirementsMainVM] *** Current SelectedSupportView: {CurrentView} ***", SelectedSupportView);
+                
+                // Switch to the attachment search view using the existing support view mechanism
+                SelectedSupportView = SupportView.RequirementsSearchAttachments;
+                
+                _logger.LogInformation("[JamaRequirementsMainVM] *** SelectedSupportView changed to: {NewView} ***", SelectedSupportView);
+                _logger.LogInformation("[JamaRequirementsMainVM] *** Successfully switched to Requirements Search in Attachments view ***");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[JamaRequirementsMainVM] *** ERROR *** Error handling navigation to attachment search");
+            }
         }
 
         public override void Dispose()

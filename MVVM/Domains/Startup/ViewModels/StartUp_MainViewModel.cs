@@ -64,24 +64,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
         [ObservableProperty]
         private Visibility fieldDisplayVisibility = Visibility.Collapsed;
         
-        private readonly JamaConnectService? _jamaService;
+        private readonly JamaConnectService _jamaService;
         
         public StartUp_MainViewModel(
             IStartupMediator mediator,
-            ILogger<StartUp_MainViewModel> logger)
+            ILogger<StartUp_MainViewModel> logger,
+            JamaConnectService jamaConnectService)
             : base(mediator, logger)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
-            
-            // TEMPORARY: Try to get JamaConnectService for troubleshooting
-            try
-            {
-                _jamaService = App.ServiceProvider?.GetService(typeof(JamaConnectService)) as JamaConnectService;
-            }
-            catch (Exception)
-            {
-                // Ignore - troubleshooting interface will handle missing service
-            }
+            _jamaService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
         }
         
         // TEMPORARY: Jama Testing Command
@@ -99,15 +91,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
                 StatusVisibility = Visibility.Visible;
                 ResultsVisibility = Visibility.Collapsed;
                 LogsVisibility = Visibility.Visible;
-                
-                if (_jamaService == null)
-                {
-                    StatusMessage = "❌ JamaConnectService not available";
-                    StatusColor = "#FF6B6B";
-                    LogMessage("❌ ERROR: JamaConnectService not configured or available");
-                    LogMessage("   Check environment variables: JAMA_BASE_URL, JAMA_CLIENT_ID, JAMA_CLIENT_SECRET");
-                    return;
-                }
                 
                 // NEW: Add authentication diagnostics
                 await DiagnoseAuthentication();
@@ -394,14 +377,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
                 StatusVisibility = Visibility.Visible;
                 ResultsVisibility = Visibility.Collapsed;
                 LogsVisibility = Visibility.Visible;
-                
-                if (_jamaService == null)
-                {
-                    StatusMessage = "❌ JamaConnectService not available";
-                    StatusColor = "#FF6B6B";
-                    LogMessage("❌ ERROR: JamaConnectService not configured or available");
-                    return;
-                }
                 
                 await DiagnoseAuthentication();
                 

@@ -273,6 +273,17 @@
                                             </Setter.Value>
                                         </Setter>
                                     </DataTrigger>
+                                    
+                                    <!-- Requirements Search in Attachments: show attachment search view -->
+                                    <DataTrigger Binding="{Binding SelectedSupportView}" Value="RequirementsSearchAttachments">
+                                        <Setter Property="ContentTemplate">
+                                            <Setter.Value>
+                                                <DataTemplate>
+                                                    <req:RequirementsSearchAttachmentsView />
+                                                </DataTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </ContentControl.Style>

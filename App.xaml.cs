@@ -16,6 +16,7 @@ using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
+using TestCaseEditorApp.MVVM.Domains.Startup.Mediators;
 using TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing;
@@ -375,6 +376,16 @@ namespace TestCaseEditorApp
                         var requirementAnalysisVM = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel>();
                         return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.JamaRequirementsMainViewModel(reqMediator, logger, requirementAnalysisVM);
                     });
+
+                    // Requirements Search in Attachments ViewModel for Jama document parsing
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel>(provider =>
+                    {
+                        var reqMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
+                        var jamaConnectService = provider.GetRequiredService<TestCaseEditorApp.Services.IJamaConnectService>();
+                        var jamaDocumentParserService = provider.GetRequiredService<TestCaseEditorApp.Services.IJamaDocumentParserService>();
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel>>();
+                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel(reqMediator, jamaConnectService, jamaDocumentParserService, logger);
+                    });
                     
                     // Requirements uses shared NavigationViewModel and NotificationWorkspaceViewModel
                     
@@ -408,7 +419,13 @@ namespace TestCaseEditorApp
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.DummyNewProjectNavigationViewModel>();
                     
                     // === STARTUP DOMAIN REGISTRATION (FOR INITIAL APP STATE) ===
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_MainViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_MainViewModel>(provider =>
+                    {
+                        var mediator = provider.GetRequiredService<IStartupMediator>();
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_MainViewModel>>();
+                        var jamaConnectService = provider.GetRequiredService<JamaConnectService>();
+                        return new TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_MainViewModel(mediator, logger, jamaConnectService);
+                    });
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_HeaderViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_NavigationViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_TitleViewModel>();
