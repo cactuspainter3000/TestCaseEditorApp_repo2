@@ -380,6 +380,12 @@ namespace TestCaseEditorApp
                     
                     // TestCaseCreation domain ViewModels
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.RAGDiagnosticsViewModel>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.RAGDiagnosticsViewModel>>();
+                        var ragContextService = provider.GetRequiredService<RAGContextService>();
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.RAGDiagnosticsViewModel(logger, ragContextService);
+                    });
                     
                     // DEPRECATED: TestCaseGeneratorNotificationViewModel - use NotificationWorkspaceViewModel instead
 
