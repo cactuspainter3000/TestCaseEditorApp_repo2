@@ -41,10 +41,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _documentParserService = documentParserService ?? throw new ArgumentNullException(nameof(documentParserService));
 
             Title = "Requirements Search in Attachments";
-            StatusMessage = "Enter search criteria to find requirements in Jama attachments";
-
-            // Load available projects on initialization
-            _ = LoadAvailableProjectsAsync();
+            StatusMessage = "Initializing Requirements Search in Attachments...";
+            
+            _logger.LogInformation("[RequirementsSearchAttachments] ViewModel constructor completed. Will load projects when activated.");
+            
+            // Load projects when the view becomes active
+            _ = Task.Run(async () => 
+            {
+                await Task.Delay(100); // Small delay to ensure initialization is complete
+                await LoadAvailableProjectsAsync();
+            });
         }
 
         // ==== PROPERTIES ====
@@ -162,10 +168,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             try
             {
+                _logger.LogInformation("[RequirementsSearchAttachments] *** LoadAvailableProjectsAsync started ***");
                 IsBusy = true;
                 StatusMessage = "Loading Jama projects...";
                 
+                _logger.LogInformation("[RequirementsSearchAttachments] Checking Jama configuration...");
                 IsJamaConfigured = _jamaConnectService.IsConfigured;
+                _logger.LogInformation("[RequirementsSearchAttachments] Jama configured: {IsConfigured}", IsJamaConfigured);
                 
                 if (!IsJamaConfigured)
                 {
@@ -173,17 +182,22 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     return;
                 }
 
-                _logger.LogInformation("[RequirementsSearchAttachments] Loading Jama projects");
+                _logger.LogInformation("[RequirementsSearchAttachments] *** Calling _jamaConnectService.GetProjectsAsync() ***");
                 var projects = await _jamaConnectService.GetProjectsAsync();
+                _logger.LogInformation("[RequirementsSearchAttachments] *** GetProjectsAsync returned {Count} projects ***", projects?.Count ?? 0);
                 
                 AvailableProjects.Clear();
-                foreach (var project in projects)
+                if (projects != null)
                 {
-                    AvailableProjects.Add(project);
+                    foreach (var project in projects)
+                    {
+                        _logger.LogDebug("[RequirementsSearchAttachments] Adding project: {ProjectId} - {ProjectName}", project.Id, project.Name);
+                        AvailableProjects.Add(project);
+                    }
                 }
 
-                StatusMessage = $"✅ Loaded {projects.Count} projects. Select a project and search for attachments.";
-                _logger.LogInformation("[RequirementsSearchAttachments] Loaded {Count} projects", projects.Count);
+                StatusMessage = $"✅ Loaded {AvailableProjects.Count} projects. Select a project and search for attachments.";
+                _logger.LogInformation("[RequirementsSearchAttachments] *** Successfully loaded {Count} projects into AvailableProjects collection ***", AvailableProjects.Count);
             }
             catch (Exception ex)
             {
@@ -350,6 +364,17 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 IsImporting = false;
                 IsBusy = false;
             }
+        }
+
+        // ==== PUBLIC METHODS FOR UI INTERACTION ====
+
+        /// <summary>
+        /// Public method to reload projects - can be called from UI
+        /// </summary>
+        public async Task ReloadProjectsAsync()
+        {
+            _logger.LogInformation("[RequirementsSearchAttachments] Manual project reload requested");
+            await LoadAvailableProjectsAsync();
         }
 
         // ==== COMMAND EXECUTORS ====
