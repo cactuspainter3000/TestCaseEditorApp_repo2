@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Models
 {
@@ -12,9 +13,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Models
         public string Id { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        [JsonConverter(typeof(StringOrArrayJsonConverter))]
         public string Preconditions { get; set; } = string.Empty;
         public List<LLMTestStep> Steps { get; set; } = new List<LLMTestStep>();
         public string ExpectedResult { get; set; } = string.Empty;
+        [JsonConverter(typeof(StringOrArrayJsonConverter))]
         public string Postconditions { get; set; } = string.Empty;
 
         /// <summary>

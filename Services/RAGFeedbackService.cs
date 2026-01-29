@@ -42,8 +42,8 @@ namespace TestCaseEditorApp.Services
             List<LLMTestCase> generatedTestCases,
             int requirementCount,
             double qualityScore, // 0-100, where 100 is perfect
-            List<string> usedDocuments = null,
-            RAGParameterSnapshot parameters = null)
+            List<string>? usedDocuments = null,
+            RAGParameterSnapshot? parameters = null)
         {
             try
             {

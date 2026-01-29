@@ -313,7 +313,8 @@ INSTRUCTIONS:
 2. For similar requirements, create ONE test case with multiple CoveredRequirementIds
 3. For unique requirements, create dedicated test cases
 4. Each test case should have clear steps and expected results
-5. Return ONLY valid JSON matching this schema - no explanatory text
+5. Preconditions and postconditions MUST be a single string (not an array). If multiple items, join with a semicolon and a space
+6. Return ONLY valid JSON matching this schema - no explanatory text
 
 RESPOND WITH JSON ONLY:
 {{
@@ -322,7 +323,7 @@ RESPOND WITH JSON ONLY:
       ""id"": ""TC-001"",
       ""title"": ""Test case title"",
       ""description"": ""What this test validates"",
-      ""preconditions"": ""Setup required"",
+    ""preconditions"": ""Setup required (single string)"",
       ""steps"": [
         {{
           ""stepNumber"": 1,
@@ -332,7 +333,7 @@ RESPOND WITH JSON ONLY:
         }}
       ],
       ""expectedResult"": ""Overall expected outcome"",
-      ""postconditions"": ""Cleanup (optional)"",
+    ""postconditions"": ""Cleanup (optional, single string)"",
       ""coveredRequirementIds"": [""REQ-1"", ""REQ-2""],
       ""priority"": ""High"",
       ""testType"": ""Functional"",
@@ -355,7 +356,8 @@ Verification Method: {string.Join(", ", requirement.VerificationMethods)}
 INSTRUCTIONS:
 1. Create comprehensive test cases covering all aspects of this requirement
 2. Include clear preconditions, steps, and expected results
-3. Return ONLY valid JSON matching this schema - no explanatory text
+3. Preconditions and postconditions MUST be a single string (not an array). If multiple items, join with a semicolon and a space
+4. Return ONLY valid JSON matching this schema - no explanatory text
 
 RESPOND WITH JSON ONLY:
 {{
@@ -364,7 +366,7 @@ RESPOND WITH JSON ONLY:
       ""id"": ""TC-001"",
       ""title"": ""Test case title"",
       ""description"": ""What this test validates"",
-      ""preconditions"": ""Setup required"",
+    ""preconditions"": ""Setup required (single string)"",
       ""steps"": [
         {{
           ""stepNumber"": 1,
@@ -374,7 +376,7 @@ RESPOND WITH JSON ONLY:
         }}
       ],
       ""expectedResult"": ""Overall expected outcome"",
-      ""postconditions"": ""Cleanup (optional)"",
+    ""postconditions"": ""Cleanup (optional, single string)"",
       ""coveredRequirementIds"": [""{requirement.Item}""],
       ""priority"": ""Medium"",
       ""testType"": ""Functional"",

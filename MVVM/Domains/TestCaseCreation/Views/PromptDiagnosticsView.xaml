@@ -80,7 +80,7 @@
                             Style="{StaticResource ActionButton}"/>
                 </Grid>
 
-                <Border Background="{StaticResource Brush.Background.Content}" 
+                <Border Background="{StaticResource Brush.Background.Header}" 
                         BorderBrush="{StaticResource Brush.Border.Default}" 
                         BorderThickness="1" 
                         CornerRadius="{StaticResource Radius.SM}">
@@ -118,7 +118,7 @@
                             Style="{StaticResource ActionButton}"/>
                 </Grid>
 
-                <Border Background="{StaticResource Brush.Background.Content}" 
+                <Border Background="{StaticResource Brush.Background.Header}" 
                         BorderBrush="{StaticResource Brush.Border.Default}" 
                         BorderThickness="1" 
                         CornerRadius="{StaticResource Radius.SM}">
@@ -165,7 +165,7 @@
                             Margin="0,0,8,0"/>
                 </Grid>
 
-                <Border Background="{StaticResource Brush.Background.Content}" 
+                <Border Background="{StaticResource Brush.Background.Header}" 
                         BorderBrush="{StaticResource Brush.Border.Default}" 
                         BorderThickness="1" 
                         CornerRadius="{StaticResource Radius.SM}">
@@ -191,7 +191,7 @@
                            Foreground="{StaticResource Brush.Text.Primary}"
                            Margin="0,0,0,8"/>
 
-                <Border Background="{StaticResource Brush.Background.Content}" 
+                <Border Background="{StaticResource Brush.Background.Header}" 
                         BorderBrush="{StaticResource Brush.Border.Default}" 
                         BorderThickness="1" 
                         CornerRadius="{StaticResource Radius.SM}">

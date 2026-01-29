@@ -315,8 +315,8 @@ namespace TestCaseEditorApp.Services
         public int SuggestionsAnalyzed { get; set; }
         public bool AdjustmentRecommended { get; set; }
         public bool ParametersApplied { get; set; }
-        public RAGParameterSnapshot PreviousParameters { get; set; }
-        public RAGParameterSnapshot NewParameters { get; set; }
+        public RAGParameterSnapshot? PreviousParameters { get; set; }
+        public RAGParameterSnapshot? NewParameters { get; set; }
         public List<string> Rationale { get; set; } = new();
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     }
