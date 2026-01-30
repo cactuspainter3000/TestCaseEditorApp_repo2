@@ -96,6 +96,15 @@
                     <TextBlock Text="Metadata" VerticalAlignment="Center" Margin="12,0" 
                                Foreground="{StaticResource Brush.Text.Secondary}"/>
                 </ToggleButton>
+                
+                <!-- Attachment Scrapper tab -->
+                <ToggleButton Style="{StaticResource ActionToggleButtonSelected}"
+                              Margin="8,0,0,0"
+                              IsChecked="{Binding IsAttachmentScrapperSelected, Mode=TwoWay}"
+                              ToolTip="Search and extract requirements from Jama attachments">
+                    <TextBlock Text="Attachment Scrapper" VerticalAlignment="Center" Margin="12,0" 
+                               Foreground="{StaticResource Brush.Text.Secondary}"/>
+                </ToggleButton>
             </StackPanel>
 
             <!-- Right: Action buttons -->
@@ -276,6 +285,17 @@
                                     
                                     <!-- Requirements Search in Attachments: show attachment search view -->
                                     <DataTrigger Binding="{Binding SelectedSupportView}" Value="RequirementsSearchAttachments">
+                                        <Setter Property="ContentTemplate">
+                                            <Setter.Value>
+                                                <DataTemplate>
+                                                    <req:RequirementsSearchAttachmentsView DataContext="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=DataContext.RequirementsSearchAttachmentsViewModel}" />
+                                                </DataTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </DataTrigger>
+                                    
+                                    <!-- Attachment Scrapper tab content -->
+                                    <DataTrigger Binding="{Binding IsAttachmentScrapperSelected}" Value="True">
                                         <Setter Property="ContentTemplate">
                                             <Setter.Value>
                                                 <DataTemplate>

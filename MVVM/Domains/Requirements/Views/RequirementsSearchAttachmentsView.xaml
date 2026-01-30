@@ -32,28 +32,14 @@
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="10"/>
-                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 
-                <!-- Status Message (more prominent) -->
-                <TextBlock Grid.Row="0" 
-                          Text="{Binding StatusMessage}" 
-                          FontSize="14"
-                          FontWeight="SemiBold"
-                          Foreground="#2C3E50"
-                          TextWrapping="Wrap"
-                          MinHeight="20"
-                          VerticalAlignment="Center"/>
-                
                 <!-- Action Controls -->
-                <Grid Grid.Row="2">
+                <Grid Grid.Row="0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="20"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="10"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
@@ -72,19 +58,27 @@
                                         <DataTrigger Binding="{Binding IsBackgroundScanningInProgress}" Value="True">
                                             <Setter Property="IsEnabled" Value="False"/>
                                         </DataTrigger>
-                                        <DataTrigger Binding="{Binding IsJamaConfigured}" Value="False">
-                                            <Setter Property="IsEnabled" Value="False"/>
-                                        </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </ComboBox.Style>
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" MaxWidth="300" TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text=" (" Foreground="Gray" Margin="5,0,0,0"/>
-                                        <TextBlock Text="{Binding FileSize, StringFormat={}{0:N0}}" Foreground="Gray"/>
-                                        <TextBlock Text=" bytes)" Foreground="Gray"/>
+                                        <TextBlock FontWeight="SemiBold" MaxWidth="300" TextTrimming="CharacterEllipsis">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Text" Value="{Binding Name}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Name}" Value="">
+                                                            <Setter Property="Text" Value="{Binding FileName}"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Name}" Value="{x:Null}">
+                                                            <Setter Property="Text" Value="{Binding FileName}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
                                     </StackPanel>
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
@@ -128,17 +122,6 @@
                             Padding="15,8"
                             BorderThickness="0"
                             FontWeight="SemiBold"/>
-                            
-                    <!-- Test Connection Button -->
-                    <Button Grid.Column="5" 
-                            Content="🔧 Test"
-                            Command="{Binding TestConnectionCommand}"
-                            ToolTip="Test Jama connection and debug current workspace"
-                            Background="#6F42C1"
-                            Foreground="White"
-                            Padding="10,8"
-                            BorderThickness="0"
-                            FontSize="11"/>
                 </Grid>
             </Grid>
         </Border>
@@ -147,76 +130,10 @@
         <Grid Grid.Row="2" Margin="20">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1*"/>
-                <ColumnDefinition Width="20"/>
-                <ColumnDefinition Width="1*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Left Panel: Attachments List -->
+            <!-- Single Panel: Extracted Requirements -->
             <Border Grid.Column="0" BorderBrush="#BDC3C7" BorderThickness="1" CornerRadius="5">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <!-- Attachments Header -->
-                    <Border Grid.Row="0" Background="#34495E" Padding="15,10">
-                        <TextBlock Text="📎 Found Attachments" 
-                                  FontWeight="Bold" 
-                                  Foreground="White" 
-                                  FontSize="16"/>
-                    </Border>
-
-                    <!-- Attachments List -->
-                    <ListBox Grid.Row="1" 
-                             ItemsSource="{Binding SearchResults}"
-                             SelectedItem="{Binding SelectedAttachment}"
-                             Background="White"
-                             BorderThickness="0"
-                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Border Padding="10" BorderBrush="#ECF0F1" BorderThickness="0,0,0,1">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding Name}" 
-                                                  FontWeight="SemiBold" 
-                                                  TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding Description}" 
-                                                  FontSize="12" 
-                                                  Foreground="#7F8C8D" 
-                                                  TextWrapping="Wrap"
-                                                  Margin="0,2,0,0"/>
-                                        <TextBlock FontSize="11" 
-                                                  Foreground="#95A5A6" 
-                                                  Margin="0,2,0,0">
-                                            <Run Text="Size: "/>
-                                            <Run Text="{Binding FileSize, StringFormat={}{0:N0} bytes}"/>
-                                            <Run Text=" • ID: "/>
-                                            <Run Text="{Binding Id}"/>
-                                        </TextBlock>
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-
-                    <!-- Parse Button -->
-                    <Border Grid.Row="2" Background="#F8F9FA" Padding="15,10">
-                        <Button Content="🤖 Parse Selected for Requirements"
-                                Command="{Binding ParseSelectedAttachmentCommand}"
-                                Background="#E67E22"
-                                Foreground="White"
-                                Padding="10,8"
-                                BorderThickness="0"
-                                FontWeight="SemiBold"
-                                HorizontalAlignment="Stretch"/>
-                    </Border>
-                </Grid>
-            </Border>
-
-            <!-- Right Panel: Extracted Requirements -->
-            <Border Grid.Column="2" BorderBrush="#BDC3C7" BorderThickness="1" CornerRadius="5">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -234,55 +151,46 @@
 
                     <!-- Requirements List -->
                     <ScrollViewer Grid.Row="1" Background="White" VerticalScrollBarVisibility="Auto">
-                        <ItemsControl ItemsSource="{Binding ExtractedRequirements}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Padding="15" BorderBrush="#ECF0F1" BorderThickness="0,0,0,1">
-                                        <StackPanel>
-                                            <TextBlock FontWeight="SemiBold" TextWrapping="Wrap">
-                                                <Run Text="REQ-"/>
-                                                <Run Text="{Binding Id}"/>
-                                                <Run Text=": "/>
-                                                <Run Text="{Binding Title}"/>
-                                            </TextBlock>
-                                            <TextBlock Text="{Binding Description}" 
-                                                      FontSize="13" 
-                                                      TextWrapping="Wrap"
-                                                      Margin="0,8,0,0"/>
-                                            <Border Background="#E8F5E8" 
-                                                   Padding="8,4" 
-                                                   CornerRadius="3" 
-                                                   Margin="0,8,0,0"
-                                                   HorizontalAlignment="Left">
-                                                <TextBlock Text="{Binding Category}" 
-                                                          FontSize="11" 
-                                                          Foreground="#27AE60"
-                                                          FontWeight="SemiBold"/>
-                                            </Border>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                        <StackPanel>
+                            <!-- Extracted Requirements List -->
+                            <ItemsControl ItemsSource="{Binding ExtractedRequirements}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="15" BorderBrush="#ECF0F1" BorderThickness="0,0,0,1">
+                                            <StackPanel>
+                                                <TextBlock FontWeight="SemiBold" TextWrapping="Wrap">
+                                                    <Run Text="REQ-"/>
+                                                    <Run Text="{Binding Id}"/>
+                                                    <Run Text=": "/>
+                                                    <Run Text="{Binding Title}"/>
+                                                </TextBlock>
+                                                <TextBlock Text="{Binding Description}" 
+                                                          FontSize="13" 
+                                                          TextWrapping="Wrap"
+                                                          Margin="0,8,0,0"/>
+                                                <Border Background="#E8F5E8" 
+                                                       Padding="8,4" 
+                                                       CornerRadius="3" 
+                                                       Margin="0,8,0,0"
+                                                       HorizontalAlignment="Left">
+                                                    <TextBlock Text="{Binding Category}" 
+                                                              FontSize="11" 
+                                                              Foreground="#27AE60"
+                                                              FontWeight="SemiBold"/>
+                                                </Border>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
                     </ScrollViewer>
-
-                    <!-- Import Button -->
-                    <Border Grid.Row="2" Background="#F8F9FA" Padding="15,10">
-                        <Button Content="📥 Import All Requirements"
-                                Command="{Binding ImportExtractedRequirementsCommand}"
-                                Background="#27AE60"
-                                Foreground="White"
-                                Padding="10,8"
-                                BorderThickness="0"
-                                FontWeight="SemiBold"
-                                HorizontalAlignment="Stretch"/>
-                    </Border>
                 </Grid>
             </Border>
         </Grid>
 
         <!-- Status Bar -->
-        <Border Grid.Row="3" Background="#34495E" Padding="20,10">
+        <Border Grid.Row="3" Background="#34495E" Padding="15,8">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>

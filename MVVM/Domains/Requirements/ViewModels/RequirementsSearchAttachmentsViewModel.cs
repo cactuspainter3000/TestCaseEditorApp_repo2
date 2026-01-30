@@ -128,18 +128,33 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             
             if (SelectedAttachmentFilter != null)
             {
-                // Show only the selected attachment
-                SearchResults.Add(SelectedAttachmentFilter);
-                StatusMessage = $"📎 Showing: {SelectedAttachmentFilter.Name}";
+                // Don't show the "No attachments found" placeholder in search results
+                if (SelectedAttachmentFilter.Id != 0)
+                {
+                    SearchResults.Add(SelectedAttachmentFilter);
+                    StatusMessage = $"📎 Selected: {SelectedAttachmentFilter.Name}";
+                }
+                else
+                {
+                    StatusMessage = "❌ No attachments available to scan";
+                }
             }
             else if (AvailableAttachments.Count > 0)
             {
-                // Show all attachments
-                foreach (var attachment in AvailableAttachments)
+                // Show all real attachments (exclude placeholder if present)
+                foreach (var attachment in AvailableAttachments.Where(a => a.Id != 0))
                 {
                     SearchResults.Add(attachment);
                 }
-                StatusMessage = $"📎 Showing all {AvailableAttachments.Count} attachments";
+                
+                if (SearchResults.Count > 0)
+                {
+                    StatusMessage = $"📎 Showing all {SearchResults.Count} attachments";
+                }
+                else
+                {
+                    StatusMessage = "❌ No attachments available to scan";
+                }
             }
             
             HasResults = SearchResults.Count > 0;
@@ -483,7 +498,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 {
                     // Populate available attachments for dropdown (unfiltered)
                     AvailableAttachments.Clear();
-                    if (attachments != null)
+                    if (attachments != null && attachments.Count > 0)
                     {
                         int processed = 0;
                         foreach (var attachment in attachments)
@@ -501,6 +516,23 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                                 await Task.Delay(100);
                             }
                         }
+                        
+                        // Select the first attachment automatically
+                        SelectedAttachmentFilter = AvailableAttachments.FirstOrDefault();
+                    }
+                    else
+                    {
+                        // Add a placeholder item for "No attachments found"
+                        var noAttachmentsPlaceholder = new JamaAttachment
+                        {
+                            Id = 0,
+                            Name = "No attachments found",
+                            FileName = "",
+                            FileSize = 0,
+                            MimeType = ""
+                        };
+                        AvailableAttachments.Add(noAttachmentsPlaceholder);
+                        SelectedAttachmentFilter = noAttachmentsPlaceholder;
                     }
 
                     // Update search results based on current filter

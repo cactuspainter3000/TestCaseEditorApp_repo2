@@ -33,6 +33,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private bool isMetadataSelected;
 
         [ObservableProperty]
+        private bool isAttachmentScrapperSelected;
+
+        [ObservableProperty]
         private Requirement? currentRequirement;
 
         [ObservableProperty]
@@ -77,6 +80,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public ICommand SelectAnalysisCommand { get; }
 
         public ICommand SelectMetadataCommand { get; }
+        public ICommand SelectAttachmentScrapperCommand { get; }
 
         // Action commands
         public ICommand QuickAnalyzeCommand { get; }
@@ -100,6 +104,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             SelectAnalysisCommand = new RelayCommand(() => SelectTab("Analysis"));
 
             SelectMetadataCommand = new RelayCommand(() => SelectTab("Metadata"));
+            SelectAttachmentScrapperCommand = new RelayCommand(() => SelectTab("AttachmentScrapper"));
 
             QuickAnalyzeCommand = new RelayCommand(ExecuteQuickAnalyze, () => HasCurrentRequirement);
             GenerateTestsCommand = new RelayCommand(ExecuteGenerateTests, () => CanGenerateTests);
@@ -165,13 +170,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             switch (e.PropertyName)
             {
                 case nameof(IsRichContentSelected) when IsRichContentSelected:
-                    IsAnalysisSelected = IsMetadataSelected = false;
+                    IsAnalysisSelected = IsMetadataSelected = IsAttachmentScrapperSelected = false;
                     break;
                 case nameof(IsAnalysisSelected) when IsAnalysisSelected:
-                    IsRichContentSelected = IsMetadataSelected = false;
+                    IsRichContentSelected = IsMetadataSelected = IsAttachmentScrapperSelected = false;
                     break;
                 case nameof(IsMetadataSelected) when IsMetadataSelected:
-                    IsRichContentSelected = IsAnalysisSelected = false;
+                    IsRichContentSelected = IsAnalysisSelected = IsAttachmentScrapperSelected = false;
+                    break;
+                case nameof(IsAttachmentScrapperSelected) when IsAttachmentScrapperSelected:
+                    IsRichContentSelected = IsAnalysisSelected = IsMetadataSelected = false;
                     break;
             }
         }
@@ -181,6 +189,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             IsRichContentSelected = tabName == "RichContent";
             IsAnalysisSelected = tabName == "Analysis";
             IsMetadataSelected = tabName == "Metadata";
+            IsAttachmentScrapperSelected = tabName == "AttachmentScrapper";
 
             _logger.LogDebug("[JamaRequirementsMainVM] Selected tab: {TabName}", tabName);
         }
