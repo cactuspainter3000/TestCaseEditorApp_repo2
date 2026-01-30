@@ -77,6 +77,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         [ObservableProperty]
         private int selectedProjectId = 636; // Default to Project 636
+        
+        // Store the current project name for display purposes
+        private string? currentProjectName = null;
 
         [ObservableProperty]
         private string searchQuery = string.Empty;
@@ -197,6 +200,69 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public IAsyncRelayCommand TestConnectionCommand { get; private set; } = null!;
 
         // ==== BASE CLASS IMPLEMENTATION ====
+
+        /// <summary>
+        /// Get the project name for the currently selected project ID
+        /// </summary>
+        private string GetSelectedProjectName()
+        {
+            // First try to use the stored project name
+            if (!string.IsNullOrEmpty(currentProjectName))
+                return currentProjectName;
+                
+            // Fallback to lookup in AvailableProjects
+            var project = AvailableProjects?.FirstOrDefault(p => p.Id == SelectedProjectId);
+            if (project != null)
+            {
+                currentProjectName = project.Name; // Cache it for next time
+                return project.Name;
+            }
+            
+            return $"Project {SelectedProjectId}";
+        }
+
+        /// <summary>
+        /// Ensure we have the project name for the current project ID
+        /// </summary>
+        private async Task EnsureProjectNameIsAvailable()
+        {
+            try
+            {
+                // If we already have the project name, we're good
+                if (!string.IsNullOrEmpty(currentProjectName))
+                    return;
+
+                // If AvailableProjects is not loaded, try to load it
+                if (AvailableProjects == null || !AvailableProjects.Any())
+                {
+                    _logger.LogInformation("[RequirementsSearchAttachments] Loading projects to get project name for ID {ProjectId}", SelectedProjectId);
+                    var projects = await _jamaConnectService.GetProjectsAsync();
+                    if (AvailableProjects == null)
+                        AvailableProjects = new ObservableCollection<JamaProject>();
+                    AvailableProjects.Clear();
+                    foreach (var project in projects)
+                    {
+                        AvailableProjects.Add(project);
+                    }
+                }
+
+                // Now try to find the project name
+                var selectedProject = AvailableProjects?.FirstOrDefault(p => p.Id == SelectedProjectId);
+                if (selectedProject != null)
+                {
+                    currentProjectName = selectedProject.Name;
+                    _logger.LogInformation("[RequirementsSearchAttachments] Found project name: {ProjectName} for ID {ProjectId}", currentProjectName, SelectedProjectId);
+                }
+                else
+                {
+                    _logger.LogWarning("[RequirementsSearchAttachments] Could not find project name for ID {ProjectId}", SelectedProjectId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsSearchAttachments] Error getting project name for ID {ProjectId}", SelectedProjectId);
+            }
+        }
 
         protected override void InitializeCommands()
         {
@@ -323,6 +389,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 if (matchingProject != null)
                 {
                     SelectedProjectId = matchingProject.Id;
+                    currentProjectName = matchingProject.Name; // Store the project name
                     _logger.LogInformation("[RequirementsSearchAttachments] Found Jama project: {ProjectName} -> ID: {ProjectId}", 
                         projectName, matchingProject.Id);
                     
@@ -373,6 +440,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             try
             {
                 _logger.LogInformation("[RequirementsSearchAttachments] Starting background attachment scan for project {ProjectId}", projectId);
+                
+                // Set the project ID and fetch the project name
+                SelectedProjectId = projectId;
+                await EnsureProjectNameIsAvailable();
                 
                 // Prevent duplicate scans
                 if (_backgroundScanInProgress)
@@ -433,7 +504,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     await Application.Current.Dispatcher.InvokeAsync(() =>
                     {
                         IsBackgroundScanningInProgress = true;
-                        BackgroundScanProgressText = $"🔍 Scanning project {SelectedProjectId} for attachments...";
+                        BackgroundScanProgressText = $"Searching {GetSelectedProjectName()} for attachments. 0%";
                         BackgroundScanProgress = 0;
                         BackgroundScanTotal = 0;
                     });
@@ -449,13 +520,43 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 
                 StatusMessage = "🔍 Scanning attachments...";
                 
+                // Initialize progress for background scan
+                if (isBackgroundScan)
+                {
+                    BackgroundScanProgressText = "Searching for attachments...";
+                    BackgroundScanProgress = 0;
+                    BackgroundScanTotal = 100; // Use percentage-based progress initially
+                }
+                
                 _logger.LogInformation("[RequirementsSearchAttachments] *** SEARCHING ATTACHMENTS ***");
                 _logger.LogInformation("[RequirementsSearchAttachments] Project ID: {ProjectId}", SelectedProjectId);
                 _logger.LogInformation("[RequirementsSearchAttachments] Search Query: '{SearchQuery}'", SearchQuery ?? "(none)");
                 _logger.LogInformation("[RequirementsSearchAttachments] Jama Service Configured: {IsConfigured}", _jamaConnectService.IsConfigured);
                 _logger.LogInformation("[RequirementsSearchAttachments] Background Scan: {IsBackground}", isBackgroundScan);
 
-                var attachments = await _jamaConnectService.GetProjectAttachmentsAsync(SelectedProjectId);
+                // Start API call with real progress reporting
+                List<JamaAttachment> attachments;
+                if (isBackgroundScan)
+                {
+                    // Use real progress reporting for background scan
+                    attachments = await _jamaConnectService.GetProjectAttachmentsAsync(SelectedProjectId, default, (current, total, progressData) =>
+                    {
+                        Application.Current.Dispatcher.InvokeAsync(() =>
+                        {
+                            var parts = progressData.Split('|');
+                            var percentage = parts[0];
+                            var attachmentCount = parts.Length > 1 ? parts[1] : "0";
+                            BackgroundScanProgressText = $"Searching {GetSelectedProjectName()} for attachments. {percentage} ({attachmentCount} found)";
+                            BackgroundScanProgress = current;
+                            BackgroundScanTotal = total;
+                        });
+                    });
+                }
+                else
+                {
+                    // No progress reporting for non-background scans
+                    attachments = await _jamaConnectService.GetProjectAttachmentsAsync(SelectedProjectId);
+                }
                 
                 _logger.LogInformation("[RequirementsSearchAttachments] *** API CALL COMPLETED ***");
                 _logger.LogInformation("[RequirementsSearchAttachments] Raw attachments returned: {Count}", attachments?.Count ?? 0);
@@ -467,11 +568,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                         BackgroundScanTotal = attachments.Count;
                         if (attachments.Count == 0)
                         {
-                            BackgroundScanProgressText = "No attachments found";
+                            BackgroundScanProgressText = "0 attachments found";
                         }
                         else
                         {
-                            BackgroundScanProgressText = "Scanning for attachments 0%";
+                            BackgroundScanProgressText = "Searching for attachments. 0%";
                         }
                     }
                     
@@ -500,6 +601,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     AvailableAttachments.Clear();
                     if (attachments != null && attachments.Count > 0)
                     {
+                        if (isBackgroundScan)
+                        {
+                            BackgroundScanTotal = attachments.Count;
+                            BackgroundScanProgressText = "Processing attachments...";
+                        }
+                        
                         int processed = 0;
                         foreach (var attachment in attachments)
                         {
@@ -509,11 +616,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                             if (isBackgroundScan)
                             {
                                 BackgroundScanProgress = processed;
-                                int percentage = (int)((double)processed / attachments.Count * 100);
-                                BackgroundScanProgressText = $"Scanning for attachments {percentage}%";
+                                int percentage = 80 + (int)((double)processed / attachments.Count * 20); // Start from 80% and go to 100%
+                                BackgroundScanProgressText = $"Processing {processed} of {attachments.Count} attachments ({percentage}%)";
                                 
                                 // Add small delay to make progress visible
-                                await Task.Delay(100);
+                                await Task.Delay(25);
                             }
                         }
                         
@@ -543,11 +650,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 {
                     if (attachments?.Count > 0)
                     {
-                        BackgroundScanProgressText = $"✅ Found {attachments.Count} attachments";
+                        BackgroundScanProgressText = $"{attachments.Count} attachments found";
                     }
                     else
                     {
-                        BackgroundScanProgressText = "❌ No attachments found";
+                        BackgroundScanProgressText = "0 attachments found";
                     }
                     BackgroundScanProgress = BackgroundScanTotal;
                 }

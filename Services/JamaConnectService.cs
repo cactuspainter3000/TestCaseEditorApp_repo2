@@ -1751,7 +1751,7 @@ namespace TestCaseEditorApp.Services
         /// 2. For each item, check for attachments using /items/{id}/attachments
         /// Based on: https://dev.jamasoftware.com/cookbook/ - REST Attachments section
         /// </summary>
-        public async Task<List<JamaAttachment>> GetProjectAttachmentsAsync(int projectId, CancellationToken cancellationToken = default)
+        public async Task<List<JamaAttachment>> GetProjectAttachmentsAsync(int projectId, CancellationToken cancellationToken = default, Action<int, int, string>? progressCallback = null)
         {
             return await WithRetryAsync(async () =>
             {
@@ -1770,8 +1770,13 @@ namespace TestCaseEditorApp.Services
                     
                     // Step 2: For each item, check for attachments using the proper endpoint
                     var itemsWithAttachments = 0;
+                    var currentItemIndex = 0;
                     foreach (var item in items)
                     {
+                        currentItemIndex++;
+                        var percentage = (int)((double)currentItemIndex / items.Count * 100);
+                        progressCallback?.Invoke(currentItemIndex, items.Count, $"{percentage}%|{attachments.Count}");
+                        
                         try
                         {
                             var itemAttachments = await GetItemAttachmentsAsync(item.Id, cancellationToken);
@@ -1779,6 +1784,8 @@ namespace TestCaseEditorApp.Services
                             {
                                 attachments.AddRange(itemAttachments);
                                 itemsWithAttachments++;
+                                // Update progress with new attachment count
+                                progressCallback?.Invoke(currentItemIndex, items.Count, $"{percentage}%|{attachments.Count}");
                                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {item.Id} ({item.DocumentKey}) has {itemAttachments.Count} attachment(s)");
                             }
                         }

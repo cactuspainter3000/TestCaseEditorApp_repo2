@@ -1112,30 +1112,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         }
 
         /// <summary>
-        /// Simulates attachment scan progress during API calls
+        /// Initiates attachment scan progress notification
         /// </summary>
         private async Task SimulateAttachmentScanProgressAsync(int projectId)
         {
             try
             {
-                var progressMessages = new[]
-                {
-                    $"🔗 Connecting to Jama project {projectId}...",
-                    $"📦 Fetching project {projectId} data...",
-                    $"📄 Loading project {projectId} attachments...",
-                    $"🔍 Scanning project {projectId} attachments..."
-                };
-
-                for (int i = 0; i < progressMessages.Length; i++)
-                {
-                    var progress = (i + 1) * 20; // 20%, 40%, 60%, 80%
-                    NotifyAttachmentScanProgress($"{progressMessages[i]} {progress}%");
-                    
-                    await Task.Delay(3000); // Update every 3 seconds
-                }
-                
-                // Final progress message
-                NotifyAttachmentScanProgress($"🔍 Finalizing scan of project {projectId}... 90%");
+                // Just show initial message and let real progress from ViewModel take over
+                NotifyAttachmentScanProgress("🔗 Connecting to Jama project...");
+                await Task.Delay(500); // Brief delay to show initial message
             }
             catch (Exception ex)
             {

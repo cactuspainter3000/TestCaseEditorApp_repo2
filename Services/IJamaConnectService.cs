@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -44,7 +45,7 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Get all attachments for a project
         /// </summary>
-        Task<List<JamaAttachment>> GetProjectAttachmentsAsync(int projectId, CancellationToken cancellationToken = default);
+        Task<List<JamaAttachment>> GetProjectAttachmentsAsync(int projectId, CancellationToken cancellationToken = default, Action<int, int, string>? progressCallback = null);
 
         /// <summary>
         /// Get limited attachments for a project (for faster automatic scanning)

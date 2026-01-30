@@ -103,7 +103,6 @@
                             </Border.Style>
                             
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <TextBlock Text="⏳" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="{Binding BackgroundScanProgressText}" 
                                           FontSize="13" 
                                           FontWeight="SemiBold"
@@ -188,31 +187,5 @@
                 </Grid>
             </Border>
         </Grid>
-
-        <!-- Status Bar -->
-        <Border Grid.Row="3" Background="#34495E" Padding="15,8">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-
-                <TextBlock Grid.Column="0" 
-                          Text="{Binding StatusMessage}" 
-                          Foreground="White" 
-                          VerticalAlignment="Center"/>
-
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Visibility="{Binding IsSearching, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <TextBlock Text="🔄 Processing..." 
-                              Foreground="#E74C3C" 
-                              VerticalAlignment="Center" 
-                              Margin="0,0,10,0"/>
-                    <ProgressBar IsIndeterminate="True" 
-                                Width="100" 
-                                Height="4" 
-                                VerticalAlignment="Center"/>
-                </StackPanel>
-            </Grid>
-        </Border>
     </Grid>
 </UserControl>
