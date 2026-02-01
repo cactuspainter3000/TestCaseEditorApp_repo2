@@ -180,6 +180,17 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Events
             public DateTime CompletedTime { get; set; } = DateTime.Now;
             public List<JamaAttachment> Attachments { get; set; } = new();
         }
+
+        /// <summary>
+        /// Published when Document Scraper functionality becomes available for Word document imports
+        /// </summary>
+        public class DocumentScrapperAvailable
+        {
+            public string WorkspaceName { get; set; } = string.Empty;
+            public string ProjectPath { get; set; } = string.Empty;
+            public string ImportSource { get; set; } = string.Empty;
+            public DateTime AvailableTime { get; set; } = DateTime.Now;
+        }
     }
 
     /// <summary>

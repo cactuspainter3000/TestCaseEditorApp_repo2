@@ -657,6 +657,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     OnPropertyChanged(nameof(IsTablesSelected));
                     OnPropertyChanged(nameof(IsParagraphsSelected));
                     OnPropertyChanged(nameof(IsAnalysisSelected));
+                    OnPropertyChanged(nameof(IsDocumentScrapperSelected));
                 }
             }
         }
@@ -673,6 +674,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     OnPropertyChanged(nameof(IsMetaSelected));
                     OnPropertyChanged(nameof(IsParagraphsSelected));
                     OnPropertyChanged(nameof(IsAnalysisSelected));
+                    OnPropertyChanged(nameof(IsDocumentScrapperSelected));
                 }
             }
         }
@@ -689,6 +691,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     OnPropertyChanged(nameof(IsMetaSelected));
                     OnPropertyChanged(nameof(IsTablesSelected));
                     OnPropertyChanged(nameof(IsAnalysisSelected));
+                    OnPropertyChanged(nameof(IsDocumentScrapperSelected));
                 }
             }
         }
@@ -705,6 +708,24 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     OnPropertyChanged(nameof(IsMetaSelected));
                     OnPropertyChanged(nameof(IsTablesSelected));
                     OnPropertyChanged(nameof(IsParagraphsSelected));
+                    OnPropertyChanged(nameof(IsDocumentScrapperSelected));
+                }
+            }
+        }
+
+        public bool IsDocumentScrapperSelected
+        {
+            get => SelectedSupportView == SupportView.RequirementsSearchAttachments;
+            set
+            {
+                if (value)
+                {
+                    SelectedSupportView = SupportView.RequirementsSearchAttachments;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(IsMetaSelected));
+                    OnPropertyChanged(nameof(IsTablesSelected));
+                    OnPropertyChanged(nameof(IsParagraphsSelected));
+                    OnPropertyChanged(nameof(IsAnalysisSelected));
                 }
             }
         }

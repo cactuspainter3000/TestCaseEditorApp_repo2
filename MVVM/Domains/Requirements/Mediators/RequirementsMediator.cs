@@ -1398,18 +1398,32 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 _logger.LogInformation("[RequirementsMediator] Project created with workspace: {WorkspaceName}, IsJamaImport: {IsJamaImport}, JamaProjectId: {JamaProjectId}",
                     eventData.WorkspaceName, eventData.IsJamaImport, eventData.JamaProjectId);
 
-                // Check if workspace has Jama project association for attachment scanning
-                var jamaProjectId = TryGetJamaProjectIdFromWorkspace(eventData);
-                if (jamaProjectId.HasValue)
+                if (eventData.IsJamaImport)
                 {
-                    _logger.LogInformation("[RequirementsMediator] Starting attachment scanning for project: {JamaProjectId}", jamaProjectId.Value);
-                    
-                    // Trigger background attachment scanning using existing mediator methods
-                    await TriggerBackgroundAttachmentScanAsync(jamaProjectId.Value);
+                    // Jama import: Try attachment scanning if project ID available
+                    var jamaProjectId = TryGetJamaProjectIdFromWorkspace(eventData);
+                    if (jamaProjectId.HasValue)
+                    {
+                        _logger.LogInformation("[RequirementsMediator] Starting attachment scanning for Jama project: {JamaProjectId}", jamaProjectId.Value);
+                        await TriggerBackgroundAttachmentScanAsync(jamaProjectId.Value);
+                    }
+                    else
+                    {
+                        _logger.LogDebug("[RequirementsMediator] No Jama project ID found - skipping attachment scanning");
+                    }
                 }
                 else
                 {
-                    _logger.LogDebug("[RequirementsMediator] No Jama project association found - skipping attachment scanning");
+                    // Word document import: Enable Document Scraper tab for user-driven attachment discovery
+                    _logger.LogInformation("[RequirementsMediator] Word document import detected - Document Scraper tab available for attachment analysis");
+                    
+                    // Publish event to notify UI that Document Scraper functionality is available
+                    PublishEvent(new RequirementsEvents.DocumentScrapperAvailable
+                    {
+                        WorkspaceName = eventData.WorkspaceName,
+                        ProjectPath = eventData.ProjectPath,
+                        ImportSource = "WordDocument"
+                    });
                 }
             }
             catch (Exception ex)

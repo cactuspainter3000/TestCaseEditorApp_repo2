@@ -188,6 +188,14 @@
                     </Border>
                 </Grid>
                 
+                <!-- Document Scraper pill -->
+                <ToggleButton Style="{StaticResource ActionToggleButtonSelected}"
+                              Margin="8,0,0,0"
+                              IsChecked="{Binding IsDocumentScrapperSelected, Mode=TwoWay}"
+                              ToolTip="Search and extract requirements from document attachments">
+                    <TextBlock Text="Document Scraper" VerticalAlignment="Center" Margin="6,0" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                </ToggleButton>
+
                 <!-- Analysis timer (next to the analysis button) -->
                 <TextBlock Text="{Binding RequirementAnalysisVM.AnalysisElapsedTime}" 
                            FontSize="12" 
@@ -439,6 +447,17 @@
                                     <Setter.Value>
                                         <DataTemplate>
                                             <req:Requirements_AnalysisControl />
+                                        </DataTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </DataTrigger>
+
+                            <!-- Document Scraper tab content -->
+                            <DataTrigger Binding="{Binding IsDocumentScrapperSelected}" Value="True">
+                                <Setter Property="ContentTemplate">
+                                    <Setter.Value>
+                                        <DataTemplate>
+                                            <req:RequirementsSearchAttachmentsView DataContext="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=DataContext.RequirementsSearchAttachmentsViewModel}" />
                                         </DataTemplate>
                                     </Setter.Value>
                                 </Setter>
