@@ -614,6 +614,31 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 // Even if requirements import failed, the project file was still created successfully
                 IsProjectCreated = true;
                 
+                // Publish comprehensive project creation event for all domains to react to
+                var projectCreatedEvent = new NewProjectEvents.ProjectCreatedWithWorkspace
+                {
+                    ProjectName = ProjectName,
+                    WorkspaceName = WorkspaceName,
+                    ProjectPath = ProjectSavePath,
+                    IsJamaImport = IsJamaImportMode,
+                    JamaProjectId = IsJamaImportMode && SelectedProject != null ? SelectedProject.Id : null,
+                    JamaProjectName = IsJamaImportMode && SelectedProject != null ? SelectedProject.Name : null
+                };
+                _mediator.PublishEvent(projectCreatedEvent);
+                _logger.LogInformation($"Published ProjectCreatedWithWorkspace event for {ProjectName} (Jama: {IsJamaImportMode})");
+                
+                // Also publish specific Jama event for backward compatibility if it was a Jama project
+                if (IsJamaImportMode && SelectedProject != null && creationSuccessful)
+                {
+                    _mediator.PublishEvent(new NewProjectEvents.JamaProjectCreated
+                    {
+                        JamaProjectId = SelectedProject.Id,
+                        JamaProjectName = SelectedProject.Name,
+                        ProjectName = ProjectName
+                    });
+                    _logger.LogInformation($"Published JamaProjectCreated event for project {SelectedProject.Id}");
+                }
+                
                 // Fire completion event to clear cached workflow instance
                 var completedArgs = new NewProjectCompletedEventArgs
                 {

@@ -819,7 +819,30 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 BackgroundScanProgressText = progressEvent.ProgressText;
-                _logger.LogInformation("[RequirementsSearchAttachments] Progress updated via mediator: {ProgressText}", progressEvent.ProgressText);
+                
+                // Parse progress percentage and total from the progress text (format: "XX%|Y")
+                if (!string.IsNullOrEmpty(progressEvent.ProgressText))
+                {
+                    var parts = progressEvent.ProgressText.Split('|');
+                    if (parts.Length >= 2)
+                    {
+                        // Extract percentage (remove % sign)
+                        var percentageText = parts[0].Replace("%", "").Trim();
+                        if (int.TryParse(percentageText, out int percentage))
+                        {
+                            BackgroundScanProgress = percentage;
+                        }
+                        
+                        // Extract total count
+                        if (int.TryParse(parts[1].Trim(), out int total))
+                        {
+                            BackgroundScanTotal = total;
+                        }
+                    }
+                }
+                
+                _logger.LogInformation("[RequirementsSearchAttachments] Progress updated via mediator: {ProgressText} (Progress: {Progress}%, Total: {Total})", 
+                    progressEvent.ProgressText, BackgroundScanProgress, BackgroundScanTotal);
             });
         }
 

@@ -167,5 +167,30 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Events
             public string Source { get; set; } = string.Empty; // Which domain triggered the change
             public DateTime Timestamp { get; set; } = DateTime.Now;
         }
+        
+        /// <summary>
+        /// Fired when a new project is created with Jama import, so other domains can react
+        /// </summary>
+        public class JamaProjectCreated
+        {
+            public int JamaProjectId { get; set; }
+            public string JamaProjectName { get; set; } = string.Empty;
+            public string ProjectName { get; set; } = string.Empty;
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
+        
+        /// <summary>
+        /// Fired when any new project is successfully created, regardless of import source
+        /// </summary>
+        public class ProjectCreatedWithWorkspace
+        {
+            public string ProjectName { get; set; } = string.Empty;
+            public string WorkspaceName { get; set; } = string.Empty;
+            public string ProjectPath { get; set; } = string.Empty;
+            public bool IsJamaImport { get; set; }
+            public int? JamaProjectId { get; set; }
+            public string? JamaProjectName { get; set; }
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
     }
 }

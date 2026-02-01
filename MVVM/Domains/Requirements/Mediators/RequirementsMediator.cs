@@ -1308,6 +1308,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 Subscribe<RequirementsEvents.RequirementUpdated>(OnRequirementUpdated);
                 _logger.LogDebug("[RequirementsMediator] Subscribed to RequirementUpdated events");
                 
+                // Subscribe to NewProject domain project creation events
+                // This triggers attachment scanning for all project creation types (Jama + Word document imports)
+                Subscribe<NewProjectEvents.ProjectCreatedWithWorkspace>(OnProjectCreatedWithWorkspace);
+                _logger.LogDebug("[RequirementsMediator] Subscribed to ProjectCreatedWithWorkspace events for attachment scanning");
+                
                 _logger.LogDebug("[RequirementsMediator] Subscribed to cross-domain TestCaseGeneration.RequirementSelected events");
             }
             catch (Exception ex)
@@ -1379,6 +1384,70 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[RequirementsMediator] Error handling RequirementUpdated event");
+            }
+        }
+
+        /// <summary>
+        /// Handle ProjectCreatedWithWorkspace event - triggers attachment scanning for all project creation types
+        /// This centralizes attachment scanning logic for both Jama imports and Word document imports
+        /// </summary>
+        private async void OnProjectCreatedWithWorkspace(NewProjectEvents.ProjectCreatedWithWorkspace eventData)
+        {
+            try
+            {
+                _logger.LogInformation("[RequirementsMediator] Project created with workspace: {WorkspaceName}, IsJamaImport: {IsJamaImport}, JamaProjectId: {JamaProjectId}",
+                    eventData.WorkspaceName, eventData.IsJamaImport, eventData.JamaProjectId);
+
+                // Check if workspace has Jama project association for attachment scanning
+                var jamaProjectId = TryGetJamaProjectIdFromWorkspace(eventData);
+                if (jamaProjectId.HasValue)
+                {
+                    _logger.LogInformation("[RequirementsMediator] Starting attachment scanning for project: {JamaProjectId}", jamaProjectId.Value);
+                    
+                    // Trigger background attachment scanning using existing mediator methods
+                    await TriggerBackgroundAttachmentScanAsync(jamaProjectId.Value);
+                }
+                else
+                {
+                    _logger.LogDebug("[RequirementsMediator] No Jama project association found - skipping attachment scanning");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsMediator] Error handling ProjectCreatedWithWorkspace event");
+            }
+        }
+
+        /// <summary>
+        /// Extract Jama project ID from workspace data for attachment scanning
+        /// Handles both direct Jama imports and Word document imports with Jama workspace associations
+        /// </summary>
+        private int? TryGetJamaProjectIdFromWorkspace(NewProjectEvents.ProjectCreatedWithWorkspace eventData)
+        {
+            try
+            {
+                // Direct Jama project from import
+                if (eventData.JamaProjectId.HasValue)
+                {
+                    _logger.LogDebug("[RequirementsMediator] Found direct Jama project ID: {JamaProjectId}", eventData.JamaProjectId.Value);
+                    return eventData.JamaProjectId.Value;
+                }
+
+                // Check current workspace context for Jama project association
+                var currentWorkspace = _workspaceContext.CurrentWorkspace;
+                if (currentWorkspace?.JamaProject != null && int.TryParse(currentWorkspace.JamaProject, out var workspaceProjectId))
+                {
+                    _logger.LogDebug("[RequirementsMediator] Found workspace Jama project ID: {JamaProjectId}", workspaceProjectId);
+                    return workspaceProjectId;
+                }
+
+                _logger.LogDebug("[RequirementsMediator] No Jama project ID found in workspace data");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[RequirementsMediator] Error extracting Jama project ID from workspace");
+                return null;
             }
         }
         
