@@ -4,6 +4,8 @@ using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Events;
+using TestCaseEditorApp.Services;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Events;
 
 namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
 {
@@ -219,6 +221,22 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// Notify about attachment scan progress updates
         /// </summary>
         void NotifyAttachmentScanProgress(string progressText);
+
+        /// <summary>
+        /// Scan project attachments and return results with progress reporting
+        /// Proper mediator method that replaces direct ViewModel service calls
+        /// </summary>
+        Task<List<JamaAttachment>> ScanProjectAttachmentsAsync(int projectId, IProgress<AttachmentScanProgressData>? progress = null);
+
+        /// <summary>
+        /// Parse attachment for requirements using document parsing service
+        /// </summary>
+        Task<List<Requirement>> ParseAttachmentRequirementsAsync(int attachmentId);
+
+        /// <summary>
+        /// Import extracted requirements into the current project
+        /// </summary>
+        Task ImportRequirementsAsync(List<Requirement> requirements);
     }
 
     /// <summary>

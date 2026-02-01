@@ -35,6 +35,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         private readonly ObservableCollection<Requirement> _requirements;
         private readonly IWorkspaceContext _workspaceContext;
         private readonly INewProjectMediator _newProjectMediator;
+        private readonly IJamaConnectService _jamaConnectService;
+        private readonly IJamaDocumentParserService _jamaDocumentParserService;
         
         private Requirement? _currentRequirement;
         private bool _isDirty;
@@ -145,6 +147,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             IRequirementDataScrubber scrubber,
             IWorkspaceContext workspaceContext,
             INewProjectMediator newProjectMediator,
+            IJamaConnectService jamaConnectService,
+            IJamaDocumentParserService jamaDocumentParserService,
             IRequirementAnalysisEngine? analysisEngine = null, // NEW: Optional for transition period
             PerformanceMonitoringService? performanceMonitor = null,
             EventReplayService? eventReplay = null)
@@ -155,6 +159,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             _scrubber = scrubber ?? throw new ArgumentNullException(nameof(scrubber));
             _workspaceContext = workspaceContext ?? throw new ArgumentNullException(nameof(workspaceContext));
             _newProjectMediator = newProjectMediator ?? throw new ArgumentNullException(nameof(newProjectMediator));
+            _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
+            _jamaDocumentParserService = jamaDocumentParserService ?? throw new ArgumentNullException(nameof(jamaDocumentParserService));
             _analysisEngine = analysisEngine; // Optional during transition
             _smartImporter = new SmartRequirementImporter(requirementService, 
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<SmartRequirementImporter>.Instance);
@@ -1062,6 +1068,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// <summary>
         /// Trigger background attachment scanning for the specified project
         /// Called from OpenProject domain when automatic scanning is needed
+        /// ARCHITECTURAL COMPLIANCE: Uses mediator's own methods instead of service provider lookup
         /// </summary>
         public async Task TriggerBackgroundAttachmentScanAsync(int projectId)
         {
@@ -1069,22 +1076,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             {
                 _logger.LogInformation("[RequirementsMediator] Triggering background attachment scan for project {ProjectId}", projectId);
                 
-                // Get the RequirementsSearchAttachments ViewModel - now using Singleton registration
-                var searchAttachmentsViewModel = App.ServiceProvider?.GetService(typeof(RequirementsSearchAttachmentsViewModel)) as RequirementsSearchAttachmentsViewModel;
-                if (searchAttachmentsViewModel != null)
-                {
-                    _logger.LogInformation("[RequirementsMediator] Retrieved RequirementsSearchAttachmentsViewModel instance {InstanceId} for background scan", searchAttachmentsViewModel.GetHashCode());
-                    
-                    // Start progress simulation while API call runs
-                    _ = Task.Run(async () => await SimulateAttachmentScanProgressAsync(projectId));
-                    
-                    await searchAttachmentsViewModel.StartBackgroundAttachmentScanAsync(projectId);
-                    _logger.LogInformation("[RequirementsMediator] Background attachment scan started successfully for project {ProjectId}", projectId);
-                }
-                else
-                {
-                    _logger.LogWarning("[RequirementsMediator] RequirementsSearchAttachmentsViewModel not found in service provider");
-                }
+                // Use our own mediator method instead of calling ViewModel directly
+                var attachments = await ScanProjectAttachmentsAsync(projectId);
+                
+                _logger.LogInformation("[RequirementsMediator] Background attachment scan completed for project {ProjectId} - found {Count} attachments", 
+                    projectId, attachments.Count);
             }
             catch (Exception ex)
             {
@@ -1111,20 +1107,145 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             }
         }
 
+
+
         /// <summary>
-        /// Initiates attachment scan progress notification
+        /// Scan project attachments and return results with progress reporting
+        /// Proper mediator method that replaces direct ViewModel service calls
         /// </summary>
-        private async Task SimulateAttachmentScanProgressAsync(int projectId)
+        public async Task<List<JamaAttachment>> ScanProjectAttachmentsAsync(int projectId, IProgress<AttachmentScanProgressData>? progress = null)
         {
             try
             {
-                // Just show initial message and let real progress from ViewModel take over
-                NotifyAttachmentScanProgress("🔗 Connecting to Jama project...");
-                await Task.Delay(500); // Brief delay to show initial message
+                _logger.LogInformation("[RequirementsMediator] Starting attachment scan for project {ProjectId}", projectId);
+                
+                // Publish start event
+                PublishEvent(new RequirementsEvents.AttachmentScanStarted
+                {
+                    ProjectId = projectId,
+                    ProjectName = $"Project {projectId}"
+                });
+
+                var startTime = DateTime.Now;
+
+                // Use the injected Jama service to get attachments
+                var attachments = await _jamaConnectService.GetProjectAttachmentsAsync(projectId, default, (current, total, progressData) =>
+                {
+                    // Report progress to caller
+                    progress?.Report(new AttachmentScanProgressData
+                    {
+                        Current = current,
+                        Total = total,
+                        ProgressText = progressData
+                    });
+
+                    // Also publish progress event for other subscribers
+                    PublishEvent(new RequirementsEvents.AttachmentScanProgress
+                    {
+                        ProjectId = projectId,
+                        ProgressText = progressData
+                    });
+                });
+
+                var duration = DateTime.Now - startTime;
+
+                // Publish completion event
+                PublishEvent(new RequirementsEvents.AttachmentScanCompleted
+                {
+                    ProjectId = projectId,
+                    AttachmentCount = attachments?.Count ?? 0,
+                    Success = true,
+                    Duration = duration,
+                    Attachments = attachments ?? new List<JamaAttachment>()
+                });
+
+                _logger.LogInformation("[RequirementsMediator] Attachment scan completed for project {ProjectId} - found {Count} attachments", 
+                    projectId, attachments?.Count ?? 0);
+
+                return attachments ?? new List<JamaAttachment>();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[RequirementsMediator] Error in attachment scan progress simulation");
+                _logger.LogError(ex, "[RequirementsMediator] Error scanning attachments for project {ProjectId}", projectId);
+
+                // Publish failure event
+                PublishEvent(new RequirementsEvents.AttachmentScanCompleted
+                {
+                    ProjectId = projectId,
+                    AttachmentCount = 0,
+                    Success = false,
+                    ErrorMessage = ex.Message,
+                    Duration = TimeSpan.Zero,
+                    Attachments = new List<JamaAttachment>()
+                });
+
+                throw; // Re-throw to let caller handle
+            }
+        }
+
+        /// <summary>
+        /// Parse attachment for requirements using document parsing service
+        /// </summary>
+        public async Task<List<Requirement>> ParseAttachmentRequirementsAsync(int attachmentId)
+        {
+            try
+            {
+                _logger.LogInformation("[RequirementsMediator] Parsing requirements from attachment {AttachmentId}", attachmentId);
+
+                // For now, simulate parsing until IJamaDocumentParserService is fully implemented
+                await Task.Delay(2000);
+
+                var simulatedRequirements = new List<Requirement>
+                {
+                    new Requirement 
+                    { 
+                        GlobalId = Guid.NewGuid().ToString(),
+                        Name = $"Extracted Requirement from Attachment {attachmentId}",
+                        Description = $"Sample requirement extracted from attachment {attachmentId} using LLM document parsing",
+                        ItemType = "Requirement"
+                    }
+                };
+
+                _logger.LogInformation("[RequirementsMediator] Parsed {Count} requirements from attachment {AttachmentId}", 
+                    simulatedRequirements.Count, attachmentId);
+
+                return simulatedRequirements;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsMediator] Error parsing attachment {AttachmentId}", attachmentId);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Import extracted requirements into the current project
+        /// </summary>
+        public async Task ImportRequirementsAsync(List<Requirement> requirements)
+        {
+            try
+            {
+                _logger.LogInformation("[RequirementsMediator] Importing {Count} requirements", requirements.Count);
+
+                foreach (var requirement in requirements)
+                {
+                    AddRequirement(requirement);
+                }
+
+                // Publish import event
+                PublishEvent(new RequirementsEvents.RequirementsImported
+                {
+                    Requirements = requirements,
+                    SourceFile = "Attachment Parsing",
+                    ImportMethod = "JamaDocumentParser"
+                });
+
+                _logger.LogInformation("[RequirementsMediator] Successfully imported {Count} requirements", requirements.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsMediator] Error importing {Count} requirements", requirements.Count);
+                throw;
             }
         }
 

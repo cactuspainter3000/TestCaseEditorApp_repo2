@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.Services;
 
 namespace TestCaseEditorApp.MVVM.Domains.Requirements.Events
 {
@@ -155,5 +156,42 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Events
             public int ProjectId { get; set; }
             public DateTime Timestamp { get; set; } = DateTime.Now;
         }
+
+        /// <summary>
+        /// Published when attachment scanning starts
+        /// </summary>
+        public class AttachmentScanStarted
+        {
+            public int ProjectId { get; set; }
+            public string ProjectName { get; set; } = string.Empty;
+            public DateTime StartTime { get; set; } = DateTime.Now;
+        }
+
+        /// <summary>
+        /// Published when attachment scanning completes
+        /// </summary>
+        public class AttachmentScanCompleted
+        {
+            public int ProjectId { get; set; }
+            public int AttachmentCount { get; set; }
+            public bool Success { get; set; }
+            public string? ErrorMessage { get; set; }
+            public TimeSpan Duration { get; set; }
+            public DateTime CompletedTime { get; set; } = DateTime.Now;
+            public List<JamaAttachment> Attachments { get; set; } = new();
+        }
+    }
+
+    /// <summary>
+    /// Progress data for attachment scanning operations
+    /// Used with IProgress<T> for real-time progress reporting
+    /// </summary>
+    public class AttachmentScanProgressData
+    {
+        public int Current { get; set; }
+        public int Total { get; set; }
+        public string ProgressText { get; set; } = string.Empty;
+        public int Percentage => Total > 0 ? (int)((double)Current / Total * 100) : 0;
+        public List<JamaAttachment> CurrentAttachments { get; set; } = new();
     }
 }
