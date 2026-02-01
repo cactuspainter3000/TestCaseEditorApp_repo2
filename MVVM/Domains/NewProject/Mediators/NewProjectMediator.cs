@@ -749,6 +749,10 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 // 2. Import requirements first, then create workspace
                 List<Requirement> importedRequirements = new();
                 
+                // 🎯 Variables to preserve Jama project information
+                string? jamaProjectId = null;
+                string? jamaTestPlan = null;
+                
                 if (!string.IsNullOrWhiteSpace(documentPath) && File.Exists(documentPath))
                 {
                     UpdateProgress("Importing requirements from document...", 60);
@@ -768,8 +772,15 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                             if (jamaWorkspace?.Requirements != null)
                             {
                                 importedRequirements = jamaWorkspace.Requirements;
+                                
+                                // 🎯 Preserve Jama project information from original workspace
+                                jamaProjectId = jamaWorkspace.JamaProject;
+                                jamaTestPlan = jamaWorkspace.JamaTestPlan;
+                                
                                 _logger.LogInformation("✅ Successfully loaded {Count} requirements from Jama JSON file", 
                                     importedRequirements.Count);
+                                _logger.LogInformation("🔍 DEBUG: Extracted Jama info - ProjectId: {ProjectId}, TestPlan: {TestPlan}", 
+                                    jamaProjectId, jamaTestPlan);
                                 
                                 // Broadcast imported requirements to TestCaseGenerationMediator for UI sync
                                 BroadcastToAllDomains(new TestCaseGenerationEvents.RequirementsImported
@@ -858,6 +869,8 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     SaveCount = 0,
                     SourceDocPath = documentPath,
                     ImportSource = importSource,  // 🎯 Set based on actual content type
+                    JamaProject = jamaProjectId,  // 🎯 Preserve Jama project ID for attachment scanning
+                    JamaTestPlan = jamaTestPlan,  // 🎯 Preserve Jama test plan name for display
                     Requirements = importedRequirements
                 };
                 
@@ -1385,7 +1398,8 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     CreatedBy = Environment.UserName,
                     CreatedUtc = DateTime.UtcNow,
                     LastSavedUtc = DateTime.UtcNow,
-                    JamaProject = projectName,
+                    JamaProject = projectId.ToString(), // 🎯 Store project ID for attachment scanning
+                    JamaTestPlan = projectName, // Store project name for display
                     Requirements = requirements,
                     SourceDocPath = $"Jama Project: {projectName} ({projectKey})",
                     ImportSource = "Jama"  // 🎯 Definitive flag for view routing

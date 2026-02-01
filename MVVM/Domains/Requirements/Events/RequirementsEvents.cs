@@ -189,6 +189,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Events
             public string WorkspaceName { get; set; } = string.Empty;
             public string ProjectPath { get; set; } = string.Empty;
             public string ImportSource { get; set; } = string.Empty;
+            public bool HasJamaAssociation { get; set; }
             public DateTime AvailableTime { get; set; } = DateTime.Now;
         }
     }

@@ -46,6 +46,9 @@ namespace TestCaseEditorApp
 
         protected override async void OnStartup(StartupEventArgs e)
         {
+            // Suppress Visual Studio designer binding errors
+            System.Diagnostics.PresentationTraceSources.DataBindingSource.Switch.Level = System.Diagnostics.SourceLevels.Critical;
+            
             base.OnStartup(e);
 
             _host = Host.CreateDefaultBuilder()
@@ -389,6 +392,9 @@ namespace TestCaseEditorApp
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel>>();
                         return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel(reqMediator, workspaceContext, logger);
                     });
+
+                    // Self-contained Document Scrapper ViewModel (shared component)
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Shared.ViewModels.DocumentScrapperViewModel>();
                     
                     // Requirements uses shared NavigationViewModel and NotificationWorkspaceViewModel
                     

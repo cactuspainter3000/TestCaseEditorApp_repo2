@@ -627,6 +627,24 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 _mediator.PublishEvent(projectCreatedEvent);
                 _logger.LogInformation($"Published ProjectCreatedWithWorkspace event for {ProjectName} (Jama: {IsJamaImportMode})");
                 
+                // CROSS-DOMAIN: Publish to NotificationMediator for Requirements domain attachment scanning
+                var notificationMediator = App.ServiceProvider?.GetService(typeof(TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator)) 
+                    as TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator;
+                if (notificationMediator != null)
+                {
+                    var crossDomainNotification = new TestCaseEditorApp.MVVM.Events.CrossDomainMessages.ProjectCreatedNotification
+                    {
+                        ProjectName = ProjectName,
+                        WorkspaceName = WorkspaceName,
+                        ProjectPath = ProjectSavePath,
+                        IsJamaImport = IsJamaImportMode,
+                        JamaProjectId = IsJamaImportMode && SelectedProject != null ? SelectedProject.Id : null,
+                        JamaProjectName = IsJamaImportMode && SelectedProject != null ? SelectedProject.Name : null
+                    };
+                    notificationMediator.HandleBroadcastNotification(crossDomainNotification);
+                    _logger.LogInformation($"Published cross-domain ProjectCreatedNotification for attachment scanning");
+                }
+                
                 // Also publish specific Jama event for backward compatibility if it was a Jama project
                 if (IsJamaImportMode && SelectedProject != null && creationSuccessful)
                 {

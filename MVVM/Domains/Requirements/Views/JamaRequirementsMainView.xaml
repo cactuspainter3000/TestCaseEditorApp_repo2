@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
              xmlns:req="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.Views"
+             xmlns:shared="clr-namespace:TestCaseEditorApp.MVVM.Domains.Shared.Views"
              mc:Ignorable="d"
              MinHeight="400" MinWidth="800"
              HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
@@ -207,7 +208,7 @@
                                                         Visibility="{Binding HasAnalysis, Converter={StaticResource BoolToVisibilityConverter}}">
                                                     <StackPanel>
                                                         <!-- Include the full analysis control which has its own header -->
-                                                        <req:Requirements_AnalysisControl />
+                                                        <req:Requirements_AnalysisControl DataContext="{Binding RequirementAnalysisVM}" />
                                                     </StackPanel>
                                                 </Border>
                                                            
@@ -288,7 +289,7 @@
                                         <Setter Property="ContentTemplate">
                                             <Setter.Value>
                                                 <DataTemplate>
-                                                    <req:RequirementsSearchAttachmentsView DataContext="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=DataContext.RequirementsSearchAttachmentsViewModel}" />
+                                                    <shared:DocumentScrapperView />
                                                 </DataTemplate>
                                             </Setter.Value>
                                         </Setter>
@@ -299,7 +300,7 @@
                                         <Setter Property="ContentTemplate">
                                             <Setter.Value>
                                                 <DataTemplate>
-                                                    <req:RequirementsSearchAttachmentsView DataContext="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=DataContext.RequirementsSearchAttachmentsViewModel}" />
+                                                    <shared:DocumentScrapperView />
                                                 </DataTemplate>
                                             </Setter.Value>
                                         </Setter>

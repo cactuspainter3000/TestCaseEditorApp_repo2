@@ -964,15 +964,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     _ = LoadFromProjectAsync(projectCreated.Workspace);
                     // Trigger automatic RAG document sync for analysis service
                     _analysisService?.SetWorkspaceContext(projectCreated.WorkspaceName);
-                }
-            }
-            else if (notification is NewProjectEvents.ProjectOpened newProjectOpened)
-            {
-                if (newProjectOpened.Workspace != null)
-                {
-                    _ = LoadFromProjectAsync(newProjectOpened.Workspace);
-                    // Trigger automatic RAG document sync for analysis service
-                    _analysisService?.SetWorkspaceContext(newProjectOpened.WorkspaceName);
+                    
+                    // NOTE: WorkspaceContext notification is handled by NewProjectMediator
+                    // No need for explicit refresh - proper architectural separation
                 }
             }
             else if (notification is OpenProjectEvents.ProjectOpened openProjectOpened)
@@ -982,9 +976,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 {
                     _logger.LogInformation("🚀 RequirementsMediator: About to call LoadFromProjectAsync for workspace with {RequirementCount} requirements", 
                         openProjectOpened.Workspace.Requirements?.Count ?? 0);
+                    
                     _ = LoadFromProjectAsync(openProjectOpened.Workspace);
                     // Trigger automatic RAG document sync for analysis service
                     _analysisService?.SetWorkspaceContext(openProjectOpened.WorkspaceName);
+                    
+                    // NOTE: WorkspaceContext notification is handled by NewProjectMediator
+                    // No need for explicit refresh - proper architectural separation
                 }
                 else
                 {
@@ -1000,6 +998,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             else if (notification is TestCaseEditorApp.MVVM.Events.CrossDomainMessages.ImportRequirementsRequest importRequest)
             {
                 _ = ImportRequirementsAsync(importRequest.DocumentPath, importRequest.PreferJamaParser ? "Jama" : "Auto");
+            }
+            // Handle cross-domain project creation notifications for attachment scanning
+            else if (notification is TestCaseEditorApp.MVVM.Events.CrossDomainMessages.ProjectCreatedNotification projectCreatedNotification)
+            {
+                _logger.LogInformation("[RequirementsMediator] Processing cross-domain ProjectCreatedNotification for attachment scanning");
+                _ = Task.Run(async () => await HandleProjectCreatedNotificationAsync(projectCreatedNotification));
             }
         }
 
@@ -1119,16 +1123,20 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             {
                 _logger.LogInformation("[RequirementsMediator] Starting attachment scan for project {ProjectId}", projectId);
                 
+                // Get project name from current workspace if available
+                var currentWorkspace = _workspaceContext.CurrentWorkspace;
+                var projectName = currentWorkspace?.JamaTestPlan ?? $"Project {projectId}";
+                
                 // Publish start event
                 PublishEvent(new RequirementsEvents.AttachmentScanStarted
                 {
                     ProjectId = projectId,
-                    ProjectName = $"Project {projectId}"
+                    ProjectName = projectName
                 });
 
                 var startTime = DateTime.Now;
 
-                // Use the injected Jama service to get attachments
+                // Use the injected Jama service to get attachments with project name for better progress messages
                 var attachments = await _jamaConnectService.GetProjectAttachmentsAsync(projectId, default, (current, total, progressData) =>
                 {
                     // Report progress to caller
@@ -1145,7 +1153,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                         ProjectId = projectId,
                         ProgressText = progressData
                     });
-                });
+                }, projectName);
 
                 var duration = DateTime.Now - startTime;
 
@@ -1308,10 +1316,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 Subscribe<RequirementsEvents.RequirementUpdated>(OnRequirementUpdated);
                 _logger.LogDebug("[RequirementsMediator] Subscribed to RequirementUpdated events");
                 
-                // Subscribe to NewProject domain project creation events
-                // This triggers attachment scanning for all project creation types (Jama + Word document imports)
-                Subscribe<NewProjectEvents.ProjectCreatedWithWorkspace>(OnProjectCreatedWithWorkspace);
-                _logger.LogDebug("[RequirementsMediator] Subscribed to ProjectCreatedWithWorkspace events for attachment scanning");
+                // NOTE: Cross-domain project creation events handled via HandleBroadcastNotification
                 
                 _logger.LogDebug("[RequirementsMediator] Subscribed to cross-domain TestCaseGeneration.RequirementSelected events");
             }
@@ -1388,63 +1393,69 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         }
 
         /// <summary>
-        /// Handle ProjectCreatedWithWorkspace event - triggers attachment scanning for all project creation types
+        /// Handle cross-domain project creation notification - triggers attachment scanning for all project types
         /// This centralizes attachment scanning logic for both Jama imports and Word document imports
         /// </summary>
-        private async void OnProjectCreatedWithWorkspace(NewProjectEvents.ProjectCreatedWithWorkspace eventData)
+        private async Task HandleProjectCreatedNotificationAsync(TestCaseEditorApp.MVVM.Events.CrossDomainMessages.ProjectCreatedNotification notification)
         {
             try
             {
-                _logger.LogInformation("[RequirementsMediator] Project created with workspace: {WorkspaceName}, IsJamaImport: {IsJamaImport}, JamaProjectId: {JamaProjectId}",
-                    eventData.WorkspaceName, eventData.IsJamaImport, eventData.JamaProjectId);
+                _logger.LogInformation("[RequirementsMediator] Project created: {WorkspaceName}, IsJamaImport: {IsJamaImport}, JamaProjectId: {JamaProjectId}",
+                    notification.WorkspaceName, notification.IsJamaImport, notification.JamaProjectId);
 
-                if (eventData.IsJamaImport)
+                // Check for Jama project association for ALL project types
+                var jamaProjectId = TryGetJamaProjectIdFromNotification(notification);
+                if (jamaProjectId.HasValue)
                 {
-                    // Jama import: Try attachment scanning if project ID available
-                    var jamaProjectId = TryGetJamaProjectIdFromWorkspace(eventData);
-                    if (jamaProjectId.HasValue)
-                    {
-                        _logger.LogInformation("[RequirementsMediator] Starting attachment scanning for Jama project: {JamaProjectId}", jamaProjectId.Value);
-                        await TriggerBackgroundAttachmentScanAsync(jamaProjectId.Value);
-                    }
-                    else
-                    {
-                        _logger.LogDebug("[RequirementsMediator] No Jama project ID found - skipping attachment scanning");
-                    }
+                    _logger.LogInformation("[RequirementsMediator] Starting attachment search for project: {JamaProjectId} (ImportType: {ImportType})", 
+                        jamaProjectId.Value, notification.IsJamaImport ? "Jama" : "WordDocument");
+                    
+                    // Trigger background attachment scanning for any project with Jama association
+                    await TriggerBackgroundAttachmentScanAsync(jamaProjectId.Value);
                 }
                 else
                 {
-                    // Word document import: Enable Document Scraper tab for user-driven attachment discovery
-                    _logger.LogInformation("[RequirementsMediator] Word document import detected - Document Scraper tab available for attachment analysis");
-                    
-                    // Publish event to notify UI that Document Scraper functionality is available
+                    if (notification.IsJamaImport)
+                    {
+                        _logger.LogDebug("[RequirementsMediator] Jama import but no project ID found - attachment search not available");
+                    }
+                    else
+                    {
+                        _logger.LogDebug("[RequirementsMediator] Word document import with no Jama association - attachment search requires manual project configuration");
+                    }
+                }
+
+                // Always publish availability event for Word document imports (even without Jama association)
+                if (!notification.IsJamaImport)
+                {
                     PublishEvent(new RequirementsEvents.DocumentScrapperAvailable
                     {
-                        WorkspaceName = eventData.WorkspaceName,
-                        ProjectPath = eventData.ProjectPath,
-                        ImportSource = "WordDocument"
+                        WorkspaceName = notification.WorkspaceName,
+                        ProjectPath = notification.ProjectPath,
+                        ImportSource = "WordDocument",
+                        HasJamaAssociation = jamaProjectId.HasValue
                     });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[RequirementsMediator] Error handling ProjectCreatedWithWorkspace event");
+                _logger.LogError(ex, "[RequirementsMediator] Error handling cross-domain ProjectCreatedNotification");
             }
         }
 
         /// <summary>
-        /// Extract Jama project ID from workspace data for attachment scanning
+        /// Extract Jama project ID from cross-domain notification for attachment scanning
         /// Handles both direct Jama imports and Word document imports with Jama workspace associations
         /// </summary>
-        private int? TryGetJamaProjectIdFromWorkspace(NewProjectEvents.ProjectCreatedWithWorkspace eventData)
+        private int? TryGetJamaProjectIdFromNotification(TestCaseEditorApp.MVVM.Events.CrossDomainMessages.ProjectCreatedNotification notification)
         {
             try
             {
                 // Direct Jama project from import
-                if (eventData.JamaProjectId.HasValue)
+                if (notification.JamaProjectId.HasValue)
                 {
-                    _logger.LogDebug("[RequirementsMediator] Found direct Jama project ID: {JamaProjectId}", eventData.JamaProjectId.Value);
-                    return eventData.JamaProjectId.Value;
+                    _logger.LogDebug("[RequirementsMediator] Found direct Jama project ID: {JamaProjectId}", notification.JamaProjectId.Value);
+                    return notification.JamaProjectId.Value;
                 }
 
                 // Check current workspace context for Jama project association
@@ -1455,12 +1466,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     return workspaceProjectId;
                 }
 
-                _logger.LogDebug("[RequirementsMediator] No Jama project ID found in workspace data");
+                _logger.LogDebug("[RequirementsMediator] No Jama project ID found in notification or workspace data");
                 return null;
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[RequirementsMediator] Error extracting Jama project ID from workspace");
+                _logger.LogWarning(ex, "[RequirementsMediator] Error extracting Jama project ID from notification");
                 return null;
             }
         }

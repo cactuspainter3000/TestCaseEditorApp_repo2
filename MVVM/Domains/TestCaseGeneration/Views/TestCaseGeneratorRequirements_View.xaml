@@ -443,6 +443,7 @@
                                     <Setter.Value>
                                         <DataTemplate>
                                             <reqviews:Requirements_AnalysisControl 
+                                                DataContext="{Binding RequirementAnalysisVM}"
                                                 VerticalAlignment="Stretch" 
                                                 HorizontalAlignment="Stretch" />
                                         </DataTemplate>

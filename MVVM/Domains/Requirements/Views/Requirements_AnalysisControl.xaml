@@ -3,8 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels"
              xmlns:converters="clr-namespace:TestCaseEditorApp.Converters"
-             xmlns:tcgConverters="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Converters"
-             DataContext="{Binding RequirementAnalysisVM}">
+             xmlns:tcgConverters="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Converters">
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />

@@ -1751,7 +1751,7 @@ namespace TestCaseEditorApp.Services
         /// 2. For each item, check for attachments using /items/{id}/attachments
         /// Based on: https://dev.jamasoftware.com/cookbook/ - REST Attachments section
         /// </summary>
-        public async Task<List<JamaAttachment>> GetProjectAttachmentsAsync(int projectId, CancellationToken cancellationToken = default, Action<int, int, string>? progressCallback = null)
+        public async Task<List<JamaAttachment>> GetProjectAttachmentsAsync(int projectId, CancellationToken cancellationToken = default, Action<int, int, string>? progressCallback = null, string projectName = "")
         {
             return await WithRetryAsync(async () =>
             {
@@ -1771,11 +1771,15 @@ namespace TestCaseEditorApp.Services
                     // Step 2: For each item, check for attachments using the proper endpoint
                     var itemsWithAttachments = 0;
                     var currentItemIndex = 0;
+                    var displayName = string.IsNullOrEmpty(projectName) ? $"Project {projectId}" : projectName;
+                    
                     foreach (var item in items)
                     {
                         currentItemIndex++;
                         var percentage = (int)((double)currentItemIndex / items.Count * 100);
-                        progressCallback?.Invoke(currentItemIndex, items.Count, $"{percentage}%|{attachments.Count}");
+                        
+                        // Progress report with user-requested format
+                        progressCallback?.Invoke(currentItemIndex, items.Count, $"Searching {displayName} for attachments. {percentage}% complete. {attachments.Count} attachments found");
                         
                         try
                         {
@@ -1784,9 +1788,10 @@ namespace TestCaseEditorApp.Services
                             {
                                 attachments.AddRange(itemAttachments);
                                 itemsWithAttachments++;
+                                
                                 // Update progress with new attachment count
-                                progressCallback?.Invoke(currentItemIndex, items.Count, $"{percentage}%|{attachments.Count}");
-                                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {item.Id} ({item.DocumentKey}) has {itemAttachments.Count} attachment(s)");
+                                progressCallback?.Invoke(currentItemIndex, items.Count, $"Searching {displayName} for attachments. {percentage}% complete. {attachments.Count} attachments found");
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {item.Id} ({item.DocumentKey}) has {itemAttachments.Count} attachment(s) - Total: {attachments.Count}");
                             }
                         }
                         catch (Exception ex)

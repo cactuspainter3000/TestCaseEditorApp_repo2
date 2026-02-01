@@ -445,7 +445,6 @@ namespace TestCaseEditorApp.Services
                         {
                             var json = await response.Content.ReadAsStringAsync(cancellationToken);
                             TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Success! Working endpoint: {endpoint}");
-                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Raw response: {json}");
                             
                             var result = JsonSerializer.Deserialize<WorkspaceListResponse>(json, new JsonSerializerOptions 
                             { 
