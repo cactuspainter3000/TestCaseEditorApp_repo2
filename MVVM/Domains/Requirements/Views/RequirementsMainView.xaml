@@ -192,10 +192,9 @@
                 <!-- Document Scraper pill -->
                 <ToggleButton Style="{StaticResource ActionToggleButtonSelected}"
                               Margin="8,0,0,0"
-                              IsChecked="{Binding IsDocumentScrapperSelected, Mode=TwoWay}"
-                              ToolTip="Search and extract requirements from document attachments"
-                              Checked="DocumentScrapperTab_Checked"
-                              Unchecked="DocumentScrapperTab_Unchecked">
+                              IsChecked="{Binding IsDocumentScrapperSelected, Mode=OneWay}"
+                              Command="{Binding SelectDocumentScrapperCommand}"
+                              ToolTip="Search and extract requirements from document attachments">
                     <TextBlock Text="Document Scraper" VerticalAlignment="Center" Margin="6,0" Foreground="{StaticResource Brush.Accent.Primary}"/>
                 </ToggleButton>
 

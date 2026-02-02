@@ -101,10 +101,9 @@
                 <!-- Attachment Scrapper tab -->
                 <ToggleButton Style="{StaticResource ActionToggleButtonSelected}"
                               Margin="8,0,0,0"
-                              IsChecked="{Binding IsAttachmentScrapperSelected, Mode=TwoWay}"
-                              ToolTip="Search and extract requirements from Jama attachments"
-                              Checked="AttachmentScrapperTab_Checked"
-                              Unchecked="AttachmentScrapperTab_Unchecked">
+                              IsChecked="{Binding IsAttachmentScrapperSelected, Mode=OneWay}"
+                              Command="{Binding SelectAttachmentScrapperCommand}"
+                              ToolTip="Search and scrape requirements from attachment files">
                     <TextBlock Text="Attachment Scrapper" VerticalAlignment="Center" Margin="12,0" 
                                Foreground="{StaticResource Brush.Text.Secondary}"/>
                 </ToggleButton>

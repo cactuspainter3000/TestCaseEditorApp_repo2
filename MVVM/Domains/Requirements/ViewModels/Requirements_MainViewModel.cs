@@ -410,6 +410,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public ICommand EditSupplementalInfoCommand { get; }
         public ICommand SelectAllVisibleCommand { get; }
         public ICommand ClearAllVisibleCommand { get; }
+        
+        // Tab selection commands
+        public ICommand SelectDocumentScrapperCommand { get; }
+        public ICommand SelectAttachmentScrapperCommand { get; }
 
         // ==== CONTENT COLLECTIONS ====
 
@@ -658,6 +662,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     OnPropertyChanged(nameof(IsParagraphsSelected));
                     OnPropertyChanged(nameof(IsAnalysisSelected));
                     OnPropertyChanged(nameof(IsDocumentScrapperSelected));
+                    OnPropertyChanged(nameof(IsAttachmentScrapperSelected));
                 }
             }
         }
@@ -675,6 +680,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     OnPropertyChanged(nameof(IsParagraphsSelected));
                     OnPropertyChanged(nameof(IsAnalysisSelected));
                     OnPropertyChanged(nameof(IsDocumentScrapperSelected));
+                    OnPropertyChanged(nameof(IsAttachmentScrapperSelected));
                 }
             }
         }
@@ -692,6 +698,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     OnPropertyChanged(nameof(IsTablesSelected));
                     OnPropertyChanged(nameof(IsAnalysisSelected));
                     OnPropertyChanged(nameof(IsDocumentScrapperSelected));
+                    OnPropertyChanged(nameof(IsAttachmentScrapperSelected));
                 }
             }
         }
@@ -709,23 +716,43 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     OnPropertyChanged(nameof(IsTablesSelected));
                     OnPropertyChanged(nameof(IsParagraphsSelected));
                     OnPropertyChanged(nameof(IsDocumentScrapperSelected));
+                    OnPropertyChanged(nameof(IsAttachmentScrapperSelected));
                 }
             }
         }
 
         public bool IsDocumentScrapperSelected
         {
-            get => SelectedSupportView == SupportView.RequirementsSearchAttachments;
+            get => SelectedSupportView == SupportView.DocumentScrapper;
             set
             {
                 if (value)
                 {
-                    SelectedSupportView = SupportView.RequirementsSearchAttachments;
+                    SelectedSupportView = SupportView.DocumentScrapper;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(IsMetaSelected));
                     OnPropertyChanged(nameof(IsTablesSelected));
                     OnPropertyChanged(nameof(IsParagraphsSelected));
                     OnPropertyChanged(nameof(IsAnalysisSelected));
+                    OnPropertyChanged(nameof(IsAttachmentScrapperSelected));
+                }
+            }
+        }
+        
+        public bool IsAttachmentScrapperSelected
+        {
+            get => SelectedSupportView == SupportView.AttachmentScrapper;
+            set
+            {
+                if (value)
+                {
+                    SelectedSupportView = SupportView.AttachmentScrapper;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(IsMetaSelected));
+                    OnPropertyChanged(nameof(IsTablesSelected));
+                    OnPropertyChanged(nameof(IsParagraphsSelected));
+                    OnPropertyChanged(nameof(IsAnalysisSelected));
+                    OnPropertyChanged(nameof(IsDocumentScrapperSelected));
                 }
             }
         }
