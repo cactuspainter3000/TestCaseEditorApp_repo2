@@ -100,6 +100,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // routed parent-level commands (act on visible view)
             SelectAllVisibleCommand = new RelayCommand(SelectAllVisible, CanSelectAllVisible);
             ClearAllVisibleCommand = new RelayCommand(ClearAllVisible, CanClearAllVisible);
+            
+            // Tab selection commands
+            SelectDocumentScraperCommand = new RelayCommand(() => SelectedSupportView = SupportView.DocumentScraper);
+            SelectAttachmentScraperCommand = new RelayCommand(() => SelectedSupportView = SupportView.AttachmentScraper);
 
             // Collections
             SelectedTableVMs = new ObservableCollection<LooseTableViewModel>();

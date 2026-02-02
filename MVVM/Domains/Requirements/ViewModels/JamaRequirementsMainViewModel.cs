@@ -190,8 +190,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             IsAnalysisSelected = tabName == "Analysis";
             IsMetadataSelected = tabName == "Metadata";
             IsAttachmentScraperSelected = tabName == "AttachmentScraper";
+            
+            // Set the SelectedSupportView enum that XAML DataTrigger binds to
+            SelectedSupportView = tabName switch
+            {
+                "RichContent" => SupportView.RichContent,
+                "Analysis" => SupportView.Analysis, 
+                "Metadata" => SupportView.Metadata,
+                "AttachmentScraper" => SupportView.AttachmentScraper,
+                _ => SupportView.RichContent
+            };
 
-            _logger.LogDebug("[JamaRequirementsMainVM] Selected tab: {TabName}", tabName);
+            _logger.LogDebug("[JamaRequirementsMainVM] Selected tab: {TabName}, SelectedSupportView: {SupportView}", tabName, SelectedSupportView);
         }
 
         private void OnRequirementSelected(RequirementsEvents.RequirementSelected eventData)
@@ -466,7 +476,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 _logger.LogInformation("[JamaRequirementsMainVM] *** Current SelectedSupportView: {CurrentView} ***", SelectedSupportView);
                 
                 // Switch to the attachment search view using the existing support view mechanism
-                SelectedSupportView = SupportView.RequirementsSearchAttachments;
+                SelectedSupportView = SupportView.AttachmentScraper;
                 
                 _logger.LogInformation("[JamaRequirementsMainVM] *** SelectedSupportView changed to: {NewView} ***", SelectedSupportView);
                 _logger.LogInformation("[JamaRequirementsMainVM] *** Successfully switched to Requirements Search in Attachments view ***");
