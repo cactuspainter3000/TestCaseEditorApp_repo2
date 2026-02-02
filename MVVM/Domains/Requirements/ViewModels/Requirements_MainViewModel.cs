@@ -412,8 +412,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public ICommand ClearAllVisibleCommand { get; }
         
         // Tab selection commands
-        public ICommand SelectDocumentScrapperCommand { get; }
-        public ICommand SelectAttachmentScrapperCommand { get; }
+        public ICommand SelectDocumentScraperCommand { get; }
+        public ICommand SelectAttachmentScraperCommand { get; }
 
         // ==== CONTENT COLLECTIONS ====
 
@@ -661,8 +661,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     OnPropertyChanged(nameof(IsTablesSelected));
                     OnPropertyChanged(nameof(IsParagraphsSelected));
                     OnPropertyChanged(nameof(IsAnalysisSelected));
-                    OnPropertyChanged(nameof(IsDocumentScrapperSelected));
-                    OnPropertyChanged(nameof(IsAttachmentScrapperSelected));
+                    OnPropertyChanged(nameof(IsDocumentScraperSelected));
+                    OnPropertyChanged(nameof(IsAttachmentScraperSelected));
                 }
             }
         }
@@ -679,8 +679,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     OnPropertyChanged(nameof(IsMetaSelected));
                     OnPropertyChanged(nameof(IsParagraphsSelected));
                     OnPropertyChanged(nameof(IsAnalysisSelected));
-                    OnPropertyChanged(nameof(IsDocumentScrapperSelected));
-                    OnPropertyChanged(nameof(IsAttachmentScrapperSelected));
+                    OnPropertyChanged(nameof(IsDocumentScraperSelected));
+                    OnPropertyChanged(nameof(IsAttachmentScraperSelected));
                 }
             }
         }
@@ -697,8 +697,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     OnPropertyChanged(nameof(IsMetaSelected));
                     OnPropertyChanged(nameof(IsTablesSelected));
                     OnPropertyChanged(nameof(IsAnalysisSelected));
-                    OnPropertyChanged(nameof(IsDocumentScrapperSelected));
-                    OnPropertyChanged(nameof(IsAttachmentScrapperSelected));
+                    OnPropertyChanged(nameof(IsDocumentScraperSelected));
+                    OnPropertyChanged(nameof(IsAttachmentScraperSelected));
                 }
             }
         }
@@ -715,44 +715,44 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     OnPropertyChanged(nameof(IsMetaSelected));
                     OnPropertyChanged(nameof(IsTablesSelected));
                     OnPropertyChanged(nameof(IsParagraphsSelected));
-                    OnPropertyChanged(nameof(IsDocumentScrapperSelected));
-                    OnPropertyChanged(nameof(IsAttachmentScrapperSelected));
+                    OnPropertyChanged(nameof(IsDocumentScraperSelected));
+                    OnPropertyChanged(nameof(IsAttachmentScraperSelected));
                 }
             }
         }
 
-        public bool IsDocumentScrapperSelected
+        public bool IsDocumentScraperSelected
         {
-            get => SelectedSupportView == SupportView.DocumentScrapper;
+            get => SelectedSupportView == SupportView.DocumentScraper;
             set
             {
                 if (value)
                 {
-                    SelectedSupportView = SupportView.DocumentScrapper;
+                    SelectedSupportView = SupportView.DocumentScraper;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(IsMetaSelected));
                     OnPropertyChanged(nameof(IsTablesSelected));
                     OnPropertyChanged(nameof(IsParagraphsSelected));
                     OnPropertyChanged(nameof(IsAnalysisSelected));
-                    OnPropertyChanged(nameof(IsAttachmentScrapperSelected));
+                    OnPropertyChanged(nameof(IsAttachmentScraperSelected));
                 }
             }
         }
         
-        public bool IsAttachmentScrapperSelected
+        public bool IsAttachmentScraperSelected
         {
-            get => SelectedSupportView == SupportView.AttachmentScrapper;
+            get => SelectedSupportView == SupportView.AttachmentScraper;
             set
             {
                 if (value)
                 {
-                    SelectedSupportView = SupportView.AttachmentScrapper;
+                    SelectedSupportView = SupportView.AttachmentScraper;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(IsMetaSelected));
                     OnPropertyChanged(nameof(IsTablesSelected));
                     OnPropertyChanged(nameof(IsParagraphsSelected));
                     OnPropertyChanged(nameof(IsAnalysisSelected));
-                    OnPropertyChanged(nameof(IsDocumentScrapperSelected));
+                    OnPropertyChanged(nameof(IsDocumentScraperSelected));
                 }
             }
         }
@@ -1204,7 +1204,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         RichContent,
         Metadata,
         RequirementsSearchAttachments,
-        DocumentScrapper,
-        AttachmentScrapper
+        DocumentScraper,
+        AttachmentScraper
     }
 }

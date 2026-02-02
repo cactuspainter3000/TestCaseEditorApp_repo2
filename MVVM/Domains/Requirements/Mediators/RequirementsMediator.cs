@@ -1428,7 +1428,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 // Always publish availability event for Word document imports (even without Jama association)
                 if (!notification.IsJamaImport)
                 {
-                    PublishEvent(new RequirementsEvents.DocumentScrapperAvailable
+                    PublishEvent(new RequirementsEvents.DocumentScraperAvailable
                     {
                         WorkspaceName = notification.WorkspaceName,
                         ProjectPath = notification.ProjectPath,

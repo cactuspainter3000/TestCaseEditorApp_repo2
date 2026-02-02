@@ -15,20 +15,20 @@ using System.Linq;
 namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
 {
     /// <summary>
-    /// Self-contained Document Scrapper ViewModel that can be embedded as a tab in any view.
+    /// Self-contained Document Scraper ViewModel that can be embedded as a tab in any view.
     /// Automatically monitors workspace changes and manages attachment scanning lifecycle.
     /// ARCHITECTURAL COMPLIANCE: Self-contained shared component, minimal dependencies
     /// </summary>
-    public partial class DocumentScrapperViewModel : ObservableObject
+    public partial class DocumentScraperViewModel : ObservableObject
     {
         private readonly IJamaConnectService _jamaService;
         private readonly IWorkspaceContext _workspaceContext;
-        private readonly ILogger<DocumentScrapperViewModel> _logger;
+        private readonly ILogger<DocumentScraperViewModel> _logger;
         private CancellationTokenSource? _scanCancellationSource;
 
         // Properties for UI binding
         [ObservableProperty]
-        private string _title = "Document Scrapper";
+        private string _title = "Document Scraper";
 
         [ObservableProperty]
         private string _statusMessage = "Ready to scan attachments...";
@@ -59,10 +59,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
         /// <summary>
         /// Constructor with direct service injection for self-contained operation
         /// </summary>
-        public DocumentScrapperViewModel(
+        public DocumentScraperViewModel(
             IJamaConnectService jamaService,
             IWorkspaceContext workspaceContext,
-            ILogger<DocumentScrapperViewModel> logger)
+            ILogger<DocumentScraperViewModel> logger)
         {
             _jamaService = jamaService ?? throw new ArgumentNullException(nameof(jamaService));
             _workspaceContext = workspaceContext ?? throw new ArgumentNullException(nameof(workspaceContext));
@@ -74,7 +74,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
             // Initialize with current workspace
             OnWorkspaceChanged(null, EventArgs.Empty);
 
-            _logger.LogInformation("[DocumentScrapper] Self-contained component initialized");
+            _logger.LogInformation("[DocumentScraper] Self-contained component initialized");
         }
 
         /// <summary>
@@ -87,16 +87,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
                 var workspace = _workspaceContext.CurrentWorkspace;
                 CurrentWorkspaceName = workspace?.Name ?? "No workspace";
 
-                _logger.LogInformation("[DocumentScrapper] Workspace changed: {WorkspaceName}, JamaProject: {JamaProject}, ImportSource: {ImportSource}", 
+                _logger.LogInformation("[DocumentScraper] Workspace changed: {WorkspaceName}, JamaProject: {JamaProject}, ImportSource: {ImportSource}", 
                     CurrentWorkspaceName, workspace?.JamaProject, workspace?.ImportSource);
 
                 // DEBUG: Log all workspace properties to understand what we have
-                _logger.LogInformation("[DocumentScrapper] DEBUG Workspace Properties:");
-                _logger.LogInformation("[DocumentScrapper] - Name: {Name}", workspace?.Name);
-                _logger.LogInformation("[DocumentScrapper] - JamaProject: '{JamaProject}'", workspace?.JamaProject ?? "NULL");
-                _logger.LogInformation("[DocumentScrapper] - JamaTestPlan: '{JamaTestPlan}'", workspace?.JamaTestPlan ?? "NULL");
-                _logger.LogInformation("[DocumentScrapper] - ImportSource: '{ImportSource}'", workspace?.ImportSource ?? "NULL");
-                _logger.LogInformation("[DocumentScrapper] - SourceDocPath: '{SourceDocPath}'", workspace?.SourceDocPath ?? "NULL");
+                _logger.LogInformation("[DocumentScraper] DEBUG Workspace Properties:");
+                _logger.LogInformation("[DocumentScraper] - Name: {Name}", workspace?.Name);
+                _logger.LogInformation("[DocumentScraper] - JamaProject: '{JamaProject}'", workspace?.JamaProject ?? "NULL");
+                _logger.LogInformation("[DocumentScraper] - JamaTestPlan: '{JamaTestPlan}'", workspace?.JamaTestPlan ?? "NULL");
+                _logger.LogInformation("[DocumentScraper] - ImportSource: '{ImportSource}'", workspace?.ImportSource ?? "NULL");
+                _logger.LogInformation("[DocumentScraper] - SourceDocPath: '{SourceDocPath}'", workspace?.SourceDocPath ?? "NULL");
 
                 // Check for Jama project association - handle both numeric IDs and project names
                 var jamaProjectId = TryGetJamaProjectId(workspace);
@@ -107,7 +107,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
                     CurrentJamaProjectName = workspace?.JamaTestPlan ?? workspace?.JamaProject ?? $"Project {jamaProjectId.Value}";
                     StatusMessage = $"Ready to scan attachments for {CurrentJamaProjectName}";
                     
-                    _logger.LogInformation("[DocumentScrapper] Detected Jama project: {ProjectName} (ID: {ProjectId})", 
+                    _logger.LogInformation("[DocumentScraper] Detected Jama project: {ProjectName} (ID: {ProjectId})", 
                         CurrentJamaProjectName, jamaProjectId.Value);
                     
                     // Auto-trigger scanning if we have a Jama project
@@ -122,12 +122,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
                     if (workspace?.ImportSource == "Jama" && !string.IsNullOrEmpty(workspace?.JamaProject))
                     {
                         StatusMessage = $"Jama project '{workspace.JamaProject}' detected, but project ID not available for attachment scanning";
-                        _logger.LogWarning("[DocumentScrapper] Jama import detected but could not extract project ID from: {JamaProject}", workspace.JamaProject);
+                        _logger.LogWarning("[DocumentScraper] Jama import detected but could not extract project ID from: {JamaProject}", workspace.JamaProject);
                     }
                     else
                     {
                         StatusMessage = "No Jama project associated with current workspace";
-                        _logger.LogDebug("[DocumentScrapper] No Jama association found - ImportSource: {ImportSource}, JamaProject: {JamaProject}", 
+                        _logger.LogDebug("[DocumentScraper] No Jama association found - ImportSource: {ImportSource}, JamaProject: {JamaProject}", 
                             workspace?.ImportSource, workspace?.JamaProject);
                     }
                     
@@ -142,7 +142,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[DocumentScrapper] Error handling workspace change");
+                _logger.LogError(ex, "[DocumentScraper] Error handling workspace change");
                 StatusMessage = "Error detecting Jama project";
             }
         }
@@ -166,13 +166,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
             var numbers = System.Text.RegularExpressions.Regex.Matches(workspace.JamaProject, @"\d+");
             if (numbers.Count > 0 && int.TryParse(numbers[0].Value, out var extractedId))
             {
-                _logger.LogInformation("[DocumentScrapper] Extracted potential project ID {ProjectId} from project name {ProjectName}", 
+                _logger.LogInformation("[DocumentScraper] Extracted potential project ID {ProjectId} from project name {ProjectName}", 
                     extractedId, workspace.JamaProject);
                 return extractedId;
             }
 
             // If we can't extract an ID, we'll need to enhance this to look up the project by name
-            _logger.LogWarning("[DocumentScrapper] Could not extract project ID from Jama project: {JamaProject}", workspace.JamaProject);
+            _logger.LogWarning("[DocumentScraper] Could not extract project ID from Jama project: {JamaProject}", workspace.JamaProject);
             return null;
         }
 
@@ -185,7 +185,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
             {
                 if (IsScanning)
                 {
-                    _logger.LogDebug("[DocumentScrapper] Scan already in progress, ignoring trigger");
+                    _logger.LogDebug("[DocumentScraper] Scan already in progress, ignoring trigger");
                     return;
                 }
 
@@ -203,7 +203,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
                     ExtractedRequirements.Clear();
                 });
 
-                _logger.LogInformation("[DocumentScrapper] Starting attachment scan for project {ProjectId}", jamaProjectId);
+                _logger.LogInformation("[DocumentScraper] Starting attachment scan for project {ProjectId}", jamaProjectId);
 
                 // Get all attachments for the project using available service method
                 var attachments = await _jamaService.GetProjectAttachmentsAsync(
@@ -254,11 +254,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
             catch (OperationCanceledException)
             {
                 StatusMessage = "Attachment scan cancelled.";
-                _logger.LogInformation("[DocumentScrapper] Attachment scan cancelled");
+                _logger.LogInformation("[DocumentScraper] Attachment scan cancelled");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[DocumentScrapper] Error during attachment scanning");
+                _logger.LogError(ex, "[DocumentScraper] Error during attachment scanning");
                 StatusMessage = "Error occurred during attachment scanning.";
             }
             finally

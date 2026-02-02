@@ -184,7 +184,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Events
         /// <summary>
         /// Published when Document Scraper functionality becomes available for Word document imports
         /// </summary>
-        public class DocumentScrapperAvailable
+        public class DocumentScraperAvailable
         {
             public string WorkspaceName { get; set; } = string.Empty;
             public string ProjectPath { get; set; } = string.Empty;

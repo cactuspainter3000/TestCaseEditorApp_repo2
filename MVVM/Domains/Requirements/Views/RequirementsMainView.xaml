@@ -192,8 +192,8 @@
                 <!-- Document Scraper pill -->
                 <ToggleButton Style="{StaticResource ActionToggleButtonSelected}"
                               Margin="8,0,0,0"
-                              IsChecked="{Binding IsDocumentScrapperSelected, Mode=OneWay}"
-                              Command="{Binding SelectDocumentScrapperCommand}"
+                              IsChecked="{Binding IsDocumentScraperSelected, Mode=OneWay}"
+                              Command="{Binding SelectDocumentScraperCommand}"
                               ToolTip="Search and extract requirements from document attachments">
                     <TextBlock Text="Document Scraper" VerticalAlignment="Center" Margin="6,0" Foreground="{StaticResource Brush.Accent.Primary}"/>
                 </ToggleButton>
@@ -455,11 +455,11 @@
                             </DataTrigger>
 
                             <!-- Document Scraper tab content -->
-                            <DataTrigger Binding="{Binding SelectedSupportView}" Value="DocumentScrapper">
+                            <DataTrigger Binding="{Binding SelectedSupportView}" Value="DocumentScraper">
                                 <Setter Property="ContentTemplate">
                                     <Setter.Value>
                                         <DataTemplate>
-                                            <shared:DocumentScrapperView />
+                                            <shared:DocumentScraperView />
                                         </DataTemplate>
                                     </Setter.Value>
                                 </Setter>

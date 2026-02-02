@@ -98,13 +98,13 @@
                                Foreground="{StaticResource Brush.Text.Secondary}"/>
                 </ToggleButton>
                 
-                <!-- Attachment Scrapper tab -->
+                <!-- Attachment Scraper tab -->
                 <ToggleButton Style="{StaticResource ActionToggleButtonSelected}"
                               Margin="8,0,0,0"
-                              IsChecked="{Binding IsAttachmentScrapperSelected, Mode=OneWay}"
-                              Command="{Binding SelectAttachmentScrapperCommand}"
+                              IsChecked="{Binding IsAttachmentScraperSelected, Mode=OneWay}"
+                              Command="{Binding SelectAttachmentScraperCommand}"
                               ToolTip="Search and scrape requirements from attachment files">
-                    <TextBlock Text="Attachment Scrapper" VerticalAlignment="Center" Margin="12,0" 
+                    <TextBlock Text="Attachment Scraper" VerticalAlignment="Center" Margin="12,0" 
                                Foreground="{StaticResource Brush.Text.Secondary}"/>
                 </ToggleButton>
             </StackPanel>
@@ -290,18 +290,18 @@
                                         <Setter Property="ContentTemplate">
                                             <Setter.Value>
                                                 <DataTemplate>
-                                                    <shared:DocumentScrapperView />
+                                                    <shared:DocumentScraperView />
                                                 </DataTemplate>
                                             </Setter.Value>
                                         </Setter>
                                     </DataTrigger>
                                     
-                                    <!-- Attachment Scrapper tab content -->
-                                    <DataTrigger Binding="{Binding SelectedSupportView}" Value="AttachmentScrapper">
+                                    <!-- Attachment Scraper tab content -->
+                                    <DataTrigger Binding="{Binding SelectedSupportView}" Value="AttachmentScraper">
                                         <Setter Property="ContentTemplate">
                                             <Setter.Value>
                                                 <DataTemplate>
-                                                    <shared:DocumentScrapperView />
+                                                    <shared:DocumentScraperView />
                                                 </DataTemplate>
                                             </Setter.Value>
                                         </Setter>

@@ -393,8 +393,8 @@ namespace TestCaseEditorApp
                         return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel(reqMediator, workspaceContext, logger);
                     });
 
-                    // Self-contained Document Scrapper ViewModel (shared component)
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Shared.ViewModels.DocumentScrapperViewModel>();
+                    // Self-contained Document Scraper ViewModel (shared component)
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Shared.ViewModels.DocumentScraperViewModel>();
                     
                     // Requirements uses shared NavigationViewModel and NotificationWorkspaceViewModel
                     
