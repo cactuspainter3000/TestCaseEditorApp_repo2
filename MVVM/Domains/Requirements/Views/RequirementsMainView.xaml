@@ -193,7 +193,9 @@
                 <ToggleButton Style="{StaticResource ActionToggleButtonSelected}"
                               Margin="8,0,0,0"
                               IsChecked="{Binding IsDocumentScrapperSelected, Mode=TwoWay}"
-                              ToolTip="Search and extract requirements from document attachments">
+                              ToolTip="Search and extract requirements from document attachments"
+                              Checked="DocumentScrapperTab_Checked"
+                              Unchecked="DocumentScrapperTab_Unchecked">
                     <TextBlock Text="Document Scraper" VerticalAlignment="Center" Margin="6,0" Foreground="{StaticResource Brush.Accent.Primary}"/>
                 </ToggleButton>
 
@@ -454,7 +456,7 @@
                             </DataTrigger>
 
                             <!-- Document Scraper tab content -->
-                            <DataTrigger Binding="{Binding IsDocumentScrapperSelected}" Value="True">
+                            <DataTrigger Binding="{Binding SelectedSupportView}" Value="DocumentScrapper">
                                 <Setter Property="ContentTemplate">
                                     <Setter.Value>
                                         <DataTemplate>

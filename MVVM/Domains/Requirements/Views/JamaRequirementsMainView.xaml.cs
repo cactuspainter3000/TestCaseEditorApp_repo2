@@ -152,5 +152,31 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Views
                 _tracerRotateTransform.BeginAnimation(RotateTransform.AngleProperty, null);
             }
         }
+
+        /// <summary>
+        /// Handle Attachment Scrapper tab activation - set SelectedSupportView for proper DataTrigger matching
+        /// </summary>
+        private void AttachmentScrapperTab_Checked(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.JamaRequirementsMainViewModel viewModel)
+            {
+                viewModel.SelectedSupportView = TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.SupportView.AttachmentScrapper;
+            }
+        }
+
+        /// <summary>
+        /// Handle Attachment Scrapper tab deactivation - reset to default view if no other tab is active
+        /// </summary>
+        private void AttachmentScrapperTab_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.JamaRequirementsMainViewModel viewModel)
+            {
+                // Only reset if no other specific view is selected
+                if (viewModel.SelectedSupportView == TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.SupportView.AttachmentScrapper)
+                {
+                    viewModel.SelectedSupportView = TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.SupportView.RichContent; // Default to RichContent view
+                }
+            }
+        }
     }
 }

@@ -166,5 +166,31 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Views
                 _tracerRotateTransform.BeginAnimation(RotateTransform.AngleProperty, null);
             }
         }
+
+        /// <summary>
+        /// Handle Document Scrapper tab activation - set SelectedSupportView for proper DataTrigger matching
+        /// </summary>
+        private void DocumentScrapperTab_Checked(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel viewModel)
+            {
+                viewModel.SelectedSupportView = TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.SupportView.DocumentScrapper;
+            }
+        }
+
+        /// <summary>
+        /// Handle Document Scrapper tab deactivation - reset to default view if no other tab is active
+        /// </summary>
+        private void DocumentScrapperTab_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel viewModel)
+            {
+                // Only reset if no other specific view is selected
+                if (viewModel.SelectedSupportView == TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.SupportView.DocumentScrapper)
+                {
+                    viewModel.SelectedSupportView = TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.SupportView.Meta; // Default to Meta view
+                }
+            }
+        }
     }
 }

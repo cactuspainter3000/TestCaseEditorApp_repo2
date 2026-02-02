@@ -1176,6 +1176,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         Analysis,
         RichContent,
         Metadata,
-        RequirementsSearchAttachments
+        RequirementsSearchAttachments,
+        DocumentScrapper,
+        AttachmentScrapper
     }
 }
