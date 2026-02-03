@@ -34,7 +34,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views
                 w.SizeChanged -= HostWindow_SizeChanged;
                 
             // Clean up property change subscription - type-safe cleanup
-            if (DataContext is TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel viewModel &&
+            if (DataContext is TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel viewModel &&
                 viewModel.RequirementAnalysisVM != null)
             {
                 viewModel.RequirementAnalysisVM.PropertyChanged -= OnAnalysisViewModelPropertyChanged;
@@ -71,14 +71,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views
         private void SetupIsAnalyzingBinding()
         {
             // Clean up previous subscription - type-safe cleanup
-            if (DataContext is TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel previousViewModel &&
+            if (DataContext is TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel previousViewModel &&
                 previousViewModel.RequirementAnalysisVM != null)
             {
                 previousViewModel.RequirementAnalysisVM.PropertyChanged -= OnAnalysisViewModelPropertyChanged;
             }
             
             // Subscribe to new ViewModel's property changes with type safety
-            if (DataContext is TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel currentViewModel &&
+            if (DataContext is TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel currentViewModel &&
                 currentViewModel.RequirementAnalysisVM != null)
             {
                 currentViewModel.RequirementAnalysisVM.PropertyChanged += OnAnalysisViewModelPropertyChanged;

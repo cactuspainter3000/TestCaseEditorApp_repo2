@@ -220,8 +220,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         }
 
         /// <summary>
-        /// Analyzes the current requirement using the analysis engine.
-        /// Demonstrates proper separation: ViewModel handles UI state, engine handles business logic.
+        /// Analyzes the current requirement using the mediator pattern.
+        /// This follows the proper architecture by delegating to the mediator.
         /// </summary>
         private async Task AnalyzeRequirementAsync()
         {
@@ -230,90 +230,40 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             if (CurrentRequirement == null) 
             {
                 _logger.LogWarning("[RequirementAnalysisVM] Cannot analyze: no requirement selected");
-                
-                // Try to find the selected requirement from the service provider
-                try
-                {
-                    var mainViewModel = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>();
-                    if (mainViewModel?.SelectedRequirement != null)
-                    {
-                        _logger.LogInformation("[RequirementAnalysisVM] Found selected requirement from MainViewModel: {RequirementItem}", mainViewModel.SelectedRequirement.Item);
-                        CurrentRequirement = mainViewModel.SelectedRequirement;
-                    }
-                    else
-                    {
-                        _logger.LogWarning("[RequirementAnalysisVM] MainViewModel SelectedRequirement is also null");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "[RequirementAnalysisVM] Error trying to get selected requirement from MainViewModel");
-                }
-                
-                // If still null after trying to sync, show error
-                if (CurrentRequirement == null)
-                {
-                    AnalysisStatusMessage = "Please select a requirement from the list to analyze";
-                    OnPropertyChanged(nameof(AnalysisStatusMessage));
-                    return;
-                }
+                AnalysisStatusMessage = "Please select a requirement from the list to analyze";
+                return;
             }
 
-            _logger.LogDebug("[RequirementAnalysisVM] Starting analysis for {RequirementId}", CurrentRequirement.Item);
+            if (_mediator == null)
+            {
+                _logger.LogError("[RequirementAnalysisVM] Cannot analyze: mediator is null");
+                AnalysisStatusMessage = "Analysis service unavailable";
+                return;
+            }
+
+            _logger.LogDebug("[RequirementAnalysisVM] Starting analysis for {RequirementId} via mediator", CurrentRequirement.Item);
 
             try
             {
-                // Create cancellation token for this analysis
-                _analysisCancellation?.Cancel();
-                _analysisCancellation = new CancellationTokenSource();
-
-                // Update UI state
+                // Set our own analyzing state to trigger timer
                 IsAnalyzing = true;
-                HasAnalysis = false;
-                AnalysisStatusMessage = "Initializing analysis...";
-                
-                // Start clipboard monitoring for external LLM workflow
-                StartClipboardMonitoring();
+                AnalysisStatusMessage = "Starting analysis...";
 
-                // Delegate business logic to the analysis engine
-                var analysis = await _analysisEngine.AnalyzeRequirementAsync(
-                    CurrentRequirement,
-                    progressMessage => 
-                    {
-                        // Update UI with progress from the engine
-                        AnalysisStatusMessage = progressMessage;
-                    },
-                    _analysisCancellation.Token);
+                // Use the mediator pattern - this will trigger the analysis
+                await _mediator.AnalyzeRequirementAsync(CurrentRequirement);
 
-                // Update UI with results
-                if (analysis.IsAnalyzed)
-                {
-                    _logger.LogDebug("[RequirementAnalysisVM] Analysis completed for {RequirementId}", CurrentRequirement.Item);
-                    UpdateUIFromAnalysis(analysis);
-                    AnalysisStatusMessage = string.Empty; // Clear status on success
-                }
-                else
-                {
-                    _logger.LogWarning("[RequirementAnalysisVM] Analysis failed for {RequirementId}: {Error}", 
-                        CurrentRequirement.Item, analysis.ErrorMessage);
-                    AnalysisStatusMessage = analysis.ErrorMessage ?? "Analysis failed";
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                _logger.LogDebug("[RequirementAnalysisVM] Analysis cancelled for {RequirementId}", CurrentRequirement?.Item);
-                AnalysisStatusMessage = "Analysis cancelled";
+                // Clear status message on success
+                AnalysisStatusMessage = string.Empty;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[RequirementAnalysisVM] Unexpected error during analysis");
+                _logger.LogError(ex, "[RequirementAnalysisVM] Error during mediator analysis");
                 AnalysisStatusMessage = "Analysis failed due to unexpected error";
             }
             finally
             {
+                // Always clear analyzing state
                 IsAnalyzing = false;
-                ((RelayCommand)CancelAnalysisCommand).NotifyCanExecuteChanged();
-                RefreshEngineStatus(); // Update engine status after analysis
             }
         }
 
@@ -331,6 +281,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 analysis.OriginalQualityScore, analysis.ImprovedQualityScore, analysis.OriginalQualityScore); // Use OriginalQualityScore instead of obsolete QualityScore
             
             HasAnalysis = true;
+            _logger.LogInformation("[RequirementAnalysisVM] HasAnalysis set to TRUE - this should trigger UI visibility");
             
             // Ensure we're showing the ORIGINAL requirement score, not the LLM's self-rated improved score
             QualityScore = analysis.OriginalQualityScore; // This should be the user's original requirement quality
@@ -550,26 +501,29 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 // Update the requirement description with the improved version
                 var originalDescription = CurrentRequirement.Description;
                 CurrentRequirement.Description = ImprovedRequirement;
-                CurrentRequirement.Analysis.ImprovedRequirement = null; // Clear the improved version
+                if (CurrentRequirement?.Analysis != null)
+                {
+                    CurrentRequirement.Analysis.ImprovedRequirement = null; // Clear the improved version
+                }
                 ImprovedRequirement = null;
                 HasImprovedRequirement = false;
                 
                 // Mediator publishes RequirementUpdated event which handles all downstream updates
                 _logger.LogInformation("[RequirementAnalysisVM] === About to call mediator.UpdateRequirement === Mediator is null: {IsMediatorNull}", _mediator == null);
-                if (_mediator != null)
+                if (_mediator != null && CurrentRequirement != null)
                 {
                     _logger.LogInformation("[RequirementAnalysisVM] === Calling _mediator.UpdateRequirement === GlobalId: {GlobalId}, Item: {Item}", 
-                        CurrentRequirement.GlobalId, CurrentRequirement.Item);
-                    _mediator.UpdateRequirement(CurrentRequirement, new[] { "Description" });
+                        CurrentRequirement?.GlobalId, CurrentRequirement?.Item);
+                    _mediator.UpdateRequirement(CurrentRequirement!, new[] { "Description" });
                     _logger.LogInformation("[RequirementAnalysisVM] === _mediator.UpdateRequirement COMPLETE ===");
                 }
                 else
                 {
-                    _logger.LogWarning("[RequirementAnalysisVM] === MEDIATOR IS NULL - Event will NOT be published ===");
+                    _logger.LogWarning("[RequirementAnalysisVM] === MEDIATOR IS NULL OR REQUIREMENT IS NULL - Event will NOT be published ===");
                 }
                 
                 _logger.LogInformation("[RequirementAnalysisVM] Committed improved requirement: changed from {OldLen} to {NewLen} chars",
-                    originalDescription?.Length ?? 0, CurrentRequirement.Description?.Length ?? 0);
+                    originalDescription?.Length ?? 0, CurrentRequirement?.Description?.Length ?? 0);
                 
                 // Notify that workspace has unsaved changes
                 try
@@ -1411,7 +1365,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _analysisTimer.Elapsed += (_, _) =>
             {
                 var elapsed = DateTime.Now - _analysisStartTime;
-                AnalysisElapsedTime = $"{elapsed.TotalSeconds:F0}s";
+                // Update on UI thread
+                Application.Current?.Dispatcher.Invoke(() =>
+                {
+                    AnalysisElapsedTime = $"{elapsed.TotalSeconds:F0}s";
+                });
             };
             _analysisTimer.Start();
         }

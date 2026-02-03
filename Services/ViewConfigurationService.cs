@@ -233,25 +233,11 @@ namespace TestCaseEditorApp.Services
 
         private ViewConfiguration CreateRequirementsConfiguration(object? context)
         {
-            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating Requirements configuration");
+            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating Requirements configuration with unified source-agnostic architecture");
             
-            // Determine if this is a Jama import or document import
-            var isJamaImport = _requirementsMediator?.IsJamaDataSource() == true;
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewConfigurationService] Using {(isJamaImport ? "Jama" : "document")} view configuration");
-            
-            // Select appropriate main view based on import source
-            object? mainVM;
-            if (isJamaImport)
-            {
-                // Use Jama-optimized view for structured content
-                mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.JamaRequirementsMainViewModel>();
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewConfigurationService] Retrieved JamaRequirementsMainViewModel instance {mainVM?.GetHashCode()} for workspace");
-            }
-            else
-            {
-                // Use traditional document-focused view  
-                mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>();
-            }
+            // Use unified ViewModel that adapts to any data source
+            var unifiedMainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel>();
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewConfigurationService] Retrieved UnifiedRequirementsMainViewModel instance {unifiedMainVM?.GetHashCode()} for workspace");
             
             var titleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
             var blankHeaderVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("");
@@ -259,10 +245,9 @@ namespace TestCaseEditorApp.Services
             var sharedNotificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
             
             // Fail-fast validation (AI Guide requirement)
-            if (mainVM == null) 
+            if (unifiedMainVM == null) 
             {
-                var viewType = isJamaImport ? "JamaRequirementsMainViewModel" : "Requirements_MainViewModel";
-                throw new InvalidOperationException($"{viewType} not registered in DI container");
+                throw new InvalidOperationException("UnifiedRequirementsMainViewModel not registered in DI container");
             }
             if (titleVM == null) throw new InvalidOperationException("TestCaseGenerator_TitleVM not registered (used for Requirements title)");
             if (sharedNavigationVM == null) throw new InvalidOperationException("NavigationViewModel not registered in DI container");
@@ -275,7 +260,7 @@ namespace TestCaseEditorApp.Services
                 sectionName: "Requirements",
                 titleViewModel: titleVM,         // Shared TestCaseGeneration title
                 headerViewModel: blankHeaderVM,  // Blank header (will be updated later)
-                contentViewModel: mainVM,        // ViewModel → DataTemplate renders appropriate Requirements view
+                contentViewModel: unifiedMainVM, // Unified ViewModel → DataTemplate renders appropriate Requirements view
                 navigationViewModel: sharedNavigationVM, // Shared navigation ViewModel for consistent UX across working domains
                 notificationViewModel: sharedNotificationVM, // Shared notification
                 context: context

@@ -352,18 +352,17 @@ namespace TestCaseEditorApp
                     });
                     
                     // Requirements domain ViewModels - Navigation as Singleton to maintain state
-                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>(provider =>
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel>(provider =>
                     {
                         var reqMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
-                        var testCaseGenMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.ITestCaseGenerationMediator>();
                         var persistence = provider.GetRequiredService<IPersistenceService>();
                         var textEditingService = provider.GetRequiredService<ITextEditingDialogService>();
-                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>>();
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel>>();
                         var requirementsSearchAttachmentsViewModel = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel>();
                         var analysisService = provider.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService>();
                         
-                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel(
-                            reqMediator, persistence, textEditingService, logger, requirementsSearchAttachmentsViewModel, analysisService);
+                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel(
+                            reqMediator, logger, persistence, textEditingService, requirementsSearchAttachmentsViewModel, analysisService);
                     });
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>(provider =>
                     {
@@ -374,15 +373,7 @@ namespace TestCaseEditorApp
                         return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel(reqMediator, workspaceContext, logger);
                     });
                     
-                    // Jama-optimized Requirements ViewModel for rich structured content display
-                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.JamaRequirementsMainViewModel>(provider =>
-                    {
-                        var reqMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
-                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.JamaRequirementsMainViewModel>>();
-                        var requirementAnalysisVM = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel>();
-                        var requirementsSearchAttachmentsViewModel = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel>();
-                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.JamaRequirementsMainViewModel(reqMediator, logger, requirementAnalysisVM, requirementsSearchAttachmentsViewModel);
-                    });
+
 
                     // Requirements Search in Attachments ViewModel for Jama document parsing
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel>(provider =>
@@ -391,6 +382,20 @@ namespace TestCaseEditorApp
                         var workspaceContext = provider.GetRequiredService<TestCaseEditorApp.Services.IWorkspaceContext>();
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel>>();
                         return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel(reqMediator, workspaceContext, logger);
+                    });
+
+                    // Unified Requirements ViewModel - source-agnostic architecture combining best of both Jama and General paths
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel>(provider =>
+                    {
+                        var reqMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel>>();
+                        var persistence = provider.GetRequiredService<IPersistenceService>();
+                        var textEditingService = provider.GetRequiredService<ITextEditingDialogService>();
+                        var requirementsSearchAttachmentsViewModel = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel>();
+                        var analysisService = provider.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService>();
+                        
+                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel(
+                            reqMediator, logger, persistence, textEditingService, requirementsSearchAttachmentsViewModel, analysisService);
                     });
 
                     // Self-contained Document Scraper ViewModel (shared component)

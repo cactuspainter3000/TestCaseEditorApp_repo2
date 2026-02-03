@@ -913,7 +913,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     // ✅ Always notify about requirement selection to update header (even if null)
                     PublishEvent(new RequirementsEvents.RequirementSelected
                     {
-                        Requirement = CurrentRequirement
+                        Requirement = CurrentRequirement!
                     });
                     
                     _logger.LogInformation("Loaded {Count} requirements from project", _requirements.Count);
@@ -1407,11 +1407,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 var jamaProjectId = TryGetJamaProjectIdFromNotification(notification);
                 if (jamaProjectId.HasValue)
                 {
-                    _logger.LogInformation("[RequirementsMediator] Starting attachment search for project: {JamaProjectId} (ImportType: {ImportType})", 
+                    _logger.LogInformation("[RequirementsMediator] Project has Jama association: {JamaProjectId} (ImportType: {ImportType}) - attachment scanning available on user request", 
                         jamaProjectId.Value, notification.IsJamaImport ? "Jama" : "WordDocument");
                     
-                    // Trigger background attachment scanning for any project with Jama association
-                    await TriggerBackgroundAttachmentScanAsync(jamaProjectId.Value);
+                    // NOTE: Attachment scanning will be triggered manually by user clicking scan button
+                    // await TriggerBackgroundAttachmentScanAsync(jamaProjectId.Value);
                 }
                 else
                 {

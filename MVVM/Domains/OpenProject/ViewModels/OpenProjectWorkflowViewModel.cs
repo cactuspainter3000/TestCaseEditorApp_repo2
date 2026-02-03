@@ -558,17 +558,14 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
 
                 _logger.LogInformation($"Triggering background attachment scan for Jama project {targetProjectId.Value}");
                 
-                // Notify Requirements domain to start background attachment scanning
-                var requirementsMediator = App.ServiceProvider?.GetService(typeof(IRequirementsMediator)) as IRequirementsMediator;
-                if (requirementsMediator != null)
-                {
-                    await requirementsMediator.TriggerBackgroundAttachmentScanAsync(targetProjectId.Value);
-                    _logger.LogInformation("Background attachment scan requested via RequirementsMediator");
-                }
-                else
-                {
-                    _logger.LogWarning("IRequirementsMediator not found, cannot trigger background scan");
-                }
+                // NOTE: Background attachment scanning will be triggered manually by user clicking scan button
+                // var requirementsMediator = App.ServiceProvider?.GetService(typeof(IRequirementsMediator)) as IRequirementsMediator;
+                // if (requirementsMediator != null)
+                // {
+                //     await requirementsMediator.TriggerBackgroundAttachmentScanAsync(targetProjectId.Value);
+                //     _logger.LogInformation("Background attachment scan requested via RequirementsMediator");
+                // }
+                _logger.LogInformation("Project opened - attachment scanning available on user request in Requirements scraper tab");
                 
             }
             catch (Exception ex)

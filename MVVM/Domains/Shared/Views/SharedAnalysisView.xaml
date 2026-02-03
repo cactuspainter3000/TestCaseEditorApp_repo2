@@ -3,12 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Shared.ViewModels"
+             xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels"
              xmlns:converters="clr-namespace:TestCaseEditorApp.Converters"
              xmlns:tcgConverters="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Converters"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="800"
-             d:DataContext="{d:DesignInstance Type=vm:SharedAnalysisViewModel}"
+             d:DataContext="{d:DesignInstance Type=vm:RequirementAnalysisViewModel}"
              MinHeight="200"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True"
@@ -17,7 +17,7 @@
              Background="{StaticResource Brush.Background.Menu}">
 
     <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <converters:BoolToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:NullOrEmptyToVisibilityConverter x:Key="NullOrEmptyToVisibilityConverter" />
         <converters:StringNotEmptyToVisibilityConverter x:Key="StringNotEmptyToVisibilityConverter" />
         <converters:StringEmptyToVisibilityConverter x:Key="StringEmptyToVisibilityConverter" />
@@ -42,29 +42,26 @@
                 <RowDefinition Height="*"/>    <!-- Spacer -->
             </Grid.RowDefinitions>
 
-            <!-- No analysis yet - Clean, minimal interface -->
-            <StackPanel Grid.Row="0" Grid.RowSpan="5" 
-                        VerticalAlignment="Center" 
-                        HorizontalAlignment="Center"
-                        Visibility="{Binding HasNoAnalysis, Converter={StaticResource BoolToVisibilityConverter}}">
+            <!-- No analysis yet OR analyzing - Clean, minimal interface -->
+            <Grid Grid.Row="0" Grid.RowSpan="5" 
+                  VerticalAlignment="Center" 
+                  HorizontalAlignment="Center">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <!-- Show when no analysis OR when analyzing -->
+                            <DataTrigger Binding="{Binding HasAnalysis}" Value="False">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsAnalyzing}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
                 
-                <!-- Analyzing status -->
-                <StackPanel Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVisibilityConverter}}"
-                            HorizontalAlignment="Center">
-                    <TextBlock Text="{Binding AnalysisStatusMessage}" 
-                               FontSize="16" 
-                               Foreground="#888888" 
-                               HorizontalAlignment="Center"
-                               Margin="0,0,0,16"/>
-                    
-                    <ProgressBar IsIndeterminate="True" 
-                                 Width="200" 
-                                 Height="4" 
-                                 Background="#333333"
-                                 Foreground="#4CAF50"/>
-                </StackPanel>
-
-                <!-- Ready to analyze prompt -->
+                <!-- Ready to analyze prompt - Show when NOT analyzing -->
                 <StackPanel Visibility="{Binding IsAnalyzing, Converter={StaticResource InverseBoolToVisibilityConverter}}"
                             HorizontalAlignment="Center">
                     <TextBlock Text="Ready to analyze your requirement" 
@@ -73,8 +70,8 @@
                                HorizontalAlignment="Center"
                                Margin="0,0,0,24"/>
                     
-                    <!-- Analyze Now Button - Centered and prominent with reliable hit-testing -->
-                    <Button Command="{Binding AnalyzeNowCommand}"
+                    <!-- Analyze Now Button -->
+                    <Button Command="{Binding AnalyzeRequirementCommand}"
                             Content="Analyze Now"
                             HorizontalAlignment="Center"
                             Padding="24,12"
@@ -84,169 +81,134 @@
                             Foreground="White"
                             BorderBrush="#45A049"
                             BorderThickness="1"
-                            Cursor="Hand"
-                            IsTabStop="True">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border Background="{TemplateBinding Background}"
-                                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                                    CornerRadius="4"
-                                                    Padding="{TemplateBinding Padding}">
-                                                <ContentPresenter HorizontalAlignment="Center"
-                                                                VerticalAlignment="Center"
-                                                                Content="{TemplateBinding Content}"
-                                                                TextBlock.Foreground="{TemplateBinding Foreground}"
-                                                                TextBlock.FontSize="{TemplateBinding FontSize}"
-                                                                TextBlock.FontWeight="{TemplateBinding FontWeight}"/>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter Property="Background" Value="#45A049"/>
-                                                    <Setter Property="BorderBrush" Value="#3E8E41"/>
-                                                </Trigger>
-                                                <Trigger Property="IsPressed" Value="True">
-                                                    <Setter Property="Background" Value="#3E8E41"/>
-                                                    <Setter Property="BorderBrush" Value="#357A3A"/>
-                                                </Trigger>
-                                                <Trigger Property="IsEnabled" Value="False">
-                                                    <Setter Property="Background" Value="#666666"/>
-                                                    <Setter Property="BorderBrush" Value="#555555"/>
-                                                    <Setter Property="Foreground" Value="#AAAAAA"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </Button.Style>
-                    </Button>
+                            Cursor="Hand"/>
                 </StackPanel>
-            </StackPanel>
+
+                <!-- Analyzing status - Show when analyzing -->
+                <StackPanel Visibility="{Binding IsAnalyzing, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            HorizontalAlignment="Center">
+                    <Border Background="#666666"
+                            BorderBrush="#555555"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="24,12"
+                            HorizontalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Analyzing" 
+                                       FontSize="14" 
+                                       FontWeight="SemiBold"
+                                       Foreground="White" 
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0"/>
+                            <TextBlock Text="{Binding AnalysisElapsedTime}" 
+                                       FontSize="14" 
+                                       FontWeight="SemiBold"
+                                       Foreground="#AAAAAA" 
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                    
+                    <ProgressBar IsIndeterminate="True" 
+                                 Width="120" 
+                                 Height="3" 
+                                 Background="#333333"
+                                 Foreground="#4CAF50"
+                                 Margin="0,8,0,0"/>
+                </StackPanel>
+            </Grid>
 
             <!-- Analysis Results - Show when analysis is complete -->
             <StackPanel Grid.Row="0" Grid.RowSpan="5" 
-                        Visibility="{Binding HasAnalysisResult, Converter={StaticResource BoolToVisibilityConverter}}"
+                        Visibility="{Binding HasAnalysis, Converter={StaticResource BooleanToVisibilityConverter}}"
                         Margin="0,16">
 
-                <!-- Header Section -->
-                <Border Background="{StaticResource CardBackground}"
-                        BorderBrush="{StaticResource CardBorderBrush}"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Padding="16"
-                        Margin="0,0,0,16">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        
-                        <TextBlock Grid.Column="0"
-                                   Text="Requirement Analysis Results" 
-                                   FontSize="18" 
-                                   FontWeight="SemiBold"
-                                   Foreground="{StaticResource MenuForeground}"
-                                   VerticalAlignment="Center"/>
-                        
-                        <Button Grid.Column="1"
-                                Command="{Binding AnalyzeNowCommand}"
-                                Content="Re-analyze"
-                                Padding="16,8"
-                                FontSize="12"
-                                Background="#666666"
-                                Foreground="White"
-                                BorderBrush="#555555"
-                                BorderThickness="1"
-                                Cursor="Hand"
-                                IsTabStop="True">
-                            <Button.Style>
-                                <Style TargetType="Button">
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="Button">
-                                                <Border Background="{TemplateBinding Background}"
-                                                        BorderBrush="{TemplateBinding BorderBrush}"
-                                                        BorderThickness="{TemplateBinding BorderThickness}"
-                                                        CornerRadius="4"
-                                                        Padding="{TemplateBinding Padding}">
-                                                    <ContentPresenter HorizontalAlignment="Center"
-                                                                    VerticalAlignment="Center"
-                                                                    Content="{TemplateBinding Content}"
-                                                                    TextBlock.Foreground="{TemplateBinding Foreground}"
-                                                                    TextBlock.FontSize="{TemplateBinding FontSize}"
-                                                                    TextBlock.FontWeight="{TemplateBinding FontWeight}"/>
-                                                </Border>
-                                                <ControlTemplate.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Background" Value="#777777"/>
-                                                        <Setter Property="BorderBrush" Value="#666666"/>
-                                                    </Trigger>
-                                                    <Trigger Property="IsPressed" Value="True">
-                                                        <Setter Property="Background" Value="#555555"/>
-                                                        <Setter Property="BorderBrush" Value="#444444"/>
-                                                    </Trigger>
-                                                    <Trigger Property="IsEnabled" Value="False">
-                                                        <Setter Property="Background" Value="#444444"/>
-                                                        <Setter Property="BorderBrush" Value="#333333"/>
-                                                        <Setter Property="Foreground" Value="#888888"/>
-                                                    </Trigger>
-                                                </ControlTemplate.Triggers>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                    </Grid>
-                </Border>
-
-                <!-- Quality Score Section -->
-                <Border Background="{StaticResource CardBackground}"
-                        BorderBrush="{StaticResource CardBorderBrush}"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Padding="16"
-                        Margin="0,0,0,16">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        
-                        <TextBlock Grid.Column="0"
-                                   Text="Quality Score:" 
-                                   FontSize="14" 
-                                   FontWeight="Medium"
-                                   Foreground="{StaticResource MenuForeground}"
+                <!-- Header Section with professional styling -->
+                <StackPanel Margin="0,0,0,24">
+                    <TextBlock Text="Requirement Quality Analysis"
+                               FontSize="24"
+                               FontWeight="SemiBold"
+                               Foreground="#FF8C00"
+                               Margin="0,0,0,4"/>
+                    <TextBlock Text="{Binding AnalysisTimestamp, StringFormat='Analyzed on {0}'}"
+                               FontSize="12"
+                               Foreground="#AAAAAA"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Text="Original Quality Score"
+                                   FontSize="12"
+                                   Foreground="#CCCCCC"
                                    VerticalAlignment="Center"
-                                   Margin="0,0,12,0"/>
-                        
-                        <ProgressBar Grid.Column="1"
-                                     Value="{Binding QualityScore}" 
-                                     Maximum="100"
-                                     Height="8"
-                                     Background="#333333"
-                                     Foreground="#4CAF50"
-                                     VerticalAlignment="Center"
-                                     Margin="0,0,12,0"/>
-                        
-                        <TextBlock Grid.Column="2"
-                                   Text="{Binding QualityScore, StringFormat='{}{0}%'}" 
-                                   FontSize="14" 
-                                   FontWeight="Bold"
-                                   Foreground="{StaticResource MenuForeground}"
+                                   Margin="0,0,8,0"/>
+                        <TextBlock Text="{Binding QualityScore, StringFormat='{}{0}/10'}"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="White"
                                    VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Refined Requirement Section -->
+                <Border Background="#3A3A3C"
+                        BorderBrush="#5A5A5C"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="16"
+                        Margin="0,0,0,16"
+                        Visibility="{Binding HasImprovedRequirement, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0"
+                                       Text="📝"
+                                       FontSize="16"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0"/>
+                            <TextBlock Grid.Column="1"
+                                       Text="Refined Requirement"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="White"
+                                       VerticalAlignment="Center"/>
+                            <Button Grid.Column="2"
+                                    Command="{Binding EditRequirementCommand}"
+                                    Content="Edit"
+                                    Background="Transparent"
+                                    BorderBrush="#FF8C00"
+                                    BorderThickness="1"
+                                    Foreground="#FF8C00"
+                                    FontSize="11"
+                                    Padding="12,4"
+                                    Cursor="Hand"/>
+                        </Grid>
+                        
+                        <TextBlock Grid.Row="1"
+                                   Text="Complete rewritten requirement addressing all identified issues:"
+                                   FontSize="11"
+                                   Foreground="#AAAAAA"
+                                   Margin="0,0,0,8"/>
+                        
+                        <TextBlock Grid.Row="1"
+                                   Text="{Binding ImprovedRequirement}"
+                                   FontSize="12"
+                                   Foreground="#E0E0E0"
+                                   TextWrapping="Wrap"
+                                   LineHeight="18"
+                                   Margin="0,20,0,0"/>
                     </Grid>
                 </Border>
 
-                <!-- Issues Section -->
-                <Border Background="{StaticResource CardBackground}"
-                        BorderBrush="{StaticResource CardBorderBrush}"
+                <!-- Issues Section with improved styling -->
+                <Border Background="#3A3A3C"
+                        BorderBrush="#5A5A5C"
                         BorderThickness="1"
                         CornerRadius="8"
                         Padding="16"
@@ -254,33 +216,40 @@
                         Visibility="{Binding Issues, Converter={StaticResource NullOrEmptyToVisibilityConverter}}">
                     
                     <StackPanel>
-                        <TextBlock Text="Issues Found:" 
-                                   FontSize="14" 
-                                   FontWeight="Medium"
-                                   Foreground="{StaticResource MenuForeground}"
-                                   Margin="0,0,0,12"/>
+                        <TextBlock Text="Issues Identified"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="White"
+                                   Margin="0,0,0,16"/>
                         
                         <ItemsControl ItemsSource="{Binding Issues}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="#2A2A2A"
-                                            BorderBrush="#444444"
-                                            BorderThickness="1"
-                                            CornerRadius="4"
-                                            Padding="12"
-                                            Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Title}" 
-                                                       FontWeight="Medium"
-                                                       Foreground="#FF6B6B"
-                                                       FontSize="13"
-                                                       Margin="0,0,0,4"/>
-                                            <TextBlock Text="{Binding Description}" 
-                                                       FontSize="12"
-                                                       Foreground="#CCCCCC"
-                                                       TextWrapping="Wrap"/>
+                                    <StackPanel Margin="0,0,0,12">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                            <Border Background="#FF8C00"
+                                                    CornerRadius="3"
+                                                    Padding="8,2"
+                                                    Margin="0,0,8,0">
+                                                <TextBlock Text="{Binding Category}"
+                                                           FontSize="11"
+                                                           FontWeight="Medium"
+                                                           Foreground="Black"/>
+                                            </Border>
+                                            <Border Background="#666666"
+                                                    CornerRadius="3"
+                                                    Padding="8,2">
+                                                <TextBlock Text="{Binding Severity}"
+                                                           FontSize="11"
+                                                           Foreground="White"/>
+                                            </Border>
                                         </StackPanel>
-                                    </Border>
+                                        <TextBlock Text="{Binding Description}"
+                                                   FontSize="12"
+                                                   Foreground="#E0E0E0"
+                                                   TextWrapping="Wrap"
+                                                   LineHeight="16"/>
+                                    </StackPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
@@ -288,23 +257,23 @@
                 </Border>
 
                 <!-- Freeform Feedback Section -->
-                <Border Background="{StaticResource CardBackground}"
-                        BorderBrush="{StaticResource CardBorderBrush}"
+                <Border Background="#3A3A3C"
+                        BorderBrush="#5A5A5C"
                         BorderThickness="1"
                         CornerRadius="8"
                         Padding="16"
                         Visibility="{Binding FreeformFeedback, Converter={StaticResource StringNotEmptyToVisibilityConverter}}">
                     
                     <StackPanel>
-                        <TextBlock Text="Additional Feedback:" 
-                                   FontSize="14" 
-                                   FontWeight="Medium"
-                                   Foreground="{StaticResource MenuForeground}"
+                        <TextBlock Text="Additional Feedback"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="White"
                                    Margin="0,0,0,12"/>
                         
-                        <TextBlock Text="{Binding FreeformFeedback}" 
+                        <TextBlock Text="{Binding FreeformFeedback}"
                                    FontSize="12"
-                                   Foreground="#CCCCCC"
+                                   Foreground="#E0E0E0"
                                    TextWrapping="Wrap"
                                    LineHeight="18"/>
                     </StackPanel>

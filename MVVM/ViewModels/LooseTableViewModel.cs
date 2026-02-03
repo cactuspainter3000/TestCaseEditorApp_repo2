@@ -40,8 +40,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty] private ObservableCollection<ColumnDefinitionModel> columns = new();
         [ObservableProperty] private ObservableCollection<TableRowModel> rows = new();
 
+        // ---------- Display properties ----------
+        public string DisplayName => !string.IsNullOrEmpty(Title) ? Title : "Untitled Table";
+        
+        // Debug property to verify DataContext binding
+        public string DebugInfo => $"LooseTableVM #{GetHashCode()}, IsEditing: {IsEditing}, Title: '{Title}'";
+
         // ---------- UX helpers ----------
         [ObservableProperty] private bool isSelected;
+        [ObservableProperty] private bool isEditing;
         [ObservableProperty] private double confidenceScore;
         [ObservableProperty] private bool isModified;
 
@@ -89,6 +96,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             if (rows is not null) Rows = rows;
 
             NormalizeRows();
+            
+            // Initialize the EditorViewModel for display in the UI (read-only)
+            EditorViewModel = EditableTableEditorViewModel.From(Title, Columns, Rows);
+            
             TryLoadFromSession();
             
             TestCaseEditorApp.Services.Logging.Log.Debug($"[CTOR] LooseTableViewModel #{GetHashCode()} completed - IsSelected={IsSelected}");
@@ -97,6 +108,19 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // If IDs change later, try to load a session copy then.
         partial void OnRequirementIdChanged(string value) => TryLoadFromSession();
         partial void OnTableKeyChanged(string value) => TryLoadFromSession();
+        
+        // Update DisplayName when Title changes
+        partial void OnTitleChanged(string value) => OnPropertyChanged(nameof(DisplayName));
+        
+        // Track IsEditing changes
+        partial void OnIsEditingChanged(bool value)
+        {
+            System.Diagnostics.Debug.WriteLine($"[LooseTableViewModel] #{GetHashCode()} OnIsEditingChanged called - IsEditing: {value}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[LooseTableViewModel] #{GetHashCode()} IsEditing changed to: {value}");
+            
+            // Ensure other properties that depend on IsEditing are updated
+            OnPropertyChanged(nameof(DebugInfo));
+        }
 
         // Persist selection whenever the checkbox changes.
         partial void OnIsSelectedChanged(bool value)
@@ -139,11 +163,86 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [RelayCommand]
         private void EditTable()
         {
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[EditTable] #{GetHashCode()} ENTERING EDIT MODE - Req: {RequirementId}, Table: {TableKey}");
-            
-            // Create editor ViewModel and enter embedded edit mode
-            EditorViewModel = EditableTableEditorViewModel.From(Title, Columns, Rows);
-            // Removed IsEditing = true assignment
+            // Force immediate output to check if command is called
+            System.Diagnostics.Debug.WriteLine($"[EditTable] COMMAND CALLED - Hash: {GetHashCode()}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[EditTable] #{GetHashCode()} ENTERING EDIT MODE - Req: {RequirementId}, Table: {TableKey}, CurrentIsEditing: {IsEditing}");
+
+            // 🔍 CHECK ORIGINAL DATA STATE
+            System.Diagnostics.Debug.WriteLine($"[EditTable] 🔍 ORIGINAL DATA CHECK - Columns.Count: {Columns?.Count ?? -1}, Rows.Count: {Rows?.Count ?? -1}");
+            if ((Columns?.Count ?? 0) == 0 || (Rows?.Count ?? 0) == 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EditTable] ⚠️ WARNING: ORIGINAL DATA IS EMPTY! Columns={Columns?.Count ?? -1}, Rows={Rows?.Count ?? -1}");
+            }
+
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[EditTable] About to create EditorViewModel - Title: '{Title}', Columns: {Columns.Count}, Rows: {Rows.Count}");
+                
+                // Debug the actual data we're passing
+                System.Diagnostics.Debug.WriteLine($"[EditTable] Columns data:");
+                for (int i = 0; i < Columns.Count; i++)
+                {
+                    var col = Columns[i];
+                    System.Diagnostics.Debug.WriteLine($"  Column {i}: Header='{col.Header}', BindingPath='{col.BindingPath}'");
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"[EditTable] Rows data:");
+                for (int i = 0; i < Math.Min(Rows.Count, 3); i++)
+                {
+                    var row = Rows[i];
+                    System.Diagnostics.Debug.WriteLine($"  Row {i}: Cells.Count={row.Cells.Count}");
+                    foreach (var cell in row.Cells)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"    Cell: Key='{cell.Key}', Value='{cell.Value}'");
+                    }
+                }
+                
+                // Create editor ViewModel and enter embedded edit mode
+                EditorViewModel = EditableTableEditorViewModel.From(Title, Columns, Rows);
+                
+                System.Diagnostics.Debug.WriteLine($"[EditTable] EditorViewModel created successfully: {EditorViewModel != null}");
+                if (EditorViewModel != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EditTable] EditorViewModel details - Title: '{EditorViewModel.Title}', Columns: {EditorViewModel.Columns?.Count ?? 0}, Rows: {EditorViewModel.Rows?.Count ?? 0}");
+                    
+                    // Debug the editor data
+                    if (EditorViewModel.Columns != null)
+                    {
+                        for (int i = 0; i < EditorViewModel.Columns.Count; i++)
+                        {
+                            var col = EditorViewModel.Columns[i];
+                            System.Diagnostics.Debug.WriteLine($"  EditorColumn {i}: Header='{col.Header}', BindingPath='{col.BindingPath}'");
+                        }
+                    }
+                    
+                    if (EditorViewModel.Rows != null)
+                    {
+                        for (int i = 0; i < Math.Min(EditorViewModel.Rows.Count, 3); i++)
+                        {
+                            var row = EditorViewModel.Rows[i];
+                            System.Diagnostics.Debug.WriteLine($"  EditorRow {i}: Cells.Count={row.Cells.Count}");
+                            foreach (var cell in row.Cells)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"    EditorCell: Key='{cell.Key}', Value='{cell.Value}'");
+                            }
+                        }
+                    }
+                }
+                
+                IsEditing = true;
+                System.Diagnostics.Debug.WriteLine($"[EditTable] IsEditing set to: {IsEditing}");
+                
+                // Force property change notification
+                OnPropertyChanged(nameof(IsEditing));
+                OnPropertyChanged(nameof(DebugInfo));
+                
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[EditTable] #{GetHashCode()} EDIT MODE SET - IsEditing: {IsEditing}, EditorViewModel created: {EditorViewModel != null}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EditTable] ERROR: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[EditTable] #{GetHashCode()} ERROR entering edit mode");
+            }
         }
 
         private void SaveTable()
@@ -177,6 +276,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 
                 // Clear editor ViewModel
                 EditorViewModel = null;
+                IsEditing = false;
                 
                 // Perform post-edit processing
                 AfterEditCommit();
@@ -187,17 +287,27 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private void CancelEdit()
         {
-            // Clear editor ViewModel without applying changes
-            EditorViewModel = null;
+            System.Diagnostics.Debug.WriteLine($"[CancelEdit] COMMAND CALLED - Hash: {GetHashCode()}");
+            
+            // Instead of clearing EditorViewModel completely, restore it to show original data
+            // This ensures the UI always has data to display
+            EditorViewModel = EditableTableEditorViewModel.From(Title, Columns, Rows);
+            IsEditing = false;
+            
+            System.Diagnostics.Debug.WriteLine($"[CancelEdit] EditorViewModel restored with original data, IsEditing set to false");
             
             // Exit edit mode - removed IsEditing assignment
         }
 
         private void ExitEditingMode()
         {
+            System.Diagnostics.Debug.WriteLine($"[ExitEditingMode] COMMAND CALLED - Hash: {GetHashCode()}");
+            System.Diagnostics.Debug.WriteLine($"[ExitEditingMode] STACK TRACE: {Environment.StackTrace}");
+            
             // If there's no editor VM, just exit
             if (EditorViewModel is null)
             {
+                System.Diagnostics.Debug.WriteLine($"[ExitEditingMode] EditorViewModel is null, exiting early");
                 return;
             }
 
@@ -332,16 +442,29 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private bool HasUnsavedChanges()
         {
-            if (EditorViewModel is null) return false;
+            System.Diagnostics.Debug.WriteLine($"[HasUnsavedChanges] Checking for unsaved changes - Hash: {GetHashCode()}");
+            
+            if (EditorViewModel is null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[HasUnsavedChanges] EditorViewModel is null, returning false");
+                return false;
+            }
 
             // Compare title
             if (!string.Equals(Title ?? string.Empty, EditorViewModel.Title ?? string.Empty, StringComparison.Ordinal))
+            {
+                System.Diagnostics.Debug.WriteLine($"[HasUnsavedChanges] Title changed - Original: '{Title}', Editor: '{EditorViewModel.Title}', returning true");
                 return true;
+            }
 
             // Compare snapshot hashes of columns+rows
             var currentHash = SnapshotHash(Columns, Rows);
             var editorHash = SnapshotHash(EditorViewModel.Columns, EditorViewModel.Rows);
-            return !string.Equals(currentHash, editorHash, StringComparison.Ordinal);
+            bool hasChanges = !string.Equals(currentHash, editorHash, StringComparison.Ordinal);
+            
+            System.Diagnostics.Debug.WriteLine($"[HasUnsavedChanges] Hash comparison - Original: '{currentHash}', Editor: '{editorHash}', HasChanges: {hasChanges}");
+            
+            return hasChanges;
         }
 
         private void AfterEditCommit()

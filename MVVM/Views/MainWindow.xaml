@@ -75,6 +75,11 @@
             <sharedviews:SharedAnalysisView />
         </DataTemplate>
 
+        <!-- Requirement Analysis ViewModel - maps to SharedAnalysisView -->
+        <DataTemplate DataType="{x:Type reqvm:RequirementAnalysisViewModel}">
+            <sharedviews:SharedAnalysisView />
+        </DataTemplate>
+
         <DataTemplate DataType="{x:Type vm:WorkspaceHeaderViewModel}">
             <views:WorkspaceHeaderView />
         </DataTemplate>
@@ -208,12 +213,9 @@
             <views:ProjectView />
         </DataTemplate>-->
 
-        <DataTemplate DataType="{x:Type reqvm:Requirements_MainViewModel}">
-            <reqviews:RequirementsMainView />
-        </DataTemplate>
-
-        <DataTemplate DataType="{x:Type reqvm:JamaRequirementsMainViewModel}">
-            <reqviews:JamaRequirementsMainView />
+        <!-- Unified Requirements ViewModel - source-agnostic architecture -->
+        <DataTemplate DataType="{x:Type reqvm:UnifiedRequirementsMainViewModel}">
+            <reqviews:UnifiedRequirementsMainView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type reqvm:Requirements_HeaderViewModel}">

@@ -279,8 +279,8 @@
                                           SnapsToDevicePixels="True"
                                           TextOptions.TextRenderingMode="ClearType"
                                           TextOptions.TextFormattingMode="Display"
-                                          local:DebugCellMenu.Enable="True"
-                                          local:DebugColumnMenu.EnableHeader="True"
+                                          local:DebugCellMenu.Enable="{Binding Path=DataContext.IsEditing, RelativeSource={RelativeSource AncestorType={x:Type local:EditableDataControl}}}"
+                                          local:DebugColumnMenu.EnableHeader="{Binding Path=DataContext.IsEditing, RelativeSource={RelativeSource AncestorType={x:Type local:EditableDataControl}}}"
                                           local:EditorGridColumnBuilder.ColumnsSource="{Binding Columns}"
                                           local:EditorGridColumnBuilder.ColumnWidth="{StaticResource CellWidth}">
 
