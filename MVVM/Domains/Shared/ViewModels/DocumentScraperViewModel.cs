@@ -50,11 +50,39 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
 
         [ObservableProperty]
         private string _currentWorkspaceName = string.Empty;
+        
+        [ObservableProperty]
+        private JamaAttachment? _selectedAttachment;
+        
+        /// <summary>
+        /// Whether we can scan the selected attachment for requirements
+        /// </summary>
+        public bool CanScanSelectedAttachment => SelectedAttachment != null && !IsScanning;
+        
+        /// <summary>
+        /// Whether we have extracted requirements available for import
+        /// </summary>
+        public bool HasExtractedRequirements => ExtractedRequirements.Any();
+
+        partial void OnSelectedAttachmentChanged(JamaAttachment? value)
+        {
+            OnPropertyChanged(nameof(CanScanSelectedAttachment));
+        }
+        
+        partial void OnIsScanningChanged(bool value)
+        {
+            OnPropertyChanged(nameof(CanScanSelectedAttachment));
+        }
 
         // Collections for UI - using existing service models
         public ObservableCollection<JamaAttachment> FoundAttachments { get; } = new();
         public ObservableCollection<string> ParsingResults { get; } = new(); // Simplified for now
-        public ObservableCollection<Requirement> ExtractedRequirements { get; } = new();
+        public ObservableCollection<Requirement> ExtractedRequirements { get; }
+        
+        private void InitializeCollections()
+        {
+            ExtractedRequirements.CollectionChanged += (s, e) => OnPropertyChanged(nameof(HasExtractedRequirements));
+        }
 
         /// <summary>
         /// Constructor with direct service injection for self-contained operation
@@ -67,6 +95,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
             _jamaService = jamaService ?? throw new ArgumentNullException(nameof(jamaService));
             _workspaceContext = workspaceContext ?? throw new ArgumentNullException(nameof(workspaceContext));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            
+            ExtractedRequirements = new ObservableCollection<Requirement>();
+            InitializeCollections();
 
             // Subscribe to workspace changes for auto-detection
             _workspaceContext.WorkspaceChanged += OnWorkspaceChanged;
@@ -266,6 +297,67 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
                 IsScanning = false;
                 _scanCancellationSource?.Dispose();
                 _scanCancellationSource = null;
+            }
+        }
+
+        /// <summary>
+        /// Scan selected attachment for requirements
+        /// </summary>
+        [RelayCommand]
+        private async Task ScanSelectedAttachmentAsync()
+        {
+            if (SelectedAttachment == null)
+            {
+                StatusMessage = "No attachment selected for scanning.";
+                return;
+            }
+            
+            try
+            {
+                StatusMessage = $"Scanning {SelectedAttachment.Name} for requirements...";
+                _logger.LogInformation("[DocumentScraper] Starting requirement scan for attachment {AttachmentId}: {AttachmentName}", 
+                    SelectedAttachment.Id, SelectedAttachment.Name);
+                
+                // Clear previous extraction results
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    ExtractedRequirements.Clear();
+                    ParsingResults.Clear();
+                });
+                
+                // For now, add placeholder extraction logic
+                // This would be where you integrate with document parsing/AI analysis
+                await Task.Delay(2000); // Simulate processing time
+                
+                // Add mock extracted requirements for demonstration
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    ParsingResults.Add($"Processing {SelectedAttachment.Name}...");
+                    ParsingResults.Add($"Document type: {SelectedAttachment.MimeType}");
+                    ParsingResults.Add("Searching for requirement patterns...");
+                    ParsingResults.Add($"Analysis complete. Ready for requirement extraction.");
+                    
+                    // Add sample extracted requirement (replace with actual extraction logic)
+                    var sampleReq = new Requirement
+                    {
+                        Item = "EXT-001",
+                        Name = $"Sample requirement from {SelectedAttachment.Name}",
+                        Description = $"Sample requirement text extracted from {SelectedAttachment.Name}",
+                        ItemType = "Functional",
+                        Project = CurrentJamaProjectName
+                    };
+                    ExtractedRequirements.Add(sampleReq);
+                });
+                
+                StatusMessage = $"Scan completed. Found {ExtractedRequirements.Count} requirements in {SelectedAttachment.Name}.";
+                _logger.LogInformation("[DocumentScraper] Requirement scan completed for {AttachmentName}. Found {RequirementCount} requirements.", 
+                    SelectedAttachment.Name, ExtractedRequirements.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[DocumentScraper] Error during requirement scanning for attachment {AttachmentId}", 
+                    SelectedAttachment?.Id);
+                StatusMessage = "Error occurred during requirement scanning.";
             }
         }
 

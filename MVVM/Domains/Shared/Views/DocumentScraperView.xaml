@@ -19,39 +19,79 @@
         </Grid.RowDefinitions>
 
         <!-- Header Section -->
-        <Border Grid.Row="0" Background="#F0F0F0" Padding="10" Margin="5">
+        <Border Grid.Row="0" Background="{StaticResource Brush.Background.Header}" Padding="16" Margin="0">
             <StackPanel>
-                <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="Bold" Margin="0,0,0,5"/>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Workspace: " FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding CurrentWorkspaceName}" Margin="5,0"/>
-                    <TextBlock Text="Jama Project: " FontWeight="SemiBold" Margin="10,0,0,0"/>
-                    <TextBlock Text="{Binding CurrentJamaProjectName}" Margin="5,0"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <TextBlock Text="🔍" FontSize="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Text="{Binding Title}" 
+                               FontSize="{StaticResource FontSize.H1}" 
+                               FontWeight="SemiBold" 
+                               Foreground="{StaticResource Brush.Accent.Primary}"
+                               VerticalAlignment="Center"/>
                 </StackPanel>
-                <TextBlock Text="{Binding StatusMessage}" Margin="0,5,0,0" FontStyle="Italic"/>
+                <TextBlock Text="{Binding StatusMessage}" 
+                           FontSize="{StaticResource FontSize.Body}"
+                           Foreground="{StaticResource Brush.Text.Secondary}" 
+                           Margin="0,0,0,8"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Workspace: " 
+                               FontSize="{StaticResource FontSize.Caption}"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource Brush.Text.Primary}"/>
+                    <TextBlock Text="{Binding CurrentWorkspaceName}" 
+                               FontSize="{StaticResource FontSize.Caption}"
+                               Foreground="{StaticResource Brush.Text.Secondary}"
+                               Margin="4,0,16,0"/>
+                    <TextBlock Text="Jama Project: " 
+                               FontSize="{StaticResource FontSize.Caption}"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource Brush.Text.Primary}"/>
+                    <TextBlock Text="{Binding CurrentJamaProjectName}" 
+                               FontSize="{StaticResource FontSize.Caption}"
+                               Foreground="{StaticResource Brush.Text.Secondary}"
+                               Margin="4,0"/>
+                </StackPanel>
                 
                 <!-- Progress Bar -->
-                <ProgressBar Grid.Row="1" Height="20" Margin="0,5" 
+                <ProgressBar Grid.Row="1" Height="6" Margin="0,8,0,0" 
                            Visibility="{Binding IsScanning, Converter={StaticResource BooleanToVisibilityConverter}}"
                            Value="{Binding BackgroundScanProgress}" 
-                           Maximum="{Binding BackgroundScanTotal}"/>
+                           Maximum="{Binding BackgroundScanTotal}"
+                           Background="{StaticResource Brush.Background.Menu}"
+                           Foreground="{StaticResource Brush.Accent.Primary}"
+                           BorderThickness="0"/>
             </StackPanel>
         </Border>
 
         <!-- Action Buttons -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="5" HorizontalAlignment="Left">
-            <Button Content="Refresh Attachments" 
-                    Command="{Binding RefreshAttachmentsCommand}" 
-                    IsEnabled="{Binding HasJamaProject}"
-                    Margin="5" Padding="10,5"/>
-            <Button Content="Cancel Scan" 
-                    Command="{Binding CancelScanCommand}" 
-                    IsEnabled="{Binding IsScanning}"
-                    Margin="5" Padding="10,5"/>
-            <Button Content="Import Selected Requirements" 
-                    Command="{Binding ImportSelectedRequirementsCommand}" 
-                    Margin="5" Padding="10,5"/>
-        </StackPanel>
+        <Border Grid.Row="1" Background="{StaticResource Brush.Background.Surface}" Padding="16,12">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                <Button Content="🔍 Search for Attachments" 
+                        Command="{Binding RefreshAttachmentsCommand}" 
+                        IsEnabled="{Binding HasJamaProject}"
+                        Style="{StaticResource ActionButton}"
+                        Margin="0,0,12,0" 
+                        Padding="12,8"/>
+                <Button Content="📄 Scan Selected for Requirements" 
+                        Command="{Binding ScanSelectedAttachmentCommand}" 
+                        IsEnabled="{Binding CanScanSelectedAttachment}"
+                        Style="{StaticResource ActionButton}"
+                        Margin="0,0,12,0" 
+                        Padding="12,8"/>
+                <Button Content="⏹️ Cancel Scan" 
+                        Command="{Binding CancelScanCommand}" 
+                        IsEnabled="{Binding IsScanning}"
+                        Style="{StaticResource ActionButton}"
+                        Margin="0,0,12,0" 
+                        Padding="12,8"/>
+                <Button Content="📥 Import Selected Requirements" 
+                        Command="{Binding ImportSelectedRequirementsCommand}" 
+                        IsEnabled="{Binding HasExtractedRequirements}"
+                        Style="{StaticResource ActionButton}"
+                        Margin="0" 
+                        Padding="12,8"/>
+            </StackPanel>
+        </Border>
 
         <!-- Results Tabs -->
         <TabControl Grid.Row="2" Margin="5">
@@ -97,6 +137,8 @@
             <TabItem Header="Found Attachments">
                 <Grid>
                     <ListView ItemsSource="{Binding FoundAttachments}" 
+                              SelectedItem="{Binding SelectedAttachment}"
+                              SelectionMode="Single"
                               ScrollViewer.HorizontalScrollBarVisibility="Auto">
                         <ListView.View>
                             <GridView>
@@ -134,11 +176,11 @@
                               ScrollViewer.HorizontalScrollBarVisibility="Auto">
                         <ListView.View>
                             <GridView>
-                                <GridViewColumn Header="ID" DisplayMemberBinding="{Binding Id}" Width="80"/>
-                                <GridViewColumn Header="Text" DisplayMemberBinding="{Binding Text}" Width="300"/>
-                                <GridViewColumn Header="Type" DisplayMemberBinding="{Binding RequirementType}" Width="100"/>
-                                <GridViewColumn Header="Priority" DisplayMemberBinding="{Binding Priority}" Width="80"/>
-                                <GridViewColumn Header="Source" DisplayMemberBinding="{Binding SourceDocument}" Width="150"/>
+                                <GridViewColumn Header="ID" DisplayMemberBinding="{Binding Item}" Width="120"/>
+                                <GridViewColumn Header="Name" DisplayMemberBinding="{Binding Name}" Width="200"/>
+                                <GridViewColumn Header="Description" DisplayMemberBinding="{Binding Description}" Width="350"/>
+                                <GridViewColumn Header="Type" DisplayMemberBinding="{Binding ItemType}" Width="100"/>
+                                <GridViewColumn Header="Project" DisplayMemberBinding="{Binding Project}" Width="150"/>
                             </GridView>
                         </ListView.View>
                     </ListView>
@@ -148,18 +190,28 @@
 
         <!-- No Jama Project Overlay -->
         <Border Grid.Row="0" Grid.RowSpan="3" 
-                Background="#80000000" 
+                Background="#C0000000" 
                 Visibility="{Binding HasJamaProject, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
-            <Border Background="White" Padding="30" 
-                    VerticalAlignment="Center" HorizontalAlignment="Center">
+            <Border Background="{StaticResource Brush.Background.Header}" 
+                    BorderBrush="{StaticResource Brush.Border.Accent}"
+                    BorderThickness="2"
+                    CornerRadius="8"
+                    Padding="32" 
+                    VerticalAlignment="Center" 
+                    HorizontalAlignment="Center">
                 <StackPanel>
-                    <TextBlock Text="No Jama Project Associated" 
-                               FontSize="18" FontWeight="Bold" 
-                               HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                    <TextBlock Text="🔗 No Jama Project Associated" 
+                               FontSize="{StaticResource FontSize.H1}" 
+                               FontWeight="SemiBold" 
+                               Foreground="{StaticResource Brush.Accent.Primary}"
+                               HorizontalAlignment="Center" 
+                               Margin="0,0,0,12"/>
                     <TextBlock Text="Document scraping requires a workspace with an associated Jama project." 
                                TextWrapping="Wrap" 
+                               FontSize="{StaticResource FontSize.Body}"
+                               Foreground="{StaticResource Brush.Text.Secondary}"
                                HorizontalAlignment="Center" 
-                               MaxWidth="300" 
+                               MaxWidth="350" 
                                TextAlignment="Center"/>
                 </StackPanel>
             </Border>
