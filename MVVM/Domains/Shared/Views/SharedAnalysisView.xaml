@@ -187,7 +187,19 @@
                                     Foreground="#FF8C00"
                                     FontSize="11"
                                     Padding="12,4"
-                                    Cursor="Hand"/>
+                                    Cursor="Hand">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Style.Triggers>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter Property="Foreground" Value="#666666"/>
+                                                <Setter Property="BorderBrush" Value="#666666"/>
+                                                <Setter Property="Cursor" Value="Arrow"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
                         </Grid>
                         
                         <TextBlock Grid.Row="1"
@@ -196,13 +208,77 @@
                                    Foreground="#AAAAAA"
                                    Margin="0,0,0,8"/>
                         
+                        <!-- Read-only view (when NOT editing) -->
                         <TextBlock Grid.Row="1"
                                    Text="{Binding ImprovedRequirement}"
                                    FontSize="12"
                                    Foreground="#E0E0E0"
                                    TextWrapping="Wrap"
                                    LineHeight="18"
-                                   Margin="0,20,0,0"/>
+                                   Margin="0,20,0,0"
+                                   Visibility="{Binding IsEditingRequirement, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                        
+                        <!-- Edit mode (when editing) -->
+                        <Grid Grid.Row="1" 
+                              Margin="0,20,0,0"
+                              Visibility="{Binding IsEditingRequirement, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <!-- Text editing area -->
+                            <TextBox Grid.Row="0"
+                                     Text="{Binding EditingRequirementText, UpdateSourceTrigger=PropertyChanged}"
+                                     FontSize="12"
+                                     Foreground="#E0E0E0"
+                                     Background="#4A4A4C"
+                                     BorderBrush="#6A6A6C"
+                                     BorderThickness="1"
+                                     Padding="8"
+                                     TextWrapping="Wrap"
+                                     AcceptsReturn="True"
+                                     MinHeight="80"
+                                     VerticalScrollBarVisibility="Auto"/>
+                            
+                            <!-- Edit action buttons -->
+                            <StackPanel Grid.Row="1" 
+                                        Orientation="Horizontal" 
+                                        HorizontalAlignment="Right"
+                                        Margin="0,12,0,0">
+                                <!-- Copy for external analysis button -->
+                                <Button Command="{Binding CopyAnalysisPromptCommand}"
+                                        Content="{Binding CopyAnalysisButtonText}"
+                                        Background="Transparent"
+                                        BorderBrush="#4CAF50"
+                                        BorderThickness="1"
+                                        Foreground="#4CAF50"
+                                        FontSize="11"
+                                        Padding="12,4"
+                                        Margin="0,0,8,0"
+                                        Cursor="Hand"
+                                        ToolTip="Copy current text to clipboard or generate prompt for external LLM analysis"/>
+                                <Button Command="{Binding CancelEditRequirementCommand}"
+                                        Content="Cancel"
+                                        Background="Transparent"
+                                        BorderBrush="#666666"
+                                        BorderThickness="1"
+                                        Foreground="#CCCCCC"
+                                        FontSize="11"
+                                        Padding="12,4"
+                                        Margin="0,0,8,0"
+                                        Cursor="Hand"/>
+                                <Button Command="{Binding SaveRequirementCommand}"
+                                        Content="Save"
+                                        Background="#4CAF50"
+                                        BorderBrush="#45A049"
+                                        BorderThickness="1"
+                                        Foreground="White"
+                                        FontSize="11"
+                                        Padding="12,4"
+                                        Cursor="Hand"/>
+                            </StackPanel>
+                        </Grid>
                     </Grid>
                 </Border>
 

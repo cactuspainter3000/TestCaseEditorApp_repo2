@@ -108,12 +108,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             {
                 if (_isAnalyzing != value)
                 {
+                    var oldValue = _isAnalyzing; // Capture old value before changing
                     _isAnalyzing = value;
                     PublishEvent(new RequirementsEvents.WorkflowStateChanged
                     {
                         PropertyName = nameof(IsAnalyzing),
                         NewValue = value,
-                        OldValue = _isAnalyzing
+                        OldValue = oldValue
                     });
                     _logger.LogDebug("IsAnalyzing changed to: {IsAnalyzing}", value);
                 }

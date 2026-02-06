@@ -37,11 +37,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private readonly TestCaseEditorApp.Services.IEditDetectionService? _editDetectionService;
         private readonly TestCaseEditorApp.Services.ILLMLearningService? _learningService;
         private readonly TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator? _mediator;
-        private CancellationTokenSource? _analysisCancellation;
 
         // Timer for tracking analysis duration
         private System.Timers.Timer? _analysisTimer;
         private DateTime _analysisStartTime;
+        
+        // Track which specific requirement is being analyzed
+        private string? _analyzingRequirementId;
         
         // Smart clipboard functionality
         private System.Windows.Threading.DispatcherTimer? _clipboardMonitorTimer;
@@ -51,12 +53,33 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         // UI State Properties  
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(HasNoAnalysis))]
         private bool hasAnalysis;
 
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(HasNoAnalysis))]
-        private bool isAnalyzing;
+        /// <summary>
+        /// Indicates if the CURRENT requirement is being analyzed.
+        /// Checks both mediator state and requirement-specific tracking.
+        /// </summary>
+        public bool IsAnalyzing
+        {
+            get
+            {
+                // Check if analysis is in progress via mediator
+                if (_mediator == null || CurrentRequirement == null) 
+                {
+                    _logger.LogDebug("[RequirementAnalysisVM] IsAnalyzing getter: mediator or CurrentRequirement is null, returning false");
+                    return false;
+                }
+                
+                var mediatorAnalyzing = _mediator.IsAnalyzing;
+                var isCurrentRequirementBeingAnalyzed = _analyzingRequirementId == CurrentRequirement.GlobalId;
+                var result = mediatorAnalyzing && isCurrentRequirementBeingAnalyzed;
+                
+                _logger.LogInformation("[RequirementAnalysisVM] IsAnalyzing getter: mediatorAnalyzing={MediatorAnalyzing}, isCurrentReqBeingAnalyzed={IsCurrentReqBeingAnalyzed}, result={Result}, CurrentReq={CurrentReq}, AnalyzingReq={AnalyzingReq}",
+                    mediatorAnalyzing, isCurrentRequirementBeingAnalyzed, result, CurrentRequirement?.GlobalId ?? "null", _analyzingRequirementId ?? "null");
+                
+                return result;
+            }
+        }
 
         [ObservableProperty]
         private string analysisStatusMessage = string.Empty;
@@ -111,21 +134,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             OnPropertyChanged(nameof(HasNoAnalysis));
         }
         
-        partial void OnIsAnalyzingChanged(bool value)
-        {
-            OnPropertyChanged(nameof(HasNoAnalysis));
-            
-            // Start/stop timer when analysis state changes
-            if (value)
-            {
-                StartAnalysisTimer();
-            }
-            else
-            {
-                StopAnalysisTimer();
-            }
-        }
-
         partial void OnIsEditingRequirementChanged(bool value)
         {
             ((RelayCommand)CancelEditRequirementCommand).NotifyCanExecuteChanged();
@@ -155,6 +163,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     // Event-driven: Let property change notifications handle UI updates
                     OnPropertyChanged(nameof(HasAnalysis));
                     OnPropertyChanged(nameof(HasNoAnalysis));
+                    OnPropertyChanged(nameof(IsAnalyzing)); // Update analyzing state for new requirement
                     ((AsyncRelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
                     
                     // Update UI state based on current requirement's analysis
@@ -201,7 +210,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 _mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementSelected>(OnRequirementSelected);
                 _mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementAnalyzed>(OnRequirementAnalyzed);
                 _mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.RequirementUpdated>(OnRequirementUpdatedEvent);
-                _logger.LogInformation("[RequirementAnalysisVM] Subscribed to RequirementSelected, RequirementAnalyzed, and RequirementUpdated events from Requirements mediator");
+                _mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.WorkflowStateChanged>(OnWorkflowStateChanged);
+                _logger.LogInformation("[RequirementAnalysisVM] Subscribed to RequirementSelected, RequirementAnalyzed, RequirementUpdated, and WorkflowStateChanged events from Requirements mediator");
                 
                 // Initialize from mediator's current state (handles late-binding after project already loaded)
                 if (_mediator.CurrentRequirement != null)
@@ -245,11 +255,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
             try
             {
-                // Set our own analyzing state to trigger timer
-                IsAnalyzing = true;
+                // Set analysis status message for UI feedback
                 AnalysisStatusMessage = "Starting analysis...";
+                
+                // Track which requirement is being analyzed
+                _analyzingRequirementId = CurrentRequirement.GlobalId;
+                _logger.LogInformation("[RequirementAnalysisVM] Set analyzing requirement ID to: {AnalyzingReqId}", _analyzingRequirementId);
 
-                // Use the mediator pattern - this will trigger the analysis
+                // Use the mediator pattern - this will trigger the analysis and manage IsAnalyzing state
                 await _mediator.AnalyzeRequirementAsync(CurrentRequirement);
 
                 // Clear status message on success
@@ -262,8 +275,47 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
             finally
             {
-                // Always clear analyzing state
-                IsAnalyzing = false;
+                // Clear analyzing requirement tracking
+                _logger.LogInformation("[RequirementAnalysisVM] Clearing analyzing requirement ID (was: {AnalyzingReqId})", _analyzingRequirementId);
+                _analyzingRequirementId = null;
+                
+                // Refresh UI to reflect final analysis state
+                OnPropertyChanged(nameof(IsAnalyzing));
+                OnPropertyChanged(nameof(HasNoAnalysis));
+            }
+        }
+
+        /// <summary>
+        /// Refreshes the IsAnalyzing state - call when mediator analysis state changes
+        /// </summary>
+        public void RefreshAnalyzingState()
+        {
+            var wasAnalyzing = _analysisTimer?.Enabled ?? false;
+            var isNowAnalyzing = IsAnalyzing;
+            
+            _logger.LogInformation("[RequirementAnalysisVM] RefreshAnalyzingState called - wasAnalyzing: {WasAnalyzing}, isNowAnalyzing: {IsNowAnalyzing}, currentReq: {CurrentReq}", 
+                wasAnalyzing, isNowAnalyzing, CurrentRequirement?.GlobalId ?? "null");
+            
+            OnPropertyChanged(nameof(IsAnalyzing));
+            OnPropertyChanged(nameof(HasNoAnalysis));
+            ((AsyncRelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
+            ((RelayCommand)CancelAnalysisCommand).NotifyCanExecuteChanged();
+            
+            // Handle timer state changes
+            if (isNowAnalyzing && !wasAnalyzing)
+            {
+                _logger.LogInformation("[RequirementAnalysisVM] Starting analysis timer");
+                StartAnalysisTimer();
+            }
+            else if (!isNowAnalyzing && wasAnalyzing)
+            {
+                _logger.LogInformation("[RequirementAnalysisVM] Stopping analysis timer");
+                StopAnalysisTimer();
+            }
+            else
+            {
+                _logger.LogDebug("[RequirementAnalysisVM] No timer state change needed - wasAnalyzing: {WasAnalyzing}, isNowAnalyzing: {IsNowAnalyzing}", 
+                    wasAnalyzing, isNowAnalyzing);
             }
         }
 
@@ -343,11 +395,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         /// <summary>
         /// Cancels the current analysis operation.
+        /// Note: Cancellation is not currently implemented in the mediator pattern.
+        /// This method exists for UI consistency but doesn't perform actual cancellation.
         /// </summary>
         private void CancelAnalysis()
         {
-            _logger.LogDebug("[RequirementAnalysisVM] User requested analysis cancellation");
-            _analysisCancellation?.Cancel();
+            _logger.LogDebug("[RequirementAnalysisVM] User requested analysis cancellation (not implemented)");
+            // TODO: Implement cancellation in mediator pattern
         }
 
         /// <summary>
@@ -402,6 +456,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// </summary>
         private void StartEditingRequirement()
         {
+            _logger.LogInformation("[RequirementAnalysisVM] StartEditingRequirement called - HasImprovedRequirement: {HasImproved}, IsAnalyzing: {IsAnalyzing}, ImprovedRequirement: '{ImprovedText}'", 
+                HasImprovedRequirement, IsAnalyzing, ImprovedRequirement ?? "NULL");
+            
             EditingRequirementText = ImprovedRequirement ?? string.Empty;
             IsEditingRequirement = true;
             _logger.LogDebug("[RequirementAnalysisVM] Started editing requirement");
@@ -426,7 +483,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// </summary>
         private bool CanEditRequirement()
         {
-            return HasImprovedRequirement && !IsAnalyzing;
+            bool canEdit = HasImprovedRequirement && !IsAnalyzing;
+            _logger.LogDebug("[RequirementAnalysisVM] CanEditRequirement check - HasImprovedRequirement: {HasImproved}, IsAnalyzing: {IsAnalyzing}, Result: {CanEdit}", 
+                HasImprovedRequirement, IsAnalyzing, canEdit);
+            return canEdit;
         }
 
         private void SaveRequirementEdit()
@@ -444,16 +504,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 // Check for learning feedback if we have significant changes
                 if (newImprovedText != originalImprovedText)
                 {
-                    // If this was from external analysis, use the external learning workflow
+                    // Always check for learning feedback based on original requirement vs final edited text
+                    var originalRequirementText = CurrentRequirement.Description ?? string.Empty;
+                    _ = CheckForLearningFeedbackAsync(originalRequirementText, newImprovedText, "requirement improvement edit");
+                    _logger.LogInformation("[RequirementAnalysisVM] Checking learning feedback - Original requirement: '{Original}' vs Final edited: '{Final}'", 
+                        originalRequirementText.Substring(0, Math.Min(100, originalRequirementText.Length)), 
+                        newImprovedText.Substring(0, Math.Min(100, newImprovedText.Length)));
+                    
+                    // If this was from external analysis, also process the external learning data
                     if (!string.IsNullOrWhiteSpace(_pendingExternalAnalysis))
                     {
                         _ = FeedLearningToAnythingLLM(_pendingExternalAnalysis);
                         _pendingExternalAnalysis = null; // Clear after processing
-                    }
-                    else
-                    {
-                        // Regular text edit detection
-                        _ = CheckForLearningFeedbackAsync(originalImprovedText, newImprovedText, "improved requirement");
                     }
                 }
                 
@@ -1250,33 +1312,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     return;
                 }
 
-                // Use the same consent workflow as manual edits
-                var (userConsent, feedback) = await _learningService.PromptUserForLearningConsentAsync(
-                    originalText, externalLLMText, 100.0); // External LLM changes considered 100% change
-
-                if (userConsent && feedback != null)
-                {
-                    // Populate additional context for external LLM integration
-                    feedback.RequirementId = requirement.Item;
-                    feedback.OriginalRequirement = originalText;
-                    feedback.FeedbackCategory = "External LLM Integration";
-                    feedback.Context = "Learning from external LLM analysis and user acceptance";
-                    feedback.UserComments = "User accepted external LLM analysis via clipboard paste";
-
-                    var success = await _learningService.SendLearningFeedbackAsync(feedback);
-                    if (success)
-                    {
-                        _logger.LogInformation("[RequirementAnalysisVM] Learning feedback sent successfully for requirement {RequirementId}", requirement.Item);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("[RequirementAnalysisVM] Failed to send learning feedback for requirement {RequirementId}", requirement.Item);
-                    }
-                }
-                else
-                {
-                    _logger.LogInformation("[RequirementAnalysisVM] User declined to send learning feedback for external LLM integration");
-                }
+                // Store the external analysis data for later use when user saves
+                // Do NOT prompt for consent yet - wait until user actually saves their changes
+                _pendingExternalAnalysis = learningData;
+                
+                _logger.LogInformation("[RequirementAnalysisVM] Stored external LLM analysis data for requirement {RequirementId}, will prompt for learning consent when user saves", requirement.Item);
             }
             catch (Exception ex)
             {
@@ -1436,10 +1476,31 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
         }
 
+        private void OnWorkflowStateChanged(TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.WorkflowStateChanged e)
+        {
+            _logger.LogInformation("[RequirementAnalysisVM] OnWorkflowStateChanged called: {PropertyName} = {NewValue} (was {OldValue})", 
+                e.PropertyName, e.NewValue, e.OldValue);
+            
+            // When the mediator's IsAnalyzing state changes, refresh our computed IsAnalyzing property
+            if (e.PropertyName == nameof(IsAnalyzing))
+            {
+                _logger.LogInformation("[RequirementAnalysisVM] Mediator IsAnalyzing changed to: {IsAnalyzing}, current requirement: {CurrentReq}, analyzing requirement: {AnalyzingReq}, calling RefreshAnalyzingState", 
+                    e.NewValue, CurrentRequirement?.GlobalId ?? "null", _analyzingRequirementId ?? "null");
+                
+                // If analysis is stopping, clear our tracking
+                if (e.NewValue is false)
+                {
+                    _logger.LogInformation("[RequirementAnalysisVM] Analysis stopped, clearing analyzing requirement ID");
+                    _analyzingRequirementId = null;
+                }
+                
+                RefreshAnalyzingState();
+            }
+        }
+
         public void Dispose()
         {
-            _analysisCancellation?.Cancel();
-            _analysisCancellation?.Dispose();
+            // TODO: Implement cleanup in mediator pattern if needed
             _analysisTimer?.Stop();
             _analysisTimer?.Dispose();
             StopClipboardMonitoring();
