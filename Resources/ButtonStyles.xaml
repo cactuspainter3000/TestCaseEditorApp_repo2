@@ -589,4 +589,57 @@
         <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
     </Style>
 
+    <!-- Subtle Tab ToggleButton - for requirement tabs with dark styling -->
+    <Style x:Key="SubtleTabToggleButton" TargetType="ToggleButton">
+        <Setter Property="Background" Value="{StaticResource Brush.Background.Header}"/>
+        <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="12,8"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Root"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{StaticResource Radius.SM}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <!-- Mouse over: subtle orange border -->
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Brush.Border.Focus}"/>
+                        </Trigger>
+                        <!-- Mouse down: subtle feedback -->
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Root" Property="RenderTransform">
+                                <Setter.Value>
+                                    <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter TargetName="Root" Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                            <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Brush.Border.Accent}"/>
+                        </Trigger>
+                        <!-- Selected state: orange border with dark background -->
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Brush.Border.Accent}"/>
+                            <Setter TargetName="Root" Property="Background" Value="{StaticResource Brush.Background.Header}"/>
+                        </Trigger>
+                        <!-- Disabled state -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 </ResourceDictionary>

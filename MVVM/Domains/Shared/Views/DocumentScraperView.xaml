@@ -55,6 +55,44 @@
 
         <!-- Results Tabs -->
         <TabControl Grid.Row="2" Margin="5">
+            <TabControl.Resources>
+                <Style TargetType="{x:Type TabItem}">
+                    <Setter Property="Background" Value="{StaticResource Brush.Background.Header}"/>
+                    <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
+                    <Setter Property="BorderBrush" Value="Transparent"/>
+                    <Setter Property="BorderThickness" Value="1"/>
+                    <Setter Property="Padding" Value="12,8"/>
+                    <Setter Property="FontSize" Value="{StaticResource FontSize.Body}"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TabItem">
+                                <Border x:Name="Root"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="4,4,0,0"
+                                        Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter x:Name="ContentSite"
+                                                      ContentSource="Header"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <!-- Mouse over: subtle orange border -->
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Brush.Border.Focus}"/>
+                                    </Trigger>
+                                    <!-- Selected state: orange border -->
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Brush.Border.Accent}"/>
+                                        <Setter TargetName="Root" Property="Background" Value="{StaticResource Brush.Background.Pill.Selected}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </TabControl.Resources>
             <!-- Attachments Tab -->
             <TabItem Header="Found Attachments">
                 <Grid>

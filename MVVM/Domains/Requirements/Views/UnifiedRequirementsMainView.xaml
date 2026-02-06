@@ -35,8 +35,8 @@
 
         <!-- Tab button style with orange theme matching image -->
         <Style x:Key="TabButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#444444"/>
-            <Setter Property="BorderBrush" Value="#666666"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="#555555"/>
             <Setter Property="BorderThickness" Value="1,1,1,0"/>
             <Setter Property="Padding" Value="15,8"/>
             <Setter Property="Margin" Value="1,0"/>
@@ -58,44 +58,62 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#555555"/>
+                                <Setter Property="BorderBrush" Value="#777777"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <!-- Details Tab Style -->
+        <Style x:Key="DetailsTabButtonStyle" TargetType="Button" BasedOn="{StaticResource TabButtonStyle}">
             <Style.Triggers>
-                <!-- Active tab trigger for Details -->
                 <DataTrigger Binding="{Binding SelectedViewMode}" Value="{x:Static requirements:RequirementViewMode.Details}">
-                    <Setter Property="Background" Value="#FF8C00"/>
+                    <Setter Property="Background" Value="#1E1E1E"/>
                     <Setter Property="BorderBrush" Value="#FF8C00"/>
                     <Setter Property="BorderThickness" Value="1,1,1,0"/>
                     <Setter Property="FontWeight" Value="SemiBold"/>
-                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Foreground" Value="#FF8C00"/>
                 </DataTrigger>
-                <!-- Active tab trigger for Tables -->
+            </Style.Triggers>
+        </Style>
+
+        <!-- Tables Tab Style -->
+        <Style x:Key="TablesTabButtonStyle" TargetType="Button" BasedOn="{StaticResource TabButtonStyle}">
+            <Style.Triggers>
                 <DataTrigger Binding="{Binding SelectedViewMode}" Value="{x:Static requirements:RequirementViewMode.Tables}">
-                    <Setter Property="Background" Value="#FF8C00"/>
+                    <Setter Property="Background" Value="#1E1E1E"/>
                     <Setter Property="BorderBrush" Value="#FF8C00"/>
                     <Setter Property="BorderThickness" Value="1,1,1,0"/>
                     <Setter Property="FontWeight" Value="SemiBold"/>
-                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Foreground" Value="#FF8C00"/>
                 </DataTrigger>
-                <!-- Active tab trigger for Analysis -->
+            </Style.Triggers>
+        </Style>
+
+        <!-- Analysis Tab Style -->
+        <Style x:Key="AnalysisTabButtonStyle" TargetType="Button" BasedOn="{StaticResource TabButtonStyle}">
+            <Style.Triggers>
                 <DataTrigger Binding="{Binding SelectedViewMode}" Value="{x:Static requirements:RequirementViewMode.Analysis}">
-                    <Setter Property="Background" Value="#FF8C00"/>
+                    <Setter Property="Background" Value="#1E1E1E"/>
                     <Setter Property="BorderBrush" Value="#FF8C00"/>
                     <Setter Property="BorderThickness" Value="1,1,1,0"/>
                     <Setter Property="FontWeight" Value="SemiBold"/>
-                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Foreground" Value="#FF8C00"/>
                 </DataTrigger>
-                <!-- Active tab trigger for RequirementsScraper -->
+            </Style.Triggers>
+        </Style>
+
+        <!-- Requirements Scraper Tab Style -->
+        <Style x:Key="RequirementsScraperTabButtonStyle" TargetType="Button" BasedOn="{StaticResource TabButtonStyle}">
+            <Style.Triggers>
                 <DataTrigger Binding="{Binding SelectedViewMode}" Value="{x:Static requirements:RequirementViewMode.RequirementsScraper}">
-                    <Setter Property="Background" Value="#FF8C00"/>
+                    <Setter Property="Background" Value="#1E1E1E"/>
                     <Setter Property="BorderBrush" Value="#FF8C00"/>
                     <Setter Property="BorderThickness" Value="1,1,1,0"/>
                     <Setter Property="FontWeight" Value="SemiBold"/>
-                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Foreground" Value="#FF8C00"/>
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -115,12 +133,12 @@
         </Grid.RowDefinitions>
 
         <!-- Tab Navigation -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10,0" Background="#333333">
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10,0" Background="Transparent">
             
             <!-- Details Tab (always available) -->
             <Button Content="Details" 
                     Command="{Binding SelectDetailsCommand}"
-                    Style="{StaticResource TabButtonStyle}"
+                    Style="{StaticResource DetailsTabButtonStyle}"
                     IsHitTestVisible="True"
                     Focusable="True"
                     Cursor="Hand"/>
@@ -128,7 +146,7 @@
             <!-- Tables Tab (always available) -->
             <Button Content="Tables" 
                     Command="{Binding SelectTablesCommand}"
-                    Style="{StaticResource TabButtonStyle}"
+                    Style="{StaticResource TablesTabButtonStyle}"
                     IsHitTestVisible="True"
                     Focusable="True"
                     Cursor="Hand"/>
@@ -136,7 +154,7 @@
             <!-- Analysis Tab (always available) -->
             <Button Content="LLM Analysis" 
                     Command="{Binding SelectAnalysisCommand}"
-                    Style="{StaticResource TabButtonStyle}"
+                    Style="{StaticResource AnalysisTabButtonStyle}"
                     IsHitTestVisible="True"
                     Focusable="True"
                     Cursor="Hand"/>
@@ -144,7 +162,7 @@
             <!-- Requirements Scraper Tab (always available) -->
             <Button Content="Requirement Scraper" 
                     Command="{Binding SelectRequirementsScraperCommand}"
-                    Style="{StaticResource TabButtonStyle}"
+                    Style="{StaticResource RequirementsScraperTabButtonStyle}"
                     IsHitTestVisible="True"
                     Focusable="True"
                     Cursor="Hand"/>

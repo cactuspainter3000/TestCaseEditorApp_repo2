@@ -32,10 +32,11 @@
             <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
 
                 <!-- Details pill -->
-                <ToggleButton Style="{StaticResource ActionToggleButtonSelected}"
+                <ToggleButton Style="{StaticResource SubtleTabToggleButton}"
+              Background="{StaticResource Brush.Background.Header}"
               IsChecked="{Binding IsMetaSelected, Mode=TwoWay}"
               ToolTip="Requirement details and properties">
-                    <Grid>
+                    <Grid Background="Transparent">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
                             <ColumnDefinition Width="Auto"/>
@@ -68,11 +69,12 @@
                 </ToggleButton>
 
                 <!-- Tables pill -->
-                <ToggleButton Style="{StaticResource ActionToggleButtonSelected}"
+                <ToggleButton Style="{StaticResource SubtleTabToggleButton}"
+              Background="{StaticResource Brush.Background.Header}"
               Margin="8,0,0,0"
               IsChecked="{Binding IsTablesSelected, Mode=TwoWay}"
               ToolTip="{Binding SelectedTableVMs.Count, StringFormat={}{0} tables}">
-                    <Grid>
+                    <Grid Background="Transparent">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
                             <ColumnDefinition Width="Auto"/>
@@ -104,11 +106,12 @@
                 </ToggleButton>
 
                 <!-- Paragraphs pill -->
-                <ToggleButton Style="{StaticResource ActionToggleButtonSelected}"
+                <ToggleButton Style="{StaticResource SubtleTabToggleButton}"
+              Background="{StaticResource Brush.Background.Header}"
               Margin="8,0,0,0"
               IsChecked="{Binding IsParagraphsSelected, Mode=TwoWay}"
               ToolTip="{Binding SelectedParagraphVMs.Count, StringFormat={}{0} paragraphs}">
-                    <Grid>
+                    <Grid Background="Transparent">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
                             <ColumnDefinition Width="Auto"/>
@@ -143,12 +146,13 @@
                 <Grid Margin="8,0,0,0">
                     <!-- The pill button -->
                     <ToggleButton x:Name="AnalysisButton"
-                                  Style="{StaticResource ActionToggleButtonSelected}"
+                                  Style="{StaticResource SubtleTabToggleButton}"
+                                  Background="{StaticResource Brush.Background.Header}"
                                   Margin="2"
                                   IsChecked="{Binding IsAnalysisSelected, Mode=TwoWay}"
                                   ToolTip="View AI-powered requirement quality analysis"
                                   Loaded="AnalysisButton_Loaded">
-                        <Grid>
+                        <Grid Background="Transparent">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition/>
                                 <ColumnDefinition Width="Auto"/>
@@ -190,7 +194,8 @@
                 </Grid>
                 
                 <!-- Document Scraper pill -->
-                <ToggleButton Style="{StaticResource ActionToggleButtonSelected}"
+                <ToggleButton Style="{StaticResource SubtleTabToggleButton}"
+                              Background="{StaticResource Brush.Background.Header}"
                               Margin="8,0,0,0"
                               IsChecked="{Binding IsDocumentScraperSelected, Mode=OneWay}"
                               Command="{Binding SelectDocumentScraperCommand}"
