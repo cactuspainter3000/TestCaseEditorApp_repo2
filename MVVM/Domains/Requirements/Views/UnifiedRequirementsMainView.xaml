@@ -401,11 +401,15 @@
                                                 
                                                 <!-- Enter/Exit Edit button -->
                                                 <Button Grid.Column="1" Padding="12,4" FontSize="11"
-                                                        ToolTip="{Binding DebugInfo}">
+                                                        ToolTip="{Binding DebugInfo}"
+                                                        Background="Transparent"
+                                                        Foreground="{StaticResource Brush.Accent.Primary}"
+                                                        BorderThickness="0">
                                                     <Button.Style>
-                                                        <Style TargetType="Button" BasedOn="{StaticResource PillActionButtonStyle}">
+                                                        <Style TargetType="Button">
                                                             <Setter Property="Content" Value="Enter Editing Mode"/>
                                                             <Setter Property="Command" Value="{Binding EditTableCommand}"/>
+                                                            <Setter Property="Cursor" Value="Hand"/>
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding IsEditing}" Value="True">
                                                                     <Setter Property="Content" Value="Exit Editing Mode"/>
