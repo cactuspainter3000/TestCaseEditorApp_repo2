@@ -941,6 +941,37 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             return true;
         }
 
+        public string CurrentProjectName
+        {
+            get
+            {
+                var currentWorkspace = _workspaceContext.CurrentWorkspace;
+                var workspaceInfo = _workspaceContext.CurrentWorkspaceInfo;
+                
+                // First try workspace name
+                if (!string.IsNullOrEmpty(workspaceInfo?.Name))
+                {
+                    return workspaceInfo.Name;
+                }
+                
+                // Then try Jama test plan name  
+                if (!string.IsNullOrEmpty(currentWorkspace?.JamaTestPlan))
+                {
+                    return currentWorkspace.JamaTestPlan;
+                }
+                
+                // Fall back to project ID if available
+                if (!string.IsNullOrEmpty(currentWorkspace?.JamaProject) && 
+                    int.TryParse(currentWorkspace.JamaProject, out var projectId))
+                {
+                    return $"Project {projectId}";
+                }
+                
+                // Final fallback
+                return "Unknown Project";
+            }
+        }
+
         public void UpdateProjectContext(string? projectName)
         {
             _logger.LogDebug("Project context updated: {ProjectName}", projectName ?? "No Project");
@@ -1124,9 +1155,25 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             {
                 _logger.LogInformation("[RequirementsMediator] Starting attachment scan for project {ProjectId}", projectId);
                 
-                // Get project name from current workspace if available
+                // Get project name from current workspace if available, or fetch from Jama API
                 var currentWorkspace = _workspaceContext.CurrentWorkspace;
-                var projectName = currentWorkspace?.JamaTestPlan ?? $"Project {projectId}";
+                var projectName = currentWorkspace?.JamaTestPlan ?? currentWorkspace?.JamaProject;
+                
+                // If no project name in workspace, try to fetch it from Jama API
+                if (string.IsNullOrEmpty(projectName))
+                {
+                    try
+                    {
+                        var projects = await _jamaConnectService.GetProjectsAsync();
+                        var project = projects.FirstOrDefault(p => p.Id == projectId);
+                        projectName = project?.Name ?? $"Project {projectId}";
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "[RequirementsMediator] Failed to fetch project name from Jama API for project {ProjectId}", projectId);
+                        projectName = $"Project {projectId}";
+                    }
+                }
                 
                 // Publish start event
                 PublishEvent(new RequirementsEvents.AttachmentScanStarted

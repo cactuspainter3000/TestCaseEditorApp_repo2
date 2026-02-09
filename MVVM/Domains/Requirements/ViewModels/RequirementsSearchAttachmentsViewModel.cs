@@ -117,6 +117,32 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 UpdateSearchResultsFromFilter();
             }
+            
+            // Notify computed properties that depend on selection
+            OnPropertyChanged(nameof(CanScanForRequirements));
+        }
+
+        /// <summary>
+        /// Workflow state change handlers to update computed properties
+        /// </summary>
+        partial void OnHasSearchedAttachmentsChanged(bool value)
+        {
+            OnPropertyChanged(nameof(CanScanForRequirements));
+        }
+        
+        partial void OnHasScannedForRequirementsChanged(bool value)
+        {
+            OnPropertyChanged(nameof(CanImportRequirements));
+        }
+        
+        partial void OnHasExtractedRequirementsChanged(bool value)
+        {
+            OnPropertyChanged(nameof(CanImportRequirements));
+        }
+        
+        partial void OnIsParsingChanged(bool value)
+        {
+            OnPropertyChanged(nameof(CanScanForRequirements));
         }
 
         /// <summary>
@@ -177,6 +203,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private bool hasExtractedRequirements = false;
 
         [ObservableProperty]
+        private bool hasSearchedAttachments = false;
+
+        [ObservableProperty]
+        private bool hasScannedForRequirements = false;
+
+        [ObservableProperty]
         private ObservableCollection<Requirement> extractedRequirements = new();
 
         [ObservableProperty]
@@ -195,6 +227,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public IAsyncRelayCommand ImportExtractedRequirementsCommand { get; private set; } = null!;
         public IAsyncRelayCommand LoadProjectsCommand { get; private set; } = null!;
         public IAsyncRelayCommand TestConnectionCommand { get; private set; } = null!;
+        public IRelayCommand<JamaAttachment> SelectAttachmentCommand { get; private set; } = null!;
+
+        // ==== COMPUTED PROPERTIES FOR BUTTON WORKFLOW ====
+        
+        /// <summary>
+        /// Can scan for requirements when attachments have been searched and we have a selected attachment
+        /// </summary>
+        public bool CanScanForRequirements => HasSearchedAttachments && SelectedAttachmentFilter != null && !IsSearching && !IsParsing && !IsBusy;
+        
+        /// <summary>
+        /// Can import requirements when we have scanned and extracted requirements
+        /// </summary>
+        public bool CanImportRequirements => HasScannedForRequirements && HasExtractedRequirements && !IsImporting && !IsBusy;
 
         // ==== BASE CLASS IMPLEMENTATION ====
 
@@ -203,7 +248,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// </summary>
         private string GetSelectedProjectName()
         {
-            // First try to use the stored project name
+            // First try to get from mediator workspace context
+            var mediatorProjectName = _mediator?.CurrentProjectName;
+            if (!string.IsNullOrEmpty(mediatorProjectName) && !mediatorProjectName.Equals("Unknown Project", StringComparison.OrdinalIgnoreCase))
+            {
+                return mediatorProjectName;
+            }
+            
+            // Then try to use the stored project name
             if (!string.IsNullOrEmpty(currentProjectName))
                 return currentProjectName;
                 
@@ -269,6 +321,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             ImportExtractedRequirementsCommand = new AsyncRelayCommand(ImportExtractedRequirementsAsync, CanExecuteImportRequirements);
             LoadProjectsCommand = new AsyncRelayCommand(LoadAvailableProjectsAsync, () => !IsBusy);
             TestConnectionCommand = new AsyncRelayCommand(TestJamaConnectionAsync, () => !IsBusy);
+            SelectAttachmentCommand = new RelayCommand<JamaAttachment>(SelectAttachment);
             
             _logger.LogInformation("[RequirementsSearchAttachments] Commands initialized in InitializeCommands method");
         }
@@ -280,22 +333,59 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             try
             {
-                _logger.LogInformation("[RequirementsSearchAttachments] Adding minimal test attachment for debugging");
+                _logger.LogInformation("[RequirementsSearchAttachments] Adding minimal test attachments for debugging");
                 
-                // Add just one test attachment so ComboBox isn't empty
-                var testAttachment = new JamaAttachment
+                // Add multiple test attachments with clear names
+                var testAttachments = new List<JamaAttachment>
                 {
-                    Id = 999,
-                    Name = "Debug Test Attachment",
-                    FileName = "debug_test.pdf",
-                    FileSize = 1024,
-                    MimeType = "application/pdf"
+                    new JamaAttachment
+                    {
+                        Id = 1001,
+                        Name = "Test Requirements Document.docx",
+                        FileName = "test_requirements.docx",
+                        FileSize = 2048,
+                        MimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    },
+                    new JamaAttachment
+                    {
+                        Id = 1002,
+                        Name = "System Specifications.pdf",
+                        FileName = "system_specs.pdf",
+                        FileSize = 1536,
+                        MimeType = "application/pdf"
+                    },
+                    new JamaAttachment
+                    {
+                        Id = 1003,
+                        Name = "Design Documentation.xlsx",
+                        FileName = "design_doc.xlsx",
+                        FileSize = 3072,
+                        MimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    }
                 };
                 
-                AvailableAttachments.Add(testAttachment);
-                StatusMessage = $"Ready - {AvailableAttachments.Count} test attachment loaded";
+                AvailableAttachments.Clear();
+                foreach (var attachment in testAttachments)
+                {
+                    AvailableAttachments.Add(attachment);
+                }
                 
-                _logger.LogInformation("[RequirementsSearchAttachments] Minimal test attachment added. AvailableAttachments.Count: {Count}", AvailableAttachments.Count);
+                // Auto-select the first attachment
+                if (AvailableAttachments.Count > 0)
+                {
+                    SelectedAttachmentFilter = AvailableAttachments.FirstOrDefault();
+                    _logger.LogInformation("[RequirementsSearchAttachments] Auto-selected first attachment: {Name}", SelectedAttachmentFilter?.Name ?? "none");
+                }
+                else
+                {
+                    SelectedAttachmentFilter = null;
+                    _logger.LogInformation("[RequirementsSearchAttachments] No attachments to select");
+                }
+                
+                StatusMessage = $"Ready - {AvailableAttachments.Count} test attachments loaded";
+                
+                _logger.LogInformation("[RequirementsSearchAttachments] Added {Count} test attachments. Selected: {SelectedName}", 
+                    AvailableAttachments.Count, SelectedAttachmentFilter?.Name ?? "none");
             }
             catch (Exception ex)
             {
@@ -439,7 +529,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     await Application.Current.Dispatcher.InvokeAsync(() =>
                     {
                         IsBackgroundScanningInProgress = true;
-                        BackgroundScanProgressText = $"Searching {GetSelectedProjectName()} for attachments. 0%";
+                        BackgroundScanProgressText = $"Searching {GetSelectedProjectName()} | Finding attachments";
                         BackgroundScanProgress = 0;
                         BackgroundScanTotal = 0;
                     });
@@ -453,7 +543,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     IsBusy = true;
                 }
                 
-                StatusMessage = "🔍 Scanning attachments...";
+                StatusMessage = "Ready";
                 
                 // Initialize progress for background scan
                 if (isBackgroundScan)
@@ -477,7 +567,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     {
                         Application.Current.Dispatcher.InvokeAsync(() =>
                         {
-                            BackgroundScanProgressText = $"Searching {GetSelectedProjectName()} for attachments. {progressData.ProgressText}";
+                            BackgroundScanProgressText = $"Searching {GetSelectedProjectName()} | {progressData.ProgressText}";
                             BackgroundScanProgress = progressData.Current;
                             BackgroundScanTotal = progressData.Total;
                         });
@@ -505,7 +595,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                         }
                         else
                         {
-                            BackgroundScanProgressText = "Searching for attachments. 0%";
+                            BackgroundScanProgressText = "Searching for attachments";
                         }
                     }
                     
@@ -678,6 +768,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
                 HasExtractedRequirements = ExtractedRequirements.Count > 0;
                 
+                // Update workflow state - scan for requirements has completed
+                HasScannedForRequirements = true;
+                
                 if (HasExtractedRequirements)
                 {
                     StatusMessage = $"✅ Extracted {ExtractedRequirements.Count} requirements from {SelectedAttachment.Name}";
@@ -794,11 +887,22 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
         }
 
+        /// <summary>
+        /// Select an attachment from the dropdown
+        /// </summary>
+        private void SelectAttachment(JamaAttachment? attachment)
+        {
+            SelectedAttachmentFilter = attachment;
+            // Selection completed - dropdown will close automatically
+            _logger.LogInformation("[RequirementsSearchAttachments] Attachment selected: {Name}", attachment?.Name ?? "null");
+        }
+
         // ==== COMMAND EXECUTORS ====
 
         private bool CanExecuteSearch()
         {
-            return IsJamaConfigured && !IsSearching && !IsBusy && SelectedProjectId > 0;
+            // Search for attachments should always be active according to workflow requirements
+            return !IsSearching && !IsBusy;
         }
 
         private bool CanExecuteParseAttachment()
@@ -820,23 +924,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 BackgroundScanProgressText = progressEvent.ProgressText;
                 
-                // Parse progress percentage and total from the progress text (format: "XX%|Y")
+                // Parse progress from the new format: "Searching... | XX% complete | Y attachments found"
                 if (!string.IsNullOrEmpty(progressEvent.ProgressText))
                 {
                     var parts = progressEvent.ProgressText.Split('|');
                     if (parts.Length >= 2)
                     {
-                        // Extract percentage (remove % sign)
-                        var percentageText = parts[0].Replace("%", "").Trim();
+                        // Extract percentage from the "XX% complete" part (index 1)
+                        var percentageText = parts[1].Replace("% complete", "").Trim();
                         if (int.TryParse(percentageText, out int percentage))
                         {
                             BackgroundScanProgress = percentage;
-                        }
-                        
-                        // Extract total count
-                        if (int.TryParse(parts[1].Trim(), out int total))
-                        {
-                            BackgroundScanTotal = total;
+                            BackgroundScanTotal = 100; // Always 100 for percentage
                         }
                     }
                 }
@@ -855,10 +954,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 SelectedProjectId = startedEvent.ProjectId;
                 IsBackgroundScanningInProgress = true;
-                BackgroundScanProgressText = $"🔍 Starting scan for project {startedEvent.ProjectId}...";
+                BackgroundScanProgressText = $"🔍 Starting scan for {startedEvent.ProjectName}...";
                 BackgroundScanProgress = 0;
                 BackgroundScanTotal = 100;
-                StatusMessage = $"🔍 Scanning attachments for project {startedEvent.ProjectId}...";
                 
                 // Clear existing attachments to show fresh results
                 AvailableAttachments.Clear();
@@ -889,13 +987,25 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                         }
 
                         // Select the first attachment automatically
-                        SelectedAttachmentFilter = AvailableAttachments.FirstOrDefault();
+                        if (AvailableAttachments.Count > 0)
+                        {
+                            SelectedAttachmentFilter = AvailableAttachments.FirstOrDefault();
+                            _logger.LogInformation("[RequirementsSearchAttachments] Auto-selected first attachment after search: {Name}", SelectedAttachmentFilter?.Name ?? "none");
+                        }
+                        else
+                        {
+                            SelectedAttachmentFilter = null;
+                            _logger.LogInformation("[RequirementsSearchAttachments] No attachments found in search results");
+                        }
                         
                         // Update search results based on current filter
                         UpdateSearchResultsFromFilter();
                         
                         // Update status
                         StatusMessage = $"✅ Found {completedEvent.AttachmentCount} attachments";
+                        
+                        // Update workflow state - search has completed
+                        HasSearchedAttachments = true;
                         
                         // Clear progress indicators
                         IsBackgroundScanningInProgress = false;

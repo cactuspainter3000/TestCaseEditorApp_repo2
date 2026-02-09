@@ -183,6 +183,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         Task<bool> SaveToProjectAsync();
 
         /// <summary>
+        /// Get the current project name from the workspace context
+        /// </summary>
+        string CurrentProjectName { get; }
+
+        /// <summary>
         /// Update project context when project changes
         /// </summary>
         void UpdateProjectContext(string? projectName);

@@ -1779,7 +1779,7 @@ namespace TestCaseEditorApp.Services
                         var percentage = (int)((double)currentItemIndex / items.Count * 100);
                         
                         // Progress report with user-requested format
-                        progressCallback?.Invoke(currentItemIndex, items.Count, $"Searching {displayName} for attachments. {percentage}% complete. {attachments.Count} attachments found");
+                        progressCallback?.Invoke(currentItemIndex, items.Count, $"Searching {displayName} for attachments | {percentage}% complete | {attachments.Count} attachments found");
                         
                         try
                         {
@@ -1790,7 +1790,7 @@ namespace TestCaseEditorApp.Services
                                 itemsWithAttachments++;
                                 
                                 // Update progress with new attachment count
-                                progressCallback?.Invoke(currentItemIndex, items.Count, $"Searching {displayName} for attachments. {percentage}% complete. {attachments.Count} attachments found");
+                                progressCallback?.Invoke(currentItemIndex, items.Count, $"Searching {displayName} for attachments | {percentage}% complete | {attachments.Count} attachments found");
                                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {item.Id} ({item.DocumentKey}) has {itemAttachments.Count} attachment(s) - Total: {attachments.Count}");
                             }
                         }
@@ -2755,6 +2755,9 @@ namespace TestCaseEditorApp.Services
         public string CreatedDate { get; set; } = "";
         
         // Computed properties for UI
+        public string DisplayName => !string.IsNullOrWhiteSpace(Name) ? Name : 
+                                   !string.IsNullOrWhiteSpace(FileName) ? FileName : 
+                                   $"Attachment {Id}";
         public string FileSizeDisplay => FormatFileSize(FileSize);
         public bool IsPdf => MimeType?.Contains("pdf", StringComparison.OrdinalIgnoreCase) ?? false;
         public bool IsWord => MimeType?.Contains("word", StringComparison.OrdinalIgnoreCase) ?? 

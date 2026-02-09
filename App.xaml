@@ -48,6 +48,10 @@
                 <!-- CORE STYLES                           -->
                 <!-- ===================================== -->
                 
+                <!-- SharedStyles contains UI building blocks (badges, pills, menu items, scroll bars) -->
+                <!-- Must be loaded early as other styles reference CustomScrollBarStyle -->
+                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/SharedStyles.xaml" />
+                
                 <!-- Component styles (reference DesignSystem tokens) -->
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/ButtonStyles.xaml" />
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/Controls/Button.xaml" />
@@ -57,9 +61,6 @@
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/InputStyles.xaml" />
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/ListStyles.xaml" />
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/CommonHeaderResources.xaml" />
-                
-                <!-- SharedStyles contains UI building blocks (badges, pills, menu items) -->
-                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/SharedStyles.xaml" />
                 
                 <!-- ===================================== -->
                 <!-- LEGACY RESOURCES                      -->

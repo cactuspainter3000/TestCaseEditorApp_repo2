@@ -4,39 +4,37 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
+             xmlns:controls="clr-namespace:TestCaseEditorApp.MVVM.Controls"
              mc:Ignorable="d" 
              d:DesignHeight="800" d:DesignWidth="1200">
     
     <UserControl.Resources>
         <conv:InvertedBoolToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
     </UserControl.Resources>
-    <Grid Background="{StaticResource Brush.Background.Surface}">
+    
+    <Grid Background="{StaticResource Brush.Background.Menu}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Header Section -->
-        <Border Grid.Row="0" Background="{StaticResource Brush.Background.Header}" Padding="16">
+        <!-- Title Section -->
+        <Border Grid.Row="0" Background="{StaticResource Brush.Background.Menu}" Padding="20,16">
             <StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                    <TextBlock Text="🔍" FontSize="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBlock Text="Requirements Search in Attachments" 
-                              FontSize="{StaticResource FontSize.H1}" 
-                              FontWeight="SemiBold" 
-                              Foreground="{StaticResource Brush.Accent.Primary}"
-                              VerticalAlignment="Center"/>
-                </StackPanel>
-                <TextBlock Text="Search and extract requirements from Jama Connect attachments using AI-powered document parsing" 
+                <TextBlock Text="🔍 Search Attachments" 
+                          FontSize="{StaticResource FontSize.H1}" 
+                          FontWeight="SemiBold"
+                          Foreground="{StaticResource Brush.Text.Primary}"
+                          Margin="0,0,0,8"/>
+                <TextBlock Text="Search for document attachments and scan them for requirements" 
                           FontSize="{StaticResource FontSize.Body}" 
                           Foreground="{StaticResource Brush.Text.Secondary}"/>
             </StackPanel>
         </Border>
 
         <!-- Search Controls -->
-        <Border Grid.Row="1" Background="{StaticResource Brush.Background.Surface}" Padding="16,12">
+        <Border Grid.Row="1" Background="{StaticResource Brush.Background.Header}" Padding="16,12">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -50,7 +48,6 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- Attachment Filter Dropdown -->
                     <TextBlock Grid.Column="0" 
                               Text="Select:" 
                               VerticalAlignment="Center" 
@@ -58,212 +55,155 @@
                               FontSize="{StaticResource FontSize.Body}"
                               Foreground="{StaticResource Brush.Text.Primary}"
                               Margin="0,0,12,0"/>
-                    <Grid Grid.Column="1">
-                        <ComboBox ItemsSource="{Binding AvailableAttachments}"
-                                 SelectedItem="{Binding SelectedAttachmentFilter}"
-                                 VerticalAlignment="Center"
-                                 Padding="12,8"
-                                 FontSize="{StaticResource FontSize.Body}"
-                                 ToolTip="Select a specific attachment or leave blank to see all">
-                            <ComboBox.Style>
-                                <Style TargetType="ComboBox">
-                                    <Setter Property="IsEnabled" Value="True"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsBackgroundScanningInProgress}" Value="True">
-                                            <Setter Property="IsEnabled" Value="False"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </ComboBox.Style>
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock FontWeight="SemiBold" MaxWidth="300" TextTrimming="CharacterEllipsis">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Text" Value="{Binding Name}"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Name}" Value="">
-                                                            <Setter Property="Text" Value="{Binding FileName}"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Name}" Value="{x:Null}">
-                                                            <Setter Property="Text" Value="{Binding FileName}"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                        
-                        <!-- Background Scan Progress Overlay -->
-                        <Border x:Name="BackgroundProgress"
-                               Background="{StaticResource Brush.Background.Header}" 
-                               BorderBrush="{StaticResource Brush.Accent.Primary}" 
-                               BorderThickness="1"
-                               CornerRadius="3"
-                               Padding="12,8">
-                            <Border.Style>
-                                <Style TargetType="Border">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsBackgroundScanningInProgress}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <TextBlock Text="{Binding BackgroundScanProgressText}" 
-                                          FontSize="{StaticResource FontSize.Caption}" 
-                                          FontWeight="SemiBold"
-                                          Foreground="{StaticResource Brush.Accent.Primary}" 
-                                          VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Border>
-                    </Grid>
+
+                    <!-- Custom Dropdown Control -->
+                    <controls:NavigationDropdownControl 
+                        Grid.Column="1"
+                        ItemsSource="{Binding AvailableAttachments}"
+                        SelectedItem="{Binding SelectedAttachmentFilter}"
+                        EmptyText="Select attachment to scan..."
+                        SelectedItemDisplayPath="DisplayName"
+                        Command="{Binding SelectAttachmentCommand}">
+                        <controls:NavigationDropdownControl.IsEnabled>
+                            <Binding Path="IsBackgroundScanningInProgress" Converter="{StaticResource InvertBoolConverter}"/>
+                        </controls:NavigationDropdownControl.IsEnabled>
+                    </controls:NavigationDropdownControl>
                 </Grid>
-                
-                <!-- Action Buttons Row -->
-                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Left">
-                    <Button Content="🔍 Search for Attachments" 
+
+                <!-- Workflow Action Buttons Row -->
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button Grid.Column="0" 
+                            Content="Search Attachments" 
+                            Style="{StaticResource ActionButton}"
                             Command="{Binding SearchAttachmentsCommand}"
+                            Margin="0,0,8,0">
+                        <Button.ToolTip>
+                            <ToolTip Content="Search for document attachments in the system"/>
+                        </Button.ToolTip>
+                        <Button.IsEnabled>
+                            <Binding Path="IsBackgroundScanningInProgress" Converter="{StaticResource InvertBoolConverter}"/>
+                        </Button.IsEnabled>
+                    </Button>
+
+                    <Button Grid.Column="1" 
+                            Content="Scan Requirements" 
                             Style="{StaticResource ActionButton}"
-                            Margin="0,0,12,0" 
-                            Padding="12,8"/>
-                    <Button Content="📄 Scan Selected for Requirements" 
-                            Command="{Binding ScanSelectedAttachmentCommand}"
-                            IsEnabled="{Binding HasSelectedAttachment}"
+                            Command="{Binding ScanForRequirementsCommand}"
+                            IsEnabled="{Binding CanScanForRequirements}"
+                            Margin="4,0">
+                        <Button.ToolTip>
+                            <ToolTip Content="Scan selected attachment for requirements"/>
+                        </Button.ToolTip>
+                    </Button>
+
+                    <Button Grid.Column="2" 
+                            Content="Import Requirements" 
                             Style="{StaticResource ActionButton}"
-                            Margin="0,0,12,0" 
-                            Padding="12,8"/>
-                    <Button Content="📥 Import Selected Requirements" 
-                            Command="{Binding ImportSelectedRequirementsCommand}"
-                            IsEnabled="{Binding HasExtractedRequirements}"
-                            Style="{StaticResource ActionButton}"
-                            Margin="0" 
-                            Padding="12,8"/>
-                </StackPanel>
+                            Command="{Binding ImportRequirementsCommand}"
+                            IsEnabled="{Binding CanImportRequirements}"
+                            Margin="8,0,0,0">
+                        <Button.ToolTip>
+                            <ToolTip Content="Import scanned requirements to test case generator"/>
+                        </Button.ToolTip>
+                    </Button>
+                </Grid>
+
+                <!-- Search Progress Status Row -->
+                <Border Grid.Row="1" 
+                        Background="{StaticResource Brush.Background.Header}" 
+                        BorderBrush="{StaticResource Brush.Accent.Primary}" 
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Margin="0,8,0,0"
+                        Padding="12,8"
+                        Visibility="{Binding IsBackgroundScanningInProgress, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Progress Icon -->
+                        <TextBlock Grid.Column="0" 
+                                  Text="🔍" 
+                                  FontSize="16" 
+                                  VerticalAlignment="Center"
+                                  Margin="0,0,12,0"/>
+                        
+                        <!-- Progress Text and Bar -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding BackgroundScanProgressText}" 
+                                      FontWeight="Medium"
+                                      FontSize="{StaticResource FontSize.Body}"
+                                      Foreground="{StaticResource Brush.Text.Primary}"
+                                      Margin="0,0,0,4"/>
+                            <ProgressBar Value="{Binding BackgroundScanProgress}"
+                                        Maximum="{Binding BackgroundScanTotal}"
+                                        Height="6"
+                                        Background="{StaticResource Brush.Background.Header}"
+                                        Foreground="{StaticResource Brush.Accent.Primary}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
             </Grid>
         </Border>
 
-        <!-- Main Content Area -->
-        <Grid Grid.Row="2" Margin="16">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1*"/>
-            </Grid.ColumnDefinitions>
+        <!-- Results Section -->
+        <Border Grid.Row="2" Background="{StaticResource Brush.Background.Menu}" Padding="16">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-            <!-- Single Panel: Extracted Requirements -->
-            <Border Grid.Column="0" 
-                    BorderBrush="{StaticResource Brush.Border.Default}" 
-                    BorderThickness="1" 
-                    CornerRadius="8"
-                    Background="{StaticResource Brush.Background.Card}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" 
+                          Text="Requirements Found:" 
+                          FontSize="{StaticResource FontSize.H2}" 
+                          FontWeight="SemiBold"
+                          Foreground="{StaticResource Brush.Text.Primary}"
+                          Margin="0,0,0,12"/>
 
-                    <!-- Requirements Header -->
-                    <Border Grid.Row="0" 
-                            Background="#27AE60" 
-                            Padding="16,12"
-                            CornerRadius="8,8,0,0">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="📋" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="Extracted Requirements" 
-                                      FontWeight="SemiBold" 
-                                      Foreground="White" 
-                                      FontSize="{StaticResource FontSize.H2}"
-                                      VerticalAlignment="Center"/>
+                <ScrollViewer Grid.Row="1" 
+                             VerticalScrollBarVisibility="Auto" 
+                             HorizontalScrollBarVisibility="Disabled">
+                    <ScrollViewer.Resources>
+                        <Style TargetType="ScrollBar" BasedOn="{StaticResource CustomScrollBarStyle}"/>
+                    </ScrollViewer.Resources>
+                    
+                    <Border Background="{StaticResource Brush.Background.Header}" 
+                           BorderBrush="{StaticResource Brush.Border.Subtle}" 
+                           BorderThickness="1" 
+                           CornerRadius="4" 
+                           Padding="20">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock Text="📄" 
+                                      FontSize="48" 
+                                      HorizontalAlignment="Center" 
+                                      Foreground="{StaticResource Brush.Text.Secondary}"
+                                      Margin="0,0,0,16"/>
+                            <TextBlock Text="No requirements extracted yet" 
+                                      FontSize="{StaticResource FontSize.Body}" 
+                                      Foreground="{StaticResource Brush.Text.Secondary}"
+                                      HorizontalAlignment="Center"
+                                      Margin="0,0,0,8"/>
+                            <TextBlock Text="Search for attachments and scan selected documents to extract requirements" 
+                                      FontSize="{StaticResource FontSize.Caption}" 
+                                      Foreground="{StaticResource Brush.Text.Tertiary}"
+                                      HorizontalAlignment="Center"
+                                      TextAlignment="Center"
+                                      TextWrapping="Wrap"
+                                      MaxWidth="300"/>
                         </StackPanel>
                     </Border>
-
-                    <!-- Requirements List -->
-                    <ScrollViewer Grid.Row="1" 
-                                  Background="{StaticResource Brush.Background.Card}" 
-                                  VerticalScrollBarVisibility="Auto">
-                        <StackPanel>
-                            <!-- Extracted Requirements List -->
-                            <ItemsControl ItemsSource="{Binding ExtractedRequirements}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Padding="16" 
-                                                BorderBrush="{StaticResource Brush.Border.Light}" 
-                                                BorderThickness="0,0,0,1"
-                                                Background="{StaticResource Brush.Background.Card}">
-                                            <StackPanel>
-                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                                    <TextBlock Text="REQ-" 
-                                                              FontWeight="SemiBold"
-                                                              FontSize="{StaticResource FontSize.Body}"
-                                                              Foreground="{StaticResource Brush.Accent.Primary}"/>
-                                                    <TextBlock Text="{Binding Id}" 
-                                                              FontWeight="SemiBold"
-                                                              FontSize="{StaticResource FontSize.Body}"
-                                                              Foreground="{StaticResource Brush.Accent.Primary}"/>
-                                                    <TextBlock Text=": " 
-                                                              FontWeight="SemiBold"
-                                                              FontSize="{StaticResource FontSize.Body}"
-                                                              Foreground="{StaticResource Brush.Text.Primary}"/>
-                                                    <TextBlock Text="{Binding Title}" 
-                                                              FontWeight="SemiBold"
-                                                              FontSize="{StaticResource FontSize.Body}"
-                                                              Foreground="{StaticResource Brush.Text.Primary}"
-                                                              TextWrapping="Wrap"/>
-                                                </StackPanel>
-                                                <TextBlock Text="{Binding Description}" 
-                                                          FontSize="{StaticResource FontSize.Caption}" 
-                                                          Foreground="{StaticResource Brush.Text.Secondary}"
-                                                          TextWrapping="Wrap"
-                                                          Margin="0,0,0,8"/>
-                                                <Border Background="{StaticResource Brush.Background.Menu}" 
-                                                       Padding="8,4" 
-                                                       CornerRadius="12" 
-                                                       HorizontalAlignment="Left">
-                                                    <TextBlock Text="{Binding Category}" 
-                                                              FontSize="{StaticResource FontSize.Caption}" 
-                                                              Foreground="{StaticResource Brush.Accent.Primary}"
-                                                              FontWeight="SemiBold"/>
-                                                </Border>
-                                            </StackPanel>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            
-                            <!-- Empty State -->
-                            <Border Padding="32" 
-                                    Background="{StaticResource Brush.Background.Card}"
-                                    Visibility="{Binding HasExtractedRequirements, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
-                                <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="📄" 
-                                              FontSize="48" 
-                                              HorizontalAlignment="Center" 
-                                              Opacity="0.3"
-                                              Margin="0,0,0,16"/>
-                                    <TextBlock Text="No requirements extracted yet" 
-                                              FontSize="{StaticResource FontSize.Body}" 
-                                              Foreground="{StaticResource Brush.Text.Secondary}"
-                                              HorizontalAlignment="Center"
-                                              Margin="0,0,0,8"/>
-                                    <TextBlock Text="Search for attachments and scan selected documents to extract requirements" 
-                                              FontSize="{StaticResource FontSize.Caption}" 
-                                              Foreground="{StaticResource Brush.Text.Tertiary}"
-                                              HorizontalAlignment="Center"
-                                              TextAlignment="Center"
-                                              TextWrapping="Wrap"
-                                              MaxWidth="300"/>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </ScrollViewer>
-                </Grid>
-            </Border>
-        </Grid>
+                </ScrollViewer>
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>
