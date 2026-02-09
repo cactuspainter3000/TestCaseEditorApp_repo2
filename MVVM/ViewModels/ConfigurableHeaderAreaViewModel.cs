@@ -1,7 +1,6 @@
 using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using TestCaseEditorApp.MVVM.Utils;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.ViewModels

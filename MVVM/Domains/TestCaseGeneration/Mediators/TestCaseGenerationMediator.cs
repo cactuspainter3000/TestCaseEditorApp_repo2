@@ -14,7 +14,8 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Services; // For IRequirementAnalysisService
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
+// DEPRECATED: ViewModels namespace removed after domain architecture refactor
+// using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
@@ -66,9 +67,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                                                !string.IsNullOrEmpty(_currentEditingText) &&
                                                _currentEditingText.Trim() != _originalRequirementText.Trim();
         
-        // Header ViewModel integration for project status updates
-        private TestCaseGenerator_HeaderVM? _headerViewModel;
-        private TestCaseGenerator_TitleVM? _titleViewModel;
+        // DEPRECATED: Header ViewModel integration disabled after domain architecture refactor
+        private object? _headerViewModel;
+        private object? _titleViewModel;
         private object? _selectedStep;
         private object? _currentStepViewModel;
         private INewProjectMediator? _workspaceMediator;
@@ -171,12 +172,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         /// <summary>
         /// HeaderVM instance created and managed by this mediator
         /// </summary>
-        public TestCaseGenerator_HeaderVM? HeaderViewModel => _headerViewModel;
+        public object? HeaderViewModel => null; // DEPRECATED: Returns null after domain architecture refactor
         
         /// <summary>
         /// TitleVM instance created and managed by this mediator
         /// </summary>
-        public TestCaseGenerator_TitleVM? TitleViewModel => _titleViewModel;
+        public object? TitleViewModel => null; // DEPRECATED: Returns null after domain architecture refactor
 
         public TestCaseGenerationMediator(
             ILogger<TestCaseGenerationMediator> logger,
@@ -218,7 +219,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             // Broadcast project title change event to all subscribers
             PublishEvent(new TestCaseGenerationEvents.ProjectTitleChanged
             {
-                ProjectName = projectName,
+                ProjectName = projectName ?? string.Empty,
                 Source = "ProjectContext",
                 Timestamp = DateTime.Now
             });
@@ -227,7 +228,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             if (_headerViewModel != null)
             {
                 var isProjectOpen = !string.IsNullOrWhiteSpace(projectName);
-                _headerViewModel.UpdateProjectStatus(projectName, isProjectOpen);
+                // DEPRECATED: Header ViewModel functionality disabled after domain refactor
+                // (_headerViewModel as dynamic)?.UpdateProjectStatus(projectName, isProjectOpen);
             }
             
             _logger.LogDebug("Project context updated: {ProjectName}", projectName ?? "No Project");
@@ -1024,29 +1026,31 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             // Wire commands to both header and title ViewModels
             if (_headerViewModel != null)
             {
-                _headerViewModel.SaveWorkspaceCommand = new AsyncRelayCommand(
-                    async () => 
-                    {
-                        await workspaceMediator.SaveProjectAsync();
-                        // Reset dirty state after successful save
-                        IsDirty = false;
-                    });
+                // DEPRECATED: HeaderViewModel functionality disabled after domain architecture refactor
+                // _headerViewModel.SaveWorkspaceCommand = new AsyncRelayCommand(
+                //     async () => 
+                //     {
+                //         await workspaceMediator.SaveProjectAsync();
+                //         // Reset dirty state after successful save
+                //         IsDirty = false;
+                //     });
             }
             
             if (_titleViewModel != null)
             {
-                _titleViewModel.SaveWorkspaceCommand = new AsyncRelayCommand(
-                    async () => 
-                    {
-                        await workspaceMediator.SaveProjectAsync();
-                    });
-                
-                _titleViewModel.UndoLastSaveCommand = new AsyncRelayCommand(
-                    async () => 
-                    {
-                        await workspaceMediator.UndoLastSaveAsync();
-                    }, 
-                    () => workspaceMediator.CanUndoLastSave());
+                // DEPRECATED: TitleViewModel functionality disabled after domain architecture refactor
+                // _titleViewModel.SaveWorkspaceCommand = new AsyncRelayCommand(
+                //     async () => 
+                //     {
+                //         await workspaceMediator.SaveProjectAsync();
+                //     });
+                // 
+                // _titleViewModel.UndoLastSaveCommand = new AsyncRelayCommand(
+                //     async () => 
+                //     {
+                //         await workspaceMediator.UndoLastSaveAsync();
+                //     }, 
+                //     () => workspaceMediator.CanUndoLastSave());
             }
 
             // Cross-domain event subscriptions removed - ViewModels manage their own state directly
@@ -1076,9 +1080,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         }
         private void InitializeHeaderViewModel()
         {
-            _headerViewModel = new TestCaseGenerator_HeaderVM(this);
-            _titleViewModel = new TestCaseGenerator_TitleVM(this);
-            _logger.LogDebug("Header and Title ViewModels created and initialized for TestCaseGenerationMediator");
+            // DEPRECATED: ViewModel creation disabled after domain architecture refactor
+            // Each domain now handles its own headers/titles internally
+            // _headerViewModel = new TestCaseGenerator_HeaderVM(this);
+            // _titleViewModel = new TestCaseGenerator_TitleVM(this);
+            _logger.LogDebug("Header and Title ViewModel initialization skipped (deprecated after domain refactor)");
         }
         
         /// <summary>
@@ -1093,15 +1099,18 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             {
                 _logger.LogDebug("Updating header with selected requirement: {RequirementId}", e.Requirement.GlobalId);
                 
+                // DEPRECATED: HeaderViewModel property updates disabled after domain architecture refactor
                 // Update the header with requirement details
-                _headerViewModel.RequirementDescription = e.Requirement.Description ?? string.Empty;
-                _headerViewModel.RequirementMethod = e.Requirement.VerificationMethodText ?? e.Requirement.Method.ToString();
-                _headerViewModel.RequirementMethodEnum = e.Requirement.Method;
+                // _headerViewModel.RequirementDescription = e.Requirement.Description ?? string.Empty;
+                // _headerViewModel.RequirementMethod = e.Requirement.VerificationMethodText ?? e.Requirement.Method.ToString();
+                // _headerViewModel.RequirementMethodEnum = e.Requirement.Method;
                 // Show the actual requirement description instead of "Item X - Name" format
-                _headerViewModel.CurrentRequirementName = e.Requirement.Description ?? $"Requirement {e.Requirement.Item}";
+                // _headerViewModel.CurrentRequirementName = e.Requirement.Description ?? $"Requirement {e.Requirement.Item}";
                 
-                _logger.LogDebug("Header updated with requirement: Description={DescriptionLength} chars, Method={Method}", 
-                    _headerViewModel.RequirementDescription.Length, _headerViewModel.RequirementMethod);
+                // _logger.LogDebug("Header updated with requirement: Description={DescriptionLength} chars, Method={Method}", 
+                //     _headerViewModel.RequirementDescription.Length, _headerViewModel.RequirementMethod);
+                
+                _logger.LogDebug("HeaderViewModel requirement update skipped - functionality disabled after domain refactor");
             }
         }
         
@@ -1160,8 +1169,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 _analysisService.SetWorkspaceContext(projectCreated.WorkspaceName);
                 _logger.LogDebug("Set workspace context for analysis service: {WorkspaceName}", projectCreated.WorkspaceName);
                 
-                _headerViewModel?.UpdateProjectStatus(projectCreated.WorkspaceName, true);
-                _logger.LogDebug("Updated header with project created: {ProjectName}", projectCreated.WorkspaceName);
+                // DEPRECATED: HeaderViewModel functionality disabled after domain architecture refactor
+                // _headerViewModel?.UpdateProjectStatus(projectCreated.WorkspaceName, true);
+                _logger.LogDebug("HeaderViewModel project status update skipped - functionality disabled after domain refactor");
                 
                 // Update project title
                 UpdateProjectContext(projectCreated.WorkspaceName);
@@ -1178,8 +1188,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 _analysisService.SetWorkspaceContext(projectOpened.WorkspaceName);
                 _logger.LogDebug("Set workspace context for analysis service: {WorkspaceName}", projectOpened.WorkspaceName);
                 
-                _headerViewModel?.UpdateProjectStatus(projectOpened.WorkspaceName, true);
-                _logger.LogDebug("Updated header with project opened: {ProjectName}", projectOpened.WorkspaceName);
+                // DEPRECATED: HeaderViewModel functionality disabled after domain architecture refactor
+                // _headerViewModel?.UpdateProjectStatus(projectOpened.WorkspaceName, true);
+                _logger.LogDebug("HeaderViewModel project status update skipped - functionality disabled after domain refactor");
                 
                 // Update project title
                 UpdateProjectContext(projectOpened.WorkspaceName);
@@ -1207,8 +1218,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 _analysisService.SetWorkspaceContext(openedProject.WorkspaceName);
                 _logger.LogDebug("Set workspace context for analysis service: {WorkspaceName}", openedProject.WorkspaceName);
                 
-                _headerViewModel?.UpdateProjectStatus(openedProject.WorkspaceName, true);
-                _logger.LogDebug("Updated header with project opened: {ProjectName}", openedProject.WorkspaceName);
+                // DEPRECATED: HeaderViewModel functionality disabled after domain architecture refactor
+                // _headerViewModel?.UpdateProjectStatus(openedProject.WorkspaceName, true);
+                _logger.LogDebug("HeaderViewModel project status update skipped - functionality disabled after domain refactor");
                 
                 // Update project title
                 UpdateProjectContext(openedProject.WorkspaceName);
@@ -1225,7 +1237,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 // Update project title to default
                 UpdateProjectContext(null);
                 
-                _headerViewModel?.UpdateProjectStatus(null, false);
+                // DEPRECATED: HeaderViewModel functionality disabled after domain architecture refactor
+                // _headerViewModel?.UpdateProjectStatus(null, false);
                 
                 // DEPRECATED: Requirements clearing should be handled by RequirementsMediator
                 _logger.LogInformation("🔄 Project closed - requirements managed by RequirementsMediator");

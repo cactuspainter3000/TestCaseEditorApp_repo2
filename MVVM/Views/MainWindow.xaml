@@ -4,12 +4,12 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
-        xmlns:tcgvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels"
+
         xmlns:tcgmodevm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels"
         xmlns:tcgmodeviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.Views"
         xmlns:wmvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels"
         xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
-        xmlns:tcgviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views"
+
         xmlns:startupvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Startup.ViewModels"
         xmlns:startupviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Startup.Views"
         xmlns:wmviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.Views"
@@ -50,25 +50,15 @@
             <tcgmodeviews:TestCaseGeneratorMainView />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_TitleVM}">
-            <tcgmodeviews:TestCaseGenerator_TitleView />
-        </DataTemplate>
+        <!-- REMOVED: TestCaseGenerator_TitleVM DataTemplate - deprecated -->
 
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_HeaderVM}">
-            <tcgmodeviews:TestCaseGenerator_HeaderView />
-        </DataTemplate>
+        <!-- REMOVED: TestCaseGenerator_HeaderVM DataTemplate - deprecated -->
 
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_AssumptionsVM}">
-            <tcgmodeviews:TestCaseGenerator_AssumptionsView />
-        </DataTemplate>
+        <!-- REMOVED: TestCaseGenerator_AssumptionsVM DataTemplate - deprecated -->
 
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_QuestionsVM}">
-            <tcgmodeviews:TestCaseGenerator_QuestionsView />
-        </DataTemplate>
+        <!-- REMOVED: TestCaseGenerator_QuestionsVM DataTemplate - deprecated -->
 
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_CreationVM}">
-            <tcgmodeviews:TestCaseGenerator_CreationView />
-        </DataTemplate>
+        <!-- REMOVED: TestCaseGenerator_CreationVM DataTemplate - deprecated -->
 
         <!-- Shared Analysis ViewModel - consolidates duplicate analysis controls -->
         <DataTemplate DataType="{x:Type sharedvm:SharedAnalysisViewModel}">
@@ -222,6 +212,10 @@
             <reqviews:RequirementsHeaderView />
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type reqvm:Requirements_NavigationViewModel}">
+            <reqviews:RequirementsNavigationView />
+        </DataTemplate>
+
         <!-- Requirements Search in Attachments: proper DataTemplate mapping -->
         <DataTemplate DataType="{x:Type reqvm:RequirementsSearchAttachmentsViewModel}">
             <reqviews:RequirementsSearchAttachmentsView />
@@ -334,10 +328,7 @@
             </Style.Triggers>
         </Style>
 
-        <!-- DataTemplate for NavigationViewModel (shared navigation for working domains) -->
-        <DataTemplate DataType="{x:Type tcgvm:NavigationViewModel}">
-            <tcgmodeviews:TestCaseGenerator_NavigationControl />
-        </DataTemplate>
+        <!-- REMOVED: NavigationViewModel DataTemplate - deprecated after Requirements domain independence -->
 
         <!-- Modal ViewModels DataTemplates -->
         <DataTemplate DataType="{x:Type vm:WorkspaceSelectionViewModel}">

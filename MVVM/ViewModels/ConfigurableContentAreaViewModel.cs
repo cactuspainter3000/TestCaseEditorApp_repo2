@@ -37,6 +37,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             var configuration = configEvent.Configuration;
             
+            System.Diagnostics.Debug.WriteLine($"*** ConfigurableContentAreaViewModel: OnViewConfigurationRequested called for {configuration.SectionName} ***");
+            try {
+                System.IO.File.AppendAllText("debug_requirements.log", 
+                    $"{DateTime.Now}: ConfigurableContentAreaViewModel: OnViewConfigurationRequested({configuration.SectionName})\\n");
+            } catch { /* ignore */ }
+            
             // IDEMPOTENCY CHECK: Already showing this content?
             if (ReferenceEquals(_currentConfiguration?.ContentViewModel, configuration.ContentViewModel))
             {
@@ -49,6 +55,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
 
             System.Diagnostics.Debug.WriteLine($"[ConfigurableContentAreaViewModel] Switching content: {_currentConfiguration?.SectionName ?? "none"} → {configuration.SectionName}");
+            try {
+                System.IO.File.AppendAllText("debug_requirements.log", 
+                    $"{DateTime.Now}: ConfigurableContentAreaViewModel: Switching content to {configuration.SectionName}\\n");
+            } catch { /* ignore */ }
             
             // Update content
             CurrentContent = configuration.ContentViewModel;

@@ -396,13 +396,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 // Reset dirty flag after successful save
                 IsDirty = false;
                 
+                // DEPRECATED: TestCaseGenerator_VM cache invalidation disabled after domain architecture refactor
+                // Cache invalidation now handled by domain-specific services
                 // Invalidate cache so future requests get updated data
-                var testCaseGeneratorVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_VM>();
-                if (testCaseGeneratorVM?.TestCaseGenerator != null && !string.IsNullOrEmpty(RequirementId))
-                {
-                    testCaseGeneratorVM.TestCaseGenerator.InvalidateTableCache(RequirementId);
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[SaveToSourceRequirement] Invalidated cache for requirement: {RequirementId}");
-                }
+                // var testCaseGeneratorVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_VM>();
+                // if (testCaseGeneratorVM?.TestCaseGenerator != null && !string.IsNullOrEmpty(RequirementId))
+                // {
+                //     testCaseGeneratorVM.TestCaseGenerator.InvalidateTableCache(RequirementId);
+                //     TestCaseEditorApp.Services.Logging.Log.Debug($"[SaveToSourceRequirement] Invalidated cache for requirement: {RequirementId}");
+                // }
 
                 TestCaseEditorApp.Services.Logging.Log.Debug($"[SaveToSourceRequirement] Updated source data for table '{Title}' in requirement '{RequirementId}'");
             }

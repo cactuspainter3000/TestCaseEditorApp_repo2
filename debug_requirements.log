@@ -1,60 +1,15 @@
-1/28/2026 2:26:48 PM: SideMenuViewModel.NavigateToRequirements called
-1/28/2026 3:06:00 PM: SideMenuViewModel.NavigateToRequirements called
-1/28/2026 3:30:17 PM: SideMenuViewModel.NavigateToRequirements called
-1/28/2026 3:33:09 PM: SideMenuViewModel.NavigateToRequirements called
-1/28/2026 3:33:24 PM: SideMenuViewModel.NavigateToRequirements called
-1/28/2026 3:36:52 PM: SideMenuViewModel.NavigateToRequirements called
-1/28/2026 3:37:02 PM: SideMenuViewModel.NavigateToRequirements called
-1/28/2026 3:43:33 PM: SideMenuViewModel.NavigateToRequirements called
-1/28/2026 3:43:53 PM: SideMenuViewModel.NavigateToRequirements called
-1/28/2026 4:11:49 PM: SideMenuViewModel.NavigateToRequirements called
-1/28/2026 4:14:03 PM: SideMenuViewModel.NavigateToRequirements called
-1/28/2026 4:21:18 PM: SideMenuViewModel.NavigateToRequirements called
-1/28/2026 4:25:14 PM: SideMenuViewModel.NavigateToRequirements called
-1/28/2026 4:31:36 PM: SideMenuViewModel.NavigateToRequirements called
-1/28/2026 4:35:11 PM: SideMenuViewModel.NavigateToRequirements called
-1/29/2026 10:28:13 AM: SideMenuViewModel.NavigateToRequirements called
-1/29/2026 10:41:45 AM: SideMenuViewModel.NavigateToRequirements called
-1/29/2026 10:51:50 AM: SideMenuViewModel.NavigateToRequirements called
-1/29/2026 10:55:59 AM: SideMenuViewModel.NavigateToRequirements called
-1/29/2026 11:06:11 AM: SideMenuViewModel.NavigateToRequirements called
-1/29/2026 11:09:05 AM: SideMenuViewModel.NavigateToRequirements called
-1/29/2026 11:12:34 AM: SideMenuViewModel.NavigateToRequirements called
-1/29/2026 11:23:44 AM: SideMenuViewModel.NavigateToRequirements called
-1/29/2026 11:28:43 AM: SideMenuViewModel.NavigateToRequirements called
-1/29/2026 11:37:07 AM: SideMenuViewModel.NavigateToRequirements called
-1/29/2026 11:58:08 AM: SideMenuViewModel.NavigateToRequirements called
-1/29/2026 12:00:51 PM: SideMenuViewModel.NavigateToRequirements called
-1/29/2026 12:40:34 PM: SideMenuViewModel.NavigateToRequirements called
-1/29/2026 12:44:11 PM: SideMenuViewModel.NavigateToRequirements called
-1/29/2026 1:01:01 PM: SideMenuViewModel.NavigateToRequirements called
-1/29/2026 1:12:57 PM: SideMenuViewModel.NavigateToRequirements called
-1/29/2026 1:25:31 PM: SideMenuViewModel.NavigateToRequirements called
-1/29/2026 3:24:32 PM: SideMenuViewModel.NavigateToRequirements called
-1/29/2026 3:33:15 PM: SideMenuViewModel.NavigateToRequirements called
-1/29/2026 3:36:20 PM: SideMenuViewModel.NavigateToRequirements called
-1/30/2026 8:39:50 AM: SideMenuViewModel.NavigateToRequirements called
-2/2/2026 8:31:20 AM: SideMenuViewModel.NavigateToRequirements called
-2/3/2026 7:34:31 AM: SideMenuViewModel.NavigateToRequirements called
-2/6/2026 11:57:26 AM: SideMenuViewModel.NavigateToRequirements called
-2/6/2026 12:00:44 PM: SideMenuViewModel.NavigateToRequirements called
-2/6/2026 12:08:09 PM: SideMenuViewModel.NavigateToRequirements called
-2/6/2026 12:13:50 PM: SideMenuViewModel.NavigateToRequirements called
-2/6/2026 12:16:36 PM: SideMenuViewModel.NavigateToRequirements called
-2/6/2026 12:19:15 PM: SideMenuViewModel.NavigateToRequirements called
-2/6/2026 12:24:01 PM: SideMenuViewModel.NavigateToRequirements called
-2/6/2026 12:28:49 PM: SideMenuViewModel.NavigateToRequirements called
-2/6/2026 12:34:49 PM: SideMenuViewModel.NavigateToRequirements called
-2/6/2026 12:38:41 PM: SideMenuViewModel.NavigateToRequirements called
-2/6/2026 3:33:57 PM: SideMenuViewModel.NavigateToRequirements called
-2/6/2026 3:56:54 PM: SideMenuViewModel.NavigateToRequirements called
-2/8/2026 7:30:51 AM: SideMenuViewModel.NavigateToRequirements called
-2/8/2026 7:41:57 AM: SideMenuViewModel.NavigateToRequirements called
-2/8/2026 7:44:16 AM: SideMenuViewModel.NavigateToRequirements called
-2/8/2026 7:49:02 AM: SideMenuViewModel.NavigateToRequirements called
-2/8/2026 7:54:17 AM: SideMenuViewModel.NavigateToRequirements called
-2/8/2026 8:11:17 AM: SideMenuViewModel.NavigateToRequirements called
-2/8/2026 8:14:50 AM: SideMenuViewModel.NavigateToRequirements called
-2/8/2026 8:28:44 AM: SideMenuViewModel.NavigateToRequirements called
-2/9/2026 7:02:16 AM: SideMenuViewModel.NavigateToRequirements called
-2/9/2026 7:43:53 AM: SideMenuViewModel.NavigateToRequirements called
+2/9/2026 12:50:56 PM: ViewAreaCoordinator: OnSectionChangeRequested('startup')
+2/9/2026 12:50:56 PM: ViewAreaCoordinator: About to publish configuration for Startup\n2/9/2026 12:50:56 PM: ConfigurableContentAreaViewModel: OnViewConfigurationRequested(Startup)\n2/9/2026 12:50:56 PM: ConfigurableContentAreaViewModel: Switching content to Startup\n2/9/2026 12:50:56 PM: ConfigurableNavigationAreaViewModel: OnViewConfigurationRequested(Startup)\n2/9/2026 12:50:56 PM: ConfigurableNavigationAreaViewModel: Navigation content type = StartUp_NavigationViewModel\n2/9/2026 12:50:56 PM: ViewAreaCoordinator: Published configuration for Startup\n2/9/2026 12:50:56 PM: ViewAreaCoordinator: OnSectionChangeRequested('startup')
+2/9/2026 12:50:56 PM: ViewAreaCoordinator: About to publish configuration for Startup\n2/9/2026 12:50:56 PM: ConfigurableContentAreaViewModel: OnViewConfigurationRequested(Startup)\n2/9/2026 12:50:56 PM: ConfigurableContentAreaViewModel: Switching content to Startup\n2/9/2026 12:50:56 PM: ConfigurableNavigationAreaViewModel: OnViewConfigurationRequested(Startup)\n2/9/2026 12:50:56 PM: ConfigurableNavigationAreaViewModel: Navigation content type = StartUp_NavigationViewModel\n2/9/2026 12:50:56 PM: ViewAreaCoordinator: Published configuration for Startup\n2/9/2026 12:51:51 PM: ViewAreaCoordinator: OnSectionChangeRequested('TestCaseGenerator')
+2/9/2026 12:51:51 PM: ViewAreaCoordinator: About to publish configuration for TestCaseGenerator\n2/9/2026 12:51:51 PM: ConfigurableContentAreaViewModel: OnViewConfigurationRequested(TestCaseGenerator)\n2/9/2026 12:51:51 PM: ConfigurableContentAreaViewModel: Switching content to TestCaseGenerator\n2/9/2026 12:51:51 PM: ConfigurableNavigationAreaViewModel: OnViewConfigurationRequested(TestCaseGenerator)\n2/9/2026 12:51:51 PM: ConfigurableNavigationAreaViewModel: Navigation content type = \n2/9/2026 12:51:51 PM: ViewAreaCoordinator: Published configuration for TestCaseGenerator\n2/9/2026 12:51:54 PM: ViewAreaCoordinator: OnSectionChangeRequested('Project')
+2/9/2026 12:51:54 PM: ViewAreaCoordinator: About to publish configuration for Project\n2/9/2026 12:51:54 PM: ConfigurableContentAreaViewModel: OnViewConfigurationRequested(Project)\n2/9/2026 12:51:54 PM: ConfigurableContentAreaViewModel: Switching content to Project\n2/9/2026 12:51:54 PM: ConfigurableNavigationAreaViewModel: OnViewConfigurationRequested(Project)\n2/9/2026 12:51:54 PM: ConfigurableNavigationAreaViewModel: Navigation content type = \n2/9/2026 12:51:54 PM: ViewAreaCoordinator: Published configuration for Project\n2/9/2026 12:51:55 PM: ViewAreaCoordinator: OnSectionChangeRequested('OpenProject')
+2/9/2026 12:51:55 PM: ViewAreaCoordinator: About to publish configuration for OpenProject\n2/9/2026 12:51:55 PM: ConfigurableContentAreaViewModel: OnViewConfigurationRequested(OpenProject)\n2/9/2026 12:51:55 PM: ConfigurableContentAreaViewModel: Switching content to OpenProject\n2/9/2026 12:51:55 PM: ConfigurableNavigationAreaViewModel: OnViewConfigurationRequested(OpenProject)\n2/9/2026 12:51:55 PM: ConfigurableNavigationAreaViewModel: Navigation content type = \n2/9/2026 12:51:55 PM: ViewAreaCoordinator: Published configuration for OpenProject\n2/9/2026 12:52:06 PM: SideMenuViewModel.NavigateToRequirements called
+2/9/2026 12:52:06 PM: About to call NavigationMediator.NavigateToSection('requirements')
+2/9/2026 12:52:06 PM: ViewAreaCoordinator: OnSectionChangeRequested('requirements')
+2/9/2026 12:52:06 PM: ViewConfigurationService: CreateRequirementsConfiguration called
+2/9/2026 12:52:06 PM: About to resolve UnifiedRequirementsMainViewModel
+2/9/2026 12:52:06 PM: UnifiedRequirementsMainViewModel resolved: True
+2/9/2026 12:52:06 PM: About to resolve Requirements_HeaderViewModel
+2/9/2026 12:52:06 PM: Requirements_HeaderViewModel resolved: True
+2/9/2026 12:52:06 PM: About to resolve Requirements_NavigationViewModel
+2/9/2026 12:52:06 PM: NavigationMediator.NavigateToSection call completed

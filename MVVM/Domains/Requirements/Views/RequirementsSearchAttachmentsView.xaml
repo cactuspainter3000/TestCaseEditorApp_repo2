@@ -79,13 +79,10 @@
                     </Grid.ColumnDefinitions>
 
                     <Button Grid.Column="0" 
-                            Content="Search Attachments" 
+                            Content="Search for Attachments" 
                             Style="{StaticResource ActionButton}"
                             Command="{Binding SearchAttachmentsCommand}"
                             Margin="0,0,8,0">
-                        <Button.ToolTip>
-                            <ToolTip Content="Search for document attachments in the system"/>
-                        </Button.ToolTip>
                         <Button.IsEnabled>
                             <Binding Path="IsBackgroundScanningInProgress" Converter="{StaticResource InvertBoolConverter}"/>
                         </Button.IsEnabled>

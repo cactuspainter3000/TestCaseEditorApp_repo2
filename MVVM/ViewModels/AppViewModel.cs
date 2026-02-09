@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Services;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 
 
 namespace TestCaseEditorApp.MVVM.ViewModels
@@ -23,10 +22,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             DisplayName = "Test Case Editor";
             MenuButtonEnable = true;
 
+            // DEPRECATED: ViewModel instantiation disabled after domain architecture refactor
+            // Each domain now manages its own ViewModels independently
             // Create the actual viewmodel instances for the three Test Case workspaces now, so we can read their counts
-            var requirementsVm = _services.GetRequiredService<TestCaseGenerator_VM>();
-            var clarifyingVm = _services.GetRequiredService<TestCaseGenerator_QuestionsVM>();
-            var testCaseVm = _services.GetRequiredService<TestCaseGenerator_CreationVM>();
+            // var requirementsVm = _services.GetRequiredService<TestCaseGenerator_VM>();
+            // var clarifyingVm = _services.GetRequiredService<TestCaseGenerator_QuestionsVM>();
+            // var testCaseVm = _services.GetRequiredService<TestCaseGenerator_CreationVM>();
 
             //// Populate TestCaseCreationSteps and hook badges to the underlying collection counts
             //TestCaseCreationSteps = new ObservableCollection<StepDescriptor>

@@ -348,8 +348,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         private void NavigateToRequirements()
         {
-// ("*** SideMenuViewModel.NavigateToRequirements called! ***");
-// ("*** SideMenuViewModel.NavigateToRequirements called! ***");
+            System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToRequirements called! ***");
+            System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToRequirements called! ***");
             
             // Write to log file for visibility
             try {
@@ -357,26 +357,28 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             } catch { /* ignore */ }
             
             // CRITICAL DEBUG: Force case-insensitive navigation
-// ("*** FORCING NAVIGATION TO 'requirements' (lowercase) ***");
-// ("*** FORCING NAVIGATION TO 'requirements' (lowercase) ***");
+            System.Diagnostics.Debug.WriteLine("*** FORCING NAVIGATION TO 'requirements' (lowercase) ***");
+            System.Diagnostics.Debug.WriteLine("*** FORCING NAVIGATION TO 'requirements' (lowercase) ***");
             
-// ($"*** NavigationMediator is null: {_navigationMediator == null} ***");
-// ($"*** NavigationMediator is null: {_navigationMediator == null} ***");
+            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator is null: {_navigationMediator == null} ***");
+            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator is null: {_navigationMediator == null} ***");
             
             SelectedSection = "Requirements"; // Update selected section to trigger SectionChanged event
             
             try 
             {
-// ("*** About to call NavigateToSection ***");
-// ("*** About to call NavigateToSection ***");
+                System.Diagnostics.Debug.WriteLine("*** About to call NavigateToSection ***");
+                System.Diagnostics.Debug.WriteLine("*** About to call NavigateToSection ***");
+                System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: About to call NavigationMediator.NavigateToSection('requirements')\n");
                 _navigationMediator?.NavigateToSection("requirements"); // Force lowercase
-// ("*** NavigateToSection call completed ***");
-// ("*** NavigateToSection call completed ***");
+                System.Diagnostics.Debug.WriteLine("*** NavigateToSection call completed ***");
+                System.Diagnostics.Debug.WriteLine("*** NavigateToSection call completed ***");
+                System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: NavigationMediator.NavigateToSection call completed\n");
             }
             catch (Exception ex)
             {
-// ($"*** EXCEPTION in NavigateToSection: {ex.Message} ***");
-// ($"*** EXCEPTION in NavigateToSection: {ex.Message} ***");
+                System.Diagnostics.Debug.WriteLine($"*** EXCEPTION in NavigateToSection: {ex.Message} ***");
+                System.Diagnostics.Debug.WriteLine($"*** EXCEPTION in NavigateToSection: {ex.Message} ***");
                 System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: EXCEPTION: {ex.Message}\n{ex.StackTrace}\n");
             }
         }
@@ -498,7 +500,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private bool CanAccessRequirements()
         {
-            return HasRequirements; // Only allow Requirements navigation when project has requirements loaded
+            return IsProjectLoaded; // Allow Requirements navigation when any project is loaded, regardless of whether it has requirements yet
         }
 
         private bool CanAccessRequirementsSearchAttachments()
@@ -615,7 +617,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                                 Text = "Requirements",
                                 Icon = "📋",
                                 Command = RequirementsNavigationCommand,
-                                IsDropdown = true,
+                                IsDropdown = true, // Proper dropdown pattern as per architectural guide
                                 Children = new ObservableCollection<MenuContentItem>
                                 {
                                     new MenuAction { Id = "requirements.import", Text = "Import Additional Requirements", Icon = "📥", Command = ImportAdditionalCommand },

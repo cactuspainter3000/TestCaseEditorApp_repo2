@@ -37,8 +37,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             var configuration = configEvent.Configuration;
             
+            System.Diagnostics.Debug.WriteLine($"*** ConfigurableNavigationAreaViewModel: OnViewConfigurationRequested called for {configuration.SectionName} ***");
+            try {
+                System.IO.File.AppendAllText("debug_requirements.log", 
+                    $"{DateTime.Now}: ConfigurableNavigationAreaViewModel: OnViewConfigurationRequested({configuration.SectionName})\\n");
+            } catch { /* ignore */ }
+            
             System.Diagnostics.Debug.WriteLine($"[ConfigurableNavigationAreaViewModel] *** Navigation configuration requested for: {configuration.SectionName} ***");
             System.Diagnostics.Debug.WriteLine($"[ConfigurableNavigationAreaViewModel] *** Navigation content type: {configuration.NavigationViewModel?.GetType().Name} ***");
+            try {
+                System.IO.File.AppendAllText("debug_requirements.log", 
+                    $"{DateTime.Now}: ConfigurableNavigationAreaViewModel: Navigation content type = {configuration.NavigationViewModel?.GetType().Name}\\n");
+            } catch { /* ignore */ }
             
             // FORCE REFRESH: Clear content first to ensure clean binding state
             if (CurrentContent != null && configuration.SectionName == "Requirements")

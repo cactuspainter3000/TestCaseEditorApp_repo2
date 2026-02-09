@@ -36,20 +36,24 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Views
         
         private void OnWindowLocationChanged(object? sender, EventArgs e)
         {
+            // DEPRECATED: NavigationViewModel dropdown functionality disabled after domain architecture refactor
+            // Requirements domain now handles navigation internally
             // Close dropdown when window moves
-            if (DataContext is TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel vm && vm.RequirementsDropdown != null)
-            {
-                vm.RequirementsDropdown.IsExpanded = false;
-            }
+            // if (DataContext is TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel vm && vm.RequirementsDropdown != null)
+            // {
+            //     vm.RequirementsDropdown.IsExpanded = false;
+            // }
         }
 
         private void RequirementItem_Click(object sender, RoutedEventArgs e)
         {
+            // DEPRECATED: NavigationViewModel dropdown functionality disabled after domain architecture refactor
+            // Requirements domain now handles navigation internally
             // Close the popup after item selection
-            if (DataContext is TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel vm && vm.RequirementsDropdown != null)
-            {
-                vm.RequirementsDropdown.IsExpanded = false;
-            }
+            // if (DataContext is TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel vm && vm.RequirementsDropdown != null)
+            // {
+            //     vm.RequirementsDropdown.IsExpanded = false;
+            // }
         }
     }
 }

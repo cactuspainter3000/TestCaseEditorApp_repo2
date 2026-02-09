@@ -4,7 +4,7 @@ using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Mediators;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Utils;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
+
 using Microsoft.Extensions.DependencyInjection;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 
@@ -69,11 +69,14 @@ namespace TestCaseEditorApp.Services
 
         private void OnSectionChangeRequested(NavigationEvents.SectionChangeRequested request)
         {
+            System.Diagnostics.Debug.WriteLine($"*** ViewAreaCoordinator: OnSectionChangeRequested called with '{request.SectionName}' ***");
             // Console.WriteLine($"*** ViewAreaCoordinator: OnSectionChangeRequested called with '{request.SectionName}' ***");
             
             // Write to log file for easier debugging
-            // System.IO.File.AppendAllText(@"c:\temp\navigation-debug.log", 
-            //     $"[{DateTime.Now:HH:mm:ss}] ViewAreaCoordinator: OnSectionChangeRequested('{request.SectionName}')\n");
+            try {
+                System.IO.File.AppendAllText("debug_requirements.log", 
+                    $"{DateTime.Now}: ViewAreaCoordinator: OnSectionChangeRequested('{request.SectionName}')\n");
+            } catch { /* ignore */ }
                 
             TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Section change requested: '{request.SectionName}' - delegating to configuration service");
             
@@ -96,26 +99,44 @@ namespace TestCaseEditorApp.Services
                 
                 if (_viewConfigurationService != null)
                 {
+                    System.Diagnostics.Debug.WriteLine($"*** ViewAreaCoordinator: Calling ApplyConfiguration for: {request.SectionName} ***");
                     TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Calling ApplyConfiguration for: {request.SectionName}");
                     // Delegate to the configuration service to create configuration
                     _viewConfigurationService.ApplyConfiguration(request.SectionName, request.Context);
+                    System.Diagnostics.Debug.WriteLine($"*** ViewAreaCoordinator: ApplyConfiguration completed for: {request.SectionName} ***");
                     TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] ApplyConfiguration completed for: {request.SectionName}");
                     
                     // Now publish the configuration using our navigation mediator
                     var configuration = _viewConfigurationService.CurrentConfiguration;
                     if (configuration != null)
                     {
+                        System.Diagnostics.Debug.WriteLine($"*** ViewAreaCoordinator: Publishing configuration for: {configuration.SectionName} with content: {configuration.ContentViewModel?.GetType().Name} and navigation: {configuration.NavigationViewModel?.GetType().Name} ***");
+                        try {
+                            System.IO.File.AppendAllText("debug_requirements.log", 
+                                $"{DateTime.Now}: ViewAreaCoordinator: About to publish configuration for {configuration.SectionName}\\n");
+                        } catch { /* ignore */ }
                         TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Publishing configuration for: {configuration.SectionName} with content: {configuration.ContentViewModel?.GetType().Name}");
                         _navigationMediator.Publish(new ViewConfigurationEvents.ApplyViewConfiguration(configuration));
+                        System.Diagnostics.Debug.WriteLine($"*** ViewAreaCoordinator: Configuration applied and published for: {request.SectionName} ***");
+                        try {
+                            System.IO.File.AppendAllText("debug_requirements.log", 
+                                $"{DateTime.Now}: ViewAreaCoordinator: Published configuration for {configuration.SectionName}\\n");
+                        } catch { /* ignore */ }
                         TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Configuration applied and published for: {request.SectionName}");
                     }
                     else
                     {
+                        System.Diagnostics.Debug.WriteLine($"*** ViewAreaCoordinator: WARNING - CurrentConfiguration is NULL after ApplyConfiguration for: {request.SectionName} ***");
+                        try {
+                            System.IO.File.AppendAllText("debug_requirements.log", 
+                                $"{DateTime.Now}: ViewAreaCoordinator: ERROR - CurrentConfiguration is NULL for {request.SectionName}\\n");
+                        } catch { /* ignore */ }
                         TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] WARNING: CurrentConfiguration is NULL after ApplyConfiguration for: {request.SectionName}");
                     }
                 }
                 else
                 {
+                    System.Diagnostics.Debug.WriteLine($"*** ViewAreaCoordinator: ViewConfigurationService not available for: {request.SectionName} ***");
                     TestCaseEditorApp.Services.Logging.Log.Info($"[ViewAreaCoordinator] ViewConfigurationService not available for: {request.SectionName}");
                 }
                 

@@ -6,105 +6,57 @@
 ## 🚨 ARCHITECTURAL COMPLIANCE REMINDER
 
 **BEFORE implementing any code changes involving:**
-- ViewModels, services, dependency injection
-- Cross-domain communication, mediators 
-- New components or architectural patterns
+````instructions
+# TestCaseEditorApp — Copilot / AI Agent Quick Guide
 
-**ALWAYS first consult `ARCHITECTURAL_GUIDE_AI.md` to:**
-- Identify existing patterns and implementation chains
-- Avoid anti-patterns (like `new SomeService()` in ViewModels)
-- Follow "Questions First, Code Second" methodology
-- Use proper DI container patterns (`App.ServiceProvider?.GetService<T>()`)
+Purpose: Give an AI agent the minimal, high-value knowledge to be immediately productive in this repo.
 
----
+Core commands
+- Build: `dotnet build TestCaseEditorApp.csproj` (run from repo root)
+- Quick build+verify XAML: open solution in IDE or run the same `dotnet build`; XAML compile errors surface there
+- Tests: `.
+	run-tests.ps1` (root) — `-StopOnFailure` supported
 
-## Project Overview
+Big-picture architecture (short)
+- WPF (.NET 8) MVVM app organized by domains under `MVVM/Domains/`.
+- Key patterns: dependency injection, mediator pattern, 5-workspace UI composition (Main/Title/Header/Navigation/SideMenu).
+- View wiring uses DataTemplates in `Resources/MainWindowResources.xaml` and `MVVM/Views/MainWindow.xaml` (ViewModel → DataTemplate → View).
 
-**WPF Application (.NET 8)** with domain-driven architecture for test case generation and workflow management. Uses **dependency injection**, **mediator pattern**, and **MVVM** with fail-fast validation.
+Important coding conventions (repo-specific)
+- Never `new` services inside ViewModels. Use the DI accessor: `App.ServiceProvider?.GetService<T>()`.
+- Cross-domain communication goes through mediators (domain `Mediators` folders). No ViewModel→ViewModel direct calls.
+- Title/header/navigation: many domains set `titleViewModel` or `navigationViewModel` to `null` and handle header/navigation internally — follow `Services/ViewConfigurationService.cs` for examples (Requirements domain pattern).
 
-### Core Domains
-- **TestCaseGeneration**: Requirements → Assumptions → Questions → Test Cases → Export
-- **TestFlow**: Flow diagram creation and validation  
-- **WorkspaceManagement**: Project/file operations
-- **ChatGptExportAnalysis**: LLM integration analysis
+Files you will read first
+- `ARCHITECTURAL_GUIDE_AI.md` — canonical design and anti-patterns (read before making architectural changes).
+- `Services/ViewConfigurationService.cs` — central place that maps domain ViewModels → workspace configuration; changing it affects many UI flows.
+- `App.xaml.cs` — DI registrations. When removing ViewModels, update registrations here.
+- `Resources/MainWindowResources.xaml` and `MVVM/Views/MainWindow.xaml` — DataTemplates and namespace declarations. Remove unused DataTemplates and xmlns entries before deleting views.
 
----
+Safe deletion checklist (views/viewmodels)
+1. Grep for references: search XAML and C# for the type/namespace.
+2. Remove DataTemplate / xmlns references from `Resources/MainWindowResources.xaml` and `MVVM/Views/MainWindow.xaml` first.
+3. Remove DI registration in `App.xaml.cs` for the type.
+4. Remove the file(s) and run `dotnet build` immediately. Fix any compile/XAML errors.
+5. Update `Services/ViewConfigurationService.cs` to avoid calling deleted ViewModels (use `null` pattern where appropriate).
 
-## 🖥️ Workspace Architecture
+Common pitfalls to avoid
+- Deleting a ViewModel without updating `ViewConfigurationService` or mediators causes compile/runtime failures.
+- Removing a `clr-namespace` declaration while `views:` or `sharedviews:` is still referenced will cause XAML MC3000 errors — remove templates/usages first.
+- Some domains (e.g., `TestCaseGenerator_Mode`) are distinct from legacy `TestCaseGeneration` — confirm domain separation before mass deletion.
 
-### **5-Workspace Pattern**
-- **MainWorkspace**: Primary content area
-- **HeaderWorkspace**: Context-specific headers  
-- **NavigationWorkspace**: Domain-specific navigation
-- **TitleWorkspace**: Domain-specific titles
-- **SideMenuWorkspace**: Global menu coordination
+Integration points & environment
+- LLM integration controlled by `LLM_PROVIDER` and `OLLAMA_MODEL` environment variables.
+- Services under `MVVM/Domains/*/Services` often provide shared logic (e.g., `SmartRequirementImporter`, `LlmServiceHealthMonitor`) — other domains may still depend on them.
 
-### **Coordination Rules**
-- Each workspace controlled by its assigned ViewModel
-- Cross-workspace communication via domain mediators ONLY
-- ViewAreaCoordinator manages coordinated workspace switches
-- NO direct ViewModel-to-ViewModel communication
+Developer workflow recommendations for AI agents
+- Always run `dotnet build` after code removal or DI changes; XAML compile errors appear during build.
+- Make small, reversible commits and run `.
+	run-tests.ps1` when changing logic.
+- When changing UI wiring, update DataTemplates, namespace declarations, DI registrations, and `ViewConfigurationService` in that order.
 
----
+Where to ask for deeper rules
+- For any cross-domain or DI change, consult `ARCHITECTURAL_GUIDE_AI.md` and ask the maintainers if in doubt.
 
-## 🚀 Quick Reference
-
-### **Running Tests**
-```powershell
-.\run-tests.ps1                    # All test projects
-.\run-tests.ps1 -StopOnFailure    # Stop on first failure
-```
-
-### **Building & Debugging**
-- Main project: `TestCaseEditorApp.csproj`
-- Build warnings: `build_warnings*.txt` files
-- Test isolation: `Directory.Build.targets`
-
-### **Key Files & Locations**
-- **Config**: `Config/defaults.catalog.template.json`, `Config/verification-methods.json`
-- **Domain Structure**: `MVVM/Domains/{DomainName}/ViewModels/`, `/Services/`, `/Mediators/`
-- **Shared Services**: `Services/` (root level), `MVVM/Utils/`, `Converters/`, `Helpers/`
-- **AI Optimization**: `Config/RAG-*.md` files
-
----
-
-## ⚙️ Configuration & Environment
-
-### **Environment Variables**
-- `LLM_PROVIDER`: ollama|openai|noop (default: ollama)
-- `OLLAMA_MODEL`: Model name (default: phi4-mini:3.8b-q4_K_M)
-
-### **LLM Integration Testing**
-- `test-enhanced-integration.ps1` - Full LLM pipeline testing
-- `test-logic-conflicts.ps1` - Conflict resolution testing  
-- `test-rag-status.ps1` - RAG system validation
-
----
-
-## 📋 Current Project Status
-
-### **Domain Organization** (In Progress)
-**Phase 1**: Moving ViewModels from legacy `MVVM/ViewModels/` to domain-specific locations
-- ✅ RequirementsViewModel, TestCaseGeneratorViewModel moved
-- 🔄 Additional TestCaseGenerator_* ViewModels being relocated
-
-### **Documentation Status**
-- ✅ `ARCHITECTURAL_GUIDE_AI.md` - **Primary source for all implementation patterns**
-- ✅ `ARCHITECTURAL_GUIDELINES.md` - Human-readable decision framework
-- 🗂️ Legacy documents marked as superseded, kept for historical reference
-
----
-
-## 🧭 For Implementation Guidance
-
-**Use `ARCHITECTURAL_GUIDE_AI.md` for:**
-- ✅ Complete implementation chains and dependency discovery
-- ✅ Anti-pattern detection and systematic validation  
-- ✅ Cross-domain communication workflows
-- ✅ XAML troubleshooting and UI patterns
-- ✅ Migration strategies and service coordination
-- ✅ "Questions First, Code Second" methodology
-
-**This file provides:** Project context and quick reference only.
-
-**This file provides:** Project context and quick reference only.
+If this guide missed something important, tell me which file or pattern is unclear and I will iterate.
+````
