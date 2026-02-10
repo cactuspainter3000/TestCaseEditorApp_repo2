@@ -64,6 +64,21 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
         Task<RequirementAnalysis> AnalyzeRequirementAsync(Requirement requirement, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Analyzes a requirement with streaming support for real-time feedback and timeout enforcement.
+        /// This method includes 90-second timeout protection to prevent indefinite hangs.
+        /// </summary>
+        /// <param name="requirement">The requirement to analyze</param>
+        /// <param name="onPartialResult">Callback for partial LLM response chunks</param>
+        /// <param name="onProgressUpdate">Callback for progress status updates</param>
+        /// <param name="cancellationToken">Token to cancel the analysis operation</param>
+        /// <returns>Structured analysis with quality score, issues, and recommendations</returns>
+        Task<RequirementAnalysis> AnalyzeRequirementWithStreamingAsync(
+            Requirement requirement,
+            Action<string>? onPartialResult = null,
+            Action<string>? onProgressUpdate = null,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Generates a prompt for inspection purposes.
         /// </summary>
         /// <param name="requirement">The requirement to generate prompt for</param>

@@ -15,6 +15,22 @@ using TestCaseEditorApp.MVVM.Domains.Requirements.Services; // For Requirements 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
 {
     /// <summary>
+    /// Categorizes why RAG analysis failed
+    /// </summary>
+    public enum RAGFailureReason
+    {
+        ServiceNotAvailable,
+        WorkspaceNotConfigured,
+        WorkspaceCreationFailed,
+        ThreadCreationFailed,
+        LLMRequestFailed,
+        Timeout,
+        EmptyResponse,
+        ConfigurationTimeout,
+        UnknownError
+    }
+
+    /// <summary>
     /// Service for analyzing requirement quality using LLM.
     /// Generates structured analysis with quality scores, issues, and recommendations.
     /// </summary>
@@ -30,6 +46,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         private string? _cachedSystemMessage;
         private string? _currentWorkspaceSlug;
         private string? _projectWorkspaceName;
+        private bool _ragSyncInProgress = false;
         
         // Instance-based cache for workspace prompt validation to avoid repeated checks
         private bool? _workspaceSystemPromptConfigured;
@@ -72,8 +89,15 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         /// <param name="workspaceName">Name of the project workspace to use for analysis</param>
         public void SetWorkspaceContext(string? workspaceName)
         {
+            // Skip if workspace context hasn't changed to avoid unnecessary work
+            if (string.Equals(_projectWorkspaceName, workspaceName, StringComparison.OrdinalIgnoreCase))
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysisService] Workspace context unchanged: {workspaceName ?? "<none>"}");
+                return;
+            }
+            
             _projectWorkspaceName = workspaceName;
-            // Clear cached workspace slug when context changes
+            // Clear cached workspace slug when context actually changes
             _currentWorkspaceSlug = null;
             TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Workspace context set to: {workspaceName ?? "<none>"}");
             
@@ -223,17 +247,29 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                     System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Using RAG response, length: {ragResult.response?.Length ?? 0}");
                     response = ragResult.response ?? throw new InvalidOperationException("RAG analysis succeeded but returned null response");
                 }
-                // Use AnythingLLM with workspace-configured system prompt (avoids sending ~793 lines per request)
-                else if (_llmService is AnythingLLMService anythingLlmService)
+                else
                 {
-                    var streamingStart = DateTime.UtcNow;
+                    // RAG failed - log detailed failure information with diagnostics
+                    var failureMessage = GetRAGFailureMessage(ragResult.failureReason, ragResult.failureDetails);
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] RAG analysis failed for requirement {requirement.Item}: {failureMessage}");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] Failure details: {ragResult.failureDetails}");
+                    System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] RAG FAILED - Reason: {ragResult.failureReason}, Details: {ragResult.failureDetails}");
+                    
+                    // Notify user about RAG failure via progress callback
+                    onProgressUpdate?.Invoke($"⚠️ RAG unavailable: {failureMessage}");
+                    onProgressUpdate?.Invoke("Using fallback LLM analysis...");
+                    
+                    // Use AnythingLLM with workspace-configured system prompt (avoids sending ~793 lines per request)
+                    if (_llmService is AnythingLLMService anythingLlmService)
+                    {
+                        var streamingStart = DateTime.UtcNow;
                     System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Starting AnythingLLM streaming at {streamingStart:HH:mm:ss.fff}");
                     
                     // Use RAG-optimized prompt with supplemental information for workspace optimization
                     var ragPromptForWorkspace = BuildRagOptimizedPrompt(requirement);
                     
-                    // Check if workspace has system prompt configured to avoid duplication
-                    var promptToSend = await GetOptimizedPromptForWorkspaceAsync(anythingLlmService, "test-case-analysis", ragPromptForWorkspace, cancellationToken);
+                    // Check if workspace has system prompt configured to avoid duplication (with timeout)
+                    var promptToSend = await GetOptimizedPromptForWorkspaceAsync(anythingLlmService, "test-case-analysis", ragPromptForWorkspace, timeoutToken);
                     
                     // Use streaming analysis with optimized prompt
                     response = await anythingLlmService.SendChatMessageStreamingAsync(
@@ -253,6 +289,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                     response = await _llmService.GenerateWithSystemAsync(_cachedSystemMessage, contextPrompt, timeoutToken);
                     var traditionalTime = DateTime.UtcNow - traditionalStart;
                     System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Traditional LLM completed in {traditionalTime.TotalMilliseconds}ms, response length: {response?.Length ?? 0}");
+                    }
                 }
 
                 onProgressUpdate?.Invoke("Processing analysis results...");
@@ -1068,7 +1105,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         /// Try RAG-based analysis using AnythingLLM workspace with uploaded documents.
         /// This method provides faster, more context-aware analysis than traditional prompting.
         /// </summary>
-        private async Task<(bool success, string response)> TryRagAnalysisAsync(
+        private async Task<(bool success, string response, RAGFailureReason failureReason, string failureDetails)> TryRagAnalysisAsync(
             Requirement requirement, 
             Action<string>? onPartialResult,
             Action<string>? onProgressUpdate,
@@ -1081,8 +1118,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             if (_anythingLLMService == null)
             {
                 System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] AnythingLLMService is null, returning false");
-                TestCaseEditorApp.Services.Logging.Log.Debug("[RAG] AnythingLLMService not available, using traditional analysis");
-                return (false, string.Empty);
+                var llmProvider = Environment.GetEnvironmentVariable("LLM_PROVIDER");
+                var llmEndpoint = Environment.GetEnvironmentVariable("ANYTHINGLLM_ENDPOINT");
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG DIAGNOSTICS] AnythingLLMService not available. LLM_PROVIDER='{llmProvider}', ANYTHINGLLM_ENDPOINT='{llmEndpoint}'");
+                return (false, string.Empty, RAGFailureReason.ServiceNotAvailable, "AnythingLLM service not initialized. Verify LLM_PROVIDER is set to 'AnythingLLM'.");
             }
 
             try
@@ -1097,8 +1136,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 if (string.IsNullOrEmpty(workspaceSlug))
                 {
                     System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] No workspace slug returned, returning false");
-                    TestCaseEditorApp.Services.Logging.Log.Debug("[RAG] No workspace configured, using traditional analysis");
-                    return (false, string.Empty);
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] Failed to find or create workspace for project '{_projectWorkspaceName ?? "<none>"}'");
+                    return (false, string.Empty, RAGFailureReason.WorkspaceNotConfigured, $"Could not find or create AnythingLLM workspace. Project: '{_projectWorkspaceName ?? "Unknown"}'.");
                 }
 
                 // Upload supplemental information as documents if not already done
@@ -1125,7 +1164,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 
                 if (string.IsNullOrEmpty(threadSlug))
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] Failed to create thread for requirement {requirement.Item}, using default workspace chat");
+                    var threadWarning = $"Failed to create isolated thread for requirement {requirement.Item}";
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] {threadWarning} - using default workspace chat");
+                    System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] {threadWarning}");
+                    // Continue with workspace-level chat instead of failing completely
                 }
 
                 // Use RAG-based analysis
@@ -1153,16 +1195,34 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
 
                 if (!string.IsNullOrWhiteSpace(response))
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Successfully analyzed requirement {requirement.Item} using workspace '{workspaceSlug}'");
-                    return (true, response);
+                    var ragTotalTime = DateTime.UtcNow - ragStart;
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Successfully analyzed requirement {requirement.Item} using workspace '{workspaceSlug}' in {ragTotalTime.TotalSeconds:F1}s");
+                    return (true, response, RAGFailureReason.ServiceNotAvailable, string.Empty); // Reason ignored on success
                 }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] LLM returned empty response for requirement {requirement.Item}");
+                    return (false, string.Empty, RAGFailureReason.EmptyResponse, "LLM returned an empty response. The model may not be loaded or responsive.");
+                }
+            }
+            catch (OperationCanceledException ex)
+            {
+                var ragTotalTime = DateTime.UtcNow - ragStart;
+                var timeoutDetails = $"Operation timed out after {ragTotalTime.TotalSeconds:F1}s (limit: {AnalysisTimeout.TotalSeconds}s)";
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] RAG analysis timed out for requirement {requirement.Item}: {timeoutDetails}");
+                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Timeout details: {ex.Message}");
+                return (false, string.Empty, RAGFailureReason.Timeout, timeoutDetails);
             }
             catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] Failed to perform RAG analysis for requirement {requirement.Item}, falling back to traditional method: {ex.Message}");
+                var ragTotalTime = DateTime.UtcNow - ragStart;
+                var errorDetails = $"{ex.GetType().Name}: {ex.Message}";
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[RAG] Failed to perform RAG analysis for requirement {requirement.Item} after {ragTotalTime.TotalSeconds:F1}s");
+                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Exception during RAG: {ex}");
+                return (false, string.Empty, RAGFailureReason.UnknownError, errorDetails);
             }
 
-            return (false, string.Empty);
+            return (false, string.Empty, RAGFailureReason.UnknownError, "RAG analysis completed but returned no result");
         }
 
         /// <summary>
@@ -1198,8 +1258,22 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 var listTime = DateTime.UtcNow - listStart;
                 System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Got {workspaces?.Count() ?? 0} workspaces in {listTime.TotalMilliseconds}ms");
                 
+                // Log all workspace names for diagnostic purposes
+                if (workspaces != null && workspaces.Any())
+                {
+                    var workspaceNames = string.Join(", ", workspaces.Select(w => $"'{w.Name}'"));
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[RAG DIAGNOSTICS] Found workspaces: {workspaceNames}");
+                    System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Available workspaces: {workspaceNames}");
+                }
+                else
+                {
+                   TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG DIAGNOSTICS] No workspaces found in AnythingLLM. GetWorkspacesAsync returned {(workspaces == null ? "null" : "empty list")}");
+                    System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] GetWorkspacesAsync returned {(workspaces == null ? "null" : "empty list")}");
+                }
+                
                 // Look for project-specific workspace
                 System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Looking for project workspace: '{_projectWorkspaceName ?? "<none>"}'...");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[RAG DIAGNOSTICS] Searching for workspace matching project: '{_projectWorkspaceName ?? "<none>"}'...");
                 
                 AnythingLLMService.Workspace? targetWorkspace = null;
                 
@@ -1265,10 +1339,15 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                     TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Using existing workspace: {testCaseWorkspace.Name}");
                     
                     // Try to configure workspace settings to ensure optimal system prompt
+                    // Note: This operation can be slow and may timeout - it's optional for functionality
                     onProgressUpdate?.Invoke("Configuring workspace settings...");
                     try
                     {
-                        var configResult = await _anythingLLMService.ConfigureWorkspaceSettingsAsync(_currentWorkspaceSlug, cancellationToken);
+                        // Use a short timeout for workspace configuration to prevent hanging
+                        using var configTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                        configTimeout.CancelAfter(TimeSpan.FromSeconds(10)); // 10-second timeout for settings update
+                        
+                        var configResult = await _anythingLLMService.ConfigureWorkspaceSettingsAsync(_currentWorkspaceSlug, configTimeout.Token);
                         if (configResult)
                         {
                             System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Successfully updated workspace settings for '{_currentWorkspaceSlug}'");
@@ -1279,6 +1358,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                             System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Workspace settings update failed - API might require authentication");
                             TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] Workspace settings update failed for: {testCaseWorkspace.Name}");
                         }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Workspace settings update timed out after 10 seconds - continuing without settings update");
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] Workspace settings update timed out - continuing with existing settings");
                     }
                     catch (Exception settingsEx)
                     {
@@ -1320,18 +1404,40 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Failed to create new workspace - returned null");
+                    var createFailureMsg = $"CreateAndConfigureWorkspaceAsync returned null for workspace '{workspaceName}'";
+                    System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] {createFailureMsg}");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG DIAGNOSTICS] {createFailureMsg}. Check AnythingLLM logs for workspace creation errors.");
                 }
             }
             catch (Exception ex)
             {
                 var workspaceMethodTime = DateTime.UtcNow - workspaceMethodStart;
                 System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] EnsureWorkspaceConfiguredAsync failed after {workspaceMethodTime.TotalMilliseconds}ms: {ex.Message}");
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] Failed to configure workspace: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[RAG DIAGNOSTICS] Failed to configure workspace after {workspaceMethodTime.TotalSeconds:F1}s. Exception: {ex.GetType().Name}");
             }
 
-            System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] EnsureWorkspaceConfiguredAsync returning null");
+            System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] EnsureWorkspaceConfiguredAsync returning null - RAG will not be available");
+            TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG DIAGNOSTICS] Workspace configuration failed. RAG analysis unavailable. Project: '{_projectWorkspaceName ?? "<none>"}'.");
             return null;
+        }
+
+        /// <summary>
+        /// Converts RAG failure reason and details into user-friendly message
+        /// </summary>
+        private string GetRAGFailureMessage(RAGFailureReason reason, string details)
+        {
+            return reason switch
+            {
+                RAGFailureReason.ServiceNotAvailable => "AnythingLLM service not available",
+                RAGFailureReason.WorkspaceNotConfigured => "Could not configure workspace",
+                RAGFailureReason.WorkspaceCreationFailed => "Failed to create workspace",
+                RAGFailureReason.ThreadCreationFailed => "Failed to create analysis thread",
+                RAGFailureReason.LLMRequestFailed => "LLM request failed",
+                RAGFailureReason.Timeout => "Operation timed out",
+                RAGFailureReason.EmptyResponse => "LLM returned empty response",
+                RAGFailureReason.ConfigurationTimeout => "Workspace configuration timed out",
+                _ => "Unknown error"
+            };
         }
 
         /// <summary>
@@ -1345,6 +1451,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 return;
             }
 
+            // Prevent concurrent RAG sync operations
+            if (_ragSyncInProgress)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[RAG Sync] Already in progress for workspace: {_projectWorkspaceName}");
+                return;
+            }
+
+            _ragSyncInProgress = true;
             try
             {
                 TestCaseEditorApp.Services.Logging.Log.Info($"[RAG Sync] Checking if RAG documents need sync for workspace: {_projectWorkspaceName}");
@@ -1353,7 +1467,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 var workspaceSlug = await EnsureWorkspaceConfiguredAsync(null, cancellationToken);
                 if (string.IsNullOrEmpty(workspaceSlug))
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG Sync] Could not get workspace slug for: {_projectWorkspaceName}");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG Sync] Could not get workspace slug for: {_projectWorkspaceName} - RAG document sync will be skipped");
                     return;
                 }
 
@@ -1381,6 +1495,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[RAG Sync] Error during RAG document sync for workspace: {_projectWorkspaceName}");
+            }
+            finally
+            {
+                _ragSyncInProgress = false;
             }
         }
 

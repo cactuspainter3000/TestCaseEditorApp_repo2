@@ -23,7 +23,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
         private readonly AnythingLLMService _anythingLLMService;
         private readonly RAGContextService _ragContextService;
         private readonly RAGFeedbackIntegrationService _ragFeedbackService;
-        private const string WORKSPACE_SLUG = "test-case-generation";
+        private string? _projectWorkspaceName;
 
         public TestCaseGenerationService(
             ILogger<TestCaseGenerationService> logger,
@@ -35,6 +35,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
             _anythingLLMService = anythingLLMService ?? throw new ArgumentNullException(nameof(anythingLLMService));
             _ragContextService = ragContextService;
             _ragFeedbackService = ragFeedbackService;
+        }
+
+        /// <summary>
+        /// Sets the workspace context for project-specific test case generation
+        /// </summary>
+        /// <param name="workspaceName">Name of the project workspace to use</param>
+        public void SetWorkspaceContext(string? workspaceName)
+        {
+            _projectWorkspaceName = workspaceName;
+            _logger.LogInformation("[TestCaseGeneration] Workspace context set to: {WorkspaceName}", workspaceName ?? "<none>");
         }
 
         public async Task<List<LLMTestCase>> GenerateTestCasesAsync(
@@ -55,8 +65,15 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
             if (!requirementList.Any())
                 return new TestCaseGenerationResult(new List<LLMTestCase>(), string.Empty, string.Empty);
 
+            // Get workspace slug from project context
+            var workspaceSlug = await GetWorkspaceSlugAsync();
+            if (string.IsNullOrEmpty(workspaceSlug))
+            {
+                throw new InvalidOperationException("No workspace context set. Please open or create a project first.");
+            }
+
             _logger.LogInformation("Generating test cases for {Count} requirements using workspace '{Workspace}'", 
-                requirementList.Count, WORKSPACE_SLUG);
+                requirementList.Count, workspaceSlug);
 
             var stopwatch = Stopwatch.StartNew();
             string generatedPrompt = string.Empty;
@@ -68,7 +85,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
                 if (_ragContextService != null)
                 {
                     progressCallback?.Invoke("Ensuring RAG documents are configured...", 0, requirementList.Count);
-                    var ragConfigured = await _ragContextService.EnsureRAGConfiguredAsync(WORKSPACE_SLUG);
+                    var ragConfigured = await _ragContextService.EnsureRAGConfiguredAsync(workspaceSlug);
                     if (!ragConfigured)
                     {
                         _logger.LogWarning("[TestCaseGeneration] RAG configuration failed, proceeding without RAG context");
@@ -80,23 +97,23 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
                 // Create prompt for batch generation with similarity detection
                 generatedPrompt = CreateBatchGenerationPrompt(requirementList);
                 
-                progressCallback?.Invoke($"Sending to LLM workspace '{WORKSPACE_SLUG}' (this may take 1-2 minutes)...", 0, requirementList.Count);
+                progressCallback?.Invoke($"Sending to LLM workspace '{workspaceSlug}' (this may take 1-2 minutes)...", 0, requirementList.Count);
                 
                 // Send to LLM with RAG context
                 llmResponse = await _anythingLLMService.SendChatMessageAsync(
-                    WORKSPACE_SLUG,
+                    workspaceSlug,
                     generatedPrompt,
                     cancellationToken);
 
                 stopwatch.Stop();
 
                 // Track RAG request
-                _ragContextService?.TrackRAGRequest(WORKSPACE_SLUG, generatedPrompt, llmResponse, !string.IsNullOrEmpty(llmResponse), stopwatch.Elapsed);
+                _ragContextService?.TrackRAGRequest(workspaceSlug, generatedPrompt, llmResponse, !string.IsNullOrEmpty(llmResponse), stopwatch.Elapsed);
 
                 if (string.IsNullOrEmpty(llmResponse))
                 {
                     var errorMsg = $"LLM did not return a response. Possible causes: " +
-                        $"1) Workspace '{WORKSPACE_SLUG}' does not exist in AnythingLLM (create it first), " +
+                        $"1) Workspace '{workspaceSlug}' does not exist in AnythingLLM (should have been created with project), " +
                         "2) Timeout (LLM processing slowly - check AnythingLLM window for activity), " +
                         "3) Connection issues, " +
                         "4) LLM service error. " +
@@ -135,7 +152,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
                         try
                         {
                             await _ragFeedbackService.CollectGenerationFeedbackAsync(
-                                WORKSPACE_SLUG,
+                                workspaceSlug,
                                 testCases,
                                 requirementList,
                                 usedDocuments: null, // TODO: Extract from AnythingLLM response
@@ -153,7 +170,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
             catch (Exception ex)
             {
                 stopwatch.Stop();
-                _ragContextService?.TrackRAGRequest(WORKSPACE_SLUG, "", null, false, stopwatch.Elapsed);
+                _ragContextService?.TrackRAGRequest(workspaceSlug, "", null, false, stopwatch.Elapsed);
                 
                 var errorMsg = $"Test case generation failed: {ex.Message}";
                 _logger.LogError(ex, "[TestCaseGeneration] {ErrorMsg}", errorMsg);
@@ -171,6 +188,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
 
             try
             {
+                // Get workspace slug from project context
+                var workspaceSlug = await GetWorkspaceSlugAsync();
+                if (string.IsNullOrEmpty(workspaceSlug))
+                {
+                    throw new InvalidOperationException("No workspace context set. Please open or create a project first.");
+                }
+
                 progressCallback?.Invoke($"Analyzing requirement {requirement.Item}...", 0, 1);
                 
                 var prompt = CreateSingleRequirementPrompt(requirement);
@@ -178,7 +202,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
                 progressCallback?.Invoke($"Generating test cases for {requirement.Item}...", 0, 1);
                 
                 var response = await _anythingLLMService.SendChatMessageAsync(
-                    WORKSPACE_SLUG,
+                    workspaceSlug,
                     prompt,
                     cancellationToken);
 
@@ -476,6 +500,42 @@ RESPOND WITH JSON ONLY:
             }
             
             return cleaned.Trim();
+        }
+
+        /// <summary>
+        /// Gets the workspace slug from the project context
+        /// </summary>
+        private async Task<string?> GetWorkspaceSlugAsync()
+        {
+            if (string.IsNullOrEmpty(_projectWorkspaceName))
+            {
+                _logger.LogWarning("[TestCaseGeneration] No project workspace name set");
+                return null;
+            }
+
+            try
+            {
+                // Get all workspaces and find the one matching our project
+                var workspaces = await _anythingLLMService.GetWorkspacesAsync();
+                var workspace = workspaces?.FirstOrDefault(w => 
+                    string.Equals(w.Name, _projectWorkspaceName, StringComparison.OrdinalIgnoreCase));
+
+                if (workspace != null)
+                {
+                    _logger.LogInformation("[TestCaseGeneration] Using workspace: {Name} (Slug: {Slug})", 
+                        workspace.Name, workspace.Slug);
+                    return workspace.Slug;
+                }
+
+                _logger.LogWarning("[TestCaseGeneration] No workspace found matching project name: {Name}", 
+                    _projectWorkspaceName);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[TestCaseGeneration] Error resolving workspace slug");
+                return null;
+            }
         }
 
         private class TestCaseGenerationResponse

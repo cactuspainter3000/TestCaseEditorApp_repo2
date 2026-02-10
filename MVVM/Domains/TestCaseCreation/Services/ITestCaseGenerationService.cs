@@ -80,5 +80,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
         List<string> ValidateTestCaseCoverage(
             LLMTestCase testCase,
             IEnumerable<Requirement> requirements);
+
+        /// <summary>
+        /// Sets the workspace context for project-specific test case generation
+        /// </summary>
+        /// <param name="workspaceName">Name of the project workspace to use</param>
+        void SetWorkspaceContext(string? workspaceName);
     }
 }

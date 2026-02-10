@@ -555,6 +555,29 @@ namespace TestCaseEditorApp.Services
                     PropertyNameCaseInsensitive = true 
                 });
 
+                if (result?.Workspace != null)
+                {
+                    // Configure optimal workspace settings (system prompt, etc.) immediately after creation
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Configuring optimal settings for newly created workspace '{name}' (slug: '{result.Workspace.Slug}')");
+                    var configured = await ConfigureWorkspaceSettingsAsync(result.Workspace.Slug, cancellationToken);
+                    
+                    if (configured)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Successfully configured workspace '{name}' with system prompt for optimal performance");
+                        
+                        // Verify the configuration was applied
+                        var validated = await ValidateWorkspaceSystemPromptAsync(result.Workspace.Slug, cancellationToken);
+                        if (!validated)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Configuration succeeded but validation failed for workspace '{name}' - system prompt may not have been applied correctly");
+                        }
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Workspace '{name}' created but settings configuration failed - will send full prompt with each request. This is not critical but will result in higher token usage.");
+                    }
+                }
+
                 return result?.Workspace;
             }
             catch (Exception ex)
@@ -615,6 +638,10 @@ namespace TestCaseEditorApp.Services
                         if (workspace.TryGetProperty("slug", out var workspaceSlug) && 
                             workspaceSlug.GetString() == slug)
                         {
+                            // 🔍 LOG THE RAW WORKSPACE JSON TO SEE WHAT PROPERTIES EXIST
+                            var workspaceJson = workspace.GetRawText();
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 RAW WORKSPACE JSON for '{slug}': {workspaceJson}");
+                            
                             if (workspace.TryGetProperty("openAiPrompt", out var prompt))
                             {
                                 var configuredPrompt = prompt.GetString();
@@ -626,14 +653,39 @@ namespace TestCaseEditorApp.Services
                                 
                                 if (isConfigured)
                                 {
-                                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Workspace '{slug}' has properly configured system prompt - optimized messaging enabled");
+                                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Workspace '{slug}' has properly configured system prompt (length: {configuredPrompt?.Length})");
                                     return true;
                                 }
                                 else
                                 {
-                                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Workspace '{slug}' system prompt not configured - will send full prompt with each request");
+                                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Workspace '{slug}' system prompt validation FAILED");
+                                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 Prompt details - IsEmpty: {string.IsNullOrEmpty(configuredPrompt)}, Length: {configuredPrompt?.Length ?? 0}");
+                                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 Has 'requirements quality analysis': {configuredPrompt?.Contains("requirements quality analysis") ?? false}");
+                                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 Has 'ANTI-FABRICATION RULES': {configuredPrompt?.Contains("ANTI-FABRICATION RULES") ?? false}");
+                                    
+                                    // Try to configure it now if missing
+                                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔧 Attempting on-demand configuration for workspace '{slug}'");
+                                    var configResult = await ConfigureWorkspaceSettingsAsync(slug, cancellationToken);
+                                    if (configResult)
+                                    {
+                                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ On-demand configuration succeeded for '{slug}'");
+                                        return true;
+                                    }
                                     return false;
                                 }
+                            }
+                            else
+                            {
+                                // Property doesn't exist at all!
+                                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Workspace '{slug}' has NO 'openAiPrompt' property in response!");
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔧 Attempting to configure missing system prompt for workspace '{slug}'");
+                                var configResult = await ConfigureWorkspaceSettingsAsync(slug, cancellationToken);
+                                if (configResult)
+                                {
+                                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ On-demand configuration succeeded for '{slug}'");
+                                    return true;
+                                }
+                                return false;
                             }
                         }
                     }
@@ -765,21 +817,24 @@ namespace TestCaseEditorApp.Services
                         var response = await _httpClient.PostAsync(endpoint, content, cancellationToken);
                         if (response.IsSuccessStatusCode)
                         {
-                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Successfully configured workspace settings for '{slug}' using POST: {endpoint}");
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Successfully configured workspace settings for '{slug}' using POST: {endpoint}");
                             return true;
                         }
                         
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[AnythingLLM] POST {endpoint} returned: {response.StatusCode}");
+                        
                         // Also try PUT method as fallback
-                        response = await _httpClient.PutAsync(endpoint, content, cancellationToken);
+                        var putContent = new StringContent(json, Encoding.UTF8, "application/json");
+                        response = await _httpClient.PutAsync(endpoint, putContent, cancellationToken);
                         if (response.IsSuccessStatusCode)
                         {
-                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Successfully configured workspace settings for '{slug}' using PUT: {endpoint}");
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Successfully configured workspace settings for '{slug}' using PUT: {endpoint}");
                             return true;
                         }
                         
                         // Log response for debugging
                         var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[AnythingLLM] Endpoint {endpoint} failed: {response.StatusCode} - {errorContent}");
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[AnythingLLM] PUT {endpoint} returned: {response.StatusCode} - {errorContent?.Substring(0, Math.Min(200, errorContent?.Length ?? 0))}");
                     }
                     catch (Exception ex)
                     {
@@ -787,7 +842,7 @@ namespace TestCaseEditorApp.Services
                     }
                 }
                 
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] All settings endpoints failed for workspace '{slug}' (ID: {workspaceId})");
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ❌ All settings endpoints failed for workspace '{slug}' (ID: {workspaceId}). Tried {endpointsToTry.Length} endpoints with both POST and PUT methods.");
                 return false;
             }
             catch (Exception ex)
@@ -986,7 +1041,6 @@ FORMATTING EXAMPLES:
 
 CRITICAL: The IMPROVED REQUIREMENT should use [brackets] when information is missing, not invent details. Example: ""The system shall warm up within [specify time: 30 seconds, 2 minutes, etc.] when operating at [define temperature range]"" rather than inventing specific values.";
 
-            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Generated system prompt contains 'IMPROVED REQUIREMENT': {prompt.Contains("IMPROVED REQUIREMENT")}");
             return prompt;
         }
 
@@ -999,15 +1053,28 @@ CRITICAL: The IMPROVED REQUIREMENT should use [brackets] when information is mis
             {
                 TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Uploading optimization guide to workspace '{slug}'");
                 
-                // Get the optimization guide content
-                // In debug mode, BaseDirectory points to bin/Debug/net8.0-windows, so we need to go up to find Config
+                // File is copied to output directory by build, so check there first
                 var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                var binParent = Directory.GetParent(baseDir); // bin folder
-                var outputParent = binParent?.Parent; // Debug folder parent
-                var projectRoot = outputParent?.Parent?.FullName; // Project root
-                var guidePath = !string.IsNullOrEmpty(projectRoot) 
-                    ? Path.Combine(projectRoot, "Config", "ANYTHINGLM_OPTIMIZATION_GUIDE.md")
-                    : Path.Combine(baseDir, "Config", "ANYTHINGLM_OPTIMIZATION_GUIDE.md");
+                var guidePath = Path.Combine(baseDir, "Config", "ANYTHINGLM_OPTIMIZATION_GUIDE.md");
+                
+                // Fallback: if not in output dir, try project root (for development)
+                if (!File.Exists(guidePath))
+                {
+                    var binParent = Directory.GetParent(baseDir); // Debug/net8.0-windows parent
+                    var debugParent = binParent?.Parent; // Debug parent
+                    var binFolder = debugParent?.Parent; // bin parent
+                    var projectRoot = binFolder?.Parent?.FullName; // Project root
+                    
+                    if (!string.IsNullOrEmpty(projectRoot))
+                    {
+                        guidePath = Path.Combine(projectRoot, "Config", "ANYTHINGLM_OPTIMIZATION_GUIDE.md");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Using project root guide: {guidePath}");
+                    }
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Using output directory guide: {guidePath}");
+                }
                 
                 if (!File.Exists(guidePath))
                 {
@@ -1061,14 +1128,28 @@ CRITICAL: The IMPROVED REQUIREMENT should use [brackets] when information is mis
             {
                 TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Uploading RAG training documents to workspace '{slug}'");
                 
-                // Get the base directory (same logic as optimization guide)
+                // Files are copied to output directory by build, so check there first
                 var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                var binParent = Directory.GetParent(baseDir); // bin folder
-                var outputParent = binParent?.Parent; // Debug folder parent
-                var projectRoot = outputParent?.Parent?.FullName; // Project root
-                var configDir = !string.IsNullOrEmpty(projectRoot) 
-                    ? Path.Combine(projectRoot, "Config")
-                    : Path.Combine(baseDir, "Config");
+                var configDir = Path.Combine(baseDir, "Config");
+                
+                // Fallback: if not in output dir, try project root (for development)
+                if (!Directory.Exists(configDir))
+                {
+                    var binParent = Directory.GetParent(baseDir); // Debug/net8.0-windows parent
+                    var debugParent = binParent?.Parent; // Debug parent
+                    var binFolder = debugParent?.Parent; // bin parent
+                    var projectRoot = binFolder?.Parent?.FullName; // Project root
+                    
+                    if (!string.IsNullOrEmpty(projectRoot))
+                    {
+                        configDir = Path.Combine(projectRoot, "Config");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Using project root Config directory: {configDir}");
+                    }
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Using output directory Config: {configDir}");
+                }
                 
                 // RAG documents to upload
                 var ragDocuments = new[]

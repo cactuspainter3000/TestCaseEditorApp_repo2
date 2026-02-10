@@ -13,6 +13,8 @@ using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Models;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Events;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
 using TestCaseEditorApp.MVVM.Models;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
@@ -27,6 +29,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
         private readonly ITestCaseGenerationService _generationService;
         private readonly ITestCaseDeduplicationService _deduplicationService;
         private readonly IRequirementsMediator _requirementsMediator;
+        private readonly INewProjectMediator _newProjectMediator;
         private readonly PromptDiagnosticsViewModel _promptDiagnostics;
         
         private bool _isGenerating;
@@ -44,21 +47,29 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
             ITestCaseGenerationService generationService,
             ITestCaseDeduplicationService deduplicationService,
             IRequirementsMediator requirementsMediator,
+            INewProjectMediator newProjectMediator,
             PromptDiagnosticsViewModel promptDiagnostics)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _generationService = generationService ?? throw new ArgumentNullException(nameof(generationService));
             _deduplicationService = deduplicationService ?? throw new ArgumentNullException(nameof(deduplicationService));
             _requirementsMediator = requirementsMediator ?? throw new ArgumentNullException(nameof(requirementsMediator));
+            _newProjectMediator = newProjectMediator ?? throw new ArgumentNullException(nameof(newProjectMediator));
             _promptDiagnostics = promptDiagnostics ?? throw new ArgumentNullException(nameof(promptDiagnostics));
 
             GeneratedTestCases = new ObservableCollection<LLMTestCase>();
             SimilarRequirementGroups = new ObservableCollection<RequirementGroup>();
             AvailableRequirements = new ObservableCollection<SelectableRequirement>();
 
+            // Subscribe to project lifecycle events
+            _newProjectMediator.Subscribe<NewProjectEvents.ProjectCreated>(OnProjectCreated);
+            
             // Subscribe to requirements events to reload when requirements become available
             _requirementsMediator.Subscribe<RequirementsEvents.RequirementsImported>(OnRequirementsImported);
             _requirementsMediator.Subscribe<RequirementsEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
+            
+            // Initialize workspace context for the generation service (in case project already open)
+            InitializeWorkspaceContext();
             
             // Load requirements and wrap them for selection
             LoadAvailableRequirements();
@@ -420,6 +431,24 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
 
         // ===== SELECTION MANAGEMENT =====
 
+        private void InitializeWorkspaceContext()
+        {
+            // Retrieve the current workspace context from the service provider
+            var workspaceContext = App.ServiceProvider?.GetService(typeof(TestCaseEditorApp.Services.IWorkspaceContext)) 
+                as TestCaseEditorApp.Services.IWorkspaceContext;
+            var workspaceName = workspaceContext?.CurrentWorkspaceInfo?.AnythingLLMSlug;
+            
+            if (!string.IsNullOrEmpty(workspaceName))
+            {
+                _generationService.SetWorkspaceContext(workspaceName);
+                _logger.LogInformation("[LLMTestCaseGenerator] Initialized workspace context to: {WorkspaceName}", workspaceName);
+            }
+            else
+            {
+                _logger.LogDebug("[LLMTestCaseGenerator] No AnythingLLM workspace found in current project context during initialization");
+            }
+        }
+
         private void LoadAvailableRequirements()
         {
             AvailableRequirements.Clear();
@@ -447,7 +476,29 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
         private void OnRequirementsImported(RequirementsEvents.RequirementsImported evt)
         {
             _logger.LogInformation("[LLMTestCaseGenerator] Requirements imported, reloading dropdown");
+            
+            // Reinitialize workspace context (in case it changed or wasn't set initially)
+            InitializeWorkspaceContext();
+            
             LoadAvailableRequirements();
+        }
+
+        private void OnProjectCreated(NewProjectEvents.ProjectCreated evt)
+        {
+            _logger.LogInformation("[LLMTestCaseGenerator] Project created, setting workspace context: {WorkspaceName}", evt.WorkspaceName);
+            
+            // Set workspace context from the project created event
+            if (!string.IsNullOrEmpty(evt.AnythingLLMWorkspaceSlug))
+            {
+                _generationService.SetWorkspaceContext(evt.AnythingLLMWorkspaceSlug);
+                _logger.LogInformation("[LLMTestCaseGenerator] Set workspace context to: {WorkspaceName}", evt.AnythingLLMWorkspaceSlug);
+            }
+            else
+            {
+                _logger.LogWarning("[LLMTestCaseGenerator] Project created but no AnythingLLM workspace slug provided");
+            }
+            
+            // Requirements will be loaded via RequirementsCollectionChanged event
         }
 
         private void OnRequirementsCollectionChanged(RequirementsEvents.RequirementsCollectionChanged evt)

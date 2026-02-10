@@ -634,6 +634,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _openProjectMediator.Subscribe<OpenProjectEvents.ProjectOpened>(OnProjectOpened);
             
             // Subscribe to NewProject domain events (for workspace state)
+            _newProjectMediator.Subscribe<NewProjectEvents.ProjectCreated>(OnProjectCreated);
             _newProjectMediator.Subscribe<NewProjectEvents.ProjectClosed>(OnProjectClosed);
             _newProjectMediator.Subscribe<NewProjectEvents.WorkspaceModified>(OnWorkspaceModified);
             _newProjectMediator.Subscribe<NewProjectEvents.ProjectSaved>(OnProjectSaved);
@@ -646,6 +647,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             // TODO: Update menu item states when project loads
             // UpdateMenuItemState calls removed - need to implement with MenuAction system
+        }
+        
+        /// <summary>
+        /// Handle project created from NewProject domain
+        /// </summary>
+        private void OnProjectCreated(NewProjectEvents.ProjectCreated evt)
+        {
+            IsProjectLoaded = true; // Track that a project is now loaded
+            HasRequirements = evt.Workspace?.Requirements?.Count > 0;
+            HasUnsavedChanges = false; // Newly created project, no unsaved changes yet
+            _logger.LogInformation("[SideMenuVM] Project created, IsProjectLoaded=true, HasRequirements set to {HasReq} ({Count} requirements)", 
+                HasRequirements, evt.Workspace?.Requirements?.Count ?? 0);
         }
         
         /// <summary>
@@ -764,6 +777,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         partial void OnIsProjectLoadedChanged(bool value)
         {
             // Notify commands that depend on IsProjectLoaded to re-evaluate their CanExecute
+            (RequirementsNavigationCommand as IRelayCommand)?.NotifyCanExecuteChanged();
             (RequirementsSearchAttachmentsCommand as IRelayCommand)?.NotifyCanExecuteChanged();
         }
         

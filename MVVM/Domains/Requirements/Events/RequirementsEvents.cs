@@ -79,6 +79,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Events
         }
 
         /// <summary>
+        /// Published when RAG analysis fails and falls back to traditional LLM
+        /// </summary>
+        public class RAGAnalysisFallback
+        {
+            public Requirement Requirement { get; set; } = null!;
+            public string FailureReason { get; set; } = string.Empty;
+            public string FailureDetails { get; set; } = string.Empty;
+            public string RecommendedAction { get; set; } = string.Empty;
+            public DateTime OccurredAt { get; set; } = DateTime.Now;
+        }
+
+        /// <summary>
         /// Published when the requirements collection changes (add/remove/clear)
         /// </summary>
         public class RequirementsCollectionChanged

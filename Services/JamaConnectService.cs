@@ -469,6 +469,12 @@ namespace TestCaseEditorApp.Services
                     var allItems = result?.Data ?? new List<JamaItem>();
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Retrieved {allItems.Count} items from first page");
                     
+                    // DIAGNOSTIC: Log first 3 items to verify DocumentKey deserialization
+                    foreach (var item in allItems.Take(3))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Sample item {item.Id}: DocumentKey='{item.DocumentKey}', GlobalId='{item.GlobalId}', Item='{item.Item}'");
+                    }
+                    
                     // Check if there are more items to fetch (pagination)
                     if (allItems.Count == 50) // Full page means there might be more
                     {
@@ -924,7 +930,7 @@ namespace TestCaseEditorApp.Services
             {
                 // Fallback to basic content parsing from description only
                 // IMPORTANT: Only extract TABLES from description - paragraphs would duplicate the Description property
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Item {itemId}: No JSON data available, using basic description parsing");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Using fallback description parsing (JSON data not available for enhanced field access)");
                 var looseContent = ParseHtmlContent(description, itemId);
                 // Clear paragraphs since description content is already in the Description property
                 looseContent.Paragraphs.Clear();
@@ -1533,7 +1539,12 @@ namespace TestCaseEditorApp.Services
             foreach (var item in jamaItems)
             {
                 // Enhanced field mapping with better fallbacks
+                // CRITICAL: Log all ID fields to diagnose why DocumentKey might not be used
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {item.Id} ID fields - Item: '{item.Item}', DocumentKey: '{item.DocumentKey}', GlobalId: '{item.GlobalId}'");
+                
                 var itemId = item.Item ?? item.DocumentKey ?? item.GlobalId ?? $"JAMA-{item.Id}";
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {item.Id} final selected ID: '{itemId}'");
                 
                 // Access Name and Description directly from the item, not from Fields
                 var name = item.Name;

@@ -51,8 +51,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
 
                 progressCallback?.Invoke("Analyzing requirement quality...");
 
-                // Delegate to the existing analysis service (dependency injection allows testing/mocking)
-                var analysis = await _analysisService.AnalyzeRequirementAsync(requirement, cancellationToken);
+                // Delegate to the existing analysis service with streaming support for timeout enforcement
+                var analysis = await _analysisService.AnalyzeRequirementWithStreamingAsync(
+                    requirement, 
+                    onPartialResult: null, // Engine doesn't need partial results
+                    onProgressUpdate: progress => progressCallback?.Invoke(progress),
+                    cancellationToken: cancellationToken);
 
                 if (analysis.IsAnalyzed)
                 {

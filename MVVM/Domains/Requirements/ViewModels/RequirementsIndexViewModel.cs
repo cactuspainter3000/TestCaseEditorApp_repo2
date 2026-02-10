@@ -73,6 +73,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 try { _requirementsView.Refresh(); } catch { }
                 OnPropertyChanged(nameof(RequirementPositionDisplay));
                 OnPropertyChanged(nameof(SelectedRequirementIndex));
+                
+                // Notify commands since collection changes affect their CanExecute state
+                PreviousRequirementCommand.NotifyCanExecuteChanged();
+                NextRequirementCommand.NotifyCanExecuteChanged();
             };
         }
 
@@ -110,6 +114,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 _logger?.LogDebug("[NAV] SelectedRequirement set -> {RequirementItem}", value?.Item ?? "<null>");
                 OnPropertyChanged(nameof(RequirementPositionDisplay));
                 OnPropertyChanged(nameof(SelectedRequirementIndex));
+                
+                // Notify commands since selection change affects their CanExecute state
+                PreviousRequirementCommand.NotifyCanExecuteChanged();
+                NextRequirementCommand.NotifyCanExecuteChanged();
             }
         }
 
@@ -171,6 +179,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
             OnPropertyChanged(nameof(RequirementPositionDisplay));
             OnPropertyChanged(nameof(SelectedRequirementIndex));
+
+            // Notify commands to re-evaluate their CanExecute state
+            PreviousRequirementCommand.NotifyCanExecuteChanged();
+            NextRequirementCommand.NotifyCanExecuteChanged();
 
             _logger?.LogDebug("[NAV] NotifyCurrentRequirementChanged invoked. Current={Current}, Count={Count}",
                 _getCurrentRequirement()?.Item ?? "<null>", _requirements.Count);
