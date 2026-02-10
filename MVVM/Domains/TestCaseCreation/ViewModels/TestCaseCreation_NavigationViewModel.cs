@@ -32,6 +32,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
             {
                 case nameof(LLMTestCaseGeneratorViewModel.SelectedCount):
                     OnPropertyChanged(nameof(SelectedCount));
+                    OnPropertyChanged(nameof(SelectionDisplayText));
                     break;
                 case nameof(LLMTestCaseGeneratorViewModel.TotalCount):
                     OnPropertyChanged(nameof(TotalCount));
@@ -46,9 +47,19 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
         public ObservableCollection<SelectableRequirement> AvailableRequirements => _mainViewModel.AvailableRequirements;
         public int SelectedCount => _mainViewModel.SelectedCount;
         public int TotalCount => _mainViewModel.TotalCount;
+        
+        public string SelectionDisplayText => SelectedCount > 0 
+            ? $"{SelectedCount} Requirement{(SelectedCount == 1 ? "" : "s")} Selected"
+            : "Select Requirements";
 
         // Expose selection commands
         public IRelayCommand SelectAllCommand => _mainViewModel.SelectAllCommand;
         public IRelayCommand ClearSelectionCommand => _mainViewModel.ClearSelectionCommand;
+        
+        [RelayCommand]
+        private void CloseDropdown()
+        {
+            IsDropdownOpen = false;
+        }
     }
 }

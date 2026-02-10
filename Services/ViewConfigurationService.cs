@@ -73,6 +73,9 @@ namespace TestCaseEditorApp.Services
                 // TestCaseGenerator domain - fixed case mismatch  
                 "testcasegenerator" or "test case generator" or "TestCaseGenerator" => DebugAndCallTestCaseGenerator(context),
                 
+                // TestCaseCreation domain (manual test case editing)
+                "testcasecreation" or "test case creation" or "TestCaseCreation" => CreateTestCaseCreationConfiguration(context),
+                
                 // TestFlow domain
                 "testflow" => CreateTestFlowConfiguration(context),
                 
@@ -357,6 +360,34 @@ namespace TestCaseEditorApp.Services
             return config;
         }
 
+        private ViewConfiguration CreateTestCaseCreationConfiguration(object? context)
+        {
+            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating TestCaseCreation configuration");
+            
+            // Resolve ViewModels from DI container
+            var titleVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Test Case Creation");
+            var headerVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("");
+            var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreationMainVM>();
+            var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
+            
+            // Fail-fast validation
+            if (mainVM == null) throw new InvalidOperationException("TestCaseCreationMainVM not registered in DI container");
+            if (notificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
+            
+            // Use null for navigationViewModel - TestCaseCreation handles its own navigation internally
+            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] TestCaseCreation ViewModels resolved successfully");
+
+            return new ViewConfiguration(
+                sectionName: "TestCaseCreation",
+                titleViewModel: titleVM,
+                headerViewModel: headerVM,
+                contentViewModel: mainVM,
+                navigationViewModel: null,
+                notificationViewModel: notificationVM,
+                context: context
+            );
+        }
+
         private ViewConfiguration CreateLLMTestCaseGeneratorConfiguration(object? context)
         {
             TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating LLMTestCaseGenerator configuration");
@@ -371,8 +402,9 @@ namespace TestCaseEditorApp.Services
             if (mainVM == null) throw new InvalidOperationException("LLMTestCaseGeneratorViewModel not registered in DI container");
             if (notificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
             
-            // Create navigation ViewModel wrapper to expose selection properties
-            var navigationVM = new TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreation_NavigationViewModel(mainVM);
+            // Resolve navigation ViewModel from DI container
+            var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreation_NavigationViewModel>();
+            if (navigationVM == null) throw new InvalidOperationException("TestCaseCreation_NavigationViewModel not registered in DI container");
             
             TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] LLMTestCaseGenerator ViewModels resolved successfully");
 

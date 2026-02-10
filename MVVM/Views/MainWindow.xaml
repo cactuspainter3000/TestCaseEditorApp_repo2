@@ -190,6 +190,11 @@
             <tccviews:LLMTestCaseGeneratorView />
         </DataTemplate>
 
+        <!-- TestCaseCreation domain (Manual test case editing) -->
+        <DataTemplate DataType="{x:Type tccvm:TestCaseCreationMainVM}">
+            <tccviews:TestCaseCreation_MainView />
+        </DataTemplate>
+
         <!-- TestCaseCreation navigation (requirement selection) -->
         <DataTemplate DataType="{x:Type tccvm:TestCaseCreation_NavigationViewModel}">
             <tccviews:TestCaseCreation_NavigationView />

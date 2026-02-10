@@ -137,6 +137,32 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
         }
 
         /// <summary>
+        /// Copies both the prompt and response to clipboard in a format suitable for external LLM testing
+        /// </summary>
+        [RelayCommand]
+        private void CopyPromptAndResponse()
+        {
+            try
+            {
+                var combined = new System.Text.StringBuilder();
+                combined.AppendLine("=== PROMPT ===");
+                combined.AppendLine();
+                combined.AppendLine(HasPrompt ? GeneratedPrompt : "No prompt available");
+                combined.AppendLine();
+                combined.AppendLine("=== RESPONSE ===");
+                combined.AppendLine();
+                combined.AppendLine(HasAnythingLLMResponse ? AnythingLLMResponse : "No response available");
+                
+                Clipboard.SetText(combined.ToString());
+                _logger.LogInformation("[PromptDiagnostics] Prompt and response copied to clipboard");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[PromptDiagnostics] Error copying prompt and response to clipboard");
+            }
+        }
+
+        /// <summary>
         /// Compares the two responses and highlights differences
         /// </summary>
         [RelayCommand]

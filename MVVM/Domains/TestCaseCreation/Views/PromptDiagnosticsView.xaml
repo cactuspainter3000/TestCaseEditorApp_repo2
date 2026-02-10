@@ -32,17 +32,36 @@
             </Grid.RowDefinitions>
 
             <!-- Header -->
-            <StackPanel Grid.Row="0" Margin="0,0,0,12">
-                <TextBlock Text="Prompt Diagnostics" 
+            <Grid Grid.Row="0" Margin="0,0,0,12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock Grid.Row="0" Grid.Column="0"
+                           Text="Prompt Diagnostics" 
                            FontSize="24" 
                            FontWeight="Bold" 
                            Foreground="{StaticResource Brush.Text.Primary}"
                            Margin="0,0,0,8"/>
-                <TextBlock Text="View and compare LLM prompts and responses for debugging and optimization" 
+                           
+                <Button Grid.Row="0" Grid.Column="1"
+                        Content="📋 Copy Prompt and Response" 
+                        Command="{Binding CopyPromptAndResponseCommand}"
+                        Style="{StaticResource PrimaryButton}"
+                        VerticalAlignment="Top"/>
+                        
+                <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                           Text="View and compare LLM prompts and responses for debugging and optimization" 
                            FontSize="13" 
                            Foreground="{StaticResource Brush.Text.Secondary}"
                            TextWrapping="Wrap"/>
-            </StackPanel>
+            </Grid>
 
             <!-- Metadata -->
             <Border Grid.Row="1" 

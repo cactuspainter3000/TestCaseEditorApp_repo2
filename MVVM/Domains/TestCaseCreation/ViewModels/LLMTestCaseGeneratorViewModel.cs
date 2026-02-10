@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Models;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Events;
 using TestCaseEditorApp.MVVM.Models;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
@@ -55,11 +56,15 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
             SimilarRequirementGroups = new ObservableCollection<RequirementGroup>();
             AvailableRequirements = new ObservableCollection<SelectableRequirement>();
 
+            // Subscribe to requirements events to reload when requirements become available
+            _requirementsMediator.Subscribe<RequirementsEvents.RequirementsImported>(OnRequirementsImported);
+            _requirementsMediator.Subscribe<RequirementsEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
+            
             // Load requirements and wrap them for selection
             LoadAvailableRequirements();
 
             GenerateTestCasesCommand = new AsyncRelayCommand(GenerateTestCasesAsync, CanGenerate);
-            GenerateForSelectionCommand = new AsyncRelayCommand(GenerateForSelectedRequirementsAsync, () => AvailableRequirements.Any(r => r.IsSelected));
+            GenerateForSelectionCommand = new AsyncRelayCommand(GenerateForSelectedRequirementsAsync, CanGenerateForSelection);
             FindSimilarGroupsCommand = new AsyncRelayCommand(FindSimilarRequirementGroupsAsync, CanGenerate);
             DeduplicateTestCasesCommand = new AsyncRelayCommand(DeduplicateTestCasesAsync, () => GeneratedTestCases.Count > 1);
             CancelGenerationCommand = new RelayCommand(CancelGeneration, () => IsGenerating);
@@ -405,24 +410,50 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
             return requirements != null && requirements.Any();
         }
 
+        private bool CanGenerateForSelection()
+        {
+            if (IsGenerating)
+                return false;
+
+            return SelectedCount > 0;
+        }
+
         // ===== SELECTION MANAGEMENT =====
 
         private void LoadAvailableRequirements()
         {
             AvailableRequirements.Clear();
-            
             var requirements = _requirementsMediator.Requirements;
-            if (requirements != null)
+            
+            if (requirements != null && requirements.Count > 0)
             {
+                _logger.LogDebug("[LLMTestCaseGenerator] Loading {Count} requirements into dropdown", requirements.Count);
                 foreach (var req in requirements)
                 {
                     var selectable = new SelectableRequirement(req);
                     selectable.SelectionChanged += OnRequirementSelectionChanged;
                     AvailableRequirements.Add(selectable);
                 }
+                _logger.LogInformation("[LLMTestCaseGenerator] Loaded {Count} requirements for selection", AvailableRequirements.Count);
+            }
+            else
+            {
+                _logger.LogDebug("[LLMTestCaseGenerator] No requirements available to load");
             }
             
             UpdateSelectionCounts();
+        }
+
+        private void OnRequirementsImported(RequirementsEvents.RequirementsImported evt)
+        {
+            _logger.LogInformation("[LLMTestCaseGenerator] Requirements imported, reloading dropdown");
+            LoadAvailableRequirements();
+        }
+
+        private void OnRequirementsCollectionChanged(RequirementsEvents.RequirementsCollectionChanged evt)
+        {
+            _logger.LogInformation("[LLMTestCaseGenerator] Requirements collection changed, reloading dropdown");
+            LoadAvailableRequirements();
         }
 
         private void OnRequirementSelectionChanged(object? sender, EventArgs e)

@@ -425,6 +425,17 @@ namespace TestCaseEditorApp
                     
                     // === NOTIFICATION DOMAIN REGISTRATION ===
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator, TestCaseEditorApp.MVVM.Domains.Notification.Mediators.NotificationMediator>();
+
+                    // === TEST CASE CREATION DOMAIN REGISTRATION ===
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators.ITestCaseCreationMediator>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators.TestCaseCreationMediator>>();
+                        var uiCoordinator = provider.GetRequiredService<IDomainUICoordinator>();
+                        var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
+                        var eventReplay = provider.GetService<EventReplayService>();
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators.TestCaseCreationMediator(
+                            logger, uiCoordinator, performanceMonitor, eventReplay);
+                    });
                     
                     // Notification domain ViewModels - singleton to maintain event subscriptions
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>(provider =>
@@ -465,12 +476,27 @@ namespace TestCaseEditorApp
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels.TestCaseGeneratorMode_MainVM>();
                     
                     // TestCaseCreation domain ViewModels
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel>();
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.RAGDiagnosticsViewModel>(provider =>
                     {
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.RAGDiagnosticsViewModel>>();
                         var ragContextService = provider.GetRequiredService<RAGContextService>();
                         return new TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.RAGDiagnosticsViewModel(logger, ragContextService);
+                    });
+                    
+                    // TestCaseCreationMainVM - Manual test case editing
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreationMainVM>(provider =>
+                    {
+                        var mediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators.ITestCaseCreationMediator>();
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreationMainVM>>();
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreationMainVM(mediator, logger);
+                    });
+                    
+                    // TestCaseCreation_NavigationViewModel - Wraps mainVM for navigation dropdown
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreation_NavigationViewModel>(provider =>
+                    {
+                        var mainVM = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel>();
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreation_NavigationViewModel(mainVM);
                     });
                     
                     // DEPRECATED: TestCaseGeneratorNotificationViewModel - use NotificationWorkspaceViewModel instead

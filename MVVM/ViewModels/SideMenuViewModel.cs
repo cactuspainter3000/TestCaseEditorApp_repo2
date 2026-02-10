@@ -89,6 +89,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand DummyNavigationCommand { get; private set; } = null!;
         public ICommand LLMLearningNavigationCommand { get; private set; } = null!;
         public ICommand LLMTestCaseGeneratorNavigationCommand { get; private set; } = null!;
+        public ICommand TestCaseCreationNavigationCommand { get; private set; } = null!;
         public ICommand StartupNavigationCommand { get; private set; } = null!;
 
         // Requirements Management Commands
@@ -190,6 +191,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             NewProjectNavigationCommand = new RelayCommand(NavigateToNewProject, CanExecuteProjectCommands);
             DummyNavigationCommand = new RelayCommand(NavigateToDummy);
             LLMLearningNavigationCommand = new RelayCommand(NavigateToLLMLearning);
+            TestCaseCreationNavigationCommand = new RelayCommand(NavigateToTestCaseCreation);
             LLMTestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToLLMTestCaseGenerator);
             StartupNavigationCommand = new RelayCommand(NavigateToStartup);
             
@@ -288,62 +290,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         private void NavigateToTestCaseGenerator()
         {
-// ("*** SideMenuViewModel.NavigateToTestCaseGenerator called! ***");
-// ("*** SideMenuViewModel.NavigateToTestCaseGenerator called! ***");
-            
-            // Add debug logging to file
-            try 
-            {
-                System.IO.File.AppendAllText(@"c:\temp\navigation-debug.log", 
-                    $"[{DateTime.Now:HH:mm:ss}] SideMenuViewModel.NavigateToTestCaseGenerator() called\n");
-            }
-            catch (Exception)
-            {
-// ("*** Failed to write to log ***");
-            }
-            
-            // Find the Test Case Generator menu item for debug logging only
-            var testCaseGenMenuItem = SideMenuSection?.Items?.OfType<MenuAction>()
-                ?.FirstOrDefault(x => x?.Id == "test-case-generator");
-                
-            if (testCaseGenMenuItem != null)
-            {
-// ($"*** Found Test Case Generator menu item. Current IsExpanded: {testCaseGenMenuItem.IsExpanded} ***");
-// ($"*** Children count: {testCaseGenMenuItem.Children?.Count ?? 0} ***");
-// ($"*** IsDropdown: {testCaseGenMenuItem.IsDropdown} ***");
-                
-                // DON'T manually toggle - let the ToggleButton handle expansion via IsChecked binding
-                // The ToggleButton's IsChecked="{Binding IsExpanded, Mode=TwoWay}" will handle this
-// ($"*** Letting ToggleButton handle expansion, current IsExpanded: {testCaseGenMenuItem.IsExpanded} ***");
-                
-                // List children for debugging
-                if (testCaseGenMenuItem.Children != null && testCaseGenMenuItem.Children.Count > 0)
-                {
-// ("*** Children list: ***");
-                    foreach (var child in testCaseGenMenuItem.Children.OfType<MenuAction>())
-                    {
-// ($"  - {child.Id}: {child.Text}");
-                    }
-                }
-                else
-                {
-// ("*** No children found or Children collection is null! ***");
-                }
-            }
-            
-            // Always navigate to the TestCaseGenerator section regardless of expansion state
-            SelectedSection = "TestCaseGenerator";
-// ($"*** About to call NavigationMediator.NavigateToSection('TestCaseGenerator') ***");
-// ($"*** NavigationMediator is null: {_navigationMediator == null} ***");
-            
-            try 
-            {
-                System.IO.File.AppendAllText(@"c:\temp\navigation-debug.log", 
-                    $"[{DateTime.Now:HH:mm:ss}] SideMenuViewModel: About to call NavigateToSection('TestCaseGenerator'), mediator null: {_navigationMediator == null}\n");
-            }
-            catch { }
-            
-            _navigationMediator?.NavigateToSection("TestCaseGenerator");
+            // When users click the parent "Test Case Generator" menu item,
+            // show them the useful LLM Test Case Generator instead of the placeholder view
+            SelectedSection = "LLMTestCaseGenerator";
+            _navigationMediator?.NavigateToSection("LLMTestCaseGenerator");
         }
         
         private void NavigateToRequirements()
@@ -650,11 +600,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                                 Id = "test-case-creation",
                                 Text = "Test Case Creation",
                                 Icon = "📝",
-                                Command = GenerateTestCaseCommandCommand,
+                                Command = TestCaseCreationNavigationCommand,
                                 IsDropdown = true,
                                 Children = new ObservableCollection<MenuContentItem>
                                 {
-                                    new MenuAction { Id = "testcase.create", Text = "Test Case Creation", Icon = "📄", Command = GenerateTestCaseCommandCommand },
+                                    new MenuAction { Id = "testcase.create", Text = "Test Case Creation", Icon = "📄", Command = TestCaseCreationNavigationCommand },
                                     new MenuAction { Id = "testcase.generate", Text = "Generate Test Case Command", Icon = "⚡", Command = GenerateTestCaseCommandCommand },
                                     new MenuAction { Id = "testcase.export", Text = "Export to Jama...", Icon = "🚀", Command = ExportAllToJamaCommand }
                                 }

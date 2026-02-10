@@ -405,7 +405,9 @@ RESPOND WITH JSON ONLY:
                 
                 var options = new JsonSerializerOptions
                 {
-                    PropertyNameCaseInsensitive = true
+                    PropertyNameCaseInsensitive = true,
+                    AllowTrailingCommas = true,
+                    ReadCommentHandling = JsonCommentHandling.Skip
                 };
 
                 var result = JsonSerializer.Deserialize<TestCaseGenerationResponse>(json, options);
