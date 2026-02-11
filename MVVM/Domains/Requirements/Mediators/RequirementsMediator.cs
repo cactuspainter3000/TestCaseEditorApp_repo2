@@ -1305,6 +1305,29 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             }
         }
 
+        public async Task<List<JamaProject>> GetProjectsAsync()
+        {
+            try
+            {
+                _logger.LogInformation("[RequirementsMediator] Loading available Jama projects through mediator (proper architectural pattern)");
+                
+                var projects = await _jamaConnectService.GetProjectsAsync();
+                if (projects == null)
+                {
+                    _logger.LogWarning("[RequirementsMediator] GetProjectsAsync returned null from Jama service");
+                    return new List<JamaProject>();
+                }
+
+                _logger.LogInformation("[RequirementsMediator] Successfully loaded {Count} Jama projects", projects.Count);
+                return projects;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsMediator] Failed to load Jama projects");
+                return new List<JamaProject>();
+            }
+        }
+
         // ===== MEDIATOR BASE FUNCTIONALITY =====
 
         public new void PublishEvent<T>(T eventData) where T : class

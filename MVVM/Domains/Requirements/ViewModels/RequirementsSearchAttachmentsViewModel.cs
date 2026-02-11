@@ -498,9 +498,37 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         private async Task LoadAvailableProjectsAsync()
         {
-            // Legacy method - attachment loading now handled exclusively by OpenProject workflow
-            _logger.LogInformation("[RequirementsSearchAttachments] LoadAvailableProjectsAsync called - use OpenProject workflow instead");
-            StatusMessage = "⚠️ Please open a project to load attachments automatically.";
+            try
+            {
+                _logger.LogInformation("[RequirementsSearchAttachments] LoadAvailableProjectsAsync called - using proper mediator pattern");
+                IsBusy = true;
+                StatusMessage = "Loading available Jama projects...";
+                
+                // ✅ CORRECT: Use mediator pattern following architectural guide (no service locator anti-pattern)
+                var projects = await _mediator.GetProjectsAsync();
+                
+                // Initialize collection if needed
+                if (AvailableProjects == null)
+                    AvailableProjects = new ObservableCollection<JamaProject>();
+
+                AvailableProjects.Clear();
+                foreach (var project in projects)
+                {
+                    AvailableProjects.Add(project);
+                }
+
+                _logger.LogInformation("[RequirementsSearchAttachments] Loaded {Count} Jama projects", projects.Count);
+                StatusMessage = $"✅ Loaded {projects.Count} projects. Select a project to search attachments.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsSearchAttachments] Error loading Jama projects");
+                StatusMessage = "❌ Failed to load projects - check connection and try again";
+            }
+            finally
+            {
+                IsBusy = false;
+            }
         }
 
         private async Task SearchAttachmentsAsync()

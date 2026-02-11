@@ -91,6 +91,9 @@ namespace TestCaseEditorApp
                     // File dialog helper used by the VM
                     services.AddSingleton<IFileDialogService, FileDialogService>();
                     
+                    // OCR service for image text extraction
+                    services.AddSingleton<IOCRService, TesseractOCRService>();
+                    
                     // Text editing dialog service for architectural compliance
                     services.AddSingleton<ITextEditingDialogService, TextEditingDialogService>();
 
@@ -232,12 +235,21 @@ namespace TestCaseEditorApp
                     // Prompt Diagnostics ViewModel (for debugging and comparing LLM responses)
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.PromptDiagnosticsViewModel>();
                     
-                    // Jama Connect integration service - Following Architectural Guide AI patterns
+                    // Jama Connect Service with OCR integration
                     services.AddSingleton<JamaConnectService>(provider =>
                     {
                         try
                         {
-                            return JamaConnectService.FromConfiguration();
+                            var jamaService = JamaConnectService.FromConfiguration();
+                            
+                            // Inject OCR service for image text extraction
+                            var ocrService = provider.GetService<IOCRService>();
+                            if (ocrService != null)
+                            {
+                                jamaService.SetOCRService(ocrService);
+                            }
+                            
+                            return jamaService;
                         }
                         catch (Exception ex)
                         {

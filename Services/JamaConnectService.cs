@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
@@ -29,11 +31,19 @@ namespace TestCaseEditorApp.Services
         private readonly string? _apiToken;
         private readonly string? _clientId;
         private readonly string? _clientSecret;
+        private readonly bool _isOAuth;
         private string? _accessToken;
         private JsonDocument? _lastApiResponseJson;
+        private List<JsonDocument> _allApiResponses = new List<JsonDocument>();
         private static readonly SemaphoreSlim _rateLimitSemaphore = new(10, 10); // 10 requests per second
         private static DateTime _lastRequest = DateTime.MinValue;
         private const int MinRequestInterval = 100; // milliseconds
+        private IOCRService? _ocrService; // Optional OCR service for image text extraction
+        
+        // Session-based authentication for attachments
+        private readonly HttpClient _sessionClient;
+        private bool _sessionAuthenticated = false;
+        private readonly CookieContainer _cookieContainer;
         
         public bool IsConfigured => !string.IsNullOrEmpty(_baseUrl) && 
             (!string.IsNullOrEmpty(_apiToken) || 
@@ -48,6 +58,14 @@ namespace TestCaseEditorApp.Services
             _baseUrl = baseUrl.TrimEnd('/');
             _apiToken = apiToken;
             _httpClient = new HttpClient();
+            
+            // Initialize session client with cookie container for attachment downloads
+            _cookieContainer = new CookieContainer();
+            var handler = new HttpClientHandler()
+            {
+                CookieContainer = _cookieContainer
+            };
+            _sessionClient = new HttpClient(handler);
         }
 
         /// <summary>
@@ -59,6 +77,14 @@ namespace TestCaseEditorApp.Services
             _username = username;
             _password = password;
             _httpClient = new HttpClient();
+            
+            // Initialize session client with cookie container for attachment downloads
+            _cookieContainer = new CookieContainer();
+            var handler = new HttpClientHandler()
+            {
+                CookieContainer = _cookieContainer
+            };
+            _sessionClient = new HttpClient(handler);
         }
 
         /// <summary>
@@ -69,7 +95,16 @@ namespace TestCaseEditorApp.Services
             _baseUrl = baseUrl.TrimEnd('/');
             _clientId = clientId;
             _clientSecret = clientSecret;
+            _isOAuth = isOAuth;
             _httpClient = new HttpClient();
+            
+            // Initialize session client with cookie container for attachment downloads
+            _cookieContainer = new CookieContainer();
+            var handler = new HttpClientHandler()
+            {
+                CookieContainer = _cookieContainer
+            };
+            _sessionClient = new HttpClient(handler);
             
             // Debug logging
             TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] OAuth constructor - Base URL: {_baseUrl}");
@@ -128,6 +163,34 @@ namespace TestCaseEditorApp.Services
                     "Jama Connect not configured. Set environment variables: " +
                     "JAMA_BASE_URL and either JAMA_API_TOKEN, (JAMA_CLIENT_ID + JAMA_CLIENT_SECRET), or (JAMA_USERNAME + JAMA_PASSWORD)");
             }
+        }
+
+        /// <summary>
+        /// Set the OCR service for image text extraction (optional)
+        /// </summary>
+        public void SetOCRService(IOCRService ocrService)
+        {
+            _ocrService = ocrService;
+            TestCaseEditorApp.Services.Logging.Log.Info("[JamaConnect] OCR service configured for image text extraction");
+            
+            // Test OCR availability asynchronously (fire and forget for startup performance)
+            Task.Run(async () =>
+            {
+                try
+                {
+                    var isAvailable = await ocrService.IsOCRAvailableAsync();
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] OCR engine availability: {(isAvailable ? "Available" : "Not Available")}");
+                    
+                    if (!isAvailable)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn("[JamaConnect] OCR engine not available - image text extraction will be skipped. Please ensure Tesseract OCR is installed.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to check OCR availability: {ex.Message}");
+                }
+            });
         }
 
         private HttpClient CreateHttpClient()
@@ -422,6 +485,14 @@ namespace TestCaseEditorApp.Services
         {
             try
             {
+                // Clear accumulated API responses for fresh start
+                foreach (var doc in _allApiResponses)
+                {
+                    doc?.Dispose();
+                }
+                _allApiResponses.Clear();
+                TestCaseEditorApp.Services.Logging.Log.Debug("[JamaConnect] Cleared previous API responses for fresh OCR processing");
+                
                 // Ensure we have a valid access token for OAuth
                 await EnsureAccessTokenAsync();
                 
@@ -455,10 +526,14 @@ namespace TestCaseEditorApp.Services
                     });
                     
                     // Parse JSON for rich content extraction from dynamic fields
-                    _lastApiResponseJson?.Dispose();
-                    _lastApiResponseJson = null;
                     try
                     {
+                        var jsonDoc = JsonDocument.Parse(json);
+                        _allApiResponses.Add(jsonDoc);
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Added page JSON data: {_allApiResponses.Count} total pages stored");
+                        
+                        // Also keep the last response for backward compatibility
+                        _lastApiResponseJson?.Dispose();
                         _lastApiResponseJson = JsonDocument.Parse(json);
                     }
                     catch (Exception ex)
@@ -506,6 +581,18 @@ namespace TestCaseEditorApp.Services
                                 { 
                                     PropertyNameCaseInsensitive = true 
                                 });
+                                
+                                // Parse JSON for rich content extraction from dynamic fields (pagination fix)
+                                try
+                                {
+                                    var jsonDoc = JsonDocument.Parse(nextPageJson);
+                                    _allApiResponses.Add(jsonDoc);
+                                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Added page {pageNumber} JSON data: {_allApiResponses.Count} total pages stored");
+                                }
+                                catch (Exception ex)
+                                {
+                                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Could not parse JSON for page {pageNumber}: {ex.Message}");
+                                }
                                 
                                 var pageItems = nextPageResult?.Data ?? new List<JamaItem>();
                                 allItems.AddRange(pageItems);
@@ -769,6 +856,8 @@ namespace TestCaseEditorApp.Services
         /// </summary>
         private async Task<RequirementLooseContent> ParseAllFieldsForRichContentFromJsonAsync(JsonElement itemElement, string description, int itemId)
         {
+            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images");
+            
             var looseContent = new RequirementLooseContent()
             {
                 Paragraphs = new List<string>(),
@@ -835,6 +924,15 @@ namespace TestCaseEditorApp.Services
             }
 
             TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: Found {fieldsToScan.Count} fields to scan for HTML content");
+            
+            // Log all fields being scanned for debugging
+            for (int i = 0; i < fieldsToScan.Count; i++)
+            {
+                var (fieldName, content) = fieldsToScan[i];
+                var hasHtml = content.Contains("<") && content.Contains(">");
+                var truncatedContent = content.Length > 200 ? content.Substring(0, 200) + "..." : content;
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Field {i + 1}/{fieldsToScan.Count}: '{fieldName}' - Length: {content.Length}, HasHTML: {hasHtml}, Content: {truncatedContent}");
+            }
 
             // Process each field for HTML content
             int totalTablesFound = 0;
@@ -843,6 +941,8 @@ namespace TestCaseEditorApp.Services
 
             foreach (var (fieldName, content) in fieldsToScan)
             {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Processing field '{fieldName}' - Length: {content.Length} chars");
+                
                 if (content.Contains("<") && content.Contains(">"))
                 {
                     htmlFieldsFound++;
@@ -895,17 +995,41 @@ namespace TestCaseEditorApp.Services
                             }
                         }
                     }
-                }
-                else if (!string.IsNullOrWhiteSpace(content) && fieldName != "description")
-                {
-                    // Plain text content from non-description fields - add as paragraph
-                    var normalizedContent = content.Trim();
+
+                    // Extract text from images using OCR (if OCR service is available)
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Checking OCR availability for field '{fieldName}' - OCR Service: {(_ocrService != null ? "Available" : "Not Available")}");
                     
-                    // Only skip exact duplicates to preserve original content
-                    if (!looseContent.Paragraphs.Contains(normalizedContent))
+                    if (_ocrService != null)
                     {
-                        looseContent.Paragraphs.Add(normalizedContent);
-                        totalParagraphsFound++;
+                        try
+                        {
+                            await ExtractTextFromImagesInContentAsync(content, itemId, fieldName, looseContent);
+                        }
+                        catch (Exception ex)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Item {itemId}: Failed to extract text from images in field '{fieldName}': {ex.Message}");
+                        }
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: OCR service not available, skipping image text extraction");
+                    }
+                }
+                else 
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Skipping non-HTML field '{fieldName}' - no OCR processing for non-HTML content");
+                    
+                    if (!string.IsNullOrWhiteSpace(content) && fieldName != "description")
+                    {
+                        // Plain text content from non-description fields - add as paragraph
+                        var normalizedContent = content.Trim();
+                        
+                        // Only skip exact duplicates to preserve original content
+                        if (!looseContent.Paragraphs.Contains(normalizedContent))
+                        {
+                            looseContent.Paragraphs.Add(normalizedContent);
+                            totalParagraphsFound++;
+                        }
                     }
                 }
             }
@@ -921,16 +1045,21 @@ namespace TestCaseEditorApp.Services
         /// </summary>
         private async Task<RequirementLooseContent> GetRichContentForItemAsync(int itemId, Dictionary<int, JsonElement> jsonLookup, string description)
         {
+            // Add enhanced diagnostics for OCR troubleshooting
+            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: GetRichContentForItemAsync called - jsonLookup.Count={jsonLookup.Count}");
+            
             // Try to use JSON data for better field access
             if (jsonLookup.TryGetValue(itemId, out JsonElement jsonElement))
             {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled");
                 return await ParseAllFieldsForRichContentFromJsonAsync(jsonElement, description, itemId);
             }
             else
             {
                 // Fallback to basic content parsing from description only
                 // IMPORTANT: Only extract TABLES from description - paragraphs would duplicate the Description property
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Using fallback description parsing (JSON data not available for enhanced field access)");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: ⚠️ Using BASIC fallback parsing (JSON data not available) - OCR processing DISABLED");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: Available JSON IDs: [{string.Join(", ", jsonLookup.Keys.Take(10))}]{(jsonLookup.Count > 10 ? "..." : "")}");
                 var looseContent = ParseHtmlContent(description, itemId);
                 // Clear paragraphs since description content is already in the Description property
                 looseContent.Paragraphs.Clear();
@@ -1511,30 +1640,36 @@ namespace TestCaseEditorApp.Services
             
             TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Converting {jamaItems.Count} Jama items to requirements");
             
-            // Create a lookup for JSON elements by item ID for rich content parsing
+            // Create a lookup for JSON elements by item ID for rich content parsing FROM ALL PAGES
             Dictionary<int, JsonElement> jsonItemLookup = new Dictionary<int, JsonElement>();
-            if (_lastApiResponseJson != null)
+            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Building JSON lookup from {_allApiResponses.Count} API response pages");
+            
+            foreach (var apiResponseJson in _allApiResponses)
             {
                 try
                 {
-                    if (_lastApiResponseJson.RootElement.TryGetProperty("data", out JsonElement dataElement) && dataElement.ValueKind == JsonValueKind.Array)
+                    if (apiResponseJson.RootElement.TryGetProperty("data", out JsonElement dataElement) && dataElement.ValueKind == JsonValueKind.Array)
                     {
+                        int pageItems = 0;
                         foreach (var jsonItem in dataElement.EnumerateArray())
                         {
                             if (jsonItem.TryGetProperty("id", out JsonElement idElement) && idElement.ValueKind == JsonValueKind.Number)
                             {
                                 var id = idElement.GetInt32();
                                 jsonItemLookup[id] = jsonItem;
+                                pageItems++;
                             }
                         }
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Added {pageItems} items to JSON lookup from one API page");
                     }
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Created JSON lookup for rich content extraction: {jsonItemLookup.Count} items");
                 }
                 catch (Exception ex)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to create JSON lookup: {ex.Message}");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to process one API response page for JSON lookup: {ex.Message}");
                 }
             }
+            
+            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] ✅ JSON lookup created with {jsonItemLookup.Count} items from ALL pages - OCR processing now available for all requirements");
             
             foreach (var item in jamaItems)
             {
@@ -2200,9 +2335,746 @@ namespace TestCaseEditorApp.Services
             return urls;
         }
 
+        /// <summary>
+        /// Extract text from images found in HTML content using OCR
+        /// </summary>
+        private async Task ExtractTextFromImagesInContentAsync(string htmlContent, int itemId, string fieldName, RequirementLooseContent looseContent)
+        {
+            if (_ocrService == null || string.IsNullOrWhiteSpace(htmlContent))
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Skipping OCR - OCR Service: {(_ocrService != null ? "Available" : "Null")}, Content Length: {htmlContent?.Length ?? 0}");
+                return;
+            }
+
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Scanning field '{fieldName}' for images to OCR");
+
+                // Parse HTML to find images
+                var doc = new HtmlDocument();
+                doc.LoadHtml(htmlContent);
+                
+                var imgNodes = doc.DocumentNode.SelectNodes("//img[@src]");
+                if (imgNodes == null || !imgNodes.Any())
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: No images found in field '{fieldName}' HTML content");
+                    
+                    // Log the HTML content for debugging (truncated)
+                    var truncatedHtml = htmlContent.Length > 500 ? htmlContent.Substring(0, 500) + "..." : htmlContent;
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: HTML content for '{fieldName}' - {truncatedHtml}");
+                    
+                    return;
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: Found {imgNodes.Count} images in field '{fieldName}' for OCR processing");
+
+                foreach (var imgNode in imgNodes)
+                {
+                    var src = imgNode.GetAttributeValue("src", "");
+                    if (string.IsNullOrEmpty(src))
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        // Download and process the image
+                        var ocrResult = await ProcessImageForOCRAsync(src, itemId);
+                        if (ocrResult != null && ocrResult.Success && !string.IsNullOrWhiteSpace(ocrResult.ExtractedText))
+                        {
+                            var extractedImageText = new ExtractedImageText
+                            {
+                                ImageSource = src,
+                                ExtractedText = $"⚠️ OCR-extracted text (please verify accuracy): {ocrResult.ExtractedText}",
+                                Confidence = ocrResult.Confidence
+                            };
+
+                            // Convert OCR table data to LooseTable format
+                            if (ocrResult.TableData.Any())
+                            {
+                                var ocrTable = new LooseTable
+                                {
+                                    EditableTitle = "⚠️ OCR was used to capture data - please verify accuracy"
+                                };
+
+                                // Use first row as headers if it looks like headers
+                                if (ocrResult.TableData.Count > 1)
+                                {
+                                    ocrTable.ColumnHeaders = ocrResult.TableData[0];
+                                    ocrTable.Rows = ocrResult.TableData.Skip(1).ToList();
+                                }
+                                else if (ocrResult.TableData.Count == 1)
+                                {
+                                    // Single row - treat as data without headers
+                                    ocrTable.ColumnHeaders = ocrResult.TableData[0].Select((_, index) => $"Column {index + 1}").ToList();
+                                    ocrTable.Rows = new List<List<string>> { ocrResult.TableData[0] };
+                                }
+
+                                extractedImageText.DetectedTables.Add(ocrTable);
+                                
+                                // Also add to main tables collection
+                                looseContent.Tables.Add(ocrTable);
+                                
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: OCR extracted table with {ocrTable.Rows.Count} rows from image in '{fieldName}'");
+                            }
+
+                            looseContent.ExtractedImageTexts.Add(extractedImageText);
+                            
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: OCR extracted {ocrResult.ExtractedText.Length} characters from image in '{fieldName}' (confidence: {ocrResult.Confidence:P1})");
+                        }
+                    }
+                    catch (Exception imgEx)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Item {itemId}: Failed to process image '{src}' in field '{fieldName}': {imgEx.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[JamaConnect] Item {itemId}: Error during OCR processing for field '{fieldName}'");
+            }
+        }
+
+        /// <summary>
+        /// Download and process a single image for OCR text extraction
+        /// </summary>
+        private async Task<OCRResult?> ProcessImageForOCRAsync(string imageUrl, int itemId)
+        {
+            if (_ocrService == null || string.IsNullOrEmpty(imageUrl))
+            {
+                return null;
+            }
+
+            try
+            {
+                // Handle different image URL formats and authentication
+                string downloadUrl = await PrepareImageDownloadUrlAsync(imageUrl, itemId);
+                if (string.IsNullOrEmpty(downloadUrl))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Item {itemId}: Could not prepare download URL for: {imageUrl}");
+                    return null;
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Downloading image from: {downloadUrl}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Original image URL: {imageUrl}");
+
+                // Create a new request with proper authentication headers
+                using var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+                
+                // Try multiple authentication strategies for image download
+                var downloadResult = await DownloadImageWithRetryAsync(downloadUrl, itemId);
+                if (downloadResult == null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Item {itemId}: Failed to download image after all retry attempts: {downloadUrl}");
+                    return null;
+                }
+
+                var (imageData, contentType) = downloadResult.Value;
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: Downloaded image - Size: {imageData.Length} bytes, Content-Type: {contentType}");
+                
+                // Check if we got HTML instead of image data (authentication failure)
+                if (contentType.Contains("text/html") || 
+                    (imageData.Length > 10 && Encoding.UTF8.GetString(imageData.Take(100).ToArray()).Contains("<html")))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Item {itemId}: Received HTML content instead of image - likely authentication issue");
+                    var htmlPreview = Encoding.UTF8.GetString(imageData.Take(200).ToArray());
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: HTML preview: {htmlPreview}");
+                    return null;
+                }
+                
+                // Validate image format by checking magic bytes
+                string formatDetected = DetectImageFormat(imageData);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: Detected image format: {formatDetected} (starts with: {string.Join(" ", imageData.Take(8).Select(b => b.ToString("X2")))})");
+                
+                // Verify it's actually an image format we can process
+                if (formatDetected.Contains("Unknown"))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Item {itemId}: Downloaded content does not appear to be a valid image format");
+                    return null;
+                }
+
+                // Extract text using OCR
+                var fileName = Path.GetFileName(imageUrl) ?? "image.png";
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: About to call OCR with {imageData.Length} bytes for file: {fileName}");
+                var ocrResult = await _ocrService.ExtractTextFromImageAsync(imageData, fileName);
+                
+                return ocrResult;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[JamaConnect] Item {itemId}: Failed to download/process image: {imageUrl}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Download image data with retry strategies for different authentication approaches
+        /// </summary>
+        private async Task<(byte[] data, string contentType)?> DownloadImageWithRetryAsync(string downloadUrl, int itemId)
+        {
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Starting download retry sequence for: {downloadUrl}");
+            
+            // Strategy 1: Try session-based authentication (best for attachments)
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Attempting session-based authentication...");
+            var result = await TryDownloadImageWithSessionAsync(downloadUrl, itemId);
+            if (result != null) 
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: ✅ Session-based download succeeded");
+                return result;
+            }
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Session-based authentication failed, trying OAuth/API Token...");
+            
+            // Strategy 2: Standard OAuth/API token authentication
+            result = await TryDownloadImageAsync(downloadUrl, itemId, "OAuth/API Token");
+            if (result != null) return result;
+            
+            // Strategy 3: Try without authentication (public endpoints)
+            result = await TryDownloadImageAsync(downloadUrl, itemId, "No Auth", useAuth: false);
+            if (result != null) return result;
+            
+            // Strategy 4: Try with basic authentication if we have username/password
+            if (!string.IsNullOrEmpty(_username) && !string.IsNullOrEmpty(_password))
+            {
+                result = await TryDownloadImageAsync(downloadUrl, itemId, "Basic Auth", useBasicAuth: true);
+                if (result != null) return result;
+            }
+            
+            TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Item {itemId}: All download strategies failed");
+            return null;
+        }
+
+        /// <summary>
+        /// Try downloading an image with specific authentication strategy
+        /// </summary>
+        private async Task<(byte[] data, string contentType)?> TryDownloadImageAsync(string downloadUrl, int itemId, string strategy, bool useAuth = true, bool useBasicAuth = false)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Trying download strategy '{strategy}' for: {downloadUrl}");
+                
+                using var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+                
+                if (useAuth)
+                {
+                    if (useBasicAuth && !string.IsNullOrEmpty(_username) && !string.IsNullOrEmpty(_password))
+                    {
+                        // Use basic authentication
+                        var authBytes = Encoding.UTF8.GetBytes($"{_username}:{_password}");
+                        var authHeader = Convert.ToBase64String(authBytes);
+                        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authHeader);
+                    }
+                    else
+                    {
+                        // Ensure OAuth/API token authentication
+                        if (!await EnsureAuthenticationAsync())
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Authentication failed for strategy '{strategy}'");
+                            return null;
+                        }
+                        
+                        // Copy authentication headers from the main HttpClient
+                        if (_httpClient.DefaultRequestHeaders.Authorization != null)
+                        {
+                            request.Headers.Authorization = _httpClient.DefaultRequestHeaders.Authorization;
+                        }
+                    }
+                }
+                
+                // Add Accept headers for images
+                request.Headers.Accept.Clear();
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("image/*"));
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
+
+                // Download the image
+                var response = await _httpClient.SendAsync(request);
+                
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Strategy '{strategy}' response: {response.StatusCode}");
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Strategy '{strategy}' got NotFound (404) - trying next strategy");
+                    }
+                    else
+                    {
+                        var responseContent = await response.Content.ReadAsStringAsync();
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Strategy '{strategy}' failed: {response.StatusCode} - {responseContent.Substring(0, Math.Min(200, responseContent.Length))}");
+                    }
+                    return null;
+                }
+
+                var imageData = await response.Content.ReadAsByteArrayAsync();
+                if (imageData.Length == 0)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Strategy '{strategy}' returned empty data");
+                    return null;
+                }
+
+                var contentType = response.Content.Headers.ContentType?.MediaType ?? "unknown";
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: ✅ Strategy '{strategy}' succeeded - Size: {imageData.Length} bytes, Content-Type: {contentType}");
+                
+                return (imageData, contentType);
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Strategy '{strategy}' exception: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Prepare the correct download URL for Jama attachments
+        /// </summary>
+        private async Task<string> PrepareImageDownloadUrlAsync(string imageUrl, int itemId)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Preparing download URL for: {imageUrl}");
+                
+                // Handle different image URL formats
+                string downloadUrl = imageUrl;
+                
+                // If it's a relative URL, make it absolute
+                if (imageUrl.StartsWith("/") || imageUrl.StartsWith("./"))
+                {
+                    downloadUrl = $"{_baseUrl.TrimEnd('/')}{imageUrl}";
+                }
+                
+                // Handle Jama-specific attachment URLs with multiple format attempts
+                var attachmentMatch = System.Text.RegularExpressions.Regex.Match(downloadUrl, @"attachment/(\d+)");
+                if (attachmentMatch.Success)
+                {
+                    var attachmentId = attachmentMatch.Groups[1].Value;
+                    
+                    // Try multiple URL formats for Jama attachments
+                    var urlCandidates = new List<string>
+                    {
+                        // Original attachment URL (sometimes works with authentication)
+                        downloadUrl,
+                        
+                        // REST API attachment endpoint v1
+                        $"{_baseUrl.TrimEnd('/')}/rest/v1/attachments/{attachmentId}/file",
+                        
+                        // REST API attachment endpoint latest
+                        $"{_baseUrl.TrimEnd('/')}/rest/latest/attachments/{attachmentId}/file",
+                        
+                        // Direct attachment download without API prefix  
+                        $"{_baseUrl.TrimEnd('/')}/attachments/{attachmentId}/file",
+                        
+                        // Alternative attachment download endpoint
+                        $"{_baseUrl.TrimEnd('/')}/files/attachment/{attachmentId}",
+                    };
+                    
+                    // Test each URL format to find working one
+                    foreach (var candidateUrl in urlCandidates)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: Testing attachment URL: {candidateUrl}");
+                        
+                        if (await TestAttachmentUrlAsync(candidateUrl, itemId))
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: ✅ Working attachment URL found: {candidateUrl}");
+                            return candidateUrl;
+                        }
+                    }
+                    
+                    // All URL formats failed, log for debugging and return first REST API format
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Item {itemId}: ⚠️ All attachment URL formats failed for attachment ID: {attachmentId}");
+                    return urlCandidates[1]; // Return REST API v1 format as fallback
+                }
+                
+                return downloadUrl;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[JamaConnect] Item {itemId}: Error preparing download URL for: {imageUrl}");
+                return imageUrl; // Fallback to original URL
+            }
+        }
+
+        /// <summary>
+        /// Test if an attachment URL is accessible with current authentication
+        /// </summary>
+        private async Task<bool> TestAttachmentUrlAsync(string url, int itemId)
+        {
+            try
+            {
+                // Create a HEAD request to test URL availability without downloading content
+                using var request = new HttpRequestMessage(HttpMethod.Head, url);
+                
+                // Ensure authentication
+                if (!await EnsureAuthenticationAsync())
+                {
+                    return false;
+                }
+                
+                // Copy authentication headers from the main HttpClient
+                if (_httpClient.DefaultRequestHeaders.Authorization != null)
+                {
+                    request.Headers.Authorization = _httpClient.DefaultRequestHeaders.Authorization;
+                }
+                
+                // Add Accept headers for images
+                request.Headers.Accept.Clear();
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("image/*"));
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
+                
+                using var response = await _httpClient.SendAsync(request);
+                
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: URL test result for {url}: {response.StatusCode}");
+                
+                // Consider successful if we get OK or any 2xx response
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: URL test failed for {url}: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Ensure authentication is valid for the current request
+        /// </summary>
+        private async Task<bool> EnsureAuthenticationAsync()
+        {
+            try
+            {
+                // For OAuth, ensure we have a valid access token
+                if (_isOAuth)
+                {
+                    return await EnsureAccessTokenAsync();
+                }
+                
+                // For basic auth and API token, authentication is in headers already
+                return true;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[JamaConnect] Authentication check failed");
+                return false;
+            }
+        }
+
+        private string DetectImageFormat(byte[] imageData)
+        {
+            if (imageData?.Length < 4) return "Unknown (too small)";
+
+            // Check PNG signature (89 50 4E 47 0D 0A 1A 0A)
+            if (imageData.Length >= 8 && 
+                imageData[0] == 0x89 && imageData[1] == 0x50 && imageData[2] == 0x4E && imageData[3] == 0x47 &&
+                imageData[4] == 0x0D && imageData[5] == 0x0A && imageData[6] == 0x1A && imageData[7] == 0x0A)
+                return "PNG";
+
+            // Check JPEG signature (FF D8 FF)
+            if (imageData.Length >= 3 && imageData[0] == 0xFF && imageData[1] == 0xD8 && imageData[2] == 0xFF)
+                return "JPEG";
+
+            // Check GIF signature (GIF87a or GIF89a)
+            if (imageData.Length >= 6)
+            {
+                var gifHeader = Encoding.ASCII.GetString(imageData.Take(6).ToArray());
+                if (gifHeader == "GIF87a" || gifHeader == "GIF89a")
+                    return "GIF";
+            }
+
+            // Check BMP signature (BM)
+            if (imageData.Length >= 2 && imageData[0] == 0x42 && imageData[1] == 0x4D)
+                return "BMP";
+
+            // Check TIFF signatures (II*\0 or MM\0*)
+            if (imageData.Length >= 4)
+            {
+                if ((imageData[0] == 0x49 && imageData[1] == 0x49 && imageData[2] == 0x2A && imageData[3] == 0x00) ||
+                    (imageData[0] == 0x4D && imageData[1] == 0x4D && imageData[2] == 0x00 && imageData[3] == 0x2A))
+                    return "TIFF";
+            }
+
+            // Check WebP signature (RIFF....WEBP)
+            if (imageData.Length >= 12)
+            {
+                var riffHeader = Encoding.ASCII.GetString(imageData.Take(4).ToArray());
+                var webpHeader = Encoding.ASCII.GetString(imageData.Skip(8).Take(4).ToArray());
+                if (riffHeader == "RIFF" && webpHeader == "WEBP")
+                    return "WebP";
+            }
+
+            // Check for HTML content (authentication errors)
+            if (imageData.Length >= 10)
+            {
+                var textStart = Encoding.UTF8.GetString(imageData.Take(20).ToArray()).ToLower();
+                if (textStart.Contains("<html") || textStart.Contains("<!doc"))
+                    return "HTML (not an image)";
+            }
+
+            // Check for text content (all printable ASCII or newlines)
+            if (imageData.Length >= 20)
+            {
+                bool allTextLike = imageData.Take(20).All(b => (b >= 32 && b <= 126) || b == 0x0A || b == 0x0D || b == 0x09);
+                if (allTextLike)
+                    return "Text (not an image)";
+            }
+
+            return $"Unknown (starts with: {string.Join(" ", imageData.Take(8).Select(b => b.ToString("X2")))})";
+        }
+
+        /// <summary>
+        /// Try downloading image using session-based authentication (cookies)
+        /// </summary>
+        private async Task<(byte[] data, string contentType)?> TryDownloadImageWithSessionAsync(string downloadUrl, int itemId)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Trying session-based authentication for: {downloadUrl}");
+
+                // First try the cookbook-compliant Files endpoint approach
+                var filesEndpointResult = await TryDownloadImageViaFilesEndpointAsync(downloadUrl, itemId);
+                if (filesEndpointResult != null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: ✅ Files endpoint succeeded - Size: {filesEndpointResult.Value.data.Length} bytes, Content-Type: {filesEndpointResult.Value.contentType}");
+                    return filesEndpointResult;
+                }
+
+                // Fallback to direct session authentication if Files endpoint fails
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Files endpoint failed, trying direct session authentication");
+
+                // Ensure we have an authenticated session
+                if (!await EnsureSessionAuthenticationAsync())
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Session authentication failed");
+                    return null;
+                }
+
+                // Make request with session cookies
+                using var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+                
+                // Add Accept headers for images
+                request.Headers.Accept.Clear();
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("image/*"));
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
+                
+                var response = await _sessionClient.SendAsync(request);
+                
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Session authentication response: {response.StatusCode}");
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Session auth got NotFound (404)");
+                    }
+                    else
+                    {
+                        var responseContent = await response.Content.ReadAsStringAsync();
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Session auth failed: {response.StatusCode} - {responseContent.Substring(0, Math.Min(200, responseContent.Length))}");
+                    }
+                    return null;
+                }
+
+                var imageData = await response.Content.ReadAsByteArrayAsync();
+                if (imageData.Length == 0)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Session auth returned empty data");
+                    return null;
+                }
+
+                var contentType = response.Content.Headers.ContentType?.MediaType ?? "unknown";
+                
+                // Check if we got HTML instead of image data (authentication still failed)
+                if (contentType.Contains("text/html") || 
+                    (imageData.Length > 10 && Encoding.UTF8.GetString(imageData.Take(100).ToArray()).ToLower().Contains("<html")))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Session auth still returning HTML - clearing session and will retry");
+                    _sessionAuthenticated = false;
+                    return null;
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: ✅ Session authentication succeeded - Size: {imageData.Length} bytes, Content-Type: {contentType}");
+                
+                return (imageData, contentType);
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Session authentication exception: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Try downloading image using the cookbook-compliant Files endpoint
+        /// Based on: GET /rest/v1/files?url=<file-url>
+        /// </summary>
+        private async Task<(byte[] data, string contentType)?> TryDownloadImageViaFilesEndpointAsync(string imageUrl, int itemId)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Trying Files endpoint for: {imageUrl}");
+
+                // Ensure we have authentication
+                if (!await EnsureAuthenticationAsync())
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Files endpoint authentication failed");
+                    return null;
+                }
+
+                // Use the cookbook-compliant Files endpoint
+                var filesEndpoint = $"{_baseUrl}/rest/v1/files?url={Uri.EscapeDataString(imageUrl)}";
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Using Files endpoint: {filesEndpoint}");
+
+                using var request = new HttpRequestMessage(HttpMethod.Get, filesEndpoint);
+                
+                // Add Accept headers for images
+                request.Headers.Accept.Clear();
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("image/*"));
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
+
+                var response = await _httpClient.SendAsync(request);
+                
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Files endpoint response: {response.StatusCode}");
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Files endpoint got NotFound (404)");
+                    }
+                    else
+                    {
+                        var responseContent = await response.Content.ReadAsStringAsync();
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Files endpoint failed: {response.StatusCode} - {responseContent.Substring(0, Math.Min(200, responseContent.Length))}");
+                    }
+                    return null;
+                }
+
+                var imageData = await response.Content.ReadAsByteArrayAsync();
+                if (imageData.Length == 0)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Files endpoint returned empty data");
+                    return null;
+                }
+
+                var contentType = response.Content.Headers.ContentType?.MediaType ?? "unknown";
+                
+                // Check if we got HTML instead of image data
+                if (contentType.Contains("text/html") || 
+                    (imageData.Length > 10 && Encoding.UTF8.GetString(imageData.Take(100).ToArray()).ToLower().Contains("<html")))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Files endpoint returning HTML instead of image data");
+                    return null;
+                }
+                
+                return (imageData, contentType);
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Files endpoint exception: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Ensure we have an authenticated session with Jama using web-based login
+        /// </summary>
+        private async Task<bool> EnsureSessionAuthenticationAsync()
+        {
+            if (_sessionAuthenticated)
+            {
+                return true; // Already authenticated
+            }
+
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info("[JamaConnect] Establishing session-based authentication for image downloads");
+
+                // For username/password authentication, login through web interface
+                if (!string.IsNullOrEmpty(_username) && !string.IsNullOrEmpty(_password))
+                {
+                    var loginUrl = $"{_baseUrl}/perspective.req";
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Attempting web login at: {loginUrl}");
+
+                    // First, get the login page to establish session and get any CSRF tokens
+                    var loginPageResponse = await _sessionClient.GetAsync(loginUrl);
+                    if (!loginPageResponse.IsSuccessStatusCode)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to access login page: {loginPageResponse.StatusCode}");
+                        return false;
+                    }
+
+                    var loginPageContent = await loginPageResponse.Content.ReadAsStringAsync();
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Got login page, length: {loginPageContent.Length}");
+
+                    // Extract any CSRF tokens or other required form data
+                    var loginFormUrl = $"{_baseUrl}/perspective.req#/login";
+                    
+                    // Try direct API authentication first (often works better than form submission)
+                    _sessionClient.DefaultRequestHeaders.Clear();
+                    var authBytes = Encoding.UTF8.GetBytes($"{_username}:{_password}");
+                    var authHeader = Convert.ToBase64String(authBytes);
+                    _sessionClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authHeader);
+
+                    // Test authentication by accessing a protected resource
+                    var testUrl = $"{_baseUrl}/rest/latest/projects";
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Testing session authentication with: {testUrl}");
+                    
+                    var testResponse = await _sessionClient.GetAsync(testUrl);
+                    if (testResponse.IsSuccessStatusCode)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info("[JamaConnect] ✅ Session authentication established successfully");
+                        _sessionAuthenticated = true;
+                        return true;
+                    }
+
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Session auth test failed: {testResponse.StatusCode}");
+                }
+
+                // For OAuth or API token, copy authentication to session client
+                else if (!string.IsNullOrEmpty(_apiToken))
+                {
+                    _sessionClient.DefaultRequestHeaders.Clear();
+                    _sessionClient.DefaultRequestHeaders.Add("Authorization", $"Basic {Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_apiToken}:"))}");
+                    
+                    // Test the authentication
+                    var testUrl = $"{_baseUrl}/rest/latest/projects";
+                    var testResponse = await _sessionClient.GetAsync(testUrl);
+                    if (testResponse.IsSuccessStatusCode)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info("[JamaConnect] ✅ Session authentication established with API token");
+                        _sessionAuthenticated = true;
+                        return true;
+                    }
+                }
+
+                // For OAuth, ensure we have access token and copy to session client
+                else if (_isOAuth && await EnsureAccessTokenAsync())
+                {
+                    _sessionClient.DefaultRequestHeaders.Clear();
+                    _sessionClient.DefaultRequestHeaders.Authorization = _httpClient.DefaultRequestHeaders.Authorization;
+                    
+                    // Test the authentication
+                    var testUrl = $"{_baseUrl}/rest/latest/projects";
+                    var testResponse = await _sessionClient.GetAsync(testUrl);
+                    if (testResponse.IsSuccessStatusCode)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info("[JamaConnect] ✅ Session authentication established with OAuth");
+                        _sessionAuthenticated = true;
+                        return true;
+                    }
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Warn("[JamaConnect] Failed to establish session authentication");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[JamaConnect] Error during session authentication");
+                return false;
+            }
+        }
+
         public void Dispose()
         {
             _httpClient?.Dispose();
+            _sessionClient?.Dispose();
         }
     }
 

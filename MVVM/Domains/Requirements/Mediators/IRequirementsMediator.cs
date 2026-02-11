@@ -242,6 +242,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// Import extracted requirements into the current project
         /// </summary>
         Task ImportRequirementsAsync(List<Requirement> requirements);
+
+        /// <summary>
+        /// Load available Jama projects for selection
+        /// Proper mediator method following architectural patterns (no service locator anti-pattern)
+        /// </summary>
+        Task<List<JamaProject>> GetProjectsAsync();
     }
 
     /// <summary>
