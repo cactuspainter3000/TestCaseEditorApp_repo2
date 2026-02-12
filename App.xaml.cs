@@ -54,17 +54,37 @@ namespace TestCaseEditorApp
             _host = Host.CreateDefaultBuilder()
                 .ConfigureLogging(logging =>
                 {
-                    // Configure default console and debug logging plus a simple file sink
+                    // Clear default providers that might cause permission issues
+                    logging.ClearProviders();
+                    
+                    // Add only basic providers that don't require special permissions
                     logging.AddDebug();
                     logging.AddConsole();
+                    
+                    // Add file logging with robust error handling
                     try
                     {
-                        var logs = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TestCaseEditorApp", "logs");
+                        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                        var logs = System.IO.Path.Combine(userProfile, "TestCaseEditorApp", "logs");
+                        
+                        // Ensure directory exists and is writable
+                        if (!System.IO.Directory.Exists(logs))
+                        {
+                            System.IO.Directory.CreateDirectory(logs);
+                        }
+                        
+                        // Test write permissions
+                        var testFile = System.IO.Path.Combine(logs, "test.tmp");
+                        System.IO.File.WriteAllText(testFile, "test");
+                        System.IO.File.Delete(testFile);
+                        
+                        // If we get here, directory is writable
                         logging.AddProvider(new TestCaseEditorApp.Services.Logging.FileLoggerProvider(logs));
                     }
                     catch
                     {
-                        // best-effort - do not fail startup for logging provider issues
+                        // Silently skip file logging if there are permission issues
+                        // App will still work with console/debug logging
                     }
                 })
                 .ConfigureServices((ctx, services) =>
