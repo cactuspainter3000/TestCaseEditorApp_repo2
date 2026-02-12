@@ -470,6 +470,138 @@
                 </ScrollViewer>
             </TabItem>
 
+            <!-- Saved Test Cases Tab -->
+            <TabItem Header="Saved Test Cases">
+                <TabItem.HeaderTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Saved Test Cases" 
+                                       Margin="0,0,8,0"
+                                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}"/>
+                            <Border Background="{StaticResource Brush.Accent.Primary}" 
+                                    CornerRadius="10" 
+                                    Padding="6,2"
+                                    Visibility="{Binding DataContext.SavedTestCasesCount, 
+                                                        RelativeSource={RelativeSource AncestorType=TabControl}, 
+                                                        Converter={StaticResource BoolToVisibilityConverter}}">
+                                <TextBlock Text="{Binding DataContext.SavedTestCasesCount, 
+                                                         RelativeSource={RelativeSource AncestorType=TabControl}}" 
+                                           Foreground="{StaticResource Brush.Text.OnAccent}" 
+                                           FontSize="11"/>
+                            </Border>
+                        </StackPanel>
+                    </DataTemplate>
+                </TabItem.HeaderTemplate>
+
+                <Grid Margin="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Header and Controls -->
+                    <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                        <TextBlock Text="Previously Saved Test Cases" 
+                                   FontSize="{StaticResource FontSize.H1}" 
+                                   FontWeight="{StaticResource FontWeight.SemiBold}"
+                                   Foreground="{StaticResource Brush.Text.Primary}"
+                                   Margin="0,0,0,8"/>
+                        
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0"
+                                       Foreground="{StaticResource Brush.Text.Secondary}"
+                                       FontSize="{StaticResource FontSize.Body.Small}"
+                                       VerticalAlignment="Center">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0} test cases from {1} requirements">
+                                        <Binding Path="SavedTestCasesCount"/>
+                                        <Binding Path="SavedRequirementsCount"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                            
+                            <Button Grid.Column="1"
+                                    Command="{Binding RefreshSavedTestCasesCommand}"
+                                    Content="Refresh"
+                                    Style="{StaticResource ActionButton}"
+                                    Padding="8,4"
+                                    FontSize="{StaticResource FontSize.Caption.Small}"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Hierarchical Test Cases Display -->
+                    <ScrollViewer Grid.Row="1" 
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <TreeView ItemsSource="{Binding SavedTestCases}"
+                                  Background="Transparent"
+                                  BorderThickness="0">
+                            <TreeView.ItemContainerStyle>
+                                <Style TargetType="TreeViewItem">
+                                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                                    <Setter Property="Padding" Value="2"/>
+                                    <Setter Property="Margin" Value="0,1"/>
+                                </Style>
+                            </TreeView.ItemContainerStyle>
+                            
+                            <!-- Test Case Groups Template -->
+                            <TreeView.ItemTemplate>
+                                <HierarchicalDataTemplate ItemsSource="{Binding AssociatedRequirements}">
+                                    <Border Background="{StaticResource Brush.Background.Card}"
+                                            BorderBrush="{StaticResource Brush.Border.Default}"
+                                            BorderThickness="1"
+                                            CornerRadius="{StaticResource Radius.MD}"
+                                            Padding="8"
+                                            Margin="2">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding GroupHeader}" 
+                                                       FontWeight="{StaticResource FontWeight.SemiBold}"
+                                                       FontSize="{StaticResource FontSize.H3}"
+                                                       Foreground="{StaticResource Brush.Text.OnLight}"/>
+                                            <TextBlock Text="{Binding TestCaseTitle}" 
+                                                       FontSize="{StaticResource FontSize.Caption.Small}"
+                                                       Foreground="{StaticResource Brush.Text.OnLight}"
+                                                       Opacity="0.7"
+                                                       Margin="0,2,0,0"
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </Border>
+                                    
+                                    <!-- Requirements Template -->
+                                    <HierarchicalDataTemplate.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{StaticResource Brush.Background.Menu}"
+                                                    BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="{StaticResource Radius.SM}"
+                                                    Padding="8"
+                                                    Margin="16,2,2,2">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding DisplayText}" 
+                                                               FontWeight="{StaticResource FontWeight.SemiBold}"
+                                                               FontSize="{StaticResource FontSize.Body.Small}"
+                                                               Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                                    <TextBlock Text="{Binding RequirementTitle}" 
+                                                               FontSize="{StaticResource FontSize.Caption.Small}"
+                                                               Foreground="{StaticResource Brush.Text.Secondary}"
+                                                               Margin="0,1,0,0"
+                                                               TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </HierarchicalDataTemplate.ItemTemplate>
+                                </HierarchicalDataTemplate>
+                            </TreeView.ItemTemplate>
+                        </TreeView>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+
             <!-- Similar Groups Tab -->
             <TabItem Header="Similar Requirement Groups">
                 <TabItem.HeaderTemplate>

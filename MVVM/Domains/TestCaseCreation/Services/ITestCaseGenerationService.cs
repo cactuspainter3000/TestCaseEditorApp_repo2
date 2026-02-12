@@ -86,5 +86,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
         /// </summary>
         /// <param name="workspaceName">Name of the project workspace to use</param>
         void SetWorkspaceContext(string? workspaceName);
+        
+        /// <summary>
+        /// Gets whether the service has a valid workspace context configured
+        /// </summary>
+        bool HasWorkspaceContext { get; }
     }
 }

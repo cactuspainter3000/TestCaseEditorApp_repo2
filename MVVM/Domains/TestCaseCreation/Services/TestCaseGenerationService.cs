@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Models;
 using TestCaseEditorApp.MVVM.Models;
@@ -24,6 +25,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
         private readonly RAGContextService _ragContextService;
         private readonly RAGFeedbackIntegrationService _ragFeedbackService;
         private string? _projectWorkspaceName;
+        
+        /// <summary>
+        /// Gets whether the service has a valid workspace context configured
+        /// </summary>
+        public bool HasWorkspaceContext => !string.IsNullOrEmpty(_projectWorkspaceName);
 
         public TestCaseGenerationService(
             ILogger<TestCaseGenerationService> logger,
@@ -44,7 +50,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
         public void SetWorkspaceContext(string? workspaceName)
         {
             _projectWorkspaceName = workspaceName;
-            _logger.LogInformation("[TestCaseGeneration] Workspace context set to: {WorkspaceName}", workspaceName ?? "<none>");
+            _logger.LogInformation("[TestCaseGeneration] Workspace context set to: {WorkspaceName}, HasWorkspaceContext now: {HasContext}", 
+                workspaceName ?? "<none>", HasWorkspaceContext);
         }
 
         public async Task<List<LLMTestCase>> GenerateTestCasesAsync(
@@ -65,22 +72,32 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
             if (!requirementList.Any())
                 return new TestCaseGenerationResult(new List<LLMTestCase>(), string.Empty, string.Empty);
 
-            // Get workspace slug from project context
-            var workspaceSlug = await GetWorkspaceSlugAsync();
-            if (string.IsNullOrEmpty(workspaceSlug))
-            {
-                throw new InvalidOperationException("No workspace context set. Please open or create a project first.");
-            }
-
-            _logger.LogInformation("Generating test cases for {Count} requirements using workspace '{Workspace}'", 
-                requirementList.Count, workspaceSlug);
-
             var stopwatch = Stopwatch.StartNew();
             string generatedPrompt = string.Empty;
             string llmResponse = string.Empty;
+            string? workspaceSlug = null;
             
             try
             {
+                // Get workspace slug from project context
+                workspaceSlug = await GetWorkspaceSlugAsync();
+                if (string.IsNullOrEmpty(workspaceSlug))
+                {
+                    // Generate prompt anyway for potential external LLM use
+                    progressCallback?.Invoke("Preparing test case generation prompt...", 0, requirementList.Count);
+                    generatedPrompt = CreateBatchGenerationPrompt(requirementList);
+                    
+                    // Offer to export prompt for external LLM since workspace context is missing
+                    await OfferWorkspaceContextHelpAsync(generatedPrompt);
+                    
+                    var errorMsg = "No workspace context set. The generation prompt has been offered for external LLM use. Please open or create a project first to use internal LLM generation.";
+                    _logger.LogWarning("[TestCaseGeneration] {ErrorMsg}", errorMsg);
+                    progressCallback?.Invoke(errorMsg, requirementList.Count, requirementList.Count);
+                    return new TestCaseGenerationResult(new List<LLMTestCase>(), generatedPrompt, string.Empty);
+                }
+
+                _logger.LogInformation("Generating test cases for {Count} requirements using workspace '{Workspace}'", 
+                    requirementList.Count, workspaceSlug);
                 // Ensure RAG is configured before generation
                 if (_ragContextService != null)
                 {
@@ -99,11 +116,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
                 
                 progressCallback?.Invoke($"Sending to LLM workspace '{workspaceSlug}' (this may take 1-2 minutes)...", 0, requirementList.Count);
                 
-                // Send to LLM with RAG context
-                llmResponse = await _anythingLLMService.SendChatMessageAsync(
-                    workspaceSlug,
-                    generatedPrompt,
-                    cancellationToken);
+                // Send to LLM with interactive timeout handling
+                llmResponse = await SendWithInteractiveTimeoutAsync(
+                    workspaceSlug, 
+                    generatedPrompt, 
+                    cancellationToken, 
+                    progressCallback, 
+                    requirementList.Count);
 
                 stopwatch.Stop();
 
@@ -112,12 +131,17 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
 
                 if (string.IsNullOrEmpty(llmResponse))
                 {
+                    _logger.LogError("[TestCaseGeneration] Empty response from LLM workspace '{WorkspaceSlug}'", workspaceSlug);
+                    
+                    // Offer prompt export for empty LLM responses (often due to timeout or processing issues)
+                    await OfferPromptExportForEmptyResponseAsync(workspaceSlug, generatedPrompt, stopwatch.Elapsed);
+                    
                     var errorMsg = $"LLM did not return a response. Possible causes: " +
                         $"1) Workspace '{workspaceSlug}' does not exist in AnythingLLM (should have been created with project), " +
                         "2) Timeout (LLM processing slowly - check AnythingLLM window for activity), " +
                         "3) Connection issues, " +
                         "4) LLM service error. " +
-                        "Please check AnythingLLM is running and the workspace exists.";
+                        "The generation prompt has been offered for external LLM use.";
                     _logger.LogWarning("[TestCaseGeneration] {ErrorMsg}", errorMsg);
                     progressCallback?.Invoke(errorMsg, requirementList.Count, requirementList.Count);
                     return new TestCaseGenerationResult(new List<LLMTestCase>(), generatedPrompt, llmResponse ?? string.Empty);
@@ -167,13 +191,27 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
 
                 return new TestCaseGenerationResult(testCases, generatedPrompt, llmResponse);
             }
+            catch (TaskCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
+            {
+                stopwatch.Stop();
+                _logger.LogInformation("[TestCaseGeneration] Test case generation was cancelled by user or timed out after 3 minutes");
+                progressCallback?.Invoke("Generation cancelled or timed out after 3 minutes", requirementList.Count, requirementList.Count);
+                return new TestCaseGenerationResult(new List<LLMTestCase>(), generatedPrompt, "Generation cancelled or timed out");
+            }
             catch (Exception ex)
             {
                 stopwatch.Stop();
-                _ragContextService?.TrackRAGRequest(workspaceSlug, "", null, false, stopwatch.Elapsed);
+                _ragContextService?.TrackRAGRequest(workspaceSlug ?? "unknown", "", null, false, stopwatch.Elapsed);
                 
                 var errorMsg = $"Test case generation failed: {ex.Message}";
                 _logger.LogError(ex, "[TestCaseGeneration] {ErrorMsg}", errorMsg);
+                
+                // If we have a prompt, offer to export it for external LLM use
+                if (!string.IsNullOrEmpty(generatedPrompt))
+                {
+                    await OfferPromptExportForErrorAsync(generatedPrompt, ex.Message);
+                }
+                
                 progressCallback?.Invoke(errorMsg, requirementList.Count, requirementList.Count);
                 return new TestCaseGenerationResult(new List<LLMTestCase>(), generatedPrompt, llmResponse);
             }
@@ -338,7 +376,8 @@ INSTRUCTIONS:
 3. For unique requirements, create dedicated test cases
 4. Each test case should have clear steps and expected results
 5. Preconditions and postconditions MUST be a single string (not an array). If multiple items, join with a semicolon and a space
-6. Return ONLY valid JSON matching this schema - no explanatory text
+6. **CRITICAL**: In ""coveredRequirementIds"", use the EXACT requirement IDs provided above (e.g., ""RTU4220-REQ_RC-3""). Do NOT use simplified IDs like ""REQ-1"" or custom shortcuts.
+7. Return ONLY valid JSON matching this schema - no explanatory text
 
 RESPOND WITH JSON ONLY:
 {{
@@ -358,7 +397,7 @@ RESPOND WITH JSON ONLY:
       ],
       ""expectedResult"": ""Overall expected outcome"",
     ""postconditions"": ""Cleanup (optional, single string)"",
-      ""coveredRequirementIds"": [""REQ-1"", ""REQ-2""],
+      ""coveredRequirementIds"": [""EXACT-REQ-ID-FROM-ABOVE"", ""ANOTHER-EXACT-REQ-ID-FROM-ABOVE""],
       ""priority"": ""High"",
       ""testType"": ""Functional"",
       ""estimatedDurationMinutes"": 15,
@@ -500,6 +539,309 @@ RESPOND WITH JSON ONLY:
             }
             
             return cleaned.Trim();
+        }
+
+        /// <summary>
+        /// Sends LLM request with interactive timeout handling - prompts user to continue waiting or cancel
+        /// </summary>
+        private async Task<string> SendWithInteractiveTimeoutAsync(
+            string workspaceSlug, 
+            string prompt, 
+            CancellationToken cancellationToken, 
+            Action<string, int, int>? progressCallback = null,
+            int totalSteps = 1)
+        {
+            var timeoutSeconds = 180; // Increased timeout for first-time LLM processing (includes setup/warmup)
+            var attempt = 0;
+            
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                attempt++;
+                _logger.LogInformation("[TestCaseGeneration] LLM request attempt {Attempt}, timeout: {Timeout}s", attempt, timeoutSeconds);
+                
+                try
+                {
+                    // Create timeout for this attempt
+                    using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+                    using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                    
+                    // Update progress with timeout info
+                    var timeoutMsg = attempt == 1 
+                        ? $"Sending to LLM workspace '{workspaceSlug}' ({timeoutSeconds}s timeout)..."
+                        : $"Continuing LLM request (attempt {attempt}, {timeoutSeconds}s timeout)...";
+                    progressCallback?.Invoke(timeoutMsg, 0, totalSteps);
+                    
+                    // Send request with timeout
+                    var response = await _anythingLLMService.SendChatMessageAsync(
+                        workspaceSlug,
+                        prompt,
+                        combinedCts.Token);
+                    
+                    // Success - return response
+                    _logger.LogInformation("[TestCaseGeneration] LLM request succeeded on attempt {Attempt}", attempt);
+                    return response;
+                }
+                catch (TaskCanceledException ex) when (ex.CancellationToken == cancellationToken)
+                {
+                    // User cancellation - rethrow
+                    _logger.LogInformation("[TestCaseGeneration] LLM request cancelled by user");
+                    throw;
+                }
+                catch (TaskCanceledException)
+                {
+                    // Timeout occurred - prompt user
+                    _logger.LogWarning("[TestCaseGeneration] LLM request timed out after {Timeout}s (attempt {Attempt})", timeoutSeconds, attempt);
+                    
+                    // Show timeout dialog on UI thread
+                    var userChoice = await ShowTimeoutDialogAsync(attempt, timeoutSeconds, workspaceSlug, prompt);
+                    
+                    if (userChoice == TimeoutChoice.Cancel)
+                    {
+                        _logger.LogInformation("[TestCaseGeneration] User chose to cancel after timeout");
+                        throw new OperationCanceledException("User cancelled operation after timeout");
+                    }
+                    
+                    // User chose to continue - loop will retry with same timeout
+                    _logger.LogInformation("[TestCaseGeneration] User chose to continue waiting, retrying...");
+                    continue;
+                }
+            }
+            
+            throw new OperationCanceledException("Operation was cancelled");
+        }
+
+        /// <summary>
+        /// Shows timeout dialog to user and returns their choice
+        /// </summary>
+        private async Task<TimeoutChoice> ShowTimeoutDialogAsync(int attempt, int timeoutSeconds, string workspaceSlug, string prompt)
+        {
+            return await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                var message = attempt == 1
+                    ? $"The LLM request is taking longer than expected (>{timeoutSeconds} seconds).\n\n" +
+                      "This can happen when:\n" +
+                      "• The LLM is processing a complex request\n" +
+                      "• The model is busy with other requests\n" +
+                      "• Network connectivity is slow\n\n" +
+                      "Would you like to continue waiting for another {timeoutSeconds} seconds?"
+                    : $"The LLM request is still processing (attempt {attempt}, >{timeoutSeconds * attempt} seconds total).\n\n" +
+                      "Would you like to continue waiting for another {timeoutSeconds} seconds?";
+
+                var result = System.Windows.MessageBox.Show(
+                    message,
+                    "LLM Request Taking Longer Than Expected",
+                    System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Question);
+
+                if (result == System.Windows.MessageBoxResult.Yes)
+                {
+                    return TimeoutChoice.Continue;
+                }
+                else
+                {
+                    // User chose not to continue - offer to copy prompt for external LLM
+                    var copyPromptMessage = $"Would you like to copy the test case generation prompt to use in an external LLM?\n\n" +
+                                          "This will copy the complete prompt to your clipboard so you can:\n" +
+                                          "• Paste it into ChatGPT, Claude, or other LLMs\n" +
+                                          "• Get the test case generation response from an external source\n" +
+                                          "• Continue your work without losing progress\n\n" +
+                                          $"Workspace: {workspaceSlug}";
+
+                    var copyResult = System.Windows.MessageBox.Show(
+                        copyPromptMessage,
+                        "Copy Test Case Generation Prompt for External LLM?",
+                        System.Windows.MessageBoxButton.YesNo,
+                        System.Windows.MessageBoxImage.Question);
+
+                    if (copyResult == System.Windows.MessageBoxResult.Yes)
+                    {
+                        CopyTestCasePromptToClipboard(workspaceSlug, prompt);
+                        
+                        System.Windows.MessageBox.Show(
+                            "✅ Test case generation prompt copied to clipboard!\n\n" +
+                            "You can now:\n" +
+                            "1. Paste the prompt into an external LLM (ChatGPT, Claude, etc.)\n" +
+                            "2. Get the test case generation response\n" +
+                            "3. Use 'Import External LLM Response' → '⚡ Parse as Test Cases' to import the results\n\n" +
+                            "The generation has been cancelled for now.",
+                            "Prompt Copied Successfully",
+                            System.Windows.MessageBoxButton.OK,
+                            System.Windows.MessageBoxImage.Information);
+                    }
+
+                    return TimeoutChoice.Cancel;
+                }
+            });
+        }
+
+        /// <summary>
+        /// Copies the test case generation prompt to clipboard for external LLM use
+        /// </summary>
+        private void CopyTestCasePromptToClipboard(string workspaceSlug, string prompt)
+        {
+            try
+            {
+                var clipboardContent = new System.Text.StringBuilder();
+                clipboardContent.AppendLine("=== TEST CASE GENERATION PROMPT ===");
+                clipboardContent.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                clipboardContent.AppendLine($"Workspace: {workspaceSlug}");
+                clipboardContent.AppendLine();
+                clipboardContent.AppendLine("=== GENERATION PROMPT ===");
+                clipboardContent.AppendLine(prompt);
+                clipboardContent.AppendLine();
+                clipboardContent.AppendLine("=== INSTRUCTIONS FOR EXTERNAL LLM ===");
+                clipboardContent.AppendLine("1. Copy the GENERATION PROMPT section above");
+                clipboardContent.AppendLine("2. Paste it into your external LLM (ChatGPT, Claude, etc.)");
+                clipboardContent.AppendLine("3. The LLM should respond with JSON containing generated test cases");
+                clipboardContent.AppendLine("4. Copy the LLM response and use 'Import External LLM Response' → '⚡ Parse as Test Cases' to import the results");
+                clipboardContent.AppendLine("5. The test cases will be automatically added to your project");
+
+                System.Windows.Clipboard.SetText(clipboardContent.ToString());
+                
+                _logger.LogInformation($"[TestCaseGeneration] Test case generation prompt copied to clipboard for workspace {workspaceSlug}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"[TestCaseGeneration] Failed to copy test case generation prompt to clipboard for workspace {workspaceSlug}");
+                
+                System.Windows.MessageBox.Show(
+                    $"Failed to copy prompt to clipboard: {ex.Message}\n\nYou can manually copy the prompt from the application logs.",
+                    "Copy Failed",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Warning);
+            }
+        }
+
+        /// <summary>
+        /// Offers workspace context help and prompt export when AnythingLLM workspace is not available
+        /// </summary>
+        private async Task OfferWorkspaceContextHelpAsync(string prompt)
+        {
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                var helpMessage = "⚠️ No AnythingLLM workspace context found.\n\n" +
+                                "This can happen when:\n" +
+                                "• No project is open in the application\n" +
+                                "• AnythingLLM is not running or accessible\n" +
+                                "• The project workspace hasn't been created in AnythingLLM\n\n" +
+                                "Would you like to copy the test case generation prompt for use in an external LLM?";
+
+                var result = System.Windows.MessageBox.Show(
+                    helpMessage,
+                    "Workspace Context Missing - Use External LLM?",
+                    System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Question);
+
+                if (result == System.Windows.MessageBoxResult.Yes)
+                {
+                    CopyTestCasePromptToClipboard("external-llm", prompt);
+                    
+                    System.Windows.MessageBox.Show(
+                        "✅ Test case generation prompt copied to clipboard!\n\n" +
+                        "You can now:\n" +
+                        "1. Paste the prompt into an external LLM (ChatGPT, Claude, etc.)\n" +
+                        "2. Get the test case generation response\n" +
+                        "3. Use 'Import External LLM Response' → '⚡ Parse as Test Cases' to import the results\n\n" +
+                        "To fix the workspace context issue:\n" +
+                        "• Ensure AnythingLLM is running\n" +
+                        "• Open or create a project in the application\n" +
+                        "• Check that the project workspace exists in AnythingLLM",
+                        "Prompt Copied - Next Steps",
+                        System.Windows.MessageBoxButton.OK,
+                        System.Windows.MessageBoxImage.Information);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Offers prompt export when generation fails for other reasons
+        /// </summary>
+        private async Task OfferPromptExportForErrorAsync(string prompt, string errorMessage)
+        {
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                var exportMessage = $"❌ Test case generation failed: {errorMessage}\n\n" +
+                                  "Would you like to copy the generation prompt for use in an external LLM?\n\n" +
+                                  "This will allow you to:\n" +
+                                  "• Get test case generation from ChatGPT, Claude, or other LLMs\n" +
+                                  "• Import the results using '⚡ Parse as Test Cases'\n" +
+                                  "• Continue your work despite the internal generation failure";
+
+                var result = System.Windows.MessageBox.Show(
+                    exportMessage,
+                    "Generation Failed - Use External LLM?",
+                    System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Question);
+
+                if (result == System.Windows.MessageBoxResult.Yes)
+                {
+                    CopyTestCasePromptToClipboard("external-llm-failed", prompt);
+                    
+                    System.Windows.MessageBox.Show(
+                        "✅ Test case generation prompt copied to clipboard!\n\n" +
+                        "You can now:\n" +
+                        "1. Paste the prompt into an external LLM (ChatGPT, Claude, etc.)\n" +
+                        "2. Get the test case generation response\n" +
+                        "3. Use 'Import External LLM Response' → '⚡ Parse as Test Cases' to import the results\n\n" +
+                        "The generation has been cancelled for now.",
+                        "Prompt Copied Successfully",
+                        System.Windows.MessageBoxButton.OK,
+                        System.Windows.MessageBoxImage.Information);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Offers prompt export when LLM returns empty response (often due to timeout/processing issues)
+        /// </summary>
+        private async Task OfferPromptExportForEmptyResponseAsync(string workspaceSlug, string prompt, TimeSpan duration)
+        {
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                var durationSeconds = Math.Round(duration.TotalSeconds, 1);
+                var emptyResponseMessage = $"⚠️ LLM returned empty response after {durationSeconds} seconds.\n\n" +
+                                          $"Workspace: {workspaceSlug}\n" +
+                                          $"This commonly happens when:\n" +
+                                          "• The LLM request timed out internally\n" +
+                                          "• The LLM is overloaded or unavailable\n" +
+                                          "• Network connectivity issues occurred\n" +
+                                          "• The workspace configuration has issues\n\n" +
+                                          "Would you like to copy the generation prompt for use in an external LLM?";
+
+                var result = System.Windows.MessageBox.Show(
+                    emptyResponseMessage,
+                    "Empty LLM Response - Use External LLM?",
+                    System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Question);
+
+                if (result == System.Windows.MessageBoxResult.Yes)
+                {
+                    CopyTestCasePromptToClipboard(workspaceSlug, prompt);
+                    
+                    System.Windows.MessageBox.Show(
+                        "✅ Test case generation prompt copied to clipboard!\n\n" +
+                        "You can now:\n" +
+                        "1. Paste the prompt into an external LLM (ChatGPT, Claude, etc.)\n" +
+                        "2. Get the test case generation response\n" +
+                        "3. Use 'Import External LLM Response' → '⚡ Parse as Test Cases' to import the results\n\n" +
+                        "Tips for external LLM use:\n" +
+                        "• Make sure to copy the entire JSON response\n" +
+                        "• The response should contain a 'testCases' array\n" +
+                        "• Use the Parse button to import the results back into the app",
+                        "Prompt Copied Successfully",
+                        System.Windows.MessageBoxButton.OK,
+                        System.Windows.MessageBoxImage.Information);
+                }
+            });
+        }
+
+        /// <summary>
+        /// User choice when timeout occurs
+        /// </summary>
+        private enum TimeoutChoice
+        {
+            Continue,
+            Cancel
         }
 
         /// <summary>

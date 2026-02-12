@@ -15,6 +15,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
     {
         private readonly ILogger<PromptDiagnosticsViewModel> _logger;
 
+        /// <summary>
+        /// Event raised when external LLM response should be parsed as test cases
+        /// </summary>
+        public event EventHandler<string>? ParseExternalResponse;
+
         [ObservableProperty]
         private string generatedPrompt = "No prompt generated yet. Generate test cases to see the prompt.";
 
@@ -175,9 +180,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
                 return;
             }
 
-            HasExternalResponse = true;
-            ExternalResponseLength = ExternalLLMResponse.Length;
-
             var comparison = new System.Text.StringBuilder();
             comparison.AppendLine("═══════════════════════════════════════");
             comparison.AppendLine("RESPONSE COMPARISON");
@@ -244,6 +246,47 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
 
             _logger.LogInformation("[PromptDiagnostics] Responses compared: Similarity={Similarity:F1}%",
                 similarity);
+        }
+
+        /// <summary>
+        /// Parse external LLM response as test cases
+        /// </summary>
+        [RelayCommand(CanExecute = nameof(CanParseExternalResponse))]
+        private void ParseExternal()
+        {
+            if (!CanParseExternalResponse())
+            {
+                _logger.LogWarning("[PromptDiagnostics] Cannot parse external response - validation failed");
+                return;
+            }
+
+            try
+            {
+                _logger.LogInformation("[PromptDiagnostics] Requesting parse of external response ({Length} chars)", 
+                    ExternalResponseLength);
+                    
+                ParseExternalResponse?.Invoke(this, ExternalLLMResponse);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[PromptDiagnostics] Error invoking ParseExternalResponse event");
+            }
+        }
+
+        /// <summary>
+        /// Checks if external response can be parsed
+        /// </summary>
+        private bool CanParseExternalResponse()
+        {
+            var hasExternal = HasExternalResponse;
+            var notBlank = !string.IsNullOrWhiteSpace(ExternalLLMResponse);
+            var notPlaceholder = !ExternalLLMResponse.StartsWith("Paste external");
+            var canParse = hasExternal && notBlank && notPlaceholder;
+            
+            _logger.LogDebug("[PromptDiagnostics] CanParseExternalResponse: HasExternal={HasExternal}, NotBlank={NotBlank}, NotPlaceholder={NotPlaceholder}, Result={Result}", 
+                hasExternal, notBlank, notPlaceholder, canParse);
+            
+            return canParse;
         }
 
         /// <summary>
@@ -315,6 +358,25 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
                 return 0;
 
             return (double)intersection.Count / union.Count * 100;
+        }
+
+        /// <summary>
+        /// Called when ExternalLLMResponse property changes - automatically enables Parse button for valid content
+        /// </summary>
+        partial void OnExternalLLMResponseChanged(string value)
+        {
+            // Update HasExternalResponse based on whether the content is valid for parsing
+            var isValidContent = !string.IsNullOrWhiteSpace(value) && 
+                               !value.StartsWith("Paste external", StringComparison.OrdinalIgnoreCase);
+            
+            HasExternalResponse = isValidContent;
+            ExternalResponseLength = value?.Length ?? 0;
+
+            // Explicitly notify the ParseExternal command that CanExecute state may have changed
+            ParseExternalCommand.NotifyCanExecuteChanged();
+
+            _logger.LogInformation("[PromptDiagnostics] External response changed. Valid content: {IsValid}, Length: {Length}, HasExternalResponse set to: {HasExternal}", 
+                isValidContent, ExternalResponseLength, HasExternalResponse);
         }
     }
 }

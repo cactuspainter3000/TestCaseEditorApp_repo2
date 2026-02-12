@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Prompts;
 using TestCaseEditorApp.Services.Prompts;
@@ -227,70 +228,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
 
                 onProgressUpdate?.Invoke("Sending analysis request to AI...");
                 
-                // Create timeout cancellation token to prevent hanging
-                var timeoutSetupStart = DateTime.UtcNow;
-                timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                timeoutCts.CancelAfter(AnalysisTimeout);
-                var timeoutToken = timeoutCts.Token;
-                var timeoutSetupTime = DateTime.UtcNow - timeoutSetupStart;
-                System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Timeout setup completed in {timeoutSetupTime.TotalMilliseconds}ms, timeout: {AnalysisTimeout.TotalSeconds}s");
-                
-                // Try RAG-based analysis first (faster and more context-aware)
-                var ragAttemptStart = DateTime.UtcNow;
-                System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Attempting RAG analysis at {ragAttemptStart:HH:mm:ss.fff}");
-                var ragResult = await TryRagAnalysisAsync(requirement, onPartialResult, onProgressUpdate, timeoutToken);
-                var ragAttemptTime = DateTime.UtcNow - ragAttemptStart;
-                System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] RAG attempt completed in {ragAttemptTime.TotalMilliseconds}ms, success: {ragResult.success}");
-                
-                if (ragResult.success)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Using RAG response, length: {ragResult.response?.Length ?? 0}");
-                    response = ragResult.response ?? throw new InvalidOperationException("RAG analysis succeeded but returned null response");
-                }
-                else
-                {
-                    // RAG failed - log detailed failure information with diagnostics
-                    var failureMessage = GetRAGFailureMessage(ragResult.failureReason, ragResult.failureDetails);
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] RAG analysis failed for requirement {requirement.Item}: {failureMessage}");
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] Failure details: {ragResult.failureDetails}");
-                    System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] RAG FAILED - Reason: {ragResult.failureReason}, Details: {ragResult.failureDetails}");
-                    
-                    // Notify user about RAG failure via progress callback
-                    onProgressUpdate?.Invoke($"⚠️ RAG unavailable: {failureMessage}");
-                    onProgressUpdate?.Invoke("Using fallback LLM analysis...");
-                    
-                    // Use AnythingLLM with workspace-configured system prompt (avoids sending ~793 lines per request)
-                    if (_llmService is AnythingLLMService anythingLlmService)
-                    {
-                        var streamingStart = DateTime.UtcNow;
-                    System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Starting AnythingLLM streaming at {streamingStart:HH:mm:ss.fff}");
-                    
-                    // Use RAG-optimized prompt with supplemental information for workspace optimization
-                    var ragPromptForWorkspace = BuildRagOptimizedPrompt(requirement);
-                    
-                    // Check if workspace has system prompt configured to avoid duplication (with timeout)
-                    var promptToSend = await GetOptimizedPromptForWorkspaceAsync(anythingLlmService, "test-case-analysis", ragPromptForWorkspace, timeoutToken);
-                    
-                    // Use streaming analysis with optimized prompt
-                    response = await anythingLlmService.SendChatMessageStreamingAsync(
-                        "test-case-analysis", // Default workspace with potentially pre-configured system prompt
-                        promptToSend, // Optimized based on workspace configuration
-                        onChunkReceived: onPartialResult,
-                        onProgressUpdate: onProgressUpdate,
-                        cancellationToken: timeoutToken) ?? string.Empty;
-                    var streamingTime = DateTime.UtcNow - streamingStart;
-                    System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] AnythingLLM streaming completed in {streamingTime.TotalMilliseconds}ms, response length: {response?.Length ?? 0}");
-                }
-                else
-                {
-                    var traditionalStart = DateTime.UtcNow;
-                    System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Starting traditional LLM at {traditionalStart:HH:mm:ss.fff}");
-                    // Traditional LLM method
-                    response = await _llmService.GenerateWithSystemAsync(_cachedSystemMessage, contextPrompt, timeoutToken);
-                    var traditionalTime = DateTime.UtcNow - traditionalStart;
-                    System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Traditional LLM completed in {traditionalTime.TotalMilliseconds}ms, response length: {response?.Length ?? 0}");
-                    }
-                }
+                // Send to LLM with interactive timeout handling
+                response = await SendLLMWithInteractiveTimeoutAsync(
+                    requirement, 
+                    contextPrompt, 
+                    cancellationToken, 
+                    onPartialResult, 
+                    onProgressUpdate);
 
                 onProgressUpdate?.Invoke("Processing analysis results...");
 
@@ -1942,6 +1886,240 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[RequirementAnalysisService] JSON repair failed for {requirementId}");
                 return (false, string.Empty);
             }
+        }
+
+        /// <summary>
+        /// Sends LLM analysis request with interactive timeout handling - prompts user to continue waiting or cancel
+        /// </summary>
+        private async Task<string> SendLLMWithInteractiveTimeoutAsync(
+            Requirement requirement,
+            string contextPrompt,
+            CancellationToken cancellationToken,
+            Action<string>? onPartialResult = null,
+            Action<string>? onProgressUpdate = null)
+        {
+            var timeoutSeconds = 90; // Initial timeout period
+            var attempt = 0;
+            
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                attempt++;
+                System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] LLM analysis attempt {attempt}, timeout: {timeoutSeconds}s");
+                
+                try
+                {
+                    // Create timeout for this attempt
+                    using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+                    using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                    var timeoutToken = combinedCts.Token;
+                    
+                    // Update progress with timeout info
+                    var timeoutMsg = attempt == 1 
+                        ? "Analyzing requirement (30s timeout)..."
+                        : $"Continuing analysis (attempt {attempt}, 30s timeout)...";
+                    onProgressUpdate?.Invoke(timeoutMsg);
+                    
+                    // Try RAG-based analysis first (faster and more context-aware)
+                    var ragAttemptStart = DateTime.UtcNow;
+                    System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Attempting RAG analysis at {ragAttemptStart:HH:mm:ss.fff}");
+                    var ragResult = await TryRagAnalysisAsync(requirement, onPartialResult, onProgressUpdate, timeoutToken);
+                    var ragAttemptTime = DateTime.UtcNow - ragAttemptStart;
+                    System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] RAG attempt completed in {ragAttemptTime.TotalMilliseconds}ms, success: {ragResult.success}");
+                    
+                    if (ragResult.success)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Using RAG response, length: {ragResult.response?.Length ?? 0}");
+                        return ragResult.response ?? throw new InvalidOperationException("RAG analysis succeeded but returned null response");
+                    }
+                    else
+                    {
+                        // RAG failed - log detailed failure information with diagnostics
+                        var failureMessage = GetRAGFailureMessage(ragResult.failureReason, ragResult.failureDetails);
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] RAG analysis failed for requirement {requirement.Item}: {failureMessage}");
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] Failure details: {ragResult.failureDetails}");
+                        System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] RAG FAILED - Reason: {ragResult.failureReason}, Details: {ragResult.failureDetails}");
+                        
+                        // Notify user about RAG failure via progress callback
+                        onProgressUpdate?.Invoke($"⚠️ RAG unavailable: {failureMessage}");
+                        onProgressUpdate?.Invoke("Using fallback LLM analysis...");
+                        
+                        // Use AnythingLLM with workspace-configured system prompt
+                        if (_llmService is AnythingLLMService anythingLlmService)
+                        {
+                            var streamingStart = DateTime.UtcNow;
+                            System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Starting AnythingLLM streaming at {streamingStart:HH:mm:ss.fff}");
+                            
+                            // Use RAG-optimized prompt with supplemental information for workspace optimization
+                            var ragPromptForWorkspace = BuildRagOptimizedPrompt(requirement);
+                            
+                            // Check if workspace has system prompt configured to avoid duplication (with timeout)
+                            var promptToSend = await GetOptimizedPromptForWorkspaceAsync(anythingLlmService, "test-case-analysis", ragPromptForWorkspace, timeoutToken);
+                            
+                            // Use streaming analysis with optimized prompt
+                            var response = await anythingLlmService.SendChatMessageStreamingAsync(
+                                "test-case-analysis", // Default workspace with potentially pre-configured system prompt
+                                promptToSend, // Optimized based on workspace configuration
+                                onChunkReceived: onPartialResult,
+                                onProgressUpdate: onProgressUpdate,
+                                cancellationToken: timeoutToken) ?? string.Empty;
+                            var streamingTime = DateTime.UtcNow - streamingStart;
+                            System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] AnythingLLM streaming completed in {streamingTime.TotalMilliseconds}ms, response length: {response?.Length ?? 0}");
+                            
+                            return response;
+                        }
+                        else
+                        {
+                            var traditionalStart = DateTime.UtcNow;
+                            System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Starting traditional LLM at {traditionalStart:HH:mm:ss.fff}");
+                            // Traditional LLM method
+                            var response = await _llmService.GenerateWithSystemAsync(_cachedSystemMessage, contextPrompt, timeoutToken);
+                            var traditionalTime = DateTime.UtcNow - traditionalStart;
+                            System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Traditional LLM completed in {traditionalTime.TotalMilliseconds}ms, response length: {response?.Length ?? 0}");
+                            
+                            return response;
+                        }
+                    }
+                }
+                catch (TaskCanceledException ex) when (ex.CancellationToken == cancellationToken)
+                {
+                    // User cancellation - rethrow
+                    System.Diagnostics.Debug.WriteLine("[ANALYSIS DEBUG] Analysis cancelled by user");
+                    throw;
+                }
+                catch (TaskCanceledException)
+                {
+                    // Timeout occurred - prompt user
+                    System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Analysis timed out after {timeoutSeconds}s (attempt {attempt})");
+                    
+                    // Show timeout dialog on UI thread
+                    var userChoice = await ShowAnalysisTimeoutDialogAsync(attempt, timeoutSeconds, requirement, contextPrompt);
+                    
+                    if (userChoice == AnalysisTimeoutChoice.Cancel)
+                    {
+                        System.Diagnostics.Debug.WriteLine("[ANALYSIS DEBUG] User chose to cancel after timeout");
+                        throw new OperationCanceledException("User cancelled analysis after timeout");
+                    }
+                    
+                    // User chose to continue - loop will retry with same timeout
+                    System.Diagnostics.Debug.WriteLine("[ANALYSIS DEBUG] User chose to continue waiting, retrying...");
+                    continue;
+                }
+            }
+            
+            throw new OperationCanceledException("Analysis was cancelled");
+        }
+
+        /// <summary>
+        /// Shows timeout dialog to user and returns their choice
+        /// </summary>
+        private async Task<AnalysisTimeoutChoice> ShowAnalysisTimeoutDialogAsync(int attempt, int timeoutSeconds, Requirement requirement, string contextPrompt)
+        {
+            return await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                var message = attempt == 1
+                    ? $"The requirement analysis is taking longer than expected (>{timeoutSeconds} seconds).\n\n" +
+                      "This can happen when:\n" +
+                      "• The LLM is processing a complex requirement\n" +
+                      "• The model is busy with other requests\n" +
+                      "• Network connectivity is slow\n\n" +
+                      "Would you like to continue waiting for another {timeoutSeconds} seconds?"
+                    : $"The requirement analysis is still processing (attempt {attempt}, >{timeoutSeconds * attempt} seconds total).\n\n" +
+                      "Would you like to continue waiting for another {timeoutSeconds} seconds?";
+
+                var result = System.Windows.MessageBox.Show(
+                    message,
+                    "Requirement Analysis Taking Longer Than Expected",
+                    System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Question);
+
+                if (result == System.Windows.MessageBoxResult.Yes)
+                {
+                    return AnalysisTimeoutChoice.Continue;
+                }
+                else
+                {
+                    // User chose not to continue - offer to copy prompt for external LLM
+                    var copyPromptMessage = $"Would you like to copy the analysis prompt to use in an external LLM?\n\n" +
+                                          "This will copy the complete prompt to your clipboard so you can:\n" +
+                                          "• Paste it into ChatGPT, Claude, or other LLMs\n" +
+                                          "• Get the analysis from an external source\n" +
+                                          "• Continue your work without losing progress\n\n" +
+                                          $"Requirement: {requirement.Item} - {requirement.Name}";
+
+                    var copyResult = System.Windows.MessageBox.Show(
+                        copyPromptMessage,
+                        "Copy Analysis Prompt for External LLM?",
+                        System.Windows.MessageBoxButton.YesNo,
+                        System.Windows.MessageBoxImage.Question);
+
+                    if (copyResult == System.Windows.MessageBoxResult.Yes)
+                    {
+                        CopyAnalysisPromptToClipboard(requirement, contextPrompt);
+                        
+                        System.Windows.MessageBox.Show(
+                            "✅ Analysis prompt copied to clipboard!\n\n" +
+                            "You can now:\n" +
+                            "1. Paste the prompt into an external LLM (ChatGPT, Claude, etc.)\n" +
+                            "2. Get the analysis response\n" +
+                            "3. Manually review and apply the analysis results\n\n" +
+                            "The analysis has been cancelled for now.",
+                            "Prompt Copied Successfully",
+                            System.Windows.MessageBoxButton.OK,
+                            System.Windows.MessageBoxImage.Information);
+                    }
+
+                    return AnalysisTimeoutChoice.Cancel;
+                }
+            });
+        }
+
+        /// <summary>
+        /// Copies the analysis prompt to clipboard for external LLM use
+        /// </summary>
+        private void CopyAnalysisPromptToClipboard(Requirement requirement, string contextPrompt)
+        {
+            try
+            {
+                var clipboardContent = new System.Text.StringBuilder();
+                clipboardContent.AppendLine("=== REQUIREMENT ANALYSIS PROMPT ===");
+                clipboardContent.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                clipboardContent.AppendLine($"Requirement: {requirement.Item} - {requirement.Name}");
+                clipboardContent.AppendLine();
+                clipboardContent.AppendLine("=== SYSTEM MESSAGE ===");
+                clipboardContent.AppendLine(_cachedSystemMessage ?? "No system message available");
+                clipboardContent.AppendLine();
+                clipboardContent.AppendLine("=== CONTEXT PROMPT ===");
+                clipboardContent.AppendLine(contextPrompt);
+                clipboardContent.AppendLine();
+                clipboardContent.AppendLine("=== INSTRUCTIONS FOR EXTERNAL LLM ===");
+                clipboardContent.AppendLine("1. Copy the SYSTEM MESSAGE and set it as the system prompt in your LLM");
+                clipboardContent.AppendLine("2. Send the CONTEXT PROMPT as your user message");
+                clipboardContent.AppendLine("3. The LLM should respond with a JSON analysis of the requirement");
+                clipboardContent.AppendLine("4. Review the analysis and manually apply insights to your requirement");
+
+                System.Windows.Clipboard.SetText(clipboardContent.ToString());
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Analysis prompt copied to clipboard for requirement {requirement.Item}");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[RequirementAnalysisService] Failed to copy analysis prompt to clipboard for requirement {requirement.Item}");
+                
+                System.Windows.MessageBox.Show(
+                    $"Failed to copy prompt to clipboard: {ex.Message}\n\nYou can manually copy the prompt from the application logs.",
+                    "Copy Failed",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Warning);
+            }
+        }
+
+        /// <summary>
+        /// User choice when analysis timeout occurs
+        /// </summary>
+        private enum AnalysisTimeoutChoice
+        {
+            Continue,
+            Cancel
         }
     }
 }

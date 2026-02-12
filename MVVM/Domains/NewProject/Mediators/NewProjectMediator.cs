@@ -311,6 +311,19 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     currentRequirements.Count, 
                     requirementsMediator?.Requirements?.Any() == true ? "RequirementsMediator" : "TestCaseGenerationMediator");
                 
+                // Debug: Check if any requirements have generated test cases before saving
+                var totalTestCases = currentRequirements.Sum(r => r.GeneratedTestCases?.Count ?? 0);
+                var requirementsWithTestCases = currentRequirements.Count(r => r.GeneratedTestCases?.Any() == true);
+                _logger.LogInformation("💾 PROJECT SAVE DEBUG: Found {TotalTestCases} total generated test cases across {RequirementsWithTestCases}/{TotalRequirements} requirements", 
+                    totalTestCases, requirementsWithTestCases, currentRequirements.Count);
+                
+                foreach (var req in currentRequirements.Where(r => r.GeneratedTestCases?.Any() == true))
+                {
+                    _logger.LogInformation("💾 PROJECT SAVE DEBUG: Requirement '{ReqId}' has {TestCaseCount} generated test cases: [{TestCaseIds}]", 
+                        req.Item, req.GeneratedTestCases?.Count ?? 0, 
+                        string.Join(", ", req.GeneratedTestCases?.Select(tc => tc.Id) ?? new List<string>()));
+                }
+                
                 // 2. Build current workspace object with all data
                 var workspace = new Workspace
                 {
@@ -1251,7 +1264,8 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             {
                 Name = notification.WorkspaceName,
                 Path = notification.WorkspacePath,
-                LastModified = DateTime.Now
+                LastModified = DateTime.Now,
+                AnythingLLMSlug = notification.AnythingLLMWorkspaceSlug
             };
             
             // Clear workspace context cache to ensure fresh data from new project

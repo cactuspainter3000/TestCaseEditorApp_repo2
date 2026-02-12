@@ -30,6 +30,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
         private readonly NotificationService _notificationService;
         private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
         private readonly IWorkspaceValidationService _workspaceValidationService;
+        private readonly TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator _newProjectMediator;
 
         public OpenProjectMediator(
             ILogger<OpenProjectMediator> logger,
@@ -40,6 +41,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
             NotificationService notificationService,
             ITestCaseGenerationMediator testCaseGenerationMediator,
             IWorkspaceValidationService workspaceValidationService,
+            TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator newProjectMediator,
             PerformanceMonitoringService? performanceMonitor = null,
             EventReplayService? eventReplay = null)
             : base(logger, uiCoordinator, "Open Project", performanceMonitor, eventReplay)
@@ -50,6 +52,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
             _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
             _workspaceValidationService = workspaceValidationService ?? throw new ArgumentNullException(nameof(workspaceValidationService));
+            _newProjectMediator = newProjectMediator ?? throw new ArgumentNullException(nameof(newProjectMediator));
         }
 
         /// <summary>
@@ -167,11 +170,37 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
 
                 ShowProgress("Finalizing...", 90);
 
+                // Determine AnythingLLM workspace slug by querying AnythingLLM service directly
+                string? anythingLLMSlug = null;
+                try 
+                {
+                    _logger.LogDebug("Looking up AnythingLLM workspace for project: {ProjectName}", projectName);
+                    var workspaces = await _anythingLLMService.GetWorkspacesAsync();
+                    var matchingWorkspace = workspaces?.FirstOrDefault(w => 
+                        string.Equals(w.Name, projectName, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (matchingWorkspace != null)
+                    {
+                        anythingLLMSlug = matchingWorkspace.Slug;
+                        _logger.LogInformation("Found AnythingLLM workspace for project '{ProjectName}': '{WorkspaceName}' (slug: '{Slug}')", 
+                            projectName, matchingWorkspace.Name, anythingLLMSlug);
+                    }
+                    else
+                    {
+                        _logger.LogInformation("No AnythingLLM workspace found matching project name: {ProjectName}", projectName);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to query AnythingLLM workspaces for project: {ProjectName}", projectName);
+                }
+
                 // Create the project opened event
                 var projectOpenedEvent = new OpenProjectEvents.ProjectOpened
                 {
                     WorkspacePath = filePath,
                     WorkspaceName = projectName,
+                    AnythingLLMWorkspaceSlug = anythingLLMSlug,
                     Workspace = workspace
                 };
 

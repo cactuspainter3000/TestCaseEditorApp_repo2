@@ -270,19 +270,23 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     Rows.Add(row);
                 }
                 
-                // Mark as dirty - save will happen during navigation
+                // Mark as dirty and immediately save to source requirement
                 IsDirty = true;
                 TestCaseEditorApp.Services.Logging.Log.Debug($"[LooseTableViewModel] Table '{Title}' marked as dirty for requirement '{RequirementId}'");
                 
-                // Clear editor ViewModel
-                EditorViewModel = null;
-                IsEditing = false;
+                // Immediately save to source requirement instead of waiting for navigation
+                SaveToSourceRequirement();
                 
                 // Perform post-edit processing
                 AfterEditCommit();
+                
+                // Properly exit editing mode by clearing editor and state
+                EditorViewModel = null;
+                IsEditing = false;
+                
+                // Additional cleanup to ensure no unsaved state remains
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[LooseTableViewModel] Save completed, editing mode exited for table '{Title}'");
             }
-            
-            // Exit edit mode - removed IsEditing assignment
         }
 
         private void CancelEdit()
@@ -393,8 +397,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     tables.Add(looseTable);
                 }
                 
-                // Reset dirty flag after successful save
+                // Reset dirty flag and clear any unsaved state after successful save
                 IsDirty = false;
+                IsModified = true; // Mark as modified for any watchers
                 
                 // DEPRECATED: TestCaseGenerator_VM cache invalidation disabled after domain architecture refactor
                 // Cache invalidation now handled by domain-specific services

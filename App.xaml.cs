@@ -488,7 +488,19 @@ namespace TestCaseEditorApp
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels.TestCaseGeneratorMode_MainVM>();
                     
                     // TestCaseCreation domain ViewModels
-                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel>();
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel>>();
+                        var generationService = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseGenerationService>();
+                        var deduplicationService = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseDeduplicationService>();
+                        var requirementsMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
+                        var newProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator>();
+                        var openProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.IOpenProjectMediator>();
+                        var promptDiagnostics = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.PromptDiagnosticsViewModel>();
+                        
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel(
+                            logger, generationService, deduplicationService, requirementsMediator, newProjectMediator, openProjectMediator, promptDiagnostics);
+                    });
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.RAGDiagnosticsViewModel>(provider =>
                     {
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.RAGDiagnosticsViewModel>>();
@@ -545,11 +557,12 @@ namespace TestCaseEditorApp
                         var notificationService = provider.GetRequiredService<NotificationService>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
                         var workspaceValidationService = provider.GetRequiredService<IWorkspaceValidationService>();
+                        var newProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator>();
                         var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
                         var eventReplay = provider.GetService<EventReplayService>();
                         
                         return new TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.OpenProjectMediator(logger, uiCoordinator, persistenceService, 
-                            fileDialogService, anythingLLMService, notificationService, testCaseGenerationMediator, workspaceValidationService, performanceMonitor, eventReplay);
+                            fileDialogService, anythingLLMService, notificationService, testCaseGenerationMediator, workspaceValidationService, newProjectMediator, performanceMonitor, eventReplay);
                     });
 
                     // OpenProject ViewModels

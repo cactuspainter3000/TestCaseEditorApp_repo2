@@ -71,6 +71,9 @@ namespace TestCaseEditorApp.MVVM.Models
         {
             _verificationMethodsCore.CollectionChanged += (_, __) => OnPropertyChanged(nameof(VerificationMethods));
             _validationMethodsCore.CollectionChanged += (_, __) => OnPropertyChanged(nameof(ValidationMethods));
+            
+            // Notify when GeneratedTestCases collection changes to update HasGeneratedTestCase property
+            GeneratedTestCases.CollectionChanged += (_, __) => OnPropertyChanged(nameof(HasGeneratedTestCase));
         }
 
         // ===== Add this property for generated test cases =====
@@ -128,7 +131,10 @@ namespace TestCaseEditorApp.MVVM.Models
         [ObservableProperty]
         private string tags = string.Empty;
 
-        public bool HasGeneratedTestCase => !string.IsNullOrWhiteSpace(CurrentResponse?.Output);
+        // Updated to check both old and new test case models for backward compatibility
+        public bool HasGeneratedTestCase => 
+            (GeneratedTestCases?.Any() == true) || 
+            !string.IsNullOrWhiteSpace(CurrentResponse?.Output);
 
         private List<string> _tagList = new();
         public List<string> TagList

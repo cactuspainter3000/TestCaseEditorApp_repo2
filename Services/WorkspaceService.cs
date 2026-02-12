@@ -78,6 +78,13 @@ public static class WorkspaceService
         }
 
         string json = JsonSerializer.Serialize(ws, _json) ?? string.Empty;
+        
+        // 🔍 PERSISTENCE DEBUG: Check if GeneratedTestCases are included in serialized JSON
+        var hasGeneratedTestCasesInJson = json.Contains("GeneratedTestCases") && json.Contains("\"Id\":");
+        var totalTestCasesInWorkspace = ws.Requirements?.Sum(r => r.GeneratedTestCases?.Count ?? 0) ?? 0;
+        TestCaseEditorApp.Services.Logging.Log.Info($"[Save] 🔍 PERSISTENCE DEBUG: Serializing {totalTestCasesInWorkspace} total GeneratedTestCases");
+        TestCaseEditorApp.Services.Logging.Log.Info($"[Save] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: {hasGeneratedTestCasesInJson}");
+        
         TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] JSON serialized ({json.Length} bytes)");
         logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Debug, new Microsoft.Extensions.Logging.EventId(0), $"[Save] JSON serialized ({json.Length} bytes)", null, (s,e) => s ?? string.Empty);
 
@@ -363,6 +370,11 @@ public static class WorkspaceService
     public static Workspace Load(string path)
     {
         var json = File.ReadAllText(path);
+        
+        // 🔍 PERSISTENCE DEBUG: Check if GeneratedTestCases exist in JSON before deserialization
+        var hasGeneratedTestCasesInJson = json.Contains("GeneratedTestCases") && json.Contains("\"Id\":");
+        TestCaseEditorApp.Services.Logging.Log.Info($"[Load] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: {hasGeneratedTestCasesInJson}");
+        
         var ws = JsonSerializer.Deserialize<Workspace>(json, _json) ?? new Workspace();
 
         // Migration logic for future schema changes
@@ -407,11 +419,24 @@ public static class WorkspaceService
                                    !string.IsNullOrWhiteSpace(r?.CurrentResponse?.Output)) ?? 0;
             var withQuestions = ws.Requirements?.Count(r =>
                                    r?.ClarifyingQuestions?.Count > 0) ?? 0;
+            
+            // 🔍 PERSISTENCE DEBUG: Check if GeneratedTestCases are loaded correctly
+            var totalGeneratedTestCases = ws.Requirements?.Sum(r => r.GeneratedTestCases?.Count ?? 0) ?? 0;
+            var requirementsWithGeneratedTestCases = ws.Requirements?.Count(r => r.GeneratedTestCases?.Any() == true) ?? 0;
 
             TestCaseEditorApp.Services.Logging.Log.Debug($"[Load] Requirements: {reqCount}");
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[Load] Reqs with test cases: {withResponse}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Load] Reqs with test cases (old model): {withResponse}");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[Load] 🔍 PERSISTENCE DEBUG: Total GeneratedTestCases loaded: {totalGeneratedTestCases}");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[Load] 🔍 PERSISTENCE DEBUG: Requirements with GeneratedTestCases: {requirementsWithGeneratedTestCases}/{reqCount}");
             TestCaseEditorApp.Services.Logging.Log.Debug($"[Load] Reqs with questions: {withQuestions}");
             TestCaseEditorApp.Services.Logging.Log.Debug($"[Load] Workspace saved {ws.SaveCount} times by {ws.CreatedBy ?? "unknown"}");
+            
+            // 🔍 PERSISTENCE DEBUG: Log specific test case IDs per requirement
+            foreach (var req in ws.Requirements?.Where(r => r.GeneratedTestCases?.Any() == true) ?? Enumerable.Empty<Requirement>())
+            {
+                var testCaseIds = string.Join(", ", req.GeneratedTestCases?.Select(tc => tc.Id) ?? new List<string>());
+                TestCaseEditorApp.Services.Logging.Log.Info($"[Load] 🔍 PERSISTENCE DEBUG: Requirement '{req.Item}' loaded {req.GeneratedTestCases?.Count ?? 0} test cases: [{testCaseIds}]");
+            }
         }
         catch { /* best-effort logging only */ }
 
