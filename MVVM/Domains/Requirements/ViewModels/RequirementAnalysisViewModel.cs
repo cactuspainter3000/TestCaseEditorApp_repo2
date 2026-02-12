@@ -55,6 +55,71 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         [ObservableProperty]
         private bool hasAnalysis;
 
+        #region Safe Logging Helpers
+        /// <summary>
+        /// Safe logging that won't crash the app if logging infrastructure fails
+        /// </summary>
+        private void SafeLogInformation(string message, params object?[] args)
+        {
+            try
+            {
+                _logger.LogInformation(message, args);
+            }
+            catch
+            {
+                // Ignore logging errors to prevent app crashes
+            }
+        }
+
+        private void SafeLogWarning(string message, params object?[] args)
+        {
+            try
+            {
+                _logger.LogWarning(message, args);
+            }
+            catch
+            {
+                // Ignore logging errors to prevent app crashes
+            }
+        }
+
+        private void SafeLogError(string message, params object?[] args)
+        {
+            try
+            {
+                _logger.LogError(message, args);
+            }
+            catch
+            {
+                // Ignore logging errors to prevent app crashes
+            }
+        }
+
+        private void SafeLogError(Exception ex, string message, params object?[] args)
+        {
+            try
+            {
+                _logger.LogError(ex, message, args);
+            }
+            catch
+            {
+                // Ignore logging errors to prevent app crashes
+            }
+        }
+
+        private void SafeLogDebug(string message, params object?[] args)
+        {
+            try
+            {
+                _logger.LogDebug(message, args);
+            }
+            catch
+            {
+                // Ignore logging errors to prevent app crashes
+            }
+        }
+        #endregion
+
         /// <summary>
         /// Indicates if the CURRENT requirement is being analyzed.
         /// Checks both mediator state and requirement-specific tracking.
@@ -66,7 +131,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 // Check if analysis is in progress via mediator
                 if (_mediator == null || CurrentRequirement == null) 
                 {
-                    _logger.LogDebug("[RequirementAnalysisVM] IsAnalyzing getter: mediator or CurrentRequirement is null, returning false");
+                    SafeLogDebug("[RequirementAnalysisVM] IsAnalyzing getter: mediator or CurrentRequirement is null, returning false");
                     return false;
                 }
                 
@@ -74,7 +139,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 var isCurrentRequirementBeingAnalyzed = _analyzingRequirementId == CurrentRequirement.GlobalId;
                 var result = mediatorAnalyzing && isCurrentRequirementBeingAnalyzed;
                 
-                _logger.LogInformation("[RequirementAnalysisVM] IsAnalyzing getter: mediatorAnalyzing={MediatorAnalyzing}, isCurrentReqBeingAnalyzed={IsCurrentReqBeingAnalyzed}, result={Result}, CurrentReq={CurrentReq}, AnalyzingReq={AnalyzingReq}",
+                SafeLogInformation("[RequirementAnalysisVM] IsAnalyzing getter: mediatorAnalyzing={MediatorAnalyzing}, isCurrentReqBeingAnalyzed={IsCurrentReqBeingAnalyzed}, result={Result}, CurrentReq={CurrentReq}, AnalyzingReq={AnalyzingReq}",
                     mediatorAnalyzing, isCurrentRequirementBeingAnalyzed, result, CurrentRequirement?.GlobalId ?? "null", _analyzingRequirementId ?? "null");
                 
                 return result;
@@ -155,7 +220,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             get => _currentRequirement;
             set
             {
-                _logger.LogInformation("[RequirementAnalysisVM] CurrentRequirement setter called. Old={OldReq}, New={NewReq}", 
+                SafeLogInformation("[RequirementAnalysisVM] CurrentRequirement setter called. Old={OldReq}, New={NewReq}", 
                     _currentRequirement?.Item ?? "null", value?.Item ?? "null");
                 
                 if (SetProperty(ref _currentRequirement, value))
@@ -222,7 +287,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
             else
             {
-                _logger.LogWarning("[RequirementAnalysisVM] Could not subscribe to mediator - Requirements mediator not found in DI");
+                SafeLogWarning("[RequirementAnalysisVM] Could not subscribe to mediator - Requirements mediator not found in DI");
             }
 
             // Initialize engine status
@@ -239,14 +304,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             
             if (CurrentRequirement == null) 
             {
-                _logger.LogWarning("[RequirementAnalysisVM] Cannot analyze: no requirement selected");
+                SafeLogWarning("[RequirementAnalysisVM] Cannot analyze: no requirement selected");
                 AnalysisStatusMessage = "Please select a requirement from the list to analyze";
                 return;
             }
 
             if (_mediator == null)
             {
-                _logger.LogError("[RequirementAnalysisVM] Cannot analyze: mediator is null");
+                SafeLogError("[RequirementAnalysisVM] Cannot analyze: mediator is null");
                 AnalysisStatusMessage = "Analysis service unavailable";
                 return;
             }
@@ -270,13 +335,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[RequirementAnalysisVM] Error during mediator analysis");
+                SafeLogError(ex, "[RequirementAnalysisVM] Error during mediator analysis");
                 AnalysisStatusMessage = "Analysis failed due to unexpected error";
             }
             finally
             {
                 // Clear analyzing requirement tracking
-                _logger.LogInformation("[RequirementAnalysisVM] Clearing analyzing requirement ID (was: {AnalyzingReqId})", _analyzingRequirementId);
+                SafeLogInformation("[RequirementAnalysisVM] Clearing analyzing requirement ID (was: {AnalyzingReqId})", _analyzingRequirementId);
                 _analyzingRequirementId = null;
                 
                 // Refresh UI to reflect final analysis state
@@ -416,7 +481,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[RequirementAnalysisVM] Failed to refresh engine status");
+                SafeLogError(ex, "[RequirementAnalysisVM] Failed to refresh engine status");
                 EngineStatusText = "Engine status unavailable";
             }
         }
@@ -445,7 +510,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[RequirementAnalysisVM] Failed to generate diagnostic info");
+                SafeLogError(ex, "[RequirementAnalysisVM] Failed to generate diagnostic info");
                 return $"Diagnostic generation failed: {ex.Message}";
             }
         }
@@ -609,7 +674,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[RequirementAnalysisVM] Failed to commit improved requirement");
+                SafeLogError(ex, "[RequirementAnalysisVM] Failed to commit improved requirement");
             }
         }
 
@@ -673,7 +738,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[RequirementAnalysisVM] Failed to copy to clipboard");
+                SafeLogError(ex, "[RequirementAnalysisVM] Failed to copy to clipboard");
             }
         }
 
@@ -847,7 +912,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[RequirementAnalysisVM] Failed to start clipboard monitoring: {Error}", ex.Message);
+                SafeLogError(ex, "[RequirementAnalysisVM] Failed to start clipboard monitoring: {Error}", ex.Message);
             }
         }
 
