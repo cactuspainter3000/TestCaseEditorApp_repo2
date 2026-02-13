@@ -3071,6 +3071,1087 @@ namespace TestCaseEditorApp.Services
             }
         }
 
+        /// <summary>
+        /// Get test case item type ID for a project
+        /// </summary>
+        public async Task<(bool Success, int? TestCaseItemType)> GetTestCaseItemTypeAsync(int projectId, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await EnsureAccessTokenAsync();
+                
+                var url = $"{_baseUrl}/rest/v1/projects/{projectId}/itemtypes";
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Fetching item types for project {projectId}: {url}");
+                var response = await _httpClient.GetAsync(url, cancellationToken);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Failed to get item types. Status: {response.StatusCode}");
+                    return (false, null);
+                }
+                
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item types response: {json}");
+                var result = JsonSerializer.Deserialize<JsonDocument>(json);
+                
+                if (result?.RootElement.TryGetProperty("data", out var data) == true && data.ValueKind == JsonValueKind.Array)
+                {
+                    var itemTypes = new List<(int id, string display, string? typeKey)>();
+                    
+                    // First pass: collect all item types for logging
+                    foreach (var itemType in data.EnumerateArray())
+                    {
+                        var id = itemType.TryGetProperty("id", out var idProp) ? idProp.GetInt32() : 0;
+                        var display = itemType.TryGetProperty("display", out var displayProp) ? displayProp.GetString() : "";
+                        var typeKey = itemType.TryGetProperty("typeKey", out var keyProp) ? keyProp.GetString() : "";
+                        
+                        itemTypes.Add((id, display ?? "", typeKey));
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Found item type: ID={id}, Display='{display}', Key='{typeKey}'");
+                    }
+                    
+                    // Second pass: try to find best test case type match
+                    // 🚨 CRITICAL: For enterprise projects like RTU4220, prioritize Verification Case over Test Case
+                    var testCasePatterns = new[]
+                    {
+                        "Verification Case",            // 🎯 PRIORITIZED: Enterprise/Rockwell Collins pattern
+                        "VerificationCase",
+                        "Verification_Case", 
+                        "VerCse",                      // Key pattern from RTU4220
+                        "Test Case",                    // Standard test case (lower priority for enterprise)
+                        "TestCase", 
+                        "Test_Case",
+                        "test case",
+                        "testcase",
+                        "Verification",                 // Broader verification pattern
+                        "Test",                         // Generic test
+                        "Test Plan",                    // Sometimes used for test cases
+                        "Test Step",                    // Another possibility  
+                        "TC",                          // Abbreviation
+                        "T"                            // Last resort - single letter
+                    };
+                    
+                    foreach (var pattern in testCasePatterns)
+                    {
+                        var matchingType = itemTypes.FirstOrDefault(t => 
+                            t.display.Equals(pattern, StringComparison.OrdinalIgnoreCase) ||
+                            t.typeKey?.Equals(pattern, StringComparison.OrdinalIgnoreCase) == true);
+                            
+                        if (matchingType.id > 0)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Selected test case item type: ID={matchingType.id}, Display='{matchingType.display}', Pattern='{pattern}'");
+                            return (true, matchingType.id);
+                        }
+                    }
+                    
+                    // Fallback: look for anything containing "test" (case insensitive)  
+                    var testContainingType = itemTypes.FirstOrDefault(t => 
+                        t.display.Contains("test", StringComparison.OrdinalIgnoreCase) ||
+                        t.typeKey?.Contains("test", StringComparison.OrdinalIgnoreCase) == true);
+                        
+                    if (testContainingType.id > 0)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Using fallback test-containing item type: ID={testContainingType.id}, Display='{testContainingType.display}'");
+                        return (true, testContainingType.id);
+                    }
+                    
+                    // Last resort: use first available item type (if any)
+                    if (itemTypes.Count > 0)
+                    {
+                        var firstType = itemTypes.First();
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] No test-specific item type found. Using first available: ID={firstType.id}, Display='{firstType.display}'");
+                        return (true, firstType.id);
+                    }
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] No item types found in project {projectId}");
+                return (false, null);
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Error getting test case item type: {ex.Message}");
+                return (false, null);
+            }
+        }
+
+        /// <summary>
+        /// Parse the component (Systems, Hardware, Software) from a requirement's location information
+        /// Enhanced to handle hierarchical path structures like "C1XMB2437-1N RTU-4220/Systems/Requirements/General Systems"
+        /// </summary>
+        private string ParseComponentFromRequirement(Requirement requirement)
+        {
+            try
+            {
+                var locations = new[]
+                {
+                    requirement.FolderPath,
+                    requirement.SetName,
+                    requirement.ItemPath,
+                    requirement.Project,
+                    requirement.GlobalId,  // Add Global ID for additional context
+                    requirement.Item,      // Add Item ID for additional context
+                    requirement.Name       // Add Name for additional context
+                }.Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+
+                foreach (var location in locations)
+                {
+                    var lowerLocation = location!.ToLowerInvariant();
+                    
+                    // Enhanced parsing for hierarchical paths like "RTU-4220/Systems/Requirements/General Systems"
+                    // Check for path components separated by slashes
+                    if (location.Contains("/") || location.Contains("\\"))
+                    {
+                        var pathParts = location.Split('/', '\\').Select(p => p.Trim()).ToArray();
+                        foreach (var part in pathParts)
+                        {
+                            var lowerPart = part.ToLowerInvariant();
+                            
+                            // Check for exact component matches in path structure
+                            if (lowerPart == "systems" && !lowerPart.Contains("subsystem"))
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Parsed component 'Systems' from path part: {part} (full path: {location})");
+                                return "Systems";
+                            }
+                            
+                            if (lowerPart == "hardware" || lowerPart == "hw")
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Parsed component 'Hardware' from path part: {part} (full path: {location})");
+                                return "Hardware";
+                            }
+                            
+                            if (lowerPart == "software" || lowerPart == "sw")
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Parsed component 'Software' from path part: {part} (full path: {location})");
+                                return "Software";
+                            }
+                        }
+                    }
+                    
+                    // Check for Systems component (broader pattern matching)
+                    if (lowerLocation.Contains("system") && !lowerLocation.Contains("subsystem"))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Parsed component 'Systems' from location: {location}");
+                        return "Systems";
+                    }
+                    
+                    // Check for Hardware component
+                    if (lowerLocation.Contains("hardware") || lowerLocation.Contains("hw") || 
+                        lowerLocation.Contains("electronic") || lowerLocation.Contains("mechanical"))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Parsed component 'Hardware' from location: {location}");
+                        return "Hardware";
+                    }
+                    
+                    // Check for Software component  
+                    if (lowerLocation.Contains("software") || lowerLocation.Contains("sw") ||
+                        lowerLocation.Contains("application") || lowerLocation.Contains("firmware"))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Parsed component 'Software' from location: {location}");
+                        return "Software";
+                    }
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Could not parse component from requirement locations: {string.Join(", ", locations)}");
+                
+                // For enterprise projects like RTU4220, default to Systems as most test cases are system-level
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Defaulting to 'Systems' component for enterprise project");
+                return "Systems"; 
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Error parsing component from requirement: {ex.Message}");
+                return "Systems"; // Default fallback
+            }
+        }
+
+        /// <summary>
+        /// Find existing verification cases set in the specified component with pagination and path-aware search
+        /// </summary>
+        private async Task<(bool Success, int? ContainerId, string Message)> FindVerificationCasesSetInComponentAsync(int projectId, string component, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await EnsureAccessTokenAsync();
+                
+                var candidateSets = new List<(int Id, string Name, int Priority, string Path)>();
+                var startIndex = 0;
+                var batchSize = 50;
+                bool hasMoreResults = true;
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Searching for verification cases set in {component} component (with pagination and path analysis)");
+                
+                // Paginate through all project items to build a complete picture
+                while (hasMoreResults)
+                {
+                    var url = $"{_baseUrl}/rest/v1/items?project={projectId}&maxResults={batchSize}&startAt={startIndex}";
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Fetching items batch: startAt={startIndex}, maxResults={batchSize}");
+                    
+                    var response = await _httpClient.GetAsync(url, cancellationToken);
+                    
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                        TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Failed to get project items batch {startIndex}: {response.StatusCode} - {errorContent}");
+                        break;
+                    }
+                    
+                    var content = await response.Content.ReadAsStringAsync(cancellationToken);
+                    using var document = JsonDocument.Parse(content);
+                    
+                    var meta = document.RootElement.GetProperty("meta");
+                    var pageInfo = meta.GetProperty("pageInfo");
+                    var resultCount = pageInfo.GetProperty("resultCount").GetInt32();
+                    var totalResults = pageInfo.GetProperty("totalResults").GetInt32();
+                    
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Batch results: {resultCount} items, total available: {totalResults}");
+                    
+                    var data = document.RootElement.GetProperty("data");
+                    
+                    // Analyze Sets in this batch
+                    foreach (var item in data.EnumerateArray())
+                    {
+                        if (item.TryGetProperty("itemType", out var itemTypeElement) && 
+                            item.TryGetProperty("id", out var idElement) &&
+                            item.TryGetProperty("fields", out var fieldsElement) &&
+                            fieldsElement.TryGetProperty("name", out var nameElement))
+                        {
+                            var itemTypeId = itemTypeElement.GetInt32();
+                            var id = idElement.GetInt32();
+                            var name = nameElement.GetString() ?? "";
+                            var lowerName = name.ToLowerInvariant();
+                            var lowerComponent = component.ToLowerInvariant();
+                            
+                            if (itemTypeId == 54) // Only consider Sets
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Examining Set: ID={id}, Name='{name}'");
+                                
+                                var priority = 0;
+                                var pathDescription = "";
+                                
+                                // HIGHEST priority: Component-specific verification cases with system structure
+                                // Look for "General Systems" or similar under Component/Verification Cases/
+                                if ((name.Equals("General Systems", StringComparison.OrdinalIgnoreCase) ||
+                                     name.Equals($"General {component}", StringComparison.OrdinalIgnoreCase) ||
+                                     name.Equals($"{component} General", StringComparison.OrdinalIgnoreCase)) &&
+                                    lowerName.Contains(lowerComponent.Substring(0, Math.Min(lowerComponent.Length, 6))))
+                                {
+                                    priority = 300;
+                                    pathDescription = $"Component-specific General {component} set";
+                                }
+                                // VERY HIGH priority: Exact match for component verification cases
+                                else if ((name.Equals($"{component} Verification Cases", StringComparison.OrdinalIgnoreCase) ||
+                                          name.Equals($"{component}Verification Cases", StringComparison.OrdinalIgnoreCase) ||
+                                          name.Equals($"{component} Verification", StringComparison.OrdinalIgnoreCase)) ||
+                                         (lowerName.Contains(lowerComponent) && lowerName.Contains("verification case")))
+                                {
+                                    priority = 250;
+                                    pathDescription = $"{component} verification cases set";
+                                }
+                                // HIGH priority: General verification cases sets with component context
+                                else if (lowerName.Contains("verification case") || 
+                                         (lowerName.Contains("verification") && lowerComponent == "systems"))
+                                {
+                                    priority = 200;
+                                    pathDescription = "Verification cases set";
+                                }
+                                // MEDIUM-HIGH priority: Component-related test/verify containers
+                                else if (lowerName.Contains(lowerComponent) &&
+                                         (lowerName.Contains("verification") || lowerName.Contains("test") || 
+                                          lowerName.Contains("verify") || lowerName.Contains("case")))
+                                {
+                                    priority = 150;
+                                    pathDescription = $"Component {component} test/verification set";
+                                }
+                                // MEDIUM priority: General test/verification containers
+                                else if (lowerName.Contains("verification") || lowerName.Contains("test case") || 
+                                         lowerName.Contains("verify") || lowerName.Contains("procedure"))
+                                {
+                                    priority = 100;
+                                    pathDescription = "General verification/test set";
+                                }
+                                // LOWER priority: Test-related but exclude artifacts, documents, requirements
+                                else if (lowerName.Contains("test") && 
+                                         !lowerName.Contains("artifact") && !lowerName.Contains("document") && 
+                                         !lowerName.Contains("drawing") && !lowerName.Contains("spec") &&
+                                         !lowerName.Contains("manual") && !lowerName.Contains("report") &&
+                                         !lowerName.Contains("requirement") && !lowerName.Contains("requirements"))
+                                {
+                                    priority = 80;
+                                    pathDescription = "Test-related set";
+                                }
+                                
+                                if (priority > 0)
+                                {
+                                    candidateSets.Add((id, name, priority, pathDescription));
+                                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Found candidate verification cases set: ID={id}, Name='{name}', Priority={priority}, Type='{pathDescription}'");
+                                }
+                                else
+                                {
+                                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Excluding Set: ID={id}, Name='{name}' (not suitable for verification cases)");
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Check if there are more results to fetch
+                    startIndex += resultCount;
+                    hasMoreResults = startIndex < totalResults && resultCount > 0;
+                }
+                
+                // Select the highest priority candidate, with component-specific preference
+                if (candidateSets.Any())
+                {
+                    // Log all candidates for transparency
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Found {candidateSets.Count} candidate sets for {component} verification cases:");
+                    foreach (var candidate in candidateSets.OrderByDescending(c => c.Priority))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect]   - ID={candidate.Id}, Name='{candidate.Name}', Priority={candidate.Priority}, Type='{candidate.Path}'");
+                    }
+                    
+                    var best = candidateSets.OrderByDescending(c => c.Priority).ThenBy(c => c.Name).First();
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Selected best verification cases container for {component}: ID={best.Id}, Name='{best.Name}', Priority={best.Priority}");
+                    return (true, best.Id, $"Found {component}-aware verification cases set '{best.Name}' (priority: {best.Priority}, type: {best.Path})");
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] No verification cases container found in {component} component after checking all items");
+                return (false, null, $"No suitable verification cases container found for {component} component");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Error finding {component} verification cases container: {ex.Message}");
+                return (false, null, $"Error finding {component} verification cases container: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Create a verification cases set in the specified component
+        /// </summary>
+        private async Task<(bool Success, int? ContainerId, string Message)> CreateVerificationCasesSetInComponentAsync(int projectId, string component, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await EnsureAccessTokenAsync();
+                
+                // First, find the component's parent folder/container
+                var componentContainerId = await FindComponentContainerAsync(projectId, component, cancellationToken);
+                
+                var setName = $"{component} Verification Cases";
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Creating verification cases set: '{setName}' in {component} component");
+                
+                // Build request to create Set (item type 54)
+                object requestBody;
+                if (componentContainerId.HasValue)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Creating verification cases set under component container {componentContainerId.Value}");
+                    requestBody = new
+                    {
+                        project = projectId,
+                        itemType = 54, // Set
+                        childItemType = 194, // Verification Case
+                        location = new
+                        {
+                            parent = componentContainerId.Value
+                        },
+                        fields = new
+                        {
+                            setKey = $"{component.ToUpper()}_VC",
+                            name = setName,
+                            description = $"Container for {component} verification cases and test procedures"
+                        }
+                    };
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Creating verification cases set at project root (no component container found)");
+                    requestBody = new
+                    {
+                        project = projectId,
+                        itemType = 54, // Set
+                        childItemType = 194, // Verification Case
+                        fields = new
+                        {
+                            setKey = $"{component.ToUpper()}_VC",
+                            name = setName,
+                            description = $"Container for {component} verification cases and test procedures"
+                        }
+                    };
+                }
+
+                var json = JsonSerializer.Serialize(requestBody);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                var url = $"{_baseUrl}/rest/v1/items";
+                var response = await _httpClient.PostAsync(url, content, cancellationToken);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Failed to create verification cases set: {response.StatusCode} - {errorContent}");
+                    return (false, null, $"Failed to create verification cases set: {response.StatusCode} - {errorContent}");
+                }
+                
+                var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                var result = JsonSerializer.Deserialize<JamaCreateItemResponse>(responseContent, new JsonSerializerOptions 
+                { 
+                    PropertyNameCaseInsensitive = true 
+                });
+                
+                if (result?.Id > 0)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Successfully created verification cases set '{setName}' with ID {result.Id}");
+                    return (true, result.Id, $"Created verification cases set '{setName}' in {component} component");
+                }
+                
+                return (false, null, "Failed to parse response from verification cases set creation");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Error creating verification cases set: {ex.Message}");
+                return (false, null, $"Error creating verification cases set: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Find any suitable Set that can accept Verification Cases (enterprise fallback method)
+        /// </summary>
+        private async Task<(bool Success, int? ContainerId, string Message)> FindSuitableVerificationCasesSetAsync(int projectId, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await EnsureAccessTokenAsync();
+                
+                var candidateSets = new List<(int Id, string Name, int Priority)>();
+                var startIndex = 0;
+                var batchSize = 50;
+                bool hasMoreResults = true;
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Searching for any Set that can accept Verification Cases (with pagination)");
+                
+                // Paginate through all project items to find suitable Sets
+                while (hasMoreResults)
+                {
+                    var url = $"{_baseUrl}/rest/v1/items?project={projectId}&maxResults={batchSize}&startAt={startIndex}";
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Fetching items batch: startAt={startIndex}, maxResults={batchSize}");
+                    
+                    var response = await _httpClient.GetAsync(url, cancellationToken);
+                    
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                        TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Failed to get project items batch {startIndex}: {response.StatusCode} - {errorContent}");
+                        break;
+                    }
+                    
+                    var content = await response.Content.ReadAsStringAsync(cancellationToken);
+                    using var document = JsonDocument.Parse(content);
+                    
+                    var meta = document.RootElement.GetProperty("meta");
+                    var pageInfo = meta.GetProperty("pageInfo");
+                    var resultCount = pageInfo.GetProperty("resultCount").GetInt32();
+                    var totalResults = pageInfo.GetProperty("totalResults").GetInt32();
+                    
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Batch results: {resultCount} items, total available: {totalResults}");
+                    
+                    var data = document.RootElement.GetProperty("data");
+                    
+                    // Analyze Sets in this batch
+                    foreach (var item in data.EnumerateArray())
+                    {
+                        if (item.TryGetProperty("itemType", out var itemTypeElement) && 
+                            item.TryGetProperty("id", out var idElement) &&
+                            item.TryGetProperty("fields", out var fieldsElement) &&
+                            fieldsElement.TryGetProperty("name", out var nameElement))
+                        {
+                            var itemTypeId = itemTypeElement.GetInt32();
+                            var id = idElement.GetInt32();
+                            var name = nameElement.GetString() ?? "";
+                            var lowerName = name.ToLowerInvariant();
+                            
+                            if (itemTypeId == 54) // Only consider Sets
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Examining Set: ID={id}, Name='{name}'");
+                                
+                                var priority = 0;
+                                
+                                // Highest priority: exact match for existing verification cases sets
+                                if (lowerName.Contains("verification case") || lowerName.Contains("systems verification") || 
+                                    name.Equals("SystemsVerification Cases", StringComparison.OrdinalIgnoreCase) ||
+                                    name.Equals("Systems Verification Cases", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    priority = 200;
+                                }
+                                // High priority: explicitly verification-related
+                                else if (lowerName.Contains("verification") || lowerName.Contains("test case") || lowerName.Contains("verify"))
+                                {
+                                    priority = 100;
+                                }
+                                // Medium-high priority: test-related  
+                                else if (lowerName.Contains("test") || lowerName.Contains("procedure"))
+                                {
+                                    priority = 80;
+                                }
+                                // Lower priority: general purpose but exclude artifacts, documents, requirements sets
+                                else if (!lowerName.Contains("artifact") && !lowerName.Contains("document") && 
+                                        !lowerName.Contains("drawing") && !lowerName.Contains("spec") &&
+                                        !lowerName.Contains("manual") && !lowerName.Contains("report") &&
+                                        !lowerName.Contains("requirement") && !lowerName.Contains("requirements"))
+                                {
+                                    priority = 40;
+                                }
+                                
+                                if (priority > 0)
+                                {
+                                    candidateSets.Add((id, name, priority));
+                                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Found candidate set for verification cases: ID={id}, Name='{name}', Priority={priority}");
+                                }
+                                else
+                                {
+                                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Excluding Set: ID={id}, Name='{name}' (not suitable for verification cases)");
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Check if there are more results to fetch
+                    startIndex += resultCount;
+                    hasMoreResults = startIndex < totalResults && resultCount > 0;
+                }
+                
+                // Select the highest priority candidate
+                if (candidateSets.Any())
+                {
+                    var best = candidateSets.OrderByDescending(c => c.Priority).ThenBy(c => c.Name).First();
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Selected best verification cases container: ID={best.Id}, Name='{best.Name}', Priority={best.Priority}");
+                    return (true, best.Id, $"Found suitable set '{best.Name}' for verification cases (priority: {best.Priority})");
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] No suitable Sets found for Verification Cases in project {projectId} after checking all items");
+                return (false, null, "No suitable Sets found that can accept Verification Cases");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Error finding suitable verification cases set: {ex.Message}");
+                return (false, null, $"Error finding suitable verification cases set: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Find the parent container for a specific component (Systems, Hardware, Software)
+        /// </summary>
+        private async Task<int?> FindComponentContainerAsync(int projectId, string component, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var url = $"{_baseUrl}/rest/v1/items?project={projectId}&maxResults=50";
+                var response = await _httpClient.GetAsync(url, cancellationToken);
+                
+                if (!response.IsSuccessStatusCode) return null;
+                
+                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+                using var document = JsonDocument.Parse(content);
+                var data = document.RootElement.GetProperty("data");
+                
+                var lowerComponent = component.ToLowerInvariant();
+                
+                // Look for Folders that match the component name
+                foreach (var item in data.EnumerateArray())
+                {
+                    if (item.TryGetProperty("itemType", out var itemTypeElement) && 
+                        item.TryGetProperty("id", out var idElement) &&
+                        item.TryGetProperty("fields", out var fieldsElement) &&
+                        fieldsElement.TryGetProperty("name", out var nameElement))
+                    {
+                        var itemTypeId = itemTypeElement.GetInt32();
+                        var id = idElement.GetInt32();
+                        var name = nameElement.GetString() ?? "";
+                        var lowerName = name.ToLowerInvariant();
+                        
+                        if (itemTypeId == 55 && lowerName.Contains(lowerComponent)) // Folder matching component
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Found {component} component container: ID={id}, Name='{name}'");
+                            return id;
+                        }
+                    }
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] No {component} component container found");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Error finding component container: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Get or create a verification cases container based on requirement's component location
+        /// </summary>
+        private async Task<(bool Success, int? ContainerId, string Message)> GetOrCreateVerificationCasesContainerAsync(int projectId, Requirement requirement, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                // Parse component from requirement location
+                var component = ParseComponentFromRequirement(requirement);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Requirement belongs to {component} component, looking for verification cases container");
+                
+                // Look for existing verification cases container in component
+                var (foundExisting, existingId, existingMessage) = await FindVerificationCasesSetInComponentAsync(projectId, component, cancellationToken);
+                
+                if (foundExisting && existingId.HasValue)
+                {
+                    return (true, existingId, $"Using existing verification cases container in {component}: {existingMessage}");
+                }
+                
+                // Create new verification cases container in component
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] No verification cases container found in {component}, attempting to create or find alternative");
+                
+                // First try to find any existing Set that can accept Verification Cases
+                var (foundGeneric, genericId, genericMessage) = await FindSuitableVerificationCasesSetAsync(projectId, cancellationToken);
+                if (foundGeneric && genericId.HasValue)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Found existing suitable set for verification cases: {genericMessage}");
+                    return (true, genericId, $"Using existing verification cases container: {genericMessage}");
+                }
+                
+                // Then try to create new verification cases container
+                var (createdNew, newId, newMessage) = await CreateVerificationCasesSetInComponentAsync(projectId, component, cancellationToken);
+                
+                if (createdNew && newId.HasValue)
+                {
+                    return (true, newId, $"Created new verification cases container in {component}: {newMessage}");
+                }
+                
+                // Fallback to generic container discovery if component-specific approach failed
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Component-specific container creation failed, falling back to generic discovery");
+                return await GetTestCaseContainerAsync(projectId, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Error in component-aware container discovery, falling back to generic: {ex.Message}");
+                return await GetTestCaseContainerAsync(projectId, cancellationToken);
+            }
+        }
+
+        /// <summary>
+        /// Get containers in a project to find suitable parent for test cases (legacy method for fallback)
+        /// </summary>
+        private async Task<(bool Success, int? ContainerId, string Message)> GetTestCaseContainerAsync(int projectId, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await EnsureAccessTokenAsync();
+                
+                var url = $"{_baseUrl}/rest/v1/items?project={projectId}&maxResults=50";
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Getting project containers: {url}");
+                
+                var response = await _httpClient.GetAsync(url, cancellationToken);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Failed to get project items: {response.StatusCode} - {errorContent}");
+                    return (false, null, $"Failed to get project items: {response.StatusCode}");
+                }
+                
+                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Project items response (first 1000 chars): {(content.Length > 1000 ? content.Substring(0, 1000) + "..." : content)}");
+                
+                using var document = JsonDocument.Parse(content);
+                var data = document.RootElement.GetProperty("data");
+                
+                // Look for containers that could hold test cases
+                int? bestContainerId = null;
+                string bestContainerName = "";
+                
+                // First pass: Look for Folders (55) with test-related names - they're more general purpose
+                foreach (var item in data.EnumerateArray())
+                {
+                    if (item.TryGetProperty("itemType", out var itemTypeElement) && 
+                        item.TryGetProperty("id", out var idElement) &&
+                        item.TryGetProperty("fields", out var fieldsElement) &&
+                        fieldsElement.TryGetProperty("name", out var nameElement))
+                    {
+                        var itemTypeId = itemTypeElement.GetInt32();
+                        var id = idElement.GetInt32();
+                        var name = nameElement.GetString() ?? "";
+                        
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Found item: ID={id}, Type={itemTypeId}, Name='{name}'");
+                        
+                        // Prefer Folders (55) with test-related names
+                        if (itemTypeId == 55) // Folder
+                        {
+                            var lowerName = name.ToLowerInvariant();
+                            if (lowerName.Contains("test") || lowerName.Contains("verification") || 
+                                lowerName.Contains("case") || lowerName.Contains("verify") ||
+                                lowerName.Contains("veri") || lowerName.Contains("procedure"))
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Found test-related folder: ID={id}, Name='{name}'");
+                                bestContainerId = id;
+                                bestContainerName = name;
+                                break; // Use first test-related folder found
+                            }
+                        }
+                    }
+                }
+                
+                // Second pass: Look for any Folder (55) if no test-specific folder found
+                if (!bestContainerId.HasValue)
+                {
+                    foreach (var item in data.EnumerateArray())
+                    {
+                        if (item.TryGetProperty("itemType", out var itemTypeElement) && 
+                            item.TryGetProperty("id", out var idElement) &&
+                            item.TryGetProperty("fields", out var fieldsElement) &&
+                            fieldsElement.TryGetProperty("name", out var nameElement))
+                        {
+                            var itemTypeId = itemTypeElement.GetInt32();
+                            var id = idElement.GetInt32();
+                            var name = nameElement.GetString() ?? "";
+                            
+                            if (itemTypeId == 55) // Any Folder
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Found general folder: ID={id}, Name='{name}'");
+                                bestContainerId = id;
+                                bestContainerName = name;
+                                break; // Use first folder found
+                            }
+                        }
+                    }
+                }
+                
+                // Third pass: Look for Sets (54) with test-related names only as last resort
+                if (!bestContainerId.HasValue)
+                {
+                    foreach (var item in data.EnumerateArray())
+                    {
+                        if (item.TryGetProperty("itemType", out var itemTypeElement) && 
+                            item.TryGetProperty("id", out var idElement) &&
+                            item.TryGetProperty("fields", out var fieldsElement) &&
+                            fieldsElement.TryGetProperty("name", out var nameElement))
+                        {
+                            var itemTypeId = itemTypeElement.GetInt32();
+                            var id = idElement.GetInt32();
+                            var name = nameElement.GetString() ?? "";
+                            
+                            if (itemTypeId == 54) // Set
+                            {
+                                var lowerName = name.ToLowerInvariant();
+                                if (lowerName.Contains("test") || lowerName.Contains("verification") || 
+                                    lowerName.Contains("case") || lowerName.Contains("verify") ||
+                                    lowerName.Contains("veri") || lowerName.Contains("procedure"))
+                                {
+                                    // Avoid sets that seem to be for artifacts or documents
+                                    if (!lowerName.Contains("document") && !lowerName.Contains("artifact") && 
+                                        !lowerName.Contains("drawing") && !lowerName.Contains("spec"))
+                                    {
+                                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Found test-related set: ID={id}, Name='{name}'");
+                                        bestContainerId = id;
+                                        bestContainerName = name;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                if (bestContainerId.HasValue)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Selected best container for Verification Cases: ID={bestContainerId}, Name='{bestContainerName}'");
+                    return (true, bestContainerId, $"Found suitable container '{bestContainerName}' (ID={bestContainerId})");
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] No suitable container found in project {projectId}");
+                return (false, null, "No suitable container found for test cases");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Error getting test case container: {ex.Message}");
+                return (false, null, $"Error getting container: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Create a test case in Jama Connect
+        /// </summary>
+        public async Task<(bool Success, string Message, int? TestCaseId)> CreateTestCaseAsync(int projectId, JamaTestCaseRequest testCase, CancellationToken cancellationToken = default)
+        {
+            return await CreateTestCaseAsync(projectId, testCase, null, cancellationToken);
+        }
+
+        /// <summary>
+        /// Create a test case in Jama Connect with component-aware container discovery
+        /// </summary>
+        public async Task<(bool Success, string Message, int? TestCaseId)> CreateTestCaseAsync(int projectId, JamaTestCaseRequest testCase, Requirement? associatedRequirement = null, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await EnsureAccessTokenAsync();
+                
+                // Get test case item type
+                var (typeSuccess, itemTypeId) = await GetTestCaseItemTypeAsync(projectId, cancellationToken);
+                if (!typeSuccess || !itemTypeId.HasValue)
+                {
+                    return (false, "Could not determine test case item type for project", null);
+                }
+                
+                // Get container for test case using component-aware discovery if requirement is provided
+                var (containerSuccess, containerId, containerMessage) = associatedRequirement != null
+                    ? await GetOrCreateVerificationCasesContainerAsync(projectId, associatedRequirement, cancellationToken)
+                    : await GetTestCaseContainerAsync(projectId, cancellationToken);
+                
+                if (!containerSuccess || !containerId.HasValue)
+                {
+                    if (associatedRequirement != null)
+                    {
+                        var component = ParseComponentFromRequirement(associatedRequirement);
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Component-aware container lookup failed for {component} component: {containerMessage}");
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Generic container lookup failed: {containerMessage}");
+                    }
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Will attempt to create Verification Case at project root");
+                    // For RTU4220-like projects, try creating at project root since containers may be restricted
+                }
+
+                // Build test steps description
+                var stepsDescription = new StringBuilder();
+                if (testCase.Steps?.Any() == true)
+                {
+                    stepsDescription.AppendLine("Test Steps:");
+                    stepsDescription.AppendLine();
+                    foreach (var step in testCase.Steps)
+                    {
+                        if (!string.IsNullOrWhiteSpace(step.Number))
+                        {
+                            stepsDescription.AppendLine($"**Step {step.Number}:**");
+                            stepsDescription.AppendLine($"Action: {step.Action}");
+                            stepsDescription.AppendLine($"Expected Result: {step.ExpectedResult}");
+                            if (!string.IsNullOrWhiteSpace(step.Notes))
+                            {
+                                stepsDescription.AppendLine($"Notes: {step.Notes}");
+                            }
+                            stepsDescription.AppendLine();
+                        }
+                    }
+                }
+
+                // Combine description with steps
+                var combinedDescription = string.IsNullOrWhiteSpace(testCase.Description) 
+                    ? stepsDescription.ToString()
+                    : $"{testCase.Description}\n\n{stepsDescription}";
+
+                // Build request body with proper location
+                object requestBody;
+                string attemptDescription;
+                if (containerId.HasValue)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Creating test case in container {containerId.Value}");
+                    attemptDescription = $"in container {containerId.Value}";
+                    requestBody = new
+                    {
+                        project = projectId,
+                        itemType = itemTypeId.Value,
+                        location = new
+                        {
+                            parent = containerId.Value
+                        },
+                        fields = new
+                        {
+                            name = testCase.Name,
+                            description = combinedDescription.Trim()
+                        }
+                    };
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Creating test case at project root (no container)");
+                    attemptDescription = "at project root";
+                    requestBody = new
+                    {
+                        project = projectId,
+                        itemType = itemTypeId.Value,
+                        fields = new
+                        {
+                            name = testCase.Name,
+                            description = combinedDescription.Trim()
+                        }
+                    };
+                }
+
+                var json = JsonSerializer.Serialize(requestBody);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                var url = $"{_baseUrl}/rest/v1/items";
+                var response = await _httpClient.PostAsync(url, content, cancellationToken);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                    
+                    // If we failed with a container and the error is about location restrictions, try without container
+                    if (containerId.HasValue && errorContent.Contains("Invalid document location") && 
+                        (errorContent.Contains("cannot be under") || errorContent.Contains("Folder of") || errorContent.Contains("Set of")))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Container creation failed due to location restrictions. Retrying at project root...");
+                        
+                        // Retry without container
+                        var fallbackRequestBody = new
+                        {
+                            project = projectId,
+                            itemType = itemTypeId.Value,
+                            fields = new
+                            {
+                                name = testCase.Name,
+                                description = combinedDescription.Trim()
+                            }
+                        };
+                        
+                        var fallbackJson = JsonSerializer.Serialize(fallbackRequestBody);
+                        var fallbackContent = new StringContent(fallbackJson, Encoding.UTF8, "application/json");
+                        var fallbackResponse = await _httpClient.PostAsync(url, fallbackContent, cancellationToken);
+                        
+                        if (!fallbackResponse.IsSuccessStatusCode)
+                        {
+                            var fallbackErrorContent = await fallbackResponse.Content.ReadAsStringAsync(cancellationToken);
+                            return (false, $"Failed to create test case both in container and at project root. " +
+                                          $"Container attempt: {response.StatusCode} - {errorContent}. " +
+                                          $"Root attempt: {fallbackResponse.StatusCode} - {fallbackErrorContent}. " +
+                                          $"This project may not be configured to accept Verification Cases.", null);
+                        }
+                        
+                        // Success with fallback
+                        response = fallbackResponse;
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Successfully created test case at project root after container restriction");
+                    }
+                    else
+                    {
+                        return (false, $"Failed to create test case {attemptDescription}: {response.StatusCode} - {errorContent}", null);
+                    }
+                }
+                
+                var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Create test case response: {responseContent}");
+                
+                // Parse the response to extract the created item ID
+                using var responseDoc = JsonDocument.Parse(responseContent);
+                var root = responseDoc.RootElement;
+                
+                int? createdId = null;
+                
+                // Try to get ID from meta object (Jama API format)
+                if (root.TryGetProperty("meta", out var metaElement) &&
+                    metaElement.TryGetProperty("id", out var metaIdElement))
+                {
+                    createdId = metaIdElement.GetInt32();
+                }
+                // Fallback: try to get ID from root level
+                else if (root.TryGetProperty("id", out var rootIdElement))
+                {
+                    createdId = rootIdElement.GetInt32();
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Parsed test case ID: {createdId}");
+                
+                return (true, "Test case created successfully", createdId);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Error creating test case: {ex.Message}", null);
+            }
+        }
+
+        /// <summary>
+        /// Import multiple test cases to Jama Connect
+        /// </summary>
+        public async Task<(bool Success, string Message, List<int> CreatedIds)> ImportTestCasesAsync(int projectId, List<JamaTestCaseRequest> testCases, CancellationToken cancellationToken = default)
+        {
+            var createdIds = new List<int>();
+            var errors = new List<string>();
+            
+            try
+            {
+                var importProgress = 0;
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Starting import of {testCases.Count} test cases to project {projectId}");
+                
+                foreach (var testCase in testCases)
+                {
+                    var (success, message, testCaseId) = await CreateTestCaseAsync(projectId, testCase, cancellationToken);
+                    
+                    if (success && testCaseId.HasValue)
+                    {
+                        createdIds.Add(testCaseId.Value);
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Created test case '{testCase.Name}' with ID {testCaseId}");
+                    }
+                    else
+                    {
+                        errors.Add($"Failed to create '{testCase.Name}': {message}");
+                        TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Failed to create test case '{testCase.Name}': {message}");
+                    }
+                    
+                    importProgress++;
+                    
+                    // Add small delay between requests to respect rate limits
+                    if (importProgress < testCases.Count)
+                    {
+                        await Task.Delay(200, cancellationToken);
+                    }
+                }
+                
+                var overallSuccess = createdIds.Count > 0;
+                var resultMessage = overallSuccess 
+                    ? $"Successfully created {createdIds.Count} out of {testCases.Count} test cases"
+                    : "Failed to create any test cases";
+                    
+                if (errors.Any())
+                {
+                    resultMessage += $"\n\nErrors encountered:\n{string.Join("\n", errors)}";
+                }
+                    
+                return (overallSuccess, resultMessage, createdIds);
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Error during batch import: {ex.Message}");
+                return (false, $"Import failed with error: {ex.Message}", createdIds);
+            }
+        }
+
+        /// <summary>
+        /// Import test case with component-aware placement based on source requirement
+        /// </summary>
+        public async Task<(bool Success, string Message, int? TestCaseId)> ImportTestCaseFromRequirementAsync(int projectId, JamaTestCaseRequest testCase, Requirement sourceRequirement, CancellationToken cancellationToken = default)
+        {
+            // 🚨 CRITICAL FIX: RTU4220 project ID correction
+            // Based on API response analysis, RTU4220 uses project ID 636, not 634
+            if (projectId == 634)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] 🔧 CORRECTING project ID: {projectId} → 636 (RTU4220 fix)");
+                projectId = 636;
+            }
+
+            try
+            {
+                var component = ParseComponentFromRequirement(sourceRequirement);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Importing test case '{testCase.Name}' for {component} component based on requirement {sourceRequirement.GlobalId ?? sourceRequirement.Item}");
+                
+                var (success, message, testCaseId) = await CreateTestCaseAsync(projectId, testCase, sourceRequirement, cancellationToken);
+                
+                if (success && testCaseId.HasValue)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Successfully placed test case '{testCase.Name}' (ID: {testCaseId}) in {component} verification cases");
+                }
+                
+                return (success, message, testCaseId);
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Error importing test case from requirement: {ex.Message}");
+                return (false, $"Error importing test case: {ex.Message}", null);
+            }
+        }
+
         public void Dispose()
         {
             _httpClient?.Dispose();
@@ -3696,5 +4777,41 @@ namespace TestCaseEditorApp.Services
         public int ModifiedBy { get; set; }
         public JamaItemFields? Fields { get; set; }
         public string Type { get; set; } = "";
+    }
+
+    /// <summary>
+    /// Request model for creating test cases in Jama Connect
+    /// </summary>
+    public class JamaTestCaseRequest
+    {
+        public string Name { get; set; } = "";
+        public string Description { get; set; } = "";
+        public List<JamaTestStep> Steps { get; set; } = new();
+        public string AssociatedRequirements { get; set; } = "";
+        public string Tags { get; set; } = "";
+        public string Priority { get; set; } = "Medium";
+        public string TestType { get; set; } = "Functional";
+    }
+
+    /// <summary>
+    /// Test step model for Jama Connect test cases
+    /// </summary>
+    public class JamaTestStep
+    {
+        public string Number { get; set; } = "";
+        public string Action { get; set; } = "";
+        public string ExpectedResult { get; set; } = "";
+        public string Notes { get; set; } = "";
+    }
+
+    /// <summary>
+    /// Response from Jama Connect item creation
+    /// </summary>
+    public class JamaCreateItemResponse
+    {
+        public int Id { get; set; }
+        public string? DocumentKey { get; set; }
+        public string? GlobalId { get; set; }
+        public string? Location { get; set; }
     }
 }
