@@ -204,12 +204,12 @@ namespace TestCaseEditorApp.Services
         /// </summary>
         private string BuildRequirementExtractionPrompt(JamaAttachment attachment)
         {
-            return $@"Analyze the uploaded document '{attachment.FileName}' and extract ALL requirements and specifications.
+            return $@"The document '{attachment.FileName}' has been successfully uploaded to this system and its content is now available for analysis.
 
-Document: {attachment.FileName}
+Document: {attachment.FileName} (CONTENT ACCESSIBLE - PROCEED WITH ANALYSIS)
 Document Type: {GetDocumentTypeDescription(attachment)}
 
-Extract every requirement that specifies what the system must do, including:
+Read through the complete document content and extract ALL requirements including:
 - Functional requirements (what the system must do)
 - Performance specifications (speed, accuracy, throughput, timing)  
 - Interface requirements (signals, protocols, connectors, voltage levels)
@@ -218,7 +218,7 @@ Extract every requirement that specifies what the system must do, including:
 - Safety and security requirements
 - Design constraints and allocations
 
-Be thorough and extract ALL valuable requirements from the document.";
+Start analyzing the document content NOW. Extract every requirement using the specified format.";
         }
 
         /// <summary>
