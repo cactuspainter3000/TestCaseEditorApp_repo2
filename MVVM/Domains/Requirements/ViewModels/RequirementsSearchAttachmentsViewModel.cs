@@ -118,6 +118,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 UpdateSearchResultsFromFilter();
             }
             
+            // Keep SelectedAttachment in sync with filter selection
+            SelectedAttachment = value;
+            
             // Notify computed properties that depend on selection
             OnPropertyChanged(nameof(CanScanForRequirements));
         }
@@ -510,9 +513,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             if (!CanExecuteSearch()) 
             {
-                _logger.LogWarning("[RequirementsSearchAttachments] Cannot execute search - CanExecuteSearch returned false");
-                _logger.LogInformation("[RequirementsSearchAttachments] Debug - IsJamaConfigured: {IsJamaConfigured}, IsSearching: {IsSearching}, IsBusy: {IsBusy}, SelectedProjectId: {SelectedProjectId}", 
-                    IsJamaConfigured, IsSearching, IsBusy, SelectedProjectId);
+                _logger.LogWarning("[RequirementsSearchAttachments] Cannot execute search - prerequisites not met");
                 return;
             }
 
@@ -556,10 +557,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     BackgroundScanTotal = 100; // Use percentage-based progress initially
                 }
                 
-                _logger.LogInformation("[RequirementsSearchAttachments] *** SEARCHING ATTACHMENTS ***");
-                _logger.LogInformation("[RequirementsSearchAttachments] Project ID: {ProjectId}", SelectedProjectId);
-                _logger.LogInformation("[RequirementsSearchAttachments] Search Query: '{SearchQuery}'", SearchQuery ?? "(none)");
-                _logger.LogInformation("[RequirementsSearchAttachments] Background Scan: {IsBackground}", isBackgroundScan);
+                // Starting attachment search
+                _logger.LogInformation("[RequirementsSearchAttachments] Searching project {ProjectId} for attachments", SelectedProjectId);
 
                 // Start API call using mediator service with real progress reporting
                 List<JamaAttachment> attachments;
@@ -889,6 +888,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private void SelectAttachment(JamaAttachment? attachment)
         {
             SelectedAttachmentFilter = attachment;
+            SelectedAttachment = attachment; // Also set the attachment for parsing
             // Selection completed - dropdown will close automatically
             _logger.LogInformation("[RequirementsSearchAttachments] Attachment selected: {Name}", attachment?.Name ?? "null");
         }
@@ -936,8 +936,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     }
                 }
                 
-                _logger.LogInformation("[RequirementsSearchAttachments] Progress updated via mediator: {ProgressText} (Progress: {Progress}%, Total: {Total})", 
-                    progressEvent.ProgressText, BackgroundScanProgress, BackgroundScanTotal);
+                // Progress updated - no need to log every update to avoid log spam
             });
         }
 

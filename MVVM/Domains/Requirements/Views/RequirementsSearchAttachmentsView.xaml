@@ -10,6 +10,7 @@
     
     <UserControl.Resources>
         <conv:InvertedBoolToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
+        <conv:BoolToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>
     
     <Grid Background="{StaticResource Brush.Background.Menu}">
@@ -89,10 +90,10 @@
                     </Button>
 
                     <Button Grid.Column="1" 
-                            Content="Scan Requirements" 
+                            Content="Scrape Document for Requirements" 
                             Style="{StaticResource ActionButton}"
-                            Command="{Binding ScanForRequirementsCommand}"
-                            IsEnabled="{Binding CanScanForRequirements}"
+                            Command="{Binding ParseSelectedAttachmentCommand}"
+                            IsEnabled="{Binding ParseSelectedAttachmentCommand.CanExecute}"
                             Margin="4,0">
                         <Button.ToolTip>
                             <ToolTip Content="Scan selected attachment for requirements"/>
@@ -174,31 +175,99 @@
                         <Style TargetType="ScrollBar" BasedOn="{StaticResource CustomScrollBarStyle}"/>
                     </ScrollViewer.Resources>
                     
-                    <Border Background="{StaticResource Brush.Background.Header}" 
-                           BorderBrush="{StaticResource Brush.Border.Subtle}" 
-                           BorderThickness="1" 
-                           CornerRadius="4" 
-                           Padding="20">
-                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock Text="📄" 
-                                      FontSize="48" 
-                                      HorizontalAlignment="Center" 
-                                      Foreground="{StaticResource Brush.Text.Secondary}"
-                                      Margin="0,0,0,16"/>
-                            <TextBlock Text="No requirements extracted yet" 
-                                      FontSize="{StaticResource FontSize.Body}" 
-                                      Foreground="{StaticResource Brush.Text.Secondary}"
-                                      HorizontalAlignment="Center"
-                                      Margin="0,0,0,8"/>
-                            <TextBlock Text="Search for attachments and scan selected documents to extract requirements" 
-                                      FontSize="{StaticResource FontSize.Caption}" 
-                                      Foreground="{StaticResource Brush.Text.Tertiary}"
-                                      HorizontalAlignment="Center"
-                                      TextAlignment="Center"
-                                      TextWrapping="Wrap"
-                                      MaxWidth="300"/>
-                        </StackPanel>
-                    </Border>
+                    <Grid>
+                        <!-- Placeholder when no requirements -->
+                        <Border Background="{StaticResource Brush.Background.Header}" 
+                               BorderBrush="{StaticResource Brush.Border.Subtle}" 
+                               BorderThickness="1" 
+                               CornerRadius="4" 
+                               Padding="20"
+                               Visibility="{Binding HasExtractedRequirements, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock Text="📄" 
+                                          FontSize="48" 
+                                          HorizontalAlignment="Center" 
+                                          Foreground="{StaticResource Brush.Text.Secondary}"
+                                          Margin="0,0,0,16"/>
+                                <TextBlock Text="No requirements extracted yet" 
+                                          FontSize="{StaticResource FontSize.Body}" 
+                                          Foreground="{StaticResource Brush.Text.Secondary}"
+                                          HorizontalAlignment="Center"
+                                          Margin="0,0,0,8"/>
+                                <TextBlock Text="Search for attachments and scan selected documents to extract requirements" 
+                                          FontSize="{StaticResource FontSize.Caption}" 
+                                          Foreground="{StaticResource Brush.Text.Tertiary}"
+                                          HorizontalAlignment="Center"
+                                          TextAlignment="Center"
+                                          TextWrapping="Wrap"
+                                          MaxWidth="300"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Requirements list when extracted -->
+                        <ItemsControl ItemsSource="{Binding ExtractedRequirements}"
+                                     Visibility="{Binding HasExtractedRequirements, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{StaticResource Brush.Background.Header}" 
+                                           BorderBrush="{StaticResource Brush.Border.Subtle}" 
+                                           BorderThickness="1" 
+                                           CornerRadius="4" 
+                                           Padding="16"
+                                           Margin="0,0,0,8">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            
+                                            <!-- ID and Type Header -->
+                                            <Grid Grid.Row="0" Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                
+                                                <TextBlock Grid.Column="0"
+                                                          Text="{Binding GlobalId}" 
+                                                          FontSize="{StaticResource FontSize.Caption}"
+                                                          FontWeight="Medium"
+                                                          Foreground="{StaticResource Brush.Text.Secondary}"/>
+                                                
+                                                <Border Grid.Column="1"
+                                                       Background="{StaticResource Brush.Accent.Primary}"
+                                                       CornerRadius="4"
+                                                       Padding="6,2">
+                                                    <TextBlock Text="{Binding ItemType}" 
+                                                              FontSize="{StaticResource FontSize.Caption}"
+                                                              FontWeight="Medium"
+                                                              Foreground="White"/>
+                                                </Border>
+                                            </Grid>
+                                            
+                                            <!-- Requirement Name -->
+                                            <TextBlock Grid.Row="1" 
+                                                      Text="{Binding Name}" 
+                                                      FontSize="{StaticResource FontSize.Body}"
+                                                      FontWeight="SemiBold"
+                                                      Foreground="{StaticResource Brush.Text.Primary}"
+                                                      TextWrapping="Wrap"
+                                                      Margin="0,0,0,8"/>
+                                            
+                                            <!-- Requirement Description -->
+                                            <TextBlock Grid.Row="2" 
+                                                      Text="{Binding Description}" 
+                                                      FontSize="{StaticResource FontSize.Caption}"
+                                                      Foreground="{StaticResource Brush.Text.Secondary}"
+                                                      TextWrapping="Wrap"
+                                                      LineHeight="18"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
                 </ScrollViewer>
             </Grid>
         </Border>
