@@ -291,6 +291,13 @@ namespace TestCaseEditorApp
                         return new JamaDocumentParserService(jamaService, llmService);
                     });
                     
+                    // Jama Test Case Conversion Service - Business logic for converting requirements to Jama test cases
+                    services.AddSingleton<IJamaTestCaseConversionService, JamaTestCaseConversionService>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<JamaTestCaseConversionService>>();
+                        return new JamaTestCaseConversionService(logger);
+                    });
+                    
                     // Generic service monitoring
                     services.AddSingleton<GenericServiceMonitor>();
 
@@ -306,10 +313,12 @@ namespace TestCaseEditorApp
                         var requirementsMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
                         var testCaseAnythingLLMService = provider.GetRequiredService<TestCaseAnythingLLMService>();
                         var jamaConnectService = provider.GetRequiredService<JamaConnectService>();
+                        var requirementService = provider.GetRequiredService<IRequirementService>();
+                        var jamaTestCaseConversionService = provider.GetRequiredService<IJamaTestCaseConversionService>();
                         var logger = provider.GetRequiredService<ILogger<SideMenuViewModel>>();
                         
                         return new SideMenuViewModel(newProjectMediator, openProjectMediator, navigationMediator, 
-                            testCaseGenerationMediator, requirementsMediator, testCaseAnythingLLMService, jamaConnectService, logger);
+                            testCaseGenerationMediator, requirementsMediator, testCaseAnythingLLMService, jamaConnectService, requirementService, jamaTestCaseConversionService, logger);
                     });
 
                     // Domain coordination

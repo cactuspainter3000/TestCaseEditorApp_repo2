@@ -54,8 +54,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _logger.LogInformation("[RequirementsSearchAttachments] Commands initialized: TestConnectionCommand is {TestCommandStatus}", 
                 TestConnectionCommand != null ? "initialized" : "NULL");
             
-            // Add minimal attachments for testing until real scan works
-            AddMinimalTestAttachments();
+            // Initialize with no documents placeholder
+            InitializeEmptyState();
             
             // Log when OpenProject workflow should trigger
             _logger.LogInformation("[RequirementsSearchAttachments] Waiting for OpenProject workflow to trigger real scan...");
@@ -327,70 +327,45 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         }
 
         /// <summary>
-        /// Add minimal test attachments for debugging until real scan works
+        /// Initialize empty state with no documents placeholder
         /// </summary>
-        private void AddMinimalTestAttachments()
+        private void InitializeEmptyState()
         {
             try
             {
-                _logger.LogInformation("[RequirementsSearchAttachments] Adding minimal test attachments for debugging");
-                
-                // Add multiple test attachments with clear names
-                var testAttachments = new List<JamaAttachment>
-                {
-                    new JamaAttachment
-                    {
-                        Id = 1001,
-                        Name = "Test Requirements Document.docx",
-                        FileName = "test_requirements.docx",
-                        FileSize = 2048,
-                        MimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    },
-                    new JamaAttachment
-                    {
-                        Id = 1002,
-                        Name = "System Specifications.pdf",
-                        FileName = "system_specs.pdf",
-                        FileSize = 1536,
-                        MimeType = "application/pdf"
-                    },
-                    new JamaAttachment
-                    {
-                        Id = 1003,
-                        Name = "Design Documentation.xlsx",
-                        FileName = "design_doc.xlsx",
-                        FileSize = 3072,
-                        MimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    }
-                };
+                _logger.LogInformation("[RequirementsSearchAttachments] Initializing empty state with placeholder");
                 
                 AvailableAttachments.Clear();
-                foreach (var attachment in testAttachments)
-                {
-                    AvailableAttachments.Add(attachment);
-                }
                 
-                // Auto-select the first attachment
-                if (AvailableAttachments.Count > 0)
-                {
-                    SelectedAttachmentFilter = AvailableAttachments.FirstOrDefault();
-                    _logger.LogInformation("[RequirementsSearchAttachments] Auto-selected first attachment: {Name}", SelectedAttachmentFilter?.Name ?? "none");
-                }
-                else
-                {
-                    SelectedAttachmentFilter = null;
-                    _logger.LogInformation("[RequirementsSearchAttachments] No attachments to select");
-                }
+                // Add placeholder for empty state
+                var noDocumentsPlaceholder = CreateNoDocumentsPlaceholder();
                 
-                StatusMessage = $"Ready - {AvailableAttachments.Count} test attachments loaded";
+                AvailableAttachments.Add(noDocumentsPlaceholder);
+                SelectedAttachmentFilter = noDocumentsPlaceholder;
                 
-                _logger.LogInformation("[RequirementsSearchAttachments] Added {Count} test attachments. Selected: {SelectedName}", 
-                    AvailableAttachments.Count, SelectedAttachmentFilter?.Name ?? "none");
+                StatusMessage = "No documents loaded. Use 'Search for Attachments' to find available documents.";
+                
+                _logger.LogInformation("[RequirementsSearchAttachments] Initialized empty state with placeholder");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[RequirementsSearchAttachments] Error adding minimal test attachments");
+                _logger.LogError(ex, "[RequirementsSearchAttachments] Error initializing empty state");
             }
+        }
+        
+        /// <summary>
+        /// Creates a consistent placeholder for when no documents are available
+        /// </summary>
+        private JamaAttachment CreateNoDocumentsPlaceholder()
+        {
+            return new JamaAttachment
+            {
+                Id = 0, // Special ID to indicate placeholder
+                Name = "No documents loaded",
+                FileName = "placeholder",
+                FileSize = 0,
+                MimeType = "text/placeholder"
+            };
         }
 
         protected override async Task SaveAsync()
@@ -681,14 +656,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     else
                     {
                         // Add a placeholder item for "No attachments found"
-                        var noAttachmentsPlaceholder = new JamaAttachment
-                        {
-                            Id = 0,
-                            Name = "No attachments found",
-                            FileName = "",
-                            FileSize = 0,
-                            MimeType = ""
-                        };
+                        var noAttachmentsPlaceholder = CreateNoDocumentsPlaceholder();
                         AvailableAttachments.Add(noAttachmentsPlaceholder);
                         SelectedAttachmentFilter = noAttachmentsPlaceholder;
                     }
@@ -1054,14 +1022,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                         
                         // Add placeholder for no results
                         AvailableAttachments.Clear();
-                        var noAttachmentsPlaceholder = new JamaAttachment
-                        {
-                            Id = 0,
-                            Name = "No attachments found",
-                            FileName = "",
-                            FileSize = 0,
-                            MimeType = ""
-                        };
+                        var noAttachmentsPlaceholder = CreateNoDocumentsPlaceholder();
                         AvailableAttachments.Add(noAttachmentsPlaceholder);
                         SelectedAttachmentFilter = noAttachmentsPlaceholder;
                         UpdateSearchResultsFromFilter();
@@ -1077,14 +1038,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                         
                         // Add placeholder for no results
                         AvailableAttachments.Clear();
-                        var noAttachmentsPlaceholder = new JamaAttachment
-                        {
-                            Id = 0,
-                            Name = "No attachments found",
-                            FileName = "",
-                            FileSize = 0,
-                            MimeType = ""
-                        };
+                        var noAttachmentsPlaceholder = CreateNoDocumentsPlaceholder();
                         AvailableAttachments.Add(noAttachmentsPlaceholder);
                         SelectedAttachmentFilter = noAttachmentsPlaceholder;
                         UpdateSearchResultsFromFilter();
