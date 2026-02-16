@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -27,6 +28,51 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Models
         /// Display text for the requirement reference
         /// </summary>
         public string DisplayText => RequirementId;
+
+        /// <summary>
+        /// Project location of the requirement
+        /// </summary>
+        public string? ProjectLocation => RequirementDetails?.Project;
+
+        /// <summary>
+        /// Folder path within Jama/system where requirement is located
+        /// </summary>
+        public string? FolderLocation => RequirementDetails?.FolderPath;
+
+        /// <summary>
+        /// Set/collection name the requirement belongs to
+        /// </summary>
+        public string? SetLocation => RequirementDetails?.SetName;
+
+        /// <summary>
+        /// Full item path within the system
+        /// </summary>
+        public string? ItemPath => RequirementDetails?.ItemPath;
+
+        /// <summary>
+        /// Complete location description combining multiple location properties
+        /// </summary>
+        public string LocationInfo
+        {
+            get
+            {
+                var parts = new List<string>();
+                
+                if (!string.IsNullOrEmpty(ProjectLocation))
+                    parts.Add($"Project: {ProjectLocation}");
+                    
+                if (!string.IsNullOrEmpty(FolderLocation))
+                    parts.Add($"Folder: {FolderLocation}");
+                    
+                if (!string.IsNullOrEmpty(SetLocation))
+                    parts.Add($"Set: {SetLocation}");
+                    
+                if (!string.IsNullOrEmpty(ItemPath))
+                    parts.Add($"Path: {ItemPath}");
+                
+                return parts.Count > 0 ? string.Join(" | ", parts) : "Location: Unknown";
+            }
+        }
     }
 
     /// <summary>

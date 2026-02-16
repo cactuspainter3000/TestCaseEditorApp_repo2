@@ -18,6 +18,7 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Models.DataDrivenMenu;
 using TestCaseEditorApp.MVVM.Utils;
+using TestCaseEditorApp.MVVM.Views.Dialogs;
 using TestCaseEditorApp.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -606,7 +607,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                                 {
                                     new MenuAction { Id = "testcase.create", Text = "Test Case Creation", Icon = "📄", Command = TestCaseCreationNavigationCommand },
                                     new MenuAction { Id = "testcase.generate", Text = "Generate Test Case Command", Icon = "⚡", Command = GenerateTestCaseCommandCommand },
-                                    new MenuAction { Id = "testcase.export", Text = "Export to Jama...", Icon = "🚀", Command = ExportAllToJamaCommand }
+                                    new MenuAction { Id = "testcase.export", Text = "Import to Jama Connect...", Icon = "🌐", Command = ExportAllToJamaCommand }
                                 }
                             }
                         }
@@ -865,88 +866,447 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public event System.Action<string?>? SectionChanged;
 
         /// <summary>
-        /// Export all generated test cases to Jama Connect
+        /// Export FIRST test case only to Jama Connect (for debugging)
         /// </summary>
         private async Task ExportAllToJamaAsync()
         {
             try
             {
-                _logger?.LogInformation("Starting Jama Connect export...");
+                _logger?.LogInformation("Starting SINGLE test case import to Jama Connect for debugging...");
                 
-                // JamaConnectService is now guaranteed to be non-null via DI, check if configured
-                if (!_jamaConnectService.IsConfigured)
+                // Check for both AI-generated test cases from requirements AND saved test cases
+                var requirements = _requirementsMediator.Requirements?.ToList() ?? new List<Requirement>();
+                
+                var requirementsWithAITests = requirements
+                    .Where(r => !string.IsNullOrWhiteSpace(r.CurrentResponse?.Output))
+                    .ToList();
+                
+                var requirementsWithSavedTests = requirements
+                    .Where(r => r.GeneratedTestCases?.Any() == true)
+                    .ToList();
+
+                // Find FIRST test case for debugging
+                Requirement? firstRequirement = null;
+                string testCaseSource = "";
+                
+                if (requirementsWithSavedTests.Any())
                 {
-                    // Add debugging info to see what's happening with environment variables
-                    var debugInfo = $"Debug Info:\n" +
-                        $"JAMA_BASE_URL = '{Environment.GetEnvironmentVariable("JAMA_BASE_URL")}'\n" +
-                        $"JAMA_CLIENT_ID = '{Environment.GetEnvironmentVariable("JAMA_CLIENT_ID")}'\n" +
-                        $"JAMA_CLIENT_SECRET = '{(string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JAMA_CLIENT_SECRET")) ? "Not Set" : "Set")}'\n\n";
-                    
+                    firstRequirement = requirementsWithSavedTests.First();
+                    testCaseSource = $"saved test case from requirement '{firstRequirement.Item}' ({firstRequirement.GeneratedTestCases?.Count} saved test cases)";
+                }
+                else if (requirementsWithAITests.Any())
+                {
+                    firstRequirement = requirementsWithAITests.First();
+                    testCaseSource = $"AI-generated test from requirement '{firstRequirement.Item}'";
+                }
+
+                // Check if we have any test cases to export
+                if (firstRequirement == null)
+                {
                     MessageBox.Show(
-                        debugInfo +
-                        "Jama Connect is not configured.\n\n" +
-                        "To enable Jama integration, configure these environment variables:\n\n" +
-                        "Option 1 - API Token (if available):\n" +
-                        "• JAMA_BASE_URL (e.g., https://jama02.rockwellcollins.com/contour)\n" +
-                        "• JAMA_API_TOKEN\n\n" +
-                        "Option 2 - OAuth Client Credentials (recommended):\n" +
-                        "• JAMA_BASE_URL (e.g., https://jama02.rockwellcollins.com/contour)\n" +
-                        "• JAMA_CLIENT_ID\n" +
-                        "• JAMA_CLIENT_SECRET\n\n" +
-                        "Option 3 - Username/Password:\n" +
-                        "• JAMA_BASE_URL\n" +
-                        "• JAMA_USERNAME\n" +
-                        "• JAMA_PASSWORD",
-                        "Jama Connect Not Configured", MessageBoxButton.OK, MessageBoxImage.Information);
+                        "No test cases found to export.\n\n" +
+                        "Please ensure you have either:\n" +
+                        "• Generated test cases from requirements using AI, OR\n" +
+                        "• Created and saved test cases manually\n\n" +
+                        "You can generate test cases using the Test Case Generator or create them manually in the Test Case Creation section.",
+                        "No Test Cases Found", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
+
+                _logger?.LogInformation("Found first test case: {Source}", testCaseSource);
+
+                // Use the existing configured Jama service (credentials from environment variables)
+                var jamaService = _jamaConnectService;
                 
-                // Test connection first
-                var (success, message) = await _jamaConnectService.TestConnectionAsync();
-                if (!success)
+                // Test connection with enhanced logging
+                _logger?.LogInformation("Testing Jama connection...");
+                var (connectionSuccess, connectionMessage) = await jamaService.TestConnectionAsync();
+                if (!connectionSuccess)
                 {
+                    _logger?.LogError("Jama connection failed: {Message}", connectionMessage);
                     MessageBox.Show(
-                        $"Cannot connect to Jama Connect:\n{message}\n\n" +
-                        "Please check your configuration and network connection.",
+                        $"❌ Failed to connect to Jama:\n\n{connectionMessage}\n\n" +
+                        "Please check your Jama configuration:\n" +
+                        "• JAMA_BASE_URL environment variable\n" +
+                        "• JAMA_CLIENT_ID and JAMA_CLIENT_SECRET\n" +
+                        "• Network connectivity to Jama instance",
                         "Connection Failed", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
-                
-                _logger?.LogInformation("Jama connection successful: {Message}", message);
-                
-                // Get projects to let user choose
-                var projects = await _jamaConnectService.GetProjectsAsync();
-                if (projects == null || projects.Count == 0)
+                _logger?.LogInformation("Jama connection successful");
+
+                // Get projects with enhanced logging
+                _logger?.LogInformation("Fetching Jama projects...");
+                var projects = await jamaService.GetProjectsAsync();
+                if (!projects?.Any() == true)
                 {
+                    _logger?.LogWarning("No Jama projects found or accessible");
                     MessageBox.Show(
-                        "No projects found in Jama Connect.\n\n" +
-                        "Please ensure your user has access to at least one project.",
-                        "No Projects Found", MessageBoxButton.OK, MessageBoxImage.Information);
+                        "No Jama projects found.\n\n" +
+                        "Please ensure you have access to at least one project.",
+                        "No Projects Found", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                _logger?.LogInformation("Found {ProjectCount} Jama projects", projects.Count);
+
+                // Show project selection dialog
+                var projectDialog = new JamaProjectSelectionDialog(projects);
+                if (projectDialog.ShowDialog() != true || projectDialog.SelectedProject == null)
+                    return;
+
+                var selectedProject = projectDialog.SelectedProject;
+                _logger?.LogInformation("Selected Jama project: {ProjectName} (ID: {ProjectId})", 
+                    selectedProject.ProjectKey, selectedProject.Id);
+
+                // Convert ONLY the first test case to Jama format
+                var jamaCases = ConvertSingleTestCaseToJamaFormat(firstRequirement);
+                
+                if (!jamaCases.Any())
+                {
+                    _logger?.LogWarning("Failed to convert test case to Jama format for requirement: {RequirementId}", 
+                        firstRequirement.GlobalId ?? firstRequirement.Item ?? "Unknown");
+                    MessageBox.Show(
+                        "Failed to convert test case to Jama format.\n\n" +
+                        $"Source: {testCaseSource}\n\n" +
+                        "Please check the application logs for more details.",
+                        "Conversion Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
                 
-                // For now, show available projects and let user know this is a test
-                var projectList = string.Join("\n", projects.Select(p => $"• {p.Name} (ID: {p.Id})"));
-                
-                var result = MessageBox.Show(
-                    $"Jama Connect integration test successful!\n\n" +
-                    $"Found {projects.Count} project(s):\n{projectList}\n\n" +
-                    $"Would you like to run a test import of requirements from the first project?",
-                    "Jama Connect Test", MessageBoxButton.YesNo, MessageBoxImage.Question);
-                    
-                if (result == MessageBoxResult.Yes && projects.Count > 0)
+                _logger?.LogInformation("Converted single test case for import. Source: {Source}", testCaseSource);
+
+                // Import SINGLE test case with component-aware placement
+                _logger?.LogInformation("Starting component-aware Jama import for single test case...");
+                var (importSuccess, importMessage, createdId) = await jamaService.ImportTestCaseFromRequirementAsync(
+                    selectedProject.Id, jamaCases.First(), firstRequirement);
+
+                if (importSuccess && createdId.HasValue)
                 {
-                    await TestImportRequirementsAsync(projects[0].Id);
+                    var jamaBaseUrl = Environment.GetEnvironmentVariable("JAMA_BASE_URL") ?? "your Jama instance";
+                    var successMessage = $"✅ SINGLE Test Case Imported Successfully! (Component-Aware Mode)\n\n" +
+                        $"🎯 Project: {selectedProject.ProjectKey}\n" +
+                        $"📋 Source: {testCaseSource}\n" +
+                        $"📊 Import Summary:\n{importMessage}\n\n" +
+                        $"✨ Created Test Case ID: {createdId}\n\n" +
+                        $"🌐 View your test case in Jama Connect:\n{jamaBaseUrl}";
+
+                    _logger?.LogInformation("Successfully imported SINGLE test case to Jama project {Project}: {Id}. Source: {Source}", 
+                        selectedProject.ProjectKey, createdId, testCaseSource);
+
+                    MessageBox.Show(successMessage, "Component-Aware Test Case Import Successful", 
+                        MessageBoxButton.OK, MessageBoxImage.Information);
                 }
-                
+                else
+                {
+                    var errorMessage = $"❌ SINGLE Test Case Import Failed\n\n" +
+                        $"Project: {selectedProject.ProjectKey}\n" +
+                        $"Source: {testCaseSource}\n\n" +
+                        $"Error Details:\n{importMessage}";
+                    
+                    _logger?.LogError("Failed to import SINGLE test case to Jama: {Error}. Source: {Source}", importMessage, testCaseSource);
+                    
+                    MessageBox.Show(errorMessage, "Single Test Case Import Failed", 
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "Failed to export to Jama Connect");
+                _logger?.LogError(ex, "Unexpected error during SINGLE test case Jama import");
                 MessageBox.Show(
-                    $"Jama Connect export failed:\n{ex.Message}",
-                    "Export Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    $"❌ Unexpected Error (Single Test Case Import)\n\n" +
+                    $"An error occurred while importing to Jama:\n{ex.Message}\n\n" +
+                    "Please check the application logs for more details.",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        /// <summary>
+        /// Convert SINGLE requirement's first test case to Jama format (for debugging)
+        /// </summary>
+        private List<JamaTestCaseRequest> ConvertSingleTestCaseToJamaFormat(Requirement requirement)
+        {
+            var jamaTestCases = new List<JamaTestCaseRequest>();
+            
+            try
+            {
+                // Priority: Handle saved test cases first (more reliable)
+                if (requirement.GeneratedTestCases?.Any() == true)
+                {
+                    var firstSavedTestCase = requirement.GeneratedTestCases.First();
+                    var jamaTestCase = ConvertSavedTestCase(firstSavedTestCase, requirement);
+                    if (jamaTestCase != null)
+                    {
+                        jamaTestCases.Add(jamaTestCase);
+                        _logger?.LogInformation("Converted first saved test case from requirement {RequirementId}: {TestCaseName}", 
+                            requirement.GlobalId ?? requirement.Item ?? "Unknown", firstSavedTestCase.Name ?? "Unnamed");
+                    }
+                }
+                // Fallback: Handle AI-generated test case if no saved test cases
+                else if (!string.IsNullOrWhiteSpace(requirement.CurrentResponse?.Output))
+                {
+                    var aiTestCase = ConvertAIGeneratedTestCase(requirement);
+                    if (aiTestCase != null)
+                    {
+                        jamaTestCases.Add(aiTestCase);
+                        _logger?.LogInformation("Converted AI-generated test case from requirement {RequirementId}", 
+                            requirement.GlobalId ?? requirement.Item ?? "Unknown");
+                    }
+                }
+                
+                if (!jamaTestCases.Any())
+                {
+                    _logger?.LogWarning("No convertible test cases found for requirement {RequirementId}", 
+                        requirement.GlobalId ?? requirement.Item ?? "Unknown");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error converting single test case for requirement {RequirementId}", 
+                    requirement.GlobalId ?? requirement.Item ?? "Unknown");
+            }
+
+            return jamaTestCases;
+        }
+
+        /// <summary>
+        /// Convert requirements with test cases (both AI-generated and saved) to Jama test case format
+        /// </summary>
+        private List<JamaTestCaseRequest> ConvertAllTestCasesToJamaFormat(List<Requirement> requirements)
+        {
+            var jamaTestCases = new List<JamaTestCaseRequest>();
+            
+            foreach (var req in requirements)
+            {
+                try
+                {
+                    // Handle AI-generated test cases (from CurrentResponse.Output)
+                    if (!string.IsNullOrWhiteSpace(req.CurrentResponse?.Output))
+                    {
+                        var aiTestCase = ConvertAIGeneratedTestCase(req);
+                        if (aiTestCase != null)
+                        {
+                            jamaTestCases.Add(aiTestCase);
+                        }
+                    }
+                    
+                    // Handle manually saved test cases (from GeneratedTestCases)
+                    if (req.GeneratedTestCases?.Any() == true)
+                    {
+                        foreach (var savedTestCase in req.GeneratedTestCases)
+                        {
+                            var jamaTestCase = ConvertSavedTestCase(savedTestCase, req);
+                            if (jamaTestCase != null)
+                            {
+                                jamaTestCases.Add(jamaTestCase);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogWarning(ex, "Error converting test cases for requirement {RequirementId}", req.GlobalId ?? req.Item ?? "Unknown");
+                }
+            }
+
+            return jamaTestCases;
+        }
+
+        /// <summary>
+        /// Convert an AI-generated test case from requirement output to Jama format
+        /// </summary>
+        private JamaTestCaseRequest? ConvertAIGeneratedTestCase(Requirement requirement)
+        {
+            var output = requirement.CurrentResponse?.Output;
+            if (string.IsNullOrWhiteSpace(output)) return null;
+
+            // Parse test steps from the requirement output
+            var steps = ParseTestStepsFromOutput(output);
+            if (!steps.Any())
+            {
+                // If no structured steps found, create a basic test case from the output
+                steps = new List<JamaTestStep>
+                {
+                    new JamaTestStep
+                    {
+                        Number = "1",
+                        Action = output.Length > 200 ? output.Substring(0, 200) + "..." : output,
+                        ExpectedResult = "Verify test completes successfully",
+                        Notes = ""
+                    }
+                };
+            }
+
+            var baseName = string.IsNullOrWhiteSpace(requirement.Name)
+                ? (string.IsNullOrWhiteSpace(requirement.Item) ? "AI Generated Test Case" : $"{requirement.Item} – AI Generated Test")
+                : $"{requirement.Item}: {requirement.Name}";
+
+            var description = ExtractDescriptionFromOutput(output);
+            if (string.IsNullOrWhiteSpace(description))
+                description = requirement.Description ?? string.Empty;
+
+            return new JamaTestCaseRequest
+            {
+                Name = baseName,
+                Description = description,
+                Steps = steps,
+                AssociatedRequirements = requirement.GlobalId ?? requirement.Item ?? "",
+                Tags = string.Join(";", requirement.TagList ?? Enumerable.Empty<string>()),
+                Priority = "Medium",
+                TestType = "Functional"
+            };
+        }
+
+        /// <summary>
+        /// Convert a saved test case to Jama format
+        /// </summary>
+        private JamaTestCaseRequest? ConvertSavedTestCase(TestCase savedTestCase, Requirement requirement)
+        {
+            if (savedTestCase == null) return null;
+
+            var steps = new List<JamaTestStep>();
+            
+            // Convert test case steps to Jama format
+            if (savedTestCase.Steps?.Any() == true)
+            {
+                for (int i = 0; i < savedTestCase.Steps.Count; i++)
+                {
+                    var step = savedTestCase.Steps[i];
+                    steps.Add(new JamaTestStep
+                    {
+                        Number = step.StepNumber > 0 ? step.StepNumber.ToString() : (i + 1).ToString(),
+                        Action = step.StepAction ?? $"Execute step {i + 1}",
+                        ExpectedResult = step.StepExpectedResult ?? "Verify step completes successfully",
+                        Notes = step.StepNotes ?? ""
+                    });
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(savedTestCase.StepAction))
+            {
+                // Handle single-step test case
+                steps.Add(new JamaTestStep
+                {
+                    Number = savedTestCase.StepNumber ?? "1",
+                    Action = savedTestCase.StepAction,
+                    ExpectedResult = savedTestCase.StepExpectedResult ?? "Verify step completes successfully",
+                    Notes = savedTestCase.StepNotes ?? ""
+                });
+            }
+            else
+            {
+                // Create a basic step if no detailed steps exist
+                steps.Add(new JamaTestStep
+                {
+                    Number = "1",
+                    Action = savedTestCase.TestCaseText ?? savedTestCase.Name ?? "Execute test case",
+                    ExpectedResult = "Verify test completes successfully",
+                    Notes = ""
+                });
+            }
+
+            return new JamaTestCaseRequest
+            {
+                Name = savedTestCase.Name ?? $"Test Case {savedTestCase.Id}",
+                Description = savedTestCase.TestCaseText ?? "",
+                Steps = steps,
+                AssociatedRequirements = requirement.GlobalId ?? requirement.Item ?? "",
+                Tags = savedTestCase.Tags ?? string.Join(";", requirement.TagList ?? Enumerable.Empty<string>()),
+                Priority = "Medium", // TestCase model doesn't seem to have a Priority property
+                TestType = "Functional"
+            };
+        }
+
+        /// <summary>
+        /// Parse test steps from requirement output text
+        /// </summary>
+        private List<JamaTestStep> ParseTestStepsFromOutput(string output)
+        {
+            var steps = new List<JamaTestStep>();
+            
+            // Use similar parsing logic as RequirementService
+            var requirementService = App.ServiceProvider?.GetService<IRequirementService>();
+            if (requirementService == null) return steps;
+
+            try
+            {
+                // This is a simplified version - we would need to expose the step parsing methods
+                // from RequirementService or duplicate the logic here
+                var lines = output.Replace("\r", "").Split('\n');
+                var stepNumber = 1;
+                
+                foreach (var line in lines)
+                {
+                    var trimmed = line.Trim();
+                    if (string.IsNullOrEmpty(trimmed)) continue;
+                    
+                    // Look for numbered steps or bullet points
+                    if (trimmed.StartsWith($"{stepNumber}.") || trimmed.StartsWith("•") || trimmed.StartsWith("-"))
+                    {
+                        var stepText = trimmed.TrimStart('1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '.', '•', '-').Trim();
+                        
+                        if (!string.IsNullOrWhiteSpace(stepText))
+                        {
+                            steps.Add(new JamaTestStep
+                            {
+                                Number = stepNumber.ToString(),
+                                Action = stepText,
+                                ExpectedResult = "Verify step completes successfully",
+                                Notes = ""
+                            });
+                            stepNumber++;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Error parsing test steps from output");
+            }
+
+            return steps;
+        }
+
+        /// <summary>
+        /// Extract description/objective from requirement output
+        /// </summary>
+        private string ExtractDescriptionFromOutput(string output)
+        {
+            try
+            {
+                var lines = output.Replace("\r", "").Split('\n');
+                
+                // Look for "Objective:" or "Description:" sections
+                foreach (var line in lines)
+                {
+                    var trimmed = line.Trim();
+                    if (trimmed.StartsWith("Objective:", StringComparison.OrdinalIgnoreCase) ||
+                        trimmed.StartsWith("Description:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var colonIndex = trimmed.IndexOf(':');
+                        if (colonIndex > 0 && colonIndex < trimmed.Length - 1)
+                        {
+                            return trimmed.Substring(colonIndex + 1).Trim();
+                        }
+                    }
+                }
+                
+                // If no specific section found, use first non-empty line
+                foreach (var line in lines)
+                {
+                    var trimmed = line.Trim();
+                    if (!string.IsNullOrWhiteSpace(trimmed) && 
+                        !trimmed.StartsWith("#") && 
+                        !trimmed.StartsWith("**"))
+                    {
+                        return trimmed;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Error extracting description from output");
+            }
+
+            return string.Empty;
         }
         
         /// <summary>

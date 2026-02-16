@@ -56,5 +56,20 @@ namespace TestCaseEditorApp.Services
         /// Download attachment by ID
         /// </summary>
         Task<byte[]?> DownloadAttachmentAsync(int attachmentId, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Create a test case in Jama Connect
+        /// </summary>
+        Task<(bool Success, string Message, int? TestCaseId)> CreateTestCaseAsync(int projectId, JamaTestCaseRequest testCase, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Import multiple test cases to Jama Connect
+        /// </summary>
+        Task<(bool Success, string Message, List<int> CreatedIds)> ImportTestCasesAsync(int projectId, List<JamaTestCaseRequest> testCases, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Get test case item type ID for a project
+        /// </summary>
+        Task<(bool Success, int? TestCaseItemType)> GetTestCaseItemTypeAsync(int projectId, CancellationToken cancellationToken = default);
     }
 }
