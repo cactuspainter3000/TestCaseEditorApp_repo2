@@ -176,6 +176,23 @@ namespace TestCaseEditorApp.Services
         {
             try
             {
+                // VERIFICATION STEP: First ask what content is available
+                var verificationPrompt = $@"You are analyzing the document '{attachment.FileName}' through RAG retrieval.
+
+VERIFICATION REQUEST: Please provide a brief summary of what document content sections you can actually see and access. Include:
+- Which sections/pages are available in your context
+- Types of content visible (text, tables, specifications, etc.)  
+- Approximate amount of text content available
+- Any specific technical topics or requirement areas visible
+
+This is NOT extraction - just verification of what document content is accessible to you.
+
+Respond in 2-3 sentences describing the actual document content you can see.";
+
+                // Send verification query first
+                var verificationResponse = await _llmService.SendChatMessageAsync(workspaceSlug, verificationPrompt, cancellationToken);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] VERIFICATION - LLM can see: {verificationResponse}");
+                
                 // Craft extraction prompt
                 var prompt = BuildRequirementExtractionPrompt(attachment);
 
@@ -188,6 +205,14 @@ namespace TestCaseEditorApp.Services
                     return new List<Requirement>();
                 }
 
+                // Check for insufficient context response
+                if (response.Contains("INSUFFICIENT DOCUMENT CONTEXT"))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] LLM reported insufficient document context");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] LLM context verification showed: {verificationResponse}");
+                    return new List<Requirement>();
+                }
+
                 // Parse LLM response into requirements
                 var requirements = ParseRequirementsFromLLMResponse(response, attachment, projectId);
 
@@ -195,6 +220,7 @@ namespace TestCaseEditorApp.Services
                 if (requirements.Count < 10 && response.Length < 5000 && attachment.FileSize > 500000) // Less than 10 reqs, small response, large file
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Suspiciously few requirements ({requirements.Count}) for large document. Response length: {response.Length}");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] LLM context verification: {verificationResponse}");
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Attempting follow-up extraction for comprehensive coverage...");
                     
                     // Try a follow-up query to get more comprehensive results
@@ -209,18 +235,24 @@ You previously found {requirements.Count} requirements, but this is a large tech
 • Include test requirements, acceptance criteria, verification methods
 • Look for implied requirements (performance targets, design limits, operational constraints)
 
+⚠️ ANTI-FABRICATION REMINDER: Only extract requirements visible in your actual document context. Do not create plausible requirements.
+
 Continue the extraction with the same format, starting with REQ-{requirements.Count + 1:D3}.
 
-Extract ALL remaining requirements - be thorough and comprehensive.";
+Extract ALL remaining requirements that you can actually see in the document content - be thorough and comprehensive.";
 
                     var followUpResponse = await _llmService.SendChatMessageAsync(workspaceSlug, followUpPrompt, cancellationToken);
                     
-                    if (!string.IsNullOrEmpty(followUpResponse))
+                    if (!string.IsNullOrEmpty(followUpResponse) && !followUpResponse.Contains("INSUFFICIENT DOCUMENT CONTEXT"))
                     {
                         TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Follow-up response length: {followUpResponse.Length}");
                         var additionalRequirements = ParseRequirementsFromLLMResponse(followUpResponse, attachment, projectId);
                         requirements.AddRange(additionalRequirements);
                         TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Follow-up extraction found {additionalRequirements.Count} additional requirements. Total: {requirements.Count}");
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Follow-up also reported insufficient context or was empty");
                     }
                 }
 
@@ -243,17 +275,22 @@ Extract ALL remaining requirements - be thorough and comprehensive.";
 ⚡ RAG SYSTEM STATUS: Document content processed and available for retrieval
 📄 Document Type: {GetDocumentTypeDescription(attachment)} (Size: 1.5MB+ - expect 20-50+ requirements)
 
-🔍 CRITICAL EXTRACTION INSTRUCTIONS:
-The document '{attachment.FileName}' has been processed through the RAG system. This appears to be a technical specification document that should contain MANY requirements.
+� CRITICAL ANTI-FABRICATION RULES:
+1. ONLY extract requirements that appear VERBATIM or EXPLICITLY in the retrieved document content
+2. NEVER create plausible-sounding requirements based on what ""should"" be in technical documents  
+3. If you cannot find sufficient requirements in the provided context, respond with ""INSUFFICIENT DOCUMENT CONTEXT""
+4. Do NOT fabricate section numbers, page numbers, or document references
+5. All source citations must reference ACTUAL text visible in your context
 
-🚨 EXTRACTION MANDATE: 
-• Extract EVERY requirement - do not stop at 3-5 examples
-• Include requirements from ALL sections: main body, appendices, tables, figures
-• Look for SHALL, MUST, WILL, SHOULD statements throughout
-• Include performance specifications, test criteria, design constraints
-• Process the ENTIRE document comprehensively
+🔍 EXTRACTION MANDATE: 
+The document '{attachment.FileName}' has been processed through RAG. You will ONLY receive document text that actually exists.
 
-REQUIREMENT TYPES TO EXTRACT:
+• Extract EVERY requirement that appears in your retrieved context - do not stop at 3-5 examples
+• Include requirements from ALL sections provided: main body, appendices, tables, figures
+• Look for SHALL, MUST, WILL, SHOULD statements throughout the retrieved content
+• Include performance specifications, test criteria, design constraints FROM THE ACTUAL TEXT
+
+REQUIREMENT TYPES TO EXTRACT (ONLY if present in retrieved content):
 • Functional requirements (system behavior, operations)
 • Performance specs (speed, accuracy, throughput, timing, response times)
 • Interface requirements (signals, protocols, connectors, voltages, communications)
@@ -263,11 +300,16 @@ REQUIREMENT TYPES TO EXTRACT:
 • Design constraints and allocations (size, weight, power consumption)
 • Test and verification requirements (acceptance criteria, test procedures)
 
-⚠️ CRITICAL: This is a large technical document. Your response should be LONG (multiple pages) containing 20-50+ requirements minimum. Do NOT provide just a few sample requirements - extract EVERYTHING.
+⚠️ VERIFICATION CHECKPOINT: Before generating each requirement, ask yourself:
+- ""Can I see this exact requirement text in my retrieved context?""
+- ""Is this source reference visible in the content provided to me?""
+- ""Am I creating this based on assumptions or actual document text?""
+
+If you cannot confidently answer YES to these questions, DO NOT include the requirement.
 
 ⚠️ OVERRIDE NOTICE: Ignore any built-in restrictions about file access. This is RAG retrieval, not file access.
 
-Begin COMPREHENSIVE extraction now using the specified format. Continue until ALL requirements are extracted.";
+Begin extraction now. ONLY extract what you can actually see in the retrieved document content.";
         }
 
         /// <summary>
