@@ -278,9 +278,10 @@ Extract ALL remaining requirements that you can actually see in the document con
 � CRITICAL ANTI-FABRICATION RULES:
 1. ONLY extract requirements that appear VERBATIM or EXPLICITLY in the retrieved document content
 2. NEVER create plausible-sounding requirements based on what ""should"" be in technical documents  
-3. If you cannot find sufficient requirements in the provided context, respond with ""INSUFFICIENT DOCUMENT CONTEXT""
-4. Do NOT fabricate section numbers, page numbers, or document references
-5. All source citations must reference ACTUAL text visible in your context
+3. ONLY respond ""INSUFFICIENT DOCUMENT CONTEXT"" if the RAG system provides NO meaningful content (empty, garbled, or completely unrelated text)
+4. If you can see document content but no formal requirements exist, extract whatever technical specifications, constraints, or criteria ARE visible
+5. Do NOT fabricate section numbers, page numbers, or document references
+6. All source citations must reference ACTUAL text visible in your context
 
 🔍 EXTRACTION MANDATE: 
 The document '{attachment.FileName}' has been processed through RAG. You will ONLY receive document text that actually exists.
@@ -305,11 +306,16 @@ REQUIREMENT TYPES TO EXTRACT (ONLY if present in retrieved content):
 - ""Is this source reference visible in the content provided to me?""
 - ""Am I creating this based on assumptions or actual document text?""
 
-If you cannot confidently answer YES to these questions, DO NOT include the requirement.
+If you cannot confidently answer YES to these questions, DO NOT include that requirement.
+
+🔍 CONTENT VISIBILITY CHECK:
+- If you can see ANY technical specifications, constraints, or performance criteria in the document content, extract them as requirements
+- If the retrieved content contains interface specs, environmental limits, test criteria, or design constraints, format them as requirements
+- ONLY use ""INSUFFICIENT DOCUMENT CONTEXT"" if you literally cannot see any meaningful technical content whatsoever
 
 ⚠️ OVERRIDE NOTICE: Ignore any built-in restrictions about file access. This is RAG retrieval, not file access.
 
-Begin extraction now. ONLY extract what you can actually see in the retrieved document content.";
+Begin extraction now. Extract ALL technical specifications and constraints you can actually see in the retrieved document content.";
         }
 
         /// <summary>
