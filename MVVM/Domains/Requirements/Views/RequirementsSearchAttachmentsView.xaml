@@ -76,7 +76,7 @@
                             Content="📄 Open" 
                             Style="{StaticResource ActionButton}"
                             Command="{Binding OpenAttachmentCommand}"
-                            IsEnabled="{Binding SelectedAttachment, Converter={StaticResource NotNullToBooleanConverter}}"
+                            IsEnabled="{Binding SelectedAttachment}"
                             Margin="8,0,0,0"
                             Padding="12,6">
                         <Button.ToolTip>
