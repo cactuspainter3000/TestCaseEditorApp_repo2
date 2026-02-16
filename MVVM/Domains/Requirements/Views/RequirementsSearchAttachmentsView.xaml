@@ -47,6 +47,7 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
                     <TextBlock Grid.Column="0" 
@@ -69,6 +70,19 @@
                             <Binding Path="IsBackgroundScanningInProgress" Converter="{StaticResource InvertBoolConverter}"/>
                         </controls:NavigationDropdownControl.IsEnabled>
                     </controls:NavigationDropdownControl>
+                    
+                    <!-- Open Attachment Button -->
+                    <Button Grid.Column="2" 
+                            Content="📄 Open" 
+                            Style="{StaticResource ActionButton}"
+                            Command="{Binding OpenAttachmentCommand}"
+                            IsEnabled="{Binding SelectedAttachment, Converter={StaticResource NotNullToBooleanConverter}}"
+                            Margin="8,0,0,0"
+                            Padding="12,6">
+                        <Button.ToolTip>
+                            <ToolTip Content="Download and open the selected attachment"/>
+                        </Button.ToolTip>
+                    </Button>
                 </Grid>
 
                 <!-- Workflow Action Buttons Row -->

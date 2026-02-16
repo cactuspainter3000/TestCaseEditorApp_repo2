@@ -1,12 +1,15 @@
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using TestCaseEditorApp.MVVM.ViewModels;
@@ -231,6 +234,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public IAsyncRelayCommand LoadProjectsCommand { get; private set; } = null!;
         public IAsyncRelayCommand TestConnectionCommand { get; private set; } = null!;
         public IRelayCommand<JamaAttachment> SelectAttachmentCommand { get; private set; } = null!;
+        public IAsyncRelayCommand OpenAttachmentCommand { get; private set; } = null!;
 
         // ==== COMPUTED PROPERTIES FOR BUTTON WORKFLOW ====
         
@@ -325,6 +329,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             LoadProjectsCommand = new AsyncRelayCommand(LoadAvailableProjectsAsync, () => !IsBusy);
             TestConnectionCommand = new AsyncRelayCommand(TestJamaConnectionAsync, () => !IsBusy);
             SelectAttachmentCommand = new RelayCommand<JamaAttachment>(SelectAttachment);
+            OpenAttachmentCommand = new AsyncRelayCommand(OpenSelectedAttachmentAsync, CanExecuteOpenAttachment);
             
             _logger.LogInformation("[RequirementsSearchAttachments] Commands initialized in InitializeCommands method");
         }
@@ -1039,6 +1044,78 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     StatusMessage = "❌ Error updating attachment results";
                     IsBackgroundScanningInProgress = false;
                 });
+            }
+        }
+
+        /// <summary>
+        /// Check if opening an attachment is allowed
+        /// </summary>
+        private bool CanExecuteOpenAttachment()
+        {
+            return !IsBusy && SelectedAttachment != null;
+        }
+
+        /// <summary>
+        /// Download and open the selected attachment with the default system application
+        /// </summary>
+        private async Task OpenSelectedAttachmentAsync()
+        {
+            if (SelectedAttachment == null || !CanExecuteOpenAttachment()) return;
+
+            try
+            {
+                IsBusy = true;
+                StatusMessage = $"📥 Downloading {SelectedAttachment.Name}...";
+                
+                _logger.LogInformation("[RequirementsSearchAttachments] Opening attachment {AttachmentName} (ID: {AttachmentId})", 
+                    SelectedAttachment.Name, SelectedAttachment.Id);
+
+                // Get Jama service to download the attachment
+                var jamaService = App.ServiceProvider?.GetService<IJamaConnectService>();
+                if (jamaService == null)
+                {
+                    throw new InvalidOperationException("Jama Connect service not available");
+                }
+
+                // Download attachment bytes
+                var fileBytes = await jamaService.DownloadAttachmentAsync(SelectedAttachment.Id);
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    throw new InvalidOperationException("Failed to download attachment or file is empty");
+                }
+
+                // Create temporary file path
+                var tempPath = Path.GetTempPath();
+                var fileName = SelectedAttachment.Name ?? $"attachment_{SelectedAttachment.Id}.pdf";
+                var filePath = Path.Combine(tempPath, $"JamaAttachment_{SelectedAttachment.Id}_{fileName}");
+
+                // Write file to temp directory
+                await File.WriteAllBytesAsync(filePath, fileBytes);
+                
+                _logger.LogInformation("[RequirementsSearchAttachments] Downloaded {FileSize} bytes to {FilePath}", 
+                    fileBytes.Length, filePath);
+
+                // Open with default application
+                var psi = new ProcessStartInfo
+                {
+                    FileName = filePath,
+                    UseShellExecute = true
+                };
+
+                Process.Start(psi);
+                
+                StatusMessage = $"✅ Opened {SelectedAttachment.Name}";
+                _logger.LogInformation("[RequirementsSearchAttachments] Successfully opened attachment");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsSearchAttachments] Error opening attachment");
+                StatusMessage = $"❌ Error opening attachment: {ex.Message}";
+                SetError($"Failed to open attachment: {ex.Message}");
+            }
+            finally
+            {
+                IsBusy = false;
             }
         }
     }
