@@ -204,43 +204,21 @@ namespace TestCaseEditorApp.Services
         /// </summary>
         private string BuildRequirementExtractionPrompt(JamaAttachment attachment)
         {
-            return $@"You are a requirements analyst extracting formal requirements from a technical document.
+            return $@"Analyze the uploaded document '{attachment.FileName}' and extract ALL requirements and specifications.
 
 Document: {attachment.FileName}
 Document Type: {GetDocumentTypeDescription(attachment)}
 
-TASK: Extract all requirements, specifications, constraints, and technical details from this document.
-
-For each requirement, provide:
-1. **Requirement ID**: A unique identifier (if present in the document, or generate REQ-001, REQ-002, etc.)
-2. **Requirement Text**: The full requirement statement
-3. **Category**: Type of requirement (functional, performance, interface, safety, environmental, lifecycle, etc.)
-4. **Priority**: If stated (High/Medium/Low)
-5. **Verification Method**: How this should be verified (Test, Analysis, Inspection, Demonstration)
-6. **Source Context**: Where in the document this came from (section, page number if available)
-
-IMPORTANT FOCUS AREAS:
+Extract every requirement that specifies what the system must do, including:
 - Functional requirements (what the system must do)
-- Performance specifications (speed, accuracy, throughput, timing)
-- Interface requirements (signals, protocols, connectors, impedance, voltage levels)
-- Environmental constraints (temperature, humidity, altitude, vibration)
-- Lifecycle requirements (MTBF, insertion cycles, durability, maintenance)
+- Performance specifications (speed, accuracy, throughput, timing)  
+- Interface requirements (signals, protocols, connectors, voltage levels)
+- Environmental constraints (temperature, humidity, vibration)
+- Lifecycle requirements (MTBF, insertion cycles, durability)
 - Safety and security requirements
 - Design constraints and allocations
 
-OUTPUT FORMAT:
-Return each requirement as a structured block:
-
----
-ID: [requirement ID]
-Text: [full requirement text]
-Category: [category]
-Priority: [priority if known]
-Verification: [method]
-Source: [location in document]
----
-
-Extract ALL valuable requirements and specifications. Be thorough and precise.";
+Be thorough and extract ALL valuable requirements from the document.";
         }
 
         /// <summary>

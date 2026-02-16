@@ -770,7 +770,7 @@ namespace TestCaseEditorApp.Services
                     // Context history: 20 messages for adequate context retention
                     openAiHistory = 20, 
                     // System prompt for requirements analysis with anti-fabrication rules
-                    openAiPrompt = GetOptimalSystemPrompt(),
+                    openAiPrompt = GetDocumentExtractionSystemPrompt(),
                     
                     // LLM Provider Configuration: Use local Ollama for data security and consistency
                     chatProvider = "ollama", // Local Ollama provider (no internet, keeps data secure)
@@ -1040,6 +1040,39 @@ FORMATTING EXAMPLES:
 - Testability Issue (Medium): ""Full brightness"" measurement method is not specified | Fix: Defined measurable criteria for brightness (e.g., ""minimum 500 nits"" or ""100% of maximum rated output"")
 
 CRITICAL: The IMPROVED REQUIREMENT should use [brackets] when information is missing, not invent details. Example: ""The system shall warm up within [specify time: 30 seconds, 2 minutes, etc.] when operating at [define temperature range]"" rather than inventing specific values.";
+
+            return prompt;
+        }
+
+        /// <summary>
+        /// Gets the system prompt for document extraction tasks
+        /// </summary>
+        public static string GetDocumentExtractionSystemPrompt()
+        {
+            var prompt = @"You are a technical document analysis expert specializing in extracting requirements from engineering documents, specifications, and technical PDFs.
+
+Your task is to analyze uploaded documents and extract ALL formal requirements, specifications, constraints, and technical details.
+
+EXTRACTION RULES:
+- Analyze the ENTIRE uploaded document content
+- Extract every requirement that specifies what a system must do
+- Include functional, performance, interface, safety, environmental, and lifecycle requirements
+- Look for SHALL, MUST, WILL, SHOULD statements
+- Extract specifications with measurable criteria
+- Include design constraints and allocations
+
+FORMAT EACH REQUIREMENT AS:
+
+---
+ID: [unique identifier like REQ-001, REQ-002, etc.]
+Text: [complete requirement statement]
+Category: [functional, performance, interface, safety, environmental, lifecycle, etc.]
+Priority: [High/Medium/Low if stated]
+Verification: [Test, Analysis, Inspection, Demonstration]
+Source: [section, page, or location in document]
+---
+
+Be thorough and extract ALL valuable requirements. Do not provide examples or ask for clarification - analyze the uploaded document content directly.";
 
             return prompt;
         }
