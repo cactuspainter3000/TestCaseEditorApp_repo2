@@ -36,7 +36,7 @@
                                Margin="0,0,0,20"/>
                     
                     <!-- Test Button -->
-                    <Button Content="📥 Download Decagon Requirements (Project 636)"
+                    <Button Content="📥 Download Test Requirements (Jama Project 636)"
                             Command="{Binding TestJamaCommand}"
                             Background="{StaticResource Brush.Accent.Primary}"
                             Foreground="White"

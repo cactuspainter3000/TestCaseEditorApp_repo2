@@ -77,7 +77,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         // ==== PROPERTIES ====
 
         [ObservableProperty]
-        private int selectedProjectId = 636; // Default to Project 636
+        private int selectedProjectId = -1; // Will be set dynamically when a project is opened/selected
         
         // Store the current project name for display purposes
         private string? currentProjectName = null;
@@ -532,6 +532,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             try
             {
+                // Prevent scanning when no valid project is selected
+                if (SelectedProjectId <= 0)
+                {
+                    _logger.LogWarning("[RequirementsSearchAttachments] No valid project selected for attachment scanning (ID: {ProjectId})", SelectedProjectId);
+                    StatusMessage = "No project selected - please select a project first";
+                    return;
+                }
+                
                 if (isBackgroundScan)
                 {
                     // Update progress properties on UI thread
@@ -734,6 +742,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private async Task ParseSelectedAttachmentAsync()
         {
             if (SelectedAttachment == null || !CanExecuteParseAttachment()) return;
+
+            // Prevent parsing when no valid project is selected
+            if (SelectedProjectId <= 0)
+            {
+                _logger.LogWarning("[RequirementsSearchAttachments] No valid project selected for attachment parsing (ID: {ProjectId})", SelectedProjectId);
+                StatusMessage = "No project selected - please select a project first";
+                return;
+            }
 
             try
             {

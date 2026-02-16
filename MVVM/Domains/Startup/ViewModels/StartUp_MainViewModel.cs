@@ -96,10 +96,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
                 await DiagnoseAuthentication();
                 
                 LogMessage($"✅ JamaConnectService available: {_jamaService.GetType().Name}");
-                StatusMessage = "📡 Downloading requirements with Enhanced User Metadata from Project 636...";
-                LogMessage("📡 Calling GetRequirementsWithUserMetadataAsync(636)...");
+                StatusMessage = "📡 Downloading requirements with Enhanced User Metadata from test project...";
+                LogMessage("📡 Calling GetRequirementsWithUserMetadataAsync(636) for testing...");
                 
-                // Get requirements with enhanced user metadata (NEW: Using enhanced import by default)
+                // Get requirements with enhanced user metadata (NOTE: Using project 636 for startup testing only)
                 var jamaItems = await _jamaService.GetRequirementsWithUserMetadataAsync(636);
                 LogMessage($"📦 Retrieved {jamaItems.Count} enhanced Jama items with user metadata");
                 LogMessage($"🔍 DEBUG: First item enhanced check - ID: {jamaItems.FirstOrDefault()?.Id}, CreatedByName: '{jamaItems.FirstOrDefault()?.CreatedByName ?? "NULL"}'");
@@ -381,10 +381,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
                 await DiagnoseAuthentication();
                 
                 LogMessage($"✅ JamaConnectService available: {_jamaService.GetType().Name}");
-                StatusMessage = "📡 Downloading requirements with Enhanced User Metadata from Project 636...";
-                LogMessage("📡 Calling GetRequirementsWithUserMetadataAsync(636)...");
+                StatusMessage = "📡 Downloading requirements with Enhanced User Metadata from test project...";
+                LogMessage("📡 Calling GetRequirementsWithUserMetadataAsync(636) for testing...");
                 
-                // Get requirements with enhanced user metadata
+                // Get requirements with enhanced user metadata (NOTE: Using project 636 for startup testing only)
                 var jamaItems = await _jamaService.GetRequirementsWithUserMetadataAsync(636);
                 LogMessage($"📦 Retrieved {jamaItems.Count} enhanced Jama items with user metadata");
                 
