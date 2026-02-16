@@ -774,7 +774,7 @@ namespace TestCaseEditorApp.Services
                     
                     // LLM Provider Configuration: Use local Ollama for data security and consistency
                     chatProvider = "ollama", // Local Ollama provider (no internet, keeps data secure)
-                    chatModel = "phi4-mini:3.8b-q4_K_M",  // Phi-4 Mini model - excellent for structured analysis and reasoning
+                    chatModel = "phi3.5:3.8b-mini-instruct-q4_K_M",  // Phi-3.5 Mini Instruct model - better instruction following, less refusal
                     
                     // RAG Configuration (based on official docs):
                     // Document similarity threshold: No restriction to ensure comprehensive access to supplemental materials
