@@ -780,8 +780,8 @@ namespace TestCaseEditorApp.Services
                     // Document similarity threshold: No restriction to ensure comprehensive access to supplemental materials
                     similarityThreshold = 0, // No restriction - capture all potentially relevant context for requirement analysis
                     
-                    // Max context snippets: Follow AnythingLLM recommendation for optimal performance
-                    topN = 4, // Use recommended value - higher values may introduce noise
+                    // Max context snippets: Maximized for comprehensive document extraction
+                    topN = 8, // Maximum allowed value - essential for large technical documents with many requirements
                     
                     // Vector search preference: Accuracy optimized to prevent hallucinations
                     // Default is fastest but may return less relevant results leading to hallucinations
