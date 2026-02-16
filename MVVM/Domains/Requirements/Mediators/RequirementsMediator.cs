@@ -1242,7 +1242,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// <summary>
         /// Parse attachment for requirements using document parsing service
         /// </summary>
-        public async Task<List<Requirement>> ParseAttachmentRequirementsAsync(JamaAttachment attachment, int projectId)
+        public async Task<List<Requirement>> ParseAttachmentRequirementsAsync(JamaAttachment attachment, int projectId, System.Action<string>? progressCallback = null)
         {
             try
             {
@@ -1250,7 +1250,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     attachment.Id, attachment.FileName, projectId);
 
                 // Use real document parsing service with attachment metadata to avoid re-scanning
-                var extractedRequirements = await _jamaDocumentParserService.ParseAttachmentAsync(attachment, projectId);
+                var extractedRequirements = await _jamaDocumentParserService.ParseAttachmentAsync(attachment, projectId, progressCallback);
 
                 _logger.LogInformation("[RequirementsMediator] Parsed {Count} requirements from attachment {AttachmentId} ({FileName})", 
                     extractedRequirements.Count, attachment.Id, attachment.FileName);

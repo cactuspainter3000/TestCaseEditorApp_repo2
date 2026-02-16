@@ -16,9 +16,10 @@ namespace TestCaseEditorApp.Services
         /// </summary>
         /// <param name="attachment">Jama attachment metadata object</param>
         /// <param name="projectId">Jama project ID</param>
+        /// <param name="progressCallback">Optional callback for progress updates</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>List of extracted requirements with rich metadata</returns>
-        Task<List<Requirement>> ParseAttachmentAsync(JamaAttachment attachment, int projectId, CancellationToken cancellationToken = default);
+        Task<List<Requirement>> ParseAttachmentAsync(JamaAttachment attachment, int projectId, System.Action<string>? progressCallback = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Parse multiple Jama attachments in batch

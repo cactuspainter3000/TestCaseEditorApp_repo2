@@ -31,40 +31,48 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Parse a single Jama attachment and extract requirements using LLM
         /// </summary>
-        public async Task<List<Requirement>> ParseAttachmentAsync(JamaAttachment attachment, int projectId, CancellationToken cancellationToken = default)
+        public async Task<List<Requirement>> ParseAttachmentAsync(JamaAttachment attachment, int projectId, System.Action<string>? progressCallback = null, CancellationToken cancellationToken = default)
         {
             try
             {
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Starting parse for attachment {attachment.Id} ({attachment.FileName})");
+                progressCallback?.Invoke($"🔧 Preparing to extract requirements from {attachment.FileName}...");
 
                 // Step 1: Download attachment from Jama
+                progressCallback?.Invoke($"📥 Downloading attachment ({attachment.FileSize / 1024}KB)...");
                 var fileBytes = await _jamaService.DownloadAttachmentAsync(attachment.Id, cancellationToken);
                 if (fileBytes == null || fileBytes.Length == 0)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Failed to download attachment {attachment.Id}");
+                    progressCallback?.Invoke("❌ Failed to download document");
                     return new List<Requirement>();
                 }
 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Downloaded {fileBytes.Length} bytes for attachment {attachment.Id}");
+                progressCallback?.Invoke($"✅ Downloaded {fileBytes.Length / 1024}KB - Processing with LLM...");
 
                 // Step 2: Use provided attachment metadata (no need to re-scan project)
                 if (!attachment.IsSupportedDocument)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Unsupported document type: {attachment.MimeType}");
+                    progressCallback?.Invoke($"❌ Unsupported document type: {attachment.MimeType}");
                     return new List<Requirement>();
                 }
 
                 // Step 3: Create temporary AnythingLLM workspace for parsing
+                progressCallback?.Invoke($"🔧 Creating AI workspace for '{attachment.FileName}'...");
                 var workspaceName = $"Jama Document Parse: {attachment.FileName}";
                 
                 var workspace = await _llmService.CreateWorkspaceAsync(workspaceName, cancellationToken);
                 if (workspace == null)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Failed to create workspace {workspaceName}");
+                    progressCallback?.Invoke("❌ Failed to create AI workspace");
                     return new List<Requirement>();
                 }
                 
                 var workspaceSlug = workspace.Slug;
+                progressCallback?.Invoke($"✅ AI workspace ready - Uploading document...");
 
                 // Step 4: Upload document to AnythingLLM for processing
                 var tempFilePath = Path.Combine(Path.GetTempPath(), attachment.FileName);
@@ -78,11 +86,13 @@ namespace TestCaseEditorApp.Services
                     if (!uploadSuccess)
                     {
                         TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Failed to upload document to workspace");
+                        progressCallback?.Invoke("❌ Failed to upload document to AI workspace");
                         return new List<Requirement>();
                     }
 
+                    progressCallback?.Invoke($"🧠 Analyzing document with AI - this may take 2-4 minutes...");
                     // Step 5: Query AnythingLLM to extract requirements
-                    var requirements = await ExtractRequirementsFromWorkspaceAsync(workspaceSlug, attachment, projectId, cancellationToken);
+                    var requirements = await ExtractRequirementsFromWorkspaceAsync(workspaceSlug, attachment, projectId, progressCallback, cancellationToken);
                     
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Extracted {requirements.Count} requirements from attachment {attachment.Id}");
                     return requirements;
@@ -137,7 +147,7 @@ namespace TestCaseEditorApp.Services
                     continue;
                 }
 
-                var requirements = await ParseAttachmentAsync(attachment, projectId, cancellationToken);
+                var requirements = await ParseAttachmentAsync(attachment, projectId, null, cancellationToken);
                 allRequirements.AddRange(requirements);
             }
 
@@ -172,10 +182,13 @@ namespace TestCaseEditorApp.Services
             string workspaceSlug, 
             JamaAttachment attachment, 
             int projectId, 
+            System.Action<string>? progressCallback,
             CancellationToken cancellationToken)
         {
             try
             {
+                progressCallback?.Invoke($"🔍 Verifying document content accessibility...");
+                
                 // VERIFICATION STEP: First ask what content is available
                 var verificationPrompt = $@"You are analyzing the document '{attachment.FileName}' through RAG retrieval.
 
@@ -193,6 +206,7 @@ Respond in 2-3 sentences describing the actual document content you can see.";
                 var verificationResponse = await _llmService.SendChatMessageAsync(workspaceSlug, verificationPrompt, cancellationToken);
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] VERIFICATION - LLM can see: {verificationResponse}");
                 
+                progressCallback?.Invoke($"📝 Extracting requirements using AI (Phase 1/2)...");
                 // Craft extraction prompt
                 var prompt = BuildRequirementExtractionPrompt(attachment);
 
@@ -222,6 +236,8 @@ Respond in 2-3 sentences describing the actual document content you can see.";
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Suspiciously few requirements ({requirements.Count}) for large document. Response length: {response.Length}");
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] LLM context verification: {verificationResponse}");
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Attempting follow-up extraction for comprehensive coverage...");
+                    
+                    progressCallback?.Invoke($"🔍 Found {requirements.Count} requirements - searching for more (Phase 2/2)...");
                     
                     // Try a follow-up query to get more comprehensive results
                     var followUpPrompt = $@"FOLLOW-UP ANALYSIS: Continue comprehensive requirements extraction.
@@ -259,17 +275,20 @@ Extract ALL remaining requirements that you can actually see in the document con
                 // Self-validation: Have LLM verify its extracted requirements against document content
                 if (requirements.Count > 0)
                 {
+                    progressCallback?.Invoke($"⚙️ Validating {requirements.Count} requirements for accuracy...");
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Starting self-validation of {requirements.Count} extracted requirements...");
                     var validatedRequirements = await ValidateExtractedRequirements(workspaceSlug, requirements, cancellationToken);
                     
                     var removedCount = requirements.Count - validatedRequirements.Count;
                     if (removedCount > 0)
                     {
+                        progressCallback?.Invoke($"✅ Validation complete - {validatedRequirements.Count} verified requirements (removed {removedCount} questionable)");
                         TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Self-validation removed {removedCount} potentially hallucinated requirements");
                         TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Validated requirements count: {validatedRequirements.Count}");
                     }
                     else
                     {
+                        progressCallback?.Invoke($"✅ Validation complete - All {requirements.Count} requirements verified as accurate");
                         TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] All {requirements.Count} requirements passed self-validation");
                     }
                     

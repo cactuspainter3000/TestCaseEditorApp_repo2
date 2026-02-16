@@ -518,10 +518,22 @@ namespace TestCaseEditorApp.Services
                 // Check if workspace name already exists
                 if (await WorkspaceNameExistsAsync(name, cancellationToken))
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Cannot create workspace '{name}' - name already exists");
-                    throw new InvalidOperationException($"A workspace with the name '{name}' already exists. Please choose a different name.");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Workspace '{name}' already exists, reusing existing workspace");
+                    var workspaces = await GetWorkspacesAsync(cancellationToken);
+                    var existingWorkspace = workspaces?.FirstOrDefault(w => string.Equals(w.Name, name, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (existingWorkspace != null)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Found existing workspace '{existingWorkspace.Name}' (slug: '{existingWorkspace.Slug}')");
+                        return existingWorkspace;
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Workspace name exists but could not retrieve workspace details");
+                    }
                 }
 
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Creating new workspace '{name}'");
                 var payload = new
                 {
                     name = name

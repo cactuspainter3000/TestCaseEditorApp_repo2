@@ -805,8 +805,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 _logger.LogInformation("[RequirementsSearchAttachments] Parsing attachment {AttachmentName} (ID: {AttachmentId})", 
                     SelectedAttachment.Name, SelectedAttachment.Id);
 
+                // Define progress callback to update status during processing
+                System.Action<string> progressCallback = (message) => {
+                    Application.Current?.Dispatcher?.Invoke(() => {
+                        StatusMessage = message;
+                    });
+                };
+
                 // Use real document parsing via mediator - pass full attachment to avoid re-scanning
-                var extractedRequirements = await _mediator.ParseAttachmentRequirementsAsync(SelectedAttachment, SelectedProjectId);
+                var extractedRequirements = await _mediator.ParseAttachmentRequirementsAsync(SelectedAttachment, SelectedProjectId, progressCallback);
 
                 ExtractedRequirements.Clear();
                 foreach (var requirement in extractedRequirements)
