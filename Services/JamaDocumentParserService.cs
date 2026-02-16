@@ -252,21 +252,37 @@ Extract ALL valuable requirements and specifications. Be thorough and precise.";
 
             try
             {
+                // DEBUG: Log the raw LLM response to understand what we're getting
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] DEBUG - Raw LLM response length: {llmResponse?.Length ?? 0} characters");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] DEBUG - First 500 chars of LLM response: {llmResponse?.Substring(0, Math.Min(500, llmResponse?.Length ?? 0))}");
+                
                 // Split response by requirement delimiter
                 var blocks = llmResponse.Split(new[] { "---" }, StringSplitOptions.RemoveEmptyEntries);
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] DEBUG - Found {blocks.Length} blocks after splitting on '---'");
 
                 foreach (var block in blocks)
                 {
                     if (string.IsNullOrWhiteSpace(block))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] DEBUG - Skipping empty block");
                         continue;
+                    }
 
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] DEBUG - Processing block: {block.Trim().Substring(0, Math.Min(200, block.Trim().Length))}");
                     var requirement = ParseRequirementBlock(block.Trim(), attachment, projectId);
                     if (requirement != null)
                     {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] DEBUG - Successfully parsed requirement: {requirement.GlobalId}");
                         requirements.Add(requirement);
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] DEBUG - Failed to parse requirement from block");
                     }
                 }
 
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] DEBUG - Final result: Parsed {requirements.Count} requirements from LLM response");
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Parsed {requirements.Count} requirements from LLM response");
             }
             catch (Exception ex)
@@ -284,8 +300,12 @@ Extract ALL valuable requirements and specifications. Be thorough and precise.";
         {
             try
             {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] DEBUG - Parsing block with {block.Length} characters");
+                
                 var lines = block.Split('\n', StringSplitOptions.RemoveEmptyEntries);
                 var reqData = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] DEBUG - Block has {lines.Length} lines");
 
                 foreach (var line in lines)
                 {
@@ -295,15 +315,26 @@ Extract ALL valuable requirements and specifications. Be thorough and precise.";
                         var key = line.Substring(0, colonIndex).Trim();
                         var value = line.Substring(colonIndex + 1).Trim();
                         reqData[key] = value;
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] DEBUG - Found key-value: '{key}' = '{value.Substring(0, Math.Min(50, value.Length))}'");
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] DEBUG - Skipping line (no colon): '{line.Substring(0, Math.Min(50, line.Length))}'");
                     }
                 }
 
                 // Extract required fields
                 if (!reqData.TryGetValue("ID", out var id) || string.IsNullOrWhiteSpace(id))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] DEBUG - Rejecting block: Missing or empty ID field. Available keys: {string.Join(", ", reqData.Keys)}");
                     return null;
+                }
 
                 if (!reqData.TryGetValue("Text", out var text) || string.IsNullOrWhiteSpace(text))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] DEBUG - Rejecting block: Missing or empty Text field. Available keys: {string.Join(", ", reqData.Keys)}");
                     return null;
+                }
 
                 // Build requirement object
                 var requirement = new Requirement
@@ -320,10 +351,12 @@ Extract ALL valuable requirements and specifications. Be thorough and precise.";
                     requirement.Description = $"{text}\n\nSource: {sourceContext}\n\nFrom: Jama Attachment {attachment.FileName}";
                 }
 
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] DEBUG - Successfully created requirement with ID: '{id}'");
                 return requirement;
             }
             catch (Exception ex)
             {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] DEBUG - Exception parsing requirement block: {ex.Message}");
                 TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaDocumentParser] Error parsing requirement block: {ex.Message}");
                 return null;
             }
