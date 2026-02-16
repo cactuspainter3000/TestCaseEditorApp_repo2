@@ -528,6 +528,41 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// <summary>
         /// Search attachments with progress tracking support (can be called in background)
         /// </summary>
+        /// <summary>
+        /// Attempt to auto-detect and set the project ID from current workspace context
+        /// </summary>
+        private bool TryAutoDetectProjectId()
+        {
+            try
+            {
+                // Try to get project ID from workspace context
+                var currentWorkspace = _workspaceContext?.CurrentWorkspace;
+                if (!string.IsNullOrEmpty(currentWorkspace?.JamaProject) && 
+                    int.TryParse(currentWorkspace.JamaProject, out var projectId) && 
+                    projectId > 0)
+                {
+                    SelectedProjectId = projectId;
+                    _logger.LogInformation("[RequirementsSearchAttachments] Auto-detected project ID from workspace: {ProjectId}", projectId);
+                    return true;
+                }
+
+                // Try to get project name and look it up
+                var projectName = _mediator?.CurrentProjectName;
+                if (!string.IsNullOrEmpty(projectName))
+                {
+                    _logger.LogInformation("[RequirementsSearchAttachments] Found project name '{ProjectName}' - would need project lookup to get ID", projectName);
+                    // Note: Could implement project name -> ID lookup here if needed
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsSearchAttachments] Error auto-detecting project ID");
+                return false;
+            }
+        }
+
         private async Task SearchAttachmentsWithProgressAsync(bool isBackgroundScan = false)
         {
             try
@@ -535,9 +570,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 // Prevent scanning when no valid project is selected
                 if (SelectedProjectId <= 0)
                 {
-                    _logger.LogWarning("[RequirementsSearchAttachments] No valid project selected for attachment scanning (ID: {ProjectId})", SelectedProjectId);
-                    StatusMessage = "No project selected - please select a project first";
-                    return;
+                    // Try to auto-detect project ID first
+                    if (!TryAutoDetectProjectId())
+                    {
+                        _logger.LogWarning("[RequirementsSearchAttachments] No valid project selected for attachment scanning (ID: {ProjectId})", SelectedProjectId);
+                        StatusMessage = "No project selected - please select a project first";
+                        return;
+                    }
+                    _logger.LogInformation("[RequirementsSearchAttachments] Successfully auto-detected project ID: {ProjectId}", SelectedProjectId);
                 }
                 
                 if (isBackgroundScan)
@@ -746,9 +786,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // Prevent parsing when no valid project is selected
             if (SelectedProjectId <= 0)
             {
-                _logger.LogWarning("[RequirementsSearchAttachments] No valid project selected for attachment parsing (ID: {ProjectId})", SelectedProjectId);
-                StatusMessage = "No project selected - please select a project first";
-                return;
+                // Try to auto-detect project ID first
+                if (!TryAutoDetectProjectId())
+                {
+                    _logger.LogWarning("[RequirementsSearchAttachments] No valid project selected for attachment parsing (ID: {ProjectId})", SelectedProjectId);
+                    StatusMessage = "No project selected - please select a project first";
+                    return;
+                }
+                _logger.LogInformation("[RequirementsSearchAttachments] Successfully auto-detected project ID for parsing: {ProjectId}", SelectedProjectId);
             }
 
             try
