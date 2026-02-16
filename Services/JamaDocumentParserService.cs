@@ -31,32 +31,23 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Parse a single Jama attachment and extract requirements using LLM
         /// </summary>
-        public async Task<List<Requirement>> ParseAttachmentAsync(int attachmentId, int projectId, CancellationToken cancellationToken = default)
+        public async Task<List<Requirement>> ParseAttachmentAsync(JamaAttachment attachment, int projectId, CancellationToken cancellationToken = default)
         {
             try
             {
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Starting parse for attachment {attachmentId}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Starting parse for attachment {attachment.Id} ({attachment.FileName})");
 
                 // Step 1: Download attachment from Jama
-                var fileBytes = await _jamaService.DownloadAttachmentAsync(attachmentId, cancellationToken);
+                var fileBytes = await _jamaService.DownloadAttachmentAsync(attachment.Id, cancellationToken);
                 if (fileBytes == null || fileBytes.Length == 0)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Failed to download attachment {attachmentId}");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Failed to download attachment {attachment.Id}");
                     return new List<Requirement>();
                 }
 
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Downloaded {fileBytes.Length} bytes for attachment {attachmentId}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Downloaded {fileBytes.Length} bytes for attachment {attachment.Id}");
 
-                // Step 2: Get attachment metadata to determine file type
-                var attachments = await _jamaService.GetProjectAttachmentsAsync(projectId, cancellationToken);
-                var attachment = attachments.FirstOrDefault(a => a.Id == attachmentId);
-                
-                if (attachment == null)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Attachment {attachmentId} not found in project {projectId}");
-                    return new List<Requirement>();
-                }
-
+                // Step 2: Use provided attachment metadata (no need to re-scan project)
                 if (!attachment.IsSupportedDocument)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Unsupported document type: {attachment.MimeType}");
@@ -93,7 +84,7 @@ namespace TestCaseEditorApp.Services
                     // Step 5: Query AnythingLLM to extract requirements
                     var requirements = await ExtractRequirementsFromWorkspaceAsync(workspaceSlug, attachment, projectId, cancellationToken);
                     
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Extracted {requirements.Count} requirements from attachment {attachmentId}");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Extracted {requirements.Count} requirements from attachment {attachment.Id}");
                     return requirements;
                 }
                 finally
@@ -119,7 +110,7 @@ namespace TestCaseEditorApp.Services
             }
             catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Error parsing attachment {attachmentId}: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Error parsing attachment {attachment.Id}: {ex.Message}");
                 return new List<Requirement>();
             }
         }
@@ -131,12 +122,22 @@ namespace TestCaseEditorApp.Services
         {
             var allRequirements = new List<Requirement>();
 
+            // Get all attachments for the project once
+            var attachments = await _jamaService.GetProjectAttachmentsAsync(projectId, cancellationToken);
+            
             foreach (var attachmentId in attachmentIds)
             {
                 if (cancellationToken.IsCancellationRequested)
                     break;
 
-                var requirements = await ParseAttachmentAsync(attachmentId, projectId, cancellationToken);
+                var attachment = attachments.FirstOrDefault(a => a.Id == attachmentId);
+                if (attachment == null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Batch: Attachment {attachmentId} not found in project {projectId}");
+                    continue;
+                }
+
+                var requirements = await ParseAttachmentAsync(attachment, projectId, cancellationToken);
                 allRequirements.AddRange(requirements);
             }
 

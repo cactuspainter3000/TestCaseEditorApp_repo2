@@ -236,7 +236,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// <summary>
         /// Parse attachment for requirements using document parsing service
         /// </summary>
-        Task<List<Requirement>> ParseAttachmentRequirementsAsync(int attachmentId, int projectId);
+        Task<List<Requirement>> ParseAttachmentRequirementsAsync(JamaAttachment attachment, int projectId);
 
         /// <summary>
         /// Import extracted requirements into the current project

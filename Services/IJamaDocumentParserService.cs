@@ -14,11 +14,11 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Parse a Jama attachment and extract requirements using LLM analysis
         /// </summary>
-        /// <param name="attachmentId">Jama attachment ID</param>
+        /// <param name="attachment">Jama attachment metadata object</param>
         /// <param name="projectId">Jama project ID</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>List of extracted requirements with rich metadata</returns>
-        Task<List<Requirement>> ParseAttachmentAsync(int attachmentId, int projectId, CancellationToken cancellationToken = default);
+        Task<List<Requirement>> ParseAttachmentAsync(JamaAttachment attachment, int projectId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Parse multiple Jama attachments in batch

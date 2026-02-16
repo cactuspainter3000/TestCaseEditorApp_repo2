@@ -805,8 +805,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 _logger.LogInformation("[RequirementsSearchAttachments] Parsing attachment {AttachmentName} (ID: {AttachmentId})", 
                     SelectedAttachment.Name, SelectedAttachment.Id);
 
-                // Use real document parsing via mediator
-                var extractedRequirements = await _mediator.ParseAttachmentRequirementsAsync(SelectedAttachment.Id, SelectedProjectId);
+                // Use real document parsing via mediator - pass full attachment to avoid re-scanning
+                var extractedRequirements = await _mediator.ParseAttachmentRequirementsAsync(SelectedAttachment, SelectedProjectId);
 
                 ExtractedRequirements.Clear();
                 foreach (var requirement in extractedRequirements)

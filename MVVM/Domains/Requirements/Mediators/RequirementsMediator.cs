@@ -1242,23 +1242,25 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// <summary>
         /// Parse attachment for requirements using document parsing service
         /// </summary>
-        public async Task<List<Requirement>> ParseAttachmentRequirementsAsync(int attachmentId, int projectId)
+        public async Task<List<Requirement>> ParseAttachmentRequirementsAsync(JamaAttachment attachment, int projectId)
         {
             try
             {
-                _logger.LogInformation("[RequirementsMediator] Parsing requirements from attachment {AttachmentId} in project {ProjectId}", attachmentId, projectId);
+                _logger.LogInformation("[RequirementsMediator] Parsing requirements from attachment {AttachmentId} ({FileName}) in project {ProjectId}", 
+                    attachment.Id, attachment.FileName, projectId);
 
-                // Use real document parsing service
-                var extractedRequirements = await _jamaDocumentParserService.ParseAttachmentAsync(attachmentId, projectId);
+                // Use real document parsing service with attachment metadata to avoid re-scanning
+                var extractedRequirements = await _jamaDocumentParserService.ParseAttachmentAsync(attachment, projectId);
 
-                _logger.LogInformation("[RequirementsMediator] Parsed {Count} requirements from attachment {AttachmentId}", 
-                    extractedRequirements.Count, attachmentId);
+                _logger.LogInformation("[RequirementsMediator] Parsed {Count} requirements from attachment {AttachmentId} ({FileName})", 
+                    extractedRequirements.Count, attachment.Id, attachment.FileName);
 
                 return extractedRequirements;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[RequirementsMediator] Error parsing attachment {AttachmentId}", attachmentId);
+                _logger.LogError(ex, "[RequirementsMediator] Error parsing attachment {AttachmentId} ({FileName})", 
+                    attachment.Id, attachment.FileName);
                 throw;
             }
         }
