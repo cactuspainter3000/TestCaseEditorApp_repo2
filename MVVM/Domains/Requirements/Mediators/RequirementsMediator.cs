@@ -1242,30 +1242,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// <summary>
         /// Parse attachment for requirements using document parsing service
         /// </summary>
-        public async Task<List<Requirement>> ParseAttachmentRequirementsAsync(int attachmentId)
+        public async Task<List<Requirement>> ParseAttachmentRequirementsAsync(int attachmentId, int projectId)
         {
             try
             {
-                _logger.LogInformation("[RequirementsMediator] Parsing requirements from attachment {AttachmentId}", attachmentId);
+                _logger.LogInformation("[RequirementsMediator] Parsing requirements from attachment {AttachmentId} in project {ProjectId}", attachmentId, projectId);
 
-                // For now, simulate parsing until IJamaDocumentParserService is fully implemented
-                await Task.Delay(2000);
-
-                var simulatedRequirements = new List<Requirement>
-                {
-                    new Requirement 
-                    { 
-                        GlobalId = Guid.NewGuid().ToString(),
-                        Name = $"Extracted Requirement from Attachment {attachmentId}",
-                        Description = $"Sample requirement extracted from attachment {attachmentId} using LLM document parsing",
-                        ItemType = "Requirement"
-                    }
-                };
+                // Use real document parsing service
+                var extractedRequirements = await _jamaDocumentParserService.ParseAttachmentAsync(attachmentId, projectId);
 
                 _logger.LogInformation("[RequirementsMediator] Parsed {Count} requirements from attachment {AttachmentId}", 
-                    simulatedRequirements.Count, attachmentId);
+                    extractedRequirements.Count, attachmentId);
 
-                return simulatedRequirements;
+                return extractedRequirements;
             }
             catch (Exception ex)
             {

@@ -739,24 +739,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 _logger.LogInformation("[RequirementsSearchAttachments] Parsing attachment {AttachmentName} (ID: {AttachmentId})", 
                     SelectedAttachment.Name, SelectedAttachment.Id);
 
-                // For now, simulate the document parsing since the service method may not exist yet
-                // TODO: Replace with actual service call when IJamaDocumentParserService is fully implemented
-                await Task.Delay(2000); // Simulate processing time
-                
-                // Simulate extracted requirements for now
-                var simulatedRequirements = new List<Requirement>
-                {
-                    new Requirement 
-                    { 
-                        GlobalId = Guid.NewGuid().ToString(),
-                        Name = "Extracted Requirement from Attachment",
-                        Description = $"Sample requirement extracted from {SelectedAttachment.Name} using LLM document parsing",
-                        ItemType = "Requirement"
-                    }
-                };
+                // Use real document parsing via mediator
+                var extractedRequirements = await _mediator.ParseAttachmentRequirementsAsync(SelectedAttachment.Id, SelectedProjectId);
 
                 ExtractedRequirements.Clear();
-                foreach (var requirement in simulatedRequirements)
+                foreach (var requirement in extractedRequirements)
                 {
                     ExtractedRequirements.Add(requirement);
                 }
