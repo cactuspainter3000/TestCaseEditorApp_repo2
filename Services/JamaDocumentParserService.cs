@@ -256,6 +256,26 @@ Extract ALL remaining requirements that you can actually see in the document con
                     }
                 }
 
+                // Self-validation: Have LLM verify its extracted requirements against document content
+                if (requirements.Count > 0)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Starting self-validation of {requirements.Count} extracted requirements...");
+                    var validatedRequirements = await ValidateExtractedRequirements(workspaceSlug, requirements, cancellationToken);
+                    
+                    var removedCount = requirements.Count - validatedRequirements.Count;
+                    if (removedCount > 0)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Self-validation removed {removedCount} potentially hallucinated requirements");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Validated requirements count: {validatedRequirements.Count}");
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] All {requirements.Count} requirements passed self-validation");
+                    }
+                    
+                    return validatedRequirements;
+                }
+
                 return requirements;
             }
             catch (Exception ex)
@@ -435,6 +455,151 @@ Begin extraction now. Extract ALL technical specifications and constraints you c
                 TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaDocumentParser] Error parsing requirement block: {ex.Message}");
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Self-validation: Have LLM verify extracted requirements against document content to prevent hallucination
+        /// </summary>
+        private async Task<List<Requirement>> ValidateExtractedRequirements(string workspaceSlug, List<Requirement> extractedRequirements, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                if (extractedRequirements.Count == 0)
+                    return extractedRequirements;
+
+                // Format extracted requirements for validation
+                var requirementsText = FormatRequirementsForValidation(extractedRequirements);
+
+                var validationPrompt = $@"SELF-VALIDATION: VERIFY EXTRACTED REQUIREMENTS AGAINST DOCUMENT CONTENT
+
+🔍 MISSION: For each requirement below, verify if it appears in the document content available to you through RAG.
+
+📋 EXTRACTED REQUIREMENTS TO VALIDATE:
+{requirementsText}
+
+🚨 VALIDATION PROTOCOL:
+For each requirement, check if you can find supporting evidence in the document content:
+1. Can you see text in the document that supports this requirement?  
+2. Does the requirement match actual specifications, constraints, or criteria in the document?
+3. Are any cited sections, pages, or sources actually visible to you?
+
+📝 RESPONSE FORMAT:
+For each requirement ID, respond with:
+
+VALID: [REQ-ID] - Brief explanation of where you see this in the document
+INVALID: [REQ-ID] - This requirement appears fabricated/not found in document content
+
+⚠️ CRITICAL: Be STRICT in validation. If you cannot clearly see supporting evidence for a requirement in your document context, mark it INVALID.
+
+🎯 EXAMPLE RESPONSES:
+VALID: REQ-001 - Section 3.2 shows interface voltage specification of 3.3V ±5%  
+INVALID: REQ-005 - Cannot locate any 50MHz clock requirement in accessible document content
+VALID: REQ-008 - Table on page 4 lists operating temperature range -40°C to +85°C
+
+Begin validation now - be thorough and honest about what you can actually see:";
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Sending validation request for {extractedRequirements.Count} requirements...");
+                var validationResponse = await _llmService.SendChatMessageAsync(workspaceSlug, validationPrompt, cancellationToken);
+
+                if (string.IsNullOrEmpty(validationResponse))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Empty validation response - keeping all requirements");
+                    return extractedRequirements;
+                }
+
+                // Parse validation response and filter requirements
+                var validatedRequirements = ParseValidationResponse(validationResponse, extractedRequirements);
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Validation complete. Kept {validatedRequirements.Count} of {extractedRequirements.Count} requirements");
+                
+                return validatedRequirements;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Error in self-validation: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Validation failed - returning original requirements");
+                return extractedRequirements; // Return original list if validation fails
+            }
+        }
+
+        /// <summary>
+        /// Format requirements list for validation prompt
+        /// </summary>
+        private string FormatRequirementsForValidation(List<Requirement> requirements)
+        {
+            var formatted = new List<string>();
+            
+            foreach (var req in requirements)
+            {
+                var reqText = $"ID: {req.GlobalId}\n";
+                reqText += $"Text: {req.Description?.Split('\n')[0] ?? "No description"}\n"; // First line only for brevity
+                reqText += "---";
+                formatted.Add(reqText);
+            }
+            
+            return string.Join("\n", formatted);
+        }
+
+        /// <summary>
+        /// Parse LLM validation response to determine which requirements are valid
+        /// </summary>
+        private List<Requirement> ParseValidationResponse(string validationResponse, List<Requirement> originalRequirements)
+        {
+            var validRequirements = new List<Requirement>();
+            var validationLines = validationResponse.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Parsing validation response with {validationLines.Length} lines");
+
+            // Create lookup dictionary for requirements by ID
+            var requirementLookup = originalRequirements.ToDictionary(r => r.GlobalId ?? "", r => r);
+
+            foreach (var line in validationLines)
+            {
+                var trimmedLine = line.Trim();
+                
+                // Look for VALID: REQ-XXX patterns
+                if (trimmedLine.StartsWith("VALID:", StringComparison.OrdinalIgnoreCase))
+                {
+                    var parts = trimmedLine.Split(new[] { ' ', '-', ':' }, StringSplitOptions.RemoveEmptyEntries);
+                    
+                    // Find requirement ID in the line (should be REQ-XXX format)
+                    for (int i = 0; i < parts.Length; i++)
+                    {
+                        if (parts[i].StartsWith("REQ", StringComparison.OrdinalIgnoreCase) && 
+                            requirementLookup.ContainsKey(parts[i]))
+                        {
+                            var reqId = parts[i];
+                            validRequirements.Add(requirementLookup[reqId]);
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Validated requirement: {reqId}");
+                            break;
+                        }
+                    }
+                }
+                // Log INVALID requirements for debugging
+                else if (trimmedLine.StartsWith("INVALID:", StringComparison.OrdinalIgnoreCase))
+                {
+                    var parts = trimmedLine.Split(new[] { ' ', '-', ':' }, StringSplitOptions.RemoveEmptyEntries);
+                    
+                    for (int i = 0; i < parts.Length; i++)
+                    {
+                        if (parts[i].StartsWith("REQ", StringComparison.OrdinalIgnoreCase))
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] LLM marked as INVALID: {parts[i]} - {trimmedLine}");
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // If we couldn't parse any validation results, return original list with warning
+            if (validRequirements.Count == 0 && originalRequirements.Count > 0)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Could not parse any validation results - returning all original requirements");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Raw validation response: {validationResponse}");
+                return originalRequirements;
+            }
+
+            return validRequirements;
         }
 
         /// <summary>
