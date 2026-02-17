@@ -204,7 +204,42 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Events
             public bool HasJamaAssociation { get; set; }
             public DateTime AvailableTime { get; set; } = DateTime.Now;
         }
-    }
+        /// <summary>
+        /// Published when document parsing starts
+        /// </summary>
+        public class DocumentParsingStarted
+        {
+            public string DocumentName { get; set; } = string.Empty;
+            public int AttachmentId { get; set; }
+            public int ProjectId { get; set; }
+            public DateTime StartTime { get; set; } = DateTime.Now;
+        }
+
+        /// <summary>
+        /// Published to update document parsing progress
+        /// </summary>
+        public class DocumentParsingProgress
+        {
+            public string DocumentName { get; set; } = string.Empty;
+            public int AttachmentId { get; set; }
+            public string StatusMessage { get; set; } = string.Empty;
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
+
+        /// <summary>
+        /// Published when document parsing completes
+        /// </summary>
+        public class DocumentParsingCompleted
+        {
+            public string DocumentName { get; set; } = string.Empty;
+            public int AttachmentId { get; set; }
+            public int RequirementsFound { get; set; }
+            public bool Success { get; set; }
+            public string? ErrorMessage { get; set; }
+            public TimeSpan Duration { get; set; }
+            public DateTime CompletedTime { get; set; } = DateTime.Now;
+            public List<Requirement> ExtractedRequirements { get; set; } = new();
+        }    }
 
     /// <summary>
     /// Progress data for attachment scanning operations

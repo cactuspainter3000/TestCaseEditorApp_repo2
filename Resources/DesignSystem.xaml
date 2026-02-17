@@ -40,6 +40,7 @@
     <Color x:Key="Background.Overlay.Medium">#33FFFFFF</Color>
     <Color x:Key="Background.Overlay.Dark">#40FFFFFF</Color>
     <Color x:Key="Background.Pill.Selected">#2a2a2a</Color>
+    <Color x:Key="Background.InformationBox">#252525</Color>
     
     <!-- Text Colors: Clear hierarchy -->
     <Color x:Key="Text.Primary">#FFFFFF</Color>
@@ -97,6 +98,7 @@
     <SolidColorBrush x:Key="Brush.Background.Overlay.Medium" Color="{StaticResource Background.Overlay.Medium}"/>
     <SolidColorBrush x:Key="Brush.Background.Overlay.Dark" Color="{StaticResource Background.Overlay.Dark}"/>
     <SolidColorBrush x:Key="Brush.Background.Pill.Selected" Color="{StaticResource Background.Pill.Selected}"/>
+    <SolidColorBrush x:Key="Brush.Background.InformationBox" Color="{StaticResource Background.InformationBox}"/>
     
     <!-- Text Brushes -->
     <SolidColorBrush x:Key="Brush.Text.Primary" Color="{StaticResource Text.Primary}"/>

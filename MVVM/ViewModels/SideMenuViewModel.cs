@@ -575,8 +575,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                                 IsDropdown = true, // Proper dropdown pattern as per architectural guide
                                 Children = new ObservableCollection<MenuContentItem>
                                 {
-                                    new MenuAction { Id = "requirements.import", Text = "Import Additional Requirements", Icon = "📥", Command = ImportAdditionalCommand },
-                                    new MenuAction { Id = "requirements.searchAttachments", Text = "Requirements Search in Attachments", Icon = "🔍", Command = RequirementsSearchAttachmentsCommand }
+                                    new MenuAction { Id = "requirements.import", Text = "Import Additional Requirements", Icon = "📥", Command = ImportAdditionalCommand }
                                 }
                             },
                             new MenuAction

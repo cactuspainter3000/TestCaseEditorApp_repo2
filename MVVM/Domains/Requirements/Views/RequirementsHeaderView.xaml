@@ -4,11 +4,15 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
+             xmlns:controls="clr-namespace:TestCaseEditorApp.MVVM.Controls.DataDrivenMenu"
              mc:Ignorable="d"
              d:DesignHeight="75" d:DesignWidth="800">
     
     <UserControl.Resources>
         <conv:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+        <conv:BoolToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <conv:InvertedBoolToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
+        <controls:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter" />
     </UserControl.Resources>
 
     <!--
@@ -21,17 +25,20 @@
 
     <Grid Margin="3" Background="Transparent">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>  <!-- description gets full space -->
+            <ColumnDefinition Width="*"/>  <!-- description gets available space -->
+            <ColumnDefinition Width="Auto"/>  <!-- persistent attachment counter -->
+            <ColumnDefinition Width="Auto"/>  <!-- parsing status takes needed space -->
         </Grid.ColumnDefinitions>
 
-        <!-- CENTER: Description with maximum available horizontal space -->
+        <!-- DESCRIPTION: Left side shows requirement description when no operation is active -->
         <Border Grid.Column="0"
                 Style="{StaticResource HeaderDescriptionBorderStyle}"
                 Padding="8,4"
                 Margin="0,3,8,0" 
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Top"
-                MaxHeight="60">
+                MaxHeight="60"
+                Visibility="{Binding IsAnyOperationActive, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
             <ScrollViewer VerticalScrollBarVisibility="Auto" 
                          HorizontalScrollBarVisibility="Disabled"
                          PanningMode="VerticalOnly">
@@ -44,5 +51,69 @@
                            ToolTipService.ShowDuration="60000" />
             </ScrollViewer>
         </Border>
+
+        <!-- PERSISTENT ATTACHMENT COUNTER: Shows discovered attachment count -->
+        <Border Grid.Column="1"
+                Background="{StaticResource Brush.Background.Header}"
+                BorderBrush="{StaticResource Brush.Border.Default}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="8,4"
+                Margin="4,3"
+                VerticalAlignment="Top"
+                Visibility="{Binding PersistentAttachmentCount, Converter={StaticResource GreaterThanZeroConverter}}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="📎" 
+                          FontSize="12" 
+                          VerticalAlignment="Center"
+                          Margin="0,0,4,0"/>
+                <TextBlock Text="{Binding PersistentAttachmentCount}"
+                          FontWeight="SemiBold"
+                          FontSize="{StaticResource FontSize.Body}"
+                          Foreground="{StaticResource Brush.Text.Primary}"
+                          VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <!-- OPERATION STATUS: Takes full width when any operation is active -->
+        <Grid Grid.Column="0" 
+              Grid.ColumnSpan="3"
+              Margin="3"
+              Visibility="{Binding IsAnyOperationActive, Converter={StaticResource BooleanToVisibilityConverter}}">
+            
+            <!-- Operation Status Content -->
+            <Border Background="{StaticResource Brush.Background.Header}"
+                    BorderThickness="0"
+                    CornerRadius="4"
+                    Padding="12,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- Operation Status Text -->
+                    <TextBlock Grid.Column="0"
+                              Text="{Binding CurrentOperationStatus}" 
+                              FontWeight="Medium"
+                              FontSize="{StaticResource FontSize.H3}"
+                              Foreground="{StaticResource Brush.Text.Primary}"
+                              VerticalAlignment="Center"/>
+                    
+                    <!-- Processing Counter -->
+                    <StackPanel Grid.Column="1" 
+                               Orientation="Horizontal" 
+                               VerticalAlignment="Center"
+                               Margin="12,0,0,0">
+                        <TextBlock Text="{Binding CurrentOperationCount}"
+                                  FontWeight="Bold"
+                                  FontSize="{StaticResource FontSize.H3}"
+                                  Foreground="{StaticResource Brush.State.Success}"
+                                  VerticalAlignment="Center"
+                                  Visibility="{Binding ShouldShowCounter, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>

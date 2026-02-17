@@ -144,11 +144,20 @@
         <Setter Property="SnapsToDevicePixels" Value="True"/>
     </Style>
 
-    <!-- Content area border variant (more pronounced) -->
+    <!-- Content area border variant (with borders for workspaces) -->
     <Style x:Key="ContentBorderStyle" TargetType="Border" BasedOn="{StaticResource MenuSectionBorderStyle}">
         <Setter Property="CornerRadius" Value="5"/>
         <Setter Property="BorderBrush" Value="DarkOrange"/>
         <Setter Property="BorderThickness" Value="2"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Padding" Value="6"/>
+    </Style>
+
+    <!-- Title area border style (transparent borders for clean look) -->
+    <Style x:Key="TitleBorderStyle" TargetType="Border">
+        <Setter Property="CornerRadius" Value="0"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Padding" Value="6"/>
     </Style>

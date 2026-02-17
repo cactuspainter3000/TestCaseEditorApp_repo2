@@ -33,6 +33,24 @@
                            FontSize="{StaticResource FontSize.Body}"
                            Foreground="{StaticResource Brush.Text.Secondary}" 
                            Margin="0,0,0,8"/>
+                
+                <!-- Elapsed Time Display -->
+                <StackPanel Orientation="Horizontal" 
+                           Visibility="{Binding ShowElapsedTime, Converter={StaticResource BooleanToVisibilityConverter}}"
+                           Margin="0,0,0,8">
+                    <TextBlock Text="⏱️" FontSize="14" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <TextBlock Text="Elapsed Time: " 
+                               FontSize="{StaticResource FontSize.Caption}"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource Brush.Text.Primary}" 
+                               VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding ElapsedTime}" 
+                               FontSize="{StaticResource FontSize.Caption}"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource Brush.Accent.Primary}" 
+                               VerticalAlignment="Center" 
+                               Margin="4,0"/>
+                </StackPanel>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="Workspace: " 
                                FontSize="{StaticResource FontSize.Caption}"
@@ -63,34 +81,94 @@
             </StackPanel>
         </Border>
 
-        <!-- Action Buttons -->
+        <!-- Document Selection and Action Controls -->
         <Border Grid.Row="1" Background="{StaticResource Brush.Background.Surface}" Padding="16,12">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                <Button Content="🔍 Search for Attachments" 
-                        Command="{Binding RefreshAttachmentsCommand}" 
-                        IsEnabled="{Binding HasJamaProject}"
-                        Style="{StaticResource ActionButton}"
-                        Margin="0,0,12,0" 
-                        Padding="12,8"/>
-                <Button Content="📄 Scan Selected for Requirements" 
-                        Command="{Binding ScanSelectedAttachmentCommand}" 
-                        IsEnabled="{Binding CanScanSelectedAttachment}"
-                        Style="{StaticResource ActionButton}"
-                        Margin="0,0,12,0" 
-                        Padding="12,8"/>
-                <Button Content="⏹️ Cancel Scan" 
-                        Command="{Binding CancelScanCommand}" 
-                        IsEnabled="{Binding IsScanning}"
-                        Style="{StaticResource ActionButton}"
-                        Margin="0,0,12,0" 
-                        Padding="12,8"/>
-                <Button Content="📥 Import Selected Requirements" 
-                        Command="{Binding ImportSelectedRequirementsCommand}" 
-                        IsEnabled="{Binding HasExtractedRequirements}"
-                        Style="{StaticResource ActionButton}"
-                        Margin="0" 
-                        Padding="12,8"/>
-            </StackPanel>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                -- Document Selection Row -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,12">
+                    <TextBlock Text="Select:" 
+                               FontSize="{StaticResource FontSize.Body}"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource Brush.Text.Primary}" 
+                               VerticalAlignment="Center" 
+                               Margin="0,0,8,0"/>
+                    
+                    <ComboBox ItemsSource="{Binding FoundAttachments}" 
+                              SelectedItem="{Binding SelectedAttachment}"
+                              DisplayMemberPath="Name"
+                              MinWidth="200" 
+                              Margin="0,0,12,0"
+                              VerticalAlignment="Center">
+                        <ComboBox.Style>
+                            <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding FoundAttachments.Count}" Value="0">
+                                        <Setter Property="IsEnabled" Value="False"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ComboBox.Style>
+                    </ComboBox>
+                    
+                    <Button Content="📁 Open" 
+                            Command="{Binding ScanSelectedAttachmentCommand}" 
+                            IsEnabled="{Binding CanScanSelectedAttachment}"
+                            Style="{StaticResource ActionButton.Secondary}"
+                            Margin="0,0,12,0" 
+                            Padding="12,8"
+                            FontSize="{StaticResource FontSize.Body}"/>
+                            
+                    <!-- Smart Toggle Button - TESTING VISIBILITY -->
+                    <Button Content="TEST SMART TOGGLE" 
+                            Command="{Binding SmartToggleCommand}" 
+                            IsEnabled="True"
+                            Padding="16,8"
+                            FontWeight="Bold"
+                            MinWidth="250"
+                            Background="Red"
+                            Foreground="White"
+                            BorderThickness="3"
+                            BorderBrush="Yellow"
+                            FontSize="16"/>
+                </StackPanel>
+                
+                <!-- Traditional Individual Buttons (for advanced users) - HIDDEN BUT FUNCTIONALITY PRESERVED -->
+                <!--
+                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Left" Opacity="0.7">
+                    <TextBlock Text="Advanced:" 
+                               FontSize="{StaticResource FontSize.Caption}"
+                               Foreground="{StaticResource Brush.Text.Secondary}"
+                               VerticalAlignment="Center" 
+                               Margin="0,0,8,0"/>
+                    <Button Content="🔍 Search" 
+                            Command="{Binding RefreshAttachmentsCommand}" 
+                            IsEnabled="{Binding HasJamaProject}"
+                            Style="{StaticResource ActionButton.Secondary}"
+                            Margin="0,0,6,0" 
+                            Padding="8,6"
+                            FontSize="{StaticResource FontSize.Caption}"/>
+                    <Button Content="📄 Scan" 
+                            Command="{Binding ScanSelectedAttachmentCommand}" 
+                            IsEnabled="{Binding CanScanSelectedAttachment}"
+                            Style="{StaticResource ActionButton.Secondary}"
+                            Margin="0,0,6,0" 
+                            Padding="8,6"
+                            FontSize="{StaticResource FontSize.Caption}"/>
+                    <Button Content="📤 Import" 
+                            Command="{Binding ImportSelectedRequirementsCommand}" 
+                            IsEnabled="{Binding HasExtractedRequirements}"
+                            Style="{StaticResource ActionButton.Secondary}"
+                            Margin="0,0,6,0" 
+                            Padding="8,6"
+                            FontSize="{StaticResource FontSize.Caption}"/>
+                </StackPanel>
+                -->
+            </Grid>
         </Border>
 
         <!-- Results Tabs -->

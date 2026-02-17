@@ -188,6 +188,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         string CurrentProjectName { get; }
 
         /// <summary>
+        /// Get the current project ID from the workspace context
+        /// </summary>
+        int CurrentProjectId { get; }
+
+        /// <summary>
         /// Update project context when project changes
         /// </summary>
         void UpdateProjectContext(string? projectName);

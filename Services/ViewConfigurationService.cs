@@ -336,7 +336,7 @@ namespace TestCaseEditorApp.Services
             return new ViewConfiguration(
                 sectionName: "Import",
                 headerViewModel: _workspaceHeader,
-                contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Import Requirements"),
+                contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel(""),
                 notificationViewModel: sharedNotificationVM, // SHARED: Same notification area for all domains
                 context: context
             );

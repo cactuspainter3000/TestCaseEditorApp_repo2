@@ -7,19 +7,19 @@
         ResizeMode="CanResize"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
-        Background="#2d2d30"
-        Foreground="#f1f1f1">
+        Background="{StaticResource Brush.Background.Header}"
+        Foreground="{StaticResource Brush.Text.Primary}">
 
     <Window.Resources>
         <Style TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#f1f1f1"/>
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
         </Style>
         
         <Style TargetType="ListBox">
-            <Setter Property="Background" Value="#3c3c3c"/>
-            <Setter Property="Foreground" Value="#f1f1f1"/>
-            <Setter Property="BorderBrush" Value="#007acc"/>
+            <Setter Property="Background" Value="{StaticResource Brush.Background.Menu}"/>
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.Border.Default}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="14"/>
@@ -28,21 +28,21 @@
         <Style TargetType="ListBoxItem">
             <Setter Property="Padding" Value="10"/>
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#f1f1f1"/>
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#007acc"/>
-                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Background" Value="{StaticResource Brush.Accent.Primary}"/>
+                    <Setter Property="Foreground" Value="{StaticResource Brush.Text.OnAccent}"/>
                 </Trigger>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#4d4d4d"/>
+                    <Setter Property="Background" Value="{StaticResource Brush.Background.Menu.Hover}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
         
         <Style TargetType="Button">
-            <Setter Property="Background" Value="#007acc"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{StaticResource Brush.Accent.Primary}"/>
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text.OnAccent}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="16,8"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
@@ -50,10 +50,11 @@
             <Setter Property="Cursor" Value="Hand"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#1f8ad4"/>
+                    <Setter Property="Background" Value="{StaticResource Brush.Accent.Primary.Hover}"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Background" Value="#505050"/>
+                    <Setter Property="Background" Value="{StaticResource Brush.Background.Menu}"/>
+                    <Setter Property="Foreground" Value="{StaticResource Brush.Text.Tertiary}"/>
                     <Setter Property="Cursor" Value="Arrow"/>
                 </Trigger>
             </Style.Triggers>
@@ -120,7 +121,8 @@
             <Button Content="Cancel" 
                     IsCancel="True" 
                     Click="Cancel_Click"
-                    Background="#505050"
+                    Background="{StaticResource Brush.Background.Menu}"
+                    Foreground="{StaticResource Brush.Text.Secondary}"
                     Margin="0,0,10,0"/>
             
             <Button x:Name="SelectButton"

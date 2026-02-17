@@ -160,7 +160,7 @@
                     Cursor="Hand"/>
             
             <!-- Requirements Scraper Tab (always available) -->
-            <Button Content="Requirement Scraper" 
+            <Button Content="Attachment Scraper" 
                     Command="{Binding SelectRequirementsScraperCommand}"
                     Style="{StaticResource RequirementsScraperTabButtonStyle}"
                     IsHitTestVisible="True"

@@ -21,6 +21,36 @@ using System.Linq;
 namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 {
     /// <summary>
+    /// Workflow states for the document scraping smart button
+    /// </summary>
+    public enum AttachmentScrapingWorkflowState
+    {
+        /// <summary>
+        /// Ready to search for attachments
+        /// </summary>
+        ReadyToSearch,
+        
+        /// <summary>
+        /// Attachments found, ready to select and scrape
+        /// </summary>
+        ReadyToScrape,
+        
+        /// <summary>
+        /// Currently scraping document
+        /// </summary>
+        Scraping,
+        
+        /// <summary>
+        /// Requirements extracted, ready to import
+        /// </summary>
+        ReadyToImport,
+        
+        /// <summary>
+        /// No project available
+        /// </summary>
+        NoProject
+    }
+    /// <summary>
     /// ViewModel for Requirements Search in Attachments feature.
     /// Allows users to search for requirements within Jama Connect attachments using LLM-powered document parsing.
     /// Follows Architectural Guide AI patterns for Requirements domain ViewModels.
@@ -62,6 +92,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             
             // Log when OpenProject workflow should trigger
             _logger.LogInformation("[RequirementsSearchAttachments] Waiting for OpenProject workflow to trigger real scan...");
+            _logger.LogInformation("[RequirementsSearchAttachments] *************** DEBUG: CONSTRUCTOR COMPLETED ***************");
         }
 
         /// <summary>
@@ -78,6 +109,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         [ObservableProperty]
         private int selectedProjectId = -1; // Will be set dynamically when a project is opened/selected
+
+        [ObservableProperty]
+        private AttachmentScrapingWorkflowState _currentWorkflowState = AttachmentScrapingWorkflowState.NoProject;
+
+        [ObservableProperty]
+        private string _smartButtonText = "No Project";
+
+        [ObservableProperty]
+        private bool _smartButtonEnabled = false;
         
         // Store the current project name for display purposes
         private string? currentProjectName = null;
@@ -126,6 +166,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             
             // Notify computed properties that depend on selection
             OnPropertyChanged(nameof(CanScanForRequirements));
+            UpdateWorkflowState();
         }
 
         /// <summary>
@@ -134,6 +175,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         partial void OnHasSearchedAttachmentsChanged(bool value)
         {
             OnPropertyChanged(nameof(CanScanForRequirements));
+            OnPropertyChanged(nameof(HasAttachmentsAvailable));
+            OnPropertyChanged(nameof(ScanButtonPrefix));
         }
         
         partial void OnHasScannedForRequirementsChanged(bool value)
@@ -144,11 +187,25 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         partial void OnHasExtractedRequirementsChanged(bool value)
         {
             OnPropertyChanged(nameof(CanImportRequirements));
+            UpdateWorkflowState();
         }
         
         partial void OnIsParsingChanged(bool value)
         {
             OnPropertyChanged(nameof(CanScanForRequirements));
+            UpdateWorkflowState();
+        }
+
+        partial void OnSelectedProjectIdChanged(int value)
+        {
+            _logger.LogInformation("[RequirementsSearchAttachments] Project ID changed to: {ProjectId}", value);
+            OnPropertyChanged(nameof(CurrentProjectName));
+            UpdateWorkflowState();
+        }
+        
+        partial void OnAvailableAttachmentsChanged(global::System.Collections.ObjectModel.ObservableCollection<JamaAttachment> value)
+        {
+            OnPropertyChanged(nameof(HasAttachmentsAvailable));
         }
 
         /// <summary>
@@ -217,6 +274,99 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         [ObservableProperty]
         private ObservableCollection<Requirement> extractedRequirements = new();
 
+        /// <summary>
+        /// Requirements grouped by category for enhanced organization and display
+        /// </summary>
+        public IEnumerable<IGrouping<string, Requirement>> GroupedExtractedRequirements
+        {
+            get
+            {
+                if (!ExtractedRequirements.Any()) return Enumerable.Empty<IGrouping<string, Requirement>>();
+                
+                return ExtractedRequirements
+                    .GroupBy(req => GetRequirementCategory(req))
+                    .OrderBy(group => GetCategoryPriority(group.Key));
+            }
+        }
+
+        /// <summary>
+        /// Get display category for a requirement with fallback logic
+        /// </summary>
+        private string GetRequirementCategory(Requirement requirement)
+        {
+            // Use RequirementType if available, otherwise parse from description or use default
+            if (!string.IsNullOrEmpty(requirement.RequirementType))
+                return CleanCategoryName(requirement.RequirementType);
+            
+            if (!string.IsNullOrEmpty(requirement.ItemType))
+                return CleanCategoryName(requirement.ItemType);
+            
+            // Parse category from description keywords as fallback
+            var desc = requirement.Description?.ToLowerInvariant() ?? "";
+            if (desc.Contains("performance") || desc.Contains("speed") || desc.Contains("timing"))
+                return "Performance";
+            if (desc.Contains("interface") || desc.Contains("protocol") || desc.Contains("communication"))
+                return "Interface";
+            if (desc.Contains("environmental") || desc.Contains("temperature") || desc.Contains("humidity"))
+                return "Environmental";
+            if (desc.Contains("safety") || desc.Contains("protection") || desc.Contains("hazard"))
+                return "Safety";
+            if (desc.Contains("design") || desc.Contains("constraint") || desc.Contains("power"))
+                return "Design";
+            if (desc.Contains("test") || desc.Contains("verification") || desc.Contains("validation"))
+                return "Test & Verification";
+                
+            return "General";
+        }
+
+        /// <summary>
+        /// Clean and standardize category names
+        /// </summary>
+        private string CleanCategoryName(string category)
+        {
+            // Handle compound categories like "Performance/Interface Requirement"
+            var cleaned = category.Replace(" Requirement", "").Replace(" Requirements", "");
+            
+            // Handle slash-separated categories - use the first one as primary
+            if (cleaned.Contains("/"))
+                cleaned = cleaned.Split('/')[0].Trim();
+                
+            return cleaned.Trim();
+        }
+
+        /// <summary>
+        /// Define category display priority for consistent ordering
+        /// </summary>
+        private int GetCategoryPriority(string category)
+        {
+            return category.ToLowerInvariant() switch
+            {
+                "functional" => 1,
+                "performance" => 2,
+                "interface" => 3,
+                "environmental" => 4,
+                "safety" => 5,
+                "design" => 6,
+                "test & verification" => 7,
+                _ => 99
+            };
+        }
+
+        /// <summary>
+        /// Get count of requirements in each category for summary display
+        /// </summary>
+        public Dictionary<string, int> CategoryCounts
+        {
+            get
+            {
+                if (!ExtractedRequirements.Any()) return new Dictionary<string, int>();
+                
+                return ExtractedRequirements
+                    .GroupBy(req => GetRequirementCategory(req))
+                    .ToDictionary(group => group.Key, group => group.Count());
+            }
+        }
+
         [ObservableProperty]
         private bool isImporting = false;
 
@@ -235,6 +385,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public IAsyncRelayCommand TestConnectionCommand { get; private set; } = null!;
         public IRelayCommand<JamaAttachment> SelectAttachmentCommand { get; private set; } = null!;
         public IAsyncRelayCommand OpenAttachmentCommand { get; private set; } = null!;
+        public IAsyncRelayCommand ExecuteSmartActionCommand { get; private set; } = null!;
+        public IAsyncRelayCommand SmartToggleCommand { get; private set; } = null!;
 
         // ==== COMPUTED PROPERTIES FOR BUTTON WORKFLOW ====
         
@@ -247,6 +399,21 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// Can import requirements when we have scanned and extracted requirements
         /// </summary>
         public bool CanImportRequirements => HasScannedForRequirements && HasExtractedRequirements && !IsImporting && !IsBusy;
+
+        /// <summary>
+        /// Get the current project name for display in UI
+        /// </summary>
+        public string CurrentProjectName => GetSelectedProjectName();
+
+        /// <summary>
+        /// Determines if attachments are available for selection (project scanned AND attachments found)
+        /// </summary>
+        public bool HasAttachmentsAvailable => HasSearchedAttachments && AvailableAttachments.Count > 0;
+
+        /// <summary>
+        /// Gets the prefix text for scan button ("Scan" or "Re-Scan" based on whether scan has been performed)
+        /// </summary>
+        public string ScanButtonPrefix => HasSearchedAttachments ? "Re-Scan" : "Scan";
 
         // ==== BASE CLASS IMPLEMENTATION ====
 
@@ -330,8 +497,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             TestConnectionCommand = new AsyncRelayCommand(TestJamaConnectionAsync, () => !IsBusy);
             SelectAttachmentCommand = new RelayCommand<JamaAttachment>(SelectAttachment);
             OpenAttachmentCommand = new AsyncRelayCommand(OpenSelectedAttachmentAsync, CanExecuteOpenAttachment);
+            ExecuteSmartActionCommand = new AsyncRelayCommand(ExecuteSmartActionAsync, () => SmartButtonEnabled);
+            SmartToggleCommand = new AsyncRelayCommand(SmartToggleAsync, () => true);
             
             _logger.LogInformation("[RequirementsSearchAttachments] Commands initialized in InitializeCommands method");
+            
+            // Try to auto-detect project ID on initialization and refresh project state
+            RefreshProjectState();
+            
+            // Initialize workflow state
+            UpdateWorkflowState();
         }
 
         /// <summary>
@@ -351,13 +526,148 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 AvailableAttachments.Add(noDocumentsPlaceholder);
                 SelectedAttachmentFilter = noDocumentsPlaceholder;
                 
-                StatusMessage = "No documents loaded. Use 'Search for Attachments' to find available documents.";
+                StatusMessage = "No attachments loaded. Use 'Search for Attachments' to find available attachments.";
                 
                 _logger.LogInformation("[RequirementsSearchAttachments] Initialized empty state with placeholder");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[RequirementsSearchAttachments] Error initializing empty state");
+            }
+        }
+        
+        /// <summary>
+        /// Update the workflow state and smart button text based on current conditions
+        /// </summary>
+        private void UpdateWorkflowState()
+        {
+            if (SelectedProjectId <= 0)
+            {
+                CurrentWorkflowState = AttachmentScrapingWorkflowState.NoProject;
+                SmartButtonText = "🔒 No Project";
+                SmartButtonEnabled = false;
+            }
+            else if (IsBusy)
+            {
+                CurrentWorkflowState = AttachmentScrapingWorkflowState.Scraping;
+                SmartButtonText = "⏹️ Cancel";
+                SmartButtonEnabled = true;
+            }
+            else if (ExtractedRequirements?.Any() == true)
+            {
+                CurrentWorkflowState = AttachmentScrapingWorkflowState.ReadyToImport;
+                SmartButtonText = "📤 Import Requirements";
+                SmartButtonEnabled = true;
+            }
+            else if (AvailableAttachments?.Any(a => !a.Name.Contains("No documents")) == true && SelectedAttachmentFilter != null && !SelectedAttachmentFilter.Name.Contains("No documents"))
+            {
+                CurrentWorkflowState = AttachmentScrapingWorkflowState.ReadyToScrape;
+                SmartButtonText = "📄 Scrape Document";
+                SmartButtonEnabled = true;
+            }
+            else if (AvailableAttachments?.Any(a => !a.Name.Contains("No documents")) == true)
+            {
+                CurrentWorkflowState = AttachmentScrapingWorkflowState.ReadyToScrape;
+                SmartButtonText = "📋 Select & Scrape";
+                SmartButtonEnabled = true;
+            }
+            else
+            {
+                CurrentWorkflowState = AttachmentScrapingWorkflowState.ReadyToSearch;
+                SmartButtonText = "🔍 Search Attachments";
+                SmartButtonEnabled = true;
+            }
+            
+            // Notify command to refresh its CanExecute
+            ExecuteSmartActionCommand?.NotifyCanExecuteChanged();
+        }
+
+        /// <summary>
+        /// Smart button command that executes the next logical action in the workflow
+        /// </summary>
+        private async Task ExecuteSmartActionAsync()
+        {
+            switch (CurrentWorkflowState)
+            {
+                case AttachmentScrapingWorkflowState.ReadyToSearch:
+                    await SearchAttachmentsAsync();
+                    break;
+                    
+                case AttachmentScrapingWorkflowState.ReadyToScrape:
+                    if (SelectedAttachmentFilter == null || SelectedAttachmentFilter.Name.Contains("No documents"))
+                    {
+                        // Auto-select first attachment if none selected
+                        var firstAttachment = AvailableAttachments?.FirstOrDefault(a => !a.Name.Contains("No documents"));
+                        if (firstAttachment != null)
+                        {
+                            SelectedAttachmentFilter = firstAttachment;
+                        }
+                    }
+                    
+                    if (SelectedAttachmentFilter != null && !SelectedAttachmentFilter.Name.Contains("No documents"))
+                    {
+                        await ParseSelectedAttachmentAsync();
+                    }
+                    else
+                    {
+                        StatusMessage = "No attachment selected for scraping.";
+                    }
+                    break;
+                    
+                case AttachmentScrapingWorkflowState.Scraping:
+                    // Cancel current operation
+                    IsBusy = false;
+                    StatusMessage = "Operation cancelled.";
+                    UpdateWorkflowState(); // Update UI state after cancellation
+                    break;
+                    
+                case AttachmentScrapingWorkflowState.ReadyToImport:
+                    await ImportExtractedRequirementsAsync();
+                    break;
+                    
+                case AttachmentScrapingWorkflowState.NoProject:
+                    StatusMessage = "Please select or open a project first.";
+                    break;
+                    
+                default:
+                    StatusMessage = "Unknown workflow state.";
+                    break;
+            }
+        }
+        
+        /// <summary>
+        /// Smart toggle command that alternates between scanning Jama and scraping selected document
+        /// </summary>
+        private async Task SmartToggleAsync()
+        {
+            // Simple toggle implementation - if we have no attachments, search for them
+            // If we have attachments but haven't parsed, parse the selected one
+            if (AvailableAttachments?.Count == 0 || (AvailableAttachments?.Count == 1 && AvailableAttachments.First().Name.Contains("No documents")))
+            {
+                // No attachments available - scan Jama for attachments
+                StatusMessage = "🔍 Scanning Jama for attachments...";
+                await SearchAttachmentsAsync();
+            }
+            else if (SelectedAttachmentFilter != null && !SelectedAttachmentFilter.Name.Contains("No documents"))
+            {
+                // Have attachments and one selected - scrape the selected document
+                StatusMessage = $"📄 Scraping {SelectedAttachmentFilter.Name} for requirements...";
+                await ParseSelectedAttachmentAsync();
+            }
+            else
+            {
+                // Have attachments but none selected - auto-select first one and scrape
+                var firstAttachment = AvailableAttachments?.FirstOrDefault(a => !a.Name.Contains("No documents"));
+                if (firstAttachment != null)
+                {
+                    SelectedAttachmentFilter = firstAttachment;
+                    StatusMessage = $"📄 Auto-selected and scraping {firstAttachment.Name}...";
+                    await ParseSelectedAttachmentAsync();
+                }
+                else
+                {
+                    StatusMessage = "❌ No valid attachments available to scrape.";
+                }
             }
         }
         
@@ -369,7 +679,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             return new JamaAttachment
             {
                 Id = 0, // Special ID to indicate placeholder
-                Name = "No documents loaded",
+                Name = "No attachments loaded",
                 FileName = "placeholder",
                 FileSize = 0,
                 MimeType = "text/placeholder"
@@ -511,6 +821,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             finally
             {
                 IsBusy = false;
+                UpdateWorkflowState(); // Update UI state after loading projects completes
             }
         }
 
@@ -535,7 +846,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             try
             {
-                // Try to get project ID from workspace context
+                // First try to get project ID directly from the mediator
+                var mediatorProjectId = _mediator?.CurrentProjectId;
+                if (mediatorProjectId.HasValue && mediatorProjectId.Value > 0)
+                {
+                    SelectedProjectId = mediatorProjectId.Value;
+                    _logger.LogInformation("[RequirementsSearchAttachments] Auto-detected project ID from mediator: {ProjectId}", mediatorProjectId.Value);
+                    return true;
+                }
+
+                // Fallback: Try to get project ID from workspace context directly
                 var currentWorkspace = _workspaceContext?.CurrentWorkspace;
                 if (!string.IsNullOrEmpty(currentWorkspace?.JamaProject) && 
                     int.TryParse(currentWorkspace.JamaProject, out var projectId) && 
@@ -546,12 +866,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     return true;
                 }
 
-                // Try to get project name and look it up
+                // Log project name for debugging
                 var projectName = _mediator?.CurrentProjectName;
                 if (!string.IsNullOrEmpty(projectName))
                 {
-                    _logger.LogInformation("[RequirementsSearchAttachments] Found project name '{ProjectName}' - would need project lookup to get ID", projectName);
-                    // Note: Could implement project name -> ID lookup here if needed
+                    _logger.LogInformation("[RequirementsSearchAttachments] Found project name '{ProjectName}' but no valid project ID", projectName);
                 }
 
                 return false;
@@ -561,6 +880,52 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 _logger.LogError(ex, "[RequirementsSearchAttachments] Error auto-detecting project ID");
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Refresh the current project state and update UI accordingly
+        /// </summary>
+        private void RefreshProjectState()
+        {
+            try
+            {
+                _logger.LogInformation("[RequirementsSearchAttachments] *************** DEBUG: RefreshProjectState STARTED ***************");
+                
+                // Debug: Log current context values
+                var currentWorkspace = _workspaceContext?.CurrentWorkspace;
+                var workspaceInfo = _workspaceContext?.CurrentWorkspaceInfo;
+                var mediatorProjectName = _mediator?.CurrentProjectName;
+                var mediatorProjectId = _mediator?.CurrentProjectId;
+                
+                _logger.LogInformation("[RequirementsSearchAttachments] DEBUG: Workspace={Workspace}, WorkspaceInfo={WorkspaceInfo}, MediatorName={MedName}, MediatorId={MedId}", 
+                    currentWorkspace?.JamaProject, workspaceInfo?.Name, mediatorProjectName, mediatorProjectId);
+                
+                // Try to detect current project
+                var wasDetected = TryAutoDetectProjectId();
+                
+                var projectName = _mediator?.CurrentProjectName ?? "Unknown";
+                var projectId = SelectedProjectId;
+                
+                _logger.LogInformation("[RequirementsSearchAttachments] Project state - ID: {ProjectId}, Name: {ProjectName}, Detected: {WasDetected}", 
+                    projectId, projectName, wasDetected);
+                
+                // Update workflow state to reflect current project status
+                UpdateWorkflowState();
+                
+                _logger.LogInformation("[RequirementsSearchAttachments] *************** DEBUG: RefreshProjectState COMPLETED ***************");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsSearchAttachments] Error refreshing project state");
+            }
+        }
+
+        /// <summary>
+        /// Public method to refresh project state - can be called when tab becomes active
+        /// </summary>
+        public void RefreshCurrentProjectState()
+        {
+            RefreshProjectState();
         }
 
         private async Task SearchAttachmentsWithProgressAsync(bool isBackgroundScan = false)
@@ -775,6 +1140,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 {
                     IsSearching = false;
                     IsBusy = false;
+                    UpdateWorkflowState();
                 }
             }
         }
@@ -796,11 +1162,22 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 _logger.LogInformation("[RequirementsSearchAttachments] Successfully auto-detected project ID for parsing: {ProjectId}", SelectedProjectId);
             }
 
+            var parsingStartTime = DateTime.Now;
+            
             try
             {
                 IsParsing = true;
                 IsBusy = true;
                 StatusMessage = $"📄 Parsing {SelectedAttachment.Name} for requirements...";
+                
+                // Publish document parsing started event
+                _mediator.PublishEvent(new RequirementsEvents.DocumentParsingStarted
+                {
+                    DocumentName = SelectedAttachment.Name,
+                    AttachmentId = SelectedAttachment.Id,
+                    ProjectId = SelectedProjectId,
+                    StartTime = parsingStartTime
+                });
                 
                 _logger.LogInformation("[RequirementsSearchAttachments] Parsing attachment {AttachmentName} (ID: {AttachmentId})", 
                     SelectedAttachment.Name, SelectedAttachment.Id);
@@ -809,6 +1186,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 System.Action<string> progressCallback = (message) => {
                     Application.Current?.Dispatcher?.Invoke(() => {
                         StatusMessage = message;
+                        
+                        // Publish progress event for header display
+                        _mediator.PublishEvent(new RequirementsEvents.DocumentParsingProgress
+                        {
+                            DocumentName = SelectedAttachment.Name,
+                            AttachmentId = SelectedAttachment.Id,
+                            StatusMessage = message,
+                            Timestamp = DateTime.Now
+                        });
                     });
                 };
 
@@ -821,6 +1207,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     ExtractedRequirements.Add(requirement);
                 }
 
+                // Notify grouped properties for UI updates
+                OnPropertyChanged(nameof(GroupedExtractedRequirements));
+                OnPropertyChanged(nameof(CategoryCounts));
+
                 HasExtractedRequirements = ExtractedRequirements.Count > 0;
                 
                 // Update workflow state - scan for requirements has completed
@@ -828,7 +1218,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 
                 if (HasExtractedRequirements)
                 {
-                    StatusMessage = $"✅ Extracted {ExtractedRequirements.Count} requirements from {SelectedAttachment.Name}";
+                    var categoryBreakdown = string.Join(", ", CategoryCounts.Select(kvp => $"{kvp.Value} {kvp.Key}"));
+                    StatusMessage = $"✅ Extracted {ExtractedRequirements.Count} requirements from {SelectedAttachment.Name} ({categoryBreakdown})";
                 }
                 else
                 {
@@ -836,17 +1227,44 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 }
 
                 _logger.LogInformation("[RequirementsSearchAttachments] Extracted {Count} requirements", ExtractedRequirements.Count);
+                
+                // Publish successful parsing completion event
+                _mediator.PublishEvent(new RequirementsEvents.DocumentParsingCompleted
+                {
+                    DocumentName = SelectedAttachment.Name,
+                    AttachmentId = SelectedAttachment.Id,
+                    RequirementsFound = ExtractedRequirements.Count,
+                    Success = true,
+                    ErrorMessage = null,
+                    Duration = DateTime.Now - parsingStartTime,
+                    CompletedTime = DateTime.Now,
+                    ExtractedRequirements = ExtractedRequirements.ToList()
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[RequirementsSearchAttachments] Error parsing attachment");
                 StatusMessage = "❌ Error parsing attachment for requirements";
                 SetError($"Failed to parse attachment: {ex.Message}");
+                
+                // Publish parsing failed event
+                _mediator.PublishEvent(new RequirementsEvents.DocumentParsingCompleted
+                {
+                    DocumentName = SelectedAttachment?.Name ?? "Unknown",
+                    AttachmentId = SelectedAttachment?.Id ?? 0,
+                    RequirementsFound = 0,
+                    Success = false,
+                    ErrorMessage = ex.Message,
+                    Duration = DateTime.Now - parsingStartTime,
+                    CompletedTime = DateTime.Now,
+                    ExtractedRequirements = new List<Requirement>()
+                });
             }
             finally
             {
                 IsParsing = false;
                 IsBusy = false;
+                UpdateWorkflowState(); // Update UI state after parsing completes
             }
         }
 
@@ -886,6 +1304,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 IsImporting = false;
                 IsBusy = false;
+                UpdateWorkflowState(); // Update UI state after importing completes
             }
         }
 
@@ -939,6 +1358,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             finally
             {
                 IsBusy = false;
+                UpdateWorkflowState(); // Update UI state after connection test completes
             }
         }
 
@@ -1184,6 +1604,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             finally
             {
                 IsBusy = false;
+                UpdateWorkflowState(); // Update UI state after opening attachment completes
             }
         }
     }

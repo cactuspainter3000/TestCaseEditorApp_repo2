@@ -13,162 +13,79 @@
         <conv:BoolToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>
     
-    <Grid Background="{StaticResource Brush.Background.Menu}">
+    <Grid Background="{StaticResource Brush.Background.InformationBox}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Title Section -->
-        <Border Grid.Row="0" Background="{StaticResource Brush.Background.Menu}" Padding="20,16">
-            <StackPanel>
-                <TextBlock Text="🔍 Search Attachments" 
-                          FontSize="{StaticResource FontSize.H1}" 
-                          FontWeight="SemiBold"
-                          Foreground="{StaticResource Brush.Text.Primary}"
-                          Margin="0,0,0,8"/>
-                <TextBlock Text="Search for document attachments and scan them for requirements" 
-                          FontSize="{StaticResource FontSize.Body}" 
-                          Foreground="{StaticResource Brush.Text.Secondary}"/>
+        <!-- Workflow Action Buttons Section -->
+        <Border Grid.Row="0" Background="{StaticResource Brush.Background.Header}" Padding="16,8">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                <Button Command="{Binding SearchAttachmentsCommand}"
+                        IsEnabled="{Binding IsBackgroundScanningInProgress, Converter={StaticResource InvertBoolConverter}}"
+                        Style="{StaticResource ActionButton}"
+                        Padding="12,6">
+                    <Button.Content>
+                        <TextBlock>
+                            <Run Text="{Binding ScanButtonPrefix, Mode=OneWay}"/>
+                            <Run Text=" "/>
+                            <Run Text="{Binding CurrentProjectName, Mode=OneWay}"/>
+                            <Run Text=" for Attachments"/>
+                        </TextBlock>
+                    </Button.Content>
+                    <Button.ToolTip>
+                        <ToolTip Content="Scan the selected project for attachments and documents"/>
+                    </Button.ToolTip>
+                </Button>
             </StackPanel>
         </Border>
 
-        <!-- Search Controls -->
-        <Border Grid.Row="1" Background="{StaticResource Brush.Background.Header}" Padding="16,12">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+        <!-- Attachment Selection Section -->
+        <Border Grid.Row="1" Background="{StaticResource Brush.Background.Header}" Padding="16,8" Margin="0,8,0,0"
+                Visibility="{Binding HasAttachmentsAvailable, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                          
+                <!-- Custom Dropdown Control -->
+                <controls:NavigationDropdownControl 
+                    ItemsSource="{Binding AvailableAttachments}"
+                    SelectedItem="{Binding SelectedAttachmentFilter}"
+                    EmptyText="Select attachment to scan..."
+                    SelectedItemDisplayPath="DisplayName"
+                    Command="{Binding SelectAttachmentCommand}"
+                    MinWidth="300"
+                    Margin="0,0,16,0">
+                    <controls:NavigationDropdownControl.IsEnabled>
+                        <Binding Path="IsBackgroundScanningInProgress" Converter="{StaticResource InvertBoolConverter}"/>
+                    </controls:NavigationDropdownControl.IsEnabled>
+                </controls:NavigationDropdownControl>
                 
-                <!-- Attachment Filter Row -->
-                <Grid Grid.Row="0" Margin="0,0,0,12">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-
-                    <TextBlock Grid.Column="0" 
-                              Text="Select:" 
-                              VerticalAlignment="Center" 
-                              FontWeight="SemiBold" 
-                              FontSize="{StaticResource FontSize.Body}"
-                              Foreground="{StaticResource Brush.Text.Primary}"
-                              Margin="0,0,12,0"/>
-
-                    <!-- Custom Dropdown Control -->
-                    <controls:NavigationDropdownControl 
-                        Grid.Column="1"
-                        ItemsSource="{Binding AvailableAttachments}"
-                        SelectedItem="{Binding SelectedAttachmentFilter}"
-                        EmptyText="Select attachment to scan..."
-                        SelectedItemDisplayPath="DisplayName"
-                        Command="{Binding SelectAttachmentCommand}">
-                        <controls:NavigationDropdownControl.IsEnabled>
-                            <Binding Path="IsBackgroundScanningInProgress" Converter="{StaticResource InvertBoolConverter}"/>
-                        </controls:NavigationDropdownControl.IsEnabled>
-                    </controls:NavigationDropdownControl>
-                    
-                    <!-- Open Attachment Button -->
-                    <Button Grid.Column="2" 
-                            Content="📄 Open" 
-                            Style="{StaticResource ActionButton}"
-                            Command="{Binding OpenAttachmentCommand}"
-                            IsEnabled="{Binding SelectedAttachment}"
-                            Margin="8,0,0,0"
-                            Padding="12,6">
-                        <Button.ToolTip>
-                            <ToolTip Content="Download and open the selected attachment"/>
-                        </Button.ToolTip>
-                    </Button>
-                </Grid>
-
-                <!-- Workflow Action Buttons Row -->
-                <Grid Grid.Row="1">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-
-                    <Button Grid.Column="0" 
-                            Content="Search for Attachments" 
-                            Style="{StaticResource ActionButton}"
-                            Command="{Binding SearchAttachmentsCommand}"
-                            Margin="0,0,8,0">
-                        <Button.IsEnabled>
-                            <Binding Path="IsBackgroundScanningInProgress" Converter="{StaticResource InvertBoolConverter}"/>
-                        </Button.IsEnabled>
-                    </Button>
-
-                    <Button Grid.Column="1" 
-                            Content="Scrape Document for Requirements" 
-                            Style="{StaticResource ActionButton}"
-                            Command="{Binding ParseSelectedAttachmentCommand}"
-                            IsEnabled="{Binding ParseSelectedAttachmentCommand.CanExecute}"
-                            Margin="4,0">
-                        <Button.ToolTip>
-                            <ToolTip Content="Scan selected attachment for requirements"/>
-                        </Button.ToolTip>
-                    </Button>
-
-                    <Button Grid.Column="2" 
-                            Content="Import Requirements" 
-                            Style="{StaticResource ActionButton}"
-                            Command="{Binding ImportRequirementsCommand}"
-                            IsEnabled="{Binding CanImportRequirements}"
-                            Margin="8,0,0,0">
-                        <Button.ToolTip>
-                            <ToolTip Content="Import scanned requirements to test case generator"/>
-                        </Button.ToolTip>
-                    </Button>
-                </Grid>
-
-                <!-- Search Progress Status Row -->
-                <Border Grid.Row="1" 
-                        Background="{StaticResource Brush.Background.Header}" 
-                        BorderBrush="{StaticResource Brush.Accent.Primary}" 
-                        BorderThickness="1"
-                        CornerRadius="4"
-                        Margin="0,8,0,0"
-                        Padding="12,8"
-                        Visibility="{Binding IsBackgroundScanningInProgress, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        
-                        <!-- Progress Icon -->
-                        <TextBlock Grid.Column="0" 
-                                  Text="🔍" 
-                                  FontSize="16" 
-                                  VerticalAlignment="Center"
-                                  Margin="0,0,12,0"/>
-                        
-                        <!-- Progress Text and Bar -->
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding BackgroundScanProgressText}" 
-                                      FontWeight="Medium"
-                                      FontSize="{StaticResource FontSize.Body}"
-                                      Foreground="{StaticResource Brush.Text.Primary}"
-                                      Margin="0,0,0,4"/>
-                            <ProgressBar Value="{Binding BackgroundScanProgress}"
-                                        Maximum="{Binding BackgroundScanTotal}"
-                                        Height="6"
-                                        Background="{StaticResource Brush.Background.Header}"
-                                        Foreground="{StaticResource Brush.Accent.Primary}"/>
-                        </StackPanel>
-                    </Grid>
-                </Border>
-            </Grid>
+                <!-- Attachment Action Buttons -->
+                <Button Content="Scrape Attachment for Requirements" 
+                        Command="{Binding ParseSelectedAttachmentCommand}"
+                        IsEnabled="{Binding ParseSelectedAttachmentCommand.CanExecute}"
+                        Style="{StaticResource ActionButton}"
+                        Margin="0,0,16,0" 
+                        Padding="12,6">
+                    <Button.ToolTip>
+                        <ToolTip Content="Extract requirements from the selected attachment"/>
+                    </Button.ToolTip>
+                </Button>
+                <Button Content="Open Attachment" 
+                        Style="{StaticResource ActionButton}"
+                        Command="{Binding OpenAttachmentCommand}"
+                        IsEnabled="{Binding SelectedAttachment}"
+                        Padding="12,6">
+                    <Button.ToolTip>
+                        <ToolTip Content="Download and open the selected attachment"/>
+                    </Button.ToolTip>
+                </Button>
+            </StackPanel>
         </Border>
 
         <!-- Results Section -->
-        <Border Grid.Row="2" Background="{StaticResource Brush.Background.Menu}" Padding="16">
+        <Border Grid.Row="2" Background="{StaticResource Brush.Background.InformationBox}" Padding="16">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -191,7 +108,7 @@
                     
                     <Grid>
                         <!-- Placeholder when no requirements -->
-                        <Border Background="{StaticResource Brush.Background.Header}" 
+                        <Border Background="{StaticResource Brush.Background.InformationBox}" 
                                BorderBrush="{StaticResource Brush.Border.Subtle}" 
                                BorderThickness="1" 
                                CornerRadius="4" 
@@ -208,7 +125,7 @@
                                           Foreground="{StaticResource Brush.Text.Secondary}"
                                           HorizontalAlignment="Center"
                                           Margin="0,0,0,8"/>
-                                <TextBlock Text="Search for attachments and scan selected documents to extract requirements" 
+                                <TextBlock Text="Search Jama project for attachments and scan selected documents to extract requirements" 
                                           FontSize="{StaticResource FontSize.Caption}" 
                                           Foreground="{StaticResource Brush.Text.Tertiary}"
                                           HorizontalAlignment="Center"

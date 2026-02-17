@@ -972,6 +972,23 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             }
         }
 
+        public int CurrentProjectId
+        {
+            get
+            {
+                var currentWorkspace = _workspaceContext.CurrentWorkspace;
+                
+                if (!string.IsNullOrEmpty(currentWorkspace?.JamaProject) && 
+                    int.TryParse(currentWorkspace.JamaProject, out var projectId) && 
+                    projectId > 0)
+                {
+                    return projectId;
+                }
+                
+                return -1; // No valid project ID
+            }
+        }
+
         public void UpdateProjectContext(string? projectName)
         {
             _logger.LogDebug("Project context updated: {ProjectName}", projectName ?? "No Project");

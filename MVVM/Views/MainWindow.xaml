@@ -468,7 +468,7 @@
 
             <!-- Top title bar -->
             <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
-                    Style="{StaticResource ContentBorderStyle}">
+                    Style="{StaticResource TitleBorderStyle}">
                 <Grid HorizontalAlignment="Stretch">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/> <!-- Title content -->
