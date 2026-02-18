@@ -1182,7 +1182,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 IsParsing = true;
                 IsBusy = true;
                 baseParsingMessage = $"📄 Parsing {SelectedAttachment.Name} for requirements...";
-                StatusMessage = baseParsingMessage;
+                // Don't set StatusMessage directly here - let the timer handle it
+                UpdateStatusWithElapsedTime(); // Set initial status with timer
                 
                 // Publish document parsing started event
                 _mediator.PublishEvent(new RequirementsEvents.DocumentParsingStarted
@@ -1290,6 +1291,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             StopParsingTimer(); // Ensure any existing timer is stopped
             
+            _logger.LogInformation("[RequirementsSearchAttachments] Starting parsing timer");
+            
             parsingTimer = new System.Timers.Timer(1000) // Update every second
             {
                 AutoReset = true,
@@ -1297,10 +1300,17 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             };
             parsingTimer.Elapsed += (sender, e) => 
             {
-                Application.Current?.Dispatcher?.Invoke(() => 
+                try
                 {
-                    UpdateStatusWithElapsedTime();
-                });
+                    Application.Current?.Dispatcher?.Invoke(() => 
+                    {
+                        UpdateStatusWithElapsedTime();
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[RequirementsSearchAttachments] Error updating timer");
+                }
             };
             parsingTimer.Start();
         }
@@ -1309,6 +1319,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             if (parsingTimer != null)
             {
+                _logger.LogInformation("[RequirementsSearchAttachments] Stopping parsing timer");
                 parsingTimer.Stop();
                 parsingTimer.Dispose();
                 parsingTimer = null;
@@ -1329,6 +1340,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 {
                     StatusMessage = $"{baseParsingMessage} [{ElapsedTime}]";
                 }
+            }
+            else if (!string.IsNullOrEmpty(baseParsingMessage))
+            {
+                // Fallback if no start time (shouldn't happen during parsing)
+                StatusMessage = baseParsingMessage;
             }
         }
 
