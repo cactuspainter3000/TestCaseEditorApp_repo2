@@ -1290,7 +1290,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             StopParsingTimer(); // Ensure any existing timer is stopped
             
-            parsingTimer = new System.Timers.Timer(1000); // Update every second
+            parsingTimer = new System.Timers.Timer(1000) // Update every second
+            {
+                AutoReset = true,
+                Enabled = true
+            };
             parsingTimer.Elapsed += (sender, e) => 
             {
                 Application.Current?.Dispatcher?.Invoke(() => 
@@ -1317,7 +1321,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 var elapsed = DateTime.Now - ParsingStartTime.Value;
                 var minutes = (int)elapsed.TotalMinutes;
-                var seconds = elapsed.Seconds;
+                var seconds = (int)(elapsed.TotalSeconds % 60);
                 
                 ElapsedTime = $"{minutes:D2}:{seconds:D2}";
                 
