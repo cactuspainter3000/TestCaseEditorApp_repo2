@@ -90,7 +90,7 @@ namespace TestCaseEditorApp.Services
                         return new List<Requirement>();
                     }
 
-                    progressCallback?.Invoke($"🧠 Analyzing document with AI - this may take 2-4 minutes...");
+                    progressCallback?.Invoke($"Analyzing document with AI - this may take 2-4 minutes...");
                     // Step 5: Query AnythingLLM to extract requirements
                     var requirements = await ExtractRequirementsFromWorkspaceAsync(workspaceSlug, attachment, projectId, progressCallback, cancellationToken);
                     
@@ -187,7 +187,7 @@ namespace TestCaseEditorApp.Services
         {
             try
             {
-                progressCallback?.Invoke($"🧠 Analyzing '{attachment.FileName}' with AI for comprehensive requirement extraction...");
+                progressCallback?.Invoke($"Analyzing '{attachment.FileName}' with AI for comprehensive requirement extraction...");
                 
                 // Single comprehensive prompt combining verification, extraction, and validation
                 var comprehensivePrompt = BuildComprehensiveExtractionPrompt(attachment);

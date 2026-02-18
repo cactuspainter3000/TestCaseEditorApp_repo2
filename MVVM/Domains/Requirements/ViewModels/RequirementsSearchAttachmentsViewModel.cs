@@ -149,6 +149,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         [ObservableProperty]
         private int backgroundScanTotal = 0;
 
+        [ObservableProperty]
+        private DateTime? parsingStartTime = null;
+
+        [ObservableProperty]
+        private string elapsedTime = "";
+
+        private System.Timers.Timer? parsingTimer;
+        private string baseParsingMessage = "";
+
         // ==== PROPERTY CHANGE HANDLERS ====
 
         /// <summary>
@@ -1163,12 +1172,17 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
 
             var parsingStartTime = DateTime.Now;
+            ParsingStartTime = parsingStartTime;
+            
+            // Start the timer for elapsed time display
+            StartParsingTimer();
             
             try
             {
                 IsParsing = true;
                 IsBusy = true;
-                StatusMessage = $"📄 Parsing {SelectedAttachment.Name} for requirements...";
+                baseParsingMessage = $"📄 Parsing {SelectedAttachment.Name} for requirements...";
+                StatusMessage = baseParsingMessage;
                 
                 // Publish document parsing started event
                 _mediator.PublishEvent(new RequirementsEvents.DocumentParsingStarted
@@ -1185,14 +1199,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 // Define progress callback to update status during processing
                 System.Action<string> progressCallback = (message) => {
                     Application.Current?.Dispatcher?.Invoke(() => {
-                        StatusMessage = message;
+                        baseParsingMessage = message;
+                        UpdateStatusWithElapsedTime();
                         
                         // Publish progress event for header display
                         _mediator.PublishEvent(new RequirementsEvents.DocumentParsingProgress
                         {
                             DocumentName = SelectedAttachment.Name,
                             AttachmentId = SelectedAttachment.Id,
-                            StatusMessage = message,
+                            StatusMessage = StatusMessage,
                             Timestamp = DateTime.Now
                         });
                     });
@@ -1262,9 +1277,54 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
             finally
             {
+                StopParsingTimer();
                 IsParsing = false;
                 IsBusy = false;
+                ParsingStartTime = null;
+                ElapsedTime = "";
                 UpdateWorkflowState(); // Update UI state after parsing completes
+            }
+        }
+        
+        private void StartParsingTimer()
+        {
+            StopParsingTimer(); // Ensure any existing timer is stopped
+            
+            parsingTimer = new System.Timers.Timer(1000); // Update every second
+            parsingTimer.Elapsed += (sender, e) => 
+            {
+                Application.Current?.Dispatcher?.Invoke(() => 
+                {
+                    UpdateStatusWithElapsedTime();
+                });
+            };
+            parsingTimer.Start();
+        }
+        
+        private void StopParsingTimer()
+        {
+            if (parsingTimer != null)
+            {
+                parsingTimer.Stop();
+                parsingTimer.Dispose();
+                parsingTimer = null;
+            }
+        }
+        
+        private void UpdateStatusWithElapsedTime()
+        {
+            if (ParsingStartTime.HasValue)
+            {
+                var elapsed = DateTime.Now - ParsingStartTime.Value;
+                var minutes = (int)elapsed.TotalMinutes;
+                var seconds = elapsed.Seconds;
+                
+                ElapsedTime = $"{minutes:D2}:{seconds:D2}";
+                
+                if (!string.IsNullOrEmpty(baseParsingMessage))
+                {
+                    StatusMessage = $"{baseParsingMessage} [{ElapsedTime}]";
+                }
             }
         }
 
