@@ -505,8 +505,7 @@ namespace TestCaseEditorApp
                     {
                         var mediator = provider.GetRequiredService<IStartupMediator>();
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_MainViewModel>>();
-                        var jamaConnectService = provider.GetRequiredService<JamaConnectService>();
-                        return new TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_MainViewModel(mediator, logger, jamaConnectService);
+                        return new TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_MainViewModel(mediator, logger);
                     });
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_HeaderViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_NavigationViewModel>();
