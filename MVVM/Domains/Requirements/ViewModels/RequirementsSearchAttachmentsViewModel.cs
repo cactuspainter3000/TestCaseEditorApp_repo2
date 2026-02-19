@@ -155,6 +155,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         [ObservableProperty]
         private string elapsedTime = "";
 
+        [ObservableProperty]
+        private bool isTimerVisible = false;
+
+        [ObservableProperty]
+        private string timerDisplay = "";
+
         private System.Timers.Timer? parsingTimer;
         private string baseParsingMessage = "";
 
@@ -203,6 +209,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             OnPropertyChanged(nameof(CanScanForRequirements));
             UpdateWorkflowState();
+            
+            // Notify all commands that depend on parsing state immediately
+            Application.Current?.Dispatcher?.BeginInvoke(() =>
+            {
+                CancelParseCommand?.NotifyCanExecuteChanged();
+                SearchAttachmentsCommand?.NotifyCanExecuteChanged();
+                ParseSelectedAttachmentCommand?.NotifyCanExecuteChanged();
+                OpenAttachmentCommand?.NotifyCanExecuteChanged();
+            });
         }
 
         partial void OnSelectedProjectIdChanged(int value)
@@ -385,10 +400,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         [ObservableProperty]
         private bool isJamaConfigured = false;
 
+        // Cancellation token for parsing operations
+        private CancellationTokenSource? _parsingCancellationTokenSource;
+
         // ==== COMMANDS ====
 
         public IAsyncRelayCommand SearchAttachmentsCommand { get; private set; } = null!;
         public IAsyncRelayCommand ParseSelectedAttachmentCommand { get; private set; } = null!;
+        public IRelayCommand CancelParseCommand { get; private set; } = null!;
         public IAsyncRelayCommand ImportExtractedRequirementsCommand { get; private set; } = null!;
         public IAsyncRelayCommand LoadProjectsCommand { get; private set; } = null!;
         public IAsyncRelayCommand TestConnectionCommand { get; private set; } = null!;
@@ -501,6 +520,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // Initialize domain-specific commands
             SearchAttachmentsCommand = new AsyncRelayCommand(SearchAttachmentsAsync, CanExecuteSearch);
             ParseSelectedAttachmentCommand = new AsyncRelayCommand(ParseSelectedAttachmentAsync, CanExecuteParseAttachment);
+            CancelParseCommand = new RelayCommand(CancelParsing, CanCancelParsing);
             ImportExtractedRequirementsCommand = new AsyncRelayCommand(ImportExtractedRequirementsAsync, CanExecuteImportRequirements);
             LoadProjectsCommand = new AsyncRelayCommand(LoadAvailableProjectsAsync, () => !IsBusy);
             TestConnectionCommand = new AsyncRelayCommand(TestJamaConnectionAsync, () => !IsBusy);
@@ -1181,9 +1201,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 IsParsing = true;
                 IsBusy = true;
+                IsTimerVisible = true;
                 baseParsingMessage = $"📄 Parsing {SelectedAttachment.Name} for requirements...";
-                // Don't set StatusMessage directly here - let the timer handle it
-                UpdateStatusWithElapsedTime(); // Set initial status with timer
+                StatusMessage = baseParsingMessage; // Status message without timer
                 
                 // Publish document parsing started event
                 _mediator.PublishEvent(new RequirementsEvents.DocumentParsingStarted
@@ -1201,7 +1221,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 System.Action<string> progressCallback = (message) => {
                     Application.Current?.Dispatcher?.Invoke(() => {
                         baseParsingMessage = message;
-                        UpdateStatusWithElapsedTime();
+                        StatusMessage = message; // Update status without timer
                         
                         // Publish progress event for header display
                         _mediator.PublishEvent(new RequirementsEvents.DocumentParsingProgress
@@ -1257,6 +1277,25 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     ExtractedRequirements = ExtractedRequirements.ToList()
                 });
             }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("authentication token") || ex.Message.Contains("Failed to download attachment"))
+            {
+                _logger.LogWarning(ex, "[RequirementsSearchAttachments] Authentication or download error parsing attachment");
+                StatusMessage = "❌ Authentication failed - use 'Test Connection' button to refresh your Jama connection and try again";
+                SetError($"Authentication error: {ex.Message}");
+                
+                // Publish parsing failed event
+                _mediator.PublishEvent(new RequirementsEvents.DocumentParsingCompleted
+                {
+                    DocumentName = SelectedAttachment?.Name ?? "Unknown",
+                    AttachmentId = SelectedAttachment?.Id ?? 0,
+                    RequirementsFound = 0,
+                    Success = false,
+                    ErrorMessage = "Authentication failed - please refresh your Jama connection",
+                    Duration = DateTime.Now - parsingStartTime,
+                    CompletedTime = DateTime.Now,
+                    ExtractedRequirements = new List<Requirement>()
+                });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[RequirementsSearchAttachments] Error parsing attachment");
@@ -1281,8 +1320,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 StopParsingTimer();
                 IsParsing = false;
                 IsBusy = false;
+                IsTimerVisible = false;
                 ParsingStartTime = null;
                 ElapsedTime = "";
+                TimerDisplay = "";
                 UpdateWorkflowState(); // Update UI state after parsing completes
             }
         }
@@ -1335,16 +1376,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 var seconds = (int)(elapsed.TotalSeconds % 60);
                 
                 ElapsedTime = $"{minutes:D2}:{seconds:D2}";
-                
-                if (!string.IsNullOrEmpty(baseParsingMessage))
-                {
-                    StatusMessage = $"{baseParsingMessage} [{ElapsedTime}]";
-                }
+                TimerDisplay = ElapsedTime; // Keep for internal use if needed
             }
-            else if (!string.IsNullOrEmpty(baseParsingMessage))
+            else
             {
-                // Fallback if no start time (shouldn't happen during parsing)
-                StatusMessage = baseParsingMessage;
+                ElapsedTime = "";
+                TimerDisplay = "";
             }
         }
 
@@ -1458,12 +1495,36 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private bool CanExecuteSearch()
         {
             // Search for attachments should always be active according to workflow requirements
-            return !IsSearching && !IsBusy;
+            return !IsSearching && !IsBusy && !IsParsing;
         }
 
         private bool CanExecuteParseAttachment()
         {
-            return SelectedAttachment != null && !IsParsing && !IsBusy;
+            return SelectedAttachment != null && !IsParsing && !IsBusy && !IsSearching;
+        }
+
+        private bool CanCancelParsing()
+        {
+            return IsParsing;
+        }
+
+        private void CancelParsing()
+        {
+            if (_parsingCancellationTokenSource != null && !_parsingCancellationTokenSource.IsCancellationRequested)
+            {
+                _logger.LogInformation("[RequirementsSearchAttachments] User requested cancellation of attachment parsing");
+                _parsingCancellationTokenSource.Cancel();
+                StatusMessage = "⏹️ Cancelling attachment parsing...";
+            }
+        }
+
+        /// <summary>
+        /// Handle document parsing canceled event from header
+        /// </summary>
+        private void OnDocumentParsingCanceled(RequirementsEvents.DocumentParsingCanceled e)
+        {
+            _logger.LogInformation("[RequirementsSearchAttachments] Received cancel request from header for: {DocumentName}", e.DocumentName);
+            CancelParsing();
         }
 
         private bool CanExecuteImportRequirements()
@@ -1620,7 +1681,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// </summary>
         private bool CanExecuteOpenAttachment()
         {
-            return !IsBusy && SelectedAttachment != null;
+            return !IsBusy && !IsParsing && SelectedAttachment != null;
         }
 
         /// <summary>

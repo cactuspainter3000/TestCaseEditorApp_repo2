@@ -44,8 +44,8 @@ namespace TestCaseEditorApp.Services
                 if (fileBytes == null || fileBytes.Length == 0)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Failed to download attachment {attachment.Id}");
-                    progressCallback?.Invoke("❌ Failed to download document");
-                    return new List<Requirement>();
+                    progressCallback?.Invoke("❌ Failed to download document - please check your Jama connection");
+                    throw new InvalidOperationException($"Failed to download attachment {attachment.Id}. This may be due to an expired authentication token or network issues. Please try refreshing your Jama connection.");
                 }
 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Downloaded {fileBytes.Length} bytes for attachment {attachment.Id}");

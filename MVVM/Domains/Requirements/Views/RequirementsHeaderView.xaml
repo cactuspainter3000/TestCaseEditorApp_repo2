@@ -12,6 +12,7 @@
         <conv:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
         <conv:BoolToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <conv:InvertedBoolToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
+        <conv:StatusTextWithOrangePipesConverter x:Key="StatusTextWithOrangePipesConverter" />
         <controls:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter" />
     </UserControl.Resources>
 
@@ -26,7 +27,6 @@
     <Grid Margin="3" Background="Transparent">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>  <!-- description gets available space -->
-            <ColumnDefinition Width="Auto"/>  <!-- persistent attachment counter -->
             <ColumnDefinition Width="Auto"/>  <!-- parsing status takes needed space -->
         </Grid.ColumnDefinitions>
 
@@ -52,32 +52,9 @@
             </ScrollViewer>
         </Border>
 
-        <!-- PERSISTENT ATTACHMENT COUNTER: Shows discovered attachment count -->
-        <Border Grid.Column="1"
-                Background="{StaticResource Brush.Background.Header}"
-                BorderBrush="{StaticResource Brush.Border.Default}"
-                BorderThickness="1"
-                CornerRadius="12"
-                Padding="8,4"
-                Margin="4,3"
-                VerticalAlignment="Top"
-                Visibility="{Binding PersistentAttachmentCount, Converter={StaticResource GreaterThanZeroConverter}}">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="📎" 
-                          FontSize="12" 
-                          VerticalAlignment="Center"
-                          Margin="0,0,4,0"/>
-                <TextBlock Text="{Binding PersistentAttachmentCount}"
-                          FontWeight="SemiBold"
-                          FontSize="{StaticResource FontSize.Body}"
-                          Foreground="{StaticResource Brush.Text.Primary}"
-                          VerticalAlignment="Center"/>
-            </StackPanel>
-        </Border>
-
         <!-- OPERATION STATUS: Takes full width when any operation is active -->
         <Grid Grid.Column="0" 
-              Grid.ColumnSpan="3"
+              Grid.ColumnSpan="2"
               Margin="3"
               Visibility="{Binding IsAnyOperationActive, Converter={StaticResource BooleanToVisibilityConverter}}">
             
@@ -93,18 +70,43 @@
                     </Grid.ColumnDefinitions>
                     
                     <!-- Operation Status Text -->
-                    <TextBlock Grid.Column="0"
-                              Text="{Binding CurrentOperationStatus}" 
-                              FontWeight="Medium"
-                              FontSize="{StaticResource FontSize.H3}"
-                              Foreground="{StaticResource Brush.Text.Primary}"
-                              VerticalAlignment="Center"/>
+                    <ContentPresenter Grid.Column="0"
+                                    Content="{Binding CurrentOperationStatus, Converter={StaticResource StatusTextWithOrangePipesConverter}}"
+                                    VerticalAlignment="Center"/>
                     
-                    <!-- Processing Counter -->
+                    <!-- Processing Counter and Timer -->
                     <StackPanel Grid.Column="1" 
                                Orientation="Horizontal" 
                                VerticalAlignment="Center"
                                Margin="12,0,0,0">
+                        
+                        <!-- Cancel Button (positioned to the left of the timer) -->
+                        <Button Content="Cancel" 
+                                Command="{Binding CancelParseCommand}"
+                                IsEnabled="{Binding CancelParseCommand.CanExecute}"
+                                Style="{StaticResource ActionButton}"
+                                Foreground="DarkRed"
+                                Margin="0,0,12,0" 
+                                Padding="8,4"
+                                FontSize="11"
+                                VerticalAlignment="Center"
+                                Visibility="{Binding IsAnyOperationActive, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Button.ToolTip>
+                                <ToolTip Content="Cancel the current parsing operation"/>
+                            </Button.ToolTip>
+                        </Button>
+                        
+                        <!-- Parsing Timer -->
+                        <TextBlock Text="{Binding ParsingTimerDisplay}"
+                                  FontFamily="Consolas"
+                                  FontWeight="Bold"
+                                  FontSize="13"
+                                  Foreground="DarkOrange"
+                                  VerticalAlignment="Center"
+                                  Margin="0,0,12,0"
+                                  Visibility="{Binding IsParsingTimerVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        
+                        <!-- Processing Counter -->
                         <TextBlock Text="{Binding CurrentOperationCount}"
                                   FontWeight="Bold"
                                   FontSize="{StaticResource FontSize.H3}"

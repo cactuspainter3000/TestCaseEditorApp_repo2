@@ -75,6 +75,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         [ObservableProperty]
         private int requirementsFound;
+        
+        // Timer properties for document parsing
+        [ObservableProperty]
+        private bool isParsingTimerVisible;
+        
+        [ObservableProperty]
+        private string parsingTimerDisplay = "";
 
         // Attachment scanning status properties
         [ObservableProperty]
@@ -91,9 +98,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         // Properties to maintain operation status visibility after completion
         [ObservableProperty]
-        private bool showCompletionStatus;
-
-        [ObservableProperty]
         private bool hasRecentResults;
 
         // Persistent attachment counter that remains visible after operations complete
@@ -101,21 +105,21 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private int persistentAttachmentCount;
 
         // Computed properties for unified status display
-        public bool IsAnyOperationActive => IsDocumentParsing || IsAttachmentScanning || ShowCompletionStatus;
+        public bool IsAnyOperationActive => IsDocumentParsing || IsAttachmentScanning;
         
         public string CurrentOperationStatus => IsDocumentParsing ? DocumentParsingStatus : AttachmentScanningStatus;
         
         public int CurrentOperationCount => IsDocumentParsing ? RequirementsFound : AttachmentsFound;
         
         public bool ShouldShowCounter => (IsDocumentParsing && RequirementsFound > 0) || 
-                                       (IsAttachmentScanning && AttachmentsFound > 0) || 
-                                       (ShowCompletionStatus && HasRecentResults && (RequirementsFound > 0 || AttachmentsFound > 0));
+                                       (IsAttachmentScanning && AttachmentsFound > 0);
 
-        private DateTime _parsingStartTime;
+        private DateTime? _parsingStartTime;
         private System.Windows.Threading.DispatcherTimer? _parsingTimerDispatcher;
 
         public ICommand SaveWorkspaceCommand { get; }
         public ICommand UndoLastSaveCommand { get; }
+        public ICommand CancelParseCommand { get; }
 
         public Requirements_HeaderViewModel(
             IRequirementsMediator mediator,
@@ -129,6 +133,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // Initialize workspace commands
             SaveWorkspaceCommand = new RelayCommand(SaveWorkspace, () => IsDirty);
             UndoLastSaveCommand = new RelayCommand(UndoLastSave, () => CanUndoLastSave);
+            CancelParseCommand = new RelayCommand(CancelParsing, CanCancelParsing);
 
             // Initialize parsing timer
             InitializeParsingTimer();
@@ -145,6 +150,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 concreteMediator.Subscribe<RequirementsEvents.DocumentParsingStarted>(OnDocumentParsingStarted);
                 concreteMediator.Subscribe<RequirementsEvents.DocumentParsingProgress>(OnDocumentParsingProgress);
                 concreteMediator.Subscribe<RequirementsEvents.DocumentParsingCompleted>(OnDocumentParsingCompleted);
+                concreteMediator.Subscribe<RequirementsEvents.DocumentParsingCanceled>(OnDocumentParsingCanceled);
+                concreteMediator.Subscribe<RequirementsEvents.DocumentParsingCanceled>(OnDocumentParsingCanceled);
                 concreteMediator.Subscribe<RequirementsEvents.AttachmentScanStarted>(OnAttachmentScanStarted);
                 concreteMediator.Subscribe<RequirementsEvents.AttachmentScanProgress>(OnAttachmentScanProgress);
                 concreteMediator.Subscribe<RequirementsEvents.AttachmentScanCompleted>(OnAttachmentScanCompleted);
@@ -326,8 +333,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
             // Notify computed properties when their dependencies change
             if (e.PropertyName == nameof(IsDocumentParsing) || 
-                e.PropertyName == nameof(IsAttachmentScanning) || 
-                e.PropertyName == nameof(ShowCompletionStatus))
+                e.PropertyName == nameof(IsAttachmentScanning))
             {
                 OnPropertyChanged(nameof(IsAnyOperationActive));
             }
@@ -346,7 +352,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
             if (e.PropertyName == nameof(IsDocumentParsing) || 
                 e.PropertyName == nameof(IsAttachmentScanning) ||
-                e.PropertyName == nameof(ShowCompletionStatus) ||
                 e.PropertyName == nameof(HasRecentResults) ||
                 e.PropertyName == nameof(RequirementsFound) || 
                 e.PropertyName == nameof(AttachmentsFound))
@@ -449,10 +454,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         private void OnParsingTimerTick(object? sender, EventArgs e)
         {
-            if (IsDocumentParsing || IsAttachmentScanning)
+            if ((IsDocumentParsing || IsAttachmentScanning) && _parsingStartTime.HasValue)
             {
-                var elapsed = DateTime.Now - _parsingStartTime;
+                var elapsed = DateTime.Now - _parsingStartTime.Value;
                 ParsingTimer = $"{elapsed.Minutes}:{elapsed.Seconds:D2}";
+                
+                // Update the display timer as well
+                var minutes = (int)elapsed.TotalMinutes;
+                var seconds = (int)(elapsed.TotalSeconds % 60);
+                ParsingTimerDisplay = $"{minutes:D2}:{seconds:D2}";
             }
         }
 
@@ -466,8 +476,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             ParsingTimer = "0:00";
             RequirementsFound = 0;
             
-            // Reset completion status when starting new operation
-            ShowCompletionStatus = false;
+            // Show timer
+            IsParsingTimerVisible = true;
+            ParsingTimerDisplay = "00:00";
+            
+            // Reset when starting new operation
             HasRecentResults = false;
             
             _parsingTimerDispatcher?.Start();
@@ -483,6 +496,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             _logger.LogDebug("[HeaderVM] Document parsing progress: {StatusMessage}", e.StatusMessage);
             DocumentParsingStatus = e.StatusMessage;
+            
             OnPropertyChanged(nameof(CurrentOperationStatus));
         }
 
@@ -494,19 +508,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _parsingTimerDispatcher?.Stop();
             IsDocumentParsing = false;
             
+            // Hide timer
+            IsParsingTimerVisible = false;
+            ParsingTimerDisplay = "";
+            
             if (e.Success)
             {
                 RequirementsFound = e.RequirementsFound;
                 DocumentParsingStatus = $"Found {e.RequirementsFound} requirements in {e.DocumentName}";
                 // Update statistics since new requirements were added
                 UpdateStatistics();
-                
-                // Show completion status to maintain visibility of results
-                if (e.RequirementsFound > 0)
-                {
-                    ShowCompletionStatus = true;
-                    HasRecentResults = true;
-                }
             }
             else
             {
@@ -518,21 +529,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             OnPropertyChanged(nameof(CurrentOperationStatus));
             OnPropertyChanged(nameof(CurrentOperationCount));
             OnPropertyChanged(nameof(ShouldShowCounter));
-
-            // Clear status after showing results for 8 seconds
-            Task.Delay(TimeSpan.FromSeconds(8)).ContinueWith(_ =>
-            {
-                System.Windows.Application.Current?.Dispatcher.Invoke(() =>
-                {
-                    ShowCompletionStatus = false;
-                    HasRecentResults = false;
-                    DocumentParsingStatus = string.Empty;
-                    ParsingDocumentName = string.Empty;
-                    ParsingTimer = "0:00";
-                    OnPropertyChanged(nameof(IsAnyOperationActive));
-                    OnPropertyChanged(nameof(ShouldShowCounter));
-                });
-            });
+            
+            // Notify cancel command state
+            ((RelayCommand)CancelParseCommand).NotifyCanExecuteChanged();
         }
 
         private void OnAttachmentScanStarted(RequirementsEvents.AttachmentScanStarted e)
@@ -545,11 +544,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             ParsingTimer = "0:00";
             AttachmentsFound = 0;
             
-            // Reset completion status when starting new operation
-            ShowCompletionStatus = false;
+            // Reset when starting new operation
             HasRecentResults = false;
-            // Clear persistent counter when starting new scan
-            PersistentAttachmentCount = 0;
             
             _parsingTimerDispatcher?.Start();
             
@@ -578,16 +574,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             if (e.Success)
             {
                 AttachmentsFound = e.AttachmentCount;
-                // Update persistent counter that stays visible after status message clears
-                PersistentAttachmentCount = e.AttachmentCount;
                 AttachmentScanningStatus = $"Found {e.AttachmentCount} attachments in {ScanningProjectName}";
-                
-                // Show completion status to maintain visibility of results
-                if (e.AttachmentCount > 0)
-                {
-                    ShowCompletionStatus = true;
-                    HasRecentResults = true;
-                }
             }
             else
             {
@@ -599,22 +586,69 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             OnPropertyChanged(nameof(CurrentOperationStatus));
             OnPropertyChanged(nameof(CurrentOperationCount));
             OnPropertyChanged(nameof(ShouldShowCounter));
-
-            // Clear status after showing results for 8 seconds (but keep PersistentAttachmentCount)
-            Task.Delay(TimeSpan.FromSeconds(8)).ContinueWith(_ =>
-            {
-                System.Windows.Application.Current?.Dispatcher.Invoke(() =>
-                {
-                    ShowCompletionStatus = false;
-                    HasRecentResults = false;
-                    AttachmentScanningStatus = string.Empty;
-                    ScanningProjectName = string.Empty;
-                    ParsingTimer = "0:00";
-                    AttachmentsFound = 0; // Reset temp count after display period (but keep PersistentAttachmentCount)
-                    OnPropertyChanged(nameof(IsAnyOperationActive));
-                    OnPropertyChanged(nameof(ShouldShowCounter));
-                });
-            });
         }
-    }
+
+        /// <summary>
+        /// Updates the parsing timer display based on elapsed time
+        /// </summary>
+        private void UpdateParsingTimer()
+        {
+            if (_parsingStartTime.HasValue && IsDocumentParsing)
+            {
+                var elapsed = DateTime.Now - _parsingStartTime.Value;
+                var minutes = (int)elapsed.TotalMinutes;
+                var seconds = (int)(elapsed.TotalSeconds % 60);
+                ParsingTimerDisplay = $"{minutes:D2}:{seconds:D2}";
+            }
+        }
+        /// <summary>
+        /// Cancel the current document parsing operation
+        /// </summary>
+        private void CancelParsing()
+        {
+            _logger.LogInformation("[HeaderVM] Cancel parsing requested from header");
+            
+            // Publish cancel event for SearchAttachments ViewModel to handle
+            if (_mediator is RequirementsMediator concreteMediator)
+            {
+                concreteMediator.PublishEvent(new RequirementsEvents.DocumentParsingCanceled
+                {
+                    DocumentName = ParsingDocumentName
+                });
+            }
+        }
+
+        /// <summary>
+        /// Check if cancel parsing command can execute
+        /// </summary>
+        private bool CanCancelParsing()
+        {
+            return IsDocumentParsing || IsAttachmentScanning;
+        }
+
+        /// <summary>
+        /// Handle document parsing canceled event
+        /// </summary>
+        private void OnDocumentParsingCanceled(RequirementsEvents.DocumentParsingCanceled e)
+        {
+            _logger.LogInformation("[HeaderVM] Document parsing was canceled: {DocumentName}", e.DocumentName);
+            
+            _parsingTimerDispatcher?.Stop();
+            IsDocumentParsing = false;
+            
+            // Hide timer
+            IsParsingTimerVisible = false;
+            ParsingTimerDisplay = "";
+            
+            DocumentParsingStatus = "⏹️ Parsing canceled";
+            
+            // Notify computed properties
+            OnPropertyChanged(nameof(IsAnyOperationActive));
+            OnPropertyChanged(nameof(CurrentOperationStatus));
+            OnPropertyChanged(nameof(CurrentOperationCount));
+            OnPropertyChanged(nameof(ShouldShowCounter));
+            
+            // Notify cancel command state
+            ((RelayCommand)CancelParseCommand).NotifyCanExecuteChanged();
+        }    }
 }

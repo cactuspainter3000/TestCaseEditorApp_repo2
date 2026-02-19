@@ -24,7 +24,7 @@
         <Border Grid.Row="0" Background="{StaticResource Brush.Background.Header}" Padding="16,8">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                 <Button Command="{Binding SearchAttachmentsCommand}"
-                        IsEnabled="{Binding IsBackgroundScanningInProgress, Converter={StaticResource InvertBoolConverter}}"
+                        IsEnabled="{Binding SearchAttachmentsCommand.CanExecute}"
                         Style="{StaticResource ActionButton}"
                         Padding="12,6">
                     <Button.Content>
@@ -55,10 +55,8 @@
                     SelectedItemDisplayPath="DisplayName"
                     Command="{Binding SelectAttachmentCommand}"
                     MinWidth="300"
-                    Margin="0,0,16,0">
-                    <controls:NavigationDropdownControl.IsEnabled>
-                        <Binding Path="IsBackgroundScanningInProgress" Converter="{StaticResource InvertBoolConverter}"/>
-                    </controls:NavigationDropdownControl.IsEnabled>
+                    Margin="0,0,16,0"
+                    IsEnabled="{Binding ParseSelectedAttachmentCommand.CanExecute}">
                 </controls:NavigationDropdownControl>
                 
                 <!-- Attachment Action Buttons -->
@@ -72,10 +70,11 @@
                         <ToolTip Content="Extract requirements from the selected attachment"/>
                     </Button.ToolTip>
                 </Button>
+                
                 <Button Content="Open Attachment" 
                         Style="{StaticResource ActionButton}"
                         Command="{Binding OpenAttachmentCommand}"
-                        IsEnabled="{Binding SelectedAttachment}"
+                        IsEnabled="{Binding OpenAttachmentCommand.CanExecute}"
                         Padding="12,6">
                     <Button.ToolTip>
                         <ToolTip Content="Download and open the selected attachment"/>

@@ -239,6 +239,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Events
             public TimeSpan Duration { get; set; }
             public DateTime CompletedTime { get; set; } = DateTime.Now;
             public List<Requirement> ExtractedRequirements { get; set; } = new();
+        }
+
+        /// <summary>
+        /// Published when document parsing is canceled
+        /// </summary>
+        public class DocumentParsingCanceled
+        {
+            public string DocumentName { get; set; } = string.Empty;
+            public int AttachmentId { get; set; }
+            public DateTime CanceledTime { get; set; } = DateTime.Now;
         }    }
 
     /// <summary>
