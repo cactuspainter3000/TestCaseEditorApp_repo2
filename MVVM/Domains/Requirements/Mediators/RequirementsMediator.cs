@@ -1166,7 +1166,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// Scan project attachments and return results with progress reporting
         /// Proper mediator method that replaces direct ViewModel service calls
         /// </summary>
-        public async Task<List<JamaAttachment>> ScanProjectAttachmentsAsync(int projectId, IProgress<AttachmentScanProgressData>? progress = null)
+        public async Task<List<JamaAttachment>> ScanProjectAttachmentsAsync(int projectId, IProgress<AttachmentScanProgressData>? progress = null, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -1202,7 +1202,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 var startTime = DateTime.Now;
 
                 // Use the injected Jama service to get attachments with project name for better progress messages
-                var attachments = await _jamaConnectService.GetProjectAttachmentsAsync(projectId, default, (current, total, progressData) =>
+                var attachments = await _jamaConnectService.GetProjectAttachmentsAsync(projectId, cancellationToken, (current, total, progressData) =>
                 {
                     // Report progress to caller
                     progress?.Report(new AttachmentScanProgressData

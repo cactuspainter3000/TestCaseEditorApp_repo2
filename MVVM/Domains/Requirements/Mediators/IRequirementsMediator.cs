@@ -236,7 +236,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// Scan project attachments and return results with progress reporting
         /// Proper mediator method that replaces direct ViewModel service calls
         /// </summary>
-        Task<List<JamaAttachment>> ScanProjectAttachmentsAsync(int projectId, IProgress<AttachmentScanProgressData>? progress = null);
+        Task<List<JamaAttachment>> ScanProjectAttachmentsAsync(int projectId, IProgress<AttachmentScanProgressData>? progress = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Parse attachment for requirements using document parsing service

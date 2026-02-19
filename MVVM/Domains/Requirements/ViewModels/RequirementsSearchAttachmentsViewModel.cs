@@ -82,6 +82,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.AttachmentScanProgress>(OnAttachmentScanProgress);
             _mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.AttachmentScanCompleted>(OnAttachmentScanCompleted);
             _mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.AttachmentScanStarted>(OnAttachmentScanStarted);
+            _mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.DocumentParsingCanceled>(OnDocumentParsingCanceled);
             
             _logger.LogInformation("[RequirementsSearchAttachments] ViewModel constructor completed. Will search current project attachments when activated.");
             _logger.LogInformation("[RequirementsSearchAttachments] Commands initialized: TestConnectionCommand is {TestCommandStatus}", 
@@ -402,6 +403,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         // Cancellation token for parsing operations
         private CancellationTokenSource? _parsingCancellationTokenSource;
+        
+        // Cancellation token for attachment searching operations
+        private CancellationTokenSource? _searchingCancellationTokenSource;
 
         // ==== COMMANDS ====
 
@@ -862,7 +866,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 return;
             }
 
-            await SearchAttachmentsWithProgressAsync(false);
+            // Create and configure searching cancellation token source
+            _searchingCancellationTokenSource?.Dispose();
+            _searchingCancellationTokenSource = new CancellationTokenSource();
+
+            await SearchAttachmentsWithProgressAsync(false, _searchingCancellationTokenSource.Token);
         }
 
         /// <summary>
@@ -957,10 +965,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             RefreshProjectState();
         }
 
-        private async Task SearchAttachmentsWithProgressAsync(bool isBackgroundScan = false)
+        private async Task SearchAttachmentsWithProgressAsync(bool isBackgroundScan = false, CancellationToken cancellationToken = default)
         {
             try
             {
+                // Check for cancellation early
+                cancellationToken.ThrowIfCancellationRequested();
+                
                 // Prevent scanning when no valid project is selected
                 if (SelectedProjectId <= 0)
                 {
@@ -1022,16 +1033,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                         });
                     });
                     
-                    attachments = await _mediator.ScanProjectAttachmentsAsync(SelectedProjectId, progress);
+                    attachments = await _mediator.ScanProjectAttachmentsAsync(SelectedProjectId, progress, cancellationToken);
                 }
                 else
                 {
                     // No progress reporting for non-background scans
-                    attachments = await _mediator.ScanProjectAttachmentsAsync(SelectedProjectId);
+                    attachments = await _mediator.ScanProjectAttachmentsAsync(SelectedProjectId, cancellationToken: cancellationToken);
                 }
                 
                 _logger.LogInformation("[RequirementsSearchAttachments] *** API CALL COMPLETED ***");
                 _logger.LogInformation("[RequirementsSearchAttachments] Raw attachments returned: {Count}", attachments?.Count ?? 0);
+                
+                // Check for cancellation before processing results
+                cancellationToken.ThrowIfCancellationRequested();
                 
                 if (attachments != null && attachments.Any())
                 {
@@ -1082,6 +1096,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                         int processed = 0;
                         foreach (var attachment in attachments)
                         {
+                            // Check for cancellation during processing
+                            cancellationToken.ThrowIfCancellationRequested();
+                            
                             AvailableAttachments.Add(attachment);
                             processed++;
                             
@@ -1130,6 +1147,17 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 _logger.LogInformation("[RequirementsSearchAttachments] HasResults: {HasResults}", HasResults);
                 _logger.LogInformation("[RequirementsSearchAttachments] Found {Count} total attachments", AvailableAttachments.Count);
             }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("[RequirementsSearchAttachments] Attachment search operation was canceled");
+                StatusMessage = "⏹️ Search canceled";
+                
+                if (isBackgroundScan)
+                {
+                    BackgroundScanProgressText = "Search canceled";
+                    IsBackgroundScanningInProgress = false;
+                }
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[RequirementsSearchAttachments] Error searching attachments");
@@ -1171,6 +1199,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     IsBusy = false;
                     UpdateWorkflowState();
                 }
+                
+                // Clean up searching cancellation token source
+                _searchingCancellationTokenSource?.Dispose();
+                _searchingCancellationTokenSource = null;
             }
         }
 
@@ -1196,6 +1228,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             
             // Start the timer for elapsed time display
             StartParsingTimer();
+            
+            // Create and configure parsing cancellation token source
+            _parsingCancellationTokenSource?.Dispose();
+            _parsingCancellationTokenSource = new CancellationTokenSource();
             
             try
             {
@@ -1235,7 +1271,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 };
 
                 // Use real document parsing via mediator - pass full attachment to avoid re-scanning
-                var extractedRequirements = await _mediator.ParseAttachmentRequirementsAsync(SelectedAttachment, SelectedProjectId, progressCallback);
+                var extractedRequirements = await _mediator.ParseAttachmentRequirementsAsync(SelectedAttachment, SelectedProjectId, progressCallback, _parsingCancellationTokenSource.Token);
 
                 ExtractedRequirements.Clear();
                 foreach (var requirement in extractedRequirements)
@@ -1275,6 +1311,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     Duration = DateTime.Now - parsingStartTime,
                     CompletedTime = DateTime.Now,
                     ExtractedRequirements = ExtractedRequirements.ToList()
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("[RequirementsSearchAttachments] Attachment parsing operation was canceled");
+                StatusMessage = "⏹️ Parsing canceled";
+                
+                // Publish parsing canceled event
+                _mediator.PublishEvent(new RequirementsEvents.DocumentParsingCanceled
+                {
+                    DocumentName = SelectedAttachment?.Name ?? "Unknown",
+                    AttachmentId = SelectedAttachment?.Id ?? 0,
+                    CanceledTime = DateTime.Now
                 });
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("authentication token") || ex.Message.Contains("Failed to download attachment"))
@@ -1324,6 +1373,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 ParsingStartTime = null;
                 ElapsedTime = "";
                 TimerDisplay = "";
+                
+                // Clean up parsing cancellation token source
+                _parsingCancellationTokenSource?.Dispose();
+                _parsingCancellationTokenSource = null;
+                
                 UpdateWorkflowState(); // Update UI state after parsing completes
             }
         }
@@ -1505,16 +1559,22 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         private bool CanCancelParsing()
         {
-            return IsParsing;
+            return IsParsing || IsSearching;
         }
 
         private void CancelParsing()
         {
-            if (_parsingCancellationTokenSource != null && !_parsingCancellationTokenSource.IsCancellationRequested)
+            if (IsParsing && _parsingCancellationTokenSource != null && !_parsingCancellationTokenSource.IsCancellationRequested)
             {
                 _logger.LogInformation("[RequirementsSearchAttachments] User requested cancellation of attachment parsing");
                 _parsingCancellationTokenSource.Cancel();
                 StatusMessage = "⏹️ Cancelling attachment parsing...";
+            }
+            else if (IsSearching && _searchingCancellationTokenSource != null && !_searchingCancellationTokenSource.IsCancellationRequested)
+            {
+                _logger.LogInformation("[RequirementsSearchAttachments] User requested cancellation of attachment scanning");
+                _searchingCancellationTokenSource.Cancel();
+                StatusMessage = "⏹️ Cancelling attachment scanning...";
             }
         }
 
@@ -1706,23 +1766,33 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     throw new InvalidOperationException("Jama Connect service not available");
                 }
 
-                // Download attachment bytes
-                var fileBytes = await jamaService.DownloadAttachmentAsync(SelectedAttachment.Id);
-                if (fileBytes == null || fileBytes.Length == 0)
-                {
-                    throw new InvalidOperationException("Failed to download attachment or file is empty");
-                }
-
                 // Create temporary file path
                 var tempPath = Path.GetTempPath();
                 var fileName = SelectedAttachment.Name ?? $"attachment_{SelectedAttachment.Id}.pdf";
                 var filePath = Path.Combine(tempPath, $"JamaAttachment_{SelectedAttachment.Id}_{fileName}");
 
-                // Write file to temp directory
-                await File.WriteAllBytesAsync(filePath, fileBytes);
-                
-                _logger.LogInformation("[RequirementsSearchAttachments] Downloaded {FileSize} bytes to {FilePath}", 
-                    fileBytes.Length, filePath);
+                // Check if file already exists first
+                bool fileExists = File.Exists(filePath);
+                if (!fileExists)
+                {
+                    // Download attachment bytes only if file doesn't exist
+                    var fileBytes = await jamaService.DownloadAttachmentAsync(SelectedAttachment.Id);
+                    if (fileBytes == null || fileBytes.Length == 0)
+                    {
+                        throw new InvalidOperationException("Failed to download attachment or file is empty");
+                    }
+
+                    // Write file to temp directory
+                    await File.WriteAllBytesAsync(filePath, fileBytes);
+                    
+                    _logger.LogInformation("[RequirementsSearchAttachments] Downloaded {FileSize} bytes to {FilePath}", 
+                        fileBytes.Length, filePath);
+                }
+                else
+                {
+                    _logger.LogInformation("[RequirementsSearchAttachments] File already exists at {FilePath}, opening existing file", 
+                        filePath);
+                }
 
                 // Open with default application
                 var psi = new ProcessStartInfo
@@ -1747,6 +1817,23 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 IsBusy = false;
                 UpdateWorkflowState(); // Update UI state after opening attachment completes
             }
+        }
+        
+        /// <summary>
+        /// Dispose of cancellation token sources and other resources
+        /// </summary>
+        public override void Dispose()
+        {
+            // Cancel any ongoing operations before disposing
+            _parsingCancellationTokenSource?.Cancel();
+            _searchingCancellationTokenSource?.Cancel();
+            
+            // Dispose cancellation token sources
+            _parsingCancellationTokenSource?.Dispose();
+            _searchingCancellationTokenSource?.Dispose();
+            
+            // Call base dispose
+            base.Dispose();
         }
     }
 }

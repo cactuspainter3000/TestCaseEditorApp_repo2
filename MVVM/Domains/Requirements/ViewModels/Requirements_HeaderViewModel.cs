@@ -490,6 +490,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             OnPropertyChanged(nameof(CurrentOperationStatus));
             OnPropertyChanged(nameof(CurrentOperationCount));
             OnPropertyChanged(nameof(ShouldShowCounter));
+            
+            // Notify cancel command that it can now execute
+            ((RelayCommand)CancelParseCommand).NotifyCanExecuteChanged();
         }
 
         private void OnDocumentParsingProgress(RequirementsEvents.DocumentParsingProgress e)
@@ -554,6 +557,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             OnPropertyChanged(nameof(CurrentOperationStatus));
             OnPropertyChanged(nameof(CurrentOperationCount));
             OnPropertyChanged(nameof(ShouldShowCounter));
+            
+            // Notify cancel command that it can now execute
+            ((RelayCommand)CancelParseCommand).NotifyCanExecuteChanged();
         }
 
         private void OnAttachmentScanProgress(RequirementsEvents.AttachmentScanProgress e)
@@ -586,6 +592,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             OnPropertyChanged(nameof(CurrentOperationStatus));
             OnPropertyChanged(nameof(CurrentOperationCount));
             OnPropertyChanged(nameof(ShouldShowCounter));
+            
+            // Notify cancel command state
+            ((RelayCommand)CancelParseCommand).NotifyCanExecuteChanged();
         }
 
         /// <summary>

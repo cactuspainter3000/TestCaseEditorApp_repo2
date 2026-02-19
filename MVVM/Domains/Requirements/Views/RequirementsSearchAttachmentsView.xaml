@@ -21,11 +21,11 @@
         </Grid.RowDefinitions>
 
         <!-- Workflow Action Buttons Section -->
-        <Border Grid.Row="0" Background="{StaticResource Brush.Background.Header}" Padding="16,8">
+        <Border Grid.Row="0" Background="Transparent" Padding="16,4">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                 <Button Command="{Binding SearchAttachmentsCommand}"
                         IsEnabled="{Binding SearchAttachmentsCommand.CanExecute}"
-                        Style="{StaticResource ActionButton}"
+                        Style="{StaticResource SideMenuPopupButtonStyle}"
                         Padding="12,6">
                     <Button.Content>
                         <TextBlock>
@@ -43,7 +43,7 @@
         </Border>
 
         <!-- Attachment Selection Section -->
-        <Border Grid.Row="1" Background="{StaticResource Brush.Background.Header}" Padding="16,8" Margin="0,8,0,0"
+        <Border Grid.Row="1" Background="Transparent" Padding="16,4" Margin="0,2,0,0"
                 Visibility="{Binding HasAttachmentsAvailable, Converter={StaticResource BooleanToVisibilityConverter}}">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                           
@@ -63,7 +63,7 @@
                 <Button Content="Scrape Attachment for Requirements" 
                         Command="{Binding ParseSelectedAttachmentCommand}"
                         IsEnabled="{Binding ParseSelectedAttachmentCommand.CanExecute}"
-                        Style="{StaticResource ActionButton}"
+                        Style="{StaticResource SideMenuPopupButtonStyle}"
                         Margin="0,0,16,0" 
                         Padding="12,6">
                     <Button.ToolTip>
@@ -72,7 +72,7 @@
                 </Button>
                 
                 <Button Content="Open Attachment" 
-                        Style="{StaticResource ActionButton}"
+                        Style="{StaticResource SideMenuPopupButtonStyle}"
                         Command="{Binding OpenAttachmentCommand}"
                         IsEnabled="{Binding OpenAttachmentCommand.CanExecute}"
                         Padding="12,6">

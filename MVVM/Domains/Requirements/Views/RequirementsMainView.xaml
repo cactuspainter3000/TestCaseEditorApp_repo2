@@ -262,7 +262,7 @@
                                         
                                         <StackPanel Grid.Row="0" Margin="8,0,8,0">
                                             <!-- Core fields header bar -->
-                                            <Border Background="{DynamicResource MenuSectionBackground}" 
+                                            <Border Background="Transparent" 
                                                     CornerRadius="4" 
                                                     Padding="10,6"
                                                     Margin="0">
@@ -278,7 +278,8 @@
                                                                     BorderThickness="0,0,1,0" 
                                                                     Padding="10,1"
                                                                     Margin="0,0,10,0"
-                                                                    MinWidth="180">
+                                                                    MinWidth="180"
+                                                                    Background="Transparent">
                                                                 <Border.Style>
                                                                     <Style TargetType="Border">
                                                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -379,7 +380,7 @@
 
                                         <!-- Date timeline (bottom border style) -->
                                         <Border Grid.Row="2"
-                                                Background="{DynamicResource MenuBackground}" 
+                                                Background="Transparent" 
                                                 Padding="10,6"
                                                 BorderBrush="{DynamicResource AccentBrush}"
                                                 BorderThickness="0,2,0,0"

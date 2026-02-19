@@ -171,16 +171,16 @@
 
         <!-- Content Area -->
         <Border Grid.Row="1" BorderBrush="#666666" BorderThickness="0,2,0,0" Margin="10,0">
-            <Grid Background="#2D2D30">
+            <Grid Background="Transparent">
                 
                 <!-- Details View -->
                 <ScrollViewer Visibility="{Binding SelectedViewMode, 
                                  Converter={StaticResource ViewModeToVisibilityConverter}, 
                                  ConverterParameter={x:Static requirements:RequirementViewMode.Details}}"
-                              VerticalScrollBarVisibility="Auto" Padding="15" Background="#2D2D30">
+                              VerticalScrollBarVisibility="Auto" Padding="15" Background="Transparent">
                     <StackPanel>
                         <!-- Requirement Content Section -->
-                        <Border Background="#3E3E42" BorderBrush="#5A5A5C" BorderThickness="1" 
+                        <Border Background="Transparent" BorderBrush="#5A5A5C" BorderThickness="1" 
                                 CornerRadius="4" Padding="15" Margin="0,0,0,20">
                             <StackPanel>
                                 <TextBlock Text="Requirement Description" FontWeight="SemiBold" FontSize="14" 
@@ -192,7 +192,7 @@
                         </Border>
 
                         <!-- Supplemental Information Section -->
-                        <Border Background="#3E3E42" BorderBrush="#5A5A5C" BorderThickness="1" 
+                        <Border Background="Transparent" BorderBrush="#5A5A5C" BorderThickness="1" 
                                 CornerRadius="4" Padding="15" Margin="0,0,0,20"
                                 Visibility="{Binding HasParagraphs, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <StackPanel>
@@ -228,7 +228,7 @@
                         </Border>
 
                         <!-- Metadata Grid - Structured Layout Matching Image -->
-                        <Border Background="#3E3E42" BorderBrush="#5A5A5C" BorderThickness="1" 
+                        <Border Background="Transparent" BorderBrush="#5A5A5C" BorderThickness="1" 
                                 CornerRadius="4" Padding="15">
                             <StackPanel>
                                 <!-- Metadata Header -->
@@ -361,7 +361,7 @@
                                 </Grid>
 
                                 <!-- Date Information Footer -->
-                                <Border BorderBrush="#666666" BorderThickness="0,1,0,0" Margin="0,15,0,0" Padding="0,10,0,0">
+                                <Border Background="Transparent" BorderBrush="#666666" BorderThickness="0,1,0,0" Margin="0,15,0,0" Padding="0,10,0,0">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="● Created : " FontSize="11" Foreground="#CCCCCC"/>
                                         <TextBlock Text="{Binding CurrentRequirement.CreatedDate, StringFormat='{}{0:M/d/yyyy h:mm tt}'}" 
@@ -380,12 +380,12 @@
                 <ScrollViewer Visibility="{Binding SelectedViewMode, 
                                  Converter={StaticResource ViewModeToVisibilityConverter}, 
                                  ConverterParameter={x:Static requirements:RequirementViewMode.Tables}}"
-                              VerticalScrollBarVisibility="Auto" Padding="15" Background="#2D2D30">
+                              VerticalScrollBarVisibility="Auto" Padding="15" Background="Transparent">
                     <StackPanel>
                         <ItemsControl ItemsSource="{Binding SelectedTableVMs}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="#3E3E42" BorderBrush="#5A5A5C" BorderThickness="1" 
+                                    <Border Background="Transparent" BorderBrush="#5A5A5C" BorderThickness="1" 
                                             CornerRadius="4" Margin="0,5" Padding="10">
                                         <StackPanel>
                                             <!-- Header section with edit button -->
@@ -459,10 +459,10 @@
                 <ScrollViewer Visibility="{Binding SelectedViewMode, 
                                  Converter={StaticResource ViewModeToVisibilityConverter}, 
                                  ConverterParameter={x:Static requirements:RequirementViewMode.Analysis}}"
-                              VerticalScrollBarVisibility="Auto" Padding="15" Background="#2D2D30">
+                              VerticalScrollBarVisibility="Auto" Padding="15" Background="Transparent">
                     <StackPanel>
                         <!-- Requirement Analysis ViewModel Integration -->
-                        <Border Background="#3E3E42" BorderBrush="#5A5A5C" BorderThickness="1" 
+                        <Border Background="Transparent" BorderBrush="#5A5A5C" BorderThickness="1" 
                                 CornerRadius="4" Padding="0" Margin="0"
                                 Visibility="{Binding RequirementAnalysisVM, Converter={StaticResource NullToVisibilityConverter}}">
                             <ContentPresenter Content="{Binding RequirementAnalysisVM}"/>
@@ -474,7 +474,7 @@
                 <Border Visibility="{Binding SelectedViewMode, 
                            Converter={StaticResource ViewModeToVisibilityConverter}, 
                            ConverterParameter={x:Static requirements:RequirementViewMode.RequirementsScraper}}"
-                        Background="#2D2D30" Padding="0">
+                        Background="Transparent" Padding="0">
                     <ContentPresenter Content="{Binding RequirementsSearchAttachmentsViewModel}"/>
                 </Border>
             </Grid>
