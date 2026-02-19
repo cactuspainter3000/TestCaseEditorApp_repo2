@@ -166,7 +166,7 @@ ID: {requirement.Item}
 Name: {requirement.Name}
 Description: {requirement.Description}
 
-Please provide analysis in JSON format with QualityScore (1-10), Issues array, and Recommendations array.";
+Please provide analysis in JSON format with OriginalQualityScore (1-10), Issues array, and Recommendations array.";
         }
         
         private string BuildTestCaseGenerationPrompt(Requirement requirement, string verificationMethod)

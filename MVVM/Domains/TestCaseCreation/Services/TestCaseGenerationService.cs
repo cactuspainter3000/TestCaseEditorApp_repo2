@@ -859,14 +859,72 @@ RESPOND WITH JSON ONLY:
             {
                 // Get all workspaces and find the one matching our project
                 var workspaces = await _anythingLLMService.GetWorkspacesAsync();
-                var workspace = workspaces?.FirstOrDefault(w => 
-                    string.Equals(w.Name, _projectWorkspaceName, StringComparison.OrdinalIgnoreCase));
+                
+                // Log all workspace names for diagnostic purposes
+                if (workspaces != null && workspaces.Any())
+                {
+                    var workspaceNames = string.Join(", ", workspaces.Select(w => $"'{w.Name}'"));
+                    _logger.LogInformation("[TestCaseGeneration] Available workspaces: {WorkspaceNames}", workspaceNames);
+                }
+                else
+                {
+                    _logger.LogWarning("[TestCaseGeneration] No workspaces found in AnythingLLM");
+                    return null;
+                }
+                
+                _logger.LogInformation("[TestCaseGeneration] Searching for workspace matching project: '{ProjectName}'", _projectWorkspaceName);
+                
+                AnythingLLMService.Workspace? targetWorkspace = null;
+                
+                if (workspaces != null)
+                {
+                    // Look for exact project workspace match first
+                    targetWorkspace = workspaces.FirstOrDefault(w => 
+                        string.Equals(w.Name, _projectWorkspaceName, StringComparison.OrdinalIgnoreCase));
+                    
+                    _logger.LogDebug("[TestCaseGeneration] Exact match found: {Found}", targetWorkspace != null);
+                    
+                    // If no exact match, try fuzzy matching for common variations
+                    if (targetWorkspace == null)
+                    {
+                        var normalizedProjectName = _projectWorkspaceName.Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant();
+                        _logger.LogDebug("[TestCaseGeneration] No exact match, trying fuzzy match for normalized name: '{NormalizedName}'", normalizedProjectName);
+                        
+                        // Try exact fuzzy match first
+                        targetWorkspace = workspaces.FirstOrDefault(w => 
+                        {
+                            var normalizedWorkspaceName = w.Name.Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant();
+                            return string.Equals(normalizedWorkspaceName, normalizedProjectName, StringComparison.OrdinalIgnoreCase);
+                        });
+                        
+                        // If still no match, try partial matching (workspace name is contained in project name or vice versa)
+                        if (targetWorkspace == null)
+                        {
+                            _logger.LogDebug("[TestCaseGeneration] No exact fuzzy match, trying partial matching");
+                            targetWorkspace = workspaces.FirstOrDefault(w => 
+                            {
+                                var normalizedWorkspaceName = w.Name.Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant();
+                                // Check if workspace name is a substring of project name or project name contains workspace name
+                                return normalizedProjectName.Contains(normalizedWorkspaceName) || normalizedWorkspaceName.Contains(normalizedProjectName);
+                            });
+                            
+                            if (targetWorkspace != null)
+                            {
+                                _logger.LogDebug("[TestCaseGeneration] Partial match found: '{WorkspaceName}'", targetWorkspace.Name);
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogDebug("[TestCaseGeneration] Exact fuzzy match found: '{WorkspaceName}'", targetWorkspace.Name);
+                        }
+                    }
+                }
 
-                if (workspace != null)
+                if (targetWorkspace != null)
                 {
                     _logger.LogInformation("[TestCaseGeneration] Using workspace: {Name} (Slug: {Slug})", 
-                        workspace.Name, workspace.Slug);
-                    return workspace.Slug;
+                        targetWorkspace.Name, targetWorkspace.Slug);
+                    return targetWorkspace.Slug;
                 }
 
                 _logger.LogWarning("[TestCaseGeneration] No workspace found matching project name: {Name}", 

@@ -21,16 +21,7 @@ namespace TestCaseEditorApp.MVVM.Models
         /// </summary>
         public int? ImprovedQualityScore { get; set; }
 
-        /// <summary>
-        /// Overall quality score from 1-10 (10 being excellent).
-        /// [DEPRECATED] Use OriginalQualityScore for display purposes.
-        /// </summary>
-        [Obsolete("Use OriginalQualityScore for user feedback. This field maintained for backward compatibility.")]
-        public int QualityScore 
-        { 
-            get => OriginalQualityScore; 
-            set => OriginalQualityScore = value; 
-        }
+
 
         /// <summary>
         /// Self-reported hallucination check from the LLM.

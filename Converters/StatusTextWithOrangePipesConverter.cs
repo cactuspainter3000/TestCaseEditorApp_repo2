@@ -49,7 +49,7 @@ namespace TestCaseEditorApp.Converters
                     };
                     textBlock.Inlines.Add(pipeRun);
                 }
-            }
+             }
 
             return textBlock;
         }

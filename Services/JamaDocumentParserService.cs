@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Models;
@@ -88,6 +89,56 @@ namespace TestCaseEditorApp.Services
                         TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Failed to upload document to workspace");
                         progressCallback?.Invoke("❌ Failed to upload document to AI workspace");
                         return new List<Requirement>();
+                    }
+
+                    // Verify document presence and force reprocessing if needed
+                    progressCallback?.Invoke("Verifying document processing...");
+                    
+                    // Wait a moment for initial vectorization
+                    await Task.Delay(3000, cancellationToken);
+                    
+                    var documents = await _llmService.GetWorkspaceDocumentsAsync(workspaceSlug, cancellationToken);
+                    if (!documents.HasValue || documents.Value.GetArrayLength() == 0)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] No documents found in workspace after upload - forcing reprocessing");
+                        
+                        // Run vectorization diagnostics to understand the issue
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Running AnythingLLM vectorization diagnostics...");
+                        await _llmService.DiagnoseVectorizationAsync(cancellationToken);
+                        
+                        progressCallback?.Invoke("Re-processing document for proper vectorization...");
+                        
+                        var reprocessResult = await _llmService.ForceDocumentReprocessingAsync(workspaceSlug, attachment.FileName, Convert.ToBase64String(fileBytes), cancellationToken);
+                        if (!reprocessResult)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Document reprocessing failed");
+                            progressCallback?.Invoke("❌ Document processing failed");
+                            return new List<Requirement>();
+                        }
+                        progressCallback?.Invoke("✅ Document reprocessing successful");
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Verified {documents.Value.GetArrayLength()} documents present in workspace");
+                    }
+
+                    // Check document content quality
+                    var contentOk = await _llmService.CheckDocumentContentAsync(workspaceSlug);
+                    if (!contentOk)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] 🔧 Document content extraction failed - trying alternative upload");
+                        
+                        var alternativeSuccess = await _llmService.TryAlternativeUploadAsync(tempFilePath, workspaceSlug);
+                        if (!alternativeSuccess)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ❌ All upload methods failed - cannot process document");
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] 💡 Manual PDF text extraction may be required");
+                            progressCallback?.Invoke("❌ Document text extraction failed - manual extraction may be required");
+                            return new List<Requirement>();
+                        }
+                        
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Alternative upload successful - proceeding with extraction");
+                        progressCallback?.Invoke("✅ Alternative document processing successful");
                     }
 
                     progressCallback?.Invoke($"Analyzing document with AI - this may take 2-4 minutes...");
@@ -187,6 +238,94 @@ namespace TestCaseEditorApp.Services
         {
             try
             {
+                progressCallback?.Invoke($"Testing document access for '{attachment.FileName}' before extraction...");
+                
+                // CRITICAL: Test RAG document access before attempting extraction
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Testing RAG document access for workspace '{workspaceSlug}'");
+                var (hasAccess, diagnostics) = await _llmService.TestDocumentAccessAsync(workspaceSlug, cancellationToken);
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] RAG Test Results: {diagnostics}");
+                
+                // DEBUG: Check current workspace configuration after our fixes
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 🔍 Checking if workspace configuration was properly applied...");
+                
+                if (!hasAccess)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ❌ CRITICAL: RAG document access test FAILED");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] LLM cannot access document content - similarity threshold or other RAG settings blocking retrieval");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] This means our workspace configuration fixes didn't work as expected");
+                    
+                    // Force apply RAG configuration fix for existing workspace
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] ⚠️ Applying emergency RAG fix to existing workspace");
+                    progressCallback?.Invoke($"⚠️ Applying RAG configuration fix...");
+                    
+                    var fixApplied = await _llmService.FixRagConfigurationAsync(workspaceSlug, cancellationToken);
+                    if (fixApplied)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] RAG fix applied - retesting document access");
+                        await Task.Delay(2000, cancellationToken); // Let config take effect
+                        
+                        var (retestSuccess, retestDiagnostics) = await _llmService.TestDocumentAccessAsync(workspaceSlug, cancellationToken);
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Retest Results: {retestDiagnostics}");
+                        
+                        if (!retestSuccess)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ❌ RAG fix failed - fundamental AnythingLLM configuration issue");
+                            progressCallback?.Invoke($"❌ RAG fix failed - cannot access document"); 
+                            return new List<Requirement>();
+                        }
+                        else
+                        {
+                            hasAccess = true; // Update to proceed
+                        }
+                    }
+                    else
+                    {
+                        progressCallback?.Invoke($"❌ Document access failed - RAG configuration issue detected");
+                        return new List<Requirement>(); // Return empty list
+                    }
+                }
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] ⚠️ Initial RAG test failed - applying troubleshooting configuration");
+                    progressCallback?.Invoke($"Document access failed - applying RAG troubleshooting fix...");
+                    
+                    // Apply RAG configuration fix based on AnythingLLM documentation
+                    var fixApplied = await _llmService.FixRagConfigurationAsync(workspaceSlug, cancellationToken);
+                    if (fixApplied)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] RAG fix applied - retesting document access");
+                        progressCallback?.Invoke($"RAG configuration updated - retesting document access...");
+                        
+                        // Wait for configuration to take effect
+                        await Task.Delay(2000, cancellationToken);
+                        
+                        // Retest document access
+                        var (retestSuccess, retestDiagnostics) = await _llmService.TestDocumentAccessAsync(workspaceSlug, cancellationToken);
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Retest Results: {retestDiagnostics}");
+                        
+                        if (!retestSuccess)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ❌ CRITICAL: RAG fix failed - document still inaccessible");
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] This indicates a deeper AnythingLLM configuration issue");
+                            
+                            progressCallback?.Invoke($"❌ RAG troubleshooting failed - cannot extract real requirements");
+                            return new List<Requirement>(); // Return empty list
+                        }
+                        else
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ RAG fix successful - document access restored");
+                            hasAccess = true; // Update access status to proceed
+                        }
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ❌ Could not apply RAG configuration fix");
+                        progressCallback?.Invoke($"❌ Could not fix document access - aborting extraction");
+                        return new List<Requirement>();
+                    }
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ RAG document access confirmed - proceeding with extraction");
                 progressCallback?.Invoke($"Analyzing '{attachment.FileName}' with AI for comprehensive requirement extraction...");
                 
                 // Single comprehensive prompt combining verification, extraction, and validation
@@ -202,12 +341,56 @@ namespace TestCaseEditorApp.Services
                     return new List<Requirement>();
                 }
 
-                // Parse LLM response into requirements
+                // Parse LLM response into requirements with validation
                 var requirements = ParseRequirementsFromLLMResponse(response, attachment, projectId);
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Extracted {requirements.Count} requirements from single comprehensive prompt (vs previous 4-step process)");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Initial extraction: {requirements.Count} requirements from comprehensive prompt");
 
-                progressCallback?.Invoke($"✅ Extracted {requirements.Count} requirements in single pass");
-                return requirements;
+                // CONTENT VALIDATION: Verify each requirement aligns with actual document content
+                progressCallback?.Invoke($"🔍 Validating {requirements.Count} requirements against document content...");
+                
+                // Add timeout for validation to prevent getting stuck
+                var validationTimeout = TimeSpan.FromMinutes(2);
+                using var validationCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                validationCts.CancelAfter(validationTimeout);
+                var contentValidatedRequirements = await ValidateExtractedRequirements(workspaceSlug, requirements, cancellationToken);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Content validation: {contentValidatedRequirements.Count} of {requirements.Count} requirements verified as legitimate");
+
+                // CRITICAL CHECK: If LLM explicitly states it's using hypothetical content, abort extraction
+                if (response.Contains("hypothetical content") || 
+                    response.Contains("do not have access to external documents") ||
+                    response.Contains("don't have direct access") ||
+                    response.Contains("unable to provide direct content from files") ||
+                    response.Contains("without the capability to directly interact") ||
+                    response.Contains("AI language model") && response.Contains("unable to"))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ❌ LLM stated it cannot access document content - RAG retrieval failed");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] LLM Response: {response.Substring(0, Math.Min(200, response.Length))}...");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Stopping extraction to prevent fake requirements from being added");
+                    return new List<Requirement>(); // Return empty list instead of fake requirements
+                }
+
+                // EARLY EXIT: Skip validation and recovery if no requirements found
+                if (requirements.Count == 0)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] ❌ No requirements extracted - LLM cannot access document content");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Skipping validation and recovery for empty result set");
+                    progressCallback?.Invoke($"❌ No requirements found - document not accessible to LLM");
+                    return new List<Requirement>();
+                }
+
+                // COMPLETENESS CHECK: Run validation pass to ensure we didn't miss requirements
+                var finalValidatedRequirements = await ValidateCompletenessAsync(workspaceSlug, contentValidatedRequirements, attachment, projectId, cancellationToken);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Final count after all validation: {finalValidatedRequirements.Count} requirements");
+
+                // SANITY CHECK: Warn if results seem suspiciously low for document size
+                var expectedMinRequirements = EstimateMinimumRequirements(attachment);
+                if (finalValidatedRequirements.Count < expectedMinRequirements)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] LOW COUNT WARNING - Only found {finalValidatedRequirements.Count} requirements in {attachment.FileName} (expected at least {expectedMinRequirements} based on document size). Consider re-running extraction.");
+                }
+
+                progressCallback?.Invoke($"✅ Extracted {finalValidatedRequirements.Count} requirements (content validated & completeness checked)");
+                return finalValidatedRequirements;
             }
             catch (Exception ex)
             {
@@ -273,50 +456,45 @@ Begin extraction now. Extract ALL technical specifications and constraints you c
         /// </summary>
         private string BuildComprehensiveExtractionPrompt(JamaAttachment attachment)
         {
-            return $@"COMPREHENSIVE DOCUMENT ANALYSIS: {attachment.FileName}
+            return $@"CRITICAL: DOCUMENT CONTENT ACCESS DIAGNOSTIC + REQUIREMENT EXTRACTION
 
-🎯 TASK: Perform complete requirement extraction with built-in validation in a single pass.
+FILE: {attachment.FileName}
 
-📋 PROCESS OVERVIEW:
-1. First, verify what document content you can actually access
-2. Extract ALL requirements comprehensively from accessible content  
-3. Self-validate each requirement before including it in final output
+STEP 1 - DOCUMENT ACCESSIBILITY TEST:
+Before extracting requirements, first confirm what document content you can access:
+- List the first few section headings, page numbers, or chapter titles you can see
+- Report document length/section count if visible  
+- If you see NO document content, state: ""NO CONTENT ACCESSIBLE""
+- Only proceed to extraction if you have actual document access
 
-⚡ STEP 1 - CONTENT VERIFICATION:
-Quickly assess what document sections/content you can access through RAG retrieval.
-Note accessible pages, technical topics, specifications, tables, etc.
+STEP 2 - EXTRACT EVERY REQUIREMENT (only if content accessible):
+Find ALL technical requirements and specifications. Extract anything that states what the system:
+- SHALL, MUST, WILL, SHOULD do or have
+- Performance limitations, timing constraints, accuracy specs
+- Interface specifications, protocol requirements
+- Environmental operating conditions
+- Physical constraints, design limits
+- Safety, security, quality requirements
+- Test criteria, acceptance conditions
 
-⚡ STEP 2 - COMPREHENSIVE EXTRACTION:
-Extract ALL technical requirements, specifications, and constraints from accessible content:
-• Functional requirements (system behavior, operations, features)
-• Performance specifications (speed, timing, accuracy, throughput, latency)  
-• Interface requirements (protocols, signals, connectors, voltages, communication)
-• Environmental constraints (temperature, humidity, vibration, operating conditions)
-• Design constraints (size, weight, power, materials, tolerances)
-• Safety requirements (protection, fail-safe behavior, hazard mitigation)
-• Test/verification requirements (acceptance criteria, procedures, validation)
+CRITICAL RULES:
+- Extract from ACTUAL document content you can see, not generic examples
+- Include specific numbers, values, references mentioned in the document
+- If uncertain whether something is a requirement, INCLUDE IT
+- Better to over-extract than miss critical requirements
 
-Look for SHALL, MUST, WILL, SHOULD statements and convert specifications into requirement format.
-Be thorough - check ALL sections, tables, figures, appendices you can access.
-
-⚡ STEP 3 - SELF-VALIDATION:
-For each requirement, verify it exists in the actual document content before including.
-Only include requirements with clear evidence in the accessible text.
-
-📝 OUTPUT FORMAT: For each VALIDATED requirement, use:
+OUTPUT FORMAT (for each requirement found):
 
 ---
-ID: REQ-001  
-Text: [Exact requirement text or converted specification]
-Category: [Functional/Performance/Interface/Environmental/Safety/Design/Test]
-Priority: [High/Medium/Low or as specified]
-Verification: [How this would be verified/tested]
-Source: [Page/section reference from accessible content]
+ID: REQ-001
+Text: [Complete requirement from actual document - include specific details/values]
+Category: [Functional/Performance/Interface/Environmental/Safety/Design/Quality/Test/Compliance]
+Priority: [High/Medium/Low]
+Verification: [Test/Analysis/Inspection/Demonstration]
+Source: [Specific section, page, or location where found]
 ---
 
-🎯 GOAL: Extract 15-30+ requirements for technical documents while maintaining accuracy.
-
-Begin comprehensive analysis now - verify content access, extract thoroughly, validate rigorously.";
+IMPORTANT: Only extract requirements if you have actual document access. Do not create generic example requirements.";
         }
 
         /// <summary>
@@ -399,16 +577,21 @@ Begin comprehensive analysis now - verify content access, extract thoroughly, va
                     }
                 }
 
-                // Extract required fields
-                if (!reqData.TryGetValue("ID", out var id) || string.IsNullOrWhiteSpace(id))
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] DEBUG - Rejecting block: Missing or empty ID field. Available keys: {string.Join(", ", reqData.Keys)}");
-                    return null;
-                }
+                // ENHANCED PARSING: Try multiple field name variations to avoid missing requirements
+                var id = ExtractFieldValue(reqData, new[] { "ID", "Requirement ID", "Req ID", "Item", "Number" });
+                var text = ExtractFieldValue(reqData, new[] { "Text", "Description", "Requirement", "Content", "Summary" });
 
-                if (!reqData.TryGetValue("Text", out var text) || string.IsNullOrWhiteSpace(text))
+                // FALLBACK: If structured parsing fails, try to extract from raw block
+                if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(text))
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] DEBUG - Rejecting block: Missing or empty Text field. Available keys: {string.Join(", ", reqData.Keys)}");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] MISSING REQ WARNING - Structured parsing failed, attempting fallback extraction. Block: {block.Substring(0, Math.Min(200, block.Length))}");
+                    var fallbackReq = TryFallbackExtraction(block, attachment, projectId);
+                    if (fallbackReq != null)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] RECOVERY SUCCESS - Fallback extraction recovered requirement: {fallbackReq.GlobalId}");
+                        return fallbackReq;
+                    }
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] LOST REQUIREMENT - Both structured and fallback parsing failed for block with keys: {string.Join(", ", reqData.Keys)}");
                     return null;
                 }
 
@@ -538,36 +721,27 @@ Begin validation now - be thorough and honest about what you can actually see:";
             {
                 var trimmedLine = line.Trim();
                 
-                // Look for VALID: REQ-XXX patterns
+                // Look for VALID: REQ-XXX patterns using regex to extract complete requirement ID
                 if (trimmedLine.StartsWith("VALID:", StringComparison.OrdinalIgnoreCase))
                 {
-                    var parts = trimmedLine.Split(new[] { ' ', '-', ':' }, StringSplitOptions.RemoveEmptyEntries);
+                    // Use regex to find REQ-XXX pattern in the line
+                    var match = System.Text.RegularExpressions.Regex.Match(trimmedLine, @"REQ-\d+", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
                     
-                    // Find requirement ID in the line (should be REQ-XXX format)
-                    for (int i = 0; i < parts.Length; i++)
+                    if (match.Success && requirementLookup.ContainsKey(match.Value))
                     {
-                        if (parts[i].StartsWith("REQ", StringComparison.OrdinalIgnoreCase) && 
-                            requirementLookup.ContainsKey(parts[i]))
-                        {
-                            var reqId = parts[i];
-                            validRequirements.Add(requirementLookup[reqId]);
-                            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Validated requirement: {reqId}");
-                            break;
-                        }
+                        var reqId = match.Value;
+                        validRequirements.Add(requirementLookup[reqId]);
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Validated requirement: {reqId}");
                     }
                 }
                 // Log INVALID requirements for debugging
                 else if (trimmedLine.StartsWith("INVALID:", StringComparison.OrdinalIgnoreCase))
                 {
-                    var parts = trimmedLine.Split(new[] { ' ', '-', ':' }, StringSplitOptions.RemoveEmptyEntries);
+                    var match = System.Text.RegularExpressions.Regex.Match(trimmedLine, @"REQ-\d+", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
                     
-                    for (int i = 0; i < parts.Length; i++)
+                    if (match.Success)
                     {
-                        if (parts[i].StartsWith("REQ", StringComparison.OrdinalIgnoreCase))
-                        {
-                            TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] LLM marked as INVALID: {parts[i]} - {trimmedLine}");
-                            break;
-                        }
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] LLM marked as INVALID: {match.Value} - {trimmedLine}");
                     }
                 }
             }
@@ -581,6 +755,195 @@ Begin validation now - be thorough and honest about what you can actually see:";
             }
 
             return validRequirements;
+        }
+
+        /// <summary>
+        /// Extract field value using multiple possible field names (case-insensitive)
+        /// </summary>
+        private string? ExtractFieldValue(Dictionary<string, string> data, string[] possibleNames)
+        {
+            foreach (var name in possibleNames)
+            {
+                if (data.TryGetValue(name, out var value) && !string.IsNullOrWhiteSpace(value))
+                {
+                    return value;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Fallback extraction when structured parsing fails - attempts to find requirements in raw text
+        /// </summary>
+        private Requirement? TryFallbackExtraction(string block, JamaAttachment attachment, int projectId)
+        {
+            try
+            {
+                // Look for patterns like "REQ-123", "R-456", or numbered items
+                var patterns = new[]
+                {
+                    @"(?i)(?:REQ|REQUIREMENT|R)[-_\s]*(\d+)",
+                    @"(\d+)\.\s+([^\n]+)",
+                    @"Item\s+(\d+)",
+                    @"#(\d+)"
+                };
+
+                foreach (var pattern in patterns)
+                {
+                    var match = System.Text.RegularExpressions.Regex.Match(block, pattern);
+                    if (match.Success)
+                    {
+                        var id = match.Groups[1].Value;
+                        var text = match.Groups.Count > 2 ? match.Groups[2].Value : block.Trim();
+                        
+                        // Clean up text - take first meaningful sentence
+                        if (string.IsNullOrWhiteSpace(text) || text.Length < 10)
+                        {
+                            var lines = block.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                            text = lines.FirstOrDefault(l => l.Trim().Length > 10) ?? block.Trim();
+                        }
+
+                        return new Requirement
+                        {
+                            GlobalId = $"FALLBACK-{id}",
+                            Item = id,
+                            Name = "Extracted Requirement (Fallback)",
+                            Description = $"{text}\n\n[Recovered via fallback extraction]\nSource: {attachment.FileName}"
+                        };
+                    }
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] FALLBACK FAILED - No recognizable patterns in block: {block.Substring(0, Math.Min(100, block.Length))}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Fallback extraction error: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Validate completeness by checking for potential missed requirements
+        /// </summary>
+        private async Task<List<Requirement>> ValidateCompletenessAsync(string workspaceSlug, List<Requirement> initialRequirements, JamaAttachment attachment, int projectId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] COMPLETENESS CHECK - Found {initialRequirements.Count} requirements for {attachment.FileName}");
+                
+                var expectedMin = EstimateMinimumRequirements(attachment);
+                
+                // If we found significantly fewer than expected, run a second extraction pass
+                if (initialRequirements.Count < expectedMin * 0.7) // If less than 70% of expected
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Count seems low ({initialRequirements.Count} < {expectedMin * 0.7:F0}), running recovery extraction pass...");
+                    
+                    var recoveryPrompt = BuildRecoveryExtractionPrompt(attachment, initialRequirements);
+                    // Use shorter timeout for recovery operations to prevent long waits
+                    var recoveryTimeout = TimeSpan.FromMinutes(1.5); // Reduced from default 4 minutes
+                    var recoveryResponse = await _llmService.SendChatMessageAsync(workspaceSlug, recoveryPrompt, recoveryTimeout, cancellationToken);
+                    
+                    if (!string.IsNullOrEmpty(recoveryResponse))
+                    {
+                        var recoveredRequirements = ParseRequirementsFromLLMResponse(recoveryResponse, attachment, projectId);
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Recovery pass found {recoveredRequirements.Count} additional requirements");
+                        
+                        // Merge with initial requirements (avoiding duplicates by GlobalId)
+                        var allRequirements = new List<Requirement>(initialRequirements);
+                        var existingIds = new HashSet<string>(initialRequirements.Select(r => r.GlobalId ?? ""));
+                        
+                        foreach (var recovered in recoveredRequirements)
+                        {
+                            if (!string.IsNullOrEmpty(recovered.GlobalId) && !existingIds.Contains(recovered.GlobalId))
+                            {
+                                allRequirements.Add(recovered);
+                                existingIds.Add(recovered.GlobalId);
+                            }
+                        }
+                        
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Merged result: {allRequirements.Count} total requirements after recovery");
+                        return allRequirements;
+                    }
+                }
+                
+                return initialRequirements;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Completeness validation failed: {ex.Message}");
+                return initialRequirements;
+            }
+        }
+
+        /// <summary>
+        /// Build recovery extraction prompt for missed requirements
+        /// </summary>
+        private string BuildRecoveryExtractionPrompt(JamaAttachment attachment, List<Requirement> alreadyFound)
+        {
+            var foundIds = alreadyFound.Select(r => r.GlobalId ?? "Unknown").ToList();
+            var foundIdsText = string.Join(", ", foundIds);
+            
+            return $@"RECOVERY SCAN: FIND MISSED REQUIREMENTS IN {attachment.FileName}
+
+CONTEXT: Initial extraction found only {alreadyFound.Count} requirements: {foundIdsText}
+
+This seems low for a technical document. Please perform a thorough re-scan focusing on areas commonly missed:
+
+TARGETED SEARCH AREAS:
+1. Tables and charts with numerical specifications
+2. Appendices and reference sections
+3. Figure captions with technical specs
+4. Bullet points and numbered lists
+5. Headers that contain requirement-like text
+6. Performance sections, specifications sections
+7. Test procedures, acceptance criteria
+8. Interface descriptions, protocol specifications
+9. Environmental, safety, compliance sections
+10. Any ""The system shall..."" or similar statements
+
+AGGRESSIVE EXTRACTION:
+- Look for ANY text that specifies system behavior, constraints, or performance
+- Include threshold values, limits, tolerances
+- Extract test requirements and acceptance criteria
+- Include interface specifications and standards references
+- Don't be conservative - if it looks like a requirement, extract it
+
+DOCUMENT ACCESS CHECK:
+First confirm you can see actual document content (not just metadata). List a few actual text snippets or headings you can see from the document.
+
+FORMAT: Same as before with --- delimiters:
+ID: REQ-XXX (continue numbering from REQ-{alreadyFound.Count + 1:D3})
+Text: [Specific requirement text from actual document]
+Category: [Type]
+Source: [Exact location where found]
+---
+
+GOAL: Find real requirements we missed in the first pass. Look harder at the actual document content.";
+        }
+
+        /// <summary>
+        /// Estimate minimum expected requirements based on document characteristics
+        /// </summary>
+        private int EstimateMinimumRequirements(JamaAttachment attachment)
+        {
+            // Basic heuristic based on file size and type
+            long fileSize = attachment.FileSize;
+            var sizeKB = fileSize / 1024.0;
+            
+            // Documents over 100KB typically have multiple requirements
+            if (sizeKB > 100)
+            {
+                return Math.Max(5, (int)(sizeKB / 50)); // Rough estimate: 1 req per 50KB
+            }
+            else if (sizeKB > 50)
+            {
+                return 3; // Medium documents should have at least a few requirements
+            }
+            else
+            {
+                return 1; // Small documents should have at least one requirement
+            }
         }
 
         /// <summary>

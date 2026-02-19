@@ -914,9 +914,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 var root = document.RootElement;
 
                 // Check for required top-level fields
-                if (!root.TryGetProperty("QualityScore", out _))
+                if (!root.TryGetProperty("OriginalQualityScore", out _))
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] JSON validation failed for {requirementItem}: Missing QualityScore");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] JSON validation failed for {requirementItem}: Missing OriginalQualityScore");
                     return false;
                 }
 

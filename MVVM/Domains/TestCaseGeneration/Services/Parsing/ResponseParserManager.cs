@@ -17,9 +17,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
         {
             _parsers = new List<IResponseParser>
             {
-                // Order matters - more specific parsers first
-                new JsonResponseParser(),
-                new NaturalLanguageResponseParser()
+                // AnythingLLM returns delimited format due to its system prompt configuration
+                new DelimitedResponseParser()
             };
         }
 

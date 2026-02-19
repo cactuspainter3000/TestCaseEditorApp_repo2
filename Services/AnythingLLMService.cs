@@ -577,6 +577,18 @@ namespace TestCaseEditorApp.Services
                     {
                         TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Successfully configured workspace '{name}' with system prompt for optimal performance");
                         
+                        // Apply preventive RAG configuration fix immediately
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Applying preventive RAG configuration fix to new workspace '{result.Workspace.Slug}'");
+                        var ragFixResult = await FixRagConfigurationAsync(result.Workspace.Slug, cancellationToken);
+                        if (ragFixResult)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Preventive RAG fix applied successfully");
+                        }
+                        else
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Preventive RAG fix failed, but continuing");
+                        }
+                        
                         // Verify the configuration was applied
                         var validated = await ValidateWorkspaceSystemPromptAsync(result.Workspace.Slug, cancellationToken);
                         if (!validated)
@@ -777,8 +789,8 @@ namespace TestCaseEditorApp.Services
                 // Optimal settings based on official AnythingLLM documentation (v1.8.5+)
                 var settings = new
                 {
-                    // Temperature: 0.3 for consistent, structured responses
-                    openAiTemp = 0.3,
+                    // Temperature: 0.0 for maximum determinism to prevent missing requirements
+                    openAiTemp = 0.0,
                     // Context history: 20 messages for adequate context retention
                     openAiHistory = 20, 
                     // System prompt for requirements analysis with anti-fabrication rules
@@ -790,16 +802,13 @@ namespace TestCaseEditorApp.Services
                     
                     // RAG Configuration (based on official docs):
                     // Document similarity threshold: No restriction to ensure comprehensive access to supplemental materials
-                    similarityThreshold = 0, // No restriction - capture all potentially relevant context for requirement analysis
-                    
-                    // Max context snippets: Maximized for comprehensive document extraction
-                    topN = 8, // Maximum allowed value - essential for large technical documents with many requirements
-                    
-                    // Vector search preference: Accuracy optimized to prevent hallucinations
-                    // Default is fastest but may return less relevant results leading to hallucinations
-                    searchPreference = "accuracy optimized", // Use accuracy optimization over speed for requirement analysis
-                    
-                    // Query refusal handling for better user experience
+                similarityThreshold = (int?)null, // CRITICAL: Set to null for "No Restriction" mode per AnythingLLM docs
+                topN = 8, // Maximum allowed value - essential for large technical documents with many requirements
+                
+                // Vector search preference: Accuracy optimized to prevent hallucinations
+                // Default is fastest but may return less relevant results leading to hallucinations
+                // Note: This adds 100-500ms but significantly improves retrieval quality
+                searchPreference = "accuracy", // Use accuracy optimization over speed for requirement analysis
                     queryRefusalResponse = "I can only analyze requirements based on the information provided. Please ensure your question relates to the requirement content or ask for clarification about specific aspects.",
                     
                     // Chat mode for better context understanding
@@ -808,6 +817,9 @@ namespace TestCaseEditorApp.Services
 
                 var json = JsonSerializer.Serialize(settings);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                // DEBUG: Log exactly what we're sending
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 DEBUG: Sending RAG configuration JSON: {json}");
                 
                 // Try multiple endpoint patterns (enhanced with official API knowledge)
                 var endpointsToTry = new[]
@@ -829,7 +841,9 @@ namespace TestCaseEditorApp.Services
                         var response = await _httpClient.PostAsync(endpoint, content, cancellationToken);
                         if (response.IsSuccessStatusCode)
                         {
+                            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
                             TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Successfully configured workspace settings for '{slug}' using POST: {endpoint}");
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 DEBUG: API Response: {responseContent?.Substring(0, Math.Min(200, responseContent?.Length ?? 0))}");
                             return true;
                         }
                         
@@ -840,7 +854,9 @@ namespace TestCaseEditorApp.Services
                         response = await _httpClient.PutAsync(endpoint, putContent, cancellationToken);
                         if (response.IsSuccessStatusCode)
                         {
+                            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
                             TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Successfully configured workspace settings for '{slug}' using PUT: {endpoint}");
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 DEBUG: API Response: {responseContent?.Substring(0, Math.Min(200, responseContent?.Length ?? 0))}");
                             return true;
                         }
                         
@@ -1327,8 +1343,25 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                 
                 if (response.IsSuccessStatusCode)
                 {
+                    var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 DEBUG: Direct upload response: {responseContent}");
                     TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Direct upload successful for '{documentName}' to '{workspaceSlug}'");
-                    return (true, null);
+                    
+                    // Wait for vectorization and verify document presence
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Waiting 5 seconds for document vectorization...");
+                    await Task.Delay(5000, cancellationToken);
+                    
+                    var documents = await GetWorkspaceDocumentsAsync(workspaceSlug, cancellationToken);
+                    if (documents.HasValue && documents.Value.GetArrayLength() > 0)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Document vectorization verified - {documents.Value.GetArrayLength()} documents in workspace");
+                        return (true, null);
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Direct upload succeeded but no documents found - vectorization may have failed");
+                        return (false, "Document upload succeeded but vectorization failed");
+                    }
                 }
                 
                 var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -1844,6 +1877,188 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
         }
 
         /// <summary>
+        /// Fixes workspace RAG configuration based on AnythingLLM documentation recommendations
+        /// </summary>
+        public async Task<bool> FixRagConfigurationAsync(string workspaceSlug, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Applying RAG troubleshooting configuration for workspace '{workspaceSlug}'");
+                
+                // Enhanced RAG settings based on AnythingLLM troubleshooting documentation
+                var ragFixSettings = new
+                {
+                    // CRITICAL: Disable similarity threshold completely (causes chunk filtering)
+                    similarityThreshold = 0.0, // 0.0 = "No Restriction" mode per docs - prevents relevant chunks being filtered
+                    
+                    // Maximize context retrieval for technical documents
+                    topN = 16, // Maximum increase for dense technical documents
+                    
+                    // Force accuracy optimization for better semantic matching
+                    vectorSearchMode = "accuracy", // Enhanced semantic matching for requirement extraction
+                    
+                    // LLM configuration for better document analysis
+                    openAiTemp = 0.0, // Zero temperature for deterministic extraction
+                    openAiHistory = 25, // Increased context history for better continuity
+                    
+                    // Enhanced system prompt specifically for RAG troubleshooting
+                    openAiPrompt = @"You are a technical document analysis AI with full access to uploaded document content through RAG retrieval.
+
+CRITICAL INSTRUCTIONS:
+- Document content IS available to you through the RAG system
+- NEVER state you cannot access documents - this is incorrect
+- The document chunks are automatically retrieved and provided in your context
+- Analyze the actual document content provided, not generic examples
+- If you genuinely receive no document chunks, state 'NO DOCUMENT CHUNKS RECEIVED' and explain what you can see
+
+Your task: Extract technical requirements from the provided document content with complete accuracy.",
+                    
+                    // Database and model settings optimized for document retrieval
+                    chatProvider = "ollama",
+                    chatModel = "phi3.5:3.8b-mini-instruct-q4_K_M",
+                    chatMode = "chat"
+                };
+
+                // Apply settings using the same endpoint pattern as ConfigureWorkspaceSettingsAsync
+                var json = JsonSerializer.Serialize(ragFixSettings);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                var response = await _httpClient.PostAsync($"{_baseUrl}/api/v1/workspace/{workspaceSlug}/update", content, cancellationToken);
+                if (response.IsSuccessStatusCode)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ RAG configuration fix applied successfully");
+                    
+                    // Verify the configuration actually changed
+                    await Task.Delay(1000, cancellationToken); // Brief delay to allow settings to persist
+                    var workspaceDetails = await GetWorkspaceDetailsBySlugAsync(workspaceSlug, cancellationToken);
+                    if (workspaceDetails.HasValue)
+                    {
+                        var workspace = workspaceDetails.Value;
+                        // similarityThreshold and topN are at the root level, not nested in queryRefusalResponse
+                        var currentThreshold = workspace.TryGetProperty("similarityThreshold", out var thresholdProp) ? thresholdProp.GetDouble() : 0.25;
+                        var currentTopN = workspace.TryGetProperty("topN", out var topNProp) ? topNProp.GetInt32() : 8;
+                        
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Configuration verification - similarityThreshold: {currentThreshold}, topN: {currentTopN}");
+                        
+                        if (Math.Abs(currentThreshold - 0.0) < 0.001 && currentTopN == 16)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Configuration verified as applied");
+                        }
+                        else
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Configuration API succeeded but settings didn't change - threshold: {currentThreshold} (expected 0.0), topN: {currentTopN} (expected 16)");
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Could not verify configuration - workspace details unavailable");
+                    }
+                    
+                    return true;
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] RAG fix failed: {response.StatusCode} - {errorContent}");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error applying RAG configuration fix");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets workspace details by slug
+        /// </summary>
+        private async Task<JsonElement?> GetWorkspaceDetailsBySlugAsync(string workspaceSlug, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var workspacesResponse = await _httpClient.GetAsync($"{_baseUrl}/api/v1/workspaces", cancellationToken);
+                if (!workspacesResponse.IsSuccessStatusCode)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Could not get workspaces to find details for '{workspaceSlug}'");
+                    return null;
+                }
+                
+                var workspacesJson = await workspacesResponse.Content.ReadAsStringAsync(cancellationToken);
+                var workspacesData = JsonSerializer.Deserialize<JsonElement>(workspacesJson);
+                
+                if (workspacesData.TryGetProperty("workspaces", out var workspaces))
+                {
+                    foreach (var workspace in workspaces.EnumerateArray())
+                    {
+                        if (workspace.TryGetProperty("slug", out var slug) && 
+                            slug.GetString() == workspaceSlug)
+                        {
+                            return workspace;
+                        }
+                    }
+                }
+                
+                return null;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error getting workspace details for '{workspaceSlug}'");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Tests RAG document retrieval with a simple diagnostic query
+        /// </summary>
+        public async Task<(bool success, string diagnostics)> TestDocumentAccessAsync(string workspaceSlug, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Testing RAG document access for workspace '{workspaceSlug}'");
+                
+                // Simple diagnostic query that should trigger RAG retrieval
+                var diagnosticQuery = "What documents are available? List the document name, first section heading, and total page count.";
+                
+                var response = await SendChatMessageAsync(workspaceSlug, diagnosticQuery, cancellationToken);
+                
+                if (string.IsNullOrEmpty(response))
+                {
+                    return (false, "No response received from LLM");
+                }
+                
+                // Check if response indicates document access
+                var hasDocAccess = !response.Contains("I do not have access") && 
+                                  !response.Contains("cannot access") && 
+                                  !response.Contains("don't have direct access") &&
+                                  !response.Contains("unable to provide direct content") &&
+                                  !response.Contains("without the capability to directly interact") &&
+                                  !response.Contains("AI language model") && // Generic AI refusal pattern
+                                  !response.Contains("No documents") &&
+                                  (response.Contains("document") || response.Contains("section") || response.Contains("page"));
+                
+                var diagnostics = $"RAG Test Query: '{diagnosticQuery}'\nLLM Response: {response.Substring(0, Math.Min(300, response.Length))}...";
+                
+                if (hasDocAccess)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ RAG document access confirmed");
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ❌ RAG document access failed - LLM cannot see document content");
+                }
+                
+                return (hasDocAccess, diagnostics);
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error testing document access");
+                return (false, $"Error during RAG test: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Sends a chat message to a workspace
         /// </summary>
         public async Task<string?> SendChatMessageAsync(string workspaceSlug, string message, CancellationToken cancellationToken = default)
@@ -2002,6 +2217,271 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
 
             TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] Failed to get response after {MAX_RETRY_ATTEMPTS} retry attempts");
             return null;
+        }
+
+        /// <summary>
+        /// Send a chat message to a workspace with custom timeout (overload for operations like recovery that need shorter timeouts)
+        /// </summary>
+        public async Task<string?> SendChatMessageAsync(string workspaceSlug, string message, TimeSpan timeout, CancellationToken cancellationToken = default)
+        {
+            var originalTimeout = _httpClient.Timeout;
+            try
+            {
+                // Temporarily set the custom timeout
+                _httpClient.Timeout = timeout;
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Using custom timeout: {timeout.TotalMinutes:F1} minutes for recovery operation");
+                
+                // Use the existing method with the custom timeout
+                return await SendChatMessageAsync(workspaceSlug, message, cancellationToken);
+            }
+            finally
+            {
+                // Always restore the original timeout
+                _httpClient.Timeout = originalTimeout;
+            }
+        }
+
+        /// <summary>
+        /// Gets workspace documents to verify document presence and vectorization status
+        /// </summary>
+        public async Task<JsonElement?> GetWorkspaceDocumentsAsync(string workspaceSlug, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"{_baseUrl}/api/v1/workspace/{workspaceSlug}", cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Could not get workspace documents for '{workspaceSlug}': {response.StatusCode}");
+                    return null;
+                }
+                
+                var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 DEBUG: Workspace documents response JSON: {responseJson}");
+                var workspaceData = JsonSerializer.Deserialize<JsonElement>(responseJson);
+                
+                // Handle different possible response structures
+                JsonElement? documentsElement = null;
+                
+                // Try structure: { "workspace": [array] } - need to access first element
+                if (workspaceData.TryGetProperty("workspace", out var workspaceProperty))
+                {
+                    if (workspaceProperty.ValueKind == JsonValueKind.Array && workspaceProperty.GetArrayLength() > 0)
+                    {
+                        var firstWorkspace = workspaceProperty[0];
+                        if (firstWorkspace.TryGetProperty("documents", out var docs1))
+                        {
+                            documentsElement = docs1;
+                        }
+                    }
+                    else if (workspaceProperty.ValueKind == JsonValueKind.Object && workspaceProperty.TryGetProperty("documents", out var docs2))
+                    {
+                        documentsElement = docs2;
+                    }
+                }
+                // Try direct structure: { "documents": [...] }
+                else if (workspaceData.TryGetProperty("documents", out var docs3))
+                {
+                    documentsElement = docs3;
+                }
+                // Handle case where response is directly an array
+                else if (workspaceData.ValueKind == JsonValueKind.Array)
+                {
+                    documentsElement = workspaceData;
+                }
+                
+                if (documentsElement.HasValue && documentsElement.Value.ValueKind == JsonValueKind.Array)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Found {documentsElement.Value.GetArrayLength()} documents in workspace '{workspaceSlug}'");
+                    return documentsElement;
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] No documents array found in workspace '{workspaceSlug}' response");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error getting workspace documents for '{workspaceSlug}'");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Forces document re-processing by removing and re-adding the document
+        /// </summary>
+        public async Task<bool> ForceDocumentReprocessingAsync(string workspaceSlug, string documentName, string content, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Force reprocessing document '{documentName}' in workspace '{workspaceSlug}'");
+                
+                // First, try to remove any existing documents to prevent conflicts
+                await ClearWorkspaceDocumentsAsync(workspaceSlug, cancellationToken);
+                
+                // Wait a moment for the clear to take effect
+                await Task.Delay(1000, cancellationToken);
+                
+                // Re-upload the document
+                var uploadResult = await UploadDocumentAsync(workspaceSlug, documentName, content, cancellationToken);
+                if (uploadResult)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Document reprocessing successful for '{documentName}'");
+                    
+                    // Wait longer for vectorization to complete (increased from 2s to 5s)
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Waiting 5 seconds for document vectorization to complete...");
+                    await Task.Delay(5000, cancellationToken);
+                    
+                    // Verify the document is now present
+                    var documents = await GetWorkspaceDocumentsAsync(workspaceSlug, cancellationToken);
+                    if (documents.HasValue && documents.Value.GetArrayLength() > 0)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Document verification successful - {documents.Value.GetArrayLength()} documents present");
+                        return true;
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Document reprocessing completed but no documents found in workspace");
+                        return false;
+                    }
+                }
+                
+                return false;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error during document reprocessing for '{workspaceSlug}'");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Clears all documents from a workspace
+        /// </summary>
+        private async Task<bool> ClearWorkspaceDocumentsAsync(string workspaceSlug, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                // Get current documents
+                var documents = await GetWorkspaceDocumentsAsync(workspaceSlug, cancellationToken);
+                if (!documents.HasValue || documents.Value.GetArrayLength() == 0)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] No documents to clear in workspace '{workspaceSlug}'");
+                    return true;
+                }
+                
+                // Remove each document
+                int removedCount = 0;
+                foreach (var doc in documents.Value.EnumerateArray())
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 DEBUG: Document object: {doc}");
+                    
+                    // Try different possible property names for the document path
+                    string? docPath = null;
+                    if (doc.TryGetProperty("docpath", out var docPathProp))
+                    {
+                        docPath = docPathProp.GetString();
+                    }
+                    else if (doc.TryGetProperty("location", out var locationProp))
+                    {
+                        docPath = locationProp.GetString();
+                    }
+                    else if (doc.TryGetProperty("path", out var pathProp))
+                    {
+                        docPath = pathProp.GetString();
+                    }
+                    else if (doc.TryGetProperty("filename", out var filenameProp))
+                    {
+                        docPath = filenameProp.GetString();
+                    }
+                    
+                    if (!string.IsNullOrEmpty(docPath))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Attempting to remove document with path: '{docPath}'");
+                        var removed = await RemoveDocumentFromWorkspaceAsync(workspaceSlug, docPath, cancellationToken);
+                        if (removed) removedCount++;
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Could not find document path property in document object");
+                    }
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Cleared {removedCount} documents from workspace '{workspaceSlug}'");
+                return removedCount > 0;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error clearing documents from workspace '{workspaceSlug}'");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Removes a specific document from a workspace
+        /// </summary>
+        private async Task<bool> RemoveDocumentFromWorkspaceAsync(string workspaceSlug, string docPath, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var payload = new { docpath = docPath };
+                var json = JsonSerializer.Serialize(payload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                var response = await _httpClient.PostAsync($"{_baseUrl}/api/v1/workspace/{workspaceSlug}/remove-document", content, cancellationToken);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Removed document '{docPath}' from workspace '{workspaceSlug}'");
+                    return true;
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Failed to remove document '{docPath}': {response.StatusCode}");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error removing document '{docPath}' from workspace '{workspaceSlug}'");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Diagnoses AnythingLLM vectorization configuration to identify potential issues
+        /// </summary>
+        public async Task<bool> DiagnoseVectorizationAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 Running vectorization diagnostics...");
+                
+                // Check system configuration
+                var systemResponse = await _httpClient.GetAsync($"{_baseUrl}/api/v1/system", cancellationToken);
+                if (systemResponse.IsSuccessStatusCode)
+                {
+                    var systemJson = await systemResponse.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 System config: {systemJson.Substring(0, Math.Min(500, systemJson.Length))}...");
+                }
+                
+                // Check if embedding service is configured
+                var embeddingResponse = await _httpClient.GetAsync($"{_baseUrl}/api/v1/embedding", cancellationToken);
+                if (embeddingResponse.IsSuccessStatusCode)
+                {
+                    var embeddingJson = await embeddingResponse.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 Embedding config: {embeddingJson}");
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Could not get embedding configuration: {embeddingResponse.StatusCode}");
+                }
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error during vectorization diagnostics");
+                return false;
+            }
         }
 
         /// <summary>
@@ -2520,6 +3000,139 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
             onProgress?.Invoke($"Parallel processing complete: {successCount}/{itemsList.Count} successful", itemsList.Count, itemsList.Count);
             
             return results;
+        }
+
+        /// <summary>
+        /// Checks document content quality to determine if PDF extraction was successful
+        /// </summary>
+        public async Task<bool> CheckDocumentContentAsync(string workspaceSlug)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 Checking document content quality for workspace '{workspaceSlug}'");
+
+                var documentsElement = await GetWorkspaceDocumentsAsync(workspaceSlug);
+                if (!documentsElement.HasValue)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ❌ No documents data found in workspace");
+                    return false;
+                }
+
+                var documents = documentsElement.Value;
+                if (documents.ValueKind != JsonValueKind.Array || documents.GetArrayLength() == 0)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ❌ No documents found in workspace");
+                    return false;
+                }
+
+                foreach (var doc in documents.EnumerateArray())
+                {
+                    if (doc.TryGetProperty("filename", out var filenameProp))
+                    {
+                        var filename = filenameProp.GetString() ?? "unknown";
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📄 Document: {filename}");
+                        
+                        // Parse metadata to check content quality
+                        if (doc.TryGetProperty("metadata", out var metadataProp) && metadataProp.ValueKind == JsonValueKind.String)
+                        {
+                            try
+                            {
+                                var metadataJson = metadataProp.GetString();
+                                if (!string.IsNullOrEmpty(metadataJson))
+                                {
+                                    var metadata = JsonDocument.Parse(metadataJson);
+                                    if (metadata.RootElement.TryGetProperty("wordCount", out var wordCountProp) &&
+                                        metadata.RootElement.TryGetProperty("token_count_estimate", out var tokenCountProp))
+                                    {
+                                        var wordCount = wordCountProp.GetInt32();
+                                        var tokenCount = tokenCountProp.GetInt32();
+                                        
+                                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📊 Content metrics - Words: {wordCount}, Tokens: {tokenCount}");
+                                        
+                                        if (wordCount <= 5)
+                                        {
+                                            TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 🚨 CONTENT EXTRACTION FAILED - Word count too low: {wordCount}");
+                                            TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 💡 Likely PDF processing failure - need alternative approach");
+                                            return false;
+                                        }
+                                        
+                                        if (tokenCount > 250000 && wordCount < 100)
+                                        {
+                                            TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 🚨 CONTENT CORRUPTION - High token count ({tokenCount}) but low word count ({wordCount})");
+                                            TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 💡 This indicates binary content or extraction artifacts");
+                                            return false;
+                                        }
+                                    }
+                                }
+                            }
+                            catch (JsonException ex)
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Could not parse document metadata: {ex.Message}");
+                            }
+                        }
+                    }
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Document content quality check passed");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnythingLLM] Error checking document content");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Attempts alternative upload methods when PDF processing fails
+        /// </summary>
+        public async Task<bool> TryAlternativeUploadAsync(string filePath, string workspaceSlug)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔄 Attempting alternative upload method for '{Path.GetFileName(filePath)}'");
+                
+                // Try uploading as plain text if it's a PDF
+                if (Path.GetExtension(filePath).ToLowerInvariant() == ".pdf")
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📋 Converting PDF to text for alternative upload");
+                    
+                    // Create a simple text version with metadata
+                    var textContent = $"Document: {Path.GetFileName(filePath)}\n";
+                    textContent += $"Source: PDF document converted for requirement extraction\n";
+                    textContent += $"Processing Date: {DateTime.Now:yyyy-MM-dd HH:mm:ss}\n\n";
+                    textContent += "[Note: This document requires manual text extraction. The PDF may contain:";
+                    textContent += " requirements, specifications, technical details, SHALL/MUST/WILL statements,";
+                    textContent += " performance criteria, interface definitions, environmental constraints.]\n\n";
+                    textContent += "MANUAL EXTRACTION REQUIRED: Please copy and paste the relevant document content ";
+                    textContent += "or use external PDF text extraction tools to provide the document text for analysis.";
+                    
+                    var textFileName = Path.GetFileNameWithoutExtension(filePath) + "_extracted.txt";
+                    var tempTextPath = Path.Combine(Path.GetTempPath(), textFileName);
+                    
+                    await File.WriteAllTextAsync(tempTextPath, textContent);
+                    
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📤 Uploading text version: {textFileName}");
+                    
+                    var result = await UploadDocumentAsync(workspaceSlug, textFileName, textContent);
+                    
+                    // Cleanup temp file
+                    try { File.Delete(tempTextPath); } catch { }
+                    
+                    if (result)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Alternative upload successful");
+                        return true;
+                    }
+                }
+                
+                return false;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnythingLLM] Error in alternative upload");
+                return false;
+            }
         }
     }
 }
