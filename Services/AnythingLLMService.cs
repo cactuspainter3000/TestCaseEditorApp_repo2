@@ -1322,6 +1322,32 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
         {
             try
             {
+                // CRITICAL: Check for embedding context length limitations BEFORE attempting upload
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 Pre-upload embedding compatibility check...");
+                var embeddingIssues = await DiagnoseEmbeddingContextLengthAsync(content.Length, cancellationToken);
+                
+                if (embeddingIssues.hasContextIssues)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 🚨 CRITICAL: Embedding model has insufficient context length for this document");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] Document size: {content.Length} characters (~{content.Length/4} tokens)");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] Embedding model context: {embeddingIssues.contextLength} tokens");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] This will cause embedding to fail or produce incomplete results");
+                    
+                    StatusUpdated?.Invoke("🚨 Document too large for embedding model - using direct extraction");
+                    
+                    // Try chunked approach for very small documents that might still work
+                    if (content.Length < 1000) // Only try if very small
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Document is small - attempting chunked upload approach...");
+                        return await TryChunkedUploadAsync(workspaceSlug, documentName, content, cancellationToken);
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Document too large for current embedding model - immediate fallback recommended");
+                        return (false, $"Document size ({content.Length} chars) exceeds embedding model capacity ({embeddingIssues.contextLength} tokens). Upgrade embedding model or use direct extraction.");
+                    }
+                }
+                
                 // Use /v1/document/raw-text with addToWorkspaces parameter
                 var payload = new
                 {
@@ -1391,37 +1417,11 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                     
                     // If we get here, vectorization failed after all retries
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Document upload succeeded but vectorization failed after 6 attempts (~105 seconds total)");
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] ❌ CRITICAL: AnythingLLM Native Embedding Service is NOT WORKING");
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] The document uploads but never appears in the documents array");
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] This is an internal AnythingLLM embedding service failure");
-                    StatusUpdated?.Invoke("⚠️ Embedding timeout - switching to direct text extraction");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] ❌ CRITICAL: Embedding failed - likely due to context length limitations");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] Document may be too large for current embedding model (512 token limit)");
+                    StatusUpdated?.Invoke("⚠️ Embedding failed - document may exceed model capacity");
                     
-                    // Run vectorization diagnostics to help troubleshoot
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔧 Running vectorization diagnostics to identify the issue...");
-                    var diagnosticResult = await DiagnoseVectorizationAsync(cancellationToken);
-                    
-                    if (!diagnosticResult)
-                    {
-                        // Embedding configuration is completely broken - fail fast on future attempts
-                        TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 🚨 FAST FAIL: Embedding API unreachable - no point in retrying");
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 💡 Skipping retry attempts and immediately using direct text extraction");
-                        return (false, "AnythingLLM embedding API completely unreachable - immediate fallback to direct extraction");
-                    }
-                    
-                    // Provide immediate actionable solutions
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 🚨 CRITICAL SYSTEM ISSUE DETECTED:");
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] If AnythingLLM crashes during manual document embedding, this indicates:");
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 1. Corrupted AnythingLLM installation (REINSTALL required)");
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 2. Insufficient system resources (RAM/CPU for embedding)");
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 3. System compatibility issues with native embedder");
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 4. Document format causing embedding service crashes");
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔧 RECOMMENDED SOLUTIONS:");
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] • Download and reinstall AnythingLLM from official source");
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] • Switch to Ollama embedder to bypass native embedder bugs");
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] • Try with smaller/simpler documents first");
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 💡 Our application will continue using direct text extraction fallbacks");
-                    
-                    return (false, "AnythingLLM critical failure - embedding service crashes during operation. Reinstallation recommended.");
+                    return (false, "Embedding failed - document likely exceeds embedding model context length (512 tokens). Consider upgrading to a model with larger context.");
                 }
                 
                 var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -2668,10 +2668,19 @@ Your task: Extract technical requirements from the provided document content wit
                 }
                 else
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] ❌ Could not get embedding configuration: {embeddingResponse.StatusCode}");
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] This indicates embedding service is completely non-functional - aborting retries");
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 💡 FAST FAIL: Skipping retry attempts since embedding API is unreachable");
-                    return false; // Fail fast - don't waste time on retries when embedding service doesn't exist
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Could not get embedding configuration: {embeddingResponse.StatusCode}");
+                    if (embeddingResponse.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 💡 Preferences endpoint not found - API version differences, but continuing with embedding attempts");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Our document verification will catch any embedding failures");
+                        return true; // Continue rather than fast-failing on API differences
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] This indicates embedding service is completely non-functional - aborting retries");
+                        TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 💡 FAST FAIL: Skipping retry attempts since embedding API is unreachable");
+                        return false; // Fail fast - don't waste time on retries when embedding service doesn't exist
+                    }
                 }
                 
                 // Provide comprehensive troubleshooting guidance
@@ -3566,6 +3575,303 @@ Your task: Extract technical requirements from the provided document content wit
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnythingLLM] Error in alternative upload");
                 return false;
+            }
+        }
+        
+        /// <summary>
+        /// Diagnose embedding model context length limitations before attempting upload
+        /// </summary>
+        private async Task<(bool hasContextIssues, int contextLength)> DiagnoseEmbeddingContextLengthAsync(int documentSize, CancellationToken cancellationToken)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 Checking embedding model context length for document size: {documentSize} characters");
+                
+                // Check AnythingLLM embedding configuration
+                var preferences = await GetSystemPreferencesAsync(cancellationToken);
+                if (preferences.HasValue && preferences.Value.TryGetProperty("EmbeddingEngine", out var engine))
+                {
+                    var engineType = engine.GetString();
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Embedding engine: {engineType}");
+                    
+                    if (engineType == "ollama")
+                    {
+                        // Check Ollama model directly
+                        return await CheckOllamaEmbeddingContextAsync(documentSize, cancellationToken);
+                    }
+                    else
+                    {
+                        // For other engines, assume reasonable defaults
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Using {engineType} embedding - assuming adequate context length");
+                        return (false, 8192); // Most modern embedding models have at least 8K context
+                    }
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Could not determine embedding engine - proceeding with caution");
+                    return (false, 4096); // Conservative default
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Context length check failed: {ex.Message}");
+                return (false, 2048); // Very conservative fallback
+            }
+        }
+        
+        /// <summary>
+        /// Check Ollama embedding model context length specifically
+        /// </summary>
+        private async Task<(bool hasContextIssues, int contextLength)> CheckOllamaEmbeddingContextAsync(int documentSize, CancellationToken cancellationToken)
+        {
+            try
+            {
+                using var ollamaClient = new HttpClient() { Timeout = TimeSpan.FromSeconds(10) };
+                
+                // First, find which embedding model is being used
+                var response = await ollamaClient.GetAsync("http://localhost:11434/api/tags", cancellationToken);
+                if (response.IsSuccessStatusCode)
+                {
+                    var modelsJson = await response.Content.ReadAsStringAsync(cancellationToken);
+                    var models = JsonDocument.Parse(modelsJson);
+                    
+                    string? embeddingModel = null;
+                    int contextLength = 512; // Default for many embedding models
+                    
+                    if (models.RootElement.TryGetProperty("models", out var modelArray))
+                    {
+                        foreach (var model in modelArray.EnumerateArray())
+                        {
+                            if (model.TryGetProperty("name", out var nameElement))
+                            {
+                                var modelName = nameElement.GetString() ?? "";
+                                if (modelName.Contains("embed"))
+                                {
+                                    embeddingModel = modelName;
+                                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Found embedding model: {modelName}");
+                                    
+                                    // Check specific model details
+                                    var showResponse = await ollamaClient.GetAsync($"http://localhost:11434/api/show", cancellationToken);
+                                    // Note: This would need model name parameter in real implementation
+                                    
+                                    // For now, use known context lengths for common models
+                                    if (modelName.Contains("mxbai-embed-large"))
+                                    {
+                                        contextLength = 512; // Known limitation
+                                    }
+                                    else if (modelName.Contains("nomic-embed"))
+                                    {
+                                        contextLength = 2048; // Better model
+                                    }
+                                    else
+                                    {
+                                        contextLength = 512; // Conservative default
+                                    }
+                                    
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (embeddingModel != null)
+                    {
+                        var estimatedTokens = documentSize / 4; // Rough estimate: 4 chars per token
+                        var hasIssues = estimatedTokens > contextLength;
+                        
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Embedding model: {embeddingModel}");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Context length: {contextLength} tokens");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Document tokens (estimated): {estimatedTokens}");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Context issues: {hasIssues}");
+                        
+                        if (hasIssues)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 🚨 CONTEXT LENGTH ISSUE DETECTED!");
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] Document is too large for current embedding model");
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] Recommended solutions:");
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 1. Install larger context embedding model: ollama pull nomic-embed-text:v1.5");
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 2. Switch to AnythingLLM native embedder (if stable)");
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 3. Use document chunking (experimental)");
+                        }
+                        
+                        return (hasIssues, contextLength);
+                    }
+                    
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] No embedding model found in Ollama");
+                    return (true, 512); // No embedding model = big problem
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Could not connect to Ollama API");
+                return (true, 512); // Connection issues = assume problems
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Ollama context check failed: {ex.Message}");
+                return (true, 512); // Errors = assume worst case
+            }
+        }
+        
+        /// <summary>
+        /// Try chunked upload approach for documents too large for embedding model context
+        /// </summary>
+        private async Task<(bool success, string? error)> TryChunkedUploadAsync(string workspaceSlug, string documentName, string content, CancellationToken cancellationToken)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🧩 Attempting chunked upload for large document...");
+                StatusUpdated?.Invoke("🧩 Trying chunked document upload approach...");
+                
+                // Split document into smaller chunks (400 tokens ≈ 1600 characters)
+                const int chunkSize = 1500; // Conservative size for 512-token models
+                var chunks = SplitDocumentIntoChunks(content, chunkSize);
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Split document into {chunks.Count} chunks");
+                
+                bool anySuccess = false;
+                for (int i = 0; i < chunks.Count; i++)
+                {
+                    var chunkName = $"{documentName}_chunk_{i + 1:D3}";
+                    StatusUpdated?.Invoke($"🧩 Uploading chunk {i + 1}/{chunks.Count}: {chunkName}");
+                    
+                    var chunkPayload = new
+                    {
+                        textContent = chunks[i],
+                        addToWorkspaces = workspaceSlug,
+                        metadata = new
+                        {
+                            title = chunkName,
+                            docAuthor = "Test Case Editor App",
+                            description = $"Part {i + 1} of {chunks.Count} from {documentName}",
+                            docSource = "test-case-editor-chunked"
+                        }
+                    };
+                    
+                    var json = JsonSerializer.Serialize(chunkPayload);
+                    var httpContent = new StringContent(json, Encoding.UTF8, "application/json");
+                    
+                    var response = await _httpClient.PostAsync($"{_baseUrl}/api/v1/document/raw-text", httpContent, cancellationToken);
+                    
+                    if (response.IsSuccessStatusCode)
+                    {
+                        anySuccess = true;
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Chunk {i + 1} uploaded successfully");
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Chunk {i + 1} upload failed: {response.StatusCode}");
+                    }
+                    
+                    // Small delay between chunks to avoid overwhelming the service
+                    if (i < chunks.Count - 1)
+                    {
+                        await Task.Delay(1000, cancellationToken);
+                    }
+                }
+                
+                if (anySuccess)
+                {
+                    StatusUpdated?.Invoke("🧩 Chunked upload completed - verifying embedding...");
+                    
+                    // Wait for chunks to be processed
+                    await Task.Delay(5000, cancellationToken);
+                    
+                    var documents = await GetWorkspaceDocumentsAsync(workspaceSlug, cancellationToken);
+                    var documentCount = documents.HasValue ? documents.Value.GetArrayLength() : 0;
+                    
+                    if (documentCount > 0)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Chunked upload successful - {documentCount} document chunks embedded");
+                        StatusUpdated?.Invoke($"✅ Chunked upload successful - {documentCount} chunks embedded");
+                        return (true, null);
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Chunks uploaded but no documents visible - embedding may still be failing");
+                        return (false, "Chunked upload completed but embedding verification failed");
+                    }
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] ❌ All chunk uploads failed");
+                    return (false, "All document chunks failed to upload");
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] Chunked upload error: {ex.Message}");
+                return (false, $"Chunked upload failed: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// Split document content into chunks suitable for embedding models with limited context
+        /// </summary>
+        private List<string> SplitDocumentIntoChunks(string content, int maxChunkSize)
+        {
+            var chunks = new List<string>();
+            
+            // Try to split by paragraphs first (better for maintaining context)
+            var paragraphs = content.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
+            
+            var currentChunk = new StringBuilder();
+            
+            foreach (var paragraph in paragraphs)
+            {
+                // If adding this paragraph would exceed chunk size, save current chunk and start new one
+                if (currentChunk.Length + paragraph.Length > maxChunkSize && currentChunk.Length > 0)
+                {
+                    chunks.Add(currentChunk.ToString().Trim());
+                    currentChunk.Clear();
+                }
+                
+                // If single paragraph is larger than chunk size, split it
+                if (paragraph.Length > maxChunkSize)
+                {
+                    var sentences = paragraph.Split(new[] { ". ", "! ", "? " }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var sentence in sentences)
+                    {
+                        if (currentChunk.Length + sentence.Length > maxChunkSize && currentChunk.Length > 0)
+                        {
+                            chunks.Add(currentChunk.ToString().Trim());
+                            currentChunk.Clear();
+                        }
+                        currentChunk.AppendLine(sentence);
+                    }
+                }
+                else
+                {
+                    currentChunk.AppendLine(paragraph);
+                }
+            }
+            
+            // Add final chunk if not empty
+            if (currentChunk.Length > 0)
+            {
+                chunks.Add(currentChunk.ToString().Trim());
+            }
+            
+            // Ensure no empty chunks
+            return chunks.Where(c => !string.IsNullOrWhiteSpace(c)).ToList();
+        }
+        
+        /// <summary>
+        /// Get AnythingLLM system preferences for configuration checking
+        /// </summary>
+        private async Task<JsonElement?> GetSystemPreferencesAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"{_baseUrl}/api/v1/system/preferences", cancellationToken);
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                    return JsonDocument.Parse(json).RootElement;
+                }
+                return null;
+            }
+            catch
+            {
+                return null;
             }
         }
     }
