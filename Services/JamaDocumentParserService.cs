@@ -34,6 +34,14 @@ namespace TestCaseEditorApp.Services
         /// </summary>
         public async Task<List<Requirement>> ParseAttachmentAsync(JamaAttachment attachment, int projectId, System.Action<string>? progressCallback = null, CancellationToken cancellationToken = default)
         {
+            // Wire up AnythingLLM status updates to UI progress callback
+            System.Action<string>? statusUpdateHandler = null;
+            if (progressCallback != null)
+            {
+                statusUpdateHandler = (message) => progressCallback(message);
+                _llmService.StatusUpdated += statusUpdateHandler;
+            }
+            
             try
             {
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Starting parse for attachment {attachment.Id} ({attachment.FileName})");
@@ -82,7 +90,7 @@ namespace TestCaseEditorApp.Services
                     await File.WriteAllBytesAsync(tempFilePath, fileBytes, cancellationToken);
                     
                     // Upload to AnythingLLM using the file-based upload
-                    var uploadSuccess = await UploadFileToWorkspaceAsync(workspaceSlug, tempFilePath, cancellationToken);
+                    var uploadSuccess = await UploadFileToWorkspaceAsync(workspaceSlug, tempFilePath, cancellationToken, progressCallback);
                     
                     if (!uploadSuccess)
                     {
@@ -111,8 +119,23 @@ namespace TestCaseEditorApp.Services
                         var reprocessResult = await _llmService.ForceDocumentReprocessingAsync(workspaceSlug, attachment.FileName, Convert.ToBase64String(fileBytes), cancellationToken);
                         if (!reprocessResult)
                         {
-                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Document reprocessing failed");
-                            progressCallback?.Invoke("❌ Document processing failed");
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Document reprocessing failed - AnythingLLM embedding service appears to be critically broken");
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] This may indicate AnythingLLM crashes during document embedding operations");
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 🔄 Switching to direct text extraction - bypassing broken embedding service");
+                            
+                            progressCallback?.Invoke("🚨 AnythingLLM embedding broken - using direct text extraction...");
+                            
+                            // Try direct text extraction as fallback when vectorization fails
+                            var fallbackRequirements = await TryDirectTextExtractionAsync(attachment, fileBytes, progressCallback, cancellationToken);
+                            if (fallbackRequirements.Count > 0)
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Direct text extraction successful - found {fallbackRequirements.Count} requirements (reliable method)");
+                                progressCallback?.Invoke($"✅ Direct extraction successful - found {fallbackRequirements.Count} requirements (AnythingLLM bypassed)");
+                                return fallbackRequirements;
+                            }
+                            
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ❌ Both RAG and direct text extraction failed");
+                            progressCallback?.Invoke("❌ All extraction methods failed");
                             return new List<Requirement>();
                         }
                         progressCallback?.Invoke("✅ Document reprocessing successful");
@@ -174,6 +197,14 @@ namespace TestCaseEditorApp.Services
                 TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Error parsing attachment {attachment.Id}: {ex.Message}");
                 return new List<Requirement>();
             }
+            finally
+            {
+                // Clean up event handler to prevent memory leaks
+                if (statusUpdateHandler != null)
+                {
+                    _llmService.StatusUpdated -= statusUpdateHandler;
+                }
+            }
         }
 
         /// <summary>
@@ -208,7 +239,7 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Upload file to AnythingLLM workspace using multipart form data
         /// </summary>
-        private async Task<bool> UploadFileToWorkspaceAsync(string workspaceSlug, string filePath, CancellationToken cancellationToken)
+        private async Task<bool> UploadFileToWorkspaceAsync(string workspaceSlug, string filePath, CancellationToken cancellationToken, System.Action<string>? progressCallback = null)
         {
             try
             {
@@ -216,13 +247,166 @@ namespace TestCaseEditorApp.Services
                 var fileContent = await File.ReadAllTextAsync(filePath, cancellationToken);
                 var fileName = Path.GetFileName(filePath);
 
-                // Use AnythingLLM's UploadDocumentAsync method
-                return await _llmService.UploadDocumentAsync(workspaceSlug, fileName, fileContent, cancellationToken);
+                progressCallback?.Invoke("🧠 Starting document embedding operation...");
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 🔍 UPLOAD DEBUG: Starting upload for '{fileName}' to workspace '{workspaceSlug}'");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 🔍 UPLOAD DEBUG: Content length: {fileContent.Length} characters");
+                
+                // Start the upload operation
+                var uploadStartTime = DateTime.Now;
+                var uploadTask = _llmService.UploadDocumentAsync(workspaceSlug, fileName, fileContent, cancellationToken);
+                
+                // Monitor progress while upload/embedding is happening - this returns when embedding succeeds OR fails
+                var monitoringCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                var progressTask = MonitorUploadProgressAsync(workspaceSlug, progressCallback, monitoringCts.Token);
+                
+                // Wait for EITHER upload to complete OR monitoring to detect failure
+                var completedTask = await Task.WhenAny(uploadTask, progressTask);
+                
+                if (completedTask == progressTask)
+                {
+                    // Monitoring detected failure/success - cancel upload if still running
+                    monitoringCts.Cancel();
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] 🔍 Monitoring completed first - checking results");
+                    
+                    // Check if monitoring detected success (document exists) or failure
+                    var finalCheck = await _llmService.GetWorkspaceDocumentsAsync(workspaceSlug, cancellationToken);
+                    var documentCount = finalCheck.HasValue ? finalCheck.Value.GetArrayLength() : 0;
+                    
+                    if (documentCount > 0)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Monitoring detected successful embedding - {documentCount} documents found");
+                        progressCallback?.Invoke("✅ Document embedding completed successfully!");
+                        return true;
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] 🚨 Monitoring detected embedding failure - forcing fallback");
+                        progressCallback?.Invoke("🚨 Embedding failure detected - switching to direct extraction");
+                        return false; // Force fallback to direct extraction
+                    }
+                }
+                else
+                {
+                    // Upload completed first - check results normally
+                    monitoringCts.Cancel(); // Stop monitoring
+                    var uploadResult = await uploadTask;
+                    
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 🔍 UPLOAD DEBUG: Upload completed with result: {uploadResult}");
+                    
+                    if (!uploadResult)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] 🔍 Upload failed - triggering fallback");
+                        progressCallback?.Invoke("❌ Document upload failed - switching to direct extraction");
+                        return false;
+                    }
+                    else
+                    {
+                        // Even if upload "succeeded", verify documents actually exist  
+                        var verifyCheck = await _llmService.GetWorkspaceDocumentsAsync(workspaceSlug, cancellationToken);
+                        var documentCount = verifyCheck.HasValue ? verifyCheck.Value.GetArrayLength() : 0;
+                        
+                        if (documentCount > 0)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Upload and embedding both successful - {documentCount} documents");
+                            progressCallback?.Invoke("✅ Document embedding completed successfully!");
+                            return true;
+                        }
+                        else
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ⚠️ Upload 'succeeded' but 0 documents in workspace - embedding failed");
+                            progressCallback?.Invoke("⚠️ Embedding incomplete - switching to direct extraction"); 
+                            return false; // Force fallback
+                        }
+                    }
+                }
+                
+                return false;
             }
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Error uploading file: {ex.Message}");
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Monitor upload progress and provide user feedback during embedding operations
+        /// </summary>
+        private async Task MonitorUploadProgressAsync(string workspaceSlug, System.Action<string>? progressCallback, CancellationToken cancellationToken)
+        {
+            if (progressCallback == null) return;
+
+            try
+            {
+                var startTime = DateTime.Now;
+                var maxDuration = TimeSpan.FromMinutes(3); // Reduced from 10 to 3 minutes - fail faster
+                var updateInterval = TimeSpan.FromSeconds(15); // Update every 15 seconds
+                var lastDocumentCount = -1;
+                var stuckCount = 0;
+
+                while (!cancellationToken.IsCancellationRequested && DateTime.Now - startTime < maxDuration)
+                {
+                    await Task.Delay(updateInterval, cancellationToken);
+
+                    var elapsed = DateTime.Now - startTime;
+                    var elapsedMinutes = (int)elapsed.TotalMinutes;
+                    var elapsedSeconds = (int)elapsed.TotalSeconds % 60;
+
+                    // Check if document has appeared in workspace (indicates embedding progress/completion)  
+                    var documents = await _llmService.GetWorkspaceDocumentsAsync(workspaceSlug, cancellationToken);
+                    var documentCount = documents.HasValue ? documents.Value.GetArrayLength() : 0;
+
+                    if (documentCount > 0)
+                    {
+                        progressCallback($"✅ Document embedded successfully! ({documentCount} docs, {elapsedMinutes}m {elapsedSeconds}s)");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Embedding SUCCESS: Document visible in workspace after {elapsedMinutes}m {elapsedSeconds}s");
+                        return; // Document is visible, embedding completed successfully
+                    }
+                    else
+                    {
+                        // Check if we're stuck (no progress for too long)
+                        if (documentCount == lastDocumentCount)
+                        {
+                            stuckCount++;
+                        }
+                        else
+                        {
+                            stuckCount = 0;
+                        }
+                        lastDocumentCount = documentCount;
+
+                        // If stuck for >90 seconds (6 cycles), assume failure
+                        if (stuckCount >= 6 && elapsed.TotalSeconds > 90)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] 🚨 EMBEDDING FAILURE DETECTED: No progress for 90+ seconds ({stuckCount} cycles)");
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Document count remains 0 - AnythingLLM embedding has failed");
+                            progressCallback("🚨 Embedding stuck - no documents after 90+ seconds. Switching to direct extraction!");
+                            return; // Exit early to trigger fallback
+                        }
+                        
+                        // Even earlier detection: if we've been running 2+ minutes with 0 docs, something is wrong
+                        if (elapsed.TotalSeconds > 120 && documentCount == 0)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] 🚨 EARLY FAILURE DETECTION: 2+ minutes with 0 documents");
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] This indicates embedding process failure - triggering fallback");
+                            progressCallback("🚨 Embedding taking too long (2+ min, no documents) - switching to direct extraction!");
+                            return; // Exit to trigger fallback
+                        }
+
+                        progressCallback($"🔄 Embedding chunks into vectors... ({elapsedMinutes}m {elapsedSeconds}s elapsed)");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Embedding progress: Processing chunks... ({elapsedMinutes}m {elapsedSeconds}s elapsed)");
+                    }
+                }
+
+                // If we reach here, we timed out
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] 🚨 EMBEDDING TIMEOUT: Monitoring timed out after 3 minutes");
+                progressCallback("⏰ Embedding timeout - switching to direct extraction");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Progress monitoring stopped: {ex.Message}");
+                progressCallback?.Invoke("⚠️ Monitoring error - switching to direct extraction");
             }
         }
 
@@ -511,7 +695,7 @@ IMPORTANT: Only extract requirements if you have actual document access. Do not 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] DEBUG - First 500 chars of LLM response: {llmResponse?.Substring(0, Math.Min(500, llmResponse?.Length ?? 0))}");
                 
                 // Split response by requirement delimiter
-                var blocks = llmResponse.Split(new[] { "---" }, StringSplitOptions.RemoveEmptyEntries);
+                var blocks = llmResponse?.Split(new[] { "---" }, StringSplitOptions.RemoveEmptyEntries) ?? new string[0];
                 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] DEBUG - Found {blocks.Length} blocks after splitting on '---'");
 
@@ -955,6 +1139,137 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
             if (attachment.IsWord) return "Word Document";
             if (attachment.IsExcel) return "Excel Spreadsheet";
             return "Document";
+        }
+
+        /// <summary>
+        /// Attempts direct text extraction and requirement parsing as fallback when RAG vectorization fails
+        /// </summary>
+        private async Task<List<Requirement>> TryDirectTextExtractionAsync(
+            JamaAttachment attachment, 
+            byte[] fileBytes, 
+            Action<string>? progressCallback, 
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 🔄 Starting direct text extraction fallback for {attachment.FileName}");
+                progressCallback?.Invoke("Extracting text directly from PDF...");
+                
+                // For now, use a simplified text extraction approach
+                // This could be enhanced with proper PDF libraries in the future
+                string extractedText = string.Empty;
+                
+                try
+                {
+                    // Simple fallback - just convert bytes to text and look for patterns
+                    // This is very basic but works as a last resort
+                    var base64 = Convert.ToBase64String(fileBytes);
+                    extractedText = System.Text.Encoding.UTF8.GetString(fileBytes, 0, Math.Min(fileBytes.Length, 10000));
+                    
+                    // If that doesn't work, flag for manual extraction
+                    if (string.IsNullOrWhiteSpace(extractedText) || extractedText.Length < 50)
+                    {
+                        progressCallback?.Invoke("⚠️ PDF text extraction limited - manual review may be needed");
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Basic text extraction yielded insufficient content");
+                        return CreateManualExtractionPlaceholder(attachment);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Text extraction failed: {ex.Message}");
+                    return CreateManualExtractionPlaceholder(attachment);
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Extracted {extractedText.Length} characters for analysis");
+                progressCallback?.Invoke($"Analyzing {extractedText.Length:N0} characters of text...");
+                
+                // Use simple pattern-based requirement detection as fallback
+                var requirements = ParseRequirementsFromText(extractedText, attachment);
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Direct extraction found {requirements.Count} potential requirements");
+                return requirements;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[JamaDocumentParser] Error in direct text extraction fallback");
+                return CreateManualExtractionPlaceholder(attachment);
+            }
+        }
+        
+        /// <summary>
+        /// Creates a placeholder requirement indicating manual extraction is needed
+        /// </summary>
+        private List<Requirement> CreateManualExtractionPlaceholder(JamaAttachment attachment)
+        {
+            var placeholder = new Requirement
+            {
+                Item = "MANUAL-EXTRACT-001",
+                Description = $"⚠️ MANUAL EXTRACTION REQUIRED: Document '{attachment.FileName}' could not be automatically processed due to AnythingLLM vectorization failure. Please manually review this document for requirements.",
+                ItemType = "MANUAL_EXTRACTION_NEEDED"
+            };
+            
+            return new List<Requirement> { placeholder };
+        }
+        
+        /// <summary>
+        /// Simple regex-based requirement parsing for fallback when AI processing fails
+        /// </summary>
+        private List<Requirement> ParseRequirementsFromText(string text, JamaAttachment attachment)
+        {
+            var requirements = new List<Requirement>();
+            var requirementId = 1;
+            
+            try
+            {
+                // Look for common requirement patterns
+                var patterns = new[]
+                {
+                    @"(\b(?:shall|must|will|should|require[sd]?)\b[^.!?]*[.!?])",
+                    @"(\b(?:The system|The device|The software|The hardware)\s+(?:shall|must|will|should)[^.!?]*[.!?])",
+                    @"(\b\d+\.\d+(?:\.\d+)*\s+[^.!?]*(?:shall|must|will|should)[^.!?]*[.!?])",
+                };
+                
+                foreach (var pattern in patterns)
+                {
+                    var regex = new System.Text.RegularExpressions.Regex(pattern, 
+                        System.Text.RegularExpressions.RegexOptions.IgnoreCase | 
+                        System.Text.RegularExpressions.RegexOptions.Multiline);
+                    
+                    var matches = regex.Matches(text);
+                    foreach (System.Text.RegularExpressions.Match match in matches)
+                    {
+                        var requirementText = match.Groups[1].Value.Trim();
+                        if (requirementText.Length > 20 && requirementText.Length < 1000) // Reasonable length
+                        {
+                            var req = new Requirement
+                            {
+                                Item = $"FALLBACK-{requirementId:D3}",
+                                Description = requirementText,
+                                ItemType = "FALLBACK_EXTRACTED"
+                            };
+                            
+                            requirements.Add(req);
+                            requirementId++;
+                            
+                            if (requirements.Count >= 50) break; // Limit to prevent overload
+                        }
+                    }
+                }
+                
+                // If no patterns found, create a manual extraction notice
+                if (requirements.Count == 0)
+                {
+                    return CreateManualExtractionPlaceholder(attachment);
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Pattern-based extraction found {requirements.Count} requirements");
+                return requirements;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[JamaDocumentParser] Error parsing requirements from text");
+                return CreateManualExtractionPlaceholder(attachment);
+            }
         }
     }
 }

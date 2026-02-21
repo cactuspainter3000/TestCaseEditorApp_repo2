@@ -14,6 +14,11 @@ namespace TestCaseEditorApp.Services
     public interface IAnythingLLMService
     {
         /// <summary>
+        /// Event fired when status updates occur during operations
+        /// </summary>
+        event Action<string>? StatusUpdated;
+
+        /// <summary>
         /// Create a new workspace in AnythingLLM
         /// </summary>
         Task<Workspace?> CreateWorkspaceAsync(string name, CancellationToken cancellationToken = default);

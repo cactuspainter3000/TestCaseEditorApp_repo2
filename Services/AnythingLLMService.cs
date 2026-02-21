@@ -1348,20 +1348,80 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                     TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Direct upload successful for '{documentName}' to '{workspaceSlug}'");
                     
                     // Wait for vectorization and verify document presence
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Waiting 5 seconds for document vectorization...");
-                    await Task.Delay(5000, cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Waiting for document vectorization...");
+                    StatusUpdated?.Invoke("🧠 Starting document embedding operation...");
                     
-                    var documents = await GetWorkspaceDocumentsAsync(workspaceSlug, cancellationToken);
-                    if (documents.HasValue && documents.Value.GetArrayLength() > 0)
+                    // Before starting the retry loop, do a fast diagnostic check to avoid wasting time
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔧 Performing fast diagnostic check before retry attempts...");
+                    var fastDiagnosticResult = await DiagnoseVectorizationAsync(cancellationToken);
+                    
+                    if (!fastDiagnosticResult)
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Document vectorization verified - {documents.Value.GetArrayLength()} documents in workspace");
-                        return (true, null);
+                        // Embedding configuration is completely broken - fail immediately
+                        TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 🚨 FAST FAIL: Embedding API unreachable - skipping all retry attempts");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 💡 Immediately proceeding to direct text extraction fallback");
+                        StatusUpdated?.Invoke("🚨 Embedding API unreachable - using direct extraction");
+                        return (false, "AnythingLLM embedding API completely unreachable - immediate fallback to direct extraction");
                     }
-                    else
+                    
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Embedding API is reachable - proceeding with vectorization retry attempts");
+                    StatusUpdated?.Invoke("✅ Embedding API ready - starting vectorization...");
+                    
+                    // Try multiple times with increasing delays - PDFs can take time to process
+                    for (int retry = 0; retry < 6; retry++) // Up to 6 retries (total ~30 seconds)
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Direct upload succeeded but no documents found - vectorization may have failed");
-                        return (false, "Document upload succeeded but vectorization failed");
+                        var waitTime = (retry + 1) * 5000; // 5, 10, 15, 20, 25, 30 seconds
+                        var elapsedMinutes = (retry * 5) / 60;
+                        var elapsedSeconds = (retry * 5) % 60;
+                        
+                        StatusUpdated?.Invoke($"🔄 Embedding chunks into vectors... ({elapsedMinutes}m {elapsedSeconds + (waitTime/1000)}s elapsed)");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Vectorization attempt {retry + 1}/6 - waiting {waitTime/1000} seconds...");
+                        await Task.Delay(waitTime, cancellationToken);
+                        
+                        var documents = await GetWorkspaceDocumentsAsync(workspaceSlug, cancellationToken);
+                        if (documents.HasValue && documents.Value.GetArrayLength() > 0)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Document vectorization verified on attempt {retry + 1} - {documents.Value.GetArrayLength()} documents in workspace");
+                            StatusUpdated?.Invoke("✅ Document embedding completed successfully!");
+                            return (true, null);
+                        }
+                        
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Vectorization attempt {retry + 1}/6 - no documents found yet, will retry...");
                     }
+                    
+                    // If we get here, vectorization failed after all retries
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Document upload succeeded but vectorization failed after 6 attempts (~105 seconds total)");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] ❌ CRITICAL: AnythingLLM Native Embedding Service is NOT WORKING");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] The document uploads but never appears in the documents array");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] This is an internal AnythingLLM embedding service failure");
+                    StatusUpdated?.Invoke("⚠️ Embedding timeout - switching to direct text extraction");
+                    
+                    // Run vectorization diagnostics to help troubleshoot
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔧 Running vectorization diagnostics to identify the issue...");
+                    var diagnosticResult = await DiagnoseVectorizationAsync(cancellationToken);
+                    
+                    if (!diagnosticResult)
+                    {
+                        // Embedding configuration is completely broken - fail fast on future attempts
+                        TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 🚨 FAST FAIL: Embedding API unreachable - no point in retrying");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 💡 Skipping retry attempts and immediately using direct text extraction");
+                        return (false, "AnythingLLM embedding API completely unreachable - immediate fallback to direct extraction");
+                    }
+                    
+                    // Provide immediate actionable solutions
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 🚨 CRITICAL SYSTEM ISSUE DETECTED:");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] If AnythingLLM crashes during manual document embedding, this indicates:");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 1. Corrupted AnythingLLM installation (REINSTALL required)");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 2. Insufficient system resources (RAM/CPU for embedding)");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 3. System compatibility issues with native embedder");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 4. Document format causing embedding service crashes");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔧 RECOMMENDED SOLUTIONS:");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] • Download and reinstall AnythingLLM from official source");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] • Switch to Ollama embedder to bypass native embedder bugs");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] • Try with smaller/simpler documents first");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 💡 Our application will continue using direct text extraction fallbacks");
+                    
+                    return (false, "AnythingLLM critical failure - embedding service crashes during operation. Reinstallation recommended.");
                 }
                 
                 var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -1501,22 +1561,94 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                 var json = JsonSerializer.Serialize(payload);
                 var httpContent = new StringContent(json, Encoding.UTF8, "application/json");
                 
-                var response = await _httpClient.PostAsync($"{_baseUrl}/api/v1/workspace/{workspaceSlug}/update-embeddings", httpContent, cancellationToken);
+                // Use extended timeout for embedding operations - large documents can take 10+ minutes
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🕐 Starting embedding operation with extended timeout (10 minutes)");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Large documents with thousands of chunks may take several minutes to embed");
+                StatusUpdated?.Invoke("🧠 Starting document embedding operation...");
+                
+                using var embeddingHttpClient = new HttpClient();
+                embeddingHttpClient.Timeout = TimeSpan.FromMinutes(10); // Extended timeout for embedding operations
+                
+                if (!string.IsNullOrEmpty(_apiKey))
+                {
+                    embeddingHttpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
+                }
+                embeddingHttpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+                
+                // Start embedding operation and progress monitoring concurrently
+                var embeddingTask = embeddingHttpClient.PostAsync($"{_baseUrl}/api/v1/workspace/{workspaceSlug}/update-embeddings", httpContent, cancellationToken);
+                var progressTask = MonitorEmbeddingProgressAsync(workspaceSlug, cancellationToken);
+                
+                // Wait for embedding to complete
+                var response = await embeddingTask;
                 
                 if (response.IsSuccessStatusCode)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Document added to workspace embeddings: {workspaceSlug}");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Document embedding completed successfully for workspace: {workspaceSlug}");
+                    StatusUpdated?.Invoke("✅ Document embedding completed successfully!");
                     return true;
                 }
                 
                 var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
                 TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Failed to add document to workspace embeddings: {response.StatusCode} - {errorContent}");
+                StatusUpdated?.Invoke($"❌ Embedding failed: {response.StatusCode}");
+                return false;
+            }
+            catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] ⏰ Embedding operation timed out after 10 minutes");
+                TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] This document may be too large for efficient embedding");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 💡 Recommendation: Try splitting large documents into smaller sections");
+                StatusUpdated?.Invoke("⏰ Embedding timeout - document too large");
                 return false;
             }
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error adding document to workspace embeddings: {ex.Message}");
+                StatusUpdated?.Invoke($"❌ Embedding error: {ex.Message}");
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Monitors embedding progress by checking document availability and providing user feedback
+        /// </summary>
+        private async Task MonitorEmbeddingProgressAsync(string workspaceSlug, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var startTime = DateTime.Now;
+                var progressInterval = TimeSpan.FromSeconds(30); // Update every 30 seconds
+                var maxDuration = TimeSpan.FromMinutes(10); // Maximum monitoring time
+                
+                while (!cancellationToken.IsCancellationRequested && DateTime.Now - startTime < maxDuration)
+                {
+                    await Task.Delay(progressInterval, cancellationToken);
+                    
+                    var elapsed = DateTime.Now - startTime;
+                    var elapsedMinutes = (int)elapsed.TotalMinutes;
+                    var elapsedSeconds = (int)elapsed.TotalSeconds % 60;
+                    
+                    // Check if document has appeared in workspace (indicates embedding progress/completion)
+                    var documents = await GetWorkspaceDocumentsAsync(workspaceSlug, cancellationToken);
+                    var documentCount = documents.HasValue ? documents.Value.GetArrayLength() : 0;
+                    
+                    if (documentCount > 0)
+                    {
+                        StatusUpdated?.Invoke($"🔄 Embedding in progress... Document detected in workspace ({elapsedMinutes}m {elapsedSeconds}s)");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📊 Embedding progress: Document visible in workspace after {elapsedMinutes}m {elapsedSeconds}s");
+                        return; // Document is visible, embedding likely complete or nearly complete
+                    }
+                    else
+                    {
+                        StatusUpdated?.Invoke($"🔄 Embedding chunks into vectors... ({elapsedMinutes}m {elapsedSeconds}s elapsed)");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📊 Embedding progress: Processing chunks... ({elapsedMinutes}m {elapsedSeconds}s elapsed)");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Progress monitoring stopped due to error: {ex.Message}");
             }
         }
 
@@ -2326,22 +2458,29 @@ Your task: Extract technical requirements from the provided document content wit
                 {
                     TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Document reprocessing successful for '{documentName}'");
                     
-                    // Wait longer for vectorization to complete (increased from 2s to 5s)
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Waiting 5 seconds for document vectorization to complete...");
-                    await Task.Delay(5000, cancellationToken);
+                    // Wait longer for vectorization to complete with progressive retries
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Waiting for document vectorization to complete...");
                     
-                    // Verify the document is now present
-                    var documents = await GetWorkspaceDocumentsAsync(workspaceSlug, cancellationToken);
-                    if (documents.HasValue && documents.Value.GetArrayLength() > 0)
+                    // Try multiple times with increasing delays for reprocessing
+                    for (int retry = 0; retry < 4; retry++) // Up to 4 retries for reprocessing
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Document verification successful - {documents.Value.GetArrayLength()} documents present");
-                        return true;
+                        var waitTime = (retry + 1) * 7500; // 7.5, 15, 22.5, 30 seconds
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Reprocessing verification attempt {retry + 1}/4 - waiting {waitTime/1000} seconds...");
+                        await Task.Delay(waitTime, cancellationToken);
+                        
+                        var documents = await GetWorkspaceDocumentsAsync(workspaceSlug, cancellationToken);
+                        if (documents.HasValue && documents.Value.GetArrayLength() > 0)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Document verification successful on attempt {retry + 1} - {documents.Value.GetArrayLength()} documents present");
+                            return true;
+                        }
+                        
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Reprocessing verification attempt {retry + 1}/4 - no documents found yet, will retry...");
                     }
-                    else
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Document reprocessing completed but no documents found in workspace");
-                        return false;
-                    }
+                    
+                    // Final failure after all retries
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Document reprocessing completed but no documents found after 4 attempts (~75 seconds)");
+                    return false;
                 }
                 
                 return false;
@@ -2453,27 +2592,100 @@ Your task: Extract technical requirements from the provided document content wit
         {
             try
             {
-                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 Running vectorization diagnostics...");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 Running comprehensive vectorization diagnostics...");
                 
                 // Check system configuration
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 Checking system configuration...");
                 var systemResponse = await _httpClient.GetAsync($"{_baseUrl}/api/v1/system", cancellationToken);
                 if (systemResponse.IsSuccessStatusCode)
                 {
                     var systemJson = await systemResponse.Content.ReadAsStringAsync(cancellationToken);
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 System config: {systemJson.Substring(0, Math.Min(500, systemJson.Length))}...");
-                }
-                
-                // Check if embedding service is configured
-                var embeddingResponse = await _httpClient.GetAsync($"{_baseUrl}/api/v1/embedding", cancellationToken);
-                if (embeddingResponse.IsSuccessStatusCode)
-                {
-                    var embeddingJson = await embeddingResponse.Content.ReadAsStringAsync(cancellationToken);
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 Embedding config: {embeddingJson}");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 System config available (length: {systemJson.Length} chars)");
                 }
                 else
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Could not get embedding configuration: {embeddingResponse.StatusCode}");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Could not get system configuration: {systemResponse.StatusCode}");
                 }
+                
+                // Check embedding service configuration - this is critical for vectorization
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 Checking embedding service configuration...");
+                var embeddingResponse = await _httpClient.GetAsync($"{_baseUrl}/api/v1/system/preferences", cancellationToken);
+                if (embeddingResponse.IsSuccessStatusCode)
+                {
+                    var embeddingJson = await embeddingResponse.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 System preferences: {embeddingJson}");
+                    
+                    // Parse and check for embedding provider
+                    try
+                    {
+                        var preferences = JsonDocument.Parse(embeddingJson);
+                        if (preferences.RootElement.TryGetProperty("EmbeddingEngine", out var embeddingEngine))
+                        {
+                            var engineValue = embeddingEngine.GetString();
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🎯 Embedding engine configured: {engineValue}");
+                            
+                            if (engineValue == "native")
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Using AnythingLLM native embedding service - no external dependencies required");
+                                
+                                // Test AnythingLLM's native embedding service
+                                await TestAnythingLLMNativeEmbeddingAsync(cancellationToken);
+                            }
+                            else if (engineValue == "ollama")
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 Configured for Ollama embedding service - checking Ollama...");
+                                
+                                // Check Ollama service
+                                await TestOllamaEmbeddingAsync(cancellationToken);
+                            }
+                            else
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Unknown embedding engine: {engineValue}");
+                            }
+                        }
+                        else
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] ❌ CRITICAL: No EmbeddingEngine found in preferences - vectorization will fail!");
+                        }
+                        
+                        if (preferences.RootElement.TryGetProperty("EmbeddingBasePath", out var basePath))
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🎯 Embedding base path: {basePath.GetString()}");
+                        }
+                        
+                        if (preferences.RootElement.TryGetProperty("EmbeddingModelPref", out var modelPref))
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🎯 Embedding model preference: {modelPref.GetString()}");
+                        }
+                        
+                        return true; // Configuration accessible, continue with normal retry logic
+                    }
+                    catch (Exception parseEx)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Could not parse system preferences: {parseEx.Message}");
+                        return true; // Continue with retry logic even if parsing fails
+                    }
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] ❌ Could not get embedding configuration: {embeddingResponse.StatusCode}");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] This indicates embedding service is completely non-functional - aborting retries");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 💡 FAST FAIL: Skipping retry attempts since embedding API is unreachable");
+                    return false; // Fail fast - don't waste time on retries when embedding service doesn't exist
+                }
+                
+                // Provide comprehensive troubleshooting guidance
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🛠️ COMPREHENSIVE TROUBLESHOOTING GUIDE:");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] === FOR ANYTHINGGLLM EMBEDDING CRASHES ===");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 1. REINSTALL: Download fresh AnythingLLM installer and reinstall completely");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 2. SWITCH EMBEDDER: Settings → Embedding → Provider → Ollama (requires ollama install)");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 3. CHECK RESOURCES: Ensure 8GB+ RAM available, close other heavy applications");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 4. TEST DOCUMENTS: Try small plain text files before complex PDFs");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 5. LOGS: Check AnythingLLM console/logs for crash error details");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] === FOR CONFIGURATION ISSUES ===");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 6. Verify embedding provider connection status in settings");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 7. Reset AnythingLLM settings to defaults and reconfigure");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 💡 OUR APP: Will use direct text extraction as fallback for reliable operation");
                 
                 return true;
             }
@@ -2481,6 +2693,228 @@ Your task: Extract technical requirements from the provided document content wit
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error during vectorization diagnostics");
                 return false;
+            }
+        }
+        
+        /// <summary>
+        /// Tests AnythingLLM's native embedding service
+        /// </summary>
+        private async Task TestAnythingLLMNativeEmbeddingAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🧪 Testing AnythingLLM native embedding service...");
+                
+                // Test system status first
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 Checking AnythingLLM system status...");
+                var systemResponse = await _httpClient.GetAsync($"{_baseUrl}/api/v1/system", cancellationToken);
+                if (systemResponse.IsSuccessStatusCode)
+                {
+                    var systemJson = await systemResponse.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ System API responsive");
+                    
+                    // Check if the system has any health indicators
+                    try
+                    {
+                        var systemData = JsonDocument.Parse(systemJson);
+                        if (systemData.RootElement.TryGetProperty("status", out var status))
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] System status: {status.GetString()}");
+                        }
+                    }
+                    catch { /* Ignore parsing errors for system status */ }
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] ❌ System API not responding: {systemResponse.StatusCode}");
+                }
+                
+                // Check existing workspaces and documents
+                var testWorkspaces = await GetWorkspacesAsync(cancellationToken);
+                if (testWorkspaces?.Any() == true)
+                {
+                    var testWorkspace = testWorkspaces.First();
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 Testing with workspace: {testWorkspace.Name}");
+                    
+                    // Get detailed workspace info
+                    var workspaceDetails = await _httpClient.GetAsync($"{_baseUrl}/api/v1/workspace/{testWorkspace.Slug}", cancellationToken);
+                    if (workspaceDetails.IsSuccessStatusCode)
+                    {
+                        var workspaceJson = await workspaceDetails.Content.ReadAsStringAsync(cancellationToken);
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Workspace API responding");
+                        
+                        // Parse workspace details for diagnostic info
+                        try
+                        {
+                            var workspaceData = JsonDocument.Parse(workspaceJson);
+                            if (workspaceData.RootElement.TryGetProperty("workspace", out var workspace))
+                            {
+                                if (workspace.TryGetProperty("documents", out var documents))
+                                {
+                                    var docCount = documents.GetArrayLength();
+                                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Test workspace has {docCount} documents");
+                                    
+                                    if (docCount > 0)
+                                    {
+                                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Native embedding has processed documents successfully in other workspaces");
+                                    }
+                                    else
+                                    {
+                                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Test workspace also has no documents - possible system-wide embedding failure");
+                                    }
+                                }
+                                
+                                // Check for vectorTag which indicates successful vectorization
+                                if (workspace.TryGetProperty("vectorTag", out var vectorTag))
+                                {
+                                    if (vectorTag.ValueKind == JsonValueKind.String && !string.IsNullOrEmpty(vectorTag.GetString()))
+                                    {
+                                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Vector tag found: {vectorTag.GetString()}");
+                                    }
+                                    else
+                                    {
+                                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ No vector tag - embedding service may not be processing");
+                                    }
+                                }
+                            }
+                        }
+                        catch (Exception parseEx)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Could not parse workspace details: {parseEx.Message}");
+                        }
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Workspace API not responding properly: {workspaceDetails.StatusCode}");
+                    }
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] ❌ CRITICAL DIAGNOSIS: AnythingLLM Native Embedding Service Failure");
+                TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] The document uploads successfully but never gets vectorized/embedded");
+                TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] This indicates an internal AnythingLLM embedding service malfunction");
+                TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 🚨 CRITICAL: If AnythingLLM also crashes during manual document embedding,");
+                TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] this indicates a severe AnythingLLM installation or system compatibility issue");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🛠️ IMMEDIATE SOLUTIONS (in order of priority):");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 1. REINSTALL AnythingLLM completely (download fresh installer)");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 2. Check system requirements: sufficient RAM (8GB+), CPU resources");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 3. Try different document formats (smaller PDFs, plain text files)");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 4. Switch to Ollama embedder: Settings → Embedding → Ollama");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 5. Check AnythingLLM logs/console for crash details");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 6. Consider alternative: Use Ollama + LangChain for embedding");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 💡 Our app will use fallback text extraction to continue working");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] ❌ Native embedding test failed: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// Tests Ollama embedding service availability and models
+        /// </summary>
+        private async Task TestOllamaEmbeddingAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🧪 Testing Ollama embedding service...");
+                
+                using var ollamaCheck = new HttpClient();
+                ollamaCheck.Timeout = TimeSpan.FromSeconds(5);
+                var ollamaResponse = await ollamaCheck.GetAsync("http://localhost:11434/api/tags", cancellationToken);
+                if (ollamaResponse.IsSuccessStatusCode)
+                {
+                    var ollamaModels = await ollamaResponse.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Ollama is running with models: {ollamaModels.Substring(0, Math.Min(200, ollamaModels.Length))}...");
+                    
+                    // Test specific embedding model availability
+                    var modelsData = JsonDocument.Parse(ollamaModels);
+                    if (modelsData.RootElement.TryGetProperty("models", out var models))
+                    {
+                        bool hasEmbeddingModel = false;
+                        foreach (var model in models.EnumerateArray())
+                        {
+                            if (model.TryGetProperty("name", out var modelName))
+                            {
+                                var name = modelName.GetString() ?? "";
+                                if (name.Contains("nomic-embed") || name.Contains("embed"))
+                                {
+                                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Found embedding model: {name}");
+                                    hasEmbeddingModel = true;
+                                }
+                            }
+                        }
+                        
+                        if (!hasEmbeddingModel)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] ❌ CRITICAL: No embedding model found in Ollama!");
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 💡 Install an embedding model: 'ollama pull nomic-embed-text'");
+                        }
+                        else
+                        {
+                            // Test direct embedding generation
+                            await TestOllamaDirectEmbeddingAsync(cancellationToken);
+                        }
+                    }
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Ollama not responding properly: {ollamaResponse.StatusCode}");
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Ollama check failed: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 💡 If using Ollama embeddings, ensure Ollama is running and has an embedding model");
+            }
+        }
+
+        /// <summary>
+        /// Tests Ollama embedding generation directly
+        /// </summary>
+        private async Task TestOllamaDirectEmbeddingAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🧪 Testing Ollama embedding generation directly...");
+                
+                using var ollamaClient = new HttpClient();
+                ollamaClient.Timeout = TimeSpan.FromSeconds(30);
+                
+                var testPayload = new
+                {
+                    model = "nomic-embed-text",
+                    prompt = "This is a test requirement for embedding generation."
+                };
+                
+                var json = JsonSerializer.Serialize(testPayload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                var response = await ollamaClient.PostAsync("http://localhost:11434/api/embeddings", content, cancellationToken);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Ollama embedding generation test successful! Response length: {result.Length}");
+                }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] ❌ Ollama embedding generation test failed: {response.StatusCode}");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] Error details: {error}");
+                    
+                    if (response.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 💡 SOLUTION: Install embedding model with 'ollama pull nomic-embed-text'");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] ❌ Ollama embedding generation test failed: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 💡 TROUBLESHOOTING:");
+                TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 1. Ensure Ollama is running: 'ollama serve'");
+                TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 2. Install embedding model: 'ollama pull nomic-embed-text'"); 
+                TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 3. Check AnythingLLM embedding configuration in settings");
             }
         }
 

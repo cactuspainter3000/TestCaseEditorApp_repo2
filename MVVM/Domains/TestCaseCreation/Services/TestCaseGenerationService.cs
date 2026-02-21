@@ -179,7 +179,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services
                                 workspaceSlug,
                                 testCases,
                                 requirementList,
-                                usedDocuments: null, // TODO: Extract from AnythingLLM response
+                                usedDocuments: new List<string>(), // TODO: Extract from AnythingLLM response
                                 cancellationToken);
                         }
                         catch (Exception ex)
@@ -884,6 +884,16 @@ RESPOND WITH JSON ONLY:
                     
                     _logger.LogDebug("[TestCaseGeneration] Exact match found: {Found}", targetWorkspace != null);
                     
+                    // If no exact match, try "Jama Document Parse: " prefix pattern
+                    if (targetWorkspace == null)
+                    {
+                        var jamaPatternName = $"Jama Document Parse: {_projectWorkspaceName}";
+                        targetWorkspace = workspaces.FirstOrDefault(w => 
+                            string.Equals(w.Name, jamaPatternName, StringComparison.OrdinalIgnoreCase));
+                        
+                        _logger.LogDebug("[TestCaseGeneration] Jama Document Parse pattern match found: {Found} ('{Pattern}')", targetWorkspace != null, jamaPatternName);
+                    }
+                    
                     // If no exact match, try fuzzy matching for common variations
                     if (targetWorkspace == null)
                     {
@@ -898,12 +908,22 @@ RESPOND WITH JSON ONLY:
                         });
                         
                         // If still no match, try partial matching (workspace name is contained in project name or vice versa)
+                        // Also check for "Jama Document Parse: " prefix pattern in partial matching
                         if (targetWorkspace == null)
                         {
                             _logger.LogDebug("[TestCaseGeneration] No exact fuzzy match, trying partial matching");
                             targetWorkspace = workspaces.FirstOrDefault(w => 
                             {
                                 var normalizedWorkspaceName = w.Name.Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant();
+                                
+                                // Handle "Jama Document Parse: " prefix pattern
+                                if (w.Name.StartsWith("Jama Document Parse: ", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    var documentName = w.Name.Substring("Jama Document Parse: ".Length);
+                                    var normalizedDocName = documentName.Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant();
+                                    return normalizedProjectName.Contains(normalizedDocName) || normalizedDocName.Contains(normalizedProjectName);
+                                }
+                                
                                 // Check if workspace name is a substring of project name or project name contains workspace name
                                 return normalizedProjectName.Contains(normalizedWorkspaceName) || normalizedWorkspaceName.Contains(normalizedProjectName);
                             });

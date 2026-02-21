@@ -1165,8 +1165,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Exception during RAG: {ex}");
                 return (false, string.Empty, RAGFailureReason.UnknownError, errorDetails);
             }
-
-            return (false, string.Empty, RAGFailureReason.UnknownError, "RAG analysis completed but returned no result");
         }
 
         /// <summary>
@@ -1229,6 +1227,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                     
                     System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Exact match found: {targetWorkspace != null}");
                     
+                    // If no exact match, try "Jama Document Parse: " prefix pattern
+                    if (targetWorkspace == null)
+                    {
+                        var jamaPatternName = $"Jama Document Parse: {_projectWorkspaceName}";
+                        targetWorkspace = workspaces.FirstOrDefault(w => 
+                            string.Equals(w.Name, jamaPatternName, StringComparison.OrdinalIgnoreCase));
+                        
+                        System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Jama Document Parse pattern match found: {targetWorkspace != null} ('{jamaPatternName}')");
+                    }
+                    
                     // If no exact match, try fuzzy matching for common variations
                     if (targetWorkspace == null)
                     {
@@ -1243,12 +1251,22 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                         });
                         
                         // If still no match, try partial matching (workspace name is contained in project name or vice versa)
+                        // Also check for "Jama Document Parse: " prefix pattern in partial matching
                         if (targetWorkspace == null)
                         {
                             System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] No exact fuzzy match, trying partial matching...");
                             targetWorkspace = workspaces.FirstOrDefault(w => 
                             {
                                 var normalizedWorkspaceName = w.Name.Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant();
+                                
+                                // Handle "Jama Document Parse: " prefix pattern
+                                if (w.Name.StartsWith("Jama Document Parse: ", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    var documentName = w.Name.Substring("Jama Document Parse: ".Length);
+                                    var normalizedDocName = documentName.Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant();
+                                    return normalizedProjectName.Contains(normalizedDocName) || normalizedDocName.Contains(normalizedProjectName);
+                                }
+                                
                                 // Check if workspace name is a substring of project name or project name contains workspace name
                                 return normalizedProjectName.Contains(normalizedWorkspaceName) || normalizedWorkspaceName.Contains(normalizedProjectName);
                             });
@@ -1972,7 +1990,8 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                             var traditionalStart = DateTime.UtcNow;
                             System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Starting traditional LLM at {traditionalStart:HH:mm:ss.fff}");
                             // Traditional LLM method
-                            var response = await _llmService.GenerateWithSystemAsync(_cachedSystemMessage, contextPrompt, timeoutToken);
+                            var systemMessage = _cachedSystemMessage ?? string.Empty;
+                            var response = await _llmService.GenerateWithSystemAsync(systemMessage, contextPrompt, timeoutToken);
                             var traditionalTime = DateTime.UtcNow - traditionalStart;
                             System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Traditional LLM completed in {traditionalTime.TotalMilliseconds}ms, response length: {response?.Length ?? 0}");
                             
