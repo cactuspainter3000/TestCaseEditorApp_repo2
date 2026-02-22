@@ -2,7 +2,7 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Services;
 using Microsoft.Extensions.Logging;
 
-namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
+namespace TestCaseEditorApp.Services
 {
     /// <summary>
     /// Smart requirement importer that automatically detects document format and chooses the best import strategy
