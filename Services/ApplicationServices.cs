@@ -1,7 +1,7 @@
 using System;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Services;
 using Microsoft.Extensions.Logging;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
+using TestCaseEditorApp.Services;
 
 namespace TestCaseEditorApp.Services
 {

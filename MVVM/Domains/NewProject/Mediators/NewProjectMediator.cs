@@ -17,7 +17,6 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Events;
 using static TestCaseEditorApp.MVVM.Events.CrossDomainMessages;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 
 namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
 {

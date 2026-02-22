@@ -7,6 +7,13 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.Services.Prompts;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Spreadsheet;
+using iText.Kernel.Pdf;
+using iText.Kernel.Pdf.Canvas.Parser;
+using iText.Kernel.Pdf.Canvas.Parser.Listener;
 
 namespace TestCaseEditorApp.Services
 {
@@ -19,14 +26,18 @@ namespace TestCaseEditorApp.Services
     {
         private readonly IJamaConnectService _jamaService;
         private readonly IAnythingLLMService _llmService;
+        private readonly IDirectRagService? _directRagService;
+        private readonly ITextGenerationService? _textGenerationService;
         private const string PARSING_WORKSPACE_PREFIX = "jama-doc-parse";
 
-        public bool IsConfigured => _jamaService.IsConfigured && _llmService != null;
+        public bool IsConfigured => _jamaService.IsConfigured && (_llmService != null || _directRagService?.IsConfigured == true);
 
-        public JamaDocumentParserService(IJamaConnectService jamaService, IAnythingLLMService llmService)
+        public JamaDocumentParserService(IJamaConnectService jamaService, IAnythingLLMService llmService, IDirectRagService? directRagService = null, ITextGenerationService? textGenerationService = null)
         {
             _jamaService = jamaService ?? throw new ArgumentNullException(nameof(jamaService));
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
+            _directRagService = directRagService;
+            _textGenerationService = textGenerationService;
         }
 
         /// <summary>
@@ -34,14 +45,6 @@ namespace TestCaseEditorApp.Services
         /// </summary>
         public async Task<List<Requirement>> ParseAttachmentAsync(JamaAttachment attachment, int projectId, System.Action<string>? progressCallback = null, CancellationToken cancellationToken = default)
         {
-            // Wire up AnythingLLM status updates to UI progress callback
-            System.Action<string>? statusUpdateHandler = null;
-            if (progressCallback != null)
-            {
-                statusUpdateHandler = (message) => progressCallback(message);
-                _llmService.StatusUpdated += statusUpdateHandler;
-            }
-            
             try
             {
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Starting parse for attachment {attachment.Id} ({attachment.FileName})");
@@ -58,7 +61,6 @@ namespace TestCaseEditorApp.Services
                 }
 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Downloaded {fileBytes.Length} bytes for attachment {attachment.Id}");
-                progressCallback?.Invoke($"✅ Downloaded {fileBytes.Length / 1024}KB - Processing with LLM...");
 
                 // Step 2: Use provided attachment metadata (no need to re-scan project)
                 if (!attachment.IsSupportedDocument)
@@ -67,6 +69,87 @@ namespace TestCaseEditorApp.Services
                     progressCallback?.Invoke($"❌ Unsupported document type: {attachment.MimeType}");
                     return new List<Requirement>();
                 }
+
+                // Primary: Try DirectRagService first but only for text-based documents
+                if (_directRagService?.IsConfigured == true && _textGenerationService != null)
+                {
+                    // Check if it's a document type that DirectRag can handle effectively
+                    if (attachment.IsWord || attachment.IsExcel || attachment.IsPdf || attachment.MimeType?.Contains("text") == true)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Using DirectRagService for document analysis ({attachment.MimeType})");
+                        progressCallback?.Invoke($"🚀 Processing with reliable direct document analysis...");
+                        return await ExtractRequirementsWithDirectRagAsync(attachment, projectId, progressCallback, cancellationToken);
+                    }
+                }
+                
+                // Fallback: Try AnythingLLM for all other cases
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Using AnythingLLM for document type: {attachment.MimeType}");
+                progressCallback?.Invoke($"🔧 Processing with AnythingLLM document parser...");
+                return await ExtractRequirementsWithAnythingLLMAsync(attachment, projectId, progressCallback, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Error parsing attachment {attachment.Id}: {ex.Message}");
+                return new List<Requirement>();
+            }
+        }
+
+        /// <summary>
+        /// Parse multiple attachments in batch
+        /// </summary>
+        public async Task<List<Requirement>> ParseAttachmentsBatchAsync(List<int> attachmentIds, int projectId, CancellationToken cancellationToken = default)
+        {
+            var allRequirements = new List<Requirement>();
+
+            // Get all attachments for the project once
+            var attachments = await _jamaService.GetProjectAttachmentsAsync(projectId, cancellationToken);
+            
+            foreach (var attachmentId in attachmentIds)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                    break;
+
+                var attachment = attachments.FirstOrDefault(a => a.Id == attachmentId);
+                if (attachment == null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Batch: Attachment {attachmentId} not found in project {projectId}");
+                    continue;
+                }
+
+                var requirements = await ParseAttachmentAsync(attachment, projectId, null, cancellationToken);
+                allRequirements.AddRange(requirements);
+            }
+
+            return allRequirements;
+        }
+
+        /// <summary>
+        /// Extract requirements using AnythingLLM (fallback method when DirectRag is unavailable)
+        /// </summary>
+        private async Task<List<Requirement>> ExtractRequirementsWithAnythingLLMAsync(
+            JamaAttachment attachment, 
+            int projectId, 
+            System.Action<string>? progressCallback,
+            CancellationToken cancellationToken)
+        {
+            // Wire up AnythingLLM status updates to UI progress callback
+            System.Action<string>? statusUpdateHandler = null;
+            if (progressCallback != null)
+            {
+                statusUpdateHandler = (message) => progressCallback(message);
+                _llmService.StatusUpdated += statusUpdateHandler;
+            }
+            
+            try
+            {
+                // Download document if not already done
+                var fileBytes = await _jamaService.DownloadAttachmentAsync(attachment.Id, cancellationToken);
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    return new List<Requirement>();
+                }
+
+                progressCallback?.Invoke($"✅ Downloaded {fileBytes.Length / 1024}KB - Processing with AnythingLLM...");
 
                 // Step 3: Create temporary AnythingLLM workspace for parsing
                 progressCallback?.Invoke($"🔧 Creating AI workspace for '{attachment.FileName}'...");
@@ -99,72 +182,7 @@ namespace TestCaseEditorApp.Services
                         return new List<Requirement>();
                     }
 
-                    // Verify document presence and force reprocessing if needed
-                    progressCallback?.Invoke("Verifying document processing...");
-                    
-                    // Wait a moment for initial vectorization
-                    await Task.Delay(3000, cancellationToken);
-                    
-                    var documents = await _llmService.GetWorkspaceDocumentsAsync(workspaceSlug, cancellationToken);
-                    if (!documents.HasValue || documents.Value.GetArrayLength() == 0)
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] No documents found in workspace after upload - forcing reprocessing");
-                        
-                        // Run vectorization diagnostics to understand the issue
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Running AnythingLLM vectorization diagnostics...");
-                        await _llmService.DiagnoseVectorizationAsync(cancellationToken);
-                        
-                        progressCallback?.Invoke("Re-processing document for proper vectorization...");
-                        
-                        var reprocessResult = await _llmService.ForceDocumentReprocessingAsync(workspaceSlug, attachment.FileName, Convert.ToBase64String(fileBytes), cancellationToken);
-                        if (!reprocessResult)
-                        {
-                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Document reprocessing failed - AnythingLLM embedding service appears to be critically broken");
-                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] This may indicate AnythingLLM crashes during document embedding operations");
-                            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 🔄 Switching to direct text extraction - bypassing broken embedding service");
-                            
-                            progressCallback?.Invoke("🚨 AnythingLLM embedding broken - using direct text extraction...");
-                            
-                            // Try direct text extraction as fallback when vectorization fails
-                            var fallbackRequirements = await TryDirectTextExtractionAsync(attachment, fileBytes, progressCallback, cancellationToken);
-                            if (fallbackRequirements.Count > 0)
-                            {
-                                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Direct text extraction successful - found {fallbackRequirements.Count} requirements (reliable method)");
-                                progressCallback?.Invoke($"✅ Direct extraction successful - found {fallbackRequirements.Count} requirements (AnythingLLM bypassed)");
-                                return fallbackRequirements;
-                            }
-                            
-                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ❌ Both RAG and direct text extraction failed");
-                            progressCallback?.Invoke("❌ All extraction methods failed");
-                            return new List<Requirement>();
-                        }
-                        progressCallback?.Invoke("✅ Document reprocessing successful");
-                    }
-                    else
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Verified {documents.Value.GetArrayLength()} documents present in workspace");
-                    }
-
-                    // Check document content quality
-                    var contentOk = await _llmService.CheckDocumentContentAsync(workspaceSlug);
-                    if (!contentOk)
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] 🔧 Document content extraction failed - trying alternative upload");
-                        
-                        var alternativeSuccess = await _llmService.TryAlternativeUploadAsync(tempFilePath, workspaceSlug);
-                        if (!alternativeSuccess)
-                        {
-                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ❌ All upload methods failed - cannot process document");
-                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] 💡 Manual PDF text extraction may be required");
-                            progressCallback?.Invoke("❌ Document text extraction failed - manual extraction may be required");
-                            return new List<Requirement>();
-                        }
-                        
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Alternative upload successful - proceeding with extraction");
-                        progressCallback?.Invoke("✅ Alternative document processing successful");
-                    }
-
-                    progressCallback?.Invoke($"Analyzing document with AI - this may take 2-4 minutes...");
+                    progressCallback?.Invoke($"Analyzing document with AnythingLLM - this may take 2-4 minutes...");
                     // Step 5: Query AnythingLLM to extract requirements
                     var requirements = await ExtractRequirementsFromWorkspaceAsync(workspaceSlug, attachment, projectId, progressCallback, cancellationToken);
                     
@@ -194,7 +212,7 @@ namespace TestCaseEditorApp.Services
             }
             catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Error parsing attachment {attachment.Id}: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] AnythingLLM processing error: {ex.Message}");
                 return new List<Requirement>();
             }
             finally
@@ -205,35 +223,6 @@ namespace TestCaseEditorApp.Services
                     _llmService.StatusUpdated -= statusUpdateHandler;
                 }
             }
-        }
-
-        /// <summary>
-        /// Parse multiple attachments in batch
-        /// </summary>
-        public async Task<List<Requirement>> ParseAttachmentsBatchAsync(List<int> attachmentIds, int projectId, CancellationToken cancellationToken = default)
-        {
-            var allRequirements = new List<Requirement>();
-
-            // Get all attachments for the project once
-            var attachments = await _jamaService.GetProjectAttachmentsAsync(projectId, cancellationToken);
-            
-            foreach (var attachmentId in attachmentIds)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                    break;
-
-                var attachment = attachments.FirstOrDefault(a => a.Id == attachmentId);
-                if (attachment == null)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Batch: Attachment {attachmentId} not found in project {projectId}");
-                    continue;
-                }
-
-                var requirements = await ParseAttachmentAsync(attachment, projectId, null, cancellationToken);
-                allRequirements.AddRange(requirements);
-            }
-
-            return allRequirements;
         }
 
         /// <summary>
@@ -281,9 +270,9 @@ namespace TestCaseEditorApp.Services
                     }
                     else
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] 🚨 Monitoring detected embedding failure - forcing fallback");
-                        progressCallback?.Invoke("🚨 Embedding failure detected - switching to direct extraction");
-                        return false; // Force fallback to direct extraction
+                        TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] 🚨 Monitoring detected embedding failure - AnythingLLM not working");
+                        progressCallback?.Invoke("🚨 Embedding failure detected - AnythingLLM service malfunction");
+                        throw new InvalidOperationException($"AnythingLLM embedding monitoring detected failure - service is not processing documents correctly.");
                     }
                 }
                 else
@@ -296,9 +285,9 @@ namespace TestCaseEditorApp.Services
                     
                     if (!uploadResult)
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] 🔍 Upload failed - triggering fallback");
-                        progressCallback?.Invoke("❌ Document upload failed - switching to direct extraction");
-                        return false;
+                        TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ❌ Document upload to AnythingLLM failed");
+                        progressCallback?.Invoke("❌ Document upload failed - AnythingLLM service unavailable");
+                        throw new InvalidOperationException($"Failed to upload document to AnythingLLM workspace. Check service status.");
                     }
                     else
                     {
@@ -314,9 +303,9 @@ namespace TestCaseEditorApp.Services
                         }
                         else
                         {
-                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ⚠️ Upload 'succeeded' but 0 documents in workspace - embedding failed");
-                            progressCallback?.Invoke("⚠️ Embedding incomplete - switching to direct extraction"); 
-                            return false; // Force fallback
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ⚠️ Upload succeeded but embedding failed - 0 documents in workspace");
+                            progressCallback?.Invoke("⚠️ Document embedding incomplete - check AnythingLLM model configuration"); 
+                            throw new InvalidOperationException($"Document uploaded to AnythingLLM but embedding failed. This usually indicates embedding model configuration issues.");
                         }
                     }
                 }
@@ -1143,133 +1132,490 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
 
         /// <summary>
         /// Attempts direct text extraction and requirement parsing as fallback when RAG vectorization fails
+        /// Uses DirectRagService for document processing and plain LLM for requirement extraction
         /// </summary>
-        private async Task<List<Requirement>> TryDirectTextExtractionAsync(
+        private async Task<List<Requirement>> ExtractRequirementsWithDirectRagAsync(
             JamaAttachment attachment, 
-            byte[] fileBytes, 
-            Action<string>? progressCallback, 
+            int projectId, 
+            System.Action<string>? progressCallback,
             CancellationToken cancellationToken)
         {
             try
             {
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 🔄 Starting direct text extraction fallback for {attachment.FileName}");
-                progressCallback?.Invoke("Extracting text directly from PDF...");
+                progressCallback?.Invoke($"📄 Processing '{attachment.FileName}' with direct document analysis...");
                 
-                // For now, use a simplified text extraction approach
-                // This could be enhanced with proper PDF libraries in the future
-                string extractedText = string.Empty;
-                
+                // Step 1: Download document content
+                var fileBytes = await _jamaService.DownloadAttachmentAsync(attachment.Id, cancellationToken);
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[DirectRag] Failed to download attachment {attachment.Id}");
+                    return new List<Requirement>();
+                }
+
+                // Step 2: Extract text content with proper document parsing
+                string documentContent;
                 try
                 {
-                    // Simple fallback - just convert bytes to text and look for patterns
-                    // This is very basic but works as a last resort
-                    var base64 = Convert.ToBase64String(fileBytes);
-                    extractedText = System.Text.Encoding.UTF8.GetString(fileBytes, 0, Math.Min(fileBytes.Length, 10000));
-                    
-                    // If that doesn't work, flag for manual extraction
-                    if (string.IsNullOrWhiteSpace(extractedText) || extractedText.Length < 50)
+                    if (attachment.IsWord)
                     {
-                        progressCallback?.Invoke("⚠️ PDF text extraction limited - manual review may be needed");
-                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Basic text extraction yielded insufficient content");
-                        return CreateManualExtractionPlaceholder(attachment);
+                        // Use DocumentFormat.OpenXml for Word documents
+                        documentContent = await ExtractWordTextAsync(fileBytes);
+                    }
+                    else if (attachment.IsExcel)
+                    {
+                        // Use DocumentFormat.OpenXml for Excel documents  
+                        documentContent = await ExtractExcelTextAsync(fileBytes);
+                    }
+                    else if (attachment.IsPdf)
+                    {
+                        // Use iText7 for PDF documents
+                        documentContent = await ExtractPdfTextAsync(fileBytes);
+                    }
+                    else if (attachment.MimeType?.Contains("text") == true)
+                    {
+                        // Plain text files
+                        documentContent = System.Text.Encoding.UTF8.GetString(fileBytes);
+                    }
+                    else
+                    {
+                        // Fallback for unsupported types
+                        documentContent = $"Binary document: {attachment.FileName} ({fileBytes.Length} bytes)\n[DirectRag cannot extract text from this document type: {attachment.MimeType}]";
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Unsupported document type for text extraction: {attachment.MimeType}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Text extraction failed: {ex.Message}");
-                    return CreateManualExtractionPlaceholder(attachment);
+                    // If extraction fails, use metadata description
+                    documentContent = $"Document: {attachment.FileName} ({fileBytes.Length} bytes)\n[Text extraction failed: {ex.Message}]";
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Text extraction failed for {attachment.FileName}: {ex.Message}");
                 }
+
+                progressCallback?.Invoke($"🔍 Indexing document content for analysis...");
                 
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Extracted {extractedText.Length} characters for analysis");
-                progressCallback?.Invoke($"Analyzing {extractedText.Length:N0} characters of text...");
+                // Step 3: Index document with DirectRagService
+                var indexSuccess = await _directRagService!.IndexDocumentAsync(attachment, documentContent, projectId, cancellationToken);
+                if (!indexSuccess)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[DirectRag] Failed to index document {attachment.FileName}");
+                }
+
+                progressCallback?.Invoke($"🧠 Analyzing document for requirements with AI...");
                 
-                // Use simple pattern-based requirement detection as fallback
-                var requirements = ParseRequirementsFromText(extractedText, attachment);
+                // Step 4: Use DirectRag to get relevant content chunks and analyze with LLM
+                var contextContent = await _directRagService!.GetRequirementAnalysisContextAsync(
+                    "requirements specifications constraints criteria shall must should will system component interface protocol performance safety", 
+                    projectId, 
+                    maxContextChunks: 20, // Increased for more comprehensive analysis
+                    cancellationToken);
+
+                // Validate we have meaningful content to analyze
+                if (string.IsNullOrWhiteSpace(contextContent) || contextContent.Length < 50)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Insufficient context content ({contextContent?.Length ?? 0} chars) - using full document");
+                    // Use the extracted document content directly if RAG context is insufficient  
+                    contextContent = documentContent.Length > 10000 ? documentContent.Substring(0, 10000) + "..." : documentContent;
+                }
+
+                // Step 5: Generate requirements using plain LLM with context
+                var prompt = BuildDirectExtractionPrompt(attachment, contextContent);
+                var llmResponse = await _textGenerationService!.GenerateAsync(prompt, cancellationToken);
                 
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Direct extraction found {requirements.Count} potential requirements");
+                // Step 6: Parse LLM response into requirements
+                var requirements = ParseRequirementsFromText(llmResponse, attachment);
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Extracted {requirements.Count} SYSTEM-LEVEL requirements from {attachment.FileName}");
+                progressCallback?.Invoke($"✅ Found {requirements.Count} system-level requirements in '{attachment.FileName}' (filtered out component/test requirements)");
+                
                 return requirements;
             }
             catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[JamaDocumentParser] Error in direct text extraction fallback");
-                return CreateManualExtractionPlaceholder(attachment);
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[DirectRag] Error processing attachment {attachment.Id}: {ex.Message}");
+                progressCallback?.Invoke($"❌ Error processing document: {ex.Message}");
+                return new List<Requirement>();
             }
         }
-        
+
         /// <summary>
-        /// Creates a placeholder requirement indicating manual extraction is needed
+        /// Build comprehensive prompt for direct requirement extraction using LLM
         /// </summary>
-        private List<Requirement> CreateManualExtractionPlaceholder(JamaAttachment attachment)
+        private string BuildDirectExtractionPrompt(JamaAttachment attachment, string contextContent)
         {
-            var placeholder = new Requirement
-            {
-                Item = "MANUAL-EXTRACT-001",
-                Description = $"⚠️ MANUAL EXTRACTION REQUIRED: Document '{attachment.FileName}' could not be automatically processed due to AnythingLLM vectorization failure. Please manually review this document for requirements.",
-                ItemType = "MANUAL_EXTRACTION_NEEDED"
-            };
-            
-            return new List<Requirement> { placeholder };
+            return $@"You are a systems architect extracting SYSTEM-LEVEL REQUIREMENTS from technical documentation. Your focus is on requirements that define the overall system behavior, interfaces, and characteristics - NOT component-level or test-level requirements.
+
+DOCUMENT: {attachment.FileName}
+TYPE: {GetDocumentTypeDescription(attachment)}
+SIZE: {attachment.FileSize / 1024}KB
+
+DOCUMENT CONTENT:
+{contextContent}
+
+SYSTEM-LEVEL REQUIREMENTS IDENTIFICATION:
+
+🎯 TARGET: Extract requirements that define the OVERALL SYSTEM behavior, performance, and characteristics.
+
+SYSTEM-LEVEL REQUIREMENTS (✅ Extract these):
+• **System Performance**: Overall throughput, latency, capacity, response times
+  ✅ ""The system shall process video streams with end-to-end latency <50ms""
+  ✅ ""The system shall support simultaneous operation of 16 channels""
+
+• **System Interfaces**: External connections, protocols, data exchange
+  ✅ ""The system shall provide Ethernet connectivity at 1 Gbps minimum""
+  ✅ ""The system shall interface with external control systems via RS-485""
+
+• **System Operations**: High-level behaviors, modes, state management  
+  ✅ ""The system shall support hot-swap of modules without interruption""
+  ✅ ""The system shall automatically failover to backup power within 10ms""
+
+• **System Environment**: Operating conditions affecting entire system
+  ✅ ""The system shall operate in ambient temperatures from -40°C to +85°C""
+  ✅ ""The system shall withstand vibration levels per MIL-STD-810""
+
+• **System Integration**: How subsystems work together
+  ✅ ""The system shall synchronize all video inputs to a common timebase""
+  ✅ ""The system shall distribute power to all modules from central supply""
+
+COMPONENT/TEST-LEVEL REQUIREMENTS (❌ DO NOT Extract):
+• Individual chip, connector, or module specifications
+  ❌ ""The CMP video input shall support 1080p resolution""  
+  ❌ ""The USB connector shall meet USB 3.0 specification""
+
+• Test procedures, verification steps, or acceptance criteria
+  ❌ ""Test shall verify input impedance of 75 ohms""
+  ❌ ""Verify connector mating cycles exceed 1000""
+
+• Manufacturing, assembly, or component-level constraints
+  ❌ ""PCB thickness shall be 1.6mm +/- 0.1mm""
+  ❌ ""Components shall be RoHS compliant""
+
+• Single component behaviors or characteristics
+  ❌ ""The FPGA shall operate at 100 MHz clock frequency""
+  ❌ ""LED indicator shall illuminate when power applied""
+
+EXTRACTION CRITERIA:
+✓ Must describe SYSTEM-WIDE behavior or characteristics
+✓ Must affect multiple subsystems or external interfaces  
+✓ Must define overall system performance or capabilities
+✓ Must use scope words: ""system"", ""overall"", ""end-to-end"", ""total""
+✓ Must be observable/testable at the system level
+
+QUALITY STANDARDS:
+- Extract ONLY true system-level requirements (better to find 1-3 excellent ones than many component-level ones)
+- Requirements must define system behavior visible to external users/systems
+- Focus on requirements that system architects and integrators would care about
+- Ignore component test specifications and detailed implementation requirements
+
+FORMAT each valid SYSTEM-LEVEL requirement as:
+ID: SYS-REQ-001  
+Text: [Complete system-level requirement with specific system behavior/performance]
+Category: [SystemPerformance/SystemInterface/SystemOperation/SystemEnvironment/SystemIntegration]
+Page: [Page number where found, e.g., ""Page 15"" or ""Pages 12-15""]
+Section: [Section title/number if visible, e.g., ""3.2.1 System Performance"" or ""System Specifications""]
+---
+
+CRITICAL: Quality over quantity. Extract only genuine SYSTEM-LEVEL requirements that define overall system characteristics, not component or test specifications.
+IMPORTANT: Always look for page markers like ""--- Page X ---"" in the content to identify source pages.
+
+START EXTRACTION:";
         }
-        
+
         /// <summary>
-        /// Simple regex-based requirement parsing for fallback when AI processing fails
+        /// Parse LLM response text into structured Requirement objects
         /// </summary>
-        private List<Requirement> ParseRequirementsFromText(string text, JamaAttachment attachment)
+        private List<Requirement> ParseRequirementsFromText(string llmResponse, JamaAttachment attachment)
         {
             var requirements = new List<Requirement>();
-            var requirementId = 1;
             
             try
             {
-                // Look for common requirement patterns
-                var patterns = new[]
-                {
-                    @"(\b(?:shall|must|will|should|require[sd]?)\b[^.!?]*[.!?])",
-                    @"(\b(?:The system|The device|The software|The hardware)\s+(?:shall|must|will|should)[^.!?]*[.!?])",
-                    @"(\b\d+\.\d+(?:\.\d+)*\s+[^.!?]*(?:shall|must|will|should)[^.!?]*[.!?])",
-                };
+                var sections = llmResponse.Split(new[] { "---" }, StringSplitOptions.RemoveEmptyEntries);
                 
-                foreach (var pattern in patterns)
+                foreach (var section in sections)
                 {
-                    var regex = new System.Text.RegularExpressions.Regex(pattern, 
-                        System.Text.RegularExpressions.RegexOptions.IgnoreCase | 
-                        System.Text.RegularExpressions.RegexOptions.Multiline);
+                    if (string.IsNullOrWhiteSpace(section)) continue;
                     
-                    var matches = regex.Matches(text);
-                    foreach (System.Text.RegularExpressions.Match match in matches)
+                    var lines = section.Trim().Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                    
+                    string? id = null, text = null, category = null, page = null, sectionRef = null;
+                    
+                    foreach (var line in lines)
                     {
-                        var requirementText = match.Groups[1].Value.Trim();
-                        if (requirementText.Length > 20 && requirementText.Length < 1000) // Reasonable length
+                        var trimmedLine = line.Trim();
+                        if (trimmedLine.StartsWith("ID:", StringComparison.OrdinalIgnoreCase))
+                            id = trimmedLine.Substring(3).Trim();
+                        else if (trimmedLine.StartsWith("Text:", StringComparison.OrdinalIgnoreCase))
+                            text = trimmedLine.Substring(5).Trim();
+                        else if (trimmedLine.StartsWith("Category:", StringComparison.OrdinalIgnoreCase))
+                            category = trimmedLine.Substring(9).Trim();
+                        else if (trimmedLine.StartsWith("Page:", StringComparison.OrdinalIgnoreCase))
+                            page = trimmedLine.Substring(5).Trim();
+                        else if (trimmedLine.StartsWith("Section:", StringComparison.OrdinalIgnoreCase))
+                            sectionRef = trimmedLine.Substring(8).Trim();
+                    }
+                    
+                    if (!string.IsNullOrEmpty(text) && IsValidRequirement(text))
+                    {
+                        // Build enhanced source information with page and section details
+                        var sourceInfo = new List<string>();
+                        
+                        if (!string.IsNullOrEmpty(page))
+                            sourceInfo.Add(page);
+                        if (!string.IsNullOrEmpty(sectionRef))
+                            sourceInfo.Add(sectionRef);
+                        
+                        var sourceLine = sourceInfo.Count > 0 ? string.Join(", ", sourceInfo) : "Source not specified";
+                        
+                        var requirement = new Requirement
                         {
-                            var req = new Requirement
-                            {
-                                Item = $"FALLBACK-{requirementId:D3}",
-                                Description = requirementText,
-                                ItemType = "FALLBACK_EXTRACTED"
-                            };
-                            
-                            requirements.Add(req);
-                            requirementId++;
-                            
-                            if (requirements.Count >= 50) break; // Limit to prevent overload
-                        }
+                            GlobalId = id ?? $"SYS-REQ-{requirements.Count + 1:D3}",
+                            Item = id ?? $"SYS-REQ-{requirements.Count + 1:D3}",
+                            Name = category ?? "System Requirement",
+                            Description = $"{text}\n\nSource: {sourceLine}\nFrom: {attachment.FileName}"
+                        };
+                        
+                        requirements.Add(requirement);
+                    }
+                    else if (!string.IsNullOrEmpty(text))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[DirectRag] Filtered component/test-level requirement: {text.Substring(0, Math.Min(50, text.Length))}...");
                     }
                 }
-                
-                // If no patterns found, create a manual extraction notice
-                if (requirements.Count == 0)
-                {
-                    return CreateManualExtractionPlaceholder(attachment);
-                }
-                
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Pattern-based extraction found {requirements.Count} requirements");
-                return requirements;
             }
             catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[JamaDocumentParser] Error parsing requirements from text");
-                return CreateManualExtractionPlaceholder(attachment);
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[DirectRag] Error parsing requirements from LLM response");
             }
+            
+            return requirements;
+        }
+
+        /// <summary>
+        /// Validates that extracted text represents a genuine SYSTEM-LEVEL requirement
+        /// </summary>
+        private bool IsValidRequirement(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text) || text.Length < 30)
+                return false;
+
+            var lowerText = text.Trim().ToLowerInvariant();
+
+            // Must contain requirement language
+            if (!lowerText.Contains("shall") && !lowerText.Contains("must") && !lowerText.Contains("will"))
+                return false;
+
+            // Filter out component/test-level requirements
+            if (lowerText.Contains("cmp ") ||
+                lowerText.Contains("component ") ||
+                lowerText.Contains("module ") ||
+                lowerText.Contains("chip ") ||
+                lowerText.Contains("pcb ") ||
+                lowerText.Contains("connector ") ||
+                lowerText.Contains("test shall") ||
+                lowerText.Contains("verify ") ||
+                lowerText.Contains("fpga ") ||
+                lowerText.Contains("led ") ||
+                lowerText.Contains("resistor ") ||
+                lowerText.Contains("capacitor ") ||
+                lowerText.Contains("inductor "))
+                return false;
+
+            // Filter out incomplete phrases and fragments  
+            if (lowerText.StartsWith("shall not be performed on") ||
+                lowerText.StartsWith("not be performed") ||
+                lowerText.StartsWith("is not applicable") ||
+                lowerText.StartsWith("does not apply") ||
+                lowerText.StartsWith("not required for") ||
+                lowerText.Contains("see section") ||
+                lowerText.Contains("refer to") ||
+                lowerText.Contains("as defined in"))
+                return false;
+
+            // Look for system-level indicators (positive signals)
+            bool hasSystemIndicators = lowerText.Contains("system ") ||
+                                     lowerText.Contains("overall ") ||
+                                     lowerText.Contains("end-to-end") ||
+                                     lowerText.Contains("total ") ||
+                                     lowerText.Contains("entire ") ||
+                                     lowerText.Contains("all ") ||
+                                     lowerText.Contains("multiple ") ||
+                                     lowerText.Contains("simultaneous") ||
+                                     lowerText.Contains("external ") ||
+                                     lowerText.Contains("interface ") ||
+                                     lowerText.Contains("network ") ||
+                                     lowerText.Contains("communication") ||
+                                     lowerText.Contains("ethernet") ||
+                                     lowerText.Contains("power") ||
+                                     lowerText.Contains("environment") ||
+                                     lowerText.Contains("temperature") ||
+                                     lowerText.Contains("operating");
+
+            // Must be a complete sentence with substantive content
+            var words = lowerText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length < 8) // System requirements should be substantial
+                return false;
+
+            // For documents that are primarily component/test documents,
+            // be very selective - only accept clear system-level requirements
+            return hasSystemIndicators;
+        }
+
+        /// <summary>
+        /// Extract text from Word document using DocumentFormat.OpenXml
+        /// </summary>
+        private async Task<string> ExtractWordTextAsync(byte[] wordBytes)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    using var stream = new MemoryStream(wordBytes);
+                    using var wordDoc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(stream, false);
+                    
+                    var body = wordDoc.MainDocumentPart?.Document?.Body;
+                    if (body == null) return "";
+
+                    var text = new StringBuilder();
+                    foreach (var paragraph in body.Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>())
+                    {
+                        text.AppendLine(paragraph.InnerText);
+                    }
+
+                    // Also extract from tables
+                    foreach (var table in body.Elements<DocumentFormat.OpenXml.Wordprocessing.Table>())
+                    {
+                        foreach (var row in table.Elements<DocumentFormat.OpenXml.Wordprocessing.TableRow>())
+                        {
+                            var rowText = string.Join("\t", row.Elements<DocumentFormat.OpenXml.Wordprocessing.TableCell>()
+                                .Select(cell => cell.InnerText));
+                            text.AppendLine(rowText);
+                        }
+                    }
+
+                    return text.ToString();
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error(ex, "[DirectRag] Failed to extract Word document text");
+                    throw;
+                }
+            });
+        }
+
+        /// <summary>
+        /// Extract text from Excel document using DocumentFormat.OpenXml
+        /// </summary>
+        private async Task<string> ExtractExcelTextAsync(byte[] excelBytes)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    using var stream = new MemoryStream(excelBytes);
+                    using var spreadSheet = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(stream, false);
+                    
+                    var workbookPart = spreadSheet.WorkbookPart;
+                    if (workbookPart == null) return "";
+
+                    var text = new StringBuilder();
+
+                    // Extract from all worksheets
+                    foreach (var worksheetPart in workbookPart.WorksheetParts)
+                    {
+                        var worksheet = worksheetPart.Worksheet;
+                        var sheetData = worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.SheetData>().FirstOrDefault();
+                        if (sheetData == null) continue;
+
+                        foreach (var row in sheetData.Elements<DocumentFormat.OpenXml.Spreadsheet.Row>())
+                        {
+                            var rowTexts = new List<string>();
+                            foreach (var cell in row.Elements<DocumentFormat.OpenXml.Spreadsheet.Cell>())
+                            {
+                                var cellText = GetCellText(cell, workbookPart);
+                                rowTexts.Add(cellText);
+                            }
+                            text.AppendLine(string.Join("\t", rowTexts));
+                        }
+                    }
+
+                    return text.ToString();
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error(ex, "[DirectRag] Failed to extract Excel document text");
+                    throw;
+                }
+            });
+        }
+
+        /// <summary>
+        /// Get text value from Excel cell
+        /// </summary>
+        private string GetCellText(DocumentFormat.OpenXml.Spreadsheet.Cell cell, DocumentFormat.OpenXml.Packaging.WorkbookPart workbookPart)
+        {
+            try
+            {
+                var cellValue = cell.CellValue?.Text;
+                if (string.IsNullOrEmpty(cellValue)) return "";
+
+                // Handle shared string
+                if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString)
+                {
+                    var sharedStringPart = workbookPart.SharedStringTablePart;
+                    if (sharedStringPart != null && int.TryParse(cellValue, out int sharedStringId))
+                    {
+                        var sharedStringItem = sharedStringPart.SharedStringTable.Elements<DocumentFormat.OpenXml.Spreadsheet.SharedStringItem>().ElementAtOrDefault(sharedStringId);
+                        return sharedStringItem?.InnerText ?? "";
+                    }
+                }
+
+                return cellValue;
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
+        /// <summary>
+        /// Extract text from PDF document using iText7
+        /// </summary>
+        private async Task<string> ExtractPdfTextAsync(byte[] pdfBytes)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    using var stream = new MemoryStream(pdfBytes);
+                    using var reader = new PdfReader(stream);
+                    using var pdfDoc = new PdfDocument(reader);
+                    
+                    var text = new StringBuilder();
+                    
+                    // Extract text from all pages
+                    for (int pageNum = 1; pageNum <= pdfDoc.GetNumberOfPages(); pageNum++)
+                    {
+                        var page = pdfDoc.GetPage(pageNum);
+                        var strategy = new SimpleTextExtractionStrategy(); 
+                        var pageText = PdfTextExtractor.GetTextFromPage(page, strategy);
+                        
+                        if (!string.IsNullOrWhiteSpace(pageText))
+                        {
+                            text.AppendLine($"--- Page {pageNum} ---");
+                            text.AppendLine(pageText);
+                            text.AppendLine();
+                        }
+                    }
+                    
+                    var result = text.ToString();
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Extracted {result.Length} characters from {pdfDoc.GetNumberOfPages()} pages");
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error(ex, "[DirectRag] Failed to extract PDF text using iText7");
+                    throw;
+                }
+            });
         }
     }
 }

@@ -2,8 +2,8 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
-using static TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor;
+using TestCaseEditorApp.Services;
+using static TestCaseEditorApp.Services.LlmServiceHealthMonitor;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views
 {

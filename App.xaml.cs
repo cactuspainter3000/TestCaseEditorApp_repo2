@@ -18,9 +18,10 @@ using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Startup.Mediators;
 using TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing;
+
 using TestCaseEditorApp.MVVM.Domains.Requirements.Services;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services; // For still-used services
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing; // For ResponseParserManager
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
@@ -106,7 +107,7 @@ namespace TestCaseEditorApp
                     // Requirement parsing - wrap with notification support
                     services.AddSingleton<RequirementService>(); // Core service
                     services.AddSingleton<IRequirementService, NotifyingRequirementService>(); // Wrapper with notifications
-                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.SmartRequirementImporter>(); // Smart importer with fallback logic
+                    services.AddSingleton<SmartRequirementImporter>(); // Smart importer with fallback logic
 
                     // File dialog helper used by the VM
                     services.AddSingleton<IFileDialogService, FileDialogService>();
@@ -137,11 +138,11 @@ namespace TestCaseEditorApp
                     services.AddSingleton<ITextGenerationService>(_ => LlmFactory.Create());
                     
                     // LLM Health Monitoring - configured to be less aggressive with fallback
-                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor>(provider =>
+                    services.AddSingleton<LlmServiceHealthMonitor>(provider =>
                     {
                         var primaryLlmService = LlmFactory.Create();
-                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor>>();
-                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor(
+                        var logger = provider.GetRequiredService<ILogger<LlmServiceHealthMonitor>>();
+                        return new LlmServiceHealthMonitor(
                             primaryLlmService, 
                             logger, 
                             TimeSpan.FromMinutes(2)); // Less frequent health checks to avoid premature fallback
@@ -198,6 +199,15 @@ namespace TestCaseEditorApp
                     
                     // Register interface for testable architecture
                     services.AddSingleton<IAnythingLLMService>(provider => provider.GetRequiredService<AnythingLLMService>());
+
+                    // ===== DIRECT RAG SERVICES (Ollama-based, AnythingLLM replacement) =====
+                    
+                    // Ollama Embedding Service - Direct embedding generation
+                    services.AddSingleton<IOllamaEmbeddingService, OllamaEmbeddingService>(provider =>
+                        new OllamaEmbeddingService("mxbai-embed-large:335m-v1-fp16")); // Use correct model tag
+                    
+                    // Direct RAG Service - Document indexing and search without AnythingLLM
+                    services.AddSingleton<IDirectRagService, DirectRagService>();
                     
                     services.AddSingleton<TestCaseAnythingLLMService>();
                     
@@ -288,7 +298,9 @@ namespace TestCaseEditorApp
                     {
                         var jamaService = provider.GetRequiredService<IJamaConnectService>();
                         var llmService = provider.GetRequiredService<IAnythingLLMService>();
-                        return new JamaDocumentParserService(jamaService, llmService);
+                        var directRagService = provider.GetService<IDirectRagService>(); // Optional fallback
+                        var textGenerationService = provider.GetService<ITextGenerationService>(); // For DirectRag fallback
+                        return new JamaDocumentParserService(jamaService, llmService, directRagService, textGenerationService);
                     });
                     
                     // Jama Test Case Conversion Service - Business logic for converting requirements to Jama test cases
@@ -562,7 +574,7 @@ namespace TestCaseEditorApp
                         var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
                         var notificationService = provider.GetRequiredService<NotificationService>();
                         var requirementService = provider.GetRequiredService<IRequirementService>();
-                        var smartImporter = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.SmartRequirementImporter>();
+                        var smartImporter = provider.GetRequiredService<SmartRequirementImporter>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
                         var workspaceValidationService = provider.GetRequiredService<IWorkspaceValidationService>();
                         var jamaConnectService = provider.GetRequiredService<JamaConnectService>();

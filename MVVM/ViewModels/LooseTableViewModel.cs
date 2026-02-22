@@ -8,7 +8,7 @@ using System.Text;
 using System.Windows;
 using TestCaseEditorApp.MVVM.Models;  // TableDto
 using TestCaseEditorApp.Services;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
+using TestCaseEditorApp.Services;
 using Microsoft.Extensions.DependencyInjection;
 // using TestCaseEditorApp.Session;          // SessionTableStore, TableSnapshot - TODO: implement session persistence
 

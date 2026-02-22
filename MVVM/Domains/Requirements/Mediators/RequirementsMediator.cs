@@ -12,9 +12,8 @@ using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Events;
 using TestCaseEditorApp.MVVM.Events;
-using TestCaseEditorApp.Services;
+using TestCaseEditorApp.Services; // For SmartRequirementImporter
 using TestCaseEditorApp.MVVM.Domains.Requirements.Services;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services; // For SmartRequirementImporter
 using TestCaseEditorApp.MVVM.Domains.Notification.Mediators; // For INotificationMediator
 using TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels; // For RequirementsSearchAttachmentsViewModel
 using System.Windows;
