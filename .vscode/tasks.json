@@ -1,0 +1,317 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "🎯 Complete System Capability Derivation Implementation",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Implementation Plan: Transform ATP steps into structured system capabilities using A-N taxonomy"],
+            "group": "build",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Phase 1: Core Infrastructure",
+                "Phase 2: Derivation Engine", 
+                "Phase 3: Training Data Pipeline",
+                "Phase 4: Integration & Validation",
+                "Phase 5: Testing & Deployment"
+            ],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        
+        // PHASE 1: CORE INFRASTRUCTURE
+        {
+            "label": "Phase 1: Core Infrastructure",
+            "type": "shell",
+            "command": "echo", 
+            "args": ["Phase 1: Building taxonomy models and core data structures"],
+            "group": "build",
+            "dependsOrder": "sequence", 
+            "dependsOn": [
+                "1.1: Create SystemRequirementTaxonomy Model",
+                "1.2: Add Capability Derivation Models",
+                "1.3: Extend Requirement Models",
+                "1.4: Create Training Data Models"
+            ]
+        },
+        {
+            "label": "1.1: Create SystemRequirementTaxonomy Model", 
+            "type": "shell",
+            "command": "echo",
+            "args": ["Create MVVM/Models/SystemRequirementTaxonomy.cs with A-N categories"],
+            "group": "build",
+            "problems": ["$msCompile"]
+        },
+        {
+            "label": "1.2: Add Capability Derivation Models",
+            "type": "shell", 
+            "command": "echo",
+            "args": ["Create DerivedCapability, DerivationResult, CapabilityAllocation models"],
+            "group": "build",
+            "dependsOn": ["1.1: Create SystemRequirementTaxonomy Model"]
+        },
+        {
+            "label": "1.3: Extend Requirement Models",
+            "type": "shell",
+            "command": "echo", 
+            "args": ["Add provenance tracking (ATP-derived vs extracted) to Requirement model"],
+            "group": "build",
+            "dependsOn": ["1.2: Add Capability Derivation Models"]
+        },
+        {
+            "label": "1.4: Create Training Data Models",
+            "type": "shell",
+            "command": "echo",
+            "args": ["TrainingExample, ValidationResult, SyntheticDataset models"],
+            "group": "build", 
+            "dependsOn": ["1.3: Extend Requirement Models"]
+        },
+
+        // PHASE 2: DERIVATION ENGINE
+        {
+            "label": "Phase 2: Derivation Engine",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Phase 2: Core LLM-based capability derivation logic"],
+            "group": "build",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Phase 1: Core Infrastructure",
+                "2.1: Create SystemCapabilityDerivationService",
+                "2.2: Add ATP Step Parser", 
+                "2.3: Implement Derivation Prompts",
+                "2.4: Add Taxonomy Validation",
+                "2.5: Create Capability Allocator"
+            ]
+        },
+        {
+            "label": "2.1: Create SystemCapabilityDerivationService",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Services/SystemCapabilityDerivationService.cs - main derivation engine"],
+            "group": "build"
+        },
+        {
+            "label": "2.2: Add ATP Step Parser",
+            "type": "shell",
+            "command": "echo", 
+            "args": ["Services/ATPStepParser.cs - extract test steps from procedures"],
+            "group": "build",
+            "dependsOn": ["2.1: Create SystemCapabilityDerivationService"]
+        },
+        {
+            "label": "2.3: Implement Derivation Prompts",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Prompts/CapabilityDerivationPromptBuilder.cs with A-N taxonomy"],
+            "group": "build",
+            "dependsOn": ["2.2: Add ATP Step Parser"]
+        },
+        {
+            "label": "2.4: Add Taxonomy Validation", 
+            "type": "shell",
+            "command": "echo",
+            "args": ["Services/TaxonomyValidator.cs - validate category assignments"],
+            "group": "build",
+            "dependsOn": ["2.3: Implement Derivation Prompts"]
+        },
+        {
+            "label": "2.5: Create Capability Allocator",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Services/CapabilityAllocator.cs - assign to subsystems"],
+            "group": "build", 
+            "dependsOn": ["2.4: Add Taxonomy Validation"]
+        },
+
+        // PHASE 3: TRAINING DATA PIPELINE
+        {
+            "label": "Phase 3: Training Data Pipeline", 
+            "type": "shell",
+            "command": "echo",
+            "args": ["Phase 3: Synthetic training data generation and validation"],
+            "group": "build",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Phase 2: Derivation Engine",
+                "3.1: Create SyntheticTrainingDataGenerator",
+                "3.2: Add Training Data Validation UI", 
+                "3.3: Implement Quality Scoring",
+                "3.4: Create Prompt Refinement Loop"
+            ]
+        },
+        {
+            "label": "3.1: Create SyntheticTrainingDataGenerator",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Services/SyntheticTrainingDataGenerator.cs - generate ATP+derivation pairs"],
+            "group": "build" 
+        },
+        {
+            "label": "3.2: Add Training Data Validation UI",
+            "type": "shell",
+            "command": "echo",
+            "args": ["MVVM domain for human validation of synthetic examples"],
+            "group": "build",
+            "dependsOn": ["3.1: Create SyntheticTrainingDataGenerator"]
+        },
+        {
+            "label": "3.3: Implement Quality Scoring",
+            "type": "shell", 
+            "command": "echo",
+            "args": ["Services/DerivationQualityScorer.cs - self-evaluation metrics"],
+            "group": "build",
+            "dependsOn": ["3.2: Add Training Data Validation UI"]
+        },
+        {
+            "label": "3.4: Create Prompt Refinement Loop", 
+            "type": "shell",
+            "command": "echo",
+            "args": ["Services/PromptRefinementEngine.cs - improve based on corrections"],
+            "group": "build",
+            "dependsOn": ["3.3: Implement Quality Scoring"]
+        },
+
+        // PHASE 4: INTEGRATION & VALIDATION  
+        {
+            "label": "Phase 4: Integration & Validation",
+            "type": "shell",
+            "command": "echo", 
+            "args": ["Phase 4: Integrate with existing services and add validation"],
+            "group": "build",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Phase 3: Training Data Pipeline",
+                "4.1: Extend SmartRequirementImporter",
+                "4.2: Update Jama Integration", 
+                "4.3: Add Gap Analysis Service",
+                "4.4: Extend RequirementAnalysisService",
+                "4.5: Update DI Configuration"
+            ]
+        },
+        {
+            "label": "4.1: Extend SmartRequirementImporter",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Add ATP derivation mode to existing SmartRequirementImporter"],
+            "group": "build"
+        },
+        {
+            "label": "4.2: Update Jama Integration",
+            "type": "shell",
+            "command": "echo", 
+            "args": ["Extend JamaAllDataDocxParser to detect ATP sections"],
+            "group": "build",
+            "dependsOn": ["4.1: Extend SmartRequirementImporter"]
+        },
+        {
+            "label": "4.3: Add Gap Analysis Service",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Services/RequirementGapAnalyzer.cs - compare derived vs existing"],
+            "group": "build",
+            "dependsOn": ["4.2: Update Jama Integration"]
+        },
+        {
+            "label": "4.4: Extend RequirementAnalysisService", 
+            "type": "shell",
+            "command": "echo",
+            "args": ["Add derivation analysis to existing RequirementAnalysisService"],
+            "group": "build", 
+            "dependsOn": ["4.3: Add Gap Analysis Service"]
+        },
+        {
+            "label": "4.5: Update DI Configuration",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Update App.xaml.cs with new service registrations"],
+            "group": "build",
+            "dependsOn": ["4.4: Extend RequirementAnalysisService"]
+        },
+
+        // PHASE 5: TESTING & DEPLOYMENT
+        {
+            "label": "Phase 5: Testing & Deployment",
+            "type": "shell", 
+            "command": "echo",
+            "args": ["Phase 5: Comprehensive testing and production deployment"],
+            "group": "build",
+            "dependsOrder": "sequence", 
+            "dependsOn": [
+                "Phase 4: Integration & Validation",
+                "5.1: Create Unit Tests",
+                "5.2: Add Integration Tests",
+                "5.3: Performance Validation", 
+                "5.4: User Acceptance Testing",
+                "5.5: Documentation & Training"
+            ]
+        },
+        {
+            "label": "5.1: Create Unit Tests",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Test coverage for all new services and models"],
+            "group": "test"
+        },
+        {
+            "label": "5.2: Add Integration Tests", 
+            "type": "shell",
+            "command": "echo",
+            "args": ["End-to-end ATP → derivation → Jama sync testing"], 
+            "group": "test",
+            "dependsOn": ["5.1: Create Unit Tests"]
+        },
+        {
+            "label": "5.3: Performance Validation",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Bulk processing performance, LLM response times, memory usage"],
+            "group": "test", 
+            "dependsOn": ["5.2: Add Integration Tests"]
+        },
+        {
+            "label": "5.4: User Acceptance Testing",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Domain expert validation of derivation quality and workflow"],
+            "group": "test",
+            "dependsOn": ["5.3: Performance Validation"]
+        },
+        {
+            "label": "5.5: Documentation & Training", 
+            "type": "shell",
+            "command": "echo", 
+            "args": ["User guides, architectural documentation, training materials"],
+            "group": "build",
+            "dependsOn": ["5.4: User Acceptance Testing"]
+        },
+
+        // UTILITY TASKS
+        {
+            "label": "📋 Current Progress Check",
+            "type": "shell", 
+            "command": "echo",
+            "args": ["Run this to check current implementation status against plan"],
+            "group": "build"
+        },
+        {
+            "label": "🏗️ Build & Test Current Phase", 
+            "type": "shell",
+            "command": "dotnet",
+            "args": ["build", "TestCaseEditorApp.csproj"],
+            "group": "build", 
+            "problems": ["$msCompile"]
+        },
+        {
+            "label": "🧪 Run All Tests",
+            "type": "shell", 
+            "command": "powershell",
+            "args": ["-ExecutionPolicy", "Bypass", "-File", "./run-tests.ps1"],
+            "group": "test",
+            "problems": ["$msCompile"]
+        }
+    ]
+}

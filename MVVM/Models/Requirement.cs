@@ -48,6 +48,13 @@ namespace TestCaseEditorApp.MVVM.Models
         /// </summary>
         [JsonIgnore]
         public bool IsQueuedForReanalysis { get; set; }
+
+        /// <summary>
+        /// ATP derivation information for requirements derived from test procedures.
+        /// Null for requirements that were directly extracted from documents.
+        /// Persisted in the workspace to maintain provenance tracking.
+        /// </summary>
+        public AtpDerivationInfo? AtpDerivation { get; set; }
     }
 
     /// <summary>
@@ -279,5 +286,186 @@ namespace TestCaseEditorApp.MVVM.Models
             return Name;
         }
 
+        // ===== ATP Derivation Helper Properties and Methods =====
+        
+        /// <summary>
+        /// True if this requirement was derived from ATP steps, false if extracted directly
+        /// </summary>
+        [JsonIgnore]
+        public bool IsDerivedFromATP => AtpDerivation != null;
+
+        /// <summary>
+        /// True if this requirement was extracted from documents (not derived from ATP)
+        /// </summary>
+        [JsonIgnore]
+        public bool IsDirectlyExtracted => AtpDerivation == null;
+
+        /// <summary>
+        /// Get the provenance type as a string for UI display
+        /// </summary>
+        [JsonIgnore]
+        public string ProvenanceType => IsDerivedFromATP ? "ATP-Derived" : "Direct-Extract";
+
+        /// <summary>
+        /// Get a short description of the derivation source for UI display
+        /// </summary>
+        [JsonIgnore]
+        public string DerivationSource
+        {
+            get
+            {
+                if (AtpDerivation == null)
+                    return "Document";
+                
+                return string.IsNullOrEmpty(AtpDerivation.SourceDocumentName) 
+                    ? "ATP Procedure" 
+                    : AtpDerivation.SourceDocumentName;
+            }
+        }
+
+        /// <summary>
+        /// Get taxonomy category for derived requirements (empty for extracted requirements)
+        /// </summary>
+        [JsonIgnore]
+        public string TaxonomyCategory => AtpDerivation?.TaxonomyCategory ?? string.Empty;
+
+        /// <summary>
+        /// Check if this derived requirement has complete specifications
+        /// </summary>
+        [JsonIgnore]
+        public bool HasCompleteSpecifications => 
+            !IsDerivedFromATP || (AtpDerivation?.MissingSpecifications?.Count ?? 0) == 0;
+
+        /// <summary>
+        /// Get allocation targets for this requirement (empty list for non-derived requirements)
+        /// </summary>
+        [JsonIgnore]
+        public List<string> AllocationTargets => AtpDerivation?.AllocationTargets ?? new List<string>();
+
+        /// <summary>
+        /// Mark this as an ATP-derived requirement with derivation information
+        /// </summary>
+        public void MarkAsDerivedFromATP(
+            string sourceAtpStep,
+            string derivationSessionId,
+            string taxonomyCategory,
+            string taxonomySubcategory,
+            string derivationRationale,
+            List<string>? missingSpecifications = null,
+            List<string>? allocationTargets = null,
+            double confidenceScore = 0.0,
+            string? sourceDocumentName = null)
+        {
+            AtpDerivation = new AtpDerivationInfo
+            {
+                SourceAtpStep = sourceAtpStep,
+                DerivationSessionId = derivationSessionId,
+                TaxonomyCategory = taxonomyCategory,
+                TaxonomySubcategory = taxonomySubcategory,
+                DerivationRationale = derivationRationale,
+                MissingSpecifications = missingSpecifications ?? new List<string>(),
+                AllocationTargets = allocationTargets ?? new List<string>(),
+                ConfidenceScore = confidenceScore,
+                DerivedAt = DateTime.Now,
+                SourceDocumentName = sourceDocumentName
+            };
+        }
+
+        /// <summary>
+        /// Clear ATP derivation information (convert back to directly extracted requirement)
+        /// </summary>
+        public void ClearAtpDerivation()
+        {
+            AtpDerivation = null;
+        }
+
+    }
+
+    /// <summary>
+    /// Serializable data class for tracking ATP derivation provenance information.
+    /// Persisted in workspace JSON to maintain full traceability of derived requirements.
+    /// </summary>
+    public class AtpDerivationInfo
+    {
+        /// <summary>
+        /// The original ATP step or test procedure text that this requirement was derived from
+        /// </summary>
+        public string SourceAtpStep { get; set; } = string.Empty;
+
+        /// <summary>
+        /// ID of the derivation session that created this requirement (links to DerivationResult)
+        /// </summary>
+        public string DerivationSessionId { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Category from the A-N taxonomy (e.g., "C", "D")
+        /// </summary>
+        public string TaxonomyCategory { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Subcategory from the A-N taxonomy (e.g., "C1", "D3")  
+        /// </summary>
+        public string TaxonomySubcategory { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Explanation of why this capability was derived from the ATP step
+        /// </summary>
+        public string DerivationRationale { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Specifications that are missing and need to be defined (e.g., "tolerance", "settling_time")
+        /// </summary>
+        public List<string> MissingSpecifications { get; set; } = new List<string>();
+
+        /// <summary>
+        /// Subsystems this capability should be allocated to
+        /// </summary>
+        public List<string> AllocationTargets { get; set; } = new List<string>();
+
+        /// <summary>
+        /// Confidence score for the derivation (0.0 to 1.0)
+        /// </summary>
+        public double ConfidenceScore { get; set; } = 0.0;
+
+        /// <summary>
+        /// Timestamp when this requirement was derived
+        /// </summary>
+        public DateTime DerivedAt { get; set; } = DateTime.Now;
+
+        /// <summary>
+        /// Name of the source document/ATP where this step came from (for traceability)
+        /// </summary>
+        public string? SourceDocumentName { get; set; }
+
+        /// <summary>
+        /// Version of the derivation logic/prompts used (for reproducibility)
+        /// </summary>
+        public string? DerivationVersion { get; set; }
+
+        /// <summary>
+        /// LLM model used for derivation (e.g., "Claude-3.5-Sonnet")
+        /// </summary>
+        public string? DerivationModel { get; set; }
+
+        /// <summary>
+        /// Any validation warnings about this derivation
+        /// </summary>
+        public List<string> ValidationWarnings { get; set; } = new List<string>();
+
+        /// <summary>
+        /// Get a human-readable summary of this derivation
+        /// </summary>
+        public string GetSummary()
+        {
+            var missing = MissingSpecifications.Count > 0 
+                ? $", {MissingSpecifications.Count} missing specs" 
+                : "";
+            
+            var allocations = AllocationTargets.Count > 0 
+                ? $", allocated to {string.Join(", ", AllocationTargets)}" 
+                : "";
+
+            return $"[{TaxonomySubcategory}] Confidence: {ConfidenceScore:F2}{missing}{allocations}";
+        }
     }
 }

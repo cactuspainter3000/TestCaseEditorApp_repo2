@@ -163,6 +163,9 @@ namespace TestCaseEditorApp
                     services.AddSingleton<RequirementAnalysisPromptBuilder>();
                     services.AddSingleton<ResponseParserManager>();
                     
+                    // Capability Derivation Prompt Builder - ATP-specific prompts with A-N taxonomy
+                    services.AddSingleton<TestCaseEditorApp.Prompts.CapabilityDerivationPromptBuilder>();
+                    
                     // RequirementAnalysisService with proper dependency injection
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService, TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService>(provider =>
                     {
@@ -180,6 +183,20 @@ namespace TestCaseEditorApp
                             cache: cache,
                             anythingLLMService: anythingLLMService);
                     });
+
+                    // ===== SYSTEM CAPABILITY DERIVATION SERVICES =====
+                    
+                    // ATP Step Parser - Extract and classify test procedure steps
+                    services.AddSingleton<ATPStepParser>();
+                    
+                    // Taxonomy Validator - Validate A-N taxonomy assignments and quality
+                    services.AddSingleton<TaxonomyValidator>();
+                    
+                    // CapabilityAllocator - Intelligent subsystem allocation using A-N taxonomy
+                    services.AddSingleton<ICapabilityAllocator, CapabilityAllocator>();
+                    
+                    // SystemCapabilityDerivationService - ATP-to-requirements derivation with A-N taxonomy
+                    services.AddSingleton<ISystemCapabilityDerivationService, SystemCapabilityDerivationService>();
 
                     // ===== REQUIREMENTS DOMAIN SERVICES (Refactored Architecture) =====
                     
