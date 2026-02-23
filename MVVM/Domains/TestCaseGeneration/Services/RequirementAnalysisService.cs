@@ -10,7 +10,7 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Prompts;
 using TestCaseEditorApp.Services.Prompts;
 using TestCaseEditorApp.Services;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing;
+using TestCaseEditorApp.Services.Parsing;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Services; // For Requirements domain interface
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services

@@ -7,7 +7,7 @@ using System.Text;
 using System.Text.Json;
 using TestCaseEditorApp.MVVM.Models;
 
-namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
+namespace TestCaseEditorApp.Services
 {
     /// <summary>
     /// Intelligent caching system for requirement analysis results.

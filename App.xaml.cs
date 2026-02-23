@@ -21,7 +21,7 @@ using TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels;
 
 using TestCaseEditorApp.MVVM.Domains.Requirements.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services; // For still-used services
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing; // For ResponseParserManager
+using TestCaseEditorApp.Services.Parsing; // For ResponseParserManager
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
@@ -149,10 +149,10 @@ namespace TestCaseEditorApp
                     });
                     
                     // LLM Analysis Caching
-                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisCache>(provider =>
+                    services.AddSingleton<TestCaseEditorApp.Services.RequirementAnalysisCache>(provider =>
                     {
-                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisCache>>();
-                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisCache(
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.Services.RequirementAnalysisCache>>();
+                        return new TestCaseEditorApp.Services.RequirementAnalysisCache(
                             logger,
                             maxCacheSize: 500, // Cache up to 500 analysis results
                             maxAge: TimeSpan.FromHours(8), // Cache expires after 8 hours

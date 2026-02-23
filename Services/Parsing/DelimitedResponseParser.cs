@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TestCaseEditorApp.MVVM.Models;
 
-namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
+namespace TestCaseEditorApp.Services.Parsing
 {
     /// <summary>
     /// Parser for delimited format responses (e.g., from requirement extraction prompts).
