@@ -5,11 +5,13 @@
                     xmlns:tccvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels"
                     xmlns:npvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels"
                     xmlns:opvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels"
+                    xmlns:tdvvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.ViewModels"
                     xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
                     xmlns:tcgmodeviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.Views"
                     xmlns:tccviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Views"
                     xmlns:npviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.Views"
                     xmlns:opviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.Views"
+                    xmlns:tdvviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Views"
                     xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
                     xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models">
 
@@ -38,6 +40,11 @@
     <!-- OpenProject Domain DataTemplates -->
     <DataTemplate DataType="{x:Type opvm:OpenProjectWorkflowViewModel}">
         <opviews:OpenProject_MainView />
+    </DataTemplate>
+
+    <!-- TrainingDataValidation Domain DataTemplates -->
+    <DataTemplate DataType="{x:Type tdvvm:TrainingDataValidationViewModel}">
+        <tdvviews:TrainingDataValidationView />
     </DataTemplate>
 
     <Style x:Key="IconButtonStyle" TargetType="Button">

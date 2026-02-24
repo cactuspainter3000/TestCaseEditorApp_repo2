@@ -33,6 +33,7 @@
             <conv:AnalysisStatusToTextConverter x:Key="AnalysisStatusToTextConverter" />
             <conv:ProgressToWidthConverter x:Key="ProgressToWidthConverter" />
             <conv:BoolToStatusColorConverter x:Key="BoolToStatusColorConverter" />
+            <conv:EnumToVisibilityConverter x:Key="EnumToVisibilityConverter" />
             <conv:BooleanToTextConverter x:Key="BooleanToTextConverter" />
             <conv:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
 

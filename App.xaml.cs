@@ -21,6 +21,9 @@ using TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels;
 
 using TestCaseEditorApp.MVVM.Domains.Requirements.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services; // For still-used services
+using TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Services;
+using TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Mediators;
 using TestCaseEditorApp.Services.Parsing; // For ResponseParserManager
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
@@ -165,6 +168,8 @@ namespace TestCaseEditorApp
                     
                     // Capability Derivation Prompt Builder - ATP-specific prompts with A-N taxonomy
                     services.AddSingleton<TestCaseEditorApp.Prompts.CapabilityDerivationPromptBuilder>();
+                    services.AddSingleton<ICapabilityDerivationPromptBuilder>(provider => 
+                        provider.GetRequiredService<TestCaseEditorApp.Prompts.CapabilityDerivationPromptBuilder>());
                     
                     // RequirementAnalysisService with proper dependency injection
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService, TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService>(provider =>
@@ -195,8 +200,33 @@ namespace TestCaseEditorApp
                     // CapabilityAllocator - Intelligent subsystem allocation using A-N taxonomy
                     services.AddSingleton<ICapabilityAllocator, CapabilityAllocator>();
                     
+                    // SyntheticTrainingDataGenerator - Generate synthetic ATP+derivation pairs for training
+                    services.AddSingleton<ISyntheticTrainingDataGenerator, SyntheticTrainingDataGenerator>();
+                    
                     // SystemCapabilityDerivationService - ATP-to-requirements derivation with A-N taxonomy
                     services.AddSingleton<ISystemCapabilityDerivationService, SystemCapabilityDerivationService>();
+
+                    // ===== TRAINING DATA VALIDATION DOMAIN SERVICES =====
+                    
+                    // TrainingDataValidationService - Human validation workflow for synthetic examples
+                    services.AddSingleton<ITrainingDataValidationService, TrainingDataValidationService>();
+                    
+                    // TrainingDataValidationMediator - Cross-domain communication for validation workflows
+                    services.AddSingleton<TrainingDataValidationMediator>();
+                    
+                    // TrainingDataValidationViewModel - Main ViewModel for validation UI
+                    services.AddTransient<TrainingDataValidationViewModel>();
+
+                    // ===== PROMPT REFINEMENT AND QUALITY SCORING SERVICES =====
+                    
+                    // DerivationQualityScorer - Multi-dimensional scoring of derivation quality
+                    services.AddSingleton<IDerivationQualityScorer, DerivationQualityScorer>();
+                    
+                    // PromptRefinementEngine - Intelligent prompt optimization with A/B testing
+                    services.AddSingleton<IPromptRefinementEngine, PromptRefinementEngine>();
+                    
+                    // PromptOptimizationIntegrationService - Integration between refinement and derivation systems
+                    services.AddSingleton<IPromptOptimizationIntegrationService, PromptOptimizationIntegrationService>();
 
                     // ===== REQUIREMENTS DOMAIN SERVICES (Refactored Architecture) =====
                     

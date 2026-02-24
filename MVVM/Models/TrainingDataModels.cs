@@ -499,4 +499,291 @@ namespace TestCaseEditorApp.MVVM.Models
         /// </summary>
         public DateTime ValidatedAt { get; set; } = DateTime.Now;
     }
+
+    /// <summary>
+    /// Options for controlling synthetic training data generation
+    /// </summary>
+    public class TrainingDataGenerationOptions
+    {
+        /// <summary>
+        /// Target number of examples to generate
+        /// </summary>
+        public int TargetExampleCount { get; set; } = 100;
+
+        /// <summary>
+        /// Domain context for realistic ATP generation (e.g., "avionics", "test equipment")
+        /// </summary>
+        public string DomainContext { get; set; } = "avionics test equipment";
+
+        /// <summary>
+        /// Specific taxonomy categories to include (null = all categories)
+        /// </summary>
+        public List<string> TaxonomyCategoriesToInclude { get; set; } = null;
+
+        /// <summary>
+        /// Delay between generation requests to avoid overwhelming LLM service
+        /// </summary>
+        public int GenerationDelayMs { get; set; } = 500;
+
+        /// <summary>
+        /// Minimum quality score threshold for including examples
+        /// </summary>
+        public double MinQualityThreshold { get; set; } = 0.5;
+
+        /// <summary>
+        /// Whether to include difficult/edge cases in generation
+        /// </summary>
+        public bool IncludeEdgeCases { get; set; } = true;
+
+        /// <summary>
+        /// Seed for random generation (for reproducibility)
+        /// </summary>
+        public int? RandomSeed { get; set; } = null;
+    }
+
+    /// <summary>
+    /// A synthetic training example pairing an ATP step with expected capability derivation
+    /// </summary>
+    public class SyntheticTrainingExample
+    {
+        /// <summary>
+        /// Unique identifier for this training example
+        /// </summary>
+        public string ExampleId { get; set; } = string.Empty;
+
+        /// <summary>
+        /// When this example was generated
+        /// </summary>
+        public DateTime GeneratedAt { get; set; } = DateTime.Now;
+
+        /// <summary>
+        /// Source ATP step text (input for training)
+        /// </summary>
+        public string ATPStepText { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Domain context used for generation
+        /// </summary>
+        public string DomainContext { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Expected capability derivation (target output for training)
+        /// </summary>
+        public ExpectedCapabilityDerivation ExpectedCapability { get; set; } = new ExpectedCapabilityDerivation();
+
+        /// <summary>
+        /// Source taxonomy category this example was generated for
+        /// </summary>
+        public string SourceCategory { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Source taxonomy subcategory this example was generated for
+        /// </summary>
+        public string SourceSubcategory { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Method used to generate this example
+        /// </summary>
+        public string GenerationMethod { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Quality score for this example (0.0 to 1.0)
+        /// </summary>
+        public double QualityScore { get; set; } = 0.0;
+
+        /// <summary>
+        /// Human validation status
+        /// </summary>
+        public ValidationStatus ValidationStatus { get; set; } = ValidationStatus.NotValidated;
+
+        /// <summary>
+        /// Human feedback/corrections on this example
+        /// </summary>
+        public string ValidationFeedback { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Expected capability derivation for training purposes
+    /// </summary>
+    public class ExpectedCapabilityDerivation
+    {
+        /// <summary>
+        /// Expected derived requirement text
+        /// </summary>
+        public string RequirementText { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Expected taxonomy category assignment
+        /// </summary>
+        public string TaxonomyCategory { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Expected taxonomy subcategory assignment
+        /// </summary>
+        public string TaxonomySubcategory { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Expected rationale for the derivation
+        /// </summary>
+        public string DerivationRationale { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Expected subsystem allocations
+        /// </summary>
+        public List<string> AllocationTargets { get; set; } = new List<string>();
+
+        /// <summary>
+        /// Expected missing specifications to identify
+        /// </summary>
+        public List<string> MissingSpecifications { get; set; } = new List<string>();
+
+        /// <summary>
+        /// Expected verification intent
+        /// </summary>
+        public string VerificationIntent { get; set; } = "Test";
+    }
+
+    /// <summary>
+    /// Complete synthetic training dataset with metadata and quality metrics
+    /// </summary>
+    public class SyntheticTrainingDataset
+    {
+        /// <summary>
+        /// Unique identifier for this dataset
+        /// </summary>
+        public string DatasetId { get; set; } = string.Empty;
+
+        /// <summary>
+        /// When this dataset was generated
+        /// </summary>
+        public DateTime GeneratedAt { get; set; } = DateTime.Now;
+
+        /// <summary>
+        /// Options used to generate this dataset
+        /// </summary>
+        public TrainingDataGenerationOptions GenerationOptions { get; set; } = new TrainingDataGenerationOptions();
+
+        /// <summary>
+        /// All training examples in this dataset
+        /// </summary>
+        public List<SyntheticTrainingExample> Examples { get; set; } = new List<SyntheticTrainingExample>();
+
+        /// <summary>
+        /// Number of examples successfully generated
+        /// </summary>
+        public int GeneratedExampleCount { get; set; } = 0;
+
+        /// <summary>
+        /// Overall quality metrics for this dataset
+        /// </summary>
+        public DatasetQualityMetrics QualityMetrics { get; set; } = new DatasetQualityMetrics();
+
+        /// <summary>
+        /// Dataset version for tracking iterations
+        /// </summary>
+        public string Version { get; set; } = "1.0";
+
+        /// <summary>
+        /// Optional description or notes about this dataset
+        /// </summary>
+        public string Description { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Quality metrics for evaluating a synthetic training dataset
+    /// </summary>
+    public class DatasetQualityMetrics
+    {
+        /// <summary>
+        /// Total number of examples in dataset
+        /// </summary>
+        public int TotalExamples { get; set; } = 0;
+
+        /// <summary>
+        /// Average quality score across all examples
+        /// </summary>
+        public double AverageQualityScore { get; set; } = 0.0;
+
+        /// <summary>
+        /// Distribution of examples by taxonomy category
+        /// </summary>
+        public Dictionary<string, int> CategoryDistribution { get; set; } = new Dictionary<string, int>();
+
+        /// <summary>
+        /// Number of high-quality examples (>= 0.8 score)
+        /// </summary>
+        public int HighQualityExamples { get; set; } = 0;
+
+        /// <summary>
+        /// Number of medium-quality examples (0.6-0.8 score)
+        /// </summary>
+        public int MediumQualityExamples { get; set; } = 0;
+
+        /// <summary>
+        /// Number of low-quality examples (< 0.6 score)
+        /// </summary>
+        public int LowQualityExamples { get; set; } = 0;
+
+        /// <summary>
+        /// Diversity score (unique examples / total examples)
+        /// </summary>
+        public double DiversityScore { get; set; } = 0.0;
+
+        /// <summary>
+        /// Additional quality insights or issues
+        /// </summary>
+        public List<string> QualityInsights { get; set; } = new List<string>();
+    }
+
+    /// <summary>
+    /// Progress tracking for synthetic training data generation
+    /// </summary>
+    public class GenerationProgress
+    {
+        /// <summary>
+        /// Total number of examples to generate
+        /// </summary>
+        public int TotalCount { get; set; }
+
+        /// <summary>
+        /// Number of examples completed so far
+        /// </summary>
+        public int CompletedCount { get; set; }
+
+        /// <summary>
+        /// Number of examples that failed to generate
+        /// </summary>
+        public int FailedCount { get; set; }
+
+        /// <summary>
+        /// Completion percentage (0-100)
+        /// </summary>
+        public double CompletionPercentage => TotalCount > 0 ? (double)CompletedCount / TotalCount * 100 : 0;
+
+        /// <summary>
+        /// Current status message
+        /// </summary>
+        public string StatusMessage { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Whether generation is currently in progress
+        /// </summary>
+        public bool IsInProgress { get; set; } = false;
+
+        /// <summary>
+        /// Estimated time remaining for generation
+        /// </summary>
+        public TimeSpan? EstimatedTimeRemaining { get; set; }
+    }
+
+    /// <summary>
+    /// Status of human validation for training examples
+    /// </summary>
+    public enum ValidationStatus
+    {
+        NotValidated,
+        Validated,
+        NeedsCorrection,
+        Rejected
+    }
 }

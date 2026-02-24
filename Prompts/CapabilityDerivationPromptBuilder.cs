@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Services;
+using TestCaseEditorApp.Services.Prompts;
 
 namespace TestCaseEditorApp.Prompts
 {
@@ -10,7 +11,7 @@ namespace TestCaseEditorApp.Prompts
     /// Builds specialized prompts for LLM-powered ATP capability derivation.
     /// Transforms test procedure steps into system requirements using A-N taxonomy classification.
     /// </summary>
-    public sealed class CapabilityDerivationPromptBuilder
+    public sealed class CapabilityDerivationPromptBuilder : ICapabilityDerivationPromptBuilder
     {
         private readonly SystemRequirementTaxonomy _taxonomy;
 

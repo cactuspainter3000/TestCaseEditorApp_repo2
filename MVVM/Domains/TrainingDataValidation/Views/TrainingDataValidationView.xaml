@@ -1,0 +1,454 @@
+<UserControl x:Class="TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Views.TrainingDataValidationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="1200"
+             Background="White">
+    
+    <UserControl.Resources>
+        <!-- Validation Decision Button Styles -->
+        <Style x:Key="ValidationButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ApproveButtonStyle" TargetType="Button" BasedOn="{StaticResource ValidationButtonStyle}">
+            <Setter Property="Background" Value="#4CAF50"/>
+            <Setter Property="BorderBrush" Value="#45A049"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <Style x:Key="RejectButtonStyle" TargetType="Button" BasedOn="{StaticResource ValidationButtonStyle}">
+            <Setter Property="Background" Value="#F44336"/>
+            <Setter Property="BorderBrush" Value="#DA190B"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <Style x:Key="EditButtonStyle" TargetType="Button" BasedOn="{StaticResource ValidationButtonStyle}">
+            <Setter Property="Background" Value="#FF9800"/>
+            <Setter Property="BorderBrush" Value="#F57C00"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <Style x:Key="SkipButtonStyle" TargetType="Button" BasedOn="{StaticResource ValidationButtonStyle}">
+            <Setter Property="Background" Value="#9E9E9E"/>
+            <Setter Property="BorderBrush" Value="#757575"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <!-- Card Style for Example Display -->
+        <Style x:Key="ExampleCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="#F8F9FA"/>
+            <Setter Property="BorderBrush" Value="#E9ECEF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="Margin" Value="10"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Header -->
+            <RowDefinition Height="Auto"/> <!-- Progress Bar -->
+            <RowDefinition Height="*"/>    <!-- Main Content -->
+            <RowDefinition Height="Auto"/> <!-- Status Bar -->
+        </Grid.RowDefinitions>
+
+        <!-- Header Section -->
+        <Border Grid.Row="0" Background="#2196F3" Padding="20,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Vertical">
+                    <TextBlock Text="Training Data Validation" 
+                               FontSize="24" 
+                               FontWeight="Bold" 
+                               Foreground="White"/>
+                    <TextBlock Text="Human validation workflow for synthetic training examples"
+                               FontSize="14"
+                               Foreground="#E3F2FD"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,20,0">
+                    <TextBlock Text="{Binding CompletedCount, StringFormat={}Completed: {0}}" 
+                               Foreground="White" 
+                               FontSize="14" 
+                               FontWeight="SemiBold"
+                               Margin="0,0,15,0"/>
+                    <TextBlock Text="{Binding RemainingCount, StringFormat={}Remaining: {0}}" 
+                               Foreground="White" 
+                               FontSize="14" 
+                               FontWeight="SemiBold"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Content="Generate Examples" 
+                            Command="{Binding GenerateExamplesCommand}"
+                            Background="White"
+                            Foreground="#2196F3"
+                            Padding="15,8"
+                            Margin="0,0,10,0"
+                            BorderThickness="0">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}" 
+                                        CornerRadius="6"
+                                        Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                    <Button Content="Save Progress" 
+                            Command="{Binding SaveProgressCommand}"
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderBrush="White"
+                            BorderThickness="2"
+                            Padding="15,8">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}" 
+                                        CornerRadius="6"
+                                        Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Progress Bar -->
+        <ProgressBar Grid.Row="1" 
+                     Value="{Binding ProgressPercentage}" 
+                     Maximum="100" 
+                     Height="4"
+                     Background="#E0E0E0"
+                     Foreground="#2196F3"/>
+
+        <!-- Main Content Area -->
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+            <Grid Margin="20">
+                <!-- Workflow State: Ready -->
+                <StackPanel Visibility="{Binding CurrentState, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Ready}">
+                    <Border Style="{StaticResource ExampleCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="🚀 Ready to Start Validation Workflow" 
+                                       FontSize="20" 
+                                       FontWeight="Bold" 
+                                       Margin="0,0,0,10"/>
+                            <TextBlock Text="Generate synthetic training examples or load a previous session to begin validation."
+                                       FontSize="14"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,20"/>
+                            <Button Content="Start Validation Workflow" 
+                                    Command="{Binding StartValidationCommand}"
+                                    Style="{StaticResource ApproveButtonStyle}"
+                                    HorizontalAlignment="Center"
+                                    Width="200"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Workflow State: Generating -->
+                <StackPanel Visibility="{Binding CurrentState, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Generating}">
+                    <Border Style="{StaticResource ExampleCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="⚙️ Generating Synthetic Examples..." 
+                                       FontSize="18" 
+                                       FontWeight="Bold" 
+                                       HorizontalAlignment="Center"/>
+                            <ProgressBar Value="{Binding ProgressPercentage}" 
+                                         Maximum="100" 
+                                         Height="8" 
+                                         Margin="0,20"/>
+                            <TextBlock Text="{Binding StatusMessage}" 
+                                       HorizontalAlignment="Center"
+                                       FontSize="14"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Workflow State: Validating -->
+                <Grid Visibility="{Binding CurrentState, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Validating}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Current Example Display -->
+                    <Border Grid.Column="0" Style="{StaticResource ExampleCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding CurrentExampleIndex, StringFormat={}Example {0}}" 
+                                       FontSize="16" 
+                                       FontWeight="Bold" 
+                                       Margin="0,0,0,15"/>
+
+                            <!-- ATP Step Display -->
+                            <TextBlock Text="📋 Synthetic ATP Step:" 
+                                       FontWeight="SemiBold" 
+                                       FontSize="14"
+                                       Margin="0,0,0,8"/>
+                            <Border Background="White" 
+                                    BorderBrush="#DDD" 
+                                    BorderThickness="1" 
+                                    CornerRadius="6" 
+                                    Padding="15"
+                                    Margin="0,0,0,20">
+                                <TextBlock Text="{Binding CurrentExample.SyntheticATPStep}" 
+                                           TextWrapping="Wrap"
+                                           FontFamily="Consolas"
+                                           FontSize="13"/>
+                            </Border>
+
+                            <!-- Expected Capability Display -->
+                            <TextBlock Text="🎯 Expected Derived Capability:" 
+                                       FontWeight="SemiBold" 
+                                       FontSize="14"
+                                       Margin="0,0,0,8"/>
+                            <Border Background="White" 
+                                    BorderBrush="#DDD" 
+                                    BorderThickness="1" 
+                                    CornerRadius="6" 
+                                    Padding="15"
+                                    Margin="0,0,0,20">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding CurrentExample.ExpectedCapability.Description}" 
+                                               TextWrapping="Wrap"
+                                               FontSize="13"
+                                               Margin="0,0,0,10"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding CurrentExample.ExpectedCapability.Category, StringFormat={}Category: {0}}"
+                                                   FontSize="12"
+                                                   Foreground="#666"/>
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding CurrentExample.QualityScore, StringFormat={}Quality: {0:F2}}"
+                                                   FontSize="12"
+                                                   Foreground="#666"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Validation Decision Buttons -->
+                            <TextBlock Text="✅ Validation Decision:" 
+                                       FontWeight="SemiBold" 
+                                       FontSize="14"
+                                       Margin="0,0,0,15"/>
+                            <UniformGrid Rows="2" Columns="2">
+                                <Button Content="✅ Approve (Ctrl+A)" 
+                                        Command="{Binding ApproveExampleCommand}"
+                                        Style="{StaticResource ApproveButtonStyle}"/>
+                                <Button Content="❌ Reject (Ctrl+R)" 
+                                        Command="{Binding RejectExampleCommand}"
+                                        Style="{StaticResource RejectButtonStyle}"/>
+                                <Button Content="✏️ Needs Editing (Ctrl+E)" 
+                                        Command="{Binding RequireEditsCommand}"
+                                        Style="{StaticResource EditButtonStyle}"/>
+                                <Button Content="⏭️ Skip (Ctrl+S)" 
+                                        Command="{Binding SkipExampleCommand}"
+                                        Style="{StaticResource SkipButtonStyle}"/>
+                            </UniformGrid>
+
+                            <!-- Navigation Controls -->
+                            <StackPanel Orientation="Horizontal" 
+                                        HorizontalAlignment="Center" 
+                                        Margin="0,20,0,0">
+                                <Button Content="← Previous" 
+                                        Command="{Binding PreviousExampleCommand}"
+                                        Margin="5"
+                                        Padding="15,8"/>
+                                <Button Content="Next →" 
+                                        Command="{Binding NextExampleCommand}"
+                                        Margin="5"
+                                        Padding="15,8"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Validation Summary Panel -->
+                    <Border Grid.Column="1" Style="{StaticResource ExampleCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="📊 Validation Summary" 
+                                       FontSize="16" 
+                                       FontWeight="Bold" 
+                                       Margin="0,0,0,15"/>
+
+                            <!-- Progress Statistics -->
+                            <StackPanel Margin="0,0,0,20">
+                                <TextBlock Text="Progress:" 
+                                           FontWeight="SemiBold" 
+                                           Margin="0,0,0,8"/>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding CompletedCount, StringFormat={}✅ Completed: {0}}" 
+                                               Margin="0,2"/>
+                                    <TextBlock Text="{Binding RemainingCount, StringFormat={}⏳ Remaining: {0}}" 
+                                               Margin="0,2"/>
+                                    <TextBlock Text="{Binding ProgressPercentage, StringFormat={}📈 Progress: {0:F1}%}" 
+                                               Margin="0,2"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- Recent Validations -->
+                            <TextBlock Text="Recent Validations:" 
+                                       FontWeight="SemiBold" 
+                                       Margin="0,0,0,8"/>
+                            <ItemsControl ItemsSource="{Binding ValidatedExamples}" 
+                                          MaxHeight="300">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#F5F5F5" 
+                                                Padding="8" 
+                                                Margin="0,2" 
+                                                CornerRadius="4">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Decision}" 
+                                                           FontWeight="SemiBold"
+                                                           FontSize="12"/>
+                                                <TextBlock Text="{Binding Reason}" 
+                                                           FontSize="11"
+                                                           Foreground="#666"
+                                                           TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <!-- Action Buttons -->
+                            <StackPanel Margin="0,20,0,0">
+                                <Button Content="Export Results" 
+                                        Command="{Binding ExportValidatedDataCommand}"
+                                        Margin="0,5"/>
+                                <Button Content="Load Session" 
+                                        Command="{Binding LoadSessionCommand}"
+                                        Margin="0,5"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- Workflow State: Complete -->
+                <StackPanel Visibility="{Binding CurrentState, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Complete}">
+                    <Border Style="{StaticResource ExampleCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="🎉 Validation Workflow Complete!" 
+                                       FontSize="20" 
+                                       FontWeight="Bold" 
+                                       HorizontalAlignment="Center"
+                                       Margin="0,0,0,15"/>
+                            <TextBlock Text="{Binding StatusMessage}"
+                                       FontSize="14"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,0,0,20"/>
+                            <StackPanel Orientation="Horizontal" 
+                                        HorizontalAlignment="Center">
+                                <Button Content="Export Validated Data" 
+                                        Command="{Binding ExportValidatedDataCommand}"
+                                        Style="{StaticResource ApproveButtonStyle}"
+                                        Margin="5"/>
+                                <Button Content="Start New Workflow" 
+                                        Command="{Binding GenerateExamplesCommand}"
+                                        Style="{StaticResource ValidationButtonStyle}"
+                                        Background="#2196F3"
+                                        BorderBrush="#1976D2"
+                                        Foreground="White"
+                                        Margin="5"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Loading State -->
+                <Border Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"
+                        Background="White" 
+                        Opacity="0.9"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                    <StackPanel HorizontalAlignment="Center" 
+                                VerticalAlignment="Center">
+                        <ProgressBar IsIndeterminate="True" 
+                                     Width="200" 
+                                     Height="4" 
+                                     Margin="0,0,0,10"/>
+                        <TextBlock Text="{Binding StatusMessage}" 
+                                   HorizontalAlignment="Center"
+                                   FontSize="14"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </ScrollViewer>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="3" 
+                Background="#F5F5F5" 
+                BorderBrush="#E0E0E0" 
+                BorderThickness="0,1,0,0"
+                Padding="15,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Text="{Binding StatusMessage}" 
+                           VerticalAlignment="Center"
+                           FontSize="12"/>
+                
+                <StackPanel Grid.Column="1" 
+                            Orientation="Horizontal">
+                    <TextBlock Text="{Binding CurrentState, StringFormat={}State: {0}}" 
+                               FontSize="12"
+                               Margin="0,0,15,0"/>
+                    <TextBlock Text="{Binding ProgressPercentage, StringFormat={}{0:F1}% Complete}" 
+                               FontSize="12"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
