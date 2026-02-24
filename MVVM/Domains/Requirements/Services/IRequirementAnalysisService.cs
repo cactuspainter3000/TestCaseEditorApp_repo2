@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Models;
@@ -102,5 +103,298 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
         /// Clears all cached analysis data.
         /// </summary>
         void ClearAnalysisCache();
+
+        // =====================================================
+        // TASK 4.4: ENHANCED DERIVATION ANALYSIS CAPABILITIES
+        // =====================================================
+
+        /// <summary>
+        /// Analyzes a requirement for ATP (Automated Test Procedure) content and derives system capabilities.
+        /// Integrates with the systematic capability derivation service for comprehensive analysis.
+        /// </summary>
+        /// <param name="requirement">The requirement to analyze for ATP content</param>
+        /// <param name="cancellationToken">Token to cancel the operation</param>
+        /// <returns>Derivation analysis result with detected capabilities and gap analysis</returns>
+        Task<RequirementDerivationAnalysis> AnalyzeRequirementDerivationAsync(Requirement requirement, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Performs comprehensive gap analysis between derived capabilities and existing requirements.
+        /// Uses the RequirementGapAnalyzer for multi-dimensional comparison.
+        /// </summary>
+        /// <param name="derivedCapabilities">List of capabilities derived from ATP analysis</param>
+        /// <param name="existingRequirements">Current requirements to compare against</param>
+        /// <param name="cancellationToken">Token to cancel the operation</param>
+        /// <returns>Gap analysis results with identified gaps, overlaps, and recommendations</returns>
+        Task<RequirementGapAnalysisResult> AnalyzeRequirementGapAsync(
+            IEnumerable<DerivedCapability> derivedCapabilities, 
+            IEnumerable<Requirement> existingRequirements, 
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Validates testing workflows end-to-end using derived capabilities and gap analysis.
+        /// Provides comprehensive testing workflow validation for enhanced quality assurance.
+        /// </summary>
+        /// <param name="requirements">Requirements to validate testing workflows for</param>
+        /// <param name="testingContext">Optional context for testing validation</param>
+        /// <param name="cancellationToken">Token to cancel the operation</param>
+        /// <returns>Testing workflow validation result with recommendations</returns>
+        Task<TestingWorkflowValidationResult> ValidateTestingWorkflowAsync(
+            IEnumerable<Requirement> requirements, 
+            TestingValidationContext? testingContext = null, 
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Performs batch analysis of multiple requirements for derivation capabilities.
+        /// Optimized for processing large sets of requirements efficiently.
+        /// </summary>
+        /// <param name="requirements">Collection of requirements to analyze</param>
+        /// <param name="batchOptions">Options for batch processing</param>
+        /// <param name="onProgress">Callback for progress updates</param>
+        /// <param name="cancellationToken">Token to cancel the operation</param>
+        /// <returns>Collection of derivation analysis results</returns>
+        Task<IEnumerable<RequirementDerivationAnalysis>> AnalyzeBatchDerivationAsync(
+            IEnumerable<Requirement> requirements,
+            BatchAnalysisOptions? batchOptions = null,
+            Action<BatchAnalysisProgress>? onProgress = null,
+            CancellationToken cancellationToken = default);
+    }
+
+    /// <summary>
+    /// Result of requirement derivation analysis including ATP detection and capability derivation.
+    /// </summary>
+    public class RequirementDerivationAnalysis
+    {
+        /// <summary>
+        /// The original requirement that was analyzed
+        /// </summary>
+        public required Requirement AnalyzedRequirement { get; set; }
+
+        /// <summary>
+        /// Whether ATP content was detected in the requirement
+        /// </summary>
+        public bool HasATPContent { get; set; }
+
+        /// <summary>
+        /// Confidence score for ATP detection (0.0 - 1.0)
+        /// </summary>
+        public double ATPDetectionConfidence { get; set; }
+
+        /// <summary>
+        /// List of capabilities derived from the requirement
+        /// </summary>
+        public List<DerivedCapability> DerivedCapabilities { get; set; } = new();
+
+        /// <summary>
+        /// Quality score for the derivation process (0.0 - 1.0)
+        /// </summary>
+        public double DerivationQuality { get; set; }
+
+        /// <summary>
+        /// Any issues found during derivation analysis
+        /// </summary>
+        public List<string> DerivationIssues { get; set; } = new();
+
+        /// <summary>
+        /// Recommendations for improving requirement derivation
+        /// </summary>
+        public List<string> Recommendations { get; set; } = new();
+
+        /// <summary>
+        /// Timestamp of the analysis
+        /// </summary>
+        public DateTime AnalyzedAt { get; set; } = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Result of testing workflow validation analysis.
+    /// </summary>
+    public class TestingWorkflowValidationResult
+    {
+        /// <summary>
+        /// Overall validation score (0.0 - 1.0)
+        /// </summary>
+        public double OverallScore { get; set; }
+
+        /// <summary>
+        /// Whether the testing workflow is considered valid
+        /// </summary>
+        public bool IsValid { get; set; }
+
+        /// <summary>
+        /// Validation issues found
+        /// </summary>
+        public List<ValidationIssue> Issues { get; set; } = new();
+
+        /// <summary>
+        /// Recommendations for improving testing workflow
+        /// </summary>
+        public List<string> Recommendations { get; set; } = new();
+
+        /// <summary>
+        /// Testing coverage analysis
+        /// </summary>
+        public TestingCoverageAnalysis? CoverageAnalysis { get; set; }
+
+        /// <summary>
+        /// Timestamp of validation
+        /// </summary>
+        public DateTime ValidatedAt { get; set; } = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Context for testing validation operations.
+    /// </summary>
+    public class TestingValidationContext
+    {
+        /// <summary>
+        /// Test environment context
+        /// </summary>
+        public string? TestEnvironment { get; set; }
+
+        /// <summary>
+        /// Testing methodology to validate against
+        /// </summary>
+        public string? TestingMethodology { get; set; }
+
+        /// <summary>
+        /// Additional validation options
+        /// </summary>
+        public Dictionary<string, object> ValidationOptions { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Options for batch analysis operations.
+    /// </summary>
+    public class BatchAnalysisOptions
+    {
+        /// <summary>
+        /// Maximum number of concurrent analyses
+        /// </summary>
+        public int MaxConcurrency { get; set; } = 5;
+
+        /// <summary>
+        /// Whether to continue on individual failures
+        /// </summary>
+        public bool ContinueOnFailure { get; set; } = true;
+
+        /// <summary>
+        /// Timeout for individual analysis operations
+        /// </summary>
+        public TimeSpan AnalysisTimeout { get; set; } = TimeSpan.FromMinutes(2);
+    }
+
+    /// <summary>
+    /// Progress information for batch analysis operations.
+    /// </summary>
+    public class BatchAnalysisProgress
+    {
+        /// <summary>
+        /// Total number of requirements to analyze
+        /// </summary>
+        public int TotalCount { get; set; }
+
+        /// <summary>
+        /// Number of completed analyses
+        /// </summary>
+        public int CompletedCount { get; set; }
+
+        /// <summary>
+        /// Number of failed analyses
+        /// </summary>
+        public int FailedCount { get; set; }
+
+        /// <summary>
+        /// Current requirement being processed
+        /// </summary>
+        public string? CurrentRequirement { get; set; }
+
+        /// <summary>
+        /// Progress percentage (0.0 - 1.0)
+        /// </summary>
+        public double ProgressPercentage => TotalCount > 0 ? (double)CompletedCount / TotalCount : 0.0;
+    }
+
+    /// <summary>
+    /// Testing coverage analysis result.
+    /// </summary>
+    public class TestingCoverageAnalysis
+    {
+        /// <summary>
+        /// Percentage of requirements with testing coverage (0.0 - 1.0)
+        /// </summary>
+        public double CoveragePercentage { get; set; }
+
+        /// <summary>
+        /// Requirements without adequate testing coverage
+        /// </summary>
+        public List<string> UncoveredRequirements { get; set; } = new();
+
+        /// <summary>
+        /// Testing gaps identified
+        /// </summary>
+        public List<string> TestingGaps { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Validation issue found during testing workflow validation.
+    /// </summary>
+    public class ValidationIssue
+    {
+        /// <summary>
+        /// Severity of the issue
+        /// </summary>
+        public ValidationSeverity Severity { get; set; }
+
+        /// <summary>
+        /// Description of the issue
+        /// </summary>
+        public string Description { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Related requirement ID (if applicable)
+        /// </summary>
+        public string? RequirementId { get; set; }
+
+        /// <summary>
+        /// Category of the validation issue
+        /// </summary>
+        public string? Category { get; set; }
+    }
+
+    /// <summary>
+    /// Severity levels for validation issues.
+    /// </summary>
+    public enum ValidationSeverity
+    {
+        Info,
+        Warning,
+        Error,
+        Critical
+    }
+
+    /// <summary>
+    /// Result of requirement gap analysis integration with RequirementAnalysisService.
+    /// </summary>
+    public class RequirementGapAnalysisResult
+    {
+        /// <summary>
+        /// Whether the gap analysis was successful
+        /// </summary>
+        public bool IsSuccessful { get; set; }
+
+        /// <summary>
+        /// The actual gap analysis result from the RequirementGapAnalyzer
+        /// </summary>
+        public GapAnalysisResult? GapAnalysisResult { get; set; }
+
+        /// <summary>
+        /// Error message if analysis failed
+        /// </summary>
+        public string? ErrorMessage { get; set; }
+
+        /// <summary>
+        /// Timestamp of analysis
+        /// </summary>
+        public DateTime AnalyzedAt { get; set; } = DateTime.UtcNow;
     }
 }

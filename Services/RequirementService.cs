@@ -9,7 +9,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
 using TestCaseEditorApp.Services;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services; // For JamaAllDataDocxParser
+using TestCaseEditorApp.MVVM.Domains.Requirements.Services; // For JamaAllDataDocxParser
 using TestCaseEditorApp.MVVM.Models;
 using VMVerMethod = TestCaseEditorApp.MVVM.Models.VerificationMethod;
 // Alias Word table to avoid confusion with Spreadsheet types

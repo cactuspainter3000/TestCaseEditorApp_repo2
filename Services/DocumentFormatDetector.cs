@@ -15,6 +15,8 @@ namespace TestCaseEditorApp.Services
             JamaAllDataExport,
             GeneralWordDocument,
             RequirementsTable,
+            ATPDocument,           // NEW: Document containing ATP sections
+            JamaWithATP,          // NEW: Jama export that also contains ATP content
             UnknownFormat
         }
 
@@ -28,6 +30,12 @@ namespace TestCaseEditorApp.Services
             public int EstimatedRequirementCount { get; set; }
             public List<string> FoundRequirementIds { get; set; } = new();
             public List<string> DetectionReasons { get; set; } = new();
+            
+            // NEW: ATP Detection Properties
+            public bool HasATPContent { get; set; }
+            public int EstimatedATPSteps { get; set; }
+            public List<string> ATPIndicators { get; set; } = new();
+            public string ATPGuidance { get; set; } = string.Empty;
         }
 
         /// <summary>
@@ -80,6 +88,13 @@ namespace TestCaseEditorApp.Services
             // Check for Jama All Data export format
             var jamaIndicators = CheckForJamaFormat(body);
             
+            // NEW: Check for ATP content
+            var atpIndicators = CheckForATPContent(body);
+            result.HasATPContent = atpIndicators.HasATP;
+            result.EstimatedATPSteps = atpIndicators.EstimatedSteps;
+            result.ATPIndicators = atpIndicators.Indicators;
+            result.ATPGuidance = atpIndicators.Guidance;
+            
             // Look for requirement IDs
             var requirementIds = FindRequirementIds(body);
             result.FoundRequirementIds = requirementIds;
@@ -87,13 +102,32 @@ namespace TestCaseEditorApp.Services
             result.HasRequirements = requirementIds.Count > 0;
 
             // Determine format based on analysis
-            if (jamaIndicators.IsJamaFormat)
+            if (jamaIndicators.IsJamaFormat && result.HasATPContent)
+            {
+                result.Format = DocumentFormat.JamaWithATP;
+                result.Description = "Jama 'All Data' export with ATP content";
+                result.RecommendedImportMethod = "ImportRequirementsFromJamaAllDataDocx or ATP Derivation Mode";
+                result.UserGuidance = $"✅ Jama export detected with {result.EstimatedATPSteps} ATP steps. " +
+                                    "Use 'Import from Jama' for requirements OR 'ATP Derivation Mode' to derive system capabilities from test procedures.";
+                result.DetectionReasons.AddRange(jamaIndicators.Reasons);
+                result.DetectionReasons.AddRange(atpIndicators.Indicators);
+            }
+            else if (jamaIndicators.IsJamaFormat)
             {
                 result.Format = DocumentFormat.JamaAllDataExport;
                 result.Description = "Jama 'All Data' export document";
                 result.RecommendedImportMethod = "ImportRequirementsFromJamaAllDataDocx";
                 result.UserGuidance = "✅ This appears to be a proper Jama 'All Data' export. Use the 'Import from Jama' option.";
                 result.DetectionReasons.AddRange(jamaIndicators.Reasons);
+            }
+            else if (result.HasATPContent)
+            {
+                result.Format = DocumentFormat.ATPDocument;
+                result.Description = "Acceptance Test Procedure document";
+                result.RecommendedImportMethod = "ATP Derivation Mode";
+                result.UserGuidance = $"🧪 ATP document detected with {result.EstimatedATPSteps} test steps. " +
+                                    "Use 'ATP Derivation Mode' to automatically derive system requirements from test procedures.";
+                result.DetectionReasons.AddRange(atpIndicators.Indicators);
             }
             else if (result.HasRequirements)
             {
@@ -165,6 +199,140 @@ namespace TestCaseEditorApp.Services
             }
 
             return (isJamaFormat, reasons);
+        }
+
+        /// <summary>
+        /// Detects ATP (Acceptance Test Procedure) content in the document
+        /// </summary>
+        private static (bool HasATP, int EstimatedSteps, List<string> Indicators, string Guidance) CheckForATPContent(Body body)
+        {
+            var indicators = new List<string>();
+            var allText = body.InnerText ?? "";
+            var words = allText.ToLowerInvariant().Split();
+            
+            // ATP Keywords and Patterns
+            var atpKeywords = new Dictionary<string, int>
+            {
+                // Direct ATP terminology
+                { "acceptance test procedure", 15 },
+                { "test procedure", 10 },
+                { "atp", 8 },
+                { "test plan", 8 },
+                { "test method", 8 },
+                
+                // Test step indicators  
+                { "step", 5 },
+                { "procedure", 5 },
+                { "verify", 4 },
+                { "measure", 4 },
+                { "apply", 3 },
+                { "configure", 3 },
+                { "calibrate", 4 },
+                { "monitor", 3 },
+                { "control", 3 },
+                
+                // Test execution terms
+                { "pass", 2 },
+                { "fail", 2 },
+                { "criteria", 3 },
+                { "expected", 2 },
+                { "actual", 2 },
+                { "tolerance", 4 },
+                { "within", 2 },
+                
+                // Equipment/setup terms
+                { "equipment", 3 },
+                { "setup", 3 },
+                { "initialization", 4 },
+                { "calibration", 4 },
+                { "power", 2 },
+                { "signal", 2 },
+                { "voltage", 3 },
+                { "current", 3 }
+            };
+            
+            // ATP Step Patterns
+            var stepPatterns = new[]
+            {
+                @"\bstep\s+\d+",                    // "step 1", "step 2"
+                @"\d+\.\s*[a-z]",                  // "1. verify", "2. measure"  
+                @"\d+\.\d+\s*[a-z]",               // "3.1 apply", "3.2 check"
+                @"^(verify|measure|apply|configure|calibrate|monitor|control|check|test)\s",  // Action verbs at start
+                @"\b(shall|must|will)\s+(verify|measure|apply|configure|calibrate|monitor|control|check|test)", // Requirements with test verbs
+                @"(pass|fail)\s+(criteria|condition|threshold)", // Pass/fail criteria
+                @"(expected|actual)\s+(value|result|output)",     // Expected vs actual comparisons
+            };
+            
+            int totalScore = 0;
+            var foundKeywords = new HashSet<string>();
+            
+            // Score based on keyword frequency
+            foreach (var (keyword, weight) in atpKeywords)
+            {
+                var count = CountOccurrences(allText.ToLowerInvariant(), keyword);
+                if (count > 0)
+                {
+                    totalScore += count * weight;
+                    foundKeywords.Add(keyword);
+                }
+            }
+            
+            // Additional scoring for step patterns
+            int stepCount = 0;
+            foreach (var pattern in stepPatterns)
+            {
+                var regex = new System.Text.RegularExpressions.Regex(pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Multiline);
+                var matches = regex.Matches(allText);
+                stepCount += matches.Count;
+                if (matches.Count > 0)
+                {
+                    totalScore += matches.Count * 3; // Bonus for structured step patterns
+                }
+            }
+            
+            // ATP detection logic
+            bool hasATP = totalScore > 50 || (foundKeywords.Contains("acceptance test procedure")) || 
+                         (foundKeywords.Contains("atp") && totalScore > 30) ||
+                         (stepCount > 10 && foundKeywords.Count > 5);
+            
+            if (hasATP)
+            {
+                indicators.Add($"ATP score: {totalScore} (threshold: 50)");
+                indicators.Add($"Found {foundKeywords.Count} ATP-related terms");
+                indicators.Add($"Detected {stepCount} structured test steps");
+                
+                if (foundKeywords.Contains("acceptance test procedure"))
+                    indicators.Add("Explicit 'Acceptance Test Procedure' reference");
+                    
+                if (foundKeywords.Contains("atp"))
+                    indicators.Add("ATP acronym detected");
+                    
+                var topKeywords = foundKeywords.Take(5).ToList();
+                if (topKeywords.Count > 0)
+                    indicators.Add($"Key terms: {string.Join(", ", topKeywords)}");
+            }
+            
+            var guidance = hasATP 
+                ? $"🧪 Document contains structured test procedures that can be converted to system requirements. " +
+                  $"Estimated {stepCount} test steps detected. Use ATP Derivation Mode to automatically extract system capabilities."
+                : "";
+            
+            return (hasATP, stepCount, indicators, guidance);
+        }
+        
+        /// <summary>
+        /// Count occurrences of a keyword in text
+        /// </summary>
+        private static int CountOccurrences(string text, string keyword)
+        {
+            int count = 0;
+            int index = 0;
+            while ((index = text.IndexOf(keyword, index, StringComparison.OrdinalIgnoreCase)) != -1)
+            {
+                count++;
+                index += keyword.Length;
+            }
+            return count;
         }
 
         private static List<string> FindRequirementIds(Body body)

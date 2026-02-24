@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -44,6 +45,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         private readonly RequirementAnalysisCache? _cache;
         private readonly AnythingLLMService? _anythingLLMService;
         private readonly ResponseParserManager _parserManager;
+        
+        // TASK 4.4: Enhanced derivation analysis services
+        private readonly ISystemCapabilityDerivationService? _derivationService;
+        private readonly IRequirementGapAnalyzer? _gapAnalyzer;
+        
         private string? _cachedSystemMessage;
         private string? _currentWorkspaceSlug;
         private string? _projectWorkspaceName;
@@ -126,6 +132,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
 
         /// <summary>
         /// Initializes a new instance of RequirementAnalysisService with proper dependency injection.
+        /// Task 4.4: Extended with derivation analysis capabilities for enhanced testing workflow validation.
         /// </summary>
         /// <param name="llmService">Text generation service for LLM communication</param>
         /// <param name="promptBuilder">Prompt builder for requirement analysis prompts</param>
@@ -133,13 +140,17 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         /// <param name="healthMonitor">Optional health monitor for service reliability</param>
         /// <param name="cache">Optional cache for analysis results</param>
         /// <param name="anythingLLMService">Optional AnythingLLM service for enhanced features</param>
+        /// <param name="derivationService">Optional system capability derivation service for ATP analysis</param>
+        /// <param name="gapAnalyzer">Optional gap analyzer for capability vs requirements comparison</param>
         public RequirementAnalysisService(
             ITextGenerationService llmService,
             RequirementAnalysisPromptBuilder promptBuilder,
             ResponseParserManager parserManager,
             LlmServiceHealthMonitor? healthMonitor = null,
             RequirementAnalysisCache? cache = null,
-            AnythingLLMService? anythingLLMService = null)
+            AnythingLLMService? anythingLLMService = null,
+            ISystemCapabilityDerivationService? derivationService = null,
+            IRequirementGapAnalyzer? gapAnalyzer = null)
         {
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
             _promptBuilder = promptBuilder ?? throw new ArgumentNullException(nameof(promptBuilder));
@@ -147,6 +158,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             _healthMonitor = healthMonitor;
             _cache = cache;
             _anythingLLMService = anythingLLMService;
+            _derivationService = derivationService;
+            _gapAnalyzer = gapAnalyzer;
         }
 
         /// <summary>
@@ -2131,6 +2144,520 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                     System.Windows.MessageBoxImage.Warning);
             }
         }
+
+        // =====================================================
+        // TASK 4.4: ENHANCED DERIVATION ANALYSIS CAPABILITIES
+        // =====================================================
+
+        /// <summary>
+        /// Analyzes a requirement for ATP (Automated Test Procedure) content and derives system capabilities.
+        /// Integrates with the systematic capability derivation service for comprehensive analysis.
+        /// </summary>
+        /// <param name="requirement">The requirement to analyze for ATP content</param>
+        /// <param name="cancellationToken">Token to cancel the operation</param>
+        /// <returns>Derivation analysis result with detected capabilities and gap analysis</returns>
+        public async Task<RequirementDerivationAnalysis> AnalyzeRequirementDerivationAsync(
+            Requirement requirement, 
+            CancellationToken cancellationToken = default)
+        {
+            if (requirement == null) throw new ArgumentNullException(nameof(requirement));
+
+            TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Starting derivation analysis for requirement {requirement.Item}");
+
+            var result = new RequirementDerivationAnalysis
+            {
+                AnalyzedRequirement = requirement,
+                AnalyzedAt = DateTime.UtcNow
+            };
+
+            try
+            {
+                // Check if derivation service is available
+                if (_derivationService == null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        $"[RequirementAnalysisService] System capability derivation service not available for requirement {requirement.Item}");
+                    result.DerivationIssues.Add("System capability derivation service not configured");
+                    result.Recommendations.Add("Configure ISystemCapabilityDerivationService to enable ATP analysis");
+                    return result;
+                }
+
+                // Use fallback ATP detection based on content patterns
+                result.HasATPContent = DetectATPContentFallback(requirement);
+                result.ATPDetectionConfidence = result.HasATPContent ? 0.7 : 0.3;
+
+                // If ATP content detected, derive capabilities
+                if (result.HasATPContent)
+                {
+                    var derivationOptions = new DerivationOptions
+                    {
+                        EnableQualityScoring = true,
+                        IncludeRejectionAnalysis = true
+                    };
+
+                    var derivationResult = await _derivationService.DeriveCapabilitiesAsync(
+                        requirement.Description ?? requirement.Name, derivationOptions);
+
+                    if (derivationResult != null && derivationResult.IsSuccessful)
+                    {
+                        result.DerivedCapabilities.AddRange(derivationResult.DerivedCapabilities);
+                        result.DerivationQuality = derivationResult.QualityScore;
+
+                        if (derivationResult.ProcessingWarnings?.Any() == true)
+                        {
+                            result.DerivationIssues.AddRange(derivationResult.ProcessingWarnings);
+                        }
+                    }
+                    else
+                    {
+                        result.DerivationIssues.Add("Failed to derive capabilities from ATP content");
+                        if (derivationResult?.ProcessingWarnings?.Any() == true)
+                        {
+                            result.DerivationIssues.Add($"Error: {string.Join(", ", derivationResult.ProcessingWarnings)}");
+                        }
+                    }
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    $"[RequirementAnalysisService] Derivation analysis completed for requirement {requirement.Item}. " +
+                    $"ATP detected: {result.HasATPContent}, Capabilities: {result.DerivedCapabilities.Count}, Quality: {result.DerivationQuality:F2}");
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, 
+                    $"[RequirementAnalysisService] Error during derivation analysis for requirement {requirement.Item}");
+                
+                result.DerivationIssues.Add($"Analysis failed: {ex.Message}");
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Performs comprehensive gap analysis between derived capabilities and existing requirements.
+        /// Uses the RequirementGapAnalyzer for multi-dimensional comparison.
+        /// </summary>
+        /// <param name="derivedCapabilities">List of capabilities derived from ATP analysis</param>
+        /// <param name="existingRequirements">Current requirements to compare against</param>
+        /// <param name="cancellationToken">Token to cancel the operation</param>
+        /// <returns>Gap analysis results with identified gaps, overlaps, and recommendations</returns>
+        public async Task<RequirementGapAnalysisResult> AnalyzeRequirementGapAsync(
+            IEnumerable<DerivedCapability> derivedCapabilities,
+            IEnumerable<Requirement> existingRequirements,
+            CancellationToken cancellationToken = default)
+        {
+            if (derivedCapabilities == null) throw new ArgumentNullException(nameof(derivedCapabilities));
+            if (existingRequirements == null) throw new ArgumentNullException(nameof(existingRequirements));
+
+            TestCaseEditorApp.Services.Logging.Log.Info(
+                $"[RequirementAnalysisService] Starting gap analysis for {derivedCapabilities.Count()} capabilities vs {existingRequirements.Count()} requirements");
+
+            // Check if gap analyzer is available
+            if (_gapAnalyzer == null)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn(
+                    "[RequirementAnalysisService] RequirementGapAnalyzer not available for gap analysis");
+                
+                return new RequirementGapAnalysisResult
+                {
+                    IsSuccessful = false,
+                    ErrorMessage = "RequirementGapAnalyzer service not configured",
+                    AnalyzedAt = DateTime.UtcNow
+                };
+            }
+
+            try
+            {
+                var gapAnalysisResult = await _gapAnalyzer.AnalyzeGapsAsync(
+                    derivedCapabilities.ToList(), 
+                    existingRequirements.ToList());
+
+                var result = new RequirementGapAnalysisResult
+                {
+                    IsSuccessful = true,
+                    GapAnalysisResult = gapAnalysisResult,
+                    AnalyzedAt = DateTime.UtcNow
+                };
+
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    $"[RequirementAnalysisService] Gap analysis completed. " +
+                    $"Gaps found: {gapAnalysisResult?.UncoveredCapabilities?.Count ?? 0}, " +
+                    $"Overlaps: {gapAnalysisResult?.RequirementOverlaps?.Count ?? 0}");
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex,
+                    "[RequirementAnalysisService] Error during gap analysis");
+
+                return new RequirementGapAnalysisResult
+                {
+                    IsSuccessful = false,
+                    ErrorMessage = ex.Message,
+                    AnalyzedAt = DateTime.UtcNow
+                };
+            }
+        }
+
+        /// <summary>
+        /// Validates testing workflows end-to-end using derived capabilities and gap analysis.
+        /// Provides comprehensive testing workflow validation for enhanced quality assurance.
+        /// </summary>
+        /// <param name="requirements">Requirements to validate testing workflows for</param>
+        /// <param name="testingContext">Optional context for testing validation</param>
+        /// <param name="cancellationToken">Token to cancel the operation</param>
+        /// <returns>Testing workflow validation result with recommendations</returns>
+        public async Task<TestingWorkflowValidationResult> ValidateTestingWorkflowAsync(
+            IEnumerable<Requirement> requirements,
+            TestingValidationContext? testingContext = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (requirements == null) throw new ArgumentNullException(nameof(requirements));
+
+            var requirementsList = requirements.ToList();
+            TestCaseEditorApp.Services.Logging.Log.Info(
+                $"[RequirementAnalysisService] Starting testing workflow validation for {requirementsList.Count} requirements");
+
+            var result = new TestingWorkflowValidationResult
+            {
+                ValidatedAt = DateTime.UtcNow
+            };
+
+            try
+            {
+                // Step 1: Analyze all requirements for derivation capabilities
+                var derivationResults = new List<RequirementDerivationAnalysis>();
+                var allDerivedCapabilities = new List<DerivedCapability>();
+
+                foreach (var requirement in requirementsList)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                        break;
+
+                    var derivationAnalysis = await AnalyzeRequirementDerivationAsync(requirement, cancellationToken);
+                    derivationResults.Add(derivationAnalysis);
+                    allDerivedCapabilities.AddRange(derivationAnalysis.DerivedCapabilities);
+                }
+
+                // Step 2: Perform gap analysis
+                var gapAnalysis = await AnalyzeRequirementGapAsync(allDerivedCapabilities, requirementsList, cancellationToken);
+
+                // Step 3: Calculate testing coverage
+                result.CoverageAnalysis = AnalyzeTestingCoverage(requirementsList, allDerivedCapabilities);
+
+                // Step 4: Identify validation issues
+                result.Issues.AddRange(AnalyzeValidationIssues(derivationResults, gapAnalysis));
+
+                // Step 5: Generate recommendations
+                result.Recommendations.AddRange(GenerateTestingWorkflowRecommendations(derivationResults, gapAnalysis));
+
+                // Step 6: Calculate overall validation score
+                result.OverallScore = CalculateOverallValidationScore(result);
+                result.IsValid = result.OverallScore >= 0.7; // 70% threshold for valid workflow
+
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    $"[RequirementAnalysisService] Testing workflow validation completed. " +
+                    $"Score: {result.OverallScore:F2}, Valid: {result.IsValid}, " +
+                    $"Issues: {result.Issues.Count}, Coverage: {result.CoverageAnalysis?.CoveragePercentage:F2}");
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex,
+                    "[RequirementAnalysisService] Error during testing workflow validation");
+
+                result.Issues.Add(new TestCaseEditorApp.MVVM.Domains.Requirements.Services.ValidationIssue
+                {
+                    Severity = TestCaseEditorApp.MVVM.Domains.Requirements.Services.ValidationSeverity.Critical,
+                    Description = $"Validation failed: {ex.Message}",
+                    Category = "System Error"
+                });
+
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Performs batch analysis of multiple requirements for derivation capabilities.
+        /// Optimized for processing large sets of requirements efficiently.
+        /// </summary>
+        /// <param name="requirements">Collection of requirements to analyze</param>
+        /// <param name="batchOptions">Options for batch processing</param>
+        /// <param name="onProgress">Callback for progress updates</param>
+        /// <param name="cancellationToken">Token to cancel the operation</param>
+        /// <returns>Collection of derivation analysis results</returns>
+        public async Task<IEnumerable<RequirementDerivationAnalysis>> AnalyzeBatchDerivationAsync(
+            IEnumerable<Requirement> requirements,
+            BatchAnalysisOptions? batchOptions = null,
+            Action<BatchAnalysisProgress>? onProgress = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (requirements == null) throw new ArgumentNullException(nameof(requirements));
+
+            var requirementsList = requirements.ToList();
+            var options = batchOptions ?? new BatchAnalysisOptions();
+            var results = new List<RequirementDerivationAnalysis>();
+
+            var progress = new BatchAnalysisProgress
+            {
+                TotalCount = requirementsList.Count
+            };
+
+            TestCaseEditorApp.Services.Logging.Log.Info(
+                $"[RequirementAnalysisService] Starting batch derivation analysis for {requirementsList.Count} requirements");
+
+            var semaphore = new SemaphoreSlim(options.MaxConcurrency, options.MaxConcurrency);
+            var tasks = requirementsList.Select(async requirement =>
+            {
+                await semaphore.WaitAsync(cancellationToken);
+                try
+                {
+                    progress.CurrentRequirement = requirement.Item;
+                    onProgress?.Invoke(progress);
+
+                    using var timeoutCts = new CancellationTokenSource(options.AnalysisTimeout);
+                    using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(
+                        cancellationToken, timeoutCts.Token);
+
+                    var analysisResult = await AnalyzeRequirementDerivationAsync(requirement, combinedCts.Token);
+                    
+                    lock (progress)
+                    {
+                        progress.CompletedCount++;
+                        results.Add(analysisResult);
+                    }
+
+                    onProgress?.Invoke(progress);
+                    return analysisResult;
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error(ex,
+                        $"[RequirementAnalysisService] Batch analysis failed for requirement {requirement.Item}");
+
+                    var failedResult = new RequirementDerivationAnalysis
+                    {
+                        AnalyzedRequirement = requirement,
+                        DerivationIssues = { $"Batch analysis failed: {ex.Message}" },
+                        AnalyzedAt = DateTime.UtcNow
+                    };
+
+                    lock (progress)
+                    {
+                        progress.FailedCount++;
+                        progress.CompletedCount++;
+                        if (options.ContinueOnFailure)
+                        {
+                            results.Add(failedResult);
+                        }
+                    }
+
+                    onProgress?.Invoke(progress);
+
+                    if (!options.ContinueOnFailure)
+                        throw;
+
+                    return failedResult;
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+
+            await Task.WhenAll(tasks);
+
+            TestCaseEditorApp.Services.Logging.Log.Info(
+                $"[RequirementAnalysisService] Batch derivation analysis completed. " +
+                $"Processed: {progress.CompletedCount}, Failed: {progress.FailedCount}");
+
+            return results.OrderBy(r => r.AnalyzedRequirement.Item).ToList();
+        }
+
+        #region Private Helper Methods for Task 4.4
+
+        /// <summary>
+        /// Fallback ATP detection using simple content pattern matching.
+        /// </summary>
+        private static bool DetectATPContentFallback(Requirement requirement)
+        {
+            var content = $"{requirement.Name} {requirement.Description}".ToLowerInvariant();
+            
+            // Simple pattern matching for ATP indicators
+            var atpIndicators = new[]
+            {
+                "test procedure", "automated test", "test step", "verify", "validate",
+                "connect", "apply", "measure", "check", "ensure", "configure"
+            };
+
+            return atpIndicators.Any(indicator => content.Contains(indicator));
+        }
+
+        /// <summary>
+        /// Analyzes testing coverage based on requirements and derived capabilities.
+        /// </summary>
+        private static TestingCoverageAnalysis AnalyzeTestingCoverage(
+            IList<Requirement> requirements, 
+            IList<DerivedCapability> derivedCapabilities)
+        {
+            var analysis = new TestingCoverageAnalysis();
+
+            if (requirements.Count == 0)
+            {
+                analysis.CoveragePercentage = 1.0; // No requirements means 100% coverage
+                return analysis;
+            }
+
+            var coveredRequirements = new HashSet<string>();
+            
+            // Check which requirements have corresponding derived capabilities
+            foreach (var capability in derivedCapabilities)
+            {
+                if (!string.IsNullOrEmpty(capability.Id))
+                {
+                    coveredRequirements.Add(capability.Id);
+                }
+            }
+
+            analysis.CoveragePercentage = (double)coveredRequirements.Count / requirements.Count;
+
+            // Identify uncovered requirements
+            foreach (var requirement in requirements)
+            {
+                if (!coveredRequirements.Contains(requirement.Item ?? string.Empty))
+                {
+                    analysis.UncoveredRequirements.Add(requirement.Item ?? "Unknown");
+                }
+            }
+
+            // Identify testing gaps
+            if (analysis.CoveragePercentage < 0.8)
+            {
+                analysis.TestingGaps.Add("Low requirement coverage - less than 80% of requirements have derived test capabilities");
+            }
+
+            if (derivedCapabilities.Count == 0)
+            {
+                analysis.TestingGaps.Add("No testing capabilities derived - requirements may lack testable content");
+            }
+
+            return analysis;
+        }
+
+        /// <summary>
+        /// Analyzes validation issues from derivation and gap analysis results.
+        /// </summary>
+        private static List<TestCaseEditorApp.MVVM.Domains.Requirements.Services.ValidationIssue> AnalyzeValidationIssues(
+            IList<RequirementDerivationAnalysis> derivationResults,
+            RequirementGapAnalysisResult gapAnalysis)
+        {
+            var issues = new List<TestCaseEditorApp.MVVM.Domains.Requirements.Services.ValidationIssue>();
+
+            // Check derivation quality issues
+            foreach (var derivation in derivationResults)
+            {
+                if (derivation.DerivationQuality < 0.5)
+                {
+                    issues.Add(new TestCaseEditorApp.MVVM.Domains.Requirements.Services.ValidationIssue
+                    {
+                        Severity = TestCaseEditorApp.MVVM.Domains.Requirements.Services.ValidationSeverity.Warning,
+                        Description = $"Low derivation quality ({derivation.DerivationQuality:F2}) for requirement {derivation.AnalyzedRequirement.Item}",
+                        RequirementId = derivation.AnalyzedRequirement.Item,
+                        Category = "Quality"
+                    });
+                }
+
+                foreach (var issue in derivation.DerivationIssues)
+                {
+                    issues.Add(new TestCaseEditorApp.MVVM.Domains.Requirements.Services.ValidationIssue
+                    {
+                        Severity = TestCaseEditorApp.MVVM.Domains.Requirements.Services.ValidationSeverity.Error,
+                        Description = issue,
+                        RequirementId = derivation.AnalyzedRequirement.Item,
+                        Category = "Derivation"
+                    });
+                }
+            }
+
+            // Check gap analysis issues
+            if (gapAnalysis.IsSuccessful && gapAnalysis.GapAnalysisResult != null)
+            {
+                var gaps = gapAnalysis.GapAnalysisResult.UncoveredCapabilities?.Where(g => g.Severity >= GapSeverity.High) ?? Enumerable.Empty<UncoveredCapability>();
+                foreach (var gap in gaps)
+                {
+                    issues.Add(new TestCaseEditorApp.MVVM.Domains.Requirements.Services.ValidationIssue
+                    {
+                        Severity = gap.Severity == GapSeverity.High ? TestCaseEditorApp.MVVM.Domains.Requirements.Services.ValidationSeverity.Critical : TestCaseEditorApp.MVVM.Domains.Requirements.Services.ValidationSeverity.Error,
+                        Description = gap.Recommendation,
+                        Category = "Gap Analysis"
+                    });
+                }
+            }
+
+            return issues;
+        }
+
+        /// <summary>
+        /// Generates testing workflow recommendations based on analysis results.
+        /// </summary>
+        private static List<string> GenerateTestingWorkflowRecommendations(
+            IList<RequirementDerivationAnalysis> derivationResults,
+            RequirementGapAnalysisResult gapAnalysis)
+        {
+            var recommendations = new List<string>();
+
+            // Collect recommendations from derivation analysis
+            foreach (var derivation in derivationResults)
+            {
+                recommendations.AddRange(derivation.Recommendations);
+            }
+
+            // Add gap analysis recommendations
+            if (gapAnalysis.IsSuccessful && gapAnalysis.GapAnalysisResult?.UncoveredCapabilities?.Any() == true)
+            {
+                recommendations.AddRange(gapAnalysis.GapAnalysisResult.UncoveredCapabilities.Select(r => r.Recommendation));
+            }
+
+            // Add general workflow recommendations
+            var lowQualityCount = derivationResults.Count(d => d.DerivationQuality < 0.7);
+            if (lowQualityCount > 0)
+            {
+                recommendations.Add($"Consider improving {lowQualityCount} requirements with low derivation quality for better testing coverage");
+            }
+
+            var noAtpCount = derivationResults.Count(d => !d.HasATPContent);
+            if (noAtpCount > derivationResults.Count * 0.5)
+            {
+                recommendations.Add("Consider adding more testable content (ATP procedures) to requirements for better test automation");
+            }
+
+            return recommendations.Distinct().ToList();
+        }
+
+        /// <summary>
+        /// Calculates overall validation score based on all analysis results.
+        /// </summary>
+        private static double CalculateOverallValidationScore(TestingWorkflowValidationResult result)
+        {
+            double score = 1.0;
+
+            // Reduce score based on coverage
+            var coverageScore = result.CoverageAnalysis?.CoveragePercentage ?? 0.0;
+            score *= (0.4 + 0.6 * coverageScore); // Coverage contributes 60% of score
+
+            // Reduce score based on critical issues
+            var criticalIssues = result.Issues.Count(i => i.Severity == TestCaseEditorApp.MVVM.Domains.Requirements.Services.ValidationSeverity.Critical);
+            var errorIssues = result.Issues.Count(i => i.Severity == TestCaseEditorApp.MVVM.Domains.Requirements.Services.ValidationSeverity.Error);
+            
+            score *= Math.Max(0.0, 1.0 - (criticalIssues * 0.2 + errorIssues * 0.1));
+
+            return Math.Max(0.0, Math.Min(1.0, score));
+        }
+
+        #endregion
 
         /// <summary>
         /// User choice when analysis timeout occurs

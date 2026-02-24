@@ -1,4 +1,5 @@
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Services;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
 {
@@ -148,7 +149,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             if (s is null) return "";
             if (max <= 0) return "";
             if (s.Length <= max) return s;
-            return s.Substring(0, Math.Max(0, max - 1)) + "…";
+            return s.Substring(0, Math.Max(0, max - 1)) + "ï¿½";
         }
 
         /// <summary>

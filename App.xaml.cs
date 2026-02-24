@@ -172,7 +172,8 @@ namespace TestCaseEditorApp
                         provider.GetRequiredService<TestCaseEditorApp.Prompts.CapabilityDerivationPromptBuilder>());
                     
                     // RequirementAnalysisService with proper dependency injection
-                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService, TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService>(provider =>
+                    // Task 4.4: Enhanced with derivation analysis capabilities
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService, TestCaseEditorApp.MVVM.Domains.Requirements.Services.RequirementAnalysisService>(provider =>
                     {
                         var primaryLlmService = LlmFactory.Create();
                         var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
@@ -180,13 +181,19 @@ namespace TestCaseEditorApp
                         var parserManager = provider.GetRequiredService<ResponseParserManager>();
                         var cache = provider.GetService<RequirementAnalysisCache>(); // Optional
                         
-                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService(
+                        // Task 4.4: Optional derivation analysis services
+                        var derivationService = provider.GetService<ISystemCapabilityDerivationService>();
+                        var gapAnalyzer = provider.GetService<IRequirementGapAnalyzer>();
+                        
+                        return new TestCaseEditorApp.MVVM.Domains.Requirements.Services.RequirementAnalysisService(
                             primaryLlmService, 
                             promptBuilder, 
                             parserManager,
                             healthMonitor: null, // No health monitor for performance
                             cache: cache,
-                            anythingLLMService: anythingLLMService);
+                            anythingLLMService: anythingLLMService,
+                            derivationService: derivationService,
+                            gapAnalyzer: gapAnalyzer);
                     });
 
                     // ===== SYSTEM CAPABILITY DERIVATION SERVICES =====
@@ -205,6 +212,9 @@ namespace TestCaseEditorApp
                     
                     // SystemCapabilityDerivationService - ATP-to-requirements derivation with A-N taxonomy
                     services.AddSingleton<ISystemCapabilityDerivationService, SystemCapabilityDerivationService>();
+                    
+                    // RequirementGapAnalyzer - Compare derived capabilities with existing requirements
+                    services.AddSingleton<IRequirementGapAnalyzer, RequirementGapAnalyzer>();
 
                     // ===== TRAINING DATA VALIDATION DOMAIN SERVICES =====
                     
