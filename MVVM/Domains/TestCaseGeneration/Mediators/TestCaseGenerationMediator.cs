@@ -186,13 +186,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService analysisService,
             ITextGenerationService llmService,
             IRequirementDataScrubber scrubber,
+            SmartRequirementImporter smartImporter,
             PerformanceMonitoringService? performanceMonitor = null,
             EventReplayService? eventReplay = null)
             : base(logger, uiCoordinator, "Test Case Generator", performanceMonitor, eventReplay)
         {
             _requirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
-            _smartImporter = new SmartRequirementImporter(requirementService, 
-                Microsoft.Extensions.Logging.Abstractions.NullLogger<SmartRequirementImporter>.Instance);
+            _smartImporter = smartImporter ?? throw new ArgumentNullException(nameof(smartImporter));
             _analysisService = analysisService ?? throw new ArgumentNullException(nameof(analysisService));
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
             _scrubber = scrubber ?? throw new ArgumentNullException(nameof(scrubber));

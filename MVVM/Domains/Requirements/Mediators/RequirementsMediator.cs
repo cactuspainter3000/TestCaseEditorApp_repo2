@@ -149,6 +149,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             INewProjectMediator newProjectMediator,
             IJamaConnectService jamaConnectService,
             IJamaDocumentParserService jamaDocumentParserService,
+            SmartRequirementImporter smartImporter,
             IRequirementAnalysisEngine? analysisEngine = null, // NEW: Optional for transition period
             PerformanceMonitoringService? performanceMonitor = null,
             EventReplayService? eventReplay = null)
@@ -161,9 +162,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             _newProjectMediator = newProjectMediator ?? throw new ArgumentNullException(nameof(newProjectMediator));
             _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
             _jamaDocumentParserService = jamaDocumentParserService ?? throw new ArgumentNullException(nameof(jamaDocumentParserService));
+            _smartImporter = smartImporter ?? throw new ArgumentNullException(nameof(smartImporter));
             _analysisEngine = analysisEngine; // Optional during transition
-            _smartImporter = new SmartRequirementImporter(requirementService, 
-                Microsoft.Extensions.Logging.Abstractions.NullLogger<SmartRequirementImporter>.Instance);
             
             _requirements = new ObservableCollection<Requirement>();
 

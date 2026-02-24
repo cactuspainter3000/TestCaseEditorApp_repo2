@@ -1,27 +1,57 @@
 using System;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Services;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.Mediators;
+using TestCaseEditorApp.MVVM.Utils;
+using TestCaseEditorApp.Services;
 using ValidationResult = TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Services.ValidationResult;
 
 namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Mediators
 {
     /// <summary>
+    /// Events for Training Data Validation domain
+    /// </summary>
+    public class TrainingDataValidationEvents
+    {
+        public class ValidationWorkflowStarted
+        {
+            public string SessionId { get; set; } = string.Empty;
+            public int TotalExamples { get; set; }
+        }
+
+        public class ExampleValidated
+        {
+            public ValidationResult Result { get; set; }
+            public int RemainingExamples { get; set; }
+        }
+
+        public class ValidationSessionCompleted
+        {
+            public string SessionId { get; set; } = string.Empty;
+            public int ValidatedCount { get; set; }
+            public int ApprovedCount { get; set; }
+        }
+    }
+
+    /// <summary>
     /// Mediator for Training Data Validation domain.
     /// Handles cross-domain communication and workflow coordination.
     /// </summary>
-    public class TrainingDataValidationMediator
+    public class TrainingDataValidationMediator : BaseDomainMediator<TrainingDataValidationEvents>, ITrainingDataValidationMediator
     {
-        private readonly ILogger<TrainingDataValidationMediator> _logger;
         private readonly ITrainingDataValidationService _validationService;
         
-        public TrainingDataValidationMediator()
+        public TrainingDataValidationMediator(
+            ITrainingDataValidationService validationService,
+            ILogger<TrainingDataValidationMediator> logger,
+            IDomainUICoordinator uiCoordinator,
+            PerformanceMonitoringService? performanceMonitor = null,
+            EventReplayService? eventReplay = null) : base(logger, uiCoordinator, "TrainingDataValidation", performanceMonitor, eventReplay)
         {
-            _logger = App.ServiceProvider?.GetService<ILogger<TrainingDataValidationMediator>>();
-            _validationService = App.ServiceProvider?.GetService<ITrainingDataValidationService>();
+            _validationService = validationService ?? throw new ArgumentNullException(nameof(validationService));
         }
 
         #region Events
@@ -347,6 +377,98 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Mediators
                     Timestamp = DateTime.UtcNow
                 });
             }
+        }
+
+        #endregion
+
+        #region ITrainingDataValidationMediator Implementation
+
+        /// <inheritdoc/>
+        public async Task StartValidationSessionAsync(SyntheticTrainingDataset dataset)
+        {
+            var request = new ValidationWorkflowRequest
+            {
+                ExamplesToValidate = dataset.Examples.ToList()
+            };
+            
+            await StartValidationWorkflowAsync(request);
+            PublishEvent(new TrainingDataValidationEvents.ValidationWorkflowStarted
+            {
+                SessionId = Guid.NewGuid().ToString(),
+                TotalExamples = dataset.Examples.Count
+            });
+        }
+
+        /// <inheritdoc/>
+        public async Task RecordValidationAsync(ValidationResult validationResult)
+        {
+            await Task.Run(() =>
+            {
+                PublishEvent(new TrainingDataValidationEvents.ExampleValidated
+                {
+                    Result = validationResult,
+                    RemainingExamples = 0 // TODO: Calculate from current workflow state
+                });
+            });
+        }
+
+        /// <inheritdoc/>
+        public async Task CompleteValidationSessionAsync(string sessionId)
+        {
+            await Task.Run(() =>
+            {
+                PublishEvent(new TrainingDataValidationEvents.ValidationSessionCompleted
+                {
+                    SessionId = sessionId,
+                    ValidatedCount = 0, // TODO: Calculate from session data
+                    ApprovedCount = 0
+                });
+            });
+        }
+
+        /// <inheritdoc/>
+        public ValidationProgress GetCurrentProgress()
+        {
+            return new ValidationProgress
+            {
+                TotalExamples = 0, // TODO: Calculate from actual workflow state
+                ValidatedExamples = 0,
+                ApprovedExamples = 0,
+                RejectedExamples = 0
+            };
+        }
+
+        #endregion
+
+        #region Abstract Method Implementations
+
+        public override void NavigateToInitialStep()
+        {
+            // Navigate to the validation setup/initialization step
+            _currentStep = "ValidationSetup";
+            _logger.LogInformation("Navigating to initial validation setup step");
+        }
+
+        public override void NavigateToFinalStep()
+        {
+            // Navigate to the validation completion/summary step
+            _currentStep = "ValidationComplete";
+            _logger.LogInformation("Navigating to validation completion step");
+        }
+
+        public override bool CanNavigateBack()
+        {
+            // Allow navigation back if we're not at the initial step and not currently processing
+            return !string.IsNullOrEmpty(_currentStep) && 
+                   _currentStep != "ValidationSetup" &&
+                   _navigationHistory.Count > 0;
+        }
+
+        public override bool CanNavigateForward()
+        {
+            // Allow navigation forward based on validation state and current step
+            return !string.IsNullOrEmpty(_currentStep) && 
+                   _currentStep != "ValidationComplete";
         }
 
         #endregion

@@ -1,15 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Linq;
-using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Services;
 using TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Mediators;
 using TestCaseEditorApp.Services;
@@ -21,26 +20,28 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.ViewModels
     /// Main ViewModel for Training Data Validation domain.
     /// Manages human validation workflow for synthetic training examples.
     /// </summary>
-    public class TrainingDataValidationViewModel : INotifyPropertyChanged
+    public class TrainingDataValidationViewModel : BaseDomainViewModel
     {
-        private readonly ILogger<TrainingDataValidationViewModel> _logger;
         private readonly ITrainingDataValidationService _validationService;
         private readonly ISyntheticTrainingDataGenerator _syntheticDataGenerator;
-        private readonly TrainingDataValidationMediator _mediator;
+        private new readonly ITrainingDataValidationMediator _mediator;
 
         private ValidationWorkflowState _currentState;
         private SyntheticTrainingExample? _currentExample;
         private int _currentExampleIndex;
         private bool _isLoading;
-        private string _statusMessage;
+        private new string _statusMessage;
         private double _progressPercentage;
 
-        public TrainingDataValidationViewModel()
+        public TrainingDataValidationViewModel(
+            ITrainingDataValidationService validationService,
+            ISyntheticTrainingDataGenerator syntheticDataGenerator,
+            ITrainingDataValidationMediator mediator,
+            ILogger<TrainingDataValidationViewModel> logger) : base(mediator, logger)
         {
-            _logger = App.ServiceProvider?.GetService<ILogger<TrainingDataValidationViewModel>>();
-            _validationService = App.ServiceProvider?.GetService<ITrainingDataValidationService>();
-            _syntheticDataGenerator = App.ServiceProvider?.GetService<ISyntheticTrainingDataGenerator>();
-            _mediator = App.ServiceProvider?.GetService<TrainingDataValidationMediator>();
+            _validationService = validationService ?? throw new ArgumentNullException(nameof(validationService));
+            _syntheticDataGenerator = syntheticDataGenerator ?? throw new ArgumentNullException(nameof(syntheticDataGenerator));
+            _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
 
             // Initialize collections
             PendingExamples = new ObservableCollection<SyntheticTrainingExample>();
@@ -95,7 +96,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.ViewModels
         /// <summary>
         /// Current status message for user feedback
         /// </summary>
-        public string StatusMessage
+        public new string StatusMessage
         {
             get => _statusMessage;
             set => SetProperty(ref _statusMessage, value);
@@ -450,7 +451,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.ViewModels
 
         #region Helper Methods
 
-        private void InitializeCommands()
+        protected override void InitializeCommands()
         {
             GenerateExamplesCommand = new AsyncRelayCommand(GenerateExamplesAsync);
             StartValidationCommand = new RelayCommand(async () => await StartValidationAsync(), () => CanStartValidation);
@@ -510,23 +511,94 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.ViewModels
 
         #endregion
 
-        #region INotifyPropertyChanged
+        #region Abstract Method Implementations
 
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        protected override async Task SaveAsync()
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            try
+            {
+                IsLoading = true;
+                StatusMessage = "Saving validation session...";
+                
+                // Save current validation session
+                // Implementation would save to file or database
+                await Task.Run(() =>
+                {
+                    // TODO: Implement actual save logic
+                    Thread.Sleep(1000); // Simulate save operation
+                });
+                
+                StatusMessage = "Validation session saved successfully";
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error saving validation session: {ex.Message}";
+            }
+            finally
+            {
+                IsLoading = false;
+            }
         }
 
-        protected virtual bool SetProperty<T>(ref T backingStore, T value, [CallerMemberName] string propertyName = "")
+        protected override void Cancel()
         {
-            if (EqualityComparer<T>.Default.Equals(backingStore, value))
-                return false;
+            try
+            {
+                // Cancel ongoing operations
+                IsLoading = false;
+                StatusMessage = "Operation cancelled";
+                
+                // Reset to initial state if needed
+                OnPropertyChanged(nameof(CanStartValidation));
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error cancelling operation: {ex.Message}";
+            }
+        }
 
-            backingStore = value;
-            OnPropertyChanged(propertyName);
-            return true;
+        protected override async Task RefreshAsync()
+        {
+            try
+            {
+                IsLoading = true;
+                StatusMessage = "Refreshing validation data...";
+                
+                // Refresh validation session data
+                await Task.Run(() =>
+                {
+                    // TODO: Implement actual refresh logic
+                    Thread.Sleep(500); // Simulate refresh operation
+                });
+                
+                // Update UI state
+                OnPropertyChanged(nameof(CanStartValidation));
+                UpdateProgress();
+                StatusMessage = "Validation data refreshed";
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error refreshing validation data: {ex.Message}";
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+
+        protected override bool CanSave()
+        {
+            return !IsLoading && ValidatedExamples.Any();
+        }
+
+        protected override bool CanCancel()
+        {
+            return IsLoading;
+        }
+
+        protected override bool CanRefresh()
+        {
+            return !IsLoading;
         }
 
         #endregion

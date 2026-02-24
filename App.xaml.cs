@@ -212,7 +212,7 @@ namespace TestCaseEditorApp
                     services.AddSingleton<ITrainingDataValidationService, TrainingDataValidationService>();
                     
                     // TrainingDataValidationMediator - Cross-domain communication for validation workflows
-                    services.AddSingleton<TrainingDataValidationMediator>();
+                    services.AddSingleton<ITrainingDataValidationMediator, TrainingDataValidationMediator>();
                     
                     // TrainingDataValidationViewModel - Main ViewModel for validation UI
                     services.AddTransient<TrainingDataValidationViewModel>();
@@ -407,7 +407,7 @@ namespace TestCaseEditorApp
                         var eventReplay = provider.GetService<EventReplayService>();
                         
                         return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.TestCaseGenerationMediator(logger, uiCoordinator, requirementService, 
-                            analysisService, llmService, scrubber, performanceMonitor, eventReplay);
+                            analysisService, llmService, scrubber, provider.GetRequiredService<SmartRequirementImporter>(), performanceMonitor, eventReplay);
                     });
 
                     services.AddSingleton<ITestFlowMediator>(provider =>
@@ -448,7 +448,7 @@ namespace TestCaseEditorApp
                         
                         return new TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator(
                             logger, uiCoordinator, requirementService, analysisService, scrubber, 
-                            workspaceContext, newProjectMediator, jamaConnectService, jamaDocumentParserService, analysisEngine, performanceMonitor, eventReplay);
+                            workspaceContext, newProjectMediator, jamaConnectService, jamaDocumentParserService, provider.GetRequiredService<SmartRequirementImporter>(), analysisEngine, performanceMonitor, eventReplay);
                     });
                     
                     // Requirements domain ViewModels - Navigation as Singleton to maintain state
