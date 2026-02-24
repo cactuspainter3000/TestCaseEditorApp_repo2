@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Services;
 using Microsoft.Extensions.Logging;
 
 namespace TestCaseEditorApp.Tests.Phase4Services
@@ -12,17 +13,25 @@ namespace TestCaseEditorApp.Tests.Phase4Services
     [TestClass]
     public class QualityScoringIntegrationServiceTests
     {
-        private Mock<DerivationQualityScorer> _mockQualityScorer;
         private Mock<ILogger<QualityScoringIntegrationService>> _mockLogger;
+        private Mock<IDerivationQualityScorer> _mockQualityScorer;
+        private Mock<ITrainingDataValidationService> _mockValidationService;
+        private Mock<ISystemCapabilityDerivationService> _mockDerivationService;
         private QualityScoringIntegrationService _service;
 
         [TestInitialize]
         public void Setup()
         {
-            _mockQualityScorer = new Mock<DerivationQualityScorer>();
             _mockLogger = new Mock<ILogger<QualityScoringIntegrationService>>();
+            _mockQualityScorer = new Mock<IDerivationQualityScorer>();
+            _mockValidationService = new Mock<ITrainingDataValidationService>();
+            _mockDerivationService = new Mock<ISystemCapabilityDerivationService>();
 
-            _service = new QualityScoringIntegrationService(_mockQualityScorer.Object, _mockLogger.Object);
+            _service = new QualityScoringIntegrationService(
+                _mockLogger.Object, 
+                _mockQualityScorer.Object, 
+                _mockValidationService.Object, 
+                _mockDerivationService.Object);
         }
 
         [TestMethod]
@@ -33,17 +42,17 @@ namespace TestCaseEditorApp.Tests.Phase4Services
             {
                 new DerivedCapability 
                 { 
-                    Name = "Test Capability 1", 
-                    Description = "Comprehensive test description",
-                    Category = "Hardware Test",
-                    Confidence = 0.95
+                    RequirementText = "Test Capability 1", 
+                    DerivationRationale = "Comprehensive test description",
+                    TaxonomyCategory = "Hardware Test",
+                    ConfidenceScore = 0.95
                 },
                 new DerivedCapability 
                 { 
-                    Name = "Test Capability 2", 
-                    Description = "Another detailed description",
-                    Category = "Software Test", 
-                    Confidence = 0.87
+                    RequirementText = "Test Capability 2", 
+                    DerivationRationale = "Another detailed description",
+                    TaxonomyCategory = "Software Test", 
+                    ConfidenceScore = 0.87
                 }
             };
 
@@ -100,11 +109,11 @@ namespace TestCaseEditorApp.Tests.Phase4Services
             // Arrange
             var capability = new DerivedCapability
             {
-                Name = "JTAG Boundary Scan",
-                Description = "Verifies JTAG boundary scan chain connectivity and integrity",
-                Category = "Hardware Test",
-                Confidence = 0.93,
-                RequirementSource = "REQ-001"
+                RequirementText = "JTAG Boundary Scan",
+                DerivationRationale = "Verifies JTAG boundary scan chain connectivity and integrity",
+                TaxonomyCategory = "Hardware Test",
+                ConfidenceScore = 0.93,
+                SourceATPStep = "REQ-001"
             };
 
             var expectedScore = new CapabilityQualityScore
@@ -145,11 +154,9 @@ namespace TestCaseEditorApp.Tests.Phase4Services
             // Arrange
             var derivationResult = new DerivationResult
             {
-                IsSuccessful = true,
-                ProcessingTimeMs = 1500,
                 DerivedCapabilities = new List<DerivedCapability>
                 {
-                    new DerivedCapability { Name = "Test Capability", Confidence = 0.9 }
+                    new DerivedCapability { RequirementText = "Test Capability", ConfidenceScore = 0.9 }
                 },
                 QualityScore = 0.85
             };
@@ -172,8 +179,6 @@ namespace TestCaseEditorApp.Tests.Phase4Services
             // Arrange
             var failedResult = new DerivationResult
             {
-                IsSuccessful = false,
-                ProcessingTimeMs = 500,
                 DerivedCapabilities = new List<DerivedCapability>(),
                 ProcessingWarnings = new List<string> { "LLM service unavailable" },
                 QualityScore = 0.0
@@ -229,9 +234,9 @@ namespace TestCaseEditorApp.Tests.Phase4Services
             // Arrange
             var capabilities = new List<DerivedCapability>
             {
-                new DerivedCapability { Name = "Cap 1", Confidence = 0.9, Category = "Hardware Test" },
-                new DerivedCapability { Name = "Cap 2", Confidence = 0.7, Category = "Software Test" },
-                new DerivedCapability { Name = "Cap 3", Confidence = 0.85, Category = "Hardware Test" }
+                new DerivedCapability { RequirementText = "Cap 1", ConfidenceScore = 0.9, TaxonomyCategory = "Hardware Test" },
+                new DerivedCapability { RequirementText = "Cap 2", ConfidenceScore = 0.7, TaxonomyCategory = "Software Test" },
+                new DerivedCapability { RequirementText = "Cap 3", ConfidenceScore = 0.85, TaxonomyCategory = "Hardware Test" }
             };
 
             var qualityMetrics = new QualityMetrics
@@ -279,15 +284,17 @@ namespace TestCaseEditorApp.Tests.Phase4Services
             {
                 new DerivedCapability 
                 { 
-                    Name = "Uncertain Capability", 
-                    Description = "Vague description",
-                    Confidence = 0.3
+                    RequirementText = "Uncertain Capability", 
+                    DerivationRationale = "Vague description",
+                    ConfidenceScore = 0.3,
+                    TaxonomyCategory = "General Test"
                 },
                 new DerivedCapability 
                 { 
-                    Name = "Another Low Confidence", 
-                    Description = "Another vague description",
-                    Confidence = 0.4
+                    RequirementText = "Another Low Confidence", 
+                    DerivationRationale = "Another vague description",
+                    ConfidenceScore = 0.4,
+                    TaxonomyCategory = "General Test"
                 }
             };
 
@@ -318,11 +325,9 @@ namespace TestCaseEditorApp.Tests.Phase4Services
             // Arrange
             var slowDerivationResult = new DerivationResult
             {
-                IsSuccessful = true,
-                ProcessingTimeMs = 15000, // 15 seconds - slow processing
                 DerivedCapabilities = new List<DerivedCapability>
                 {
-                    new DerivedCapability { Name = "Slow Capability", Confidence = 0.8 }
+                    new DerivedCapability { RequirementText = "Slow Capability", ConfidenceScore = 0.8 }
                 },
                 QualityScore = 0.8
             };
@@ -332,8 +337,6 @@ namespace TestCaseEditorApp.Tests.Phase4Services
 
             // Assert
             Assert.IsNotNull(result);
-            Assert.AreEqual(15000, result.ProcessingTimeMs);
-            Assert.IsTrue(result.ProcessingTimeMs > 10000); // Identifies long processing time
             Assert.AreEqual(1, result.CapabilitiesGenerated);
         }
     }
