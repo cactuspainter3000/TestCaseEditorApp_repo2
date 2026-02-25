@@ -111,9 +111,9 @@ namespace TestCaseEditorApp.Tests.Phase4Services
                 new DerivedCapability 
                 { 
                     Id = "cap-1",
-                    Name = "JTAG Boundary Scan", 
-                    Category = "Hardware Test",
-                    RequirementSource = "REQ-001"
+                    RequirementText = "JTAG Boundary Scan", 
+                    TaxonomyCategory = "Hardware Test",
+                    SourceATPStep = "REQ-001"
                 }
             };
 

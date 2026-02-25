@@ -69,17 +69,18 @@ namespace TestCaseEditorApp.Tests.Phase4Services
             };
 
             _mockPromptBuilder.Setup(x => x.BuildDerivationPrompt(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<SystemRequirementTaxonomy>(), It.IsAny<DerivationOptions>()))
+                It.IsAny<string>(), It.IsAny<ParsedATPStep>(), It.IsAny<string>(), It.IsAny<DerivationOptions>()))
                 .Returns(expectedPrompt);
 
-            _mockLlmService.Setup(x => x.GenerateTextAsync(expectedPrompt, It.IsAny<CancellationToken>()))
+            _mockLlmService.Setup(x => x.GenerateAsync(expectedPrompt, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(llmResponse);
 
-            _mockResponseParser.Setup(x => x.ParseLlmResponse<List<DerivedCapability>>(llmResponse))
-                .Returns(parsedCapabilities);
+            _mockResponseParser.Setup(x => x.ParseResponse(llmResponse, It.IsAny<string>()))
+                .Returns(new RequirementAnalysis { ImprovedRequirement = "processed capability" });
 
-            _mockTaxonomyValidator.Setup(x => x.ValidateCapabilities(parsedCapabilities))
-                .Returns(parsedCapabilities);
+            _mockTaxonomyValidator.Setup(x => x.ValidateDerivationResult(
+                It.IsAny<List<DerivedCapability>>(), It.IsAny<string>(), It.IsAny<TaxonomyValidationOptions>()))
+                .Returns(new TaxonomyValidationResult { IsValid = true });
 
             // Act
             var result = await _service.DeriveCapabilitiesAsync(requirementText, options);
@@ -123,10 +124,10 @@ namespace TestCaseEditorApp.Tests.Phase4Services
             var options = new DerivationOptions();
 
             _mockPromptBuilder.Setup(x => x.BuildDerivationPrompt(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<SystemRequirementTaxonomy>(), It.IsAny<DerivationOptions>()))
+                It.IsAny<string>(), It.IsAny<ParsedATPStep>(), It.IsAny<string>(), It.IsAny<DerivationOptions>()))
                 .Returns("test prompt");
 
-            _mockLlmService.Setup(x => x.GenerateTextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            _mockLlmService.Setup(x => x.GenerateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Exception("LLM service error"));
 
             // Act
@@ -135,7 +136,8 @@ namespace TestCaseEditorApp.Tests.Phase4Services
             // Assert
             Assert.IsNotNull(result);
             Assert.IsFalse(result.IsSuccessful);
-            Assert.IsNotNull(result.ErrorMessage);
+            Assert.IsNotNull(result.ProcessingWarnings);
+            Assert.IsTrue(result.ProcessingWarnings.Count > 0);
         }
 
         [TestMethod]

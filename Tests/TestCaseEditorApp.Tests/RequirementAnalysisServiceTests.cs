@@ -76,7 +76,7 @@ namespace TestCaseEditorApp.Tests.Phase4Services
             };
 
             _mockDerivationService.Setup(x => x.DeriveCapabilitiesAsync(
-                It.IsAny<string>(), It.IsAny<DerivationOptions>(), It.IsAny<CancellationToken>()))
+                It.IsAny<string>(), It.IsAny<DerivationOptions>()))
                 .ReturnsAsync(derivationResult);
 
             // Act
@@ -124,7 +124,7 @@ namespace TestCaseEditorApp.Tests.Phase4Services
                 .ReturnsAsync(gapResult);
 
             // Act  
-            var result = await _service.AnalyzeRequirementGapAsync(requirements, capabilities);
+            var result = await _service.AnalyzeRequirementGapAsync(capabilities, requirements);
 
             // Assert
             Assert.IsNotNull(result);
@@ -147,7 +147,7 @@ namespace TestCaseEditorApp.Tests.Phase4Services
             };
 
             _mockDerivationService.Setup(x => x.DeriveCapabilitiesAsync(
-                It.IsAny<string>(), It.IsAny<DerivationOptions>(), It.IsAny<CancellationToken>()))
+                It.IsAny<string>(), It.IsAny<DerivationOptions>()))
                 .ReturnsAsync(derivationResult);
 
             // Act
@@ -170,17 +170,21 @@ namespace TestCaseEditorApp.Tests.Phase4Services
 
             var derivationResult = new DerivationResult
             {
-                IsSuccessful = true,
-                DerivedCapabilities = new List<DerivedCapability>()
+                DerivedCapabilities = new List<DerivedCapability> 
+                {
+                    new DerivedCapability { RequirementText = "Test Capability" }
+                },
+                ProcessingWarnings = new List<string>() // Empty list makes IsSuccessful = true
             };
 
             var gapResult = new GapAnalysisResult
             {
-                Analysis = new RequirementGapAnalysisResult { IsSuccessful = true }
+                Success = true,
+                Summary = "Gap analysis completed successfully"
             };
 
             _mockDerivationService.Setup(x => x.DeriveCapabilitiesAsync(
-                It.IsAny<string>(), It.IsAny<DerivationOptions>(), It.IsAny<CancellationToken>()))
+                It.IsAny<string>(), It.IsAny<DerivationOptions>()))
                 .ReturnsAsync(derivationResult);
 
             _mockGapAnalyzer.Setup(x => x.AnalyzeGapsAsync(
