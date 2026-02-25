@@ -6,8 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsTestProject>true</IsTestProject>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <GenerateDependencyFile>false</GenerateDependencyFile>
-    <SkipRemoveStrayDepsJson>true</SkipRemoveStrayDepsJson>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,8 +21,18 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\TestCaseEditorApp.csproj" />
+    <ProjectReference Include="..\..\TestCaseEditorApp.csproj">
+      <Private>false</Private>
+    </ProjectReference>
   </ItemGroup>
+
+  <!-- Copy main assembly manually and ignore missing deps.json -->
+  <Target Name="CopyMainAssembly" AfterTargets="Build">
+    <Copy SourceFiles="..\..\bin\Debug\net8.0-windows\TestCaseEditorApp.dll" 
+          DestinationFolder="$(OutputPath)" 
+          SkipUnchangedFiles="true"
+          ContinueOnError="true" />
+  </Target>
 
   <ItemGroup>
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />

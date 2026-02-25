@@ -9,6 +9,7 @@
 		<RootNamespace>TestCaseEditorApp</RootNamespace>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 		<GenerateDependencyFile>true</GenerateDependencyFile>
+		<GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
 	</PropertyGroup>
 
 	<!-- Exclude test projects and runner/tests folder from SDK wildcard includes -->
