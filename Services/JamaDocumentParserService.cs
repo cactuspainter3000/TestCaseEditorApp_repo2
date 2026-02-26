@@ -1667,9 +1667,8 @@ START EXTRACTION:";
                 var derivationOptions = new DerivationOptions
                 {
                     SystemType = "General", // Not specific to any system type
-                    IncludeEnvironmentalRequirements = true,
-                    IncludeInterfaceRequirements = true,
-                    IncludePerformanceRequirements = true,
+                    EnableQualityScoring = true,
+                    IncludeRejectionAnalysis = true,
                     SourceMetadata = new Dictionary<string, string>
                     {
                         ["SourceDocument"] = attachment.FileName,
@@ -1740,14 +1739,14 @@ START EXTRACTION:";
                     AtpDerivation = new AtpDerivationInfo
                     {
                         SourceDocumentName = sourceFileName,
+                        SourceAtpStep = capability.SourceATPStep ?? "",
                         TaxonomyCategory = capability.TaxonomyCategory,
                         TaxonomySubcategory = capability.TaxonomySubcategory,
                         DerivationRationale = capability.DerivationRationale,
                         ConfidenceScore = capability.ConfidenceScore,
                         AllocationTargets = capability.AllocationTargets?.ToList() ?? new List<string>(),
                         MissingSpecifications = capability.MissingSpecifications?.ToList() ?? new List<string>(),
-                        DerivationTimestamp = DateTime.Now,
-                        AnalysisModel = capability.SourceMetadata.ContainsKey("AnalysisModel") ? capability.SourceMetadata["AnalysisModel"] : "Unknown"
+                        DerivedAt = DateTime.Now
                     }
                 };
 
