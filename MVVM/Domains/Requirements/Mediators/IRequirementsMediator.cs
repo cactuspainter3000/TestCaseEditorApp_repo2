@@ -191,6 +191,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// Get the current project ID from the workspace context
         /// </summary>
         int CurrentProjectId { get; }
+        
+        /// <summary>
+        /// Gets the current project ID, resolving project keys to numeric IDs if needed.
+        /// Use this method when project key resolution might be required to avoid UI deadlock.
+        /// </summary>
+        Task<int> GetCurrentProjectIdAsync();
 
         /// <summary>
         /// Update project context when project changes

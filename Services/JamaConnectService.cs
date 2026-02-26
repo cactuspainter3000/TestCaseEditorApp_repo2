@@ -227,6 +227,17 @@ namespace TestCaseEditorApp.Services
         }
 
         /// <summary>
+        /// Clear expired token and get a new one - called when "token is expired" error occurs
+        /// </summary>
+        public async Task<bool> RefreshExpiredTokenAsync()
+        {
+            TestCaseEditorApp.Services.Logging.Log.Info("[JamaConnect] Clearing expired token and getting new one");
+            _accessToken = null; // Clear expired token
+            _httpClient.DefaultRequestHeaders.Authorization = null; // Clear auth header
+            return await GetOAuthTokenAsync();
+        }
+
+        /// <summary>
         /// Get OAuth access token
         /// 🚨 CRITICAL OAUTH METHOD - DO NOT MODIFY WITHOUT EXPLICIT CONFIRMATION 🚨
         /// This method has been fixed multiple times due to token acquisition failures.
@@ -2079,6 +2090,25 @@ namespace TestCaseEditorApp.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                    
+                    // 🎯 AUTO-REFRESH EXPIRED TOKENS
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized && 
+                        errorContent.Contains("token is expired"))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Token expired, refreshing and retrying attachment {attachmentId}");
+                        
+                        if (await RefreshExpiredTokenAsync())
+                        {
+                            // Retry the request with fresh token
+                            response = await _httpClient.GetAsync(url, cancellationToken);
+                            if (response.IsSuccessStatusCode)
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] ✅ Downloaded attachment {attachmentId} after token refresh");
+                                return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+                            }
+                        }
+                    }
+                    
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to download attachment {attachmentId}: {response.StatusCode} - {errorContent}");
                     return null;
                 }

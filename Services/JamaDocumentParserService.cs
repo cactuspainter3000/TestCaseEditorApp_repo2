@@ -28,16 +28,18 @@ namespace TestCaseEditorApp.Services
         private readonly IAnythingLLMService _llmService;
         private readonly IDirectRagService? _directRagService;
         private readonly ITextGenerationService? _textGenerationService;
+        private readonly ISystemCapabilityDerivationService? _derivationService;
         private const string PARSING_WORKSPACE_PREFIX = "jama-doc-parse";
 
         public bool IsConfigured => _jamaService.IsConfigured && (_llmService != null || _directRagService?.IsConfigured == true);
 
-        public JamaDocumentParserService(IJamaConnectService jamaService, IAnythingLLMService llmService, IDirectRagService? directRagService = null, ITextGenerationService? textGenerationService = null)
+        public JamaDocumentParserService(IJamaConnectService jamaService, IAnythingLLMService llmService, IDirectRagService? directRagService = null, ITextGenerationService? textGenerationService = null, ISystemCapabilityDerivationService? derivationService = null)
         {
             _jamaService = jamaService ?? throw new ArgumentNullException(nameof(jamaService));
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
             _directRagService = directRagService;
             _textGenerationService = textGenerationService;
+            _derivationService = derivationService;
         }
 
         /// <summary>
@@ -1221,12 +1223,48 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
                 var llmResponse = await _textGenerationService!.GenerateAsync(prompt, cancellationToken);
                 
                 // Step 6: Parse LLM response into requirements
-                var requirements = ParseRequirementsFromText(llmResponse, attachment);
+                var extractedRequirements = ParseRequirementsFromText(llmResponse, attachment);
                 
-                TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Extracted {requirements.Count} SYSTEM-LEVEL requirements from {attachment.FileName}");
-                progressCallback?.Invoke($"✅ Found {requirements.Count} system-level requirements in '{attachment.FileName}' (filtered out component/test requirements)");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Extracted {extractedRequirements.Count} requirements using basic extraction");
                 
-                return requirements;
+                // Step 7: ENHANCE with ATP derivation system (5-phase implementation)
+                // Use the sophisticated derivation system to derive additional requirements from document content
+                List<Requirement> derivedRequirements = new List<Requirement>();
+                if (_derivationService != null)
+                {
+                    progressCallback?.Invoke($"🚀 Enhancing with AI capability derivation system...");
+                    try
+                    {
+                        derivedRequirements = await DeriveRequirementsFromDocumentContentAsync(documentContent, attachment, projectId, progressCallback, cancellationToken);
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] ATP derivation system found {derivedRequirements.Count} additional derived requirements");
+                    }
+                    catch (Exception ex)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] ATP derivation failed, continuing with basic extraction: {ex.Message}");
+                    }
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] SystemCapabilityDerivationService not available - using basic extraction only");
+                }
+                
+                // Step 8: Combine extracted and derived requirements (avoid duplicates by ID)
+                var allRequirements = new List<Requirement>(extractedRequirements);
+                var existingIds = new HashSet<string>(extractedRequirements.Select(r => r.GlobalId ?? ""), StringComparer.OrdinalIgnoreCase);
+                
+                foreach (var derivedReq in derivedRequirements)
+                {
+                    if (!string.IsNullOrEmpty(derivedReq.GlobalId) && !existingIds.Contains(derivedReq.GlobalId))
+                    {
+                        allRequirements.Add(derivedReq);
+                        existingIds.Add(derivedReq.GlobalId);
+                    }
+                }
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Final result: {extractedRequirements.Count} extracted + {derivedRequirements.Count} derived = {allRequirements.Count} total requirements from {attachment.FileName}");
+                progressCallback?.Invoke($"✅ Found {allRequirements.Count} requirements: {extractedRequirements.Count} extracted + {derivedRequirements.Count} derived using AI analysis");
+                
+                return allRequirements;
             }
             catch (Exception ex)
             {
@@ -1241,7 +1279,7 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
         /// </summary>
         private string BuildDirectExtractionPrompt(JamaAttachment attachment, string contextContent)
         {
-            return $@"You are a systems architect extracting SYSTEM-LEVEL REQUIREMENTS from technical documentation. Your focus is on requirements that define the overall system behavior, interfaces, and characteristics - NOT component-level or test-level requirements.
+            return $@"You are a systems engineer extracting REQUIREMENTS from technical documentation. Extract functional, interface, performance, and system-level requirements that define what the system/component must do or how it must behave.
 
 DOCUMENT: {attachment.FileName}
 TYPE: {GetDocumentTypeDescription(attachment)}
@@ -1250,71 +1288,57 @@ SIZE: {attachment.FileSize / 1024}KB
 DOCUMENT CONTENT:
 {contextContent}
 
-SYSTEM-LEVEL REQUIREMENTS IDENTIFICATION:
+REQUIREMENT TYPES TO EXTRACT:
 
-🎯 TARGET: Extract requirements that define the OVERALL SYSTEM behavior, performance, and characteristics.
+✅ **FUNCTIONAL REQUIREMENTS** - What the system/component must do:
+• ""The system shall process video at 60 fps""
+• ""The interface shall support RS-485 protocol""
+• ""The power supply shall provide 12V DC output""
+• ""The software shall restart within 30 seconds""
 
-SYSTEM-LEVEL REQUIREMENTS (✅ Extract these):
-• **System Performance**: Overall throughput, latency, capacity, response times
-  ✅ ""The system shall process video streams with end-to-end latency <50ms""
-  ✅ ""The system shall support simultaneous operation of 16 channels""
+✅ **PERFORMANCE REQUIREMENTS** - How well it must perform:
+• ""Response time shall not exceed 100 milliseconds""  
+• ""Accuracy shall be ±0.1% of full scale""
+• ""The system shall handle 1000 concurrent connections""
 
-• **System Interfaces**: External connections, protocols, data exchange
-  ✅ ""The system shall provide Ethernet connectivity at 1 Gbps minimum""
-  ✅ ""The system shall interface with external control systems via RS-485""
+✅ **INTERFACE REQUIREMENTS** - How it connects/communicates:
+• ""The Ethernet port shall support 1 Gbps data rate""
+• ""The API shall return JSON formatted responses""
+• ""Serial communication shall use 9600 baud, 8-N-1""
 
-• **System Operations**: High-level behaviors, modes, state management  
-  ✅ ""The system shall support hot-swap of modules without interruption""
-  ✅ ""The system shall automatically failover to backup power within 10ms""
+✅ **ENVIRONMENTAL REQUIREMENTS** - Operating conditions:
+• ""Operating temperature shall be -40°C to +85°C""
+• ""The unit shall withstand 5G vibration""
+• ""Humidity range shall be 5% to 95% non-condensing""
 
-• **System Environment**: Operating conditions affecting entire system
-  ✅ ""The system shall operate in ambient temperatures from -40°C to +85°C""
-  ✅ ""The system shall withstand vibration levels per MIL-STD-810""
+✅ **ELECTRICAL REQUIREMENTS** - Power, signals, specifications:
+• ""Input voltage shall be 24V DC ±10%""
+• ""Maximum current consumption shall be 2.5 amps""
+• ""Signal levels shall be TTL compatible""
 
-• **System Integration**: How subsystems work together
-  ✅ ""The system shall synchronize all video inputs to a common timebase""
-  ✅ ""The system shall distribute power to all modules from central supply""
-
-COMPONENT/TEST-LEVEL REQUIREMENTS (❌ DO NOT Extract):
-• Individual chip, connector, or module specifications
-  ❌ ""The CMP video input shall support 1080p resolution""  
-  ❌ ""The USB connector shall meet USB 3.0 specification""
-
-• Test procedures, verification steps, or acceptance criteria
-  ❌ ""Test shall verify input impedance of 75 ohms""
-  ❌ ""Verify connector mating cycles exceed 1000""
-
-• Manufacturing, assembly, or component-level constraints
-  ❌ ""PCB thickness shall be 1.6mm +/- 0.1mm""
-  ❌ ""Components shall be RoHS compliant""
-
-• Single component behaviors or characteristics
-  ❌ ""The FPGA shall operate at 100 MHz clock frequency""
-  ❌ ""LED indicator shall illuminate when power applied""
+❌ **DO NOT EXTRACT** - These are not requirements:
+• Test procedures: ""Verify by applying 12V and measuring output""
+• Manufacturing notes: ""Use lead-free solder per IPC standards""
+• Documentation references: ""See section 4.2 for details""
+• Installation instructions: ""Mount using four #8 screws""
+• Quality procedures: ""Inspection shall verify all connections""
 
 EXTRACTION CRITERIA:
-✓ Must describe SYSTEM-WIDE behavior or characteristics
-✓ Must affect multiple subsystems or external interfaces  
-✓ Must define overall system performance or capabilities
-✓ Must use scope words: ""system"", ""overall"", ""end-to-end"", ""total""
-✓ Must be observable/testable at the system level
+✓ Must use requirement language: ""shall"", ""must"", ""will"", or ""should""
+✓ Must define specific behavior, performance, or characteristics
+✓ Must be testable/verifiable (what to measure/observe)
+✓ Can be system-level, subsystem-level, or component-level requirements
+✓ Include both functional AND non-functional requirements
 
-QUALITY STANDARDS:
-- Extract ONLY true system-level requirements (better to find 1-3 excellent ones than many component-level ones)
-- Requirements must define system behavior visible to external users/systems
-- Focus on requirements that system architects and integrators would care about
-- Ignore component test specifications and detailed implementation requirements
-
-FORMAT each valid SYSTEM-LEVEL requirement as:
-ID: SYS-REQ-001  
-Text: [Complete system-level requirement with specific system behavior/performance]
-Category: [SystemPerformance/SystemInterface/SystemOperation/SystemEnvironment/SystemIntegration]
-Page: [Page number where found, e.g., ""Page 15"" or ""Pages 12-15""]
-Section: [Section title/number if visible, e.g., ""3.2.1 System Performance"" or ""System Specifications""]
+FORMAT each requirement as:
+ID: REQ-001  
+Text: [Complete requirement statement]
+Category: [Functional/Performance/Interface/Environmental/Electrical/System]
+Page: [Page number if available, e.g., ""Page 15""]
+Section: [Section title if visible, e.g., ""3.2.1 Power Requirements""]
 ---
 
-CRITICAL: Quality over quantity. Extract only genuine SYSTEM-LEVEL requirements that define overall system characteristics, not component or test specifications.
-IMPORTANT: Always look for page markers like ""--- Page X ---"" in the content to identify source pages.
+IMPORTANT: Extract ALL legitimate requirements, not just system-level ones. Include component requirements, interface specifications, and performance criteria that engineers would need to implement or test.
 
 START EXTRACTION:";
         }
@@ -1390,33 +1414,27 @@ START EXTRACTION:";
         }
 
         /// <summary>
-        /// Validates that extracted text represents a genuine SYSTEM-LEVEL requirement
+        /// Validates that extracted text represents a genuine requirement (system, functional, or interface level)
+        /// Updated to be less restrictive while maintaining quality
         /// </summary>
         private bool IsValidRequirement(string text)
         {
-            if (string.IsNullOrWhiteSpace(text) || text.Length < 30)
+            if (string.IsNullOrWhiteSpace(text) || text.Length < 15) // Reduced from 30
                 return false;
 
             var lowerText = text.Trim().ToLowerInvariant();
 
             // Must contain requirement language
-            if (!lowerText.Contains("shall") && !lowerText.Contains("must") && !lowerText.Contains("will"))
+            if (!lowerText.Contains("shall") && !lowerText.Contains("must") && !lowerText.Contains("will") && !lowerText.Contains("should"))
                 return false;
 
-            // Filter out component/test-level requirements
-            if (lowerText.Contains("cmp ") ||
-                lowerText.Contains("component ") ||
-                lowerText.Contains("module ") ||
-                lowerText.Contains("chip ") ||
-                lowerText.Contains("pcb ") ||
-                lowerText.Contains("connector ") ||
-                lowerText.Contains("test shall") ||
-                lowerText.Contains("verify ") ||
-                lowerText.Contains("fpga ") ||
-                lowerText.Contains("led ") ||
-                lowerText.Contains("resistor ") ||
-                lowerText.Contains("capacitor ") ||
-                lowerText.Contains("inductor "))
+            // Filter out only clearly non-requirements (keep component requirements)
+            if (lowerText.Contains("test shall verify") ||        // Test procedures
+                lowerText.Contains("shall be tested") ||          // Test descriptions  
+                lowerText.Contains("inspection shall") ||         // QA procedures
+                lowerText.Contains("documentation shall") ||      // Doc requirements
+                lowerText.StartsWith("note:") ||                 // Notes/comments
+                lowerText.StartsWith("example:"))                // Examples
                 return false;
 
             // Filter out incomplete phrases and fragments  
@@ -1430,33 +1448,38 @@ START EXTRACTION:";
                 lowerText.Contains("as defined in"))
                 return false;
 
-            // Look for system-level indicators (positive signals)
-            bool hasSystemIndicators = lowerText.Contains("system ") ||
-                                     lowerText.Contains("overall ") ||
-                                     lowerText.Contains("end-to-end") ||
-                                     lowerText.Contains("total ") ||
-                                     lowerText.Contains("entire ") ||
-                                     lowerText.Contains("all ") ||
-                                     lowerText.Contains("multiple ") ||
-                                     lowerText.Contains("simultaneous") ||
-                                     lowerText.Contains("external ") ||
-                                     lowerText.Contains("interface ") ||
-                                     lowerText.Contains("network ") ||
-                                     lowerText.Contains("communication") ||
-                                     lowerText.Contains("ethernet") ||
-                                     lowerText.Contains("power") ||
-                                     lowerText.Contains("environment") ||
-                                     lowerText.Contains("temperature") ||
-                                     lowerText.Contains("operating");
+            // Look for requirement indicators (more inclusive)
+            bool hasRequirementIndicators = 
+                // System level
+                lowerText.Contains("system ") || lowerText.Contains("overall ") || lowerText.Contains("end-to-end") ||
+                // Interface/connectivity  
+                lowerText.Contains("interface ") || lowerText.Contains("connection") || lowerText.Contains("communication") ||
+                lowerText.Contains("ethernet") || lowerText.Contains("network") || lowerText.Contains("protocol") ||
+                // Performance/operational
+                lowerText.Contains("performance") || lowerText.Contains("speed") || lowerText.Contains("rate") ||
+                lowerText.Contains("accuracy") || lowerText.Contains("latency") || lowerText.Contains("throughput") ||
+                // Power/environment
+                lowerText.Contains("power") || lowerText.Contains("voltage") || lowerText.Contains("current") ||
+                lowerText.Contains("temperature") || lowerText.Contains("operating") || lowerText.Contains("environment") ||
+                // Functional behavior
+                lowerText.Contains("function") || lowerText.Contains("operation") || lowerText.Contains("control") ||
+                lowerText.Contains("monitor") || lowerText.Contains("detect") || lowerText.Contains("provide") ||
+                // Input/output
+                lowerText.Contains("input") || lowerText.Contains("output") || lowerText.Contains("signal") ||
+                // Standards/compliance  
+                lowerText.Contains("standard") || lowerText.Contains("specification") || lowerText.Contains("compliance") ||
+                // Basic requirement words
+                lowerText.Contains("requirement") || lowerText.Contains("capability") || lowerText.Contains("feature");
 
-            // Must be a complete sentence with substantive content
+            // Must be a complete sentence with reasonable content (reduced from 8 words)
             var words = lowerText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (words.Length < 8) // System requirements should be substantial
+            if (words.Length < 5) // Reduced minimum word count
                 return false;
 
-            // For documents that are primarily component/test documents,
-            // be very selective - only accept clear system-level requirements
-            return hasSystemIndicators;
+            // Accept if it has requirement indicators OR if it looks like a technical specification
+            return hasRequirementIndicators || 
+                   (lowerText.Contains("mhz") || lowerText.Contains("volts") || lowerText.Contains("amps") || 
+                    lowerText.Contains("degrees") || lowerText.Contains("meters") || lowerText.Contains("seconds"));
         }
 
         /// <summary>
@@ -1616,6 +1639,176 @@ START EXTRACTION:";
                     throw;
                 }
             });
+        }
+
+        /// <summary>
+        /// Derive requirements from document content using SystemCapabilityDerivationService (ATP derivation system from 5 phases)
+        /// </summary>
+        private async Task<List<Requirement>> DeriveRequirementsFromDocumentContentAsync(string documentContent, JamaAttachment attachment, int projectId, System.Action<string>? progressCallback = null, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                if (_derivationService == null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] SystemCapabilityDerivationService not available - falling back to basic extraction");
+                    return new List<Requirement>();
+                }
+
+                if (string.IsNullOrWhiteSpace(documentContent))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Empty document content - cannot derive requirements");
+                    return new List<Requirement>();
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 🚀 Using ATP derivation system to derive requirements from {attachment.FileName} ({documentContent.Length} characters)");
+                progressCallback?.Invoke($"🚀 Analyzing document with AI capability derivation system...");
+
+                // Configure derivation options for general document processing (not just ATP)
+                var derivationOptions = new DerivationOptions
+                {
+                    SystemType = "General", // Not specific to any system type
+                    IncludeEnvironmentalRequirements = true,
+                    IncludeInterfaceRequirements = true,
+                    IncludePerformanceRequirements = true,
+                    SourceMetadata = new Dictionary<string, string>
+                    {
+                        ["SourceDocument"] = attachment.FileName,
+                        ["DocumentType"] = GetDocumentTypeDescription(attachment),
+                        ["AttachmentId"] = attachment.Id.ToString(),
+                        ["ProjectId"] = projectId.ToString()
+                    }
+                };
+
+                // Use the 5-phase ATP derivation system to analyze the document content
+                progressCallback?.Invoke($"🧠 Running AI-powered requirement derivation analysis...");
+                var derivationResult = await _derivationService.DeriveCapabilitiesAsync(documentContent, derivationOptions);
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Derivation completed: {derivationResult.DerivedCapabilities.Count} capabilities derived, {derivationResult.RejectedItems.Count} items filtered out");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Quality score: {derivationResult.QualityScore:F2}, Processing time: {derivationResult.ProcessingTime.TotalSeconds:F1}s");
+
+                if (derivationResult.ProcessingWarnings.Count > 0)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Derivation warnings: {string.Join(", ", derivationResult.ProcessingWarnings)}");
+                }
+
+                // Convert derived capabilities to requirements
+                progressCallback?.Invoke($"📋 Converting {derivationResult.DerivedCapabilities.Count} derived capabilities to requirements...");
+                var derivedRequirements = ConvertDerivedCapabilitiesToRequirements(derivationResult.DerivedCapabilities, attachment, projectId);
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Successfully derived {derivedRequirements.Count} requirements from {attachment.FileName} using ATP derivation system");
+                progressCallback?.Invoke($"✅ Derived {derivedRequirements.Count} requirements using intelligent capability analysis");
+
+                return derivedRequirements;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[JamaDocumentParser] Error deriving requirements from {attachment.FileName}: {ex.Message}");
+                progressCallback?.Invoke($"❌ Requirement derivation failed: {ex.Message}");
+                return new List<Requirement>();
+            }
+        }
+
+        /// <summary>
+        /// Convert derived capabilities to Requirement objects (adapted from SmartRequirementImporter)
+        /// </summary>
+        private List<Requirement> ConvertDerivedCapabilitiesToRequirements(List<DerivedCapability> capabilities, JamaAttachment attachment, int projectId)
+        {
+            var requirements = new List<Requirement>();
+            var sourceFileName = attachment.FileName;
+
+            for (int i = 0; i < capabilities.Count; i++)
+            {
+                var capability = capabilities[i];
+                var requirement = new Requirement
+                {
+                    GlobalId = $"DOC-{attachment.Id}-{i + 1:D3}", // DOC-12345-001, DOC-12345-002, etc.
+                    Item = $"DOC-{i + 1:D3}",
+                    Name = GenerateRequirementNameFromCapability(capability.RequirementText, capability.TaxonomyCategory),
+                    Description = capability.RequirementText,
+                    RequirementType = $"{capability.TaxonomyCategory} - {capability.TaxonomySubcategory}",
+                    
+                    // Add derivation-specific fields
+                    Rationale = BuildRequirementNotesFromCapability(capability, sourceFileName),
+                    
+                    // Standard fields
+                    Heading = "Derived", 
+                    ItemType = "System Requirement",
+                    CreatedDate = DateTime.Now,
+                    ModifiedDate = DateTime.Now,
+                    
+                    // Add ATP derivation info to track this as an ATP-derived requirement
+                    AtpDerivation = new AtpDerivationInfo
+                    {
+                        SourceDocumentName = sourceFileName,
+                        TaxonomyCategory = capability.TaxonomyCategory,
+                        TaxonomySubcategory = capability.TaxonomySubcategory,
+                        DerivationRationale = capability.DerivationRationale,
+                        ConfidenceScore = capability.ConfidenceScore,
+                        AllocationTargets = capability.AllocationTargets?.ToList() ?? new List<string>(),
+                        MissingSpecifications = capability.MissingSpecifications?.ToList() ?? new List<string>(),
+                        DerivationTimestamp = DateTime.Now,
+                        AnalysisModel = capability.SourceMetadata.ContainsKey("AnalysisModel") ? capability.SourceMetadata["AnalysisModel"] : "Unknown"
+                    }
+                };
+
+                requirements.Add(requirement);
+            }
+
+            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Converted {capabilities.Count} capabilities to {requirements.Count} requirements from {sourceFileName}");
+            return requirements;
+        }
+
+        /// <summary>
+        /// Generate a concise requirement name from capability text and taxonomy
+        /// </summary>
+        private string GenerateRequirementNameFromCapability(string requirementText, string taxonomyCategory)
+        {
+            // Take first 60 characters and clean up
+            var name = requirementText.Length > 60 ? requirementText.Substring(0, 60) + "..." : requirementText;
+            
+            // Remove line breaks and extra spaces
+            name = System.Text.RegularExpressions.Regex.Replace(name, @"\s+", " ").Trim();
+            
+            // Prefix with taxonomy category for context
+            return $"[{taxonomyCategory}] {name}";
+        }
+
+        /// <summary>
+        /// Build comprehensive notes from derived capability metadata
+        /// </summary>
+        private string BuildRequirementNotesFromCapability(DerivedCapability capability, string sourceFileName)
+        {
+            var notes = new List<string>();
+            
+            // Add derivation info
+            notes.Add($"**Derived from Document:** {sourceFileName}");
+            notes.Add($"**Taxonomy Classification:** {capability.TaxonomyCategory} - {capability.TaxonomySubcategory}");
+            notes.Add($"**Confidence Score:** {capability.ConfidenceScore:P1}");
+            
+            if (!string.IsNullOrEmpty(capability.DerivationRationale))
+            {
+                notes.Add($"**Derivation Rationale:** {capability.DerivationRationale}");
+            }
+
+            if (!string.IsNullOrEmpty(capability.SourceATPStep))
+            {
+                notes.Add($"**Source Content:** {capability.SourceATPStep}");
+            }
+
+            if (capability.AllocationTargets?.Count > 0)
+            {
+                notes.Add($"**Recommended Allocation:** {string.Join(", ", capability.AllocationTargets)}");
+            }
+
+            if (capability.MissingSpecifications?.Count > 0)
+            {
+                notes.Add($"**Missing Specifications:** {string.Join(", ", capability.MissingSpecifications)}");
+            }
+
+            notes.Add($"**Derived Using:** AI Capability Derivation System (5-Phase Implementation)");
+            notes.Add($"**Quality Score:** Based on A-N taxonomy validation and content analysis");
+
+            return string.Join("\n\n", notes);
         }
     }
 }

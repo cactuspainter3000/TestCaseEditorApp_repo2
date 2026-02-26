@@ -38,8 +38,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Views
                 newViewModel.PropertyChanged += OnViewModelPropertyChanged;
                 SetupTracerAnimation();
                 
-                // Refresh project state when view becomes active
-                newViewModel.RefreshCurrentProjectState();
+                // Refresh project state when view becomes active (async fire-and-forget)
+                _ = newViewModel.RefreshCurrentProjectStateAsync();
             }
         }
 

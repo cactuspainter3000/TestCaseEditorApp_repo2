@@ -556,6 +556,28 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
                     return;
                 }
 
+                // 🎯 CRITICAL: Update workspace's JamaProject field with detected project ID
+                // This ensures attachment scanning can find the correct project
+                if (currentWorkspace != null && currentWorkspaceInfo != null)
+                {
+                    var originalJamaProject = currentWorkspace.JamaProject;
+                    currentWorkspace.JamaProject = targetProjectId.Value.ToString();
+                    
+                    try
+                    {
+                        // Save the updated workspace to persist the detected project ID
+                        _persistenceService.Save(currentWorkspaceInfo.Path, currentWorkspace);
+                        _logger.LogInformation($"✅ Updated workspace JamaProject: '{originalJamaProject}' -> '{currentWorkspace.JamaProject}' (detected project ID)");
+                        _logger.LogInformation($"💾 Workspace saved with detected Jama project ID: {targetProjectId.Value}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "❌ Failed to save workspace with detected project ID");
+                        // Revert the change on save failure
+                        currentWorkspace.JamaProject = originalJamaProject;
+                    }
+                }
+
                 _logger.LogInformation($"Triggering background attachment scan for Jama project {targetProjectId.Value}");
                 
                 // NOTE: Background attachment scanning will be triggered manually by user clicking scan button

@@ -52,7 +52,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// <summary>
         /// Navigation mediator access for UI binding
         /// </summary>
-        public INavigationMediator NavigationMediator => _viewAreaCoordinator.NavigationMediator;
+        public INavigationMediator? NavigationMediator => _viewAreaCoordinator?.NavigationMediator;
         
         /// <summary>
         /// Title workspace area
@@ -60,7 +60,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public object? TitleWorkspace => _viewAreaCoordinator?.TitleArea?.ActiveTitle;
         
         /// <summary>
-        /// Main content workspace area
+        /// Main content workspace area  
         /// </summary>
         public object? MainWorkspace => _viewAreaCoordinator?.WorkspaceContent?.CurrentContent;
         
@@ -77,12 +77,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// <summary>
         /// Navigation workspace area
         /// </summary>
-        public object? NavigationWorkspace => _viewAreaCoordinator.NavigationArea.CurrentContent;
+        public object? NavigationWorkspace => _viewAreaCoordinator?.NavigationArea?.CurrentContent;
         
         /// <summary>
         /// Side menu workspace area
         /// </summary>
-        public object? SideMenuWorkspace => _viewAreaCoordinator.SideMenu;
+        public object? SideMenuWorkspace => _viewAreaCoordinator?.SideMenu;
         
         /// <summary>
         /// Dynamic title for the application window

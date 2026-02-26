@@ -411,6 +411,11 @@ public static class WorkspaceService
             }
         }
 
+        // 🔍 DEBUG: Log Jama project information from loaded workspace
+        TestCaseEditorApp.Services.Logging.Log.Info($"[Load] 🔍 JAMA DEBUG: JamaProject field: '{ws.JamaProject}' (null: {ws.JamaProject == null})");
+        TestCaseEditorApp.Services.Logging.Log.Info($"[Load] 🔍 JAMA DEBUG: JamaTestPlan field: '{ws.JamaTestPlan}' (null: {ws.JamaTestPlan == null})");
+        TestCaseEditorApp.Services.Logging.Log.Info($"[Load] 🔍 JAMA DEBUG: ImportSource: '{ws.ImportSource}'");
+
         // Probe: log what came back
         try
         {

@@ -977,14 +977,65 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             {
                 var currentWorkspace = _workspaceContext.CurrentWorkspace;
                 
-                if (!string.IsNullOrEmpty(currentWorkspace?.JamaProject) && 
-                    int.TryParse(currentWorkspace.JamaProject, out var projectId) && 
-                    projectId > 0)
+                if (!string.IsNullOrEmpty(currentWorkspace?.JamaProject))
+                {
+                    // Only try parsing as numeric ID (new format) - no blocking async calls in property
+                    if (int.TryParse(currentWorkspace.JamaProject, out var projectId) && projectId > 0)
+                    {
+                        return projectId;
+                    }
+                    
+                    // For project keys, caller must use GetCurrentProjectIdAsync() to avoid deadlock
+                    _logger?.LogWarning("CurrentProjectId accessed with project key '{ProjectKey}' - use GetCurrentProjectIdAsync() instead", currentWorkspace.JamaProject);
+                }
+                
+                return -1; // No valid numeric project ID available synchronously
+            }
+        }
+
+        /// <summary>
+        /// Gets the current project ID, resolving project keys to numeric IDs if needed.
+        /// Use this method instead of CurrentProjectId when project key resolution might be required.
+        /// </summary>
+        public async Task<int> GetCurrentProjectIdAsync()
+        {
+            var currentWorkspace = _workspaceContext.CurrentWorkspace;
+            
+            if (!string.IsNullOrEmpty(currentWorkspace?.JamaProject))
+            {
+                // First try parsing as numeric ID (new format)
+                if (int.TryParse(currentWorkspace.JamaProject, out var projectId) && projectId > 0)
                 {
                     return projectId;
                 }
                 
-                return -1; // No valid project ID
+                // Fallback: Try resolving project key to numeric ID (backwards compatibility)
+                var resolvedId = await TryResolveProjectKeyToIdAsync(currentWorkspace.JamaProject);
+                if (resolvedId > 0)
+                {
+                    return resolvedId;
+                }
+            }
+            
+            return -1; // No valid project ID
+        }
+
+        private async Task<int> TryResolveProjectKeyToIdAsync(string projectKey)
+        {
+            try
+            {
+                var projects = await GetProjectsAsync();
+                var matchingProject = projects?.FirstOrDefault(p => 
+                    p.ProjectKey?.Equals(projectKey, StringComparison.OrdinalIgnoreCase) == true ||
+                    p.Key?.Equals(projectKey, StringComparison.OrdinalIgnoreCase) == true ||
+                    p.Name?.Equals(projectKey, StringComparison.OrdinalIgnoreCase) == true);
+                
+                return matchingProject?.Id ?? -1;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsMediator] Error resolving project key '{ProjectKey}' to ID", projectKey);
+                return -1;
             }
         }
 

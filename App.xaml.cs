@@ -350,14 +350,15 @@ namespace TestCaseEditorApp
                     // Register interface for testable architecture
                     services.AddSingleton<IJamaConnectService>(provider => provider.GetRequiredService<JamaConnectService>());
                     
-                    // Jama Document Parser Service - LLM-powered requirement extraction from attachments
+                    // Jama Document Parser Service - LLM-powered requirement extraction from attachments + ATP derivation system
                     services.AddSingleton<IJamaDocumentParserService, JamaDocumentParserService>(provider =>
                     {
                         var jamaService = provider.GetRequiredService<IJamaConnectService>();
                         var llmService = provider.GetRequiredService<IAnythingLLMService>();
                         var directRagService = provider.GetService<IDirectRagService>(); // Optional fallback
                         var textGenerationService = provider.GetService<ITextGenerationService>(); // For DirectRag fallback
-                        return new JamaDocumentParserService(jamaService, llmService, directRagService, textGenerationService);
+                        var derivationService = provider.GetService<ISystemCapabilityDerivationService>(); // ATP derivation system (5 phases)
+                        return new JamaDocumentParserService(jamaService, llmService, directRagService, textGenerationService, derivationService);
                     });
                     
                     // Jama Test Case Conversion Service - Business logic for converting requirements to Jama test cases

@@ -43,6 +43,11 @@ namespace TestCaseEditorApp.Services
         Task<(bool Success, string Message)> TestConnectionAsync();
 
         /// <summary>
+        /// Clear expired token and get a new one
+        /// </summary>
+        Task<bool> RefreshExpiredTokenAsync();
+
+        /// <summary>
         /// Get all attachments for a project
         /// </summary>
         Task<List<JamaAttachment>> GetProjectAttachmentsAsync(int projectId, CancellationToken cancellationToken = default, Action<int, int, string>? progressCallback = null, string projectName = "");

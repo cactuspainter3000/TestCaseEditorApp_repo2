@@ -74,7 +74,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         // Domain-driven side menu section (not tied to TestCaseGenerator)
         [ObservableProperty]
-        private MenuSection? sideMenuSection;
+        private MenuSection? sideMenuSection = new MenuSection 
+        { 
+            Id = "loading", 
+            Text = "Loading...", 
+            Icon = "", 
+            Items = new ObservableCollection<MenuContentItem>() 
+        };
         
         // === DATA-DRIVEN MENU SYSTEM ===
         // New data-driven approach that replaces hardcoded XAML
@@ -122,7 +128,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // These properties are bound to in XAML but were missing from the ViewModel
         
         [ObservableProperty]
-        private string? sapStatus;
+        private string? sapStatus = "Systems ATE APP v2.0";
         
         [ObservableProperty]
         private string? selectedMenuSection;

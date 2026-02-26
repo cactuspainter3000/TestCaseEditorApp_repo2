@@ -372,6 +372,12 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 }
 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[LoadWorkspace] Successfully loaded workspace. Requirements count: {ws.Requirements?.Count ?? 0}");
+                
+                // 🔍 DEBUG: Log Jama project information immediately after workspace loading
+                TestCaseEditorApp.Services.Logging.Log.Info($"[LoadWorkspace] 🔍 JAMA DEBUG: Loaded JamaProject field: '{ws.JamaProject}' (null: {ws.JamaProject == null})");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[LoadWorkspace] 🔍 JAMA DEBUG: Loaded JamaTestPlan field: '{ws.JamaTestPlan}' (null: {ws.JamaTestPlan == null})");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[LoadWorkspace] 🔍 JAMA DEBUG: Loaded ImportSource: '{ws.ImportSource}'");
+                
                 CurrentWorkspace = ws;
                 
                 // Track in recent files
@@ -421,14 +427,28 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 return;
             }
 
+            // 🎯 PRESERVE ALL WORKSPACE FIELDS (including JamaProject for attachment scanning)
             var ws = new Workspace
             {
+                Version = CurrentWorkspace?.Version ?? Workspace.SchemaVersion,
                 SourceDocPath = CurrentSourcePath,
-                Requirements = Requirements.ToList()
+                LastSavedUtc = DateTime.UtcNow,
+                Requirements = Requirements.ToList(),
+                // 🔥 CRITICAL: Preserve Jama fields for attachment scanning functionality
+                JamaProject = CurrentWorkspace?.JamaProject,
+                JamaTestPlan = CurrentWorkspace?.JamaTestPlan,
+                ImportSource = CurrentWorkspace?.ImportSource,
+                Defaults = CurrentWorkspace?.Defaults,
+                Name = CurrentWorkspace?.Name,
+                CreatedBy = CurrentWorkspace?.CreatedBy,
+                CreatedUtc = CurrentWorkspace?.CreatedUtc,
+                SaveCount = (CurrentWorkspace?.SaveCount ?? 0) + 1,
+                RequirementStatus = CurrentWorkspace?.RequirementStatus ?? new()
             };
 
             try
             {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[SaveWorkspace] 🔍 JAMA DEBUG: Saving JamaProject='{ws.JamaProject}', JamaTestPlan='{ws.JamaTestPlan}', ImportSource='{ws.ImportSource}'");
                 WorkspaceFileManager.Save(WorkspacePath!, ws);
                 CurrentWorkspace = ws;
                 IsDirty = false;
@@ -492,12 +512,26 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 }
 
                 WorkspacePath = chosen;
+                // 🎯 PRESERVE ALL WORKSPACE FIELDS (including JamaProject for attachment scanning)
                 var ws = new Workspace
                 {
+                    Version = CurrentWorkspace?.Version ?? Workspace.SchemaVersion,
                     SourceDocPath = CurrentSourcePath,
-                    Requirements = Requirements.ToList()
+                    LastSavedUtc = DateTime.UtcNow,
+                    Requirements = Requirements.ToList(),
+                    // 🔥 CRITICAL: Preserve Jama fields for attachment scanning functionality
+                    JamaProject = CurrentWorkspace?.JamaProject,
+                    JamaTestPlan = CurrentWorkspace?.JamaTestPlan,
+                    ImportSource = CurrentWorkspace?.ImportSource,
+                    Defaults = CurrentWorkspace?.Defaults,
+                    Name = CurrentWorkspace?.Name,
+                    CreatedBy = CurrentWorkspace?.CreatedBy,
+                    CreatedUtc = CurrentWorkspace?.CreatedUtc,
+                    SaveCount = (CurrentWorkspace?.SaveCount ?? 0) + 1,
+                    RequirementStatus = CurrentWorkspace?.RequirementStatus ?? new()
                 };
 
+                TestCaseEditorApp.Services.Logging.Log.Info($"[SaveWorkspaceAsync] 🔍 JAMA DEBUG: Saving JamaProject='{ws.JamaProject}', JamaTestPlan='{ws.JamaTestPlan}', ImportSource='{ws.ImportSource}'");
                 WorkspaceFileManager.Save(WorkspacePath!, ws);
                 CurrentWorkspace = ws;
                 IsDirty = false;

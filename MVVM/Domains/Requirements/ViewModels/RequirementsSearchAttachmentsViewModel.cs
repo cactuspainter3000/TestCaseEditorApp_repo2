@@ -535,8 +535,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             
             _logger.LogInformation("[RequirementsSearchAttachments] Commands initialized in InitializeCommands method");
             
-            // Try to auto-detect project ID on initialization and refresh project state
-            RefreshProjectState();
+            // Try to auto-detect project ID on initialization and refresh project state (async fire-and-forget)
+            _ = Task.Run(RefreshProjectStateAsync);
             
             // Initialize workflow state
             UpdateWorkflowState();
@@ -879,16 +879,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// <summary>
         /// Attempt to auto-detect and set the project ID from current workspace context
         /// </summary>
-        private bool TryAutoDetectProjectId()
+        private async Task<bool> TryAutoDetectProjectIdAsync()
         {
             try
             {
-                // First try to get project ID directly from the mediator
-                var mediatorProjectId = _mediator?.CurrentProjectId;
-                if (mediatorProjectId.HasValue && mediatorProjectId.Value > 0)
+                // First try to get project ID using the async method to avoid deadlock
+                var mediatorProjectId = await (_mediator?.GetCurrentProjectIdAsync() ?? Task.FromResult(-1));
+                if (mediatorProjectId > 0)
                 {
-                    SelectedProjectId = mediatorProjectId.Value;
-                    _logger.LogInformation("[RequirementsSearchAttachments] Auto-detected project ID from mediator: {ProjectId}", mediatorProjectId.Value);
+                    SelectedProjectId = mediatorProjectId;
+                    _logger.LogInformation("[RequirementsSearchAttachments] Auto-detected project ID from mediator: {ProjectId}", mediatorProjectId);
                     return true;
                 }
 
@@ -903,14 +903,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     return true;
                 }
 
-                // Log project name for debugging
-                var projectName = _mediator?.CurrentProjectName;
-                if (!string.IsNullOrEmpty(projectName))
-                {
-                    _logger.LogInformation("[RequirementsSearchAttachments] Found project name '{ProjectName}' but no valid project ID", projectName);
-                }
-
-                return false;
+                // New: Try to resolve project key/name to numeric ID via Jama API
+                return await TryResolveProjectKeyToIdAsync();
             }
             catch (Exception ex)
             {
@@ -919,10 +913,62 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
         }
 
+        private async Task<bool> TryResolveProjectKeyToIdAsync()
+        {
+            try
+            {
+                var currentWorkspace = _workspaceContext?.CurrentWorkspace;
+                var projectKey = currentWorkspace?.JamaProject;
+                var projectName = _mediator?.CurrentProjectName;
+                
+                // Need either project key from workspace or project name from mediator
+                if (string.IsNullOrEmpty(projectKey) && string.IsNullOrEmpty(projectName))
+                {
+                    return false;
+                }
+
+                _logger.LogInformation("[RequirementsSearchAttachments] Attempting to resolve project key/name to ID. Key: '{ProjectKey}', Name: '{ProjectName}'", 
+                    projectKey, projectName);
+
+                // Fetch all projects from Jama to find matching ID
+                var projects = await _mediator.GetProjectsAsync();
+                if (projects == null || !projects.Any())
+                {
+                    _logger.LogWarning("[RequirementsSearchAttachments] No projects returned from Jama API");
+                    return false;
+                }
+
+                // Try to find project by key first, then by name
+                var matchingProject = projects.FirstOrDefault(p => 
+                    (!string.IsNullOrEmpty(projectKey) && (p.ProjectKey?.Equals(projectKey, StringComparison.OrdinalIgnoreCase) == true || p.Key?.Equals(projectKey, StringComparison.OrdinalIgnoreCase) == true)) ||
+                    (!string.IsNullOrEmpty(projectName) && p.Name?.Equals(projectName, StringComparison.OrdinalIgnoreCase) == true));
+
+                if (matchingProject != null && matchingProject.Id > 0)
+                {
+                    SelectedProjectId = matchingProject.Id;
+                    _logger.LogInformation("[RequirementsSearchAttachments] Successfully resolved '{ProjectKey}'/'{ProjectName}' to project ID: {ProjectId}", 
+                        projectKey, projectName, matchingProject.Id);
+                    return true;
+                }
+
+                // Log available projects for debugging
+                var availableKeys = string.Join(", ", projects.Take(5).Select(p => $"'{p.ProjectKey}' (ID:{p.Id})"));
+                _logger.LogWarning("[RequirementsSearchAttachments] Could not find project matching key '{ProjectKey}' or name '{ProjectName}'. Available projects: {AvailableProjects}", 
+                    projectKey, projectName, availableKeys);
+                
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsSearchAttachments] Error resolving project key to ID");
+                return false;
+            }
+        }
+
         /// <summary>
         /// Refresh the current project state and update UI accordingly
         /// </summary>
-        private void RefreshProjectState()
+        private async Task RefreshProjectStateAsync()
         {
             try
             {
@@ -932,13 +978,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 var currentWorkspace = _workspaceContext?.CurrentWorkspace;
                 var workspaceInfo = _workspaceContext?.CurrentWorkspaceInfo;
                 var mediatorProjectName = _mediator?.CurrentProjectName;
-                var mediatorProjectId = _mediator?.CurrentProjectId;
+                // Note: Avoid accessing CurrentProjectId property to prevent deadlock
                 
-                _logger.LogInformation("[RequirementsSearchAttachments] DEBUG: Workspace={Workspace}, WorkspaceInfo={WorkspaceInfo}, MediatorName={MedName}, MediatorId={MedId}", 
-                    currentWorkspace?.JamaProject, workspaceInfo?.Name, mediatorProjectName, mediatorProjectId);
+                _logger.LogInformation("[RequirementsSearchAttachments] DEBUG: Workspace={Workspace}, WorkspaceInfo={WorkspaceInfo}, MediatorName={MedName}", 
+                    currentWorkspace?.JamaProject, workspaceInfo?.Name, mediatorProjectName);
                 
                 // Try to detect current project
-                var wasDetected = TryAutoDetectProjectId();
+                var wasDetected = await TryAutoDetectProjectIdAsync();
                 
                 var projectName = _mediator?.CurrentProjectName ?? "Unknown";
                 var projectId = SelectedProjectId;
@@ -960,9 +1006,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// <summary>
         /// Public method to refresh project state - can be called when tab becomes active
         /// </summary>
-        public void RefreshCurrentProjectState()
+        public async Task RefreshCurrentProjectStateAsync()
         {
-            RefreshProjectState();
+            await RefreshProjectStateAsync();
         }
 
         private async Task SearchAttachmentsWithProgressAsync(bool isBackgroundScan = false, CancellationToken cancellationToken = default)
@@ -976,7 +1022,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 if (SelectedProjectId <= 0)
                 {
                     // Try to auto-detect project ID first
-                    if (!TryAutoDetectProjectId())
+                    if (!await TryAutoDetectProjectIdAsync())
                     {
                         _logger.LogWarning("[RequirementsSearchAttachments] No valid project selected for attachment scanning (ID: {ProjectId})", SelectedProjectId);
                         StatusMessage = "No project selected - please select a project first";
@@ -1214,7 +1260,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             if (SelectedProjectId <= 0)
             {
                 // Try to auto-detect project ID first
-                if (!TryAutoDetectProjectId())
+                if (!await TryAutoDetectProjectIdAsync())
                 {
                     _logger.LogWarning("[RequirementsSearchAttachments] No valid project selected for attachment parsing (ID: {ProjectId})", SelectedProjectId);
                     StatusMessage = "No project selected - please select a project first";
