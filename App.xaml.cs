@@ -408,6 +408,10 @@ namespace TestCaseEditorApp
                     // Field-Level Quality Metrics (Task 6.5) - Template Form Architecture quality integration
                     services.AddTransient<TestCaseEditorApp.Services.Templates.IFieldLevelQualityService,
                                            TestCaseEditorApp.Services.Templates.FieldLevelQualityService>();
+                    
+                    // Service Compliance Wrapper (Task 6.8) - Universal compliance enforcement interface
+                    services.AddSingleton<TestCaseEditorApp.Services.Templates.IServiceComplianceWrapper,
+                                           TestCaseEditorApp.Services.Templates.ServiceComplianceWrapper>();
 
                     // ViewModels that need DI
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Title.ViewModels.TitleViewModel>();
