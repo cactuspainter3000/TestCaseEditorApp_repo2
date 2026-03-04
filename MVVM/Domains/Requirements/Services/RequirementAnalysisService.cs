@@ -1680,6 +1680,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                     }
                 }
 
+                // Create document name from requirement identifier (used by both DirectRag and AnythingLLM)
+                var documentName = $"Supplemental_Info_{requirement.Item?.Replace("/", "_")}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.md";
+
                 // ENHANCED: Use DirectRag instead of AnythingLLM for better processing
                 if (_directRagService?.IsConfigured == true)
                 {
@@ -1690,8 +1693,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                     {
                         Id = 999999, // Temporary ID
                         Name = documentName,
-                        MimeType = "text/markdown",
-                        Size = docContent.Length
+                        MimeType = "text/markdown"
+                        // Note: Size property removed as JamaAttachment doesn't have it
                     };
                     
                     try 
@@ -1700,7 +1703,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                         var indexSuccess = await _directRagService.IndexDocumentAsync(
                             tempAttachment, 
                             docContent.ToString(), 
-                            requirement.ProjectId ?? 0);
+                            0); // Use default project ID since requirement doesn't have ProjectId property
                             
                         if (indexSuccess)
                         {

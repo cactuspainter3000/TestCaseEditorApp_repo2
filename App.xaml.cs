@@ -397,6 +397,13 @@ namespace TestCaseEditorApp
                                            
                     services.AddTransient<TestCaseEditorApp.Services.Templates.IConstraintMetricsCollector, 
                                            TestCaseEditorApp.Services.Templates.ConstraintMetricsCollector>();
+                    
+                    // Deterministic Output Envelopes (Phase 6.3) - standardized LLM output format 
+                    services.AddTransient<TestCaseEditorApp.Services.Templates.IEnvelopeSchemaService,
+                                           TestCaseEditorApp.Services.Templates.EnvelopeSchemaService>();
+                                           
+                    services.AddTransient<TestCaseEditorApp.Services.Templates.IOutputEnvelopeService,
+                                           TestCaseEditorApp.Services.Templates.OutputEnvelopeService>();
 
                     // ViewModels that need DI
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Title.ViewModels.TitleViewModel>();
