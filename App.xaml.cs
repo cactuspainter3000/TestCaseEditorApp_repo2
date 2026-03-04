@@ -412,6 +412,10 @@ namespace TestCaseEditorApp
                     // Service Compliance Wrapper (Task 6.8) - Universal compliance enforcement interface
                     services.AddSingleton<TestCaseEditorApp.Services.Templates.IServiceComplianceWrapper,
                                            TestCaseEditorApp.Services.Templates.ServiceComplianceWrapper>();
+                    
+                    // A/B Testing Framework (Task 6.9) - Compare template vs legacy approaches with statistical analysis
+                    services.AddSingleton<TestCaseEditorApp.Services.Templates.IABTestingFramework,
+                                           TestCaseEditorApp.Services.Templates.ABTestingFramework>();
 
                     // ViewModels that need DI
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Title.ViewModels.TitleViewModel>();
