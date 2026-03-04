@@ -376,6 +376,28 @@ namespace TestCaseEditorApp
                     // Generic service monitoring
                     services.AddSingleton<GenericServiceMonitor>();
 
+                    // ===== TEMPLATE FORM ARCHITECTURE SERVICES (Phase 6.1) =====
+                    
+                    // Core Template Form Architecture services - structured LLM interaction
+                    services.AddTransient<TestCaseEditorApp.Services.Templates.ICapabilityDerivationTemplateService, 
+                                           TestCaseEditorApp.Services.Templates.CapabilityDerivationTemplateService>();
+                                           
+                    services.AddTransient<TestCaseEditorApp.Services.Templates.ISelfAuditingTemplateService, 
+                                           TestCaseEditorApp.Services.Templates.SelfAuditingTemplateService>();
+                    
+                    // Hard/Soft Constraint System (Phase 6.2) - graceful degradation for LLM responses
+                    services.AddTransient<TestCaseEditorApp.Services.Templates.IConstraintProcessor, 
+                                           TestCaseEditorApp.Services.Templates.ConstraintProcessor>();
+                                           
+                    services.AddTransient<TestCaseEditorApp.Services.Templates.ITemplateConstraintService, 
+                                           TestCaseEditorApp.Services.Templates.TemplateConstraintService>();
+                                           
+                    services.AddTransient<TestCaseEditorApp.Services.Templates.IConstraintRuleEngine, 
+                                           TestCaseEditorApp.Services.Templates.ConstraintRuleEngine>();
+                                           
+                    services.AddTransient<TestCaseEditorApp.Services.Templates.IConstraintMetricsCollector, 
+                                           TestCaseEditorApp.Services.Templates.ConstraintMetricsCollector>();
+
                     // ViewModels that need DI
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Title.ViewModels.TitleViewModel>();
                     
