@@ -10,12 +10,14 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Services.Parsing;
 using TestCaseEditorApp.Services.Prompts;
 using TestCaseEditorApp.Prompts;
+using TestCaseEditorApp.Services.Templates; // Task 6.7: Template Form Architecture integration
 
 namespace TestCaseEditorApp.Services
 {
     /// <summary>
     /// Service for deriving system capabilities from ATP (Acceptance Test Procedure) steps.
     /// Uses LLM analysis with structured A-N taxonomy to transform test procedures into system requirements.
+    /// Task 6.7 Enhanced: Integrated with Template Form Architecture for deterministic structured output
     /// </summary>
     public class SystemCapabilityDerivationService : ISystemCapabilityDerivationService
     {
@@ -31,10 +33,16 @@ namespace TestCaseEditorApp.Services
         private readonly IMBSERequirementClassifier _mbseClassifier; // MBSE-compliant system requirement classification
         private readonly IDerivationQualityScorer _qualityScorer; // Advanced multi-dimensional quality analysis
         
+        // Task 6.7: Template Form Architecture integration
+        private readonly IOutputEnvelopeService? _outputEnvelopeService; // Deterministic output parsing
+        private readonly ICapabilityDerivationTemplateService? _templateService; // Template form management
+        private readonly IFieldLevelQualityService? _fieldLevelQualityService; // Field-level quality tracking
+        
         // Service health tracking
         private DateTime? _lastSuccessfulOperation;
         private readonly Dictionary<string, object> _performanceMetrics;
 
+        // Task 6.7: Backward-compatible constructor without Template Form Architecture services
         public SystemCapabilityDerivationService(
             ITextGenerationService llmService,
             ILogger<SystemCapabilityDerivationService> logger,
@@ -46,6 +54,26 @@ namespace TestCaseEditorApp.Services
             IMBSERequirementClassifier mbseClassifier,
             IDerivationQualityScorer qualityScorer,
             IDirectRagService? directRagService = null) // Optional for RAG-enhanced analysis
+            : this(llmService, logger, responseParser, atpParser, promptBuilder, taxonomyValidator, capabilityAllocator, 
+                   mbseClassifier, qualityScorer, directRagService, null, null, null) // Template services nullable
+        {
+        }
+
+        // Task 6.7: Enhanced constructor with Template Form Architecture integration
+        public SystemCapabilityDerivationService(
+            ITextGenerationService llmService,
+            ILogger<SystemCapabilityDerivationService> logger,
+            ResponseParserManager responseParser,
+            ATPStepParser atpParser,
+            ICapabilityDerivationPromptBuilder promptBuilder,
+            TaxonomyValidator taxonomyValidator,
+            ICapabilityAllocator capabilityAllocator,
+            IMBSERequirementClassifier mbseClassifier,
+            IDerivationQualityScorer qualityScorer,
+            IDirectRagService? directRagService,
+            IOutputEnvelopeService? outputEnvelopeService,
+            ICapabilityDerivationTemplateService? templateService,
+            IFieldLevelQualityService? fieldLevelQualityService)
         {
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -57,11 +85,18 @@ namespace TestCaseEditorApp.Services
             _mbseClassifier = mbseClassifier ?? throw new ArgumentNullException(nameof(mbseClassifier));
             _qualityScorer = qualityScorer ?? throw new ArgumentNullException(nameof(qualityScorer));
             _directRagService = directRagService; // Optional for enhanced analysis
+            
+            // Task 6.7: Template Form Architecture services (optional for backward compatibility)
+            _outputEnvelopeService = outputEnvelopeService;
+            _templateService = templateService;
+            _fieldLevelQualityService = fieldLevelQualityService;
+            
             _taxonomy = SystemRequirementTaxonomy.Default;
             _performanceMetrics = new Dictionary<string, object>();
             
-            _logger.LogInformation("SystemCapabilityDerivationService initialized with taxonomy containing {CategoryCount} categories", 
-                _taxonomy.Categories.Count);
+            var integrationMode = templateService != null ? "with Template Form Architecture" : "in legacy JSON parsing mode";
+            _logger.LogInformation("SystemCapabilityDerivationService initialized {IntegrationMode} with taxonomy containing {CategoryCount} categories", 
+                integrationMode, _taxonomy.Categories.Count);
         }
 
         /// <summary>
@@ -577,6 +612,51 @@ namespace TestCaseEditorApp.Services
                         llmResponse.Length > 200 ? llmResponse.Substring(0, 200) + "..." : llmResponse);
                 }
 
+                // Task 6.7: Try Template Form Architecture parsing first if available
+                if (_templateService != null && _outputEnvelopeService != null)
+                {
+                    _logger.LogDebug("🎯 Task 6.7: Using Template Form Architecture for structured parsing");
+                    
+                    try
+                    {
+                        var template = _templateService.GetStandardCapabilityTemplate();
+                        var filledForm = _templateService.ParseFormResponse(llmResponse, template);
+                        
+                        if (filledForm.ValidationResult.IsValid)
+                        {
+                            // Convert filled form to DerivedCapability objects
+                            var templateCapabilities = ConvertFilledFormToCapabilities(filledForm, sourceStep);
+                            result.DerivedCapabilities = templateCapabilities;
+                            
+                            _logger.LogInformation("✅ Template Form parsing succeeded: {CapabilityCount} capabilities, validation score: {Score:F2}", 
+                                templateCapabilities.Count, filledForm.ValidationResult.ComplianceScore);
+                            
+                            // Track field-level quality metrics
+                            if (_fieldLevelQualityService != null)
+                            {
+                                await TrackFieldQualityMetricsAsync(filledForm, template);
+                            }
+                            
+                            result.ProcessingWarnings.Add($"Parsed using Template Form Architecture (score: {filledForm.ValidationResult.ComplianceScore:F2})");
+                            return result;
+                        }
+                        else
+                        {
+                            _logger.LogWarning("⚠️ Template Form validation failed ({ViolationCount} violations), falling back to JSON parsing", 
+                                filledForm.ValidationResult.FieldViolations.Count);
+                            result.ProcessingWarnings.Add($"Template Form validation failed: {string.Join(", ", filledForm.ValidationResult.FieldViolations)}");
+                        }
+                    }
+                    catch (Exception templateEx)
+                    {
+                        _logger.LogWarning(templateEx, "Template Form parsing failed, falling back to legacy JSON parsing");
+                        result.ProcessingWarnings.Add($"Template parsing error: {templateEx.Message}");
+                    }
+                }
+
+                // Fallback to legacy JSON parsing
+                _logger.LogDebug("📋 Using legacy JSON parsing");
+                
                 // Parse structured JSON response from LLM
                 if (TryParseJsonCapabilities(llmResponse, out var capabilities))
                 {
@@ -1196,6 +1276,119 @@ namespace TestCaseEditorApp.Services
             conflicts.AddRange(allocationCounts.Select(c => $"High allocation count: {c}"));
             
             return conflicts;
+        }
+
+        // Task 6.7: Template Form Architecture integration helper methods
+
+        /// <summary>
+        /// Convert filled template form to list of DerivedCapability objects
+        /// </summary>
+        private List<DerivedCapability> ConvertFilledFormToCapabilities(IFilledForm filledForm, string sourceStep)
+        {
+            var capabilities = new List<DerivedCapability>();
+            
+            try
+            {
+                // Extract capabilities array from form
+                if (!filledForm.FieldValues.ContainsKey("derivedCapabilities"))
+                {
+                    _logger.LogWarning("Template form missing 'derivedCapabilities' field");
+                    return capabilities;
+                }
+                
+                var capabilitiesRaw = filledForm.FieldValues["derivedCapabilities"];
+                var capabilityTexts = new List<string>();
+                
+                if (capabilitiesRaw is List<string> capList)
+                {
+                    capabilityTexts = capList;
+                }
+                else if (capabilitiesRaw is string capString)
+                {
+                    capabilityTexts.Add(capString);
+                }
+                
+                // Extract additional form fields
+                var taxonomyCategories = filledForm.FieldValues.ContainsKey("taxonomyCategories") && 
+                                        filledForm.FieldValues["taxonomyCategories"] is List<string> taxList ? 
+                                        taxList : new List<string>();
+                var rationale = filledForm.FieldValues.ContainsKey("derivationRationale") ? 
+                               filledForm.FieldValues["derivationRationale"]?.ToString() : "";
+                var confidenceScore = filledForm.FieldValues.ContainsKey("confidenceScore") ? 
+                                     Convert.ToDouble(filledForm.FieldValues["confidenceScore"]) : 0.8;
+                var isSystemLevel = filledForm.FieldValues.ContainsKey("isSystemLevel") && 
+                                   filledForm.FieldValues["isSystemLevel"] is bool isSys ? isSys : true;
+                
+                // Create DerivedCapability objects
+                for (int i = 0; i < capabilityTexts.Count; i++)
+                {
+                    var capText = capabilityTexts[i];
+                    if (string.IsNullOrWhiteSpace(capText)) continue;
+                    
+                    var taxCategory = i < taxonomyCategories.Count ? taxonomyCategories[i] : "Generic";
+                    
+                    capabilities.Add(new DerivedCapability
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        RequirementText = capText,
+                        DerivationRationale = rationale ?? "Template form derivation",
+                        TaxonomyCategory = taxCategory,
+                        ConfidenceScore = confidenceScore,
+                        SourceATPStep = sourceStep,
+                        SourceMetadata = new Dictionary<string, string>
+                        {
+                            ["ParseMethod"] = "TemplateForms",
+                            ["FormCompletionScore"] = filledForm.CompletionScore.ToString("F2"),
+                            ["FormValidationScore"] = filledForm.ValidationResult.ComplianceScore.ToString("F2"),
+                            ["IsSystemLevel"] = isSystemLevel.ToString()
+                        }
+                    });
+                }
+                
+                _logger.LogDebug("Converted {Count} capabilities from template form", capabilities.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to convert filled form to capabilities");
+            }
+            
+            return capabilities;
+        }
+
+        /// <summary>
+        /// Track field-level quality metrics for Template Form Architecture
+        /// </summary>
+        private async Task TrackFieldQualityMetricsAsync(IFilledForm filledForm, IFormTemplate template)
+        {
+            if (_fieldLevelQualityService == null) return;
+            
+            try
+            {
+                foreach (var field in template.Fields)
+                {
+                    var fieldResult = new FieldProcessingResult
+                    {
+                        FieldName = field.FieldName,
+                        FieldType = field.Criticality,
+                        ProcessedAt = DateTime.UtcNow,
+                        IsSuccessful = filledForm.FieldValues.ContainsKey(field.FieldName) && 
+                                       filledForm.FieldValues[field.FieldName] != null,
+                        ConfidenceScore = filledForm.ValidationResult.ComplianceScore,
+                        ProcessingTime = TimeSpan.FromMilliseconds(10), // Placeholder - could track actual time
+                        RetryCount = 0,
+                        TemplateId = template.TemplateName,
+                        SessionId = Guid.NewGuid().ToString()
+                    };
+                    
+                    await _fieldLevelQualityService.RecordFieldProcessingResultAsync(fieldResult);
+                }
+                
+                _logger.LogDebug("Recorded field quality metrics for {FieldCount} fields", template.Fields.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to track field quality metrics");
+            }
         }
 
         private string GetModelName()
