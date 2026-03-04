@@ -16,7 +16,6 @@ namespace TestCaseEditorApp.Services
     {
         private readonly ILogger<DerivationQualityScorer> _logger;
         private readonly TaxonomyValidator _taxonomyValidator;
-        private readonly ISystemCapabilityDerivationService _derivationService;
         
         // Quality scoring weights and thresholds
         private readonly QualityWeights _weights;
@@ -24,12 +23,10 @@ namespace TestCaseEditorApp.Services
 
         public DerivationQualityScorer(
             ILogger<DerivationQualityScorer> logger,
-            TaxonomyValidator taxonomyValidator,
-            ISystemCapabilityDerivationService derivationService)
+            TaxonomyValidator taxonomyValidator)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _taxonomyValidator = taxonomyValidator ?? throw new ArgumentNullException(nameof(taxonomyValidator));
-            _derivationService = derivationService ?? throw new ArgumentNullException(nameof(derivationService));
             
             _weights = new QualityWeights();
             _historicalScores = new List<QualityScoreRecord>();
@@ -96,7 +93,7 @@ namespace TestCaseEditorApp.Services
         /// </summary>
         public async Task<List<DerivationQualityScore>> ScoreBatchDerivationsAsync(
             List<DerivationResult> derivationResults,
-            QualityScoringOptions options = null)
+            QualityScoringOptions? options = null)
         {
             try
             {

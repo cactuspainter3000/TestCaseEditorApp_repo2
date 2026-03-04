@@ -21,9 +21,10 @@ namespace TestCaseEditorApp.Tests.Phase4Services
         private Mock<ILogger<SystemCapabilityDerivationService>> _mockLogger;
         private Mock<ResponseParserManager> _mockResponseParser;
         private Mock<ATPStepParser> _mockAtpParser;  
-        private Mock<CapabilityDerivationPromptBuilder> _mockPromptBuilder;
+        private Mock<ICapabilityDerivationPromptBuilder> _mockPromptBuilder;
         private Mock<TaxonomyValidator> _mockTaxonomyValidator;
         private Mock<ICapabilityAllocator> _mockCapabilityAllocator;
+        private Mock<IMBSERequirementClassifier> _mockMBSEClassifier;
         private SystemCapabilityDerivationService _service;
 
         [TestInitialize]
@@ -31,11 +32,16 @@ namespace TestCaseEditorApp.Tests.Phase4Services
         {
             _mockLlmService = new Mock<ITextGenerationService>();
             _mockLogger = new Mock<ILogger<SystemCapabilityDerivationService>>();
-            _mockResponseParser = new Mock<ResponseParserManager>();
-            _mockAtpParser = new Mock<ATPStepParser>();
-            _mockPromptBuilder = new Mock<CapabilityDerivationPromptBuilder>();
-            _mockTaxonomyValidator = new Mock<TaxonomyValidator>();
+            
+            // Create mocks with constructor arguments for classes that need them
+            var mockAtpLogger = new Mock<ILogger<ATPStepParser>>();
+            _mockResponseParser = new Mock<ResponseParserManager>(); // Parameterless constructor
+            _mockAtpParser = new Mock<ATPStepParser>(mockAtpLogger.Object);
+            _mockPromptBuilder = new Mock<ICapabilityDerivationPromptBuilder>();
+            var mockTaxonomyLogger = new Mock<ILogger<TaxonomyValidator>>();
+            _mockTaxonomyValidator = new Mock<TaxonomyValidator>(mockTaxonomyLogger.Object);
             _mockCapabilityAllocator = new Mock<ICapabilityAllocator>();
+            _mockMBSEClassifier = new Mock<IMBSERequirementClassifier>();
 
             _service = new SystemCapabilityDerivationService(
                 _mockLlmService.Object,
@@ -44,7 +50,10 @@ namespace TestCaseEditorApp.Tests.Phase4Services
                 _mockAtpParser.Object,
                 _mockPromptBuilder.Object,
                 _mockTaxonomyValidator.Object,
-                _mockCapabilityAllocator.Object);
+                _mockCapabilityAllocator.Object,
+                _mockMBSEClassifier.Object,
+                null // directRagService - optional parameter
+            );
         }
 
         [TestMethod]
@@ -69,7 +78,7 @@ namespace TestCaseEditorApp.Tests.Phase4Services
             };
 
             _mockPromptBuilder.Setup(x => x.BuildDerivationPrompt(
-                It.IsAny<string>(), It.IsAny<ParsedATPStep>(), It.IsAny<string>(), It.IsAny<DerivationOptions>()))
+                It.IsAny<string>(), It.IsAny<ParsedATPStep>(), It.IsAny<string>(), It.IsAny<DerivationOptions>(), It.IsAny<string>()))
                 .Returns(expectedPrompt);
 
             _mockLlmService.Setup(x => x.GenerateAsync(expectedPrompt, It.IsAny<CancellationToken>()))
@@ -124,7 +133,7 @@ namespace TestCaseEditorApp.Tests.Phase4Services
             var options = new DerivationOptions();
 
             _mockPromptBuilder.Setup(x => x.BuildDerivationPrompt(
-                It.IsAny<string>(), It.IsAny<ParsedATPStep>(), It.IsAny<string>(), It.IsAny<DerivationOptions>()))
+                It.IsAny<string>(), It.IsAny<ParsedATPStep>(), It.IsAny<string>(), It.IsAny<DerivationOptions>(), It.IsAny<string>()))
                 .Returns("test prompt");
 
             _mockLlmService.Setup(x => x.GenerateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -152,7 +161,9 @@ namespace TestCaseEditorApp.Tests.Phase4Services
                     _mockAtpParser.Object,
                     _mockPromptBuilder.Object,
                     _mockTaxonomyValidator.Object,
-                    _mockCapabilityAllocator.Object));
+                    _mockCapabilityAllocator.Object,
+                    _mockMBSEClassifier.Object,
+                    null));
         }
 
         [TestMethod]
@@ -166,7 +177,9 @@ namespace TestCaseEditorApp.Tests.Phase4Services
                 _mockAtpParser.Object,
                 _mockPromptBuilder.Object,
                 _mockTaxonomyValidator.Object,
-                _mockCapabilityAllocator.Object);
+                _mockCapabilityAllocator.Object,
+                _mockMBSEClassifier.Object,
+                null);
 
             // Assert
             Assert.IsNotNull(service);

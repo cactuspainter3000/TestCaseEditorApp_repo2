@@ -518,7 +518,7 @@ namespace TestCaseEditorApp.MVVM.Models
         /// <summary>
         /// Specific taxonomy categories to include (null = all categories)
         /// </summary>
-        public List<string> TaxonomyCategoriesToInclude { get; set; } = null;
+        public List<string> TaxonomyCategoriesToInclude { get; set; } = new List<string>();
 
         /// <summary>
         /// Delay between generation requests to avoid overwhelming LLM service

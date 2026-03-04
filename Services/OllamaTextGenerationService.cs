@@ -16,7 +16,7 @@ public sealed class OllamaTextGenerationService : ITextGenerationService
     {
         _http = http ?? new HttpClient { BaseAddress = new System.Uri("http://localhost:11434/") };
         _model = model;
-        _http.Timeout = System.TimeSpan.FromMinutes(5);
+        _http.Timeout = System.TimeSpan.FromMinutes(15); // Increased timeout for large document processing
     }
 
     public async Task<string> GenerateAsync(string prompt, CancellationToken ct = default)

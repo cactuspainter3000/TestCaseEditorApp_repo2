@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TestCaseEditorApp.Services;
 
 namespace TestCaseEditorApp.MVVM.Models
 {
@@ -128,6 +129,11 @@ namespace TestCaseEditorApp.MVVM.Models
         public List<RejectedItem> RejectedItems { get; set; } = new List<RejectedItem>();
 
         /// <summary>
+        /// ATP steps that were skipped due to timeouts or errors (can be retried)
+        /// </summary>
+        public List<SkippedAtpStep> SkippedAtpSteps { get; set; } = new List<SkippedAtpStep>();
+
+        /// <summary>
         /// Overall quality score for the derivation (0.0 to 1.0)
         /// </summary>
         public double QualityScore { get; set; } = 0.0;
@@ -158,6 +164,11 @@ namespace TestCaseEditorApp.MVVM.Models
         public Dictionary<string, string> SourceMetadata { get; set; } = new Dictionary<string, string>();
 
         /// <summary>
+        /// Results of MBSE system-level requirement analysis and filtering
+        /// </summary>
+        public MBSEAnalysisResult? MBSEAnalysisResult { get; set; }
+
+        /// <summary>
         /// Coverage analysis - which taxonomy categories were addressed
         /// </summary>
         public List<string> CoveredCategories => DerivedCapabilities
@@ -175,6 +186,7 @@ namespace TestCaseEditorApp.MVVM.Models
             {
                 TotalCapabilitiesDerived = DerivedCapabilities.Count,
                 TotalItemsRejected = RejectedItems.Count,
+                TotalItemsSkipped = SkippedAtpSteps.Count,
                 AverageConfidenceScore = DerivedCapabilities.Count > 0 
                     ? DerivedCapabilities.Average(c => c.ConfidenceScore) 
                     : 0.0,
@@ -188,6 +200,11 @@ namespace TestCaseEditorApp.MVVM.Models
         /// Check if the derivation was successful
         /// </summary>
         public bool IsSuccessful => DerivedCapabilities.Count > 0 && ProcessingWarnings.Count == 0;
+
+        /// <summary>
+        /// Check if there are items that could be retried
+        /// </summary>
+        public bool HasRetryableItems => SkippedAtpSteps.Count > 0;
     }
 
     /// <summary>
@@ -228,6 +245,7 @@ namespace TestCaseEditorApp.MVVM.Models
     {
         public int TotalCapabilitiesDerived { get; set; }
         public int TotalItemsRejected { get; set; }
+        public int TotalItemsSkipped { get; set; }
         public double AverageConfidenceScore { get; set; }
         public int CategoriesAddressed { get; set; }
         public int IncompleteSpecifications { get; set; }
@@ -235,9 +253,11 @@ namespace TestCaseEditorApp.MVVM.Models
 
         public override string ToString()
         {
-            return $"Derived: {TotalCapabilitiesDerived}, Rejected: {TotalItemsRejected}, " +
-                   $"Avg Confidence: {AverageConfidenceScore:F2}, Categories: {CategoriesAddressed}, " +
-                   $"Processing: {ProcessingTimeMs}ms";
+            var result = $"Derived: {TotalCapabilitiesDerived}, Rejected: {TotalItemsRejected}";
+            if (TotalItemsSkipped > 0)
+                result += $", Skipped: {TotalItemsSkipped}";
+            result += $", Avg Confidence: {AverageConfidenceScore:F2}, Categories: {CategoriesAddressed}, Processing: {ProcessingTimeMs}ms";
+            return result;
         }
     }
 
@@ -462,5 +482,58 @@ namespace TestCaseEditorApp.MVVM.Models
         public string Description { get; set; } = string.Empty;
         public Dictionary<string, double> TaxonomyAffinities { get; set; } = new();
         public List<string> KeywordPatterns { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Results of MBSE system-level requirement analysis and filtering.
+    /// Contains statistics and filtered items from the MBSE classification process.
+    /// </summary>
+    public class MBSEAnalysisResult
+    {
+        /// <summary>Total number of candidate requirements evaluated</summary>
+        public int TotalCandidatesEvaluated { get; set; }
+        
+        /// <summary>Number of requirements classified as system-level</summary>
+        public int SystemLevelRequirementsCount { get; set; }
+        
+        /// <summary>Number of requirements classified as component-level</summary>
+        public int ComponentLevelRequirementsCount { get; set; }
+        
+        /// <summary>Number of requirements classified as implementation constraints</summary>
+        public int ImplementationConstraintsCount { get; set; }
+        
+        /// <summary>Average MBSE compliance score across all evaluated requirements</summary>
+        public double AverageMBSEScore { get; set; }
+        
+        /// <summary>Percentage of candidates that qualified as system-level</summary>
+        public double SystemLevelPercentage { get; set; }
+        
+        /// <summary>Component-level requirements that were filtered out</summary>
+        public List<string> FilteredComponentRequirements { get; set; } = new();
+        
+        /// <summary>Implementation constraints that were filtered out</summary>
+        public List<string> FilteredImplementationConstraints { get; set; } = new();
+
+        /// <summary>
+        /// Get a summary of the MBSE analysis results
+        /// </summary>
+        public string GetSummary()
+        {
+            return $"MBSE Analysis: {SystemLevelRequirementsCount}/{TotalCandidatesEvaluated} " +
+                   $"system-level ({SystemLevelPercentage:F1}%), " +
+                   $"filtered {ComponentLevelRequirementsCount} component-level, " +
+                   $"{ImplementationConstraintsCount} implementation constraints " +
+                   $"(avg score: {AverageMBSEScore:F2})";
+        }
+
+        /// <summary>
+        /// Check if the MBSE analysis found any true system-level requirements
+        /// </summary>
+        public bool HasSystemLevelRequirements => SystemLevelRequirementsCount > 0;
+
+        /// <summary>
+        /// Check if most candidates were filtered out (may indicate over-generation)
+        /// </summary>
+        public bool HighFilterRate => TotalCandidatesEvaluated > 0 && SystemLevelPercentage < 25.0;
     }
 }

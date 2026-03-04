@@ -13,7 +13,8 @@
                 "Phase 2: Derivation Engine", 
                 "Phase 3: Training Data Pipeline",
                 "Phase 4: Integration & Validation",
-                "Phase 5: Testing & Deployment"
+                "Phase 5: Testing & Deployment",
+                "Phase 6: Template Forms & Self-Auditing"
             ],
             "presentation": {
                 "echo": true,
@@ -287,6 +288,108 @@
             "args": ["User guides, architectural documentation, training materials"],
             "group": "build",
             "dependsOn": ["5.4: User Acceptance Testing"]
+        },
+
+        // PHASE 6: TEMPLATE FORMS & SELF-AUDITING
+        {
+            "label": "Phase 6: Template Forms & Self-Auditing",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Phase 6: Implement structured form templates and LLM self-auditing for enterprise reliability"],
+            "group": "build",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Phase 5: Testing & Deployment",
+                "6.1: Design Template Form Architecture",
+                "6.2: Implement Hard/Soft Constraint System",
+                "6.3: Build Template Form Service",
+                "6.4: Create Self-Auditing Engine",
+                "6.5: Add Field-Level Performance Metrics",
+                "6.6: Implement Deterministic Output Envelopes",
+                "6.7: Integrate with SystemCapabilityDerivationService",
+                "6.8: Build Compliance Wrapper Interface",
+                "6.9: Create A/B Testing Framework",
+                "6.10: Add Telemetry & Dashboard Integration"
+            ]
+        },
+        {
+            "label": "6.1: Design Template Form Architecture",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Create Services/Templates/ with FormField, FieldCriticality, ValidationRule models"],
+            "group": "build"
+        },
+        {
+            "label": "6.2: Implement Hard/Soft Constraint System",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Add FieldConstraintType (HardReject/SoftRetry/FlagOnly) for graceful degradation"],
+            "group": "build",
+            "dependsOn": ["6.1: Design Template Form Architecture"]
+        },
+        {
+            "label": "6.3: Build Template Form Service",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Services/Templates/CapabilityDerivationTemplateService.cs with form generation & parsing"],
+            "group": "build",
+            "dependsOn": ["6.2: Implement Hard/Soft Constraint System"]
+        },
+        {
+            "label": "6.4: Create Self-Auditing Engine",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Services/Templates/SelfAuditingTemplateService.cs for two-phase generate+audit"],
+            "group": "build",
+            "dependsOn": ["6.3: Build Template Form Service"]
+        },
+        {
+            "label": "6.5: Add Field-Level Performance Metrics",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Track retry rates, confidence patterns, failure modes per field type"],
+            "group": "build",
+            "dependsOn": ["6.4: Create Self-Auditing Engine"]
+        },
+        {
+            "label": "6.6: Implement Deterministic Output Envelopes",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Pre-generated JSON shells - LLM only fills values, cannot modify structure"],
+            "group": "build",
+            "dependsOn": ["6.5: Add Field-Level Performance Metrics"]
+        },
+        {
+            "label": "6.7: Integrate with SystemCapabilityDerivationService",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Migrate from JSON parsing to template forms in existing derivation service"],
+            "group": "build",
+            "dependsOn": ["6.6: Implement Deterministic Output Envelopes"]
+        },
+        {
+            "label": "6.8: Build Compliance Wrapper Interface",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Treat LLM as engineered system component with contract, validation, telemetry"],
+            "group": "build",
+            "dependsOn": ["6.7: Integrate with SystemCapabilityDerivationService"]
+        },
+        {
+            "label": "6.9: Create A/B Testing Framework",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Compare template forms vs JSON parsing with real data and metrics"],
+            "group": "build",
+            "dependsOn": ["6.8: Build Compliance Wrapper Interface"]
+        },
+        {
+            "label": "6.10: Add Telemetry & Dashboard Integration",
+            "type": "shell",
+            "command": "echo",
+            "args": ["Enterprise monitoring, field completion rates, confidence calibration metrics"],
+            "group": "build",
+            "dependsOn": ["6.9: Create A/B Testing Framework"]
         },
 
         // UTILITY TASKS

@@ -9,7 +9,6 @@
 		<RootNamespace>TestCaseEditorApp</RootNamespace>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 		<GenerateDependencyFile>true</GenerateDependencyFile>
-		<GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
 	</PropertyGroup>
 
 	<!-- Exclude test projects and runner/tests folder from SDK wildcard includes -->
@@ -70,4 +69,18 @@
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </None>
 	</ItemGroup>
+	
+	<!-- Always create deps.json file to prevent test project build errors -->
+	<Target Name="CreateDepsJson" AfterTargets="AfterBuild">
+		<PropertyGroup>
+			<DepsJsonPath>$(OutputPath)$(AssemblyName).deps.json</DepsJsonPath>
+		</PropertyGroup>
+		<WriteLinesToFile 
+			File="$(DepsJsonPath)" 
+			Lines='{ "runtimeTarget": { "name": ".NETCoreApp,Version=v8.0" }, "compilationOptions": {}, "targets": { ".NETCoreApp,Version=v8.0": {} }, "libraries": {} }' 
+			Overwrite="true" 
+			Condition="!Exists('$(DepsJsonPath)')" />
+		<Message Text="Created deps.json for test compatibility at $(DepsJsonPath)" Importance="high" Condition="!Exists('$(DepsJsonPath)')" />
+	</Target>
+
 </Project>

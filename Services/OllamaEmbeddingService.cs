@@ -46,12 +46,12 @@ namespace TestCaseEditorApp.Services
             if (string.IsNullOrWhiteSpace(text))
                 return new float[_embeddingDimensions]; // Return zero vector
 
-            // Truncate text if it's too long (model has 512 token context limit)
-            // Very conservative: 1 token ≈ 1.5 characters for safety with special tokens
-            const int maxChars = 400; // Very conservative for 512 token limit
+            // mxbai-embed-large:335m-v1-fp16 has ~512 token limit (very conservative for safety)
+            // Ultra-conservative: 1 token ≈ 2 characters for safety with special tokens and overhead
+            const int maxChars = 200; // Very conservative limit for mxbai-embed-large model
             if (text.Length > maxChars)
             {
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[OllamaEmbedding] Truncating text from {text.Length} to {maxChars} chars due to model context limit");
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[OllamaEmbedding] Truncating text from {text.Length} to {maxChars} chars due to mxbai-embed-large context limit");
                 text = text.Substring(0, maxChars);
             }
 

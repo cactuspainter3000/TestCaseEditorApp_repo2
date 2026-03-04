@@ -28,7 +28,16 @@ namespace TestCaseEditorApp.Services
         private const int ChunkOverlap = 50; // Reduced proportionally
         private const string EmbeddingModel = "mxbai-embed-large:335m-v1-fp16";
 
-        public bool IsConfigured => _embeddingService != null;
+        public bool IsConfigured 
+        { 
+            get 
+            {
+                var configured = _embeddingService != null;
+                _logger.LogInformation("[DirectRAG] Configuration check: EmbeddingService={IsAvailable}, Configured={IsConfigured}", 
+                    _embeddingService != null, configured);
+                return configured;
+            }
+        }
 
         public DirectRagService(IOllamaEmbeddingService embeddingService, ILogger<DirectRagService> logger)
         {
@@ -177,16 +186,31 @@ namespace TestCaseEditorApp.Services
                     return "";
                 }
 
-                // Build context string from search results
+                // Build context string from search results with size limit
                 var contextBuilder = new StringBuilder();
                 contextBuilder.AppendLine("RELEVANT PROJECT DOCUMENTATION:");
                 contextBuilder.AppendLine();
 
+                const int maxContextSize = 4000; // Further reduced context limit for model stability
+                int currentSize = contextBuilder.Length;
+
                 foreach (var result in searchResults)
                 {
-                    contextBuilder.AppendLine($"From: {result.DocumentName} (Relevance: {result.SimilarityScore:F2})");
-                    contextBuilder.AppendLine($"Content: {result.ChunkText}");
-                    contextBuilder.AppendLine();
+                    var chunkHeader = $"From: {result.DocumentName} (Relevance: {result.SimilarityScore:F2})\n";
+                    var chunkContent = $"Content: {result.ChunkText}\n\n";
+                    var chunkTotal = chunkHeader + chunkContent;
+
+                    // Check if adding this chunk would exceed the limit
+                    if (currentSize + chunkTotal.Length > maxContextSize)
+                    {
+                        _logger.LogInformation("[DirectRAG] Stopping context generation at {CurrentSize} chars to avoid exceeding {MaxSize} char limit", 
+                            currentSize, maxContextSize);
+                        break;
+                    }
+
+                    contextBuilder.AppendLine(chunkHeader.TrimEnd());
+                    contextBuilder.AppendLine(chunkContent.TrimEnd());
+                    currentSize += chunkTotal.Length;
                 }
 
                 var context = contextBuilder.ToString();

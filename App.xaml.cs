@@ -177,6 +177,7 @@ namespace TestCaseEditorApp
                     {
                         var primaryLlmService = LlmFactory.Create();
                         var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
+                        var directRagService = provider.GetService<IDirectRagService>(); // RAG-enhanced processing
                         var promptBuilder = provider.GetRequiredService<RequirementAnalysisPromptBuilder>();
                         var parserManager = provider.GetRequiredService<ResponseParserManager>();
                         var cache = provider.GetService<RequirementAnalysisCache>(); // Optional
@@ -192,6 +193,7 @@ namespace TestCaseEditorApp
                             healthMonitor: null, // No health monitor for performance
                             cache: cache,
                             anythingLLMService: anythingLLMService,
+                            directRagService: directRagService, // RAG-enhanced processing
                             derivationService: derivationService,
                             gapAnalyzer: gapAnalyzer);
                     });
@@ -209,6 +211,12 @@ namespace TestCaseEditorApp
                     
                     // SyntheticTrainingDataGenerator - Generate synthetic ATP+derivation pairs for training
                     services.AddSingleton<ISyntheticTrainingDataGenerator, SyntheticTrainingDataGenerator>();
+                    
+                    // MBSERequirementClassifier - MBSE-compliant system-level requirement classification
+                    services.AddSingleton<IMBSERequirementClassifier, MBSERequirementClassifier>();
+                    
+                    // DerivationQualityScorer - Multi-dimensional scoring of derivation quality (moved here for dependency order)
+                    services.AddSingleton<IDerivationQualityScorer, DerivationQualityScorer>();
                     
                     // SystemCapabilityDerivationService - ATP-to-requirements derivation with A-N taxonomy
                     services.AddSingleton<ISystemCapabilityDerivationService, SystemCapabilityDerivationService>();
@@ -228,9 +236,6 @@ namespace TestCaseEditorApp
                     services.AddTransient<TrainingDataValidationViewModel>();
 
                     // ===== PROMPT REFINEMENT AND QUALITY SCORING SERVICES =====
-                    
-                    // DerivationQualityScorer - Multi-dimensional scoring of derivation quality
-                    services.AddSingleton<IDerivationQualityScorer, DerivationQualityScorer>();
                     
                     // PromptRefinementEngine - Intelligent prompt optimization with A/B testing
                     services.AddSingleton<IPromptRefinementEngine, PromptRefinementEngine>();

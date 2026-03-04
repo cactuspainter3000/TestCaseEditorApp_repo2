@@ -44,6 +44,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
         private readonly LlmServiceHealthMonitor? _healthMonitor;
         private readonly RequirementAnalysisCache? _cache;
         private readonly AnythingLLMService? _anythingLLMService;
+        private readonly IDirectRagService? _directRagService; // RAG service for enhanced processing
         private readonly ResponseParserManager _parserManager;
         
         // TASK 4.4: Enhanced derivation analysis services
@@ -149,6 +150,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
             LlmServiceHealthMonitor? healthMonitor = null,
             RequirementAnalysisCache? cache = null,
             AnythingLLMService? anythingLLMService = null,
+            IDirectRagService? directRagService = null, // RAG-enhanced processing
             ISystemCapabilityDerivationService? derivationService = null,
             IRequirementGapAnalyzer? gapAnalyzer = null)
         {
@@ -158,6 +160,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
             _healthMonitor = healthMonitor;
             _cache = cache;
             _anythingLLMService = anythingLLMService;
+            _directRagService = directRagService; // RAG service for enhanced processing
             _derivationService = derivationService;
             _gapAnalyzer = gapAnalyzer;
         }
@@ -1677,17 +1680,65 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                     }
                 }
 
-                // Upload as document to the RAG workspace
-                var documentName = $"Supplemental_Info_{requirement.Item}.md";
-                var uploadSuccess = await _anythingLLMService.UploadDocumentAsync(workspaceSlug, documentName, docContent.ToString());
-                
-                if (uploadSuccess)
+                // ENHANCED: Use DirectRag instead of AnythingLLM for better processing
+                if (_directRagService?.IsConfigured == true)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Successfully uploaded supplemental information document for {requirement.Item} ({docContent.Length} characters)");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[RAG-ENHANCED] Using DirectRag for supplemental document indexing (preferred method)");
+                    
+                    // Create a temporary attachment-like object for DirectRag
+                    var tempAttachment = new JamaAttachment 
+                    {
+                        Id = 999999, // Temporary ID
+                        Name = documentName,
+                        MimeType = "text/markdown",
+                        Size = docContent.Length
+                    };
+                    
+                    try 
+                    {
+                        // Use DirectRag to properly index the document content
+                        var indexSuccess = await _directRagService.IndexDocumentAsync(
+                            tempAttachment, 
+                            docContent.ToString(), 
+                            requirement.ProjectId ?? 0);
+                            
+                        if (indexSuccess)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[RAG-ENHANCED] Successfully indexed supplemental document via DirectRag for {requirement.Item} ({docContent.Length} characters)");
+                        }
+                        else
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG-ENHANCED] DirectRag indexing failed for {requirement.Item}, will not use fallback");
+                        }
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Error($"[RAG-ENHANCED] DirectRag processing failed for {requirement.Item}: {ex.Message}");
+                        // Don't fall back to AnythingLLM - user wanted RAG-only processing
+                        return;
+                    }
+                }
+                
+                // LEGACY PATH: Only use AnythingLLM if DirectRag is not available (user should see this as a warning)
+                if (_anythingLLMService != null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG-FALLBACK] DirectRag not available - using legacy AnythingLLM processing (not preferred)");
+                    
+                    var uploadSuccess = await _anythingLLMService.UploadDocumentAsync(workspaceSlug, documentName, docContent.ToString());
+                    
+                    if (uploadSuccess)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[RAG-FALLBACK] Successfully uploaded via legacy AnythingLLM for {requirement.Item} ({docContent.Length} characters)");
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG-FALLBACK] Legacy AnythingLLM upload failed for {requirement.Item}");
+                    }
                 }
                 else
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] Failed to upload supplemental information document for {requirement.Item}");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[RAG-ERROR] No document processing service available for {requirement.Item}");
                 }
             }
             catch (Exception ex)

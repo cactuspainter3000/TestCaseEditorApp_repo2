@@ -1316,13 +1316,44 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     });
                 };
 
-                // Use real document parsing via mediator - pass full attachment to avoid re-scanning
-                var extractedRequirements = await _mediator.ParseAttachmentRequirementsAsync(SelectedAttachment, SelectedProjectId, progressCallback, _parsingCancellationTokenSource.Token);
+                // Create streaming callback for real-time requirement updates
+                System.Action<Requirement> onRequirementDiscovered = (requirement) => {
+                    Application.Current?.Dispatcher?.Invoke(() => {
+                        ExtractedRequirements.Add(requirement);
+                        
+                        // Update progress to show real-time count
+                        baseParsingMessage = $"📄 Found {ExtractedRequirements.Count} requirements so far from {SelectedAttachment.Name}...";
+                        StatusMessage = baseParsingMessage;
+                        
+                        // Notify grouped properties for UI updates (throttled)
+                        OnPropertyChanged(nameof(GroupedExtractedRequirements));
+                        OnPropertyChanged(nameof(CategoryCounts));
+                        
+                        // Publish real-time discovery event
+                        _mediator.PublishEvent(new RequirementsEvents.DocumentParsingProgress
+                        {
+                            DocumentName = SelectedAttachment.Name,
+                            AttachmentId = SelectedAttachment.Id,
+                            StatusMessage = $"🚀 Discovered requirement: {requirement.Description}",
+                            Timestamp = DateTime.Now
+                        });
+                    });
+                };
 
+                // Clear existing requirements before streaming new ones
                 ExtractedRequirements.Clear();
+
+                // Use real document parsing via mediator with streaming callback
+                var extractedRequirements = await _mediator.ParseAttachmentRequirementsAsync(SelectedAttachment, SelectedProjectId, progressCallback, onRequirementDiscovered, _parsingCancellationTokenSource.Token);
+
+                // Add any remaining requirements that weren't streamed (batch processing results like MBSE enhancements)
+                var existingIds = new HashSet<string>(ExtractedRequirements.Where(r => !string.IsNullOrEmpty(r.GlobalId)).Select(r => r.GlobalId!));
                 foreach (var requirement in extractedRequirements)
                 {
-                    ExtractedRequirements.Add(requirement);
+                    if (!string.IsNullOrEmpty(requirement.GlobalId) && !existingIds.Contains(requirement.GlobalId))
+                    {
+                        ExtractedRequirements.Add(requirement);
+                    }
                 }
 
                 // Notify grouped properties for UI updates

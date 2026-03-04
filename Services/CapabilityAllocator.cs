@@ -26,7 +26,7 @@ namespace TestCaseEditorApp.Services
         /// </summary>
         public async Task<AllocationResult> AllocateCapabilitiesAsync(
             IEnumerable<DerivedCapability> capabilities,
-            CapabilityAllocationOptions options = null)
+            CapabilityAllocationOptions? options = null)
         {
             options ??= new CapabilityAllocationOptions();
             

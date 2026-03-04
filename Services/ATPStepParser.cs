@@ -149,14 +149,27 @@ namespace TestCaseEditorApp.Services
             "generate", "transmit", "receive", "process", "analyze", "record", "display",
             "detect", "isolate", "protect", "enable", "disable", "activate", "deactivate",
             "initialize", "shutdown", "reset", "validate", "test", "check", "confirm",
-            "set", "adjust", "maintain", "limit", "prevent", "ensure", "provide"
+            "set", "adjust", "maintain", "limit", "prevent", "ensure", "provide",
+            // Video/media processing verbs
+            "play", "stop", "pause", "resume", "stream", "broadcast", "capture", "record",
+            "encode", "decode", "compress", "decompress", "render", "output", "input",
+            // General test procedure verbs
+            "execute", "run", "start", "finish", "complete", "perform", "operate", "function",
+            "connect", "disconnect", "load", "save", "store", "retrieve", "update", "refresh"
         };
         
         // System component keywords
         private static readonly string[] SystemKeywords = {
             "power", "voltage", "current", "signal", "interface", "bus", "controller", 
             "processor", "memory", "storage", "network", "communication", "sensor", 
-            "actuator", "display", "indicator", "switch", "relay", "connector", "cable"
+            "actuator", "display", "indicator", "switch", "relay", "connector", "cable",
+            // Video/media processing keywords (common in test procedures)
+            "video", "audio", "stream", "frame", "fps", "resolution", "codec", "format",
+            "encode", "decode", "render", "capture", "output", "input", "channel",
+            // General system keywords 
+            "system", "device", "component", "module", "unit", "equipment", "hardware", "software",
+            // Test/measurement related
+            "data", "information", "status", "state", "mode", "function", "operation"
         };
         
         // Measurement/verification keywords
@@ -177,7 +190,12 @@ namespace TestCaseEditorApp.Services
         private static readonly string[] PerformanceKeywords = {
             "time", "duration", "delay", "timeout", "response", "latency", "throughput",
             "bandwidth", "frequency", "rate", "speed", "fast", "slow", "real-time",
-            "seconds", "minutes", "milliseconds", "microseconds", "Hz", "kHz", "MHz", "GHz"
+            "seconds", "minutes", "milliseconds", "microseconds", "Hz", "kHz", "MHz", "GHz",
+            // Video performance keywords
+            "fps", "frame", "frames", "framerate", "bitrate", "quality", "resolution",
+            "1080p", "720p", "4K", "HD", "UHD", "progressive", "interlaced",
+            // General performance terms
+            "performance", "efficiency", "load", "capacity", "utilization", "metric"
         };
 
         public ATPStepParser(ILogger<ATPStepParser> logger)
@@ -411,6 +429,10 @@ namespace TestCaseEditorApp.Services
         {
             var lowerLine = line.ToLowerInvariant();
             
+            // Filter out obvious non-steps first
+            if (IsDocumentHeader(line)) return false;
+            if (line.Length < options.MinimumStepLength) return false;
+            
             // Look for action verbs that suggest this is a step
             if (ActionVerbs.Any(verb => lowerLine.Contains(verb)))
                 return true;
@@ -422,6 +444,28 @@ namespace TestCaseEditorApp.Services
             // Look for measurement/verification language
             if (MeasurementKeywords.Any(keyword => lowerLine.Contains(keyword)))
                 return true;
+            
+            return false;
+        }
+        
+        private bool IsDocumentHeader(string line)
+        {
+            var lowerLine = line.ToLowerInvariant();
+            
+            // Document revision/proprietary headers
+            if (lowerLine.Contains("proprietary") || lowerLine.Contains("confidential")) return true;
+            if (lowerLine.Contains("rev ") && lowerLine.Contains("-")) return true;
+            if (lowerLine.Contains("initial rel")) return true;
+            
+            // Date patterns (common in headers)
+            if (Regex.IsMatch(line, @"\d{1,2}-\w+-\d{4}")) return true; // "18-April-2019"
+            if (Regex.IsMatch(line, @"\d{4}-\d{2}-\d{2}")) return true; // "2019-04-18"
+            
+            // Part numbers without actual test content
+            if (Regex.IsMatch(line, @"^[A-Z0-9]+-[A-Z0-9]+.*Rev\s") && line.Length < 100) return true;
+            
+            // Author/signature lines
+            if (lowerLine.Contains("signed by") || lowerLine.Contains("author:")) return true;
             
             return false;
         }
@@ -469,7 +513,7 @@ namespace TestCaseEditorApp.Services
 
         private double CalculateParsingConfidence(string text)
         {
-            double confidence = 0.5; // Base confidence
+            double confidence = 0.6; // Increase base confidence from 0.5 to 0.6 to be less strict
             
             // Increase confidence for structural markers
             if (StepNumberPattern.IsMatch(text)) confidence += 0.3;
@@ -479,15 +523,22 @@ namespace TestCaseEditorApp.Services
             var lowerText = text.ToLowerInvariant();
             if (ActionVerbs.Any(verb => lowerText.Contains(verb))) confidence += 0.2;
             
-            // Increase confidence for system keywords
+            // Increase confidence for system keywords  
             if (SystemKeywords.Any(keyword => lowerText.Contains(keyword))) confidence += 0.1;
+            
+            // Give partial credit for measurement units and numbers (common in test procedures)
+            if (Regex.IsMatch(text, @"\d+\s*[a-zA-Z%]+")) confidence += 0.1; // "60 fps", "100%", etc.
+            
+            // Give credit for "shall" statements (requirements language)
+            if (lowerText.Contains("shall")) confidence += 0.1;
             
             return Math.Min(1.0, confidence);
         }
 
         private List<ParsedATPStep> FilterBoilerplateSteps(List<ParsedATPStep> steps)
         {
-            return steps.Where(step => 
+            var originalCount = steps.Count;
+            var filtered = steps.Where(step => 
             {
                 var lowerText = step.StepText.ToLowerInvariant();
                 
@@ -496,8 +547,19 @@ namespace TestCaseEditorApp.Services
                 if (lowerText.Contains("this completes")) return false;
                 if (lowerText.Length < 15) return false; // Very short steps are likely boilerplate
                 
+                // Filter out document metadata that sneaked through
+                if (IsDocumentHeader(step.StepText)) return false;
+                
+                // Require minimum confidence for ATP steps (lowered from 0.6 to 0.3 to be less aggressive)
+                if (step.ParsingConfidence < 0.3) return false;
+                
                 return true;
             }).ToList();
+            
+            _logger.LogInformation("Boilerplate filtering: {OriginalCount} → {FilteredCount} steps (removed {RemovedCount})", 
+                originalCount, filtered.Count, originalCount - filtered.Count);
+            
+            return filtered;
         }
     }
 }

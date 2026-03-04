@@ -532,17 +532,17 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
 
                 RequirementAnalysis analysis;
 
-                // ARCHITECTURE: Prefer new Requirements domain engine when available
+                // ENHANCED SYSTEM: ALWAYS use new Requirements domain analysis engine (no fallback)
                 if (_analysisEngine != null)
                 {
-                    _logger.LogDebug("[RequirementsMediator] Using NEW Requirements domain analysis engine");
+                    _logger.LogInformation("[RequirementsMediator] Using ENHANCED Requirements domain analysis engine (no fallback enabled)");
                     analysis = await _analysisEngine.AnalyzeRequirementAsync(requirement, 
                         progress => UpdateProgress($"Analysis progress: {progress}", 75));
                 }
                 else
                 {
-                    _logger.LogDebug("[RequirementsMediator] Fallback to legacy TestCaseGeneration analysis service");
-                    analysis = await _analysisService.AnalyzeRequirementAsync(requirement);
+                    _logger.LogError("[RequirementsMediator] ENHANCED SYSTEM FAILURE: Analysis engine not available - throwing exception instead of fallback");
+                    throw new InvalidOperationException("Enhanced Requirements analysis engine is required but not available. Fallback to legacy system disabled.");
                 }
 
                 // Store analysis duration
@@ -1309,7 +1309,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// <summary>
         /// Parse attachment for requirements using document parsing service
         /// </summary>
-        public async Task<List<Requirement>> ParseAttachmentRequirementsAsync(JamaAttachment attachment, int projectId, System.Action<string>? progressCallback = null, CancellationToken cancellationToken = default)
+        public async Task<List<Requirement>> ParseAttachmentRequirementsAsync(JamaAttachment attachment, int projectId, System.Action<string>? progressCallback = null, System.Action<Requirement>? onRequirementDiscovered = null, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -1317,7 +1317,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     attachment.Id, attachment.FileName, projectId);
 
                 // Use real document parsing service with attachment metadata to avoid re-scanning
-                var extractedRequirements = await _jamaDocumentParserService.ParseAttachmentAsync(attachment, projectId, progressCallback, cancellationToken);
+                var extractedRequirements = await _jamaDocumentParserService.ParseAttachmentAsync(attachment, projectId, progressCallback, onRequirementDiscovered, cancellationToken);
 
                 _logger.LogInformation("[RequirementsMediator] Parsed {Count} requirements from attachment {AttachmentId} ({FileName})", 
                     extractedRequirements.Count, attachment.Id, attachment.FileName);

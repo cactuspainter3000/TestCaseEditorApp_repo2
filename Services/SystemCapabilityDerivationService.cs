@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Models;
@@ -22,9 +24,12 @@ namespace TestCaseEditorApp.Services
         private readonly SystemRequirementTaxonomy _taxonomy;
         private readonly ResponseParserManager _responseParser;
         private readonly ATPStepParser _atpParser;
-        private readonly CapabilityDerivationPromptBuilder _promptBuilder;
+        private readonly ICapabilityDerivationPromptBuilder _promptBuilder;
         private readonly TaxonomyValidator _taxonomyValidator;
         private readonly ICapabilityAllocator _capabilityAllocator;
+        private readonly IDirectRagService? _directRagService; // RAG integration for context-aware analysis
+        private readonly IMBSERequirementClassifier _mbseClassifier; // MBSE-compliant system requirement classification
+        private readonly IDerivationQualityScorer _qualityScorer; // Advanced multi-dimensional quality analysis
         
         // Service health tracking
         private DateTime? _lastSuccessfulOperation;
@@ -35,9 +40,12 @@ namespace TestCaseEditorApp.Services
             ILogger<SystemCapabilityDerivationService> logger,
             ResponseParserManager responseParser,
             ATPStepParser atpParser,
-            CapabilityDerivationPromptBuilder promptBuilder,
+            ICapabilityDerivationPromptBuilder promptBuilder,
             TaxonomyValidator taxonomyValidator,
-            ICapabilityAllocator capabilityAllocator)
+            ICapabilityAllocator capabilityAllocator,
+            IMBSERequirementClassifier mbseClassifier,
+            IDerivationQualityScorer qualityScorer,
+            IDirectRagService? directRagService = null) // Optional for RAG-enhanced analysis
         {
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -46,6 +54,9 @@ namespace TestCaseEditorApp.Services
             _promptBuilder = promptBuilder ?? throw new ArgumentNullException(nameof(promptBuilder));
             _taxonomyValidator = taxonomyValidator ?? throw new ArgumentNullException(nameof(taxonomyValidator));
             _capabilityAllocator = capabilityAllocator ?? throw new ArgumentNullException(nameof(capabilityAllocator));
+            _mbseClassifier = mbseClassifier ?? throw new ArgumentNullException(nameof(mbseClassifier));
+            _qualityScorer = qualityScorer ?? throw new ArgumentNullException(nameof(qualityScorer));
+            _directRagService = directRagService; // Optional for enhanced analysis
             _taxonomy = SystemRequirementTaxonomy.Default;
             _performanceMetrics = new Dictionary<string, object>();
             
@@ -56,8 +67,10 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Derive system capabilities from ATP content using LLM analysis and structured taxonomy
         /// </summary>
-        public async Task<DerivationResult> DeriveCapabilitiesAsync(string atpContent, DerivationOptions? options = null)
+        public async Task<DerivationResult> DeriveCapabilitiesAsync(string atpContent, DerivationOptions? options = null, Action<string>? progressCallback = null, Func<List<SkippedAtpStep>, Task<TimeoutRetryDecision>>? retrySkippedCallback = null, Action<Requirement>? onRequirementDiscovered = null)
         {
+            _logger.LogInformation("🚀 ENHANCED ATP DERIVATION SYSTEM: Starting capability derivation with intelligent MBSE processing (no legacy fallback)");
+            
             var stopwatch = Stopwatch.StartNew();
             var derivationOptions = options ?? new DerivationOptions();
             var result = new DerivationResult 
@@ -69,7 +82,7 @@ namespace TestCaseEditorApp.Services
 
             try
             {
-                _logger.LogInformation("Starting capability derivation for ATP content (length: {ContentLength})", atpContent.Length);
+                _logger.LogInformation("Starting enhanced capability derivation for ATP content (length: {ContentLength})", atpContent.Length);
 
                 // Validate input
                 if (string.IsNullOrWhiteSpace(atpContent))
@@ -88,13 +101,34 @@ namespace TestCaseEditorApp.Services
                         : new List<string>()
                 });
                 _logger.LogDebug("Extracted {StepCount} ATP steps from content", parsedSteps.Count);
+                progressCallback?.Invoke($"📊 ATP Parser: Extracted {parsedSteps.Count} test procedure steps from document structure");
 
-                // Process each step for capability derivation
+                // Process all ATP steps - debug limit removed for full analysis
+                _logger.LogInformation("🚀 FULL PROCESSING MODE: Analyzing all {StepCount} ATP steps", parsedSteps.Count);
+                progressCallback?.Invoke($"🚀 Full Analysis Mode: Processing all {parsedSteps.Count} ATP steps for comprehensive requirement extraction");
+
+                // Process each step for capability derivation with progress tracking
+                int stepCounter = 0;
                 foreach (var parsedStep in parsedSteps)
                 {
+                    stepCounter++;
+                    progressCallback?.Invoke($"🤖 LLM Analysis ({stepCounter}/{parsedSteps.Count}): phi4-mini analyzing → {parsedStep.StepText.Substring(0, Math.Min(50, parsedStep.StepText.Length))}...");
+                    
+                    // DEBUG: Log ATP step content to understand what we're processing
+                    if (stepCounter <= 3) // Log first 3 steps for analysis (reduced from 5 for full processing)
+                    {
+                        _logger.LogInformation("DEBUG ATP Step {Counter}: Keywords=[{Keywords}] Confidence={Confidence:F2} Text='{StepText}'", 
+                            stepCounter, 
+                            string.Join(", ", parsedStep.SystemReferences.Concat(parsedStep.ActionVerbs).Concat(parsedStep.MeasurementKeywords)), 
+                            parsedStep.ParsingConfidence,
+                            parsedStep.StepText.Length > 150 ? parsedStep.StepText.Substring(0, 150) + "..." : parsedStep.StepText);
+                    }
+                    // Apply per-step timeout to prevent hanging
+                    using var stepCts = new CancellationTokenSource(derivationOptions.PerStepTimeout);
+                    
                     try
                     {
-                        var stepResult = await DeriveSingleStepAsync(parsedStep.StepText, derivationOptions);
+                        var stepResult = await DeriveSingleStepWithTimeoutAsync(parsedStep.StepText, derivationOptions, stepCts.Token);
                         
                         // Enhance results with parsing metadata
                         foreach (var capability in stepResult.DerivedCapabilities)
@@ -106,6 +140,16 @@ namespace TestCaseEditorApp.Services
                             capability.SourceMetadata["SystemReferences"] = string.Join(", ", parsedStep.SystemReferences);
                         }
                         
+                        // Stream requirements in real-time before merging to batch collection
+                        if (onRequirementDiscovered != null)
+                        {
+                            foreach (var capability in stepResult.DerivedCapabilities)
+                            {
+                                var requirement = ConvertCapabilityToRequirement(capability);
+                                onRequirementDiscovered(requirement);
+                            }
+                        }
+                        
                         // Merge results
                         result.DerivedCapabilities.AddRange(stepResult.DerivedCapabilities);
                         result.RejectedItems.AddRange(stepResult.RejectedItems);
@@ -113,16 +157,83 @@ namespace TestCaseEditorApp.Services
                         
                         // Add parsing warnings if any
                         result.ProcessingWarnings.AddRange(parsedStep.ParsingWarnings);
+                        
+                        // Update progress with running totals
+                        progressCallback?.Invoke($"✅ A-N Taxonomy ({stepCounter}/{parsedSteps.Count}): Derived {stepResult.DerivedCapabilities.Count} capabilities → Total: {result.DerivedCapabilities.Count}");
+                        
+                        // Early exit if no capabilities found after reasonable sample
+                        if (stepCounter >= 15 && result.DerivedCapabilities.Count == 0)
+                        {
+                            _logger.LogWarning("Early exit: Processed {ProcessedSteps} ATP steps with 0 capabilities extracted. Document likely contains no extractable requirements.", stepCounter);
+                            result.ProcessingWarnings.Add($"Early exit after {stepCounter} steps: No system capabilities detected in ATP content. Document may not contain extractable requirements or may require different parsing approach.");
+                            progressCallback?.Invoke($"🛑 Early Exit: No capabilities found in first {stepCounter} steps - stopping analysis to avoid wasting time");
+                            break;
+                        }
+                    }
+                    catch (OperationCanceledException) when (stepCts.IsCancellationRequested)
+                    {
+                        _logger.LogWarning("ATP step {StepNumber} timed out after {TimeoutSeconds} seconds", stepCounter, derivationOptions.PerStepTimeout.TotalSeconds);
+                        
+                        // Collect skipped step for potential retry
+                        var skippedStep = new SkippedAtpStep
+                        {
+                            StepText = parsedStep.StepText,
+                            StepNumber = stepCounter,
+                            StepId = parsedStep.StepId,
+                            TimeoutDuration = derivationOptions.PerStepTimeout,
+                            SkipReason = $"Timed out after {derivationOptions.PerStepTimeout.TotalSeconds}s"
+                        };
+                        result.SkippedAtpSteps.Add(skippedStep);
+                        
+                        result.ProcessingWarnings.Add($"Step {stepCounter} timed out after {derivationOptions.PerStepTimeout.TotalSeconds}s - added to retry queue");
+                        progressCallback?.Invoke($"⏰ Step {stepCounter}/{parsedSteps.Count} timed out (can retry later)");
                     }
                     catch (Exception ex)
                     {
                         _logger.LogWarning(ex, "Failed to process ATP step: {Step}", parsedStep.StepText.Substring(0, Math.Min(100, parsedStep.StepText.Length)));
                         result.ProcessingWarnings.Add($"Failed to process step {parsedStep.StepNumber}: {ex.Message}");
+                        progressCallback?.Invoke($"❌ Step {stepCounter}/{parsedSteps.Count} failed: {ex.Message.Substring(0, Math.Min(50, ex.Message.Length))}");
                     }
                 }
 
-                // Calculate overall quality score
-                result.QualityScore = CalculateOverallQuality(result.DerivedCapabilities);
+                // Handle retrying skipped ATP steps if user chooses to and callback is provided
+                if (result.SkippedAtpSteps.Count > 0 && retrySkippedCallback != null)
+                {
+                    progressCallback?.Invoke($"📋 ATP Derivation Complete: {result.DerivedCapabilities.Count} capabilities derived, {result.SkippedAtpSteps.Count} ATP steps timed out");
+                    
+                    try
+                    {
+                        var retryDecision = await retrySkippedCallback(result.SkippedAtpSteps);
+                        
+                        if (retryDecision.ShouldRetry)
+                        {
+                            progressCallback?.Invoke($"🔄 Retrying {result.SkippedAtpSteps.Count} skipped steps with {retryDecision.ExtendedTimeout.TotalSeconds}s timeout...");
+                            
+                            await RetrySkippedStepsAsync(result, retryDecision.ExtendedTimeout, progressCallback);
+                            
+                            progressCallback?.Invoke($"✅ ATP Retry Complete: Final result: {result.DerivedCapabilities.Count} total capabilities via extended timeout");
+                        }
+                        else
+                        {
+                            progressCallback?.Invoke($"⏭️ Skipping retry - proceeding with {result.DerivedCapabilities.Count} capabilities");
+                        }
+                    }
+                    catch (Exception retryEx)
+                    {
+                        _logger.LogWarning(retryEx, "Failed to handle retry decision for skipped ATP steps");
+                        result.ProcessingWarnings.Add($"Retry handling failed: {retryEx.Message}");
+                    }
+                }
+                else if (result.SkippedAtpSteps.Count > 0)
+                {
+                    progressCallback?.Invoke($"✅ ATP Derivation Complete: {result.DerivedCapabilities.Count} capabilities derived, {result.SkippedAtpSteps.Count} ATP steps skipped (no retry callback)");
+                }
+
+                // Apply MBSE system-level requirement filtering
+                await ApplyMBSEFilteringAsync(result, progressCallback);
+
+                // Calculate advanced multi-dimensional quality score
+                result.QualityScore = await CalculateAdvancedQualityAsync(result, atpContent);
                 result.ProcessedAt = DateTime.Now;
                 result.ProcessingTime = stopwatch.Elapsed;
 
@@ -145,9 +256,70 @@ namespace TestCaseEditorApp.Services
         }
 
         /// <summary>
+        /// Retry processing of skipped ATP steps with extended timeout
+        /// </summary>
+        private async Task RetrySkippedStepsAsync(DerivationResult result, TimeSpan extendedTimeout, Action<string>? progressCallback)
+        {
+            var skippedSteps = new List<SkippedAtpStep>(result.SkippedAtpSteps);
+            result.SkippedAtpSteps.Clear(); // Clear the list - will be repopulated with any that still timeout
+            
+            int retryCounter = 0;
+            foreach (var skippedStep in skippedSteps)
+            {
+                retryCounter++;
+                progressCallback?.Invoke($"🔄 Retrying step {retryCounter}/{skippedSteps.Count}: {skippedStep.Preview}");
+                
+                // Apply extended timeout for retry 
+                using var retryCts = new CancellationTokenSource(extendedTimeout);
+                
+                try
+                {
+                    var retryResult = await DeriveSingleStepWithTimeoutAsync(skippedStep.StepText, new DerivationOptions(), retryCts.Token);
+                    
+                    // Add successful retry results
+                    result.DerivedCapabilities.AddRange(retryResult.DerivedCapabilities);
+                    result.RejectedItems.AddRange(retryResult.RejectedItems);
+                    result.ProcessingWarnings.AddRange(retryResult.ProcessingWarnings);
+                    
+                    progressCallback?.Invoke($"✅ Retry {retryCounter}/{skippedSteps.Count} succeeded - found {retryResult.DerivedCapabilities.Count} capabilities");
+                }
+                catch (OperationCanceledException) when (retryCts.Token.IsCancellationRequested)
+                {
+                    _logger.LogWarning("ATP step {StepNumber} timed out again during retry with {ExtendedTimeoutSeconds}s", skippedStep.StepNumber, extendedTimeout.TotalSeconds);
+                    
+                    // Still timed out - update the skip reason and add back to skipped list
+                    skippedStep.SkipReason = $"Timed out twice: {skippedStep.TimeoutDuration.TotalSeconds}s + {extendedTimeout.TotalSeconds}s";
+                    result.SkippedAtpSteps.Add(skippedStep);
+                    
+                    progressCallback?.Invoke($"⏰ Retry {retryCounter}/{skippedSteps.Count} still timed out");
+                }
+                catch (Exception retryEx)
+                {
+                    _logger.LogWarning(retryEx, "Retry failed for ATP step {StepNumber}", skippedStep.StepNumber);
+                    
+                    // Add back to skipped list with error reason
+                    skippedStep.SkipReason = $"Retry failed: {retryEx.Message}";
+                    result.SkippedAtpSteps.Add(skippedStep);
+                    
+                    progressCallback?.Invoke($"❌ Retry {retryCounter}/{skippedSteps.Count} failed: {retryEx.Message.Substring(0, Math.Min(30, retryEx.Message.Length))}");
+                }
+            }
+        }
+
+        /// <summary>
         /// Derive capabilities from a single ATP step (focused analysis)
         /// </summary>
         public async Task<DerivationResult> DeriveSingleStepAsync(string atpStep, DerivationOptions? options = null)
+        {
+            // For backward compatibility, call with no cancellation token
+            using var cts = new CancellationTokenSource((options ?? new DerivationOptions()).PerStepTimeout);
+            return await DeriveSingleStepWithTimeoutAsync(atpStep, options, cts.Token);
+        }
+
+        /// <summary>
+        /// Derive capabilities from a single ATP step with timeout support
+        /// </summary>
+        private async Task<DerivationResult> DeriveSingleStepWithTimeoutAsync(string atpStep, DerivationOptions? options = null, CancellationToken cancellationToken = default)
         {
             var stopwatch = Stopwatch.StartNew();
             var derivationOptions = options ?? new DerivationOptions();
@@ -161,15 +333,49 @@ namespace TestCaseEditorApp.Services
             {
                 _logger.LogDebug("Deriving capabilities from single ATP step: {Step}", atpStep.Substring(0, Math.Min(100, atpStep.Length)));
 
-                // Build derivation prompt using specialized prompt builder
+                // RAG-ENHANCED ANALYSIS: Query RAG for document context if available
+                string ragContext = string.Empty;
+                if (_directRagService?.IsConfigured == true && derivationOptions.SourceMetadata.ContainsKey("ProjectId"))
+                {
+                    var projectId = int.Parse(derivationOptions.SourceMetadata["ProjectId"]);
+                    
+                    // Extract keywords from ATP step for targeted RAG query
+                    var stepKeywords = ExtractKeywordsFromAtpStep(atpStep);
+                    var ragQuery = string.Join(" ", stepKeywords.Take(10)); // Use top 10 keywords
+                    
+                    try
+                    {
+                        _logger.LogDebug("Querying RAG for context: {Query} (Project: {ProjectId})", ragQuery, projectId);
+                        ragContext = await _directRagService.GetRequirementAnalysisContextAsync(
+                            ragQuery, 
+                            projectId, 
+                            maxContextChunks: 5, // Focused context for single step
+                            cancellationToken);
+                        
+                        if (!string.IsNullOrEmpty(ragContext))
+                        {
+                            _logger.LogDebug("RAG context retrieved: {ContextLength} characters", ragContext.Length);
+                            result.SourceMetadata["RAGContextLength"] = ragContext.Length.ToString();
+                            result.SourceMetadata["RAGQuery"] = ragQuery;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "RAG context query failed, proceeding with step-only analysis");
+                        ragContext = string.Empty;
+                    }
+                }
+
+                // Build derivation prompt using specialized prompt builder with RAG context
                 var prompt = _promptBuilder.BuildDerivationPrompt(
                     atpStep, 
-                    stepMetadata: null, // Single step analysis - no metadata
+                    stepMetadata: null!, // Single step analysis - no metadata
                     systemType: derivationOptions.SystemType,
-                    derivationOptions: derivationOptions);
+                    derivationOptions: derivationOptions,
+                    ragContext: ragContext); // Enhanced with RAG context
                 
-                // Generate LLM response
-                var llmResponse = await _llmService.GenerateAsync(prompt);
+                // Generate LLM response with timeout support
+                var llmResponse = await _llmService.GenerateAsync(prompt, cancellationToken);
                 
                 if (string.IsNullOrEmpty(llmResponse))
                 {
@@ -355,20 +561,44 @@ namespace TestCaseEditorApp.Services
 
         private async Task<DerivationResult?> ParseDerivationResponseAsync(string llmResponse, string sourceStep)
         {
-            // This would use the ResponseParserManager, but for now we'll implement basic parsing
-            // The actual implementation would depend on the specific LLM response format
-            
             try
             {
-                // For now, return a basic result - this would be enhanced with actual JSON parsing
                 var result = new DerivationResult
                 {
                     SourceATPContent = sourceStep,
                     AnalysisModel = GetModelName()
                 };
 
-                // TODO: Implement proper JSON parsing of LLM response
-                // This is a placeholder that would be replaced with actual response parsing logic
+                // DEBUG: Log LLM responses to understand what phi4-mini is generating
+                if (llmResponse.Length > 0)
+                {
+                    _logger.LogDebug("LLM Response Length: {Length} chars, Preview: '{Preview}'", 
+                        llmResponse.Length, 
+                        llmResponse.Length > 200 ? llmResponse.Substring(0, 200) + "..." : llmResponse);
+                }
+
+                // Parse structured JSON response from LLM
+                if (TryParseJsonCapabilities(llmResponse, out var capabilities))
+                {
+                    result.DerivedCapabilities = capabilities;
+                    _logger.LogDebug("Parsed {CapabilityCount} capabilities from LLM JSON response", capabilities.Count);
+                }
+                else
+                {
+                    // Fallback: Parse freeform text response
+                    var textCapabilities = ParseTextCapabilities(llmResponse, sourceStep);
+                    result.DerivedCapabilities = textCapabilities;
+                    _logger.LogDebug("Parsed {CapabilityCount} capabilities from LLM text response", textCapabilities.Count);
+                    
+                    // DEBUG: If no capabilities found, log the response for analysis
+                    if (textCapabilities.Count == 0 && llmResponse.Length > 10)
+                    {
+                        _logger.LogWarning("❌ LLM did not follow required JSON format. Expected 'derivedCapabilities' array.");
+                        _logger.LogWarning("Response preview: {Response}", 
+                            llmResponse.Length > 500 ? llmResponse.Substring(0, 500) + "..." : llmResponse);
+                        _logger.LogWarning("💡 The LLM should return ONLY: {{\"derivedCapabilities\": [...]}}");
+                    }
+                }
                 
                 return result;
             }
@@ -379,11 +609,489 @@ namespace TestCaseEditorApp.Services
             }
         }
 
-        private double CalculateOverallQuality(List<DerivedCapability> capabilities)
+        private bool TryParseJsonCapabilities(string llmResponse, out List<DerivedCapability> capabilities)
         {
-            if (capabilities.Count == 0) return 0.0;
+            capabilities = new List<DerivedCapability>();
             
-            return capabilities.Average(c => c.ConfidenceScore);
+            try
+            {
+                // Remove any markdown code block formatting
+                var cleanResponse = llmResponse.Trim();
+                if (cleanResponse.StartsWith("```json"))
+                {
+                    cleanResponse = cleanResponse.Substring(7);
+                }
+                if (cleanResponse.StartsWith("```"))
+                {
+                    cleanResponse = cleanResponse.Substring(3);
+                }
+                if (cleanResponse.EndsWith("```"))
+                {
+                    cleanResponse = cleanResponse.Substring(0, cleanResponse.Length - 3);
+                }
+                cleanResponse = cleanResponse.Trim();
+
+                // Look for JSON structure in response
+                var jsonStart = cleanResponse.IndexOf('{');
+                var jsonEnd = cleanResponse.LastIndexOf('}');
+                
+                if (jsonStart != -1 && jsonEnd > jsonStart)
+                {
+                    var jsonPart = cleanResponse.Substring(jsonStart, jsonEnd - jsonStart + 1);
+                    
+                    using var doc = JsonDocument.Parse(jsonPart);
+                    var root = doc.RootElement;
+                    
+                    // ONLY accept the exact format: "derivedCapabilities" array
+                    if (root.TryGetProperty("derivedCapabilities", out var capsArray) && capsArray.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var capElement in capsArray.EnumerateArray())
+                        {
+                            var capability = ParseSingleCapability(capElement);
+                            if (capability != null) capabilities.Add(capability);
+                        }
+                        
+                        _logger.LogInformation("✅ Successfully parsed {Count} capabilities from correct JSON format", capabilities.Count);
+                        return true;
+                    }
+                    else
+                    {
+                        _logger.LogWarning("❌ JSON response missing required 'derivedCapabilities' array. Format rejected.");
+                        return false;
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("❌ No valid JSON structure found in LLM response");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("❌ JSON parsing failed: {Error}", ex.Message);
+                return false;
+            }
+        }
+        
+        private bool TryParseAnalysisFormat(JsonElement root, out List<DerivedCapability> capabilities)
+        {
+            capabilities = new List<DerivedCapability>();
+            
+            try
+            {
+                // First try parsing at root level
+                ParseJsonLevel(root, capabilities);
+                
+                // If no capabilities found at root, search nested containers
+                if (capabilities.Count == 0)
+                {
+                    var containerKeys = new[] { "AnalysisFocus", "analysis", "Analysis", "analysisFocus", "analysis_focus", "analysisResult", "result" };
+                    foreach (var containerKey in containerKeys)
+                    {
+                        if (root.TryGetProperty(containerKey, out var container) && container.ValueKind == JsonValueKind.Object)
+                        {
+                            ParseJsonLevel(container, capabilities);
+                            if (capabilities.Count > 0) break; // Found data, stop searching
+                        }
+                    }
+                }
+                
+                _logger.LogDebug("Parsed {Count} capabilities from analysis format JSON", capabilities.Count);
+                return capabilities.Count > 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("Failed to parse analysis format JSON: {Error}", ex.Message);
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// Parse capabilities from a specific JSON level (root or nested)
+        /// </summary>
+        private void ParseJsonLevel(JsonElement level, List<DerivedCapability> capabilities)
+        {
+            // Parse systemInterfaces with multiple possible key names including RAG-enhanced format
+            var interfaceKeys = new[] { 
+                "systemInterfaces", "SystemInterfacesRequired", "system_interfaces_required", "SystemInterfaces", 
+                "requiredInterfaces", "interfaces", "systemInterfacesRequired", "system_interfaces", 
+                "1_systemInterfacesNeeded", "1_SystemInterfacesNeeded", "SystemInterfacesExistence",
+                "1_required_interfaces", "1_SystemInterfacesRequired", "1_system_interfaces"
+            };
+            foreach (var key in interfaceKeys)
+            {
+                if (level.TryGetProperty(key, out var interfaces) && interfaces.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var interfaceElement in interfaces.EnumerateArray())
+                    {
+                        var interfaceName = ExtractStringFromElement(interfaceElement);
+                        if (!string.IsNullOrEmpty(interfaceName))
+                        {
+                            capabilities.Add(new DerivedCapability
+                            {
+                                Id = Guid.NewGuid().ToString(),
+                                RequirementText = $"The system shall provide {interfaceName} interface",
+                                DerivationRationale = "Interface requirement derived from ATP step analysis",
+                                TaxonomyCategory = "A2 - Communication Management",
+                                ConfidenceScore = 0.8,
+                                SourceATPStep = "ATP Analysis"
+                            });
+                        }
+                    }
+                    break; // Found one variant, stop looking for interfaces
+                }
+            }
+                
+                // Parse measurementOrControlFunctions with multiple possible key names
+                var functionKeys = new[] { 
+                    "measurementOrControlFunctions", "measurementControlFunctions", "measurement_or_control_functions", "measurement_control_functions",
+                    "MeasurementControlFunctions", "measurementAndControlFunctions", "controlFunctions", "functions",
+                    "2_RequiredMeasurementControlFunctions", "MeasurementAndControlFunctionsNeeded", "measurementFunctions",
+                    "2_needed_functions", "2_MeasurementControlFunctions", "MeasurementFunctions", "2_measurement_control_functions"
+                };
+                foreach (var key in functionKeys)
+                {
+                    if (level.TryGetProperty(key, out var functions) && functions.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var functionElement in functions.EnumerateArray())
+                        {
+                            var functionName = ExtractStringFromElement(functionElement);
+                            if (!string.IsNullOrEmpty(functionName))
+                            {
+                                capabilities.Add(new DerivedCapability
+                                {
+                                    Id = Guid.NewGuid().ToString(),
+                                    RequirementText = $"The system shall provide {functionName}",
+                                    DerivationRationale = "Measurement/control function derived from ATP step analysis",
+                                    TaxonomyCategory = "A4 - Monitoring Functions",
+                                    ConfidenceScore = 0.8,
+                                    SourceATPStep = "ATP Analysis"
+                                });
+                            }
+                        }
+                        break; // Found one variant, stop looking for functions
+                    }
+                }
+                
+                // Parse dataHandlingCapabilities with multiple possible key names 
+                var dataKeys = new[] { 
+                    "dataHandlingCapabilities", "data_handling_capabilities", "dataHandlingCapability", "DataHandlingCapabilities",
+                    "dataProcessingCapabilities", "dataCapabilities", "dataRequirements", "DataHandlingCapabilitiesRequired",
+                    "3_NeededDataHandlingCapabilities", "3_DataHandlingCapabilities", "dataHandlingCapabilitiesRequired", "3_data_handling_capabilities"
+                };
+                foreach (var key in dataKeys)
+                {
+                    if (level.TryGetProperty(key, out var dataCapabilities) && dataCapabilities.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var capElement in dataCapabilities.EnumerateArray())
+                        {
+                            var capabilityName = ExtractStringFromElement(capElement);
+                            if (!string.IsNullOrEmpty(capabilityName))
+                            {
+                                capabilities.Add(new DerivedCapability
+                                {
+                                    Id = Guid.NewGuid().ToString(),
+                                    RequirementText = $"The system shall support {capabilityName}",
+                                    DerivationRationale = "Data handling capability derived from ATP step analysis",
+                                    TaxonomyCategory = "I1 - Data Processing",
+                                    ConfidenceScore = 0.75,
+                                    SourceATPStep = "ATP Analysis"
+                                });
+                            }
+                        }
+                        break; // Found one variant, stop looking for data capabilities
+                    }
+                }
+                
+                // Parse performanceCharacteristics with multiple possible key names
+                var perfKeys = new[] { 
+                    "performanceCharacteristics", "performance_characteristics", "PerformanceCharacteristics", 
+                    "performanceRequirements", "performance", "characteristics", "4_performance_characteristics"
+                };
+                foreach (var key in perfKeys)
+                {
+                    if (level.TryGetProperty(key, out var perfChars) && perfChars.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var perfElement in perfChars.EnumerateArray())
+                        {
+                            var perfName = ExtractStringFromElement(perfElement);
+                            if (!string.IsNullOrEmpty(perfName))
+                            {
+                                capabilities.Add(new DerivedCapability
+                                {
+                                    Id = Guid.NewGuid().ToString(),
+                                    RequirementText = $"The system shall meet {perfName} performance requirement",
+                                    DerivationRationale = "Performance characteristic derived from ATP step analysis",
+                                    TaxonomyCategory = "A5 - General Avionics",
+                                    ConfidenceScore = 0.7,
+                                    SourceATPStep = "ATP Analysis"
+                                });
+                            }
+                        }
+                        break; // Found one variant, stop looking for performance
+                    }
+                }
+            }
+        
+        /// <summary>
+        /// Cleans JSON comments that break parsing (e.g., // comments)
+        /// </summary>
+        private string CleanJsonComments(string json)
+        {
+            try
+            {
+                // Remove line comments (// ...) but preserve strings
+                var lines = json.Split('\n');
+                var cleanedLines = new List<string>();
+                bool inString = false;
+                
+                foreach (var line in lines)
+                {
+                    var cleanedLine = "";
+                    for (int i = 0; i < line.Length; i++)
+                    {
+                        var ch = line[i];
+                        
+                        // Track if we're inside a string
+                        if (ch == '"' && (i == 0 || line[i - 1] != '\\'))
+                        {
+                            inString = !inString;
+                        }
+                        
+                        // If we find // and we're not in a string, remove the rest of the line
+                        if (!inString && ch == '/' && i + 1 < line.Length && line[i + 1] == '/')
+                        {
+                            break; // Remove everything from // onwards
+                        }
+                        
+                        cleanedLine += ch;
+                    }
+                    cleanedLines.Add(cleanedLine.TrimEnd());
+                }
+                
+                return string.Join("\n", cleanedLines);
+            }
+            catch
+            {
+                // If cleaning fails, return original
+                return json;
+            }
+        }
+        
+        /// <summary>
+        /// Extracts meaningful text from a JsonElement which can be either a simple string or an object
+        /// </summary>
+        private string? ExtractStringFromElement(JsonElement element)
+        {
+            // If it's a simple string, return it directly
+            if (element.ValueKind == JsonValueKind.String)
+            {
+                return element.GetString();
+            }
+            
+            // If it's an object, try to extract meaningful text from common property names
+            if (element.ValueKind == JsonValueKind.Object)
+            {
+                // Try common property names used by the LLM
+                var propertyNames = new[] { "name", "interfaceName", "interfaceType", "functionName", "description", "purpose", "capability", "characteristic" };
+                
+                foreach (var propName in propertyNames)
+                {
+                    if (element.TryGetProperty(propName, out var prop) && prop.ValueKind == JsonValueKind.String)
+                    {
+                        var value = prop.GetString();
+                        if (!string.IsNullOrEmpty(value))
+                            return value;
+                    }
+                }
+                
+                // If no common property found, try to concatenate all string values
+                var stringValues = new List<string>();
+                foreach (var property in element.EnumerateObject())
+                {
+                    if (property.Value.ValueKind == JsonValueKind.String)
+                    {
+                        var value = property.Value.GetString();
+                        if (!string.IsNullOrEmpty(value))
+                            stringValues.Add(value);
+                    }
+                }
+                
+                if (stringValues.Count > 0)
+                    return string.Join(" - ", stringValues);
+            }
+            
+            return null;
+        }
+        
+        private DerivedCapability? ParseSingleCapability(JsonElement element)
+        {
+            try
+            {
+                return new DerivedCapability
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    RequirementText = element.GetProperty("requirement").GetString() ?? "",
+                    DerivationRationale = element.TryGetProperty("rationale", out var r) ? r.GetString() ?? "" : "",
+                    TaxonomyCategory = element.TryGetProperty("category", out var c) ? c.GetString() ?? "Unknown" : "Unknown",
+                    ConfidenceScore = element.TryGetProperty("confidence", out var conf) ? conf.GetDouble() : 0.7,
+                    SourceATPStep = element.TryGetProperty("source", out var src) ? src.GetString() ?? "" : ""
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("Failed to parse capability element: {Error}", ex.Message);
+                return null;
+            }
+        }
+
+        private List<DerivedCapability> ParseTextCapabilities(string llmResponse, string sourceStep)
+        {
+            var capabilities = new List<DerivedCapability>();
+            
+            // Look for "shall" statements as system requirements
+            var shallMatches = Regex.Matches(llmResponse, @"[Tt]he\s+system\s+shall\s+[^.]{10,200}\.", RegexOptions.IgnoreCase);
+            
+            foreach (Match match in shallMatches)
+            {
+                var reqText = match.Value.Trim();
+                if (reqText.Length > 20) // Minimum reasonable requirement length
+                {
+                    capabilities.Add(new DerivedCapability
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        RequirementText = reqText,
+                        DerivationRationale = "Extracted from ATP step using 'shall' pattern matching",
+                        TaxonomyCategory = ClassifyRequirementCategory(reqText),
+                        ConfidenceScore = 0.6,
+                        SourceATPStep = sourceStep.Length > 100 ? sourceStep.Substring(0, 100) + "..." : sourceStep
+                    });
+                }
+            }
+            
+            return capabilities;
+        }
+        
+        private string ClassifyRequirementCategory(string requirementText)
+        {
+            var lowerText = requirementText.ToLowerInvariant();
+            
+            if (lowerText.Contains("display") || lowerText.Contains("show") || lowerText.Contains("indicate"))
+                return "A1 - Information Display";
+            if (lowerText.Contains("communicate") || lowerText.Contains("transmit") || lowerText.Contains("receive"))
+                return "A2 - Communication Management";
+            if (lowerText.Contains("navigate") || lowerText.Contains("route") || lowerText.Contains("position"))
+                return "N1 - Navigation Functions";
+            if (lowerText.Contains("control") || lowerText.Contains("manage") || lowerText.Contains("operate"))
+                return "A3 - System Control";
+            if (lowerText.Contains("monitor") || lowerText.Contains("track") || lowerText.Contains("detect"))
+                return "A4 - Monitoring Functions";
+                
+            return "A5 - General Avionics";
+        }
+
+        /// <summary>
+        /// Calculate advanced multi-dimensional quality score using sophisticated analysis
+        /// </summary>
+        private async Task<double> CalculateAdvancedQualityAsync(DerivationResult result, string sourceAtpContent)
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            
+            try
+            {
+                if (result.DerivedCapabilities.Count == 0) 
+                {
+                    _logger.LogWarning("🔍 [Quality Analysis] No capabilities to score - returning zero quality score");
+                    return 0.0;
+                }
+
+                // Calculate basic score for comparison
+                var basicScore = result.DerivedCapabilities.Average(c => c.ConfidenceScore);
+                
+                _logger.LogInformation("🔍 [Quality Analysis] Starting advanced analysis for {Count} capabilities (basic avg: {BasicScore:F2})",
+                    result.DerivedCapabilities.Count, basicScore);
+                
+                // Log sample requirements for debugging
+                var sampleReqs = result.DerivedCapabilities.Take(3).Select(c => new { 
+                    Text = c.RequirementText?.Length > 80 ? c.RequirementText.Substring(0, 80) + "..." : c.RequirementText,
+                    Confidence = c.ConfidenceScore,
+                    Category = c.TaxonomyCategory
+                }).ToList();
+                
+                _logger.LogDebug("🔍 [Quality Analysis] Sample requirements: {SampleReqs}", 
+                    System.Text.Json.JsonSerializer.Serialize(sampleReqs, new System.Text.Json.JsonSerializerOptions { WriteIndented = false }));
+
+                var qualityOptions = new QualityScoringOptions
+                {
+                    IncludeDetailedAnalysis = true,
+                    GenerateRecommendations = true,
+                    AssessRelativePerformance = true,
+                    ImprovementThreshold = 0.7
+                };
+                
+                _logger.LogDebug("🔍 [Quality Analysis] Calling DerivationQualityScorer with options: DetailedAnalysis={Detailed}, Recommendations={Recs}, Threshold={Threshold}",
+                    qualityOptions.IncludeDetailedAnalysis, qualityOptions.GenerateRecommendations, qualityOptions.ImprovementThreshold);
+
+                var qualityScore = await _qualityScorer.ScoreDerivationQualityAsync(result, sourceAtpContent, qualityOptions);
+                
+                stopwatch.Stop();
+                
+                // Log comprehensive quality insights
+                _logger.LogInformation("🎯 [Quality Analysis] COMPLETED in {ElapsedMs}ms: Advanced={AdvancedScore:F2} vs Basic={BasicScore:F2} (Δ{Delta:+0.00;-0.00}), Confidence={Confidence}",
+                    stopwatch.ElapsedMilliseconds, qualityScore.OverallScore, basicScore, qualityScore.OverallScore - basicScore, qualityScore.ConfidenceLevel);
+                
+                // Log dimension scores if available
+                if (qualityScore.DimensionScores?.Count > 0)
+                {
+                    var topDimensions = qualityScore.DimensionScores
+                        .OrderByDescending(kv => kv.Value)
+                        .Take(5)
+                        .Select(kv => $"{kv.Key}={kv.Value:F2}")
+                        .ToList();
+                    
+                    _logger.LogInformation("📊 [Quality Dimensions] Top scores: {TopDimensions}", string.Join(", ", topDimensions));
+                }
+                
+                // Log improvement areas 
+                if (qualityScore.ImprovementAreas?.Count > 0)
+                {
+                    _logger.LogWarning("⚠️  [Quality Issues] {ImprovementCount} areas need attention: {ImprovementAreas}", 
+                        qualityScore.ImprovementAreas.Count, string.Join("; ", qualityScore.ImprovementAreas.Take(3)));
+                }
+                
+                // Log actionable recommendations
+                if (qualityScore.ActionableRecommendations?.Count > 0)
+                {
+                    _logger.LogInformation("💡 [Quality Recommendations] {RecCount} suggestions:", qualityScore.ActionableRecommendations.Count);
+                    for (int i = 0; i < Math.Min(3, qualityScore.ActionableRecommendations.Count); i++)
+                    {
+                        _logger.LogInformation("   {Index}. {Recommendation}", i + 1, qualityScore.ActionableRecommendations[i]);
+                    }
+                    if (qualityScore.ActionableRecommendations.Count > 3)
+                    {
+                        _logger.LogInformation("   ... and {MoreCount} more recommendations", qualityScore.ActionableRecommendations.Count - 3);
+                    }
+                }
+
+                // Log relative performance if available
+                if (qualityScore.RelativePerformance != null)
+                {
+                    _logger.LogDebug("📈 [Relative Performance] Current session performance metrics available");
+                }
+
+                return qualityScore.OverallScore;
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex, "❌ [Quality Analysis] FAILED after {ElapsedMs}ms - falling back to basic calculation", stopwatch.ElapsedMilliseconds);
+                
+                // Fallback to basic scoring if advanced fails
+                var fallbackScore = result.DerivedCapabilities.Count > 0 ? result.DerivedCapabilities.Average(c => c.ConfidenceScore) : 0.0;
+                _logger.LogWarning("🔄 [Quality Fallback] Using basic average: {FallbackScore:F2}", fallbackScore);
+                
+                return fallbackScore;
+            }
         }
 
         private async Task<CapabilityAllocation?> AllocateSingleCapabilityAsync(
@@ -407,6 +1115,50 @@ namespace TestCaseEditorApp.Services
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Extract relevant keywords from ATP step for targeted RAG queries
+        /// </summary>
+        private List<string> ExtractKeywordsFromAtpStep(string atpStep)
+        {
+            if (string.IsNullOrWhiteSpace(atpStep))
+                return new List<string>();
+
+            var keywords = new List<string>();
+            
+            // Remove common test step words and extract meaningful terms
+            var commonWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "test", "step", "verify", "check", "ensure", "confirm", "validate", 
+                "perform", "execute", "run", "start", "stop", "set", "get", "is", 
+                "are", "the", "and", "or", "but", "with", "for", "to", "from", "in", 
+                "on", "at", "by", "of", "as", "if", "then", "else", "when", "while"
+            };
+            
+            // Extract words that might be technical terms or system components
+            var words = atpStep.Split(new[] { ' ', '\t', '\n', '\r', '.', ',', ';', ':', '!', '?' }, 
+                StringSplitOptions.RemoveEmptyEntries);
+            
+            foreach (var word in words)
+            {
+                var cleanWord = word.Trim();
+                
+                // Include words that are likely technical terms (longer than 3 chars, not common words)
+                if (cleanWord.Length > 3 && !commonWords.Contains(cleanWord) && 
+                    (char.IsUpper(cleanWord[0]) || cleanWord.Contains("_") || cleanWord.All(char.IsUpper)))
+                {
+                    keywords.Add(cleanWord);
+                }
+                
+                // Also include quoted strings as they often contain specific terms
+                if (cleanWord.StartsWith("\"") && cleanWord.EndsWith("\"") && cleanWord.Length > 4)
+                {
+                    keywords.Add(cleanWord.Trim('"'));
+                }
+            }
+            
+            return keywords.Distinct().Take(15).ToList(); // Return top 15 unique keywords
         }
 
         private string GetPrimarySubsystemForCategory(string taxonomySubcategory)
@@ -449,6 +1201,130 @@ namespace TestCaseEditorApp.Services
         private string GetModelName()
         {
             return _llmService?.GetType()?.Name ?? "Unknown";
+        }
+
+        /// <summary>
+        /// Applies enhanced MBSE-compliant filtering to derived capabilities, identifying system requirements,
+        /// elevating derived requirements, and filtering out implementation noise. 
+        /// Transforms the system from generic "requirement extraction" to intelligent "MBSE requirement elevation".
+        /// </summary>
+        private async Task ApplyMBSEFilteringAsync(DerivationResult result, Action<string>? progressCallback = null)
+        {
+            if (result.DerivedCapabilities.Count == 0)
+            {
+                _logger.LogDebug("No capabilities to analyze - skipping MBSE classification");
+                return;
+            }
+
+            // ENHANCED SYSTEM: Validate that MBSE classifier is available (no fallback allowed)
+            if (_mbseClassifier == null)
+            {
+                var error = "Enhanced MBSE classifier is required but not available. Fallback disabled - system must use enhanced processing.";
+                _logger.LogError(error);
+                progressCallback?.Invoke("❌ Enhanced MBSE system failure - no fallback available");
+                throw new InvalidOperationException(error);
+            }
+
+            var originalCount = result.DerivedCapabilities.Count;
+            _logger.LogInformation("🚀 ENHANCED MBSE PROCESSING: Starting intelligent requirement classification and elevation for {Count} candidates", originalCount);
+            progressCallback?.Invoke($"🔍 Enhanced MBSE Analysis: Evaluating {originalCount} candidates for system-level compliance and requirement elevation...");
+
+            try
+            {
+                // Apply enhanced MBSE analysis with requirement elevation (45-minute timeout)
+                var enhancedResult = await _mbseClassifier.AnalyzeAndElevateRequirementsAsync(
+                    result.DerivedCapabilities, 
+                    minimumMBSEScore: 0.7,
+                    enableRequirementElevation: true,
+                    maxProcessingTimeMinutes: 45);
+
+                // Replace capabilities with enhanced results (native + elevated system requirements)
+                result.DerivedCapabilities = enhancedResult.GetAllSystemRequirements();
+                
+                // Store enhanced MBSE analysis results
+                result.MBSEAnalysisResult = new MBSEAnalysisResult
+                {
+                    TotalCandidatesEvaluated = enhancedResult.Statistics.TotalCandidates,
+                    SystemLevelRequirementsCount = enhancedResult.Statistics.TotalSystemRequirements,
+                    ComponentLevelRequirementsCount = enhancedResult.Statistics.ComponentLevelRequirements,
+                    ImplementationConstraintsCount = enhancedResult.Statistics.ImplementationConstraints,
+                    AverageMBSEScore = enhancedResult.Statistics.AverageMBSEScore,
+                    SystemLevelPercentage = enhancedResult.Statistics.SystemRequirementPercentage,
+                    FilteredComponentRequirements = enhancedResult.ComponentLevelRequirements
+                        .Select(c => c.RequirementText).ToList(),
+                    FilteredImplementationConstraints = enhancedResult.ImplementationConstraints
+                        .Select(c => c.RequirementText).ToList()
+                };
+
+                var systemCount = enhancedResult.Statistics.TotalSystemRequirements;
+                var nativeCount = enhancedResult.Statistics.NativeSystemRequirements;
+                var elevatedCount = enhancedResult.Statistics.ElevatedRequirements;
+                var elevationRate = enhancedResult.Statistics.ElevationSuccessRate;
+
+                progressCallback?.Invoke(
+                    $"✅ Enhanced MBSE Complete: {systemCount} system requirements from {originalCount} candidates " +
+                    $"({nativeCount} native + {elevatedCount} elevated) " +
+                    $"→ Filtered: {enhancedResult.Statistics.ComponentLevelRequirements} component, " +
+                    $"{enhancedResult.Statistics.ImplementationConstraints} constraints, " +
+                    $"{enhancedResult.Statistics.InvalidRequirements} invalid " +
+                    $"(elevation success: {elevationRate:F1}%)");
+
+                _logger.LogInformation(
+                    "Enhanced MBSE analysis completed: {SystemCount} system requirements " +
+                    "({NativeCount} native + {ElevatedCount} elevated) from {OriginalCount} candidates. " +
+                    "Elevation success rate: {ElevationRate:F1}%, avg MBSE score: {AvgScore:F2}",
+                    systemCount, nativeCount, elevatedCount, originalCount, 
+                    elevationRate, enhancedResult.Statistics.AverageMBSEScore);
+
+                // Log examples of elevated requirements
+                if (enhancedResult.ElevatedRequirements.Count > 0)
+                {
+                    var elevationExamples = string.Join("; ", 
+                        enhancedResult.ElevatedRequirements.Take(2).Select(e => 
+                            $"'{e.OriginalCapability.RequirementText}' → '{e.SystemLevelCapability.RequirementText}'"));
+                    _logger.LogDebug("Requirement elevation examples: {Examples}", elevationExamples);
+                }
+
+                // Log traceability information
+                if (enhancedResult.TraceabilityMatrix.Count > 0)
+                {
+                    _logger.LogDebug("Generated {TraceCount} traceability records for requirement transformations", 
+                        enhancedResult.TraceabilityMatrix.Count);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Enhanced MBSE filtering failed - proceeding with unfiltered capabilities");
+                progressCallback?.Invoke($"⚠️ Enhanced MBSE analysis failed: {ex.Message} - proceeding with {originalCount} unfiltered capabilities");
+                
+                // Add warning but don't fail the entire derivation
+                result.ProcessingWarnings.Add($"Enhanced MBSE analysis failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Convert a DerivedCapability to a Requirement for real-time streaming
+        /// </summary>
+        private Requirement ConvertCapabilityToRequirement(DerivedCapability capability)
+        {
+            return new Requirement
+            {
+                GlobalId = $"DERIVED-{DateTime.Now.Ticks}-{capability.RequirementText.GetHashCode():X}",
+                Description = capability.RequirementText,
+                RequirementType = capability.TaxonomyCategory ?? "Functional",
+                ItemType = "System Capability",
+                Method = TestCaseEditorApp.MVVM.Models.VerificationMethod.Test, // Default verification method
+                CreatedDate = DateTime.Now,
+                ModifiedDate = DateTime.Now,
+                Status = "Active",
+                
+                // Store derivation metadata in tags
+                Tags = $"Derived,{capability.TaxonomyCategory},{capability.VerificationIntent}".Replace(",", ";"),
+                
+                // Store additional metadata in existing fields where possible
+                Rationale = capability.DerivationRationale ?? "",
+                Name = $"ATP Derived: {capability.RequirementText.Substring(0, Math.Min(50, capability.RequirementText.Length))}..."
+            };
         }
     }
 }

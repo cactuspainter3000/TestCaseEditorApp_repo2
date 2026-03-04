@@ -226,7 +226,7 @@ namespace TestCaseEditorApp.Services
         public TaxonomyValidationResult ValidateDerivationResult(
             List<DerivedCapability> capabilities,
             string sourceAtpContent = "",
-            TaxonomyValidationOptions options = null)
+            TaxonomyValidationOptions? options = null)
         {
             try
             {
@@ -288,7 +288,7 @@ namespace TestCaseEditorApp.Services
         /// <param name="capability">Capability to validate</param>
         /// <param name="options">Validation options</param>
         /// <returns>List of issues found with this capability</returns>
-        public List<ValidationIssue> ValidateSingleCapability(DerivedCapability capability, TaxonomyValidationOptions options = null)
+        public List<ValidationIssue> ValidateSingleCapability(DerivedCapability capability, TaxonomyValidationOptions? options = null)
         {
             var validationOptions = options ?? new TaxonomyValidationOptions();
             var issues = new List<ValidationIssue>();

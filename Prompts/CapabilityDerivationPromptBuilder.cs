@@ -77,9 +77,10 @@ namespace TestCaseEditorApp.Prompts
         /// </summary>
         public string BuildDerivationPrompt(
             string atpStep, 
-            ParsedATPStep stepMetadata = null, 
+            ParsedATPStep? stepMetadata = null, 
             string systemType = "Generic",
-            DerivationOptions derivationOptions = null)
+            DerivationOptions? derivationOptions = null,
+            string? ragContext = null)
         {
             var sb = new StringBuilder();
 
@@ -89,6 +90,21 @@ namespace TestCaseEditorApp.Prompts
 
             sb.AppendLine($"SYSTEM TYPE: {systemType}");
             sb.AppendLine();
+
+            // CRITICAL: Include RAG context if available
+            if (!string.IsNullOrEmpty(ragContext))
+            {
+                sb.AppendLine("DOCUMENT CONTEXT (from RAG):");
+                sb.AppendLine("-----------------------------");
+                sb.AppendLine("Use this document context to ground your analysis in actual system specifications:");
+                sb.AppendLine();
+                sb.AppendLine(ragContext);
+                sb.AppendLine();
+                sb.AppendLine("-----------------------------");
+                sb.AppendLine("IMPORTANT: Base your system capability derivation on the above document context.");
+                sb.AppendLine("Do not generate generic capabilities - derive specific ones from the technical details provided.");
+                sb.AppendLine();
+            }
 
             sb.AppendLine("ATP STEP TO ANALYZE:");
             sb.AppendLine(atpStep);
@@ -104,14 +120,46 @@ namespace TestCaseEditorApp.Prompts
             }
 
             sb.AppendLine("ANALYSIS FOCUS:");
-            sb.AppendLine("1. What system interfaces must exist?");
-            sb.AppendLine("2. What measurement or control functions are needed?");
-            sb.AppendLine("3. What data handling capabilities are required?");
-            sb.AppendLine("4. What performance characteristics must be provided?");
+            if (!string.IsNullOrEmpty(ragContext))
+            {
+                sb.AppendLine("1. What specific system interfaces are described in the document context?");
+                sb.AppendLine("2. What exact measurement or control functions are defined for this system?");
+                sb.AppendLine("3. What data handling capabilities are explicitly specified?");
+                sb.AppendLine("4. What performance characteristics are documented for this ATP step?");
+                sb.AppendLine("5. How do the document specifications relate to this test step?");
+            }
+            else
+            {
+                sb.AppendLine("1. What system interfaces must exist?");
+                sb.AppendLine("2. What measurement or control functions are needed?");
+                sb.AppendLine("3. What data handling capabilities are required?");
+                sb.AppendLine("4. What performance characteristics must be provided?");
+            }
             sb.AppendLine();
 
-            sb.AppendLine("RESPOND WITH JSON:");
-            sb.AppendLine("Use the exact JSON structure defined in the system message.");
+            sb.AppendLine("OUTPUT FORMAT REQUIREMENTS:");
+            sb.AppendLine("============================");
+            sb.AppendLine("You MUST respond with ONLY the JSON structure below. Do NOT include any other text, explanations, or markdown formatting.");
+            sb.AppendLine("Do NOT use ```json``` code blocks. Return ONLY the raw JSON.");
+            sb.AppendLine();
+            sb.AppendLine("REQUIRED JSON STRUCTURE:");
+            sb.AppendLine("{");
+            sb.AppendLine("  \"derivedCapabilities\": [");
+            sb.AppendLine("    {");
+            sb.AppendLine("      \"requirementText\": \"The system shall provide [specific capability]\",");
+            sb.AppendLine("      \"taxonomyCategory\": \"A1|A2|A3|A4|B1|B2|B3|C1|C2|C3|D1|D2|D3|E1|E2|E3|F1|F2|F3|G1|G2|G3|H1|H2|I1|I2|J1|J2|K1|N1\",");
+            sb.AppendLine("      \"derivationRationale\": \"Why this capability is needed for the ATP step\",");
+            sb.AppendLine("      \"confidenceScore\": 0.85");
+            sb.AppendLine("    }");
+            sb.AppendLine("  ]");
+            sb.AppendLine("}");
+            sb.AppendLine();
+            sb.AppendLine("CRITICAL INSTRUCTIONS:");
+            sb.AppendLine("- Return ONLY this JSON structure");
+            sb.AppendLine("- Each capability MUST start with 'The system shall'");
+            sb.AppendLine("- Use ONLY the taxonomy categories listed above");
+            sb.AppendLine("- If NO capabilities can be derived, return: {\"derivedCapabilities\": []}");
+            sb.AppendLine("- Do NOT return analysis objects, explanations, or alternative formats");
 
             return sb.ToString();
         }

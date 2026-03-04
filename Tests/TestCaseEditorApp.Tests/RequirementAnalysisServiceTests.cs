@@ -76,7 +76,7 @@ namespace TestCaseEditorApp.Tests.Phase4Services
             };
 
             _mockDerivationService.Setup(x => x.DeriveCapabilitiesAsync(
-                It.IsAny<string>(), It.IsAny<DerivationOptions>()))
+                It.IsAny<string>(), It.IsAny<DerivationOptions>(), It.IsAny<Action<string>>(), It.IsAny<Func<List<SkippedAtpStep>, Task<TimeoutRetryDecision>>>(), It.IsAny<Action<Requirement>?>()))
                 .ReturnsAsync(derivationResult);
 
             // Act
@@ -147,7 +147,7 @@ namespace TestCaseEditorApp.Tests.Phase4Services
             };
 
             _mockDerivationService.Setup(x => x.DeriveCapabilitiesAsync(
-                It.IsAny<string>(), It.IsAny<DerivationOptions>()))
+                It.IsAny<string>(), It.IsAny<DerivationOptions>(), It.IsAny<Action<string>>(), It.IsAny<Func<List<SkippedAtpStep>, Task<TimeoutRetryDecision>>>(), It.IsAny<Action<Requirement>?>()))
                 .ReturnsAsync(derivationResult);
 
             // Act
@@ -184,7 +184,7 @@ namespace TestCaseEditorApp.Tests.Phase4Services
             };
 
             _mockDerivationService.Setup(x => x.DeriveCapabilitiesAsync(
-                It.IsAny<string>(), It.IsAny<DerivationOptions>()))
+                It.IsAny<string>(), It.IsAny<DerivationOptions>(), It.IsAny<Action<string>>(), It.IsAny<Func<List<SkippedAtpStep>, Task<TimeoutRetryDecision>>>(), It.IsAny<Action<Requirement>?>()))
                 .ReturnsAsync(derivationResult);
 
             _mockGapAnalyzer.Setup(x => x.AnalyzeGapsAsync(

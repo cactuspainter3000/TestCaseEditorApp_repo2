@@ -20,6 +20,7 @@ namespace TestCaseEditorApp.Services.Prompts
             string atpStep,
             ParsedATPStep stepMetadata = null,
             string systemType = "Generic",
-            DerivationOptions derivationOptions = null);
+            DerivationOptions derivationOptions = null,
+            string ragContext = null);
     }
 }

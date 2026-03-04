@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -45,12 +47,20 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Parse a single Jama attachment and extract requirements using LLM
         /// </summary>
-        public async Task<List<Requirement>> ParseAttachmentAsync(JamaAttachment attachment, int projectId, System.Action<string>? progressCallback = null, CancellationToken cancellationToken = default)
+        public async Task<List<Requirement>> ParseAttachmentAsync(JamaAttachment attachment, int projectId, System.Action<string>? progressCallback = null, System.Action<Requirement>? onRequirementDiscovered = null, CancellationToken cancellationToken = default)
         {
             try
             {
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Starting parse for attachment {attachment.Id} ({attachment.FileName})");
                 progressCallback?.Invoke($"🔧 Preparing to extract requirements from {attachment.FileName}...");
+
+                // CRITICAL: Check if required AI services are available before processing
+                if (!await VerifyAIServicesAvailableAsync(progressCallback, cancellationToken))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] AI services not available - aborting document processing");
+                    progressCallback?.Invoke("❌ AI services unavailable - please ensure Ollama is running before processing documents");
+                    return new List<Requirement>();
+                }
 
                 // Step 1: Download attachment from Jama
                 progressCallback?.Invoke($"📥 Downloading attachment ({attachment.FileSize / 1024}KB)...");
@@ -73,21 +83,35 @@ namespace TestCaseEditorApp.Services
                 }
 
                 // Primary: Try DirectRagService first but only for text-based documents
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 🔍 ROUTING ANALYSIS:");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser]   - DirectRagService available: {_directRagService != null}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser]   - DirectRagService configured: {_directRagService?.IsConfigured == true}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser]   - TextGenerationService available: {_textGenerationService != null}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser]   - Document type: {attachment.MimeType}");
+                
                 if (_directRagService?.IsConfigured == true && _textGenerationService != null)
                 {
                     // Check if it's a document type that DirectRag can handle effectively
                     if (attachment.IsWord || attachment.IsExcel || attachment.IsPdf || attachment.MimeType?.Contains("text") == true)
                     {
                         TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Using DirectRagService for document analysis ({attachment.MimeType})");
-                        progressCallback?.Invoke($"🚀 Processing with reliable direct document analysis...");
-                        return await ExtractRequirementsWithDirectRagAsync(attachment, projectId, progressCallback, cancellationToken);
+                        progressCallback?.Invoke($"🚀 Processing with reliable RAG-enhanced analysis...");
+                        return await ExtractRequirementsWithDirectRagAsync(attachment, projectId, progressCallback, onRequirementDiscovered, cancellationToken);
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] ❌ Unsupported document type for DirectRag: {attachment.MimeType}");
                     }
                 }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ❌ DirectRagService not ready - DirectRag: {_directRagService?.IsConfigured}, TextGen: {_textGenerationService != null}");
+                }
                 
-                // Fallback: Try AnythingLLM for all other cases
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Using AnythingLLM for document type: {attachment.MimeType}");
-                progressCallback?.Invoke($"🔧 Processing with AnythingLLM document parser...");
-                return await ExtractRequirementsWithAnythingLLMAsync(attachment, projectId, progressCallback, cancellationToken);
+                // ENHANCED SYSTEM: Require DirectRag service (no AnythingLLM fallback)
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ENHANCED SYSTEM: DirectRagService required for document type: {attachment.MimeType}. Fallback to AnythingLLM disabled.");
+                progressCallback?.Invoke($"❌ Enhanced system requires proper RAG service - no fallback available");
+                throw new InvalidOperationException($"Enhanced document processing requires DirectRagService but it's not available for {attachment.MimeType}. Legacy AnythingLLM fallback disabled.");
             }
             catch (Exception ex)
             {
@@ -118,7 +142,7 @@ namespace TestCaseEditorApp.Services
                     continue;
                 }
 
-                var requirements = await ParseAttachmentAsync(attachment, projectId, null, cancellationToken);
+                var requirements = await ParseAttachmentAsync(attachment, projectId, null, null, cancellationToken);
                 allRequirements.AddRange(requirements);
             }
 
@@ -1140,7 +1164,8 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
             JamaAttachment attachment, 
             int projectId, 
             System.Action<string>? progressCallback,
-            CancellationToken cancellationToken)
+            System.Action<Requirement>? onRequirementDiscovered = null,
+            CancellationToken cancellationToken = default)
         {
             try
             {
@@ -1207,7 +1232,7 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
                 var contextContent = await _directRagService!.GetRequirementAnalysisContextAsync(
                     "requirements specifications constraints criteria shall must should will system component interface protocol performance safety", 
                     projectId, 
-                    maxContextChunks: 20, // Increased for more comprehensive analysis
+                    maxContextChunks: 8, // Reduced from 20 to prevent context overflow
                     cancellationToken);
 
                 // Validate we have meaningful content to analyze
@@ -1215,7 +1240,13 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Insufficient context content ({contextContent?.Length ?? 0} chars) - using full document");
                     // Use the extracted document content directly if RAG context is insufficient  
-                    contextContent = documentContent.Length > 10000 ? documentContent.Substring(0, 10000) + "..." : documentContent;
+                    contextContent = documentContent.Length > 4000 ? documentContent.Substring(0, 4000) + "..." : documentContent;
+                }
+                else if (contextContent.Length > 4000)
+                {
+                    // Trim context if it's too large for the LLM
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Context too large ({contextContent.Length} chars), trimming to 4000 chars");
+                    contextContent = contextContent.Substring(0, 4000) + "...";
                 }
 
                 // Step 5: Generate requirements using plain LLM with context
@@ -1235,7 +1266,7 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
                     progressCallback?.Invoke($"🚀 Enhancing with AI capability derivation system...");
                     try
                     {
-                        derivedRequirements = await DeriveRequirementsFromDocumentContentAsync(documentContent, attachment, projectId, progressCallback, cancellationToken);
+                        derivedRequirements = await DeriveRequirementsFromDocumentContentAsync(documentContent, attachment, projectId, progressCallback, onRequirementDiscovered, cancellationToken);
                         TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] ATP derivation system found {derivedRequirements.Count} additional derived requirements");
                     }
                     catch (Exception ex)
@@ -1279,68 +1310,25 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
         /// </summary>
         private string BuildDirectExtractionPrompt(JamaAttachment attachment, string contextContent)
         {
-            return $@"You are a systems engineer extracting REQUIREMENTS from technical documentation. Extract functional, interface, performance, and system-level requirements that define what the system/component must do or how it must behave.
+            return $@"Extract technical requirements from this document. Look for statements that use 'shall', 'must', 'will' or 'should' and define what the system must do or how it must perform.
 
 DOCUMENT: {attachment.FileName}
-TYPE: {GetDocumentTypeDescription(attachment)}
-SIZE: {attachment.FileSize / 1024}KB
 
-DOCUMENT CONTENT:
+CONTENT:
 {contextContent}
 
-REQUIREMENT TYPES TO EXTRACT:
+Find requirements like:
+- ""System shall process data at 60 fps""
+- ""Temperature range shall be -40°C to +85°C""  
+- ""Interface shall support RS-485 protocol""
 
-✅ **FUNCTIONAL REQUIREMENTS** - What the system/component must do:
-• ""The system shall process video at 60 fps""
-• ""The interface shall support RS-485 protocol""
-• ""The power supply shall provide 12V DC output""
-• ""The software shall restart within 30 seconds""
-
-✅ **PERFORMANCE REQUIREMENTS** - How well it must perform:
-• ""Response time shall not exceed 100 milliseconds""  
-• ""Accuracy shall be ±0.1% of full scale""
-• ""The system shall handle 1000 concurrent connections""
-
-✅ **INTERFACE REQUIREMENTS** - How it connects/communicates:
-• ""The Ethernet port shall support 1 Gbps data rate""
-• ""The API shall return JSON formatted responses""
-• ""Serial communication shall use 9600 baud, 8-N-1""
-
-✅ **ENVIRONMENTAL REQUIREMENTS** - Operating conditions:
-• ""Operating temperature shall be -40°C to +85°C""
-• ""The unit shall withstand 5G vibration""
-• ""Humidity range shall be 5% to 95% non-condensing""
-
-✅ **ELECTRICAL REQUIREMENTS** - Power, signals, specifications:
-• ""Input voltage shall be 24V DC ±10%""
-• ""Maximum current consumption shall be 2.5 amps""
-• ""Signal levels shall be TTL compatible""
-
-❌ **DO NOT EXTRACT** - These are not requirements:
-• Test procedures: ""Verify by applying 12V and measuring output""
-• Manufacturing notes: ""Use lead-free solder per IPC standards""
-• Documentation references: ""See section 4.2 for details""
-• Installation instructions: ""Mount using four #8 screws""
-• Quality procedures: ""Inspection shall verify all connections""
-
-EXTRACTION CRITERIA:
-✓ Must use requirement language: ""shall"", ""must"", ""will"", or ""should""
-✓ Must define specific behavior, performance, or characteristics
-✓ Must be testable/verifiable (what to measure/observe)
-✓ Can be system-level, subsystem-level, or component-level requirements
-✓ Include both functional AND non-functional requirements
-
-FORMAT each requirement as:
-ID: REQ-001  
+Format each requirement as:
+ID: REQ-001
 Text: [Complete requirement statement]
-Category: [Functional/Performance/Interface/Environmental/Electrical/System]
-Page: [Page number if available, e.g., ""Page 15""]
-Section: [Section title if visible, e.g., ""3.2.1 Power Requirements""]
+Category: [Functional/Performance/Interface/Environmental]
 ---
 
-IMPORTANT: Extract ALL legitimate requirements, not just system-level ones. Include component requirements, interface specifications, and performance criteria that engineers would need to implement or test.
-
-START EXTRACTION:";
+Extract all legitimate requirements:";
         }
 
         /// <summary>
@@ -1604,47 +1592,71 @@ START EXTRACTION:";
         /// </summary>
         private async Task<string> ExtractPdfTextAsync(byte[] pdfBytes)
         {
-            return await Task.Run(() =>
+            // Add timeout protection to prevent indefinite hanging on complex/large PDFs
+            using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMinutes(2)); // 2 minute timeout for PDF extraction
+            
+            try
             {
-                try
+                return await Task.Run(() =>
                 {
-                    using var stream = new MemoryStream(pdfBytes);
-                    using var reader = new PdfReader(stream);
-                    using var pdfDoc = new PdfDocument(reader);
-                    
-                    var text = new StringBuilder();
-                    
-                    // Extract text from all pages
-                    for (int pageNum = 1; pageNum <= pdfDoc.GetNumberOfPages(); pageNum++)
+                    try
                     {
-                        var page = pdfDoc.GetPage(pageNum);
-                        var strategy = new SimpleTextExtractionStrategy(); 
-                        var pageText = PdfTextExtractor.GetTextFromPage(page, strategy);
+                        using var stream = new MemoryStream(pdfBytes);
+                        using var reader = new PdfReader(stream);
+                        using var pdfDoc = new PdfDocument(reader);
                         
-                        if (!string.IsNullOrWhiteSpace(pageText))
+                        var text = new StringBuilder();
+                        var totalPages = pdfDoc.GetNumberOfPages();
+                        
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Starting PDF text extraction from {totalPages} pages ({pdfBytes.Length} bytes)");
+                        
+                        // Extract text from all pages with progress logging
+                        for (int pageNum = 1; pageNum <= totalPages; pageNum++)
                         {
-                            text.AppendLine($"--- Page {pageNum} ---");
-                            text.AppendLine(pageText);
-                            text.AppendLine();
+                            // Check for cancellation periodically
+                            cancellationTokenSource.Token.ThrowIfCancellationRequested();
+                            
+                            var page = pdfDoc.GetPage(pageNum);
+                            var strategy = new SimpleTextExtractionStrategy(); 
+                            var pageText = PdfTextExtractor.GetTextFromPage(page, strategy);
+                            
+                            if (!string.IsNullOrWhiteSpace(pageText))
+                            {
+                                text.AppendLine($"--- Page {pageNum} ---");
+                                text.AppendLine(pageText);
+                                text.AppendLine();
+                            }
+                            
+                            // Log progress for large documents
+                            if (pageNum % 10 == 0 || pageNum == totalPages)
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Debug($"[DirectRag] PDF extraction progress: {pageNum}/{totalPages} pages processed");
+                            }
                         }
+                        
+                        var result = text.ToString();
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Successfully extracted {result.Length} characters from {totalPages} pages");
+                        return result;
                     }
-                    
-                    var result = text.ToString();
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Extracted {result.Length} characters from {pdfDoc.GetNumberOfPages()} pages");
-                    return result;
-                }
-                catch (Exception ex)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Error(ex, "[DirectRag] Failed to extract PDF text using iText7");
-                    throw;
-                }
-            });
+                    catch (Exception ex)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Error(ex, "[DirectRag] Failed to extract PDF text using iText7");
+                        throw;
+                    }
+                }, cancellationTokenSource.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] ⏰ PDF extraction timed out after 2 minutes for document ({pdfBytes.Length} bytes)");
+                return $"[PDF Extraction Timeout] Document processing timed out after 2 minutes. Document size: {pdfBytes.Length} bytes.\n" +
+                       "[This document may be too complex for automated text extraction. Please try a smaller or simpler PDF file.]";
+            }
         }
 
         /// <summary>
         /// Derive requirements from document content using SystemCapabilityDerivationService (ATP derivation system from 5 phases)
         /// </summary>
-        private async Task<List<Requirement>> DeriveRequirementsFromDocumentContentAsync(string documentContent, JamaAttachment attachment, int projectId, System.Action<string>? progressCallback = null, CancellationToken cancellationToken = default)
+        private async Task<List<Requirement>> DeriveRequirementsFromDocumentContentAsync(string documentContent, JamaAttachment attachment, int projectId, System.Action<string>? progressCallback = null, System.Action<Requirement>? onRequirementDiscovered = null, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -1658,6 +1670,14 @@ START EXTRACTION:";
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Empty document content - cannot derive requirements");
                     return new List<Requirement>();
+                }
+
+                // CRITICAL: Verify Ollama is still available before starting ATP derivation
+                if (!await IsOllamaAvailableAsync(cancellationToken))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Ollama not available for ATP derivation - aborting intelligent analysis");
+                    progressCallback?.Invoke("⚠️ Ollama service unavailable - skipping AI-powered requirement derivation");
+                    return new List<Requirement>(); // Fall back gracefully
                 }
 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 🚀 Using ATP derivation system to derive requirements from {attachment.FileName} ({documentContent.Length} characters)");
@@ -1679,25 +1699,92 @@ START EXTRACTION:";
                 };
 
                 // Use the 5-phase ATP derivation system to analyze the document content
-                progressCallback?.Invoke($"🧠 Running AI-powered requirement derivation analysis...");
-                var derivationResult = await _derivationService.DeriveCapabilitiesAsync(documentContent, derivationOptions);
+                progressCallback?.Invoke($"🧠 Running AI-powered requirement derivation analysis on {documentContent.Length} characters...");
                 
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Derivation completed: {derivationResult.DerivedCapabilities.Count} capabilities derived, {derivationResult.RejectedItems.Count} items filtered out");
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Quality score: {derivationResult.QualityScore:F2}, Processing time: {derivationResult.ProcessingTime.TotalSeconds:F1}s");
-
-                if (derivationResult.ProcessingWarnings.Count > 0)
+                // Add timeout for ATP derivation to prevent indefinite hanging
+                var derivationTimeout = TimeSpan.FromMinutes(10); // Maximum 10 minutes for large documents
+                var derivationCts = new CancellationTokenSource();
+                derivationCts.CancelAfter(derivationTimeout);
+                
+                // Combine the provided cancellation token with the timeout
+                var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, derivationCts.Token);
+                
+                // Start a background task to provide periodic progress updates
+                var progressTask = ProvidePeriodicDerivationProgressAsync(progressCallback, derivationCts.Token);
+                
+                try
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Derivation warnings: {string.Join(", ", derivationResult.ProcessingWarnings)}");
+                    // Create retry callback for handling timeout scenarios
+                    Func<List<SkippedAtpStep>, Task<TimeoutRetryDecision>> retryCallback = async (skippedSteps) =>
+                    {
+                        // Show user the retry option using MessageBox
+                        var message = $"Analysis completed with some timeouts.\n\n" +
+                                    $"{skippedSteps.Count} ATP steps timed out during analysis.\n\n" +
+                                    $"Would you like to retry the timed-out steps with extended timeout?\n\n" +
+                                    $"(This may help extract additional requirements from complex ATP steps)";
+                        
+                        var result = System.Windows.MessageBox.Show(message,
+                            "ATP Analysis - Retry Timed Out Steps?",
+                            System.Windows.MessageBoxButton.YesNo,
+                            System.Windows.MessageBoxImage.Question);
+                        
+                        if (result == System.Windows.MessageBoxResult.Yes)
+                        {
+                            // Let user choose timeout extension
+                            var timeoutMessage = "Select extended timeout for retry:\n\n" +
+                                               "• 15 seconds (Quick retry)\n" +
+                                               "• 30 seconds (Standard retry)\n" +
+                                               "• 60 seconds (Extended retry)\n" +
+                                               "• 120 seconds (Maximum retry)\n\n" +
+                                               "Click OK for 60 seconds, Cancel for 30 seconds";
+                            
+                            var timeoutResult = System.Windows.MessageBox.Show(timeoutMessage,
+                                "Select Retry Timeout",
+                                System.Windows.MessageBoxButton.OKCancel,
+                                System.Windows.MessageBoxImage.Question);
+                            
+                            var extendedTimeout = timeoutResult == System.Windows.MessageBoxResult.OK 
+                                ? TimeSpan.FromSeconds(60) 
+                                : TimeSpan.FromSeconds(30);
+                            
+                            return new TimeoutRetryDecision { ShouldRetry = true, ExtendedTimeout = extendedTimeout };
+                        }
+                        
+                        return new TimeoutRetryDecision { ShouldRetry = false, ExtendedTimeout = TimeSpan.Zero };
+                    };
+                    
+                    var derivationResult = await _derivationService.DeriveCapabilitiesAsync(documentContent, derivationOptions, progressCallback, retryCallback, onRequirementDiscovered);
+                    derivationCts.Cancel(); // Stop progress updates
+                    
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Derivation completed: {derivationResult.DerivedCapabilities.Count} capabilities derived, {derivationResult.RejectedItems.Count} items filtered out");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Quality score: {derivationResult.QualityScore:F2}, Processing time: {derivationResult.ProcessingTime.TotalSeconds:F1}s");
+
+                    if (derivationResult.ProcessingWarnings.Count > 0)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Derivation warnings: {string.Join(", ", derivationResult.ProcessingWarnings)}");
+                    }
+
+                    // Convert derived capabilities to requirements
+                    progressCallback?.Invoke($"📋 Converting {derivationResult.DerivedCapabilities.Count} derived capabilities to requirements...");
+                    var derivedRequirements = ConvertDerivedCapabilitiesToRequirements(derivationResult.DerivedCapabilities, attachment, projectId);
+                    
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Successfully derived {derivedRequirements.Count} requirements from {attachment.FileName} using ATP derivation system");
+                    progressCallback?.Invoke($"✅ ATP Derivation Complete: Generated {derivedRequirements.Count} requirements via phi4-mini → A-N taxonomy → capability synthesis");
+
+                    return derivedRequirements;
                 }
-
-                // Convert derived capabilities to requirements
-                progressCallback?.Invoke($"📋 Converting {derivationResult.DerivedCapabilities.Count} derived capabilities to requirements...");
-                var derivedRequirements = ConvertDerivedCapabilitiesToRequirements(derivationResult.DerivedCapabilities, attachment, projectId);
-                
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Successfully derived {derivedRequirements.Count} requirements from {attachment.FileName} using ATP derivation system");
-                progressCallback?.Invoke($"✅ Derived {derivedRequirements.Count} requirements using intelligent capability analysis");
-
-                return derivedRequirements;
+                catch (OperationCanceledException) when (derivationCts.Token.IsCancellationRequested)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] ⏰ ATP derivation timed out after {derivationTimeout.TotalMinutes} minutes for {attachment.FileName}");
+                    progressCallback?.Invoke($"⏰ AI derivation timed out after {derivationTimeout.TotalMinutes} minutes - falling back to basic extraction");
+                    return new List<Requirement>(); // Return empty list and continue with basic extraction
+                }
+                finally
+                {
+                    derivationCts.Cancel(); // Ensure progress task is stopped
+                    combinedCts.Dispose(); // Clean up the combined cancellation token source
+                    derivationCts.Dispose(); // Clean up the timeout cancellation token source
+                }
             }
             catch (Exception ex)
             {
@@ -1808,6 +1895,166 @@ START EXTRACTION:";
             notes.Add($"**Quality Score:** Based on A-N taxonomy validation and content analysis");
 
             return string.Join("\n\n", notes);
+        }
+
+        /// <summary>
+        /// Provides periodic progress updates during ATP derivation processing
+        /// </summary>
+        private async Task ProvidePeriodicDerivationProgressAsync(Action<string>? progressCallback, CancellationToken cancellationToken)
+        {
+            if (progressCallback == null) return;
+
+            var progressMessages = new[]
+            {
+                "🔍 Parsing PDF: Extracting ATP test procedure steps from document structure...",
+                "📝 LLM Analysis: Using phi4-mini model to analyze test step semantics...", 
+                "🎯 A-N Taxonomy: Classifying capabilities using Avionics-Navigation framework...",
+                "⚡ Quality Scoring: Computing confidence metrics and derivation rationale...",
+                "🔄 ATP Methodology: Cross-referencing with 5-phase capability derivation system...",
+                "📊 Capability Ranking: Scoring system capabilities by quality and completeness...",
+                "🧠 Relationship Analysis: Processing logical dependencies between test steps...",
+                "✨ Requirement Synthesis: Converting capabilities to structured requirements..."
+            };
+
+            int messageIndex = 0;
+            try
+            {
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    await Task.Delay(3000, cancellationToken); // Update every 3 seconds
+                    if (cancellationToken.IsCancellationRequested) break;
+                    
+                    progressCallback(progressMessages[messageIndex % progressMessages.Length]);
+                    messageIndex++;
+                    
+                    // Add a processing indicator every few updates
+                    if (messageIndex % 3 == 0)
+                    {
+                        progressCallback("⏳ ATP Derivation: Processing test steps through phi4-mini → A-N taxonomy → requirements...");
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when derivation completes - no action needed
+            }
+        }
+
+        /// <summary>
+        /// Verify that required AI services (Ollama, embeddings, text generation) are available before processing
+        /// </summary>
+        private async Task<bool> VerifyAIServicesAvailableAsync(Action<string>? progressCallback, CancellationToken cancellationToken)
+        {
+            progressCallback?.Invoke("🔍 Checking AI service availability...");
+            
+            // Check if we're using DirectRAG (requires Ollama)
+            if (_directRagService?.IsConfigured == true || _textGenerationService != null || _derivationService != null)
+            {
+                // Test Ollama connectivity (with auto-start)
+                progressCallback?.Invoke("🔧 Verifying Ollama service...");
+                
+                if (!await IsOllamaAvailableAsync(cancellationToken))
+                {
+                    progressCallback?.Invoke("❌ Failed to start or connect to Ollama service");
+                    return false;
+                }
+            }
+            
+            progressCallback?.Invoke("✅ AI services available - proceeding with document analysis");
+            return true;
+        }
+
+        /// <summary>
+        /// Test if Ollama is running and responding on localhost:11434
+        /// Automatically attempts to start Ollama if it's not running
+        /// </summary>
+        private async Task<bool> IsOllamaAvailableAsync(CancellationToken cancellationToken)
+        {
+            // First, try to connect to Ollama
+            if (await TestOllamaConnectionAsync(cancellationToken))
+            {
+                return true;
+            }
+
+            // If connection failed, try to start Ollama automatically
+            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Ollama not responding - attempting to start automatically");
+            
+            if (await StartOllamaServiceAsync(cancellationToken))
+            {
+                // Wait a moment for Ollama to fully start up
+                await Task.Delay(3000, cancellationToken);
+                
+                // Test connection again
+                if (await TestOllamaConnectionAsync(cancellationToken))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Successfully started Ollama service");
+                    return true;
+                }
+            }
+            
+            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Failed to start or connect to Ollama service");
+            return false;
+        }
+
+        /// <summary>
+        /// Test connection to Ollama API
+        /// </summary>
+        private async Task<bool> TestOllamaConnectionAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                using var httpClient = new HttpClient();
+                httpClient.Timeout = TimeSpan.FromSeconds(5); // Quick timeout for health check
+                
+                var response = await httpClient.GetAsync("http://localhost:11434/api/tags", cancellationToken);
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Ollama health check passed - service is responding");
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaDocumentParser] Ollama connection test failed: {ex.Message}");
+            }
+            
+            return false;
+        }
+
+        /// <summary>
+        /// Attempt to start Ollama service automatically
+        /// </summary>
+        private async Task<bool> StartOllamaServiceAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Starting Ollama service...");
+                
+                var startInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "ollama",
+                    Arguments = "serve",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
+
+                var process = System.Diagnostics.Process.Start(startInfo);
+                if (process != null)
+                {
+                    // Don't wait for the process to exit - it should run in background
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Ollama process started (PID: {process.Id})");
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Failed to start Ollama: {ex.Message}");
+            }
+            
+            return false;
         }
     }
 }
