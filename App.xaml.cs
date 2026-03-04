@@ -416,6 +416,10 @@ namespace TestCaseEditorApp
                     // A/B Testing Framework (Task 6.9) - Compare template vs legacy approaches with statistical analysis
                     services.AddSingleton<TestCaseEditorApp.Services.Templates.IABTestingFramework,
                                            TestCaseEditorApp.Services.Templates.ABTestingFramework>();
+                    
+                    // Telemetry Dashboard Service (Task 6.10) - Enterprise monitoring with field completion rates and confidence calibration
+                    services.AddSingleton<TestCaseEditorApp.Services.Templates.ITelemetryDashboardService,
+                                           TestCaseEditorApp.Services.Templates.TelemetryDashboardService>();
 
                     // ViewModels that need DI
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Title.ViewModels.TitleViewModel>();
