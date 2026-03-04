@@ -120,4 +120,25 @@ namespace TestCaseEditorApp.Services.Templates
         string RecommendedAction { get; set; }
         Dictionary<string, object> Metadata { get; set; }
     }
+
+    /// <summary>
+    /// Template Form Architecture Service interface (Task 6.5 placeholder)
+    /// Future implementation planned for comprehensive template form management
+    /// </summary>
+    public interface ITemplateFormArchitectureService
+    {
+        // Placeholder interface for future Template Form Architecture integration
+    }
+
+    /// <summary>
+    /// Constraint Validation Service interface (Task 6.5 placeholder)
+    /// Future implementation planned for constraint validation integration
+    /// </summary>
+    public interface IConstraintValidationService
+    {
+        /// <summary>
+        /// Validates all constraints for a template form
+        /// </summary>
+        Task<ConstraintValidationResult> ValidateAllConstraintsAsync(IFormTemplate formTemplate, Dictionary<string, object> formData);
+    }
 }

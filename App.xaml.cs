@@ -404,6 +404,10 @@ namespace TestCaseEditorApp
                                            
                     services.AddTransient<TestCaseEditorApp.Services.Templates.IOutputEnvelopeService,
                                            TestCaseEditorApp.Services.Templates.OutputEnvelopeService>();
+                    
+                    // Field-Level Quality Metrics (Task 6.5) - Template Form Architecture quality integration
+                    services.AddTransient<TestCaseEditorApp.Services.Templates.IFieldLevelQualityService,
+                                           TestCaseEditorApp.Services.Templates.FieldLevelQualityService>();
 
                     // ViewModels that need DI
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Title.ViewModels.TitleViewModel>();
