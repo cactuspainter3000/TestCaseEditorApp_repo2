@@ -125,12 +125,36 @@ namespace TestCaseEditorApp.Services.Templates
         public TimeSpan ProcessingTime { get; set; }
         public int RetryCount { get; set; }
         
-        // Alias properties for test compatibility
-        public bool Success => IsSuccessful;
-        public DateTime Timestamp => ProcessedAt;
-        public long ProcessingTimeMs => (long)ProcessingTime.TotalMilliseconds;
-        public FieldCriticality Criticality => FieldType;
-        public string TemplateName => TemplateId;
+        // Alias properties for test compatibility (read/write)
+        public bool Success 
+        { 
+            get => IsSuccessful;
+            set => IsSuccessful = value;
+        }
+        
+        public DateTime Timestamp 
+        { 
+            get => ProcessedAt;
+            set => ProcessedAt = value;
+        }
+        
+        public long ProcessingTimeMs 
+        { 
+            get => (long)ProcessingTime.TotalMilliseconds;
+            set => ProcessingTime = TimeSpan.FromMilliseconds(value);
+        }
+        
+        public FieldCriticality Criticality 
+        { 
+            get => FieldType;
+            set => FieldType = value;
+        }
+        
+        public string TemplateName 
+        { 
+            get => TemplateId;
+            set => TemplateId = value;
+        }
         
         // Processing details
         public string? FailureReason { get; set; }

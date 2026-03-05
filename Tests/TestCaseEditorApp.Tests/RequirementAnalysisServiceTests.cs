@@ -46,6 +46,7 @@ namespace TestCaseEditorApp.Tests.Phase4Services
                 _mockHealthMonitor.Object,
                 _mockCache.Object,
                 _mockAnythingLLMService.Object,
+                null, // directRagService
                 _mockDerivationService.Object,
                 _mockGapAnalyzer.Object);
         }
@@ -234,6 +235,7 @@ namespace TestCaseEditorApp.Tests.Phase4Services
                 _mockHealthMonitor.Object,
                 _mockCache.Object,
                 _mockAnythingLLMService.Object,
+                null, // directRagService
                 _mockDerivationService.Object,
                 _mockGapAnalyzer.Object);
 

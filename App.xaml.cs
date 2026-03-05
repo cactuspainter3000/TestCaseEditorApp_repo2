@@ -363,7 +363,25 @@ namespace TestCaseEditorApp
                         var directRagService = provider.GetService<IDirectRagService>(); // Optional fallback
                         var textGenerationService = provider.GetService<ITextGenerationService>(); // For DirectRag fallback
                         var derivationService = provider.GetService<ISystemCapabilityDerivationService>(); // ATP derivation system (5 phases)
-                        return new JamaDocumentParserService(jamaService, llmService, directRagService, textGenerationService, derivationService);
+                        
+                        // Template Form Architecture services (Phase 6 integration for attachment scraping)
+                        var envelopeService = provider.GetService<IOutputEnvelopeService>();
+                        var qualityService = provider.GetService<IFieldLevelQualityService>();
+                        var complianceWrapper = provider.GetService<IServiceComplianceWrapper>();
+                        var abTestingFramework = provider.GetService<IABTestingFramework>();
+                        var telemetryService = provider.GetService<ITelemetryDashboardService>();
+                        
+                        return new JamaDocumentParserService(
+                            jamaService, 
+                            llmService, 
+                            directRagService, 
+                            textGenerationService, 
+                            derivationService,
+                            envelopeService,
+                            qualityService,
+                            complianceWrapper,
+                            abTestingFramework,
+                            telemetryService);
                     });
                     
                     // Jama Test Case Conversion Service - Business logic for converting requirements to Jama test cases

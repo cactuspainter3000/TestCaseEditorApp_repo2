@@ -3,6 +3,8 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -1203,6 +1205,36 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     BackgroundScanProgressText = "Search canceled";
                     IsBackgroundScanningInProgress = false;
                 }
+            }
+            catch (HttpRequestException httpEx) when (httpEx.InnerException is System.Net.Sockets.SocketException socketEx && socketEx.SocketErrorCode == System.Net.Sockets.SocketError.HostNotFound)
+            {
+                _logger.LogError(httpEx, "[RequirementsSearchAttachments] Network connectivity error - host not found");
+                string networkMessage = "🌐 Cannot connect to Jama server - please check your VPN connection";
+                StatusMessage = networkMessage;
+                
+                if (isBackgroundScan)
+                {
+                    BackgroundScanProgressText = "🌐 VPN connection required";
+                }
+                
+                SetError($"Network connectivity error: Cannot resolve Jama server hostname. Please verify:\n" +
+                         $"• You are connected to the corporate VPN\n" +
+                         $"• Your network connection is active\n" +
+                         $"• The Jama server URL is correct in settings\n\n" +
+                         $"Host: {httpEx.Message.Split('(').LastOrDefault()?.TrimEnd(')')}");
+            }
+            catch (HttpRequestException httpEx)
+            {
+                _logger.LogError(httpEx, "[RequirementsSearchAttachments] HTTP request error");
+                string networkMessage = "🌐 Network connection error - check VPN and try again";
+                StatusMessage = networkMessage;
+                
+                if (isBackgroundScan)
+                {
+                    BackgroundScanProgressText = "🌐 Connection failed";
+                }
+                
+                SetError($"Failed to connect to Jama server: {httpEx.Message}\n\nPlease check your VPN connection and network settings.");
             }
             catch (Exception ex)
             {

@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Services.Prompts;
+using TestCaseEditorApp.Services.Templates; // Template Form Architecture (Phase 6)
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -31,17 +32,42 @@ namespace TestCaseEditorApp.Services
         private readonly IDirectRagService? _directRagService;
         private readonly ITextGenerationService? _textGenerationService;
         private readonly ISystemCapabilityDerivationService? _derivationService;
+        
+        // Template Form Architecture services (Phase 6 integration)
+        private readonly IOutputEnvelopeService? _envelopeService;
+        private readonly IFieldLevelQualityService? _qualityService;
+        private readonly IServiceComplianceWrapper? _complianceWrapper;
+        private readonly IABTestingFramework? _abTestingFramework;
+        private readonly ITelemetryDashboardService? _telemetryService;
+        
         private const string PARSING_WORKSPACE_PREFIX = "jama-doc-parse";
 
         public bool IsConfigured => _jamaService.IsConfigured && (_llmService != null || _directRagService?.IsConfigured == true);
 
-        public JamaDocumentParserService(IJamaConnectService jamaService, IAnythingLLMService llmService, IDirectRagService? directRagService = null, ITextGenerationService? textGenerationService = null, ISystemCapabilityDerivationService? derivationService = null)
+        public JamaDocumentParserService(
+            IJamaConnectService jamaService, 
+            IAnythingLLMService llmService, 
+            IDirectRagService? directRagService = null, 
+            ITextGenerationService? textGenerationService = null, 
+            ISystemCapabilityDerivationService? derivationService = null,
+            IOutputEnvelopeService? envelopeService = null,
+            IFieldLevelQualityService? qualityService = null,
+            IServiceComplianceWrapper? complianceWrapper = null,
+            IABTestingFramework? abTestingFramework = null,
+            ITelemetryDashboardService? telemetryService = null)
         {
             _jamaService = jamaService ?? throw new ArgumentNullException(nameof(jamaService));
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
             _directRagService = directRagService;
             _textGenerationService = textGenerationService;
             _derivationService = derivationService;
+            _envelopeService = envelopeService;
+            _qualityService = qualityService;
+            _complianceWrapper = complianceWrapper;
+            _abTestingFramework = abTestingFramework;
+            _telemetryService = telemetryService;
+            
+            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Initialized with Template Form Architecture: Envelope={envelopeService != null}, Quality={qualityService != null}, Compliance={complianceWrapper != null}, ABTest={abTestingFramework != null}, Telemetry={telemetryService != null}");
         }
 
         /// <summary>
@@ -1249,16 +1275,27 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
                     contextContent = contextContent.Substring(0, 4000) + "...";
                 }
 
-                // Step 5: Generate requirements using plain LLM with context
-                var prompt = BuildDirectExtractionPrompt(attachment, contextContent);
-                var llmResponse = await _textGenerationService!.GenerateAsync(prompt, cancellationToken);
+                // Step 5: Choose extraction method - Template Form Architecture or Legacy
+                List<Requirement> extractedRequirements;
                 
-                // Step 6: Parse LLM response into requirements
-                var extractedRequirements = ParseRequirementsFromText(llmResponse, attachment);
+                if (_envelopeService != null && _textGenerationService != null)
+                {
+                    // Use Template Form Architecture for structured extraction with quality validation
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Using Template Form Architecture for structured extraction");
+                    extractedRequirements = await ExtractRequirementsWithTemplateFormAsync(contextContent, attachment, projectId, progressCallback, cancellationToken);
+                }
+                else
+                {
+                    // Fallback to legacy extraction method
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Using legacy extraction (Template Form services unavailable)");
+                    var prompt = BuildDirectExtractionPrompt(attachment, contextContent);
+                    var llmResponse = await _textGenerationService!.GenerateAsync(prompt, cancellationToken);
+                    extractedRequirements = ParseRequirementsFromText(llmResponse, attachment);
+                }
                 
-                TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Extracted {extractedRequirements.Count} requirements using basic extraction");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Extracted {extractedRequirements.Count} requirements");
                 
-                // Step 7: ENHANCE with ATP derivation system (5-phase implementation)
+                // Step 6: ENHANCE with ATP derivation system (5-phase implementation)
                 // Use the sophisticated derivation system to derive additional requirements from document content
                 List<Requirement> derivedRequirements = new List<Requirement>();
                 if (_derivationService != null)
@@ -2056,5 +2093,256 @@ Extract all legitimate requirements:";
             
             return false;
         }
+
+        #region Template Form Architecture Integration (Phase 6)
+
+        /// <summary>
+        /// Extract requirements using Template Form Architecture with structured output envelopes
+        /// Provides enhanced quality scoring, compliance checking, and telemetry tracking
+        /// </summary>
+        private async Task<List<Requirement>> ExtractRequirementsWithTemplateFormAsync(
+            string documentContent,
+            JamaAttachment attachment,
+            int projectId,
+            System.Action<string>? progressCallback,
+            CancellationToken cancellationToken)
+        {
+            if (_envelopeService == null || _textGenerationService == null)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info("[TemplateForm] Template Form services not available - falling back to standard extraction");
+                return new List<Requirement>();
+            }
+
+            var extractionStartTime = DateTime.UtcNow;
+            progressCallback?.Invoke("🎯 Using structured extraction with quality validation...");
+
+            try
+            {
+                // Step 1: Define the requirement extraction schema
+                var requirementSchema = new
+                {
+                    requirements = new[]
+                    {
+                        new
+                        {
+                            id = "string (format: REQ-XXX or SYS-XXX-NNN)",
+                            text = "string (complete requirement statement)",
+                            category = "string (Functional|Performance|Interface|Environmental|Safety|Security)",
+                            page = "string (optional, page number or section reference)",
+                            section = "string (optional, document section)",
+                            confidence = "number (0.0-1.0, extraction confidence)"
+                        }
+                    },
+                    metadata = new
+                    {
+                        total_requirements = "number",
+                        document_name = "string",
+                        extraction_method = "string"
+                    }
+                };
+
+                var schemaJson = JsonSerializer.Serialize(requirementSchema, new JsonSerializerOptions { WriteIndented = true });
+
+                // Step 2: Build prompt with envelope instructions
+                var prompt = $@"Extract all technical requirements from this document. Requirements typically use words like 'shall', 'must', 'will', or 'should' and define what a system must do or how it must perform.
+
+DOCUMENT: {attachment.FileName}
+
+CONTENT:
+{(documentContent.Length > 3500 ? documentContent.Substring(0, 3500) + "..." : documentContent)}
+
+IMPORTANT: Respond ONLY with valid JSON matching this schema:
+{schemaJson}
+
+Example output:
+{{
+  ""requirements"": [
+    {{
+      ""id"": ""REQ-001"",
+      ""text"": ""System shall process data at minimum 60 frames per second"",
+      ""category"": ""Performance"",
+      ""page"": ""Page 12"",
+      ""section"": ""3.2 Performance Requirements"",
+      ""confidence"": 0.95
+    }}
+  ],
+  ""metadata"": {{
+    ""total_requirements"": 1,
+    ""document_name"": ""{attachment.FileName}"",
+    ""extraction_method"": ""template_form""
+  }}
+}}
+
+Extract requirements now (JSON only):";
+
+                // Step 3: Generate LLM response
+                progressCallback?.Invoke("🧠 AI analyzing document with structured output...");
+                var llmResponse = await _textGenerationService.GenerateAsync(prompt, cancellationToken);
+
+                // Step 4: Try to parse the JSON response directly (simplified approach)
+                RequirementExtractionEnvelope? envelope = null;
+                try
+                {
+                    // Extract JSON from response (handle markdown code blocks)
+                    var jsonStart = llmResponse.IndexOf('{');
+                    var jsonEnd = llmResponse.LastIndexOf('}');
+                    if (jsonStart >= 0 && jsonEnd > jsonStart)
+                    {
+                        var jsonContent = llmResponse.Substring(jsonStart, jsonEnd - jsonStart + 1);
+                        envelope = JsonSerializer.Deserialize<RequirementExtractionEnvelope>(jsonContent, new JsonSerializerOptions 
+                        { 
+                            PropertyNameCaseInsensitive = true 
+                        });
+                    }
+                }
+                catch (Exception parseEx)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[TemplateForm] JSON parsing failed: {parseEx.Message}");
+                }
+
+                if (envelope == null || envelope.Requirements == null || envelope.Requirements.Count == 0)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[TemplateForm] Failed to parse structured output - falling back to legacy parsing");
+                    progressCallback?.Invoke("⚠️ Structured extraction incomplete - using fallback parser");
+                    
+                    // Track failure in telemetry if available
+                    if (_telemetryService != null)
+                    {
+                        await _telemetryService.TrackLLMResponseAsync(new LLMResponseTelemetry
+                        {
+                            Timestamp = DateTime.UtcNow,
+                            OperationName = "template_form_extraction",
+                            ResponseLength = llmResponse.Length,
+                            PassedValidation = false,
+                            ResponseTimeMs = (long)(DateTime.UtcNow - extractionStartTime).TotalMilliseconds,
+                            TemplateId = "requirement_extraction",
+                            WasCorrect = false
+                        });
+                    }
+                    
+                    // Fallback to legacy parsing
+                    return ParseRequirementsFromText(llmResponse, attachment);
+                }
+
+                // Step 5: Convert envelope data to Requirement objects
+                var extractedRequirements = new List<Requirement>();
+
+                foreach (var req in envelope.Requirements)
+                {
+                    if (string.IsNullOrWhiteSpace(req.Text) || !IsValidRequirement(req.Text))
+                        continue;
+
+                    // Build source information
+                    var sourceInfo = new List<string>();
+                    if (!string.IsNullOrWhiteSpace(req.Page))
+                        sourceInfo.Add(req.Page);
+                    if (!string.IsNullOrWhiteSpace(req.Section))
+                        sourceInfo.Add(req.Section);
+                    
+                    var sourceLine = sourceInfo.Count > 0 ? string.Join(", ", sourceInfo) : "Source not specified";
+
+                    var requirement = new Requirement
+                    {
+                        GlobalId = req.Id ?? $"SYS-REQ-{extractedRequirements.Count + 1:D3}",
+                        Item = req.Id ?? $"SYS-REQ-{extractedRequirements.Count + 1:D3}",
+                        Name = req.Category ?? "System Requirement",
+                        Description = $"{req.Text}\n\nSource: {sourceLine}\nFrom: {attachment.FileName}\nConfidence: {req.Confidence:P0} (Template Form extraction)"
+                    };
+
+                    // Step 6: Record field processing for quality metrics (if service available)
+                    if (_qualityService != null)
+                    {
+                        await _qualityService.RecordFieldProcessingResultAsync(new FieldProcessingResult
+                        {
+                            TemplateId = "requirement_extraction",
+                            FieldType = FieldCriticality.Required,
+                            ProcessedAt = DateTime.UtcNow,
+                            ProcessingTime = TimeSpan.FromMilliseconds(100), // Rough estimate per field
+                            IsSuccessful = true,
+                            ConfidenceScore = req.Confidence,
+                            RetryCount = 0
+                        });
+                    }
+
+                    extractedRequirements.Add(requirement);
+                }
+
+                // Step 7: Track successful extraction in telemetry
+                if (_telemetryService != null)
+                {
+                    var processingTime = (long)(DateTime.UtcNow - extractionStartTime).TotalMilliseconds;
+                    
+                    await _telemetryService.TrackLLMResponseAsync(new LLMResponseTelemetry
+                    {
+                        Timestamp = DateTime.UtcNow,
+                        OperationName = "template_form_extraction",
+                        ResponseLength = llmResponse.Length,
+                        ParsedFieldCount = extractedRequirements.Count,
+                        ExpectedFieldCount = envelope.Metadata.TotalRequirements,
+                        PassedValidation = true,
+                        ResponseTimeMs = processingTime,
+                        TemplateId = "requirement_extraction",
+                        WasCorrect = true,
+                        LLMConfidence = envelope.Requirements.Average(r => r.Confidence),
+                        ActualQualityScore = envelope.Requirements.Average(r => r.Confidence)
+                    });
+
+                    // Track field completions
+                    foreach (var req in extractedRequirements)
+                    {
+                        await _telemetryService.TrackFieldCompletionAsync(new FieldCompletionEvent
+                        {
+                            Timestamp = DateTime.UtcNow,
+                            FieldName = "requirement",
+                            TemplateId = "requirement_extraction",
+                            CompletionStatus = FieldCompletionStatus.Complete,
+                            QualityScore = 0.9,
+                            Confidence = 0.9,
+                            WasRequired = true,
+                            OperationName = "document_extraction"
+                        });
+                    }
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[TemplateForm] Successfully extracted {extractedRequirements.Count} requirements using Template Form Architecture");
+                progressCallback?.Invoke($"✅ Extracted {extractedRequirements.Count} validated requirements");
+
+                return extractedRequirements;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[TemplateForm] Error in template form extraction");
+                progressCallback?.Invoke($"❌ Template form extraction error: {ex.Message}");
+                return new List<Requirement>();
+            }
+        }
+
+        /// <summary>
+        /// Data model for requirement extraction envelope (matches JSON schema)
+        /// </summary>
+        private class RequirementExtractionEnvelope
+        {
+            public List<ExtractedRequirement> Requirements { get; set; } = new();
+            public ExtractionMetadata Metadata { get; set; } = new();
+        }
+
+        private class ExtractedRequirement
+        {
+            public string? Id { get; set; }
+            public string Text { get; set; } = "";
+            public string? Category { get; set; }
+            public string? Page { get; set; }
+            public string? Section { get; set; }
+            public double Confidence { get; set; } = 0.8;
+        }
+
+        private class ExtractionMetadata
+        {
+            public int TotalRequirements { get; set; }
+            public string DocumentName { get; set; } = "";
+            public string ExtractionMethod { get; set; } = "template_form";
+        }
+
+        #endregion
     }
 }

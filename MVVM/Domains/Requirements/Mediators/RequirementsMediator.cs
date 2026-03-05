@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Models;
@@ -1286,6 +1287,40 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     projectId, attachments?.Count ?? 0);
 
                 return attachments ?? new List<JamaAttachment>();
+            }
+            catch (HttpRequestException httpEx) when (httpEx.InnerException is System.Net.Sockets.SocketException socketEx && socketEx.SocketErrorCode == System.Net.Sockets.SocketError.HostNotFound)
+            {
+                _logger.LogError(httpEx, "[RequirementsMediator] Network connectivity error - cannot resolve Jama server hostname for project {ProjectId}", projectId);
+
+                // Publish failure event with specific network error
+                PublishEvent(new RequirementsEvents.AttachmentScanCompleted
+                {
+                    ProjectId = projectId,
+                    AttachmentCount = 0,
+                    Success = false,
+                    ErrorMessage = "Network connectivity error: Cannot resolve Jama server. Please check VPN connection.",
+                    Duration = TimeSpan.Zero,
+                    Attachments = new List<JamaAttachment>()
+                });
+
+                throw; // Re-throw to let caller handle with improved error message
+            }
+            catch (HttpRequestException httpEx)
+            {
+                _logger.LogError(httpEx, "[RequirementsMediator] HTTP request error scanning attachments for project {ProjectId}", projectId);
+
+                // Publish failure event with network error
+                PublishEvent(new RequirementsEvents.AttachmentScanCompleted
+                {
+                    ProjectId = projectId,
+                    AttachmentCount = 0,
+                    Success = false,
+                    ErrorMessage = $"Network connection error: {httpEx.Message}",
+                    Duration = TimeSpan.Zero,
+                    Attachments = new List<JamaAttachment>()
+                });
+
+                throw; // Re-throw to let caller handle
             }
             catch (Exception ex)
             {

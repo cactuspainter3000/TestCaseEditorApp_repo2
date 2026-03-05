@@ -309,7 +309,7 @@ namespace TestCaseEditorApp.Services.Templates
 
                 if (!parseResult.Success)
                 {
-                    result.Violations.AddRange(parseResult.Errors.Select(e => e.Message));
+                    result.Violations.AddRange(parseResult.Errors);
                 }
             }
             catch (Exception ex)
