@@ -1275,7 +1275,7 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
                     contextContent = contextContent.Substring(0, 4000) + "...";
                 }
 
-                // Step 5: Choose extraction method - Template Form Architecture or Legacy
+                // Step 5: Use Template Form Architecture (NO LEGACY FALLBACK)
                 List<Requirement> extractedRequirements;
                 
                 if (_envelopeService != null && _textGenerationService != null)
@@ -1286,11 +1286,10 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
                 }
                 else
                 {
-                    // Fallback to legacy extraction method
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Using legacy extraction (Template Form services unavailable)");
-                    var prompt = BuildDirectExtractionPrompt(attachment, contextContent);
-                    var llmResponse = await _textGenerationService!.GenerateAsync(prompt, cancellationToken);
-                    extractedRequirements = ParseRequirementsFromText(llmResponse, attachment);
+                    // Template Form services not available - return empty list (NO LEGACY FALLBACK)
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[DirectRag] Template Form services unavailable - cannot extract requirements (legacy parsing disabled)");
+                    progressCallback?.Invoke("❌ Template Form Architecture services required but unavailable");
+                    extractedRequirements = new List<Requirement>();
                 }
                 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Extracted {extractedRequirements.Count} requirements");
@@ -2202,8 +2201,8 @@ Extract requirements now (JSON only):";
 
                 if (envelope == null || envelope.Requirements == null || envelope.Requirements.Count == 0)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[TemplateForm] Failed to parse structured output - falling back to legacy parsing");
-                    progressCallback?.Invoke("⚠️ Structured extraction incomplete - using fallback parser");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[TemplateForm] Failed to parse structured output - NO FALLBACK (legacy parsing disabled)");
+                    progressCallback?.Invoke("❌ Structured extraction failed - Template Form Architecture required");
                     
                     // Track failure in telemetry if available
                     if (_telemetryService != null)
@@ -2220,8 +2219,8 @@ Extract requirements now (JSON only):";
                         });
                     }
                     
-                    // Fallback to legacy parsing
-                    return ParseRequirementsFromText(llmResponse, attachment);
+                    // NO FALLBACK - return empty list to force Template Form Architecture usage
+                    return new List<Requirement>();
                 }
 
                 // Step 5: Convert envelope data to Requirement objects
