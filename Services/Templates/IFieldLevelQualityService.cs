@@ -125,6 +125,13 @@ namespace TestCaseEditorApp.Services.Templates
         public TimeSpan ProcessingTime { get; set; }
         public int RetryCount { get; set; }
         
+        // Alias properties for test compatibility
+        public bool Success => IsSuccessful;
+        public DateTime Timestamp => ProcessedAt;
+        public long ProcessingTimeMs => (long)ProcessingTime.TotalMilliseconds;
+        public FieldCriticality Criticality => FieldType;
+        public string TemplateName => TemplateId;
+        
         // Processing details
         public string? FailureReason { get; set; }
         public ConstraintViolationType? ViolationType { get; set; }

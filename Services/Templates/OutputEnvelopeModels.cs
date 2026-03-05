@@ -138,6 +138,13 @@ namespace TestCaseEditorApp.Services.Templates
         
         public string? FallbackData { get; set; } // Raw data if structured parsing fails
         public EnvelopeRepairStrategy UsedStrategy { get; set; }
+        
+        // Alias properties for test compatibility
+        public bool Success => IsSuccessful;
+        public List<string> Errors => string.IsNullOrEmpty(ErrorMessage) 
+            ? new List<string>() 
+            : new List<string> { ErrorMessage };
+        public EnvelopeValidationResult? ValidationResult { get; set; }
     }
 
     /// <summary>
