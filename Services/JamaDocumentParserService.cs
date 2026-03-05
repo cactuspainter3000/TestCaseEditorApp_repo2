@@ -2047,6 +2047,10 @@ Extract all legitimate requirements:";
                 {
                     var content = await response.Content.ReadAsStringAsync(cancellationToken);
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Ollama health check passed - service is responding");
+                    
+                    // Pre-warm the model to avoid "timed out waiting for llama runner" errors
+                    await PreWarmOllamaModelAsync(cancellationToken);
+                    
                     return true;
                 }
             }
@@ -2056,6 +2060,31 @@ Extract all legitimate requirements:";
             }
             
             return false;
+        }
+
+        /// <summary>
+        /// Pre-warm Ollama model by making a lightweight generation request
+        /// This loads the model into memory to avoid "timed out waiting for llama runner" errors on first real request
+        /// </summary>
+        private async Task PreWarmOllamaModelAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (_textGenerationService == null) return;
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Pre-warming Ollama model...");
+                
+                // Make a simple, fast generation request to load the model
+                var warmupPrompt = "Test"; // Minimal prompt for fastest response
+                var response = await _textGenerationService.GenerateAsync(warmupPrompt, cancellationToken);
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Model pre-warmed successfully - ready for extraction");
+            }
+            catch (Exception ex)
+            {
+                // Log but don't fail - the model might still work for real requests
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Model pre-warming failed (will attempt extraction anyway): {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -2174,9 +2203,34 @@ Example output:
 
 Extract requirements now (JSON only):";
 
-                // Step 3: Generate LLM response
+                // Step 3: Generate LLM response with retry logic for model loading timeouts
                 progressCallback?.Invoke("🧠 AI analyzing document with structured output...");
-                var llmResponse = await _textGenerationService.GenerateAsync(prompt, cancellationToken);
+                string llmResponse = string.Empty;
+                int maxRetries = 2;
+                int retryDelayMs = 5000; // 5 seconds between retries
+                
+                for (int attempt = 0; attempt <= maxRetries; attempt++)
+                {
+                    try
+                    {
+                        llmResponse = await _textGenerationService.GenerateAsync(prompt, cancellationToken);
+                        break; // Success - exit retry loop
+                    }
+                    catch (HttpRequestException httpEx) when (httpEx.Message.Contains("500") && attempt < maxRetries)
+                    {
+                        // Check if this is the "timed out waiting for llama runner" error
+                        var errorContent = httpEx.Message;
+                        if (errorContent.Contains("llama runner") || errorContent.Contains("timed out"))
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[TemplateForm] Model loading timeout on attempt {attempt + 1}/{maxRetries + 1} - retrying in {retryDelayMs}ms...");
+                            progressCallback?.Invoke($"⏳ Model loading delay - retrying ({attempt + 1}/{maxRetries + 1})...");
+                            await Task.Delay(retryDelayMs, cancellationToken);
+                            retryDelayMs *= 2; // Exponential backoff
+                            continue;
+                        }
+                        throw; // Different error - don't retry
+                    }
+                }
 
                 // Step 4: Try to parse the JSON response directly (simplified approach)
                 RequirementExtractionEnvelope? envelope = null;
