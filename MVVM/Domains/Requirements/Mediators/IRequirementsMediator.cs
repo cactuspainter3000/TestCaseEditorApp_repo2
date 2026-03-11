@@ -24,6 +24,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         void Subscribe<T>(Action<T> handler) where T : class;
 
         /// <summary>
+        /// Subscribe to cross-domain events from other domains
+        /// </summary>
+        void SubscribeToCrossDomainEvent<T>(Action<T> handler) where T : class;
+
+        /// <summary>
         /// Publish domain events
         /// </summary>
         void PublishEvent<T>(T eventData) where T : class;

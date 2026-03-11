@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Events;
+using TestCaseEditorApp.MVVM.Utils;
 
 namespace TestCaseEditorApp.Services
 {
@@ -19,6 +20,12 @@ namespace TestCaseEditorApp.Services
         /// Broadcast a notification to all registered domains
         /// </summary>
         Task BroadcastNotificationAsync<T>(T notification, string originatingDomain) where T : class;
+
+        /// <summary>
+        /// Register a mediator's interest in a specific cross-domain event type.
+        /// Enables filtered broadcasts - only subscribed mediators receive events.
+        /// </summary>
+        void RegisterCrossDomainSubscription(Type eventType, BaseDomainMediatorBase mediator);
 
         /// <summary>
         /// Register a domain mediator for cross-domain coordination

@@ -17,10 +17,15 @@ public sealed class OllamaTextGenerationService : ITextGenerationService
         _http = http ?? new HttpClient { BaseAddress = new System.Uri("http://localhost:11434/") };
         _model = model;
         _http.Timeout = System.TimeSpan.FromMinutes(15); // Increased timeout for large document processing
+        
+        // Log which model is configured
+        TestCaseEditorApp.Services.Logging.Log.Info($"[OllamaTextGen] Initialized with model: {_model}");
     }
 
     public async Task<string> GenerateAsync(string prompt, CancellationToken ct = default)
     {
+        TestCaseEditorApp.Services.Logging.Log.Info($"[OllamaTextGen] Starting generation request with model: {_model} (prompt length: {prompt.Length})");
+        
         var payload = new
         {
             model = _model,
@@ -31,6 +36,8 @@ public sealed class OllamaTextGenerationService : ITextGenerationService
         var json = JsonSerializer.Serialize(payload);
         using var resp = await _http.PostAsync("api/chat",
             new StringContent(json, Encoding.UTF8, "application/json"), ct);
+        
+        TestCaseEditorApp.Services.Logging.Log.Info($"[OllamaTextGen] Received response: HTTP {(int)resp.StatusCode}");
         
         // Capture error details from Ollama before throwing
         if (!resp.IsSuccessStatusCode)

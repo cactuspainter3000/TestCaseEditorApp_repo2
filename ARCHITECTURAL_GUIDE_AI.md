@@ -28,9 +28,27 @@ The `TestCaseGeneration` domain was a monolithic "black hole" that caused many p
 
 ### **Cross-Domain Communication Pattern**
 Instead of depending on TestCaseGenerationEvents, use:
-- **Broadcast pattern**: `mediator.BroadcastToAllDomains(event)` 
-- **Domain-specific events**: Each domain handles `HandleBroadcastNotification` for events it cares about
-- **Example**: `NotificationMediator` handles `OpenProjectEvents.ProjectOpened` to update requirements count
+- **Broadcast pattern**: `mediator.BroadcastToAllDomains(event)` - fire-and-forget to all domains
+- **Cross-domain subscription** (PREFERRED): `mediator.SubscribeToCrossDomainEvent<EventType>(handler)` - direct subscription with filtered delivery
+- **Domain-specific events**: Use for domain-internal communication only
+
+**🎯 Choosing the Right Pattern:**
+1. **ViewModels need events from other domains** → Use `SubscribeToCrossDomainEvent<T>()`
+2. **Mediator needs to handle domain logic for cross-domain events** → Use `HandleBroadcastNotification` (legacy)
+3. **Broadcasting domain** → Use `mediator.BroadcastToAllDomains(event)`
+
+**Example: ViewModel subscribing to cross-domain events**
+```csharp
+// In ViewModel constructor:
+_mediator.SubscribeToCrossDomainEvent<OpenProjectEvents.ProjectOpened>(OnProjectOpened);
+
+// Handler receives event directly - no republishing needed
+private void OnProjectOpened(OpenProjectEvents.ProjectOpened e)
+{
+    var projectId = int.Parse(e.Workspace?.JamaProject ?? "-1");
+    // Use event data directly
+}
+```
 
 ---
 
@@ -256,23 +274,37 @@ Instead of depending on TestCaseGenerationEvents, use:
 
 ### **Cross-Domain Communication Chain**
 ```
-🌐 Cross-Domain Request
+🌐 Cross-Domain Communication Request
 │
-├── 🔍 **Audit Existing** (MANDATORY FIRST STEP)
-│   ├── Check: `HandleBroadcastNotification` implementations
-│   ├── Search: Existing event types and broadcasts
-│   └── Validate: Not already handled
+├── 🔍 **Choose Pattern** (MANDATORY FIRST STEP)
+│   ├── ViewModel needs event from other domain? → SubscribeToCrossDomainEvent<T>()
+│   ├── Mediator needs to handle cross-domain logic? → HandleBroadcastNotification (legacy)
+│   └── Broadcasting an event? → BroadcastToAllDomains<T>()
 │
 ├── 📡 **Broadcasting Domain** (Source)
 │   ├── Method: `mediator.BroadcastToAllDomains(new EventName { ... })`
 │   ├── Event: Create event class with required data
 │   └── Timing: Broadcast after state change complete
 │
-└── 👂 **Receiving Domain** (Target)
-    ├── Handler: Add to `HandleBroadcastNotification` method
+├── 👂 **Receiving ViewModel** (Direct Subscription - PREFERRED)
+│   ├── Subscribe: `_mediator.SubscribeToCrossDomainEvent<OtherDomain.Events.EventName>(handler)`
+│   ├── Handler: Receives event directly with full type safety
+│   ├── Processing: Update ViewModel state based on event
+│   └── ✅ **NO republishing needed** - event delivered directly
+│
+└── 👂 **Receiving Mediator** (Legacy HandleBroadcastNotification)
+    ├── Handler: Add to `HandleBroadcastNotification` method (if/else chain)
     ├── Processing: Update domain state based on event
-    └── UI Updates: Trigger local events for ViewModels
+    ├── UI Updates: Trigger local events for ViewModels (if needed)
+    └── ⚠️ **NOTE**: Only use for domain-level logic, ViewModels should use SubscribeToCrossDomainEvent
 ```
+
+**📝 Implementation Checklist:**
+- [ ] **Broadcasting Domain**: Call `BroadcastToAllDomains<EventType>(event)`
+- [ ] **Receiving ViewModel**: Use `SubscribeToCrossDomainEvent<EventType>(handler)` (preferred)
+- [ ] **Receiving Mediator**: Add case to `HandleBroadcastNotification` (only for domain logic)
+- [ ] **NO duplicate events** - Subscribe to original event, don't republish
+- [ ] **NO manual translation** - Use event data directly
 
 ### **Complete New Domain Chain**
 ```
@@ -654,7 +686,9 @@ private void OnRequirementSelected(RequirementsEvents.RequirementSelected e)
 
 ├── IViewAreaCoordinator injection → Use existing broadcast mechanism
 ├── Factory constructor changes → Check if broadcasts already handle this
-├── New cross-domain subscriptions → Use BroadcastToAllDomains instead
+├── Manual event republishing → Use SubscribeToCrossDomainEvent instead
+├── Duplicate event definitions across domains → Subscribe to original event
+├── New cross-domain subscriptions → Use SubscribeToCrossDomainEvent (CHANGED - now supported)
 ├── Complex dependency chains → Look for simpler existing patterns
 └── "But the guidelines say..." → Guidelines show patterns, not requirements
 ```
@@ -662,6 +696,41 @@ private void OnRequirementSelected(RequirementsEvents.RequirementSelected e)
 **🎯 Golden Rule**: 
 > If implementation feels complex, step back and audit what already exists.
 > 90% of the time, existing patterns already handle the requirement.
+
+**❌ DEPRECATED Anti-Pattern: Manual Event Republishing**
+```csharp
+// WRONG: Receiving cross-domain event and republishing as local event
+public void HandleBroadcastNotification<T>(T notification)
+{
+    if (notification is OpenProjectEvents.ProjectOpened opened)
+    {
+        // ❌ DON'T DO THIS - creates duplicate event definitions
+        var localEvent = new RequirementsEvents.ProjectContextChanged
+        {
+            ProjectId = ...,
+            ProjectName = ...
+        };
+        PublishEvent(localEvent);
+    }
+}
+```
+
+**✅ CORRECT: Direct Cross-Domain Subscription**
+```csharp
+// RIGHT: ViewModels subscribe directly to cross-domain events
+public MyViewModel(IMediator mediator)
+{
+    _mediator = mediator;
+    // ✅ Subscribe directly - no republishing needed
+    _mediator.SubscribeToCrossDomainEvent<OpenProjectEvents.ProjectOpened>(OnProjectOpened);
+}
+
+private void OnProjectOpened(OpenProjectEvents.ProjectOpened e)
+{
+    // Use event data directly - no translation layer needed
+    var projectId = int.Parse(e.Workspace?.JamaProject ?? "-1");
+}
+```
 
 ---
 
@@ -1664,7 +1733,8 @@ UpdateRequirementState();               // Refresh dependent UI state
 `
 
 ### **When This Happens**
-- ? Data is updated in the model (e.g., equirement.Description changed)
+- ? Data is updated in the model (e.g., 
+equirement.Description changed)
 - ? Event fires with the updated object
 - ? ViewModel receives the event
 - ? BUT: ViewModel already holds a reference to that same object

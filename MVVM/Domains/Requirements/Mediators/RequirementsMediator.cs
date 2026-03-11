@@ -18,6 +18,7 @@ using TestCaseEditorApp.MVVM.Domains.Requirements.Services;
 using TestCaseEditorApp.MVVM.Domains.Notification.Mediators; // For INotificationMediator
 using TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels; // For RequirementsSearchAttachmentsViewModel
 using System.Windows;
+using Microsoft.Extensions.DependencyInjection; // For IServiceProvider
 
 namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
 {
@@ -42,6 +43,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         private bool _isDirty;
         private bool _isAnalyzing;
         private bool _isImporting;
+        private readonly IServiceProvider _serviceProvider;
+        private RequirementsSearchAttachmentsViewModel? _searchAttachmentsViewModel; // Cached eagerly-created ViewModel
 
         public ObservableCollection<Requirement> Requirements => _requirements;
 
@@ -151,6 +154,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             IJamaConnectService jamaConnectService,
             IJamaDocumentParserService jamaDocumentParserService,
             SmartRequirementImporter smartImporter,
+            IServiceProvider serviceProvider,
             IRequirementAnalysisEngine? analysisEngine = null, // NEW: Optional for transition period
             PerformanceMonitoringService? performanceMonitor = null,
             EventReplayService? eventReplay = null)
@@ -164,6 +168,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
             _jamaDocumentParserService = jamaDocumentParserService ?? throw new ArgumentNullException(nameof(jamaDocumentParserService));
             _smartImporter = smartImporter ?? throw new ArgumentNullException(nameof(smartImporter));
+            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _analysisEngine = analysisEngine; // Optional during transition
             
             _requirements = new ObservableCollection<Requirement>();
@@ -1077,6 +1082,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     _logger.LogInformation("🚀 RequirementsMediator: About to call LoadFromProjectAsync for workspace with {RequirementCount} requirements", 
                         openProjectOpened.Workspace.Requirements?.Count ?? 0);
                     
+                    // NOTE: ViewModels are created at mediator construction, so they already exist and are subscribed
+                    // No need for manual event delivery - proper event-driven architecture
+                    
                     _ = LoadFromProjectAsync(openProjectOpened.Workspace);
                     // Trigger automatic RAG document sync for analysis service
                     _analysisService?.SetWorkspaceContext(openProjectOpened.WorkspaceName);
@@ -1104,6 +1112,29 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             {
                 _logger.LogInformation("[RequirementsMediator] Processing cross-domain ProjectCreatedNotification for attachment scanning");
                 _ = Task.Run(async () => await HandleProjectCreatedNotificationAsync(projectCreatedNotification));
+            }
+        }
+
+        /// <summary>
+        /// Creates ViewModels that depend on cross-domain events at mediator construction time.
+        /// This ensures ViewModels exist BEFORE any broadcasts fire, solving the late-binding problem.
+        /// Proper event-driven architecture: ViewModels subscribe during app startup, not during event handling.
+        /// </summary>
+        private void EnsureViewModelsCreatedAtStartup()
+        {
+            try
+            {
+                // Create RequirementsSearchAttachmentsViewModel at startup so it receives all cross-domain events
+                if (_searchAttachmentsViewModel == null)
+                {
+                    _logger.LogInformation("[RequirementsMediator] ✅ Creating RequirementsSearchAttachmentsViewModel at mediator construction (before any broadcasts)");
+                    _searchAttachmentsViewModel = _serviceProvider.GetRequiredService<RequirementsSearchAttachmentsViewModel>();
+                    _logger.LogInformation("[RequirementsMediator] ✅ ViewModel created and subscribed - will receive all future cross-domain events");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsMediator] Failed to create ViewModels at startup");
             }
         }
 

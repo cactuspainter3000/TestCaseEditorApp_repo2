@@ -21,7 +21,8 @@ namespace TestCaseEditorApp.Services
     {
         private readonly ILogger<DomainCoordinator> _logger;
         private readonly Dictionary<string, object> _registeredMediators = new();
-        private readonly object _lockObject = new object();
+        private readonly Dictionary<Type, List<WeakReference<BaseDomainMediatorBase>>> _crossDomainSubscriptions = new();
+        private readonly object _lockObject = new();
 
         public event EventHandler<CrossDomainCommunicationEventArgs>? CrossDomainCommunicationOccurred;
 
@@ -45,6 +46,43 @@ namespace TestCaseEditorApp.Services
                 _registeredMediators[domainName] = mediator;
                 _logger.LogInformation("Registered domain mediator: {DomainName} ({MediatorType})", 
                     domainName, mediator.GetType().Name);
+            }
+        }
+
+        public void RegisterCrossDomainSubscription(Type eventType, BaseDomainMediatorBase mediator)
+        {
+            if (eventType == null)
+                throw new ArgumentNullException(nameof(eventType));
+            if (mediator == null)
+                throw new ArgumentNullException(nameof(mediator));
+
+            lock (_lockObject)
+            {
+                if (!_crossDomainSubscriptions.ContainsKey(eventType))
+                {
+                    _crossDomainSubscriptions[eventType] = new List<WeakReference<BaseDomainMediatorBase>>();
+                }
+
+                // Check if already subscribed (avoid duplicates)
+                var existingSubscriptions = _crossDomainSubscriptions[eventType];
+                foreach (var weakRef in existingSubscriptions)
+                {
+                    if (weakRef.TryGetTarget(out var existingMediator) && existingMediator == mediator)
+                    {
+                        _logger.LogDebug("Mediator {DomainName} already subscribed to {EventType}", 
+                            mediator.GetDomainName(), eventType.Name);
+                        return;
+                    }
+                }
+
+                // Add new subscription
+                existingSubscriptions.Add(new WeakReference<BaseDomainMediatorBase>(mediator));
+                
+                // Clean up dead weak references while we're here
+                existingSubscriptions.RemoveAll(wr => !wr.TryGetTarget(out _));
+                
+                _logger.LogInformation("Registered cross-domain subscription: {DomainName} subscribed to {EventType}", 
+                    mediator.GetDomainName(), eventType.Name);
             }
         }
 
@@ -176,28 +214,80 @@ namespace TestCaseEditorApp.Services
             if (string.IsNullOrWhiteSpace(originatingDomain))
                 throw new ArgumentException("Originating domain cannot be null or empty", nameof(originatingDomain));
 
-            var notificationType = typeof(T).Name;
+            var notificationType = typeof(T);
+            var notificationTypeName = notificationType.Name;
             _logger.LogDebug("Broadcasting notification: {NotificationType} from {OriginatingDomain}", 
-                notificationType, originatingDomain);
+                notificationTypeName, originatingDomain);
 
-            var mediators = GetAllMediators().Where(kvp => kvp.Key != originatingDomain).ToList();
-
-            var tasks = mediators.Select(async kvp =>
+            // Check if there are any subscriptions for this event type
+            List<WeakReference<BaseDomainMediatorBase>>? subscribers = null;
+            lock (_lockObject)
             {
-                try
+                if (_crossDomainSubscriptions.TryGetValue(notificationType, out var subs))
                 {
-                    await BroadcastToMediatorAsync(kvp.Key, kvp.Value, notification);
-                    _logger.LogDebug("Broadcast delivered to {DomainName}: {NotificationType}", 
-                        kvp.Key, notificationType);
+                    // Clean up dead weak references
+                    subs.RemoveAll(wr => !wr.TryGetTarget(out _));
+                    subscribers = subs.ToList(); // Create snapshot outside lock
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to deliver broadcast to {DomainName}: {NotificationType}", 
-                        kvp.Key, notificationType);
-                }
-            });
+            }
 
-            await Task.WhenAll(tasks);
+            if (subscribers != null && subscribers.Count > 0)
+            {
+                // NEW PATTERN: Send only to subscribed mediators via HandleCrossDomainBroadcast
+                _logger.LogDebug("Using filtered broadcast for {NotificationType} - {SubscriberCount} subscriber(s)", 
+                    notificationTypeName, subscribers.Count);
+
+                var tasks = subscribers.Select(async weakRef =>
+                {
+                    if (weakRef.TryGetTarget(out var mediator))
+                    {
+                        // Skip originating domain to avoid feedback loops
+                        if (mediator.GetDomainName() == originatingDomain)
+                        {
+                            _logger.LogDebug("Skipping broadcast to originating domain: {DomainName}", originatingDomain);
+                            return;
+                        }
+
+                        try
+                        {
+                            mediator.HandleCrossDomainBroadcast(notification);
+                            _logger.LogDebug("Delivered cross-domain {NotificationType} to {DomainName}", 
+                                notificationTypeName, mediator.GetDomainName());
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to deliver cross-domain {NotificationType} to {DomainName}", 
+                                notificationTypeName, mediator.GetDomainName());
+                        }
+                    }
+                });
+
+                await Task.WhenAll(tasks);
+            }
+            else
+            {
+                // LEGACY PATTERN: No subscriptions - use reflection-based HandleBroadcastNotification for backward compatibility
+                _logger.LogDebug("No cross-domain subscriptions for {NotificationType} - using legacy broadcast pattern", notificationTypeName);
+
+                var mediators = GetAllMediators().Where(kvp => kvp.Key != originatingDomain).ToList();
+
+                var tasks = mediators.Select(async kvp =>
+                {
+                    try
+                    {
+                        await BroadcastToMediatorAsync(kvp.Key, kvp.Value, notification);
+                        _logger.LogDebug("Broadcast delivered to {DomainName}: {NotificationType}", 
+                            kvp.Key, notificationTypeName);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to deliver broadcast to {DomainName}: {NotificationType}", 
+                            kvp.Key, notificationTypeName);
+                    }
+                });
+
+                await Task.WhenAll(tasks);
+            }
         }
 
         // ===== REQUEST HANDLERS =====

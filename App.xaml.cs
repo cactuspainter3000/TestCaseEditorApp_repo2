@@ -138,13 +138,22 @@ namespace TestCaseEditorApp
                     // Requirement data scrubber (shared infrastructure)
                     services.AddScoped<IRequirementDataScrubber, RequirementDataScrubber>();
 
+                    // Ollama process management (must be registered before LLM services)
+                    services.AddSingleton<IOllamaProcessManager, OllamaProcessManager>();
+                    services.AddSingleton<IOllamaStatusMonitor, OllamaStatusMonitor>();
+
                     // LLM services (shared infrastructure)
-                    services.AddSingleton<ITextGenerationService>(_ => LlmFactory.Create());
+                    services.AddSingleton<ITextGenerationService>(provider =>
+                    {
+                        var anythingLlmService = provider.GetService<IAnythingLLMService>();
+                        return LlmFactory.Create(anythingLlmService: anythingLlmService);
+                    });
                     
                     // LLM Health Monitoring - configured to be less aggressive with fallback
                     services.AddSingleton<LlmServiceHealthMonitor>(provider =>
                     {
-                        var primaryLlmService = LlmFactory.Create();
+                        var anythingLlmService = provider.GetService<IAnythingLLMService>();
+                        var primaryLlmService = LlmFactory.Create(anythingLlmService: anythingLlmService);
                         var logger = provider.GetRequiredService<ILogger<LlmServiceHealthMonitor>>();
                         return new LlmServiceHealthMonitor(
                             primaryLlmService, 
@@ -176,8 +185,8 @@ namespace TestCaseEditorApp
                     // Task 4.4: Enhanced with derivation analysis capabilities
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService, TestCaseEditorApp.MVVM.Domains.Requirements.Services.RequirementAnalysisService>(provider =>
                     {
-                        var primaryLlmService = LlmFactory.Create();
                         var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
+                        var primaryLlmService = LlmFactory.Create(anythingLlmService: anythingLLMService);
                         var directRagService = provider.GetService<IDirectRagService>(); // RAG-enhanced processing
                         var promptBuilder = provider.GetRequiredService<RequirementAnalysisPromptBuilder>();
                         var parserManager = provider.GetRequiredService<ResponseParserManager>();
@@ -372,6 +381,10 @@ namespace TestCaseEditorApp
                         var abTestingFramework = provider.GetService<IABTestingFramework>();
                         var telemetryService = provider.GetService<ITelemetryDashboardService>();
                         
+                        // Ollama process manager for automatic restart on stuck state
+                        var ollamaProcessManager = provider.GetService<IOllamaProcessManager>();
+                        var ollamaStatusMonitor = provider.GetService<IOllamaStatusMonitor>();
+                        
                         return new JamaDocumentParserService(
                             jamaService, 
                             llmService, 
@@ -382,7 +395,9 @@ namespace TestCaseEditorApp
                             qualityService,
                             complianceWrapper,
                             abTestingFramework,
-                            telemetryService);
+                            telemetryService,
+                            ollamaProcessManager,
+                            ollamaStatusMonitor);
                     });
                     
                     // Jama Test Case Conversion Service - Business logic for converting requirements to Jama test cases
@@ -528,7 +543,10 @@ namespace TestCaseEditorApp
                         
                         return new TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator(
                             logger, uiCoordinator, requirementService, analysisService, scrubber, 
-                            workspaceContext, newProjectMediator, jamaConnectService, jamaDocumentParserService, provider.GetRequiredService<SmartRequirementImporter>(), analysisEngine, performanceMonitor, eventReplay);
+                            workspaceContext, newProjectMediator, jamaConnectService, jamaDocumentParserService, 
+                            provider.GetRequiredService<SmartRequirementImporter>(), 
+                            provider, // ✅ IServiceProvider for eager ViewModel instantiation
+                            analysisEngine, performanceMonitor, eventReplay);
                     });
                     
                     // Requirements domain ViewModels - Navigation as Singleton to maintain state
@@ -586,7 +604,8 @@ namespace TestCaseEditorApp
                         var reqMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
                         var workspaceContext = provider.GetRequiredService<TestCaseEditorApp.Services.IWorkspaceContext>();
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel>>();
-                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel(reqMediator, workspaceContext, logger);
+                        var ollamaProcessManager = provider.GetService<IOllamaProcessManager>();
+                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel(reqMediator, workspaceContext, logger, ollamaProcessManager);
                     });
 
                     // Self-contained Document Scraper ViewModel (shared component)
@@ -622,7 +641,8 @@ namespace TestCaseEditorApp
                     {
                         var notificationMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator>();
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>>();
-                        return new TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel(notificationMediator, logger);
+                        var ollamaStatusMonitor = provider.GetService<IOllamaStatusMonitor>();
+                        return new TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel(notificationMediator, logger, ollamaStatusMonitor);
                     });
                     
                     // NewProject domain ViewModels - using proper domain ViewModels
@@ -820,9 +840,26 @@ namespace TestCaseEditorApp
             {
                 await _host.StartAsync();
                 
+                // Ensure Ollama is running and healthy before any LLM operations
+                var ollamaProcessManager = _host.Services.GetRequiredService<IOllamaProcessManager>();
+                var logger = _host.Services.GetRequiredService<ILogger<App>>();
+                
+                try
+                {
+                    logger.LogInformation("Ensuring Ollama service is running...");
+                    await ollamaProcessManager.EnsureOllamaRunningAsync();
+                    logger.LogInformation("✅ Ollama service is ready");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to start Ollama - LLM features may not work properly");
+                }
+                
+                // Ollama status monitoring starts lazily when LLM sections (like Test Case Generator) are first accessed
+                // NotificationWorkspaceViewModel is a singleton - monitoring begins in its constructor on first use
+                
                 // Initialize extension system (Phase 7)
                 var extensionManager = _host.Services.GetRequiredService<ExtensionManager>();
-                var logger = _host.Services.GetRequiredService<ILogger<App>>();
                 
                 try
                 {

@@ -1,10 +1,12 @@
 using System;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.Notification.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Notification.Events;
 using TestCaseEditorApp.MVVM.ViewModels;
+using TestCaseEditorApp.Services;
 
 namespace TestCaseEditorApp.MVVM.Domains.Notification.ViewModels
 {
@@ -16,26 +18,27 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.ViewModels
     public partial class NotificationWorkspaceViewModel : BaseDomainViewModel, IDisposable
     {
         private new readonly INotificationMediator _mediator;
+        private readonly IOllamaStatusMonitor? _ollamaStatusMonitor;
 
-        // === LLM STATUS ===
+        // === ANYTHINGLLLM STATUS ===
         
         /// <summary>
-        /// LLM connection status indicator
+        /// AnythingLLM connection status indicator
         /// </summary>
         [ObservableProperty]
         private bool isLlmConnected = false;
 
         /// <summary>
-        /// Display text for LLM status
+        /// Display text for AnythingLLM status
         /// </summary>
         [ObservableProperty]
-        private string llmStatusText = "LLM: Disconnected";
+        private string anythingLlmStatusText = "AnythingLLM: Disconnected";
 
         /// <summary>
-        /// Color indicator for LLM status
+        /// Color indicator for AnythingLLM status
         /// </summary>
         [ObservableProperty]
-        private string llmStatusColor = "#FF6B6B"; // Red for disconnected
+        private string anythingLlmStatusColor = "#FF6B6B"; // Red for disconnected
 
         /// <summary>
         /// LLM provider name (e.g., "OpenAI", "Ollama")
@@ -48,6 +51,32 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.ViewModels
         /// </summary>
         [ObservableProperty]
         private string? llmModel;
+
+        // === OLLAMA STATUS ===
+        
+        /// <summary>
+        /// Ollama model status (NotLoaded, Loading, Loaded)
+        /// </summary>
+        [ObservableProperty]
+        private string ollamaStatusText = "Ollama: Not Loaded";
+
+        /// <summary>
+        /// Color indicator for Ollama model status
+        /// </summary>
+        [ObservableProperty]
+        private string ollamaStatusColor = "#999999"; // Gray for not loaded
+
+        /// <summary>
+        /// Name of currently loaded Ollama model
+        /// </summary>
+        [ObservableProperty]
+        private string? ollamaLoadedModel;
+
+        /// <summary>
+        /// Whether to keep Ollama model loaded in memory
+        /// </summary>
+        [ObservableProperty]
+        private bool keepOllamaLoaded = false;
 
         // === REQUIREMENTS PROGRESS ===
 
@@ -117,15 +146,46 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.ViewModels
 
         public NotificationWorkspaceViewModel(
             INotificationMediator mediator,
-            ILogger<NotificationWorkspaceViewModel> logger)
+            ILogger<NotificationWorkspaceViewModel> logger,
+            IOllamaStatusMonitor? ollamaStatusMonitor = null)
             : base(mediator, logger)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
+            _ollamaStatusMonitor = ollamaStatusMonitor;
             _logger?.LogInformation("NotificationWorkspaceViewModel initialized");
             TestCaseEditorApp.Services.Logging.Log.Info($"[NotificationWorkspaceVM] MEDIATOR DEBUG: NotificationWorkspaceViewModel created and subscribing to events");
             
             // Subscribe to all notification events
             SubscribeToEvents();
+            
+            // Subscribe to Ollama status changes
+            if (_ollamaStatusMonitor != null)
+            {
+                System.Diagnostics.Debug.WriteLine("[NotificationWorkspaceVM] ===== SUBSCRIBING TO OLLAMA MONITORING =====");
+                System.Console.WriteLine("[NotificationWorkspaceVM] ===== SUBSCRIBING TO OLLAMA MONITORING =====");
+                _ollamaStatusMonitor.StatusChanged += OnOllamaStatusChanged;
+                _ollamaStatusMonitor.StartMonitoring();
+                
+                // Immediately update UI with current status (don't wait for first timer tick or async check)
+                var currentStatus = _ollamaStatusMonitor.CurrentStatus;
+                var currentModel = _ollamaStatusMonitor.LoadedModelName;
+                var currentSize = _ollamaStatusMonitor.LoadedModelSize;
+                System.Diagnostics.Debug.WriteLine($"[NotificationWorkspaceVM] Initial Ollama status: {currentStatus}, Model: {currentModel ?? "none"}");
+                OnOllamaStatusChanged(this, new OllamaStatusChangedEventArgs 
+                { 
+                    Status = currentStatus, 
+                    ModelName = currentModel, 
+                    ModelSize = currentSize 
+                });
+                
+                TestCaseEditorApp.Services.Logging.Log.Info("[NotificationWorkspaceVM] Ollama status monitoring started");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[NotificationWorkspaceVM] ===== WARNING: IOllamaStatusMonitor is NULL =====");
+                System.Console.WriteLine("[NotificationWorkspaceVM] ===== WARNING: IOllamaStatusMonitor is NULL =====");
+                TestCaseEditorApp.Services.Logging.Log.Warn("[NotificationWorkspaceVM] IOllamaStatusMonitor not available - Ollama status will not be displayed");
+            }
             
             // Initialize with default state
             ResetToDefaults();
@@ -133,6 +193,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.ViewModels
             // Request current LLM status to initialize LED correctly
             TestCaseEditorApp.Services.Logging.Log.Info($"[NotificationWorkspaceVM] MEDIATOR DEBUG: Requesting current LLM status");
             AnythingLLMMediator.RequestCurrentStatus();
+            
+            // Check current OLLAMA_KEEP_ALIVE setting
+            var keepAliveValue = Environment.GetEnvironmentVariable("OLLAMA_KEEP_ALIVE", EnvironmentVariableTarget.User);
+            KeepOllamaLoaded = !string.IsNullOrEmpty(keepAliveValue) && keepAliveValue != "5m"; // Default is 5m, anything else means "keep loaded"
         }
 
         /// <summary>
@@ -150,18 +214,80 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.ViewModels
         }
 
         /// <summary>
+        /// Handle Ollama status changes from monitor
+        /// </summary>
+        private void OnOllamaStatusChanged(object? sender, OllamaStatusChangedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine($"[NotificationWorkspaceVM] ===== OLLAMA STATUS EVENT RECEIVED: {e.Status} =====");
+            System.Console.WriteLine($"[NotificationWorkspaceVM] ===== OLLAMA STATUS EVENT RECEIVED: {e.Status} =====");
+            
+            OllamaLoadedModel = e.ModelName;
+            
+            switch (e.Status)
+            {
+                case OllamaModelStatus.Loaded:
+                    OllamaStatusText = $"Ollama: {e.ModelName ?? "Model"} Loaded";
+                    OllamaStatusColor = "#51CF66"; // Green
+                    break;
+                    
+                case OllamaModelStatus.Loading:
+                    OllamaStatusText = "Ollama: Loading...";
+                    OllamaStatusColor = "#FFA500"; // Orange
+                    break;
+                    
+                case OllamaModelStatus.NotLoaded:
+                    OllamaStatusText = "Ollama: Not Loaded";
+                    OllamaStatusColor = "#999999"; // Gray
+                    break;
+                    
+                case OllamaModelStatus.Unknown:
+                default:
+                    OllamaStatusText = "Ollama: Unknown";
+                    OllamaStatusColor = "#FF6B6B"; // Red
+                    break;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[NotificationWorkspaceVM] Status display set to: {OllamaStatusText}");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[NotificationWorkspaceVM] Ollama status display updated: {OllamaStatusText}");
+        }
+
+        /// <summary>
+        /// Toggle OLLAMA_KEEP_ALIVE environment variable
+        /// </summary>
+        [RelayCommand]
+        private void ToggleKeepOllamaLoaded()
+        {
+            KeepOllamaLoaded = !KeepOllamaLoaded;
+            
+            if (KeepOllamaLoaded)
+            {
+                // Set to 30 minutes (long enough to keep active during work session)
+                Environment.SetEnvironmentVariable("OLLAMA_KEEP_ALIVE", "30m", EnvironmentVariableTarget.User);
+                TestCaseEditorApp.Services.Logging.Log.Info("[NotificationWorkspaceVM] OLLAMA_KEEP_ALIVE set to 30m - model will stay in memory");
+            }
+            else
+            {
+                // Set to 5 minutes (Ollama default)
+                Environment.SetEnvironmentVariable("OLLAMA_KEEP_ALIVE", "5m", EnvironmentVariableTarget.User);
+                TestCaseEditorApp.Services.Logging.Log.Info("[NotificationWorkspaceVM] OLLAMA_KEEP_ALIVE set to 5m - model will unload after 5 minutes of inactivity");
+            }
+            
+            _logger?.LogInformation("OLLAMA_KEEP_ALIVE toggled: KeepLoaded={KeepLoaded}", KeepOllamaLoaded);
+        }
+
+        /// <summary>
         /// Handle LLM status changes
         /// </summary>
         private void OnLlmStatusChanged(NotificationEvents.LlmStatusChanged eventData)
         {
             TestCaseEditorApp.Services.Logging.Log.Info($"[NotificationWorkspaceVM] MEDIATOR DEBUG: OnLlmStatusChanged received - Connected={eventData.IsConnected}, Text={eventData.StatusText}");
             IsLlmConnected = eventData.IsConnected;
-            LlmStatusText = eventData.StatusText;
+            AnythingLlmStatusText = eventData.StatusText;
             LlmProvider = eventData.Provider;
             LlmModel = eventData.Model;
             
             // Update status color
-            LlmStatusColor = eventData.IsConnected ? "#51CF66" : "#FF6B6B"; // Green/Red
+            AnythingLlmStatusColor = eventData.IsConnected ? "#51CF66" : "#FF6B6B"; // Green/Red
 
             _logger?.LogDebug("LLM status updated: Connected={Connected}, Text={StatusText}", 
                 eventData.IsConnected, eventData.StatusText);
@@ -240,10 +366,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.ViewModels
         public void ResetToDefaults()
         {
             IsLlmConnected = false;
-            LlmStatusText = "LLM: Disconnected";
-            LlmStatusColor = "#FF6B6B";
+            AnythingLlmStatusText = "AnythingLLM: Disconnected";
+            AnythingLlmStatusColor = "#FF6B6B";
             LlmProvider = null;
             LlmModel = null;
+            
+            OllamaStatusText = "Ollama: Not Loaded";
+            OllamaStatusColor = "#999999";
+            OllamaLoadedModel = null;
             
             TotalRequirements = 0;
             AnalyzedRequirements = 0;
@@ -294,6 +424,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.ViewModels
         public override void Dispose()
         {
             _logger?.LogDebug("NotificationWorkspaceViewModel disposing");
+            
+            // Unsubscribe from Ollama status changes
+            if (_ollamaStatusMonitor != null)
+            {
+                _ollamaStatusMonitor.StatusChanged -= OnOllamaStatusChanged;
+                _ollamaStatusMonitor.StopMonitoring();
+            }
+            
             base.Dispose();
         }
     }

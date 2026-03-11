@@ -32,6 +32,8 @@ namespace TestCaseEditorApp.Services
         private readonly IDirectRagService? _directRagService;
         private readonly ITextGenerationService? _textGenerationService;
         private readonly ISystemCapabilityDerivationService? _derivationService;
+        private readonly IOllamaProcessManager? _ollamaProcessManager;
+        private readonly IOllamaStatusMonitor? _ollamaStatusMonitor;
         
         // Template Form Architecture services (Phase 6 integration)
         private readonly IOutputEnvelopeService? _envelopeService;
@@ -54,20 +56,24 @@ namespace TestCaseEditorApp.Services
             IFieldLevelQualityService? qualityService = null,
             IServiceComplianceWrapper? complianceWrapper = null,
             IABTestingFramework? abTestingFramework = null,
-            ITelemetryDashboardService? telemetryService = null)
+            ITelemetryDashboardService? telemetryService = null,
+            IOllamaProcessManager? ollamaProcessManager = null,
+            IOllamaStatusMonitor? ollamaStatusMonitor = null)
         {
             _jamaService = jamaService ?? throw new ArgumentNullException(nameof(jamaService));
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
             _directRagService = directRagService;
             _textGenerationService = textGenerationService;
             _derivationService = derivationService;
+            _ollamaProcessManager = ollamaProcessManager;
+            _ollamaStatusMonitor = ollamaStatusMonitor;
             _envelopeService = envelopeService;
             _qualityService = qualityService;
             _complianceWrapper = complianceWrapper;
             _abTestingFramework = abTestingFramework;
             _telemetryService = telemetryService;
             
-            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Initialized with Template Form Architecture: Envelope={envelopeService != null}, Quality={qualityService != null}, Compliance={complianceWrapper != null}, ABTest={abTestingFramework != null}, Telemetry={telemetryService != null}");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Initialized with Template Form Architecture: Envelope={envelopeService != null}, Quality={qualityService != null}, Compliance={complianceWrapper != null}, ABTest={abTestingFramework != null}, Telemetry={telemetryService != null}, OllamaManager={ollamaProcessManager != null}, OllamaMonitor={ollamaStatusMonitor != null}");
         }
 
         /// <summary>
@@ -81,11 +87,13 @@ namespace TestCaseEditorApp.Services
                 progressCallback?.Invoke($"🔧 Preparing to extract requirements from {attachment.FileName}...");
 
                 // CRITICAL: Check if required AI services are available before processing
-                if (!await VerifyAIServicesAvailableAsync(progressCallback, cancellationToken))
+                // If verification fails, we'll still attempt extraction - it has its own retry logic
+                var aiServicesVerified = await VerifyAIServicesAvailableAsync(progressCallback, cancellationToken);
+                if (!aiServicesVerified)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] AI services not available - aborting document processing");
-                    progressCallback?.Invoke("❌ AI services unavailable - please ensure Ollama is running before processing documents");
-                    return new List<Requirement>();
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Pre-warming failed or AI services unavailable - proceeding with extraction anyway (fallback to retry logic)");
+                    progressCallback?.Invoke("⚠️ Pre-warming failed - attempting extraction anyway...");
+                    // Don't abort - continue with extraction which has its own retry/restart logic
                 }
 
                 // Step 1: Download attachment from Jama
@@ -1709,7 +1717,7 @@ Extract all legitimate requirements:";
                 }
 
                 // CRITICAL: Verify Ollama is still available before starting ATP derivation
-                if (!await IsOllamaAvailableAsync(cancellationToken))
+                if (!await IsOllamaAvailableAsync(progressCallback, cancellationToken))
                 {
                     TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Ollama not available for ATP derivation - aborting intelligent analysis");
                     progressCallback?.Invoke("⚠️ Ollama service unavailable - skipping AI-powered requirement derivation");
@@ -1745,8 +1753,8 @@ Extract all legitimate requirements:";
                 // Combine the provided cancellation token with the timeout
                 var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, derivationCts.Token);
                 
-                // Start a background task to provide periodic progress updates
-                var progressTask = ProvidePeriodicDerivationProgressAsync(progressCallback, derivationCts.Token);
+                // NOTE: Disabled periodic generic progress - SystemCapabilityDerivationService now provides detailed per-step progress
+                // var progressTask = ProvidePeriodicDerivationProgressAsync(progressCallback, derivationCts.Token);
                 
                 try
                 {
@@ -1989,7 +1997,7 @@ Extract all legitimate requirements:";
                 // Test Ollama connectivity (with auto-start)
                 progressCallback?.Invoke("🔧 Verifying Ollama service...");
                 
-                if (!await IsOllamaAvailableAsync(cancellationToken))
+                if (!await IsOllamaAvailableAsync(progressCallback, cancellationToken))
                 {
                     progressCallback?.Invoke("❌ Failed to start or connect to Ollama service");
                     return false;
@@ -2004,16 +2012,17 @@ Extract all legitimate requirements:";
         /// Test if Ollama is running and responding on localhost:11434
         /// Automatically attempts to start Ollama if it's not running
         /// </summary>
-        private async Task<bool> IsOllamaAvailableAsync(CancellationToken cancellationToken)
+        private async Task<bool> IsOllamaAvailableAsync(Action<string>? progressCallback, CancellationToken cancellationToken)
         {
             // First, try to connect to Ollama
-            if (await TestOllamaConnectionAsync(cancellationToken))
+            if (await TestOllamaConnectionAsync(progressCallback, cancellationToken))
             {
                 return true;
             }
 
             // If connection failed, try to start Ollama automatically
             TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Ollama not responding - attempting to start automatically");
+            progressCallback?.Invoke("🚀 Starting Ollama service...");
             
             if (await StartOllamaServiceAsync(cancellationToken))
             {
@@ -2021,7 +2030,7 @@ Extract all legitimate requirements:";
                 await Task.Delay(3000, cancellationToken);
                 
                 // Test connection again
-                if (await TestOllamaConnectionAsync(cancellationToken))
+                if (await TestOllamaConnectionAsync(progressCallback, cancellationToken))
                 {
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Successfully started Ollama service");
                     return true;
@@ -2033,57 +2042,128 @@ Extract all legitimate requirements:";
         }
 
         /// <summary>
-        /// Test connection to Ollama API
+        /// Test connection to Ollama API using intelligent status monitoring
+        /// Only restarts if model is stuck or not responding
         /// </summary>
-        private async Task<bool> TestOllamaConnectionAsync(CancellationToken cancellationToken)
+        private async Task<bool> TestOllamaConnectionAsync(Action<string>? progressCallback, CancellationToken cancellationToken)
         {
             try
             {
-                using var httpClient = new HttpClient();
-                httpClient.Timeout = TimeSpan.FromSeconds(5); // Quick timeout for health check
-                
-                var response = await httpClient.GetAsync("http://localhost:11434/api/tags", cancellationToken);
-                if (response.IsSuccessStatusCode)
+                // Smart monitoring: check current status before deciding what to do
+                var currentStatus = _ollamaStatusMonitor?.CurrentStatus ?? OllamaModelStatus.Unknown;
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Current Ollama status: {currentStatus}");
+
+                // If model is already loaded, test if it's responsive
+                if (currentStatus == OllamaModelStatus.Loaded)
                 {
-                    var content = await response.Content.ReadAsStringAsync(cancellationToken);
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Ollama health check passed - service is responding");
+                    progressCallback?.Invoke("✅ Model already loaded - testing responsiveness...");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Model already loaded - testing if responsive");
                     
-                    // Pre-warm the model to avoid "timed out waiting for llama runner" errors
-                    await PreWarmOllamaModelAsync(cancellationToken);
+                    var testSuccess = await PreWarmOllamaModelAsync(cancellationToken);
+                    if (testSuccess)
+                    {
+                        progressCallback?.Invoke("✅ Model responsive and ready");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Model already loaded and responsive - no restart needed");
+                        return true;
+                    }
                     
-                    return true;
+                    // Model stuck despite being loaded - restart needed
+                    progressCallback?.Invoke("⚠️ Model loaded but not responding - restarting...");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Model loaded but not responsive - restarting Ollama");
                 }
+                // If model not loaded, try to pre-warm (will load model)
+                else if (currentStatus == OllamaModelStatus.NotLoaded)
+                {
+                    progressCallback?.Invoke("🔥 Loading model into memory (~45 seconds)...");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Model not loaded - pre-warming (will load model)");
+                    
+                    var preWarmSuccess = await PreWarmOllamaModelAsync(cancellationToken);
+                    if (preWarmSuccess)
+                    {
+                        progressCallback?.Invoke("✅ Model loaded and ready");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Model pre-warmed successfully");
+                        return true;
+                    }
+                    
+                    // Pre-warm failed - restart and try again
+                    progressCallback?.Invoke("⚠️ Model load failed - restarting Ollama...");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Pre-warm failed - restarting Ollama");
+                }
+                else
+                {
+                    // Status is Unknown or Loading - something's wrong, restart
+                    progressCallback?.Invoke($"⚠️ Ollama status {currentStatus} - restarting...");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Ollama status {currentStatus} - restarting for clean state");
+                }
+
+                // Restart Ollama and try pre-warming
+                if (_ollamaProcessManager != null)
+                {
+                    await _ollamaProcessManager.RestartOllamaAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Ollama restarted successfully");
+                    
+                    progressCallback?.Invoke("🔥 Loading model after restart (~45 seconds)...");
+                    var finalPreWarm = await PreWarmOllamaModelAsync(cancellationToken);
+                    
+                    if (!finalPreWarm)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Pre-warming after restart failed - extraction will use retry logic");
+                    }
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] IOllamaProcessManager not available - cannot restart");
+                }
+                
+                return true; // Always return true - let extraction handle failures with retry logic
             }
             catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaDocumentParser] Ollama connection test failed: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Failed in Ollama connection test: {ex.Message}");
+                return false; // Only return false if entire test process failed
             }
-            
-            return false;
         }
 
         /// <summary>
         /// Pre-warm Ollama model by making a lightweight generation request
-        /// This loads the model into memory to avoid "timed out waiting for llama runner" errors on first real request
+        /// This loads the model into memory. Should complete in ~45 seconds on clean Ollama instance.
+        /// Returns true if successful, false if failed (extraction can still proceed with retry logic)
         /// </summary>
-        private async Task PreWarmOllamaModelAsync(CancellationToken cancellationToken)
+        private async Task<bool> PreWarmOllamaModelAsync(CancellationToken cancellationToken)
         {
             try
             {
-                if (_textGenerationService == null) return;
+                if (_textGenerationService == null) 
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Text generation service not available for pre-warming");
+                    return false;
+                }
                 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Pre-warming Ollama model...");
                 
-                // Make a simple, fast generation request to load the model
-                var warmupPrompt = "Test"; // Minimal prompt for fastest response
-                var response = await _textGenerationService.GenerateAsync(warmupPrompt, cancellationToken);
+                // Make a simple generation request to load the model
+                // Normal load time is ~45 seconds; use 90s timeout for safety margin on slow systems
+                var warmupPrompt = "Test"; 
+                
+                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(90));
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                
+                var response = await _textGenerationService.GenerateAsync(warmupPrompt, linkedCts.Token);
                 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Model pre-warmed successfully - ready for extraction");
+                return true;
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                // Pre-warming timed out - log warning but don't throw (extraction will retry)
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] ⚠️ Model pre-warming timed out after 90 seconds - extraction will proceed with retry logic");
+                return false;
             }
             catch (Exception ex)
             {
-                // Log but don't fail - the model might still work for real requests
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Model pre-warming failed (will attempt extraction anyway): {ex.Message}");
+                // Pre-warming failed - log warning but don't throw (extraction will retry)
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Model pre-warming failed: {ex.Message} - extraction will proceed with retry logic");
+                return false;
             }
         }
 
@@ -2208,6 +2288,7 @@ Extract requirements now (JSON only):";
                 string llmResponse = string.Empty;
                 int maxRetries = 2;
                 int retryDelayMs = 5000; // 5 seconds between retries
+                bool shouldRestartOllama = false;
                 
                 for (int attempt = 0; attempt <= maxRetries; attempt++)
                 {
@@ -2226,9 +2307,37 @@ Extract requirements now (JSON only):";
                             progressCallback?.Invoke($"⏳ Model loading delay - retrying ({attempt + 1}/{maxRetries + 1})...");
                             await Task.Delay(retryDelayMs, cancellationToken);
                             retryDelayMs *= 2; // Exponential backoff
+                            
+                            // If this was the last retry, mark for Ollama restart
+                            if (attempt == maxRetries - 1)
+                            {
+                                shouldRestartOllama = true;
+                            }
                             continue;
                         }
                         throw; // Different error - don't retry
+                    }
+                }
+
+                // If all retries failed with model loading timeout, try restarting Ollama
+                if (llmResponse == null && shouldRestartOllama && _ollamaProcessManager != null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[TemplateForm] All retries failed with model timeout - restarting Ollama...");
+                    progressCallback?.Invoke("🔄 Restarting Ollama service to recover from stuck state...");
+                    
+                    try
+                    {
+                        await _ollamaProcessManager.RestartOllamaAsync(cancellationToken);
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[TemplateForm] ✅ Ollama restarted - attempting final generation...");
+                        progressCallback?.Invoke("✅ Ollama restarted - making final attempt...");
+                        
+                        // Final attempt after restart
+                        llmResponse = await _textGenerationService.GenerateAsync(prompt, cancellationToken);
+                    }
+                    catch (Exception restartEx)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Error($"[TemplateForm] Failed to restart Ollama: {restartEx.Message}");
+                        progressCallback?.Invoke($"❌ Failed to restart Ollama: {restartEx.Message}");
                     }
                 }
 

@@ -12,9 +12,10 @@ namespace TestCaseEditorApp.Services
     {
         /// <summary>
         /// Create a concrete ITextGenerationService.
-        /// provider: "ollama" | "openai" | "noop" (case-insensitive). Defaults to "ollama".
+        /// provider: "ollama" | "openai" | "anythingllm" | "noop" (case-insensitive). Defaults to "ollama".
+        /// anythingLlmService: Required when provider is "anythingllm"
         /// </summary>
-        public static ITextGenerationService Create(string? provider = null)
+        public static ITextGenerationService Create(string? provider = null, IAnythingLLMService? anythingLlmService = null)
         {
             provider ??= Environment.GetEnvironmentVariable("LLM_PROVIDER") ?? "ollama";
             provider = provider.Trim().ToLowerInvariant();
@@ -23,6 +24,14 @@ namespace TestCaseEditorApp.Services
             {
                 switch (provider)
                 {
+                    case "anythingllm":
+                        if (anythingLlmService == null)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[LlmFactory] AnythingLLM provider requested but service not provided - falling back to Noop");
+                            return new NoopTextGenerationService();
+                        }
+                        return new AnythingLLMTextGenerationService(anythingLlmService);
+
                     case "openai":
                         var openaiHttp = new HttpClient();
                         return new global::OpenAITextGenerationService(openaiHttp, model: null);

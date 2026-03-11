@@ -62,6 +62,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
     {
         private new readonly IRequirementsMediator _mediator;
         private readonly IWorkspaceContext _workspaceContext;
+        private readonly IOllamaProcessManager? _ollamaProcessManager;
         
         /// <summary>
         /// Constructor for RequirementsSearchAttachmentsViewModel with proper mediator injection
@@ -70,12 +71,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public RequirementsSearchAttachmentsViewModel(
             IRequirementsMediator mediator,
             IWorkspaceContext workspaceContext,
-            ILogger<RequirementsSearchAttachmentsViewModel> logger) 
+            ILogger<RequirementsSearchAttachmentsViewModel> logger,
+            IOllamaProcessManager? ollamaProcessManager = null) 
             : base(mediator, logger)
         {
             _logger.LogInformation("[RequirementsSearchAttachments] Constructor completed");
             _mediator = mediator;
             _workspaceContext = workspaceContext ?? throw new ArgumentNullException(nameof(workspaceContext));
+            _ollamaProcessManager = ollamaProcessManager;
 
             Title = "Requirements Search in Attachments";
             StatusMessage = "Ready to scan attachments when project opens...";
@@ -86,15 +89,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.AttachmentScanStarted>(OnAttachmentScanStarted);
             _mediator.Subscribe<TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.DocumentParsingCanceled>(OnDocumentParsingCanceled);
             
-            _logger.LogInformation("[RequirementsSearchAttachments] ViewModel constructor completed. Will search current project attachments when activated.");
+            _logger.LogInformation("[RequirementsSearchAttachments] ViewModel constructor completed.");
             _logger.LogInformation("[RequirementsSearchAttachments] Commands initialized: TestConnectionCommand is {TestCommandStatus}", 
                 TestConnectionCommand != null ? "initialized" : "NULL");
             
             // Initialize with no documents placeholder
             InitializeEmptyState();
             
-            // Log when OpenProject workflow should trigger
-            _logger.LogInformation("[RequirementsSearchAttachments] Waiting for OpenProject workflow to trigger real scan...");
+            // NOTE: This ViewModel is eagerly instantiated by RequirementsMediator when a project opens,
+            //       ensuring it exists and is subscribed BEFORE ProjectOpened events fire (proper event-driven architecture)
+            
             _logger.LogInformation("[RequirementsSearchAttachments] *************** DEBUG: CONSTRUCTOR COMPLETED ***************");
         }
 
@@ -109,9 +113,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         }
 
         // ==== PROPERTIES ====
-
-        [ObservableProperty]
-        private int selectedProjectId = -1; // Will be set dynamically when a project is opened/selected
 
         [ObservableProperty]
         private AttachmentScrapingWorkflowState _currentWorkflowState = AttachmentScrapingWorkflowState.NoProject;
@@ -223,13 +224,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             });
         }
 
-        partial void OnSelectedProjectIdChanged(int value)
-        {
-            _logger.LogInformation("[RequirementsSearchAttachments] Project ID changed to: {ProjectId}", value);
-            OnPropertyChanged(nameof(CurrentProjectName));
-            UpdateWorkflowState();
-        }
-        
         partial void OnAvailableAttachmentsChanged(global::System.Collections.ObjectModel.ObservableCollection<JamaAttachment> value)
         {
             OnPropertyChanged(nameof(HasAttachmentsAvailable));
@@ -468,14 +462,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 return currentProjectName;
                 
             // Fallback to lookup in AvailableProjects
-            var project = AvailableProjects?.FirstOrDefault(p => p.Id == SelectedProjectId);
+            var projectId = GetCurrentJamaProjectId();
+            var project = AvailableProjects?.FirstOrDefault(p => p.Id == projectId);
             if (project != null)
             {
                 currentProjectName = project.Name; // Cache it for next time
                 return project.Name;
             }
             
-            return $"Project {SelectedProjectId}";
+            return $"Project {projectId}";
         }
 
         /// <summary>
@@ -490,9 +485,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     return;
 
                 // If AvailableProjects is not loaded, try to load it
+                var projectId = GetCurrentJamaProjectId();
                 if (AvailableProjects == null || !AvailableProjects.Any())
                 {
-                    _logger.LogInformation("[RequirementsSearchAttachments] Loading projects to get project name for ID {ProjectId}", SelectedProjectId);
+                    _logger.LogInformation("[RequirementsSearchAttachments] Loading projects to get project name for ID {ProjectId}", projectId);
                     // TODO: Add GetProjectsAsync to mediator interface when needed
                     // For now, use empty collection
                     if (AvailableProjects == null)
@@ -501,20 +497,20 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 }
 
                 // Now try to find the project name
-                var selectedProject = AvailableProjects?.FirstOrDefault(p => p.Id == SelectedProjectId);
+                var selectedProject = AvailableProjects?.FirstOrDefault(p => p.Id == projectId);
                 if (selectedProject != null)
                 {
                     currentProjectName = selectedProject.Name;
-                    _logger.LogInformation("[RequirementsSearchAttachments] Found project name: {ProjectName} for ID {ProjectId}", currentProjectName, SelectedProjectId);
+                    _logger.LogInformation("[RequirementsSearchAttachments] Found project name: {ProjectName} for ID {ProjectId}", currentProjectName, projectId);
                 }
                 else
                 {
-                    _logger.LogWarning("[RequirementsSearchAttachments] Could not find project name for ID {ProjectId}", SelectedProjectId);
+                    _logger.LogWarning("[RequirementsSearchAttachments] Could not find project name for ID {ProjectId}", projectId);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[RequirementsSearchAttachments] Error getting project name for ID {ProjectId}", SelectedProjectId);
+                _logger.LogError(ex, "[RequirementsSearchAttachments] Error getting project name for ID {ProjectId}", GetCurrentJamaProjectId());
             }
         }
 
@@ -576,7 +572,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// </summary>
         private void UpdateWorkflowState()
         {
-            if (SelectedProjectId <= 0)
+            var projectId = GetCurrentJamaProjectId();
+            if (projectId <= 0)
             {
                 CurrentWorkflowState = AttachmentScrapingWorkflowState.NoProject;
                 SmartButtonText = "🔒 No Project";
@@ -801,7 +798,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 
                 if (matchingProject != null)
                 {
-                    SelectedProjectId = matchingProject.Id;
                     currentProjectName = matchingProject.Name; // Store the project name
                     _logger.LogInformation("[RequirementsSearchAttachments] Found Jama project: {ProjectName} -> ID: {ProjectId}", 
                         projectName, matchingProject.Id);
@@ -881,92 +877,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// <summary>
         /// Attempt to auto-detect and set the project ID from current workspace context
         /// </summary>
-        private async Task<bool> TryAutoDetectProjectIdAsync()
-        {
-            try
-            {
-                // First try to get project ID using the async method to avoid deadlock
-                var mediatorProjectId = await (_mediator?.GetCurrentProjectIdAsync() ?? Task.FromResult(-1));
-                if (mediatorProjectId > 0)
-                {
-                    SelectedProjectId = mediatorProjectId;
-                    _logger.LogInformation("[RequirementsSearchAttachments] Auto-detected project ID from mediator: {ProjectId}", mediatorProjectId);
-                    return true;
-                }
-
-                // Fallback: Try to get project ID from workspace context directly
-                var currentWorkspace = _workspaceContext?.CurrentWorkspace;
-                if (!string.IsNullOrEmpty(currentWorkspace?.JamaProject) && 
-                    int.TryParse(currentWorkspace.JamaProject, out var projectId) && 
-                    projectId > 0)
-                {
-                    SelectedProjectId = projectId;
-                    _logger.LogInformation("[RequirementsSearchAttachments] Auto-detected project ID from workspace: {ProjectId}", projectId);
-                    return true;
-                }
-
-                // New: Try to resolve project key/name to numeric ID via Jama API
-                return await TryResolveProjectKeyToIdAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[RequirementsSearchAttachments] Error auto-detecting project ID");
-                return false;
-            }
-        }
-
-        private async Task<bool> TryResolveProjectKeyToIdAsync()
-        {
-            try
-            {
-                var currentWorkspace = _workspaceContext?.CurrentWorkspace;
-                var projectKey = currentWorkspace?.JamaProject;
-                var projectName = _mediator?.CurrentProjectName;
-                
-                // Need either project key from workspace or project name from mediator
-                if (string.IsNullOrEmpty(projectKey) && string.IsNullOrEmpty(projectName))
-                {
-                    return false;
-                }
-
-                _logger.LogInformation("[RequirementsSearchAttachments] Attempting to resolve project key/name to ID. Key: '{ProjectKey}', Name: '{ProjectName}'", 
-                    projectKey, projectName);
-
-                // Fetch all projects from Jama to find matching ID
-                var projects = await _mediator.GetProjectsAsync();
-                if (projects == null || !projects.Any())
-                {
-                    _logger.LogWarning("[RequirementsSearchAttachments] No projects returned from Jama API");
-                    return false;
-                }
-
-                // Try to find project by key first, then by name
-                var matchingProject = projects.FirstOrDefault(p => 
-                    (!string.IsNullOrEmpty(projectKey) && (p.ProjectKey?.Equals(projectKey, StringComparison.OrdinalIgnoreCase) == true || p.Key?.Equals(projectKey, StringComparison.OrdinalIgnoreCase) == true)) ||
-                    (!string.IsNullOrEmpty(projectName) && p.Name?.Equals(projectName, StringComparison.OrdinalIgnoreCase) == true));
-
-                if (matchingProject != null && matchingProject.Id > 0)
-                {
-                    SelectedProjectId = matchingProject.Id;
-                    _logger.LogInformation("[RequirementsSearchAttachments] Successfully resolved '{ProjectKey}'/'{ProjectName}' to project ID: {ProjectId}", 
-                        projectKey, projectName, matchingProject.Id);
-                    return true;
-                }
-
-                // Log available projects for debugging
-                var availableKeys = string.Join(", ", projects.Take(5).Select(p => $"'{p.ProjectKey}' (ID:{p.Id})"));
-                _logger.LogWarning("[RequirementsSearchAttachments] Could not find project matching key '{ProjectKey}' or name '{ProjectName}'. Available projects: {AvailableProjects}", 
-                    projectKey, projectName, availableKeys);
-                
-                return false;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[RequirementsSearchAttachments] Error resolving project key to ID");
-                return false;
-            }
-        }
-
         /// <summary>
         /// Refresh the current project state and update UI accordingly
         /// </summary>
@@ -974,30 +884,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             try
             {
-                _logger.LogInformation("[RequirementsSearchAttachments] *************** DEBUG: RefreshProjectState STARTED ***************");
-                
-                // Debug: Log current context values
-                var currentWorkspace = _workspaceContext?.CurrentWorkspace;
-                var workspaceInfo = _workspaceContext?.CurrentWorkspaceInfo;
-                var mediatorProjectName = _mediator?.CurrentProjectName;
-                // Note: Avoid accessing CurrentProjectId property to prevent deadlock
-                
-                _logger.LogInformation("[RequirementsSearchAttachments] DEBUG: Workspace={Workspace}, WorkspaceInfo={WorkspaceInfo}, MediatorName={MedName}", 
-                    currentWorkspace?.JamaProject, workspaceInfo?.Name, mediatorProjectName);
-                
-                // Try to detect current project
-                var wasDetected = await TryAutoDetectProjectIdAsync();
+                _logger.LogInformation("[RequirementsSearchAttachments] Refreshing project state");
                 
                 var projectName = _mediator?.CurrentProjectName ?? "Unknown";
-                var projectId = SelectedProjectId;
+                var projectId = GetCurrentJamaProjectId();
                 
-                _logger.LogInformation("[RequirementsSearchAttachments] Project state - ID: {ProjectId}, Name: {ProjectName}, Detected: {WasDetected}", 
-                    projectId, projectName, wasDetected);
+                _logger.LogInformation("[RequirementsSearchAttachments] Project state - ID: {ProjectId}, Name: {ProjectName}", 
+                    projectId, projectName);
                 
                 // Update workflow state to reflect current project status
                 UpdateWorkflowState();
                 
-                _logger.LogInformation("[RequirementsSearchAttachments] *************** DEBUG: RefreshProjectState COMPLETED ***************");
+                await Task.CompletedTask; // Keep async signature
             }
             catch (Exception ex)
             {
@@ -1021,16 +919,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 cancellationToken.ThrowIfCancellationRequested();
                 
                 // Prevent scanning when no valid project is selected
-                if (SelectedProjectId <= 0)
+                var projectId = GetCurrentJamaProjectId();
+                if (projectId <= 0)
                 {
-                    // Try to auto-detect project ID first
-                    if (!await TryAutoDetectProjectIdAsync())
-                    {
-                        _logger.LogWarning("[RequirementsSearchAttachments] No valid project selected for attachment scanning (ID: {ProjectId})", SelectedProjectId);
-                        StatusMessage = "No project selected - please select a project first";
-                        return;
-                    }
-                    _logger.LogInformation("[RequirementsSearchAttachments] Successfully auto-detected project ID: {ProjectId}", SelectedProjectId);
+                    _logger.LogError("[RequirementsSearchAttachments] ❌ No project ID set - this should not happen if a project is loaded");
+                    StatusMessage = "❌ No project selected - please open a project first";
+                    SetError("No project selected. Please open a project before scanning attachments.");
+                    return;
                 }
                 
                 if (isBackgroundScan)
@@ -1064,7 +959,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 }
                 
                 // Starting attachment search
-                _logger.LogInformation("[RequirementsSearchAttachments] Searching project {ProjectId} for attachments", SelectedProjectId);
+                _logger.LogInformation("[RequirementsSearchAttachments] Searching project {ProjectId} for attachments", projectId);
 
                 // Start API call using mediator service with real progress reporting
                 List<JamaAttachment> attachments;
@@ -1081,12 +976,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                         });
                     });
                     
-                    attachments = await _mediator.ScanProjectAttachmentsAsync(SelectedProjectId, progress, cancellationToken);
+                    attachments = await _mediator.ScanProjectAttachmentsAsync(projectId, progress, cancellationToken);
                 }
                 else
                 {
                     // No progress reporting for non-background scans
-                    attachments = await _mediator.ScanProjectAttachmentsAsync(SelectedProjectId, cancellationToken: cancellationToken);
+                    attachments = await _mediator.ScanProjectAttachmentsAsync(projectId, cancellationToken: cancellationToken);
                 }
                 
                 _logger.LogInformation("[RequirementsSearchAttachments] *** API CALL COMPLETED ***");
@@ -1189,6 +1084,24 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     BackgroundScanProgress = BackgroundScanTotal;
                 }
                 
+                // Pre-warm Ollama in background if attachments were found (user likely to parse them)
+                if (attachments?.Count > 0 && _ollamaProcessManager != null)
+                {
+                    _logger.LogInformation("[RequirementsSearchAttachments] 🔥 Pre-warming Ollama in background (found {Count} attachments)", attachments.Count);
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await _ollamaProcessManager.EnsureOllamaRunningAsync();
+                            _logger.LogInformation("[RequirementsSearchAttachments] ✅ Ollama pre-warming complete");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "[RequirementsSearchAttachments] Ollama pre-warming failed (will retry when parsing)");
+                        }
+                    });
+                }
+                
                 _logger.LogInformation("[RequirementsSearchAttachments] *** SEARCH RESULTS ***");
                 _logger.LogInformation("[RequirementsSearchAttachments] AvailableAttachments.Count: {Count}", AvailableAttachments.Count);
                 _logger.LogInformation("[RequirementsSearchAttachments] SearchResults.Count: {Count}", SearchResults.Count);
@@ -1286,19 +1199,24 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         private async Task ParseSelectedAttachmentAsync()
         {
-            if (SelectedAttachment == null || !CanExecuteParseAttachment()) return;
+            _logger.LogInformation("[RequirementsSearchAttachments] 🚀 ParseSelectedAttachmentAsync CALLED - SelectedAttachment: {AttachmentName}, ProjectId: {ProjectId}", 
+                SelectedAttachment?.Name ?? "NULL", GetCurrentJamaProjectId());
+            
+            if (SelectedAttachment == null || !CanExecuteParseAttachment())
+            {
+                _logger.LogWarning("[RequirementsSearchAttachments] ⚠️ Early return: SelectedAttachment={HasAttachment}, CanExecute={CanExecute}", 
+                    SelectedAttachment != null, CanExecuteParseAttachment());
+                return;
+            }
 
             // Prevent parsing when no valid project is selected
-            if (SelectedProjectId <= 0)
+            var projectId = GetCurrentJamaProjectId();
+            if (projectId <= 0)
             {
-                // Try to auto-detect project ID first
-                if (!await TryAutoDetectProjectIdAsync())
-                {
-                    _logger.LogWarning("[RequirementsSearchAttachments] No valid project selected for attachment parsing (ID: {ProjectId})", SelectedProjectId);
-                    StatusMessage = "No project selected - please select a project first";
-                    return;
-                }
-                _logger.LogInformation("[RequirementsSearchAttachments] Successfully auto-detected project ID for parsing: {ProjectId}", SelectedProjectId);
+                _logger.LogError("[RequirementsSearchAttachments] ❌ No project ID set - this should not happen if a project is loaded");
+                StatusMessage = "❌ No project selected - please open a project first";
+               SetError("No project selected. Please open a project before scanning attachments.");
+                return;
             }
 
             var parsingStartTime = DateTime.Now;
@@ -1324,7 +1242,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 {
                     DocumentName = SelectedAttachment.Name,
                     AttachmentId = SelectedAttachment.Id,
-                    ProjectId = SelectedProjectId,
+                    ProjectId = projectId,
                     StartTime = parsingStartTime
                 });
                 
@@ -1376,7 +1294,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 ExtractedRequirements.Clear();
 
                 // Use real document parsing via mediator with streaming callback
-                var extractedRequirements = await _mediator.ParseAttachmentRequirementsAsync(SelectedAttachment, SelectedProjectId, progressCallback, onRequirementDiscovered, _parsingCancellationTokenSource.Token);
+                var extractedRequirements = await _mediator.ParseAttachmentRequirementsAsync(SelectedAttachment, projectId, progressCallback, onRequirementDiscovered, _parsingCancellationTokenSource.Token);
 
                 // Add any remaining requirements that weren't streamed (batch processing results like MBSE enhancements)
                 var existingIds = new HashSet<string>(ExtractedRequirements.Where(r => !string.IsNullOrEmpty(r.GlobalId)).Select(r => r.GlobalId!));
@@ -1695,6 +1613,33 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _logger.LogInformation("[RequirementsSearchAttachments] Received cancel request from header for: {DocumentName}", e.DocumentName);
             CancelParsing();
         }
+        
+        /// <summary>
+        /// Handle project context change - sets the current project ID when a project is opened.
+        /// ✅ ARCHITECTURAL FIX: This is the proper way to receive cross-domain ProjectOpened events
+        /// </summary>
+        /// <summary>
+        /// Handle project opened event from OpenProject domain (cross-domain subscription)
+        /// </summary>
+        /// <summary>
+        /// Get the current Jama project ID from the workspace context.
+        /// </summary>
+        private int GetCurrentJamaProjectId()
+        {
+            var workspace = _workspaceContext?.CurrentWorkspace;
+            if (workspace == null)
+            {
+                return -1;
+            }
+            
+            if (!string.IsNullOrEmpty(workspace.JamaProject) && 
+                int.TryParse(workspace.JamaProject, out var projectId))
+            {
+                return projectId;
+            }
+            
+            return -1;
+        }
 
         private bool CanExecuteImportRequirements()
         {
@@ -1737,7 +1682,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                SelectedProjectId = startedEvent.ProjectId;
                 IsBackgroundScanningInProgress = true;
                 BackgroundScanProgressText = $"🔍 Starting scan for {startedEvent.ProjectName}...";
                 BackgroundScanProgress = 0;

@@ -119,6 +119,7 @@ namespace TestCaseEditorApp.Services
             var headerVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_HeaderViewModel>();
             var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_MainViewModel>();
             var navVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_NavigationViewModel>();
+            // Startup screen uses its own notification VM - Ollama monitoring starts when LLM sections are accessed
             var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_NotificationViewModel>();
             
             if (titleVM == null) throw new InvalidOperationException("StartUp_TitleViewModel not resolved from DI container");
