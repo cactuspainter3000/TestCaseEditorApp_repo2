@@ -242,7 +242,8 @@ public class OllamaProcessManager : IOllamaProcessManager
 
             if (processRunning && isHealthy)
             {
-                Log.Info("[OllamaProcessManager] ✅ Ollama is running and healthy
+                Log.Info("[OllamaProcessManager] ✅ Ollama is running and healthy");
+                return;
             }
 
             if (processRunning && !isHealthy)

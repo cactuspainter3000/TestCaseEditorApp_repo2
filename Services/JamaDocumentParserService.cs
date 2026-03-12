@@ -2056,8 +2056,8 @@ Extract all legitimate requirements:";
                 // If model is already loaded, test if it's responsive
                 if (currentStatus == OllamaModelStatus.Loaded)
                 {
-                    progressCallback?.Invoke("✅ Model already loaded - testing responsiveness...");
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Model already loaded - testing if responsive");
+                    progressCallback?.Invoke("✅ Model already loaded - verifying (10s max)...");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Model already loaded - quick responsiveness check (10s timeout)");
                     
                     var testSuccess = await PreWarmOllamaModelAsync(cancellationToken);
                     if (testSuccess)
@@ -2074,20 +2074,20 @@ Extract all legitimate requirements:";
                 // If model not loaded, try to pre-warm (will load model)
                 else if (currentStatus == OllamaModelStatus.NotLoaded)
                 {
-                    progressCallback?.Invoke("🔥 Loading model into memory (~45 seconds)...");
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Model not loaded - pre-warming (will load model)");
+                    progressCallback?.Invoke("🔥 Initializing AI model (checking readiness)...");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Model not loaded - attempting quick pre-warm (10s timeout)");
                     
                     var preWarmSuccess = await PreWarmOllamaModelAsync(cancellationToken);
                     if (preWarmSuccess)
                     {
-                        progressCallback?.Invoke("✅ Model loaded and ready");
+                        progressCallback?.Invoke("✅ AI model ready");
                         TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Model pre-warmed successfully");
                         return true;
                     }
                     
                     // Pre-warm failed - restart and try again
-                    progressCallback?.Invoke("⚠️ Model load failed - restarting Ollama...");
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Pre-warm failed - restarting Ollama");
+                    progressCallback?.Invoke("⚠️ Model not responding - restarting service (~5s)...");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Pre-warm failed or timed out - restarting Ollama");
                 }
                 else
                 {
@@ -2102,12 +2102,17 @@ Extract all legitimate requirements:";
                     await _ollamaProcessManager.RestartOllamaAsync(cancellationToken);
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Ollama restarted successfully");
                     
-                    progressCallback?.Invoke("🔥 Loading model after restart (~45 seconds)...");
+                    progressCallback?.Invoke("� Service restarted - verifying readiness...");
                     var finalPreWarm = await PreWarmOllamaModelAsync(cancellationToken);
                     
                     if (!finalPreWarm)
                     {
+                        progressCallback?.Invoke("⚠️ Model still not ready - will retry during extraction");
                         TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Pre-warming after restart failed - extraction will use retry logic");
+                    }
+                    else
+                    {
+                        progressCallback?.Invoke("✅ AI model ready after restart");
                     }
                 }
                 else
@@ -2142,10 +2147,11 @@ Extract all legitimate requirements:";
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Pre-warming Ollama model...");
                 
                 // Make a simple generation request to load the model
-                // Normal load time is ~45 seconds; use 90s timeout for safety margin on slow systems
+                // Use 10s timeout - if it takes longer, model is likely stuck (will restart)
+                // Pre-warm is optional - extraction continues with retry logic if it fails
                 var warmupPrompt = "Test"; 
                 
-                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(90));
+                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
                 using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
                 
                 var response = await _textGenerationService.GenerateAsync(warmupPrompt, linkedCts.Token);
@@ -2156,7 +2162,7 @@ Extract all legitimate requirements:";
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
                 // Pre-warming timed out - log warning but don't throw (extraction will retry)
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] ⚠️ Model pre-warming timed out after 90 seconds - extraction will proceed with retry logic");
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] ⚠️ Model pre-warming timed out after 10 seconds - model likely stuck, will restart");
                 return false;
             }
             catch (Exception ex)

@@ -42,7 +42,7 @@ namespace TestCaseEditorApp.Services
                     case "ollama":
                     default:
                         var ollamaClient = new HttpClient { BaseAddress = new Uri("http://localhost:11434/") };
-                        var model = Environment.GetEnvironmentVariable("OLLAMA_MODEL") ?? "phi4-mini:3.8b-q4_K_M";
+                        var model = Environment.GetEnvironmentVariable("OLLAMA_MODEL") ?? "phi3.5:3.8b-mini-instruct-q4_K_M";
                         return new global::OllamaTextGenerationService(model: model, http: ollamaClient);
                 }
             }

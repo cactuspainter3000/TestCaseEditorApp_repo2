@@ -44,5 +44,12 @@ namespace TestCaseEditorApp.Services
         /// Get the dimensions of the embedding vectors produced by this model
         /// </summary>
         int EmbeddingDimensions { get; }
+
+        /// <summary>
+        /// Calibrate maximum safe input size for the embedding model using binary search
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Maximum safe character count (90% of discovered limit)</returns>
+        Task<int> CalibrateMaxInputSizeAsync(CancellationToken cancellationToken = default);
     }
 }

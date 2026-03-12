@@ -144,10 +144,12 @@ namespace TestCaseEditorApp.Services
 
                 // Process each step for capability derivation with progress tracking
                 int stepCounter = 0;
+                var modelName = Environment.GetEnvironmentVariable("OLLAMA_MODEL") ?? "phi3.5";
+                var shortModelName = modelName.Split(':')[0]; // Extract just "phi3.5" from "phi3.5:3.8b-mini-instruct-q4_K_M"
                 foreach (var parsedStep in parsedSteps)
                 {
                     stepCounter++;
-                    progressCallback?.Invoke($"🤖 LLM Analysis ({stepCounter}/{parsedSteps.Count}): phi4-mini analyzing → {parsedStep.StepText.Substring(0, Math.Min(50, parsedStep.StepText.Length))}...");
+                    progressCallback?.Invoke($"🤖 LLM Analysis ({stepCounter}/{parsedSteps.Count}): {shortModelName} analyzing → {parsedStep.StepText.Substring(0, Math.Min(50, parsedStep.StepText.Length))}...");
                     
                     // DEBUG: Log ATP step content to understand what we're processing
                     if (stepCounter <= 3) // Log first 3 steps for analysis (reduced from 5 for full processing)
@@ -417,6 +419,10 @@ namespace TestCaseEditorApp.Services
                     result.ProcessingWarnings.Add("Empty response from LLM service");
                     return result;
                 }
+
+                // DEBUG: Log raw LLM response for troubleshooting extraction issues
+                _logger.LogDebug("🔍 RAW LLM RESPONSE (first 500 chars): {Response}", 
+                    llmResponse.Length > 500 ? llmResponse.Substring(0, 500) + "..." : llmResponse);
 
                 // Parse structured response
                 var parseResult = await ParseDerivationResponseAsync(llmResponse, atpStep);

@@ -1,5 +1,6 @@
 // Services/OllamaEmbeddingService.cs
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
@@ -18,6 +19,8 @@ namespace TestCaseEditorApp.Services
         private readonly HttpClient _http;
         private readonly string _embeddingModel;
         private readonly int _embeddingDimensions;
+        private static readonly ConcurrentDictionary<string, int> _modelMaxChars = new();
+        private int _calibratedMaxChars = 0;
 
         public OllamaEmbeddingService(string embeddingModel = "mxbai-embed-large", HttpClient? http = null)
         {
@@ -46,12 +49,12 @@ namespace TestCaseEditorApp.Services
             if (string.IsNullOrWhiteSpace(text))
                 return new float[_embeddingDimensions]; // Return zero vector
 
-            // mxbai-embed-large:335m-v1-fp16 has ~512 token limit (very conservative for safety)
-            // Ultra-conservative: 1 token ≈ 2 characters for safety with special tokens and overhead
-            const int maxChars = 200; // Very conservative limit for mxbai-embed-large model
+            // Use calibrated value if available, otherwise fall back to conservative default
+            int maxChars = _calibratedMaxChars > 0 ? _calibratedMaxChars : 750;
+            
             if (text.Length > maxChars)
             {
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[OllamaEmbedding] Truncating text from {text.Length} to {maxChars} chars due to mxbai-embed-large context limit");
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[OllamaEmbedding] Truncating text from {text.Length} to {maxChars} chars (calibrated: {_calibratedMaxChars > 0})");
                 text = text.Substring(0, maxChars);
             }
 
@@ -184,6 +187,80 @@ namespace TestCaseEditorApp.Services
             
             // Ensure result is between 0 and 1
             return Math.Max(0f, Math.Min(1f, similarity));
+        }
+
+        public async Task<int> CalibrateMaxInputSizeAsync(CancellationToken cancellationToken = default)
+        {
+            // Check cache first
+            if (_modelMaxChars.TryGetValue(_embeddingModel, out int cached))
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[OllamaEmbedding] Using cached calibration for {_embeddingModel}: {cached} chars");
+                _calibratedMaxChars = cached;
+                return cached;
+            }
+
+            TestCaseEditorApp.Services.Logging.Log.Info($"[OllamaEmbedding] 🔬 Calibrating maximum input size for {_embeddingModel}...");
+            
+            // Binary search to find actual limit
+            int low = 100, high = 2000;
+            int maxWorking = 100;
+            int attempts = 0;
+            
+            while (low <= high && attempts < 15) // Limit attempts to prevent infinite loops
+            {
+                attempts++;
+                int mid = (low + high) / 2;
+                // Use realistic technical text for calibration (part numbers, compound terms, special chars)
+                string testText = new string('x', mid / 4) + "946-1UE3-001 " + new string('A', mid / 4) + 
+                                 "Input/Output " + new string('B', mid / 4) + "IEEE-1149.1 " + new string('C', mid / 4);
+                
+                try
+                {
+                    // Temporarily bypass truncation for calibration
+                    var payload = new
+                    {
+                        model = _embeddingModel,
+                        input = testText
+                    };
+
+                    var json = JsonSerializer.Serialize(payload);
+                    using var response = await _http.PostAsync("api/embed",
+                        new StringContent(json, Encoding.UTF8, "application/json"), cancellationToken);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        maxWorking = mid;
+                        low = mid + 1;  // Try larger
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[Calibration] {mid} chars: ✅ SUCCESS (attempt {attempts})");
+                    }
+                    else
+                    {
+                        high = mid - 1;  // Try smaller
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[Calibration] {mid} chars: ❌ FAILED - HTTP {(int)response.StatusCode} (attempt {attempts})");
+                    }
+                }
+                catch (HttpRequestException)
+                {
+                    high = mid - 1;  // Try smaller
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[Calibration] {mid} chars: ❌ FAILED - Exception (attempt {attempts})");
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[Calibration] Unexpected error at {mid} chars: {ex.Message}");
+                    high = mid - 1;
+                }
+
+                // Small delay between attempts to be kind to Ollama
+                await Task.Delay(50, cancellationToken);
+            }
+            
+            // Use 70% of discovered limit for safety margin (accounts for technical text tokenization variations)
+            int safeLimit = (int)(maxWorking * 0.7);
+            _modelMaxChars[_embeddingModel] = safeLimit;
+            _calibratedMaxChars = safeLimit;
+            
+            TestCaseEditorApp.Services.Logging.Log.Info($"[OllamaEmbedding] ✅ Calibration complete for {_embeddingModel}: {safeLimit} chars safe limit (discovered max: {maxWorking} chars, {attempts} attempts)");
+            return safeLimit;
         }
     }
 }

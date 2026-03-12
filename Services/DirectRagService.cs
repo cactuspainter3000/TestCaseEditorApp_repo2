@@ -24,8 +24,13 @@ namespace TestCaseEditorApp.Services
         private readonly ILogger<DirectRagService> _logger;
         private readonly string _indexStoragePath;
         private readonly ConcurrentDictionary<int, ProjectDocumentIndex> _projectIndexes = new();
-        private const int DefaultChunkSize = 350; // Much smaller for 512 token context limit
-        private const int ChunkOverlap = 50; // Reduced proportionally
+        
+        // Dynamic calibration fields
+        private bool _calibrated = false;
+        private int _calibratedChunkSize = 80; // Default fallback: 80 words
+        private int _calibratedChunkOverlap = 20; // Default fallback: 20 words
+        private int _calibratedMaxChars = 750; // Default fallback: 750 chars
+        
         private const string EmbeddingModel = "mxbai-embed-large:335m-v1-fp16";
 
         public bool IsConfigured 
@@ -67,12 +72,19 @@ namespace TestCaseEditorApp.Services
                 // Get or create project index
                 var projectIndex = await GetProjectIndexAsync(projectId);
                 
+                // Calibrate on first use (lazy initialization)
+                if (!_calibrated)
+                {
+                    await CalibrateChunkingParametersAsync(cancellationToken);
+                }
+                
                 // Remove existing document if present (re-indexing)
                 projectIndex.RemoveDocument(attachment.Id);
 
-                // Split document into chunks
-                var chunks = SplitIntoChunks(documentContent, DefaultChunkSize, ChunkOverlap);
-                _logger.LogInformation("[DirectRAG] Split document into {ChunkCount} chunks", chunks.Count);
+                // Split document into chunks using calibrated parameters
+                var chunks = SplitIntoChunks(documentContent, _calibratedChunkSize, _calibratedChunkOverlap);
+                _logger.LogInformation("[DirectRAG] Split document into {ChunkCount} chunks (chunk size: {ChunkSize} words, overlap: {Overlap} words)", 
+                    chunks.Count, _calibratedChunkSize, _calibratedChunkOverlap);
 
                 // Generate embeddings for each chunk
                 var documentChunks = new List<DocumentChunk>();
@@ -334,6 +346,38 @@ namespace TestCaseEditorApp.Services
             {
                 _logger.LogError(ex, "[DirectRAG] Failed to generate embedding for text: {Error}", ex.Message);
                 return null;
+            }
+        }
+
+        private async Task CalibrateChunkingParametersAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                _logger.LogInformation("[DirectRAG] 🔬 Calibrating chunking parameters for optimal embedding performance...");
+                
+                // Run calibration on the embedding service
+                _calibratedMaxChars = await _embeddingService.CalibrateMaxInputSizeAsync(cancellationToken);
+                
+                // Calculate optimal word count from discovered char limit
+                // Technical documents with part numbers, compound words, acronyms: ~15-20 chars per word
+                // Use conservative estimate of 18 chars/word (accounts for worst-case technical terminology)
+                const int avgCharsPerWord = 18;
+                _calibratedChunkSize = _calibratedMaxChars / avgCharsPerWord;
+                
+                // Set overlap to 25% of chunk size (maintains good context continuity)
+                _calibratedChunkOverlap = _calibratedChunkSize / 4;
+                
+                _calibrated = true;
+                
+                _logger.LogInformation(
+                    "[DirectRAG] ✅ Calibration complete - Chunk size: {ChunkSize} words (~{MaxChars} chars), Overlap: {Overlap} words", 
+                    _calibratedChunkSize, _calibratedMaxChars, _calibratedChunkOverlap);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[DirectRAG] Calibration failed, using fallback values: {ChunkSize} words, {MaxChars} chars", 
+                    _calibratedChunkSize, _calibratedMaxChars);
+                _calibrated = true; // Mark as attempted to avoid repeated failures
             }
         }
 
