@@ -27,8 +27,8 @@ namespace TestCaseEditorApp.Services
         
         // Dynamic calibration fields
         private bool _calibrated = false;
-        private int _calibratedChunkSize = 80; // Default fallback: 80 words
-        private int _calibratedChunkOverlap = 20; // Default fallback: 20 words
+        private int _calibratedChunkSize = 750; // Default fallback: 750 chars
+        private int _calibratedChunkOverlap = 188; // Default fallback: 25% overlap (188 chars)
         private int _calibratedMaxChars = 750; // Default fallback: 750 chars
         
         private const string EmbeddingModel = "mxbai-embed-large:335m-v1-fp16";
@@ -81,9 +81,9 @@ namespace TestCaseEditorApp.Services
                 // Remove existing document if present (re-indexing)
                 projectIndex.RemoveDocument(attachment.Id);
 
-                // Split document into chunks using calibrated parameters
+                // Split document into chunks using calibrated parameters (character-based)
                 var chunks = SplitIntoChunks(documentContent, _calibratedChunkSize, _calibratedChunkOverlap);
-                _logger.LogInformation("[DirectRAG] Split document into {ChunkCount} chunks (chunk size: {ChunkSize} words, overlap: {Overlap} words)", 
+                _logger.LogInformation("[DirectRAG] Split document into {ChunkCount} chunks (chunk size: {ChunkSize} chars, overlap: {Overlap} chars)", 
                     chunks.Count, _calibratedChunkSize, _calibratedChunkOverlap);
 
                 // Generate embeddings for each chunk
@@ -358,16 +358,9 @@ namespace TestCaseEditorApp.Services
                 // Run sample-based calibration using actual document content
                 _calibratedMaxChars = await _embeddingService.CalibrateMaxInputSizeAsync(documentContent, cancellationToken);
                 
-                // Measure actual chars-per-word ratio from this specific document
-                var words = documentContent.Split(new[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-                int actualCharsPerWord = documentContent.Length / Math.Max(1, words.Length);
-                
-                // Use measured ratio, capped at reasonable range (10-30 chars/word)
-                int charsPerWord = Math.Max(10, Math.Min(30, actualCharsPerWord));
-                _calibratedChunkSize = _calibratedMaxChars / charsPerWord;
-                
-                _logger.LogInformation("[DirectRAG] Document analysis: {CharsPerWord} chars/word (measured from {TotalChars} chars, {WordCount} words)",
-                    charsPerWord, documentContent.Length, words.Length);
+                // Use character-based chunking directly (no word calculations needed)
+                // This guarantees we never exceed the char limit regardless of word length variance
+                _calibratedChunkSize = _calibratedMaxChars;
                 
                 // Set overlap to 25% of chunk size (maintains good context continuity)
                 _calibratedChunkOverlap = _calibratedChunkSize / 4;
@@ -375,35 +368,58 @@ namespace TestCaseEditorApp.Services
                 _calibrated = true;
                 
                 _logger.LogInformation(
-                    "[DirectRAG] ✅ Calibration complete - Chunk size: {ChunkSize} words (~{MaxChars} chars), Overlap: {Overlap} words", 
-                    _calibratedChunkSize, _calibratedMaxChars, _calibratedChunkOverlap);
+                    "[DirectRAG] ✅ Calibration complete - Chunk size: {ChunkSize} chars, Overlap: {Overlap} chars (character-based chunking)", 
+                    _calibratedChunkSize, _calibratedChunkOverlap);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[DirectRAG] Calibration failed, using fallback values: {ChunkSize} words, {MaxChars} chars", 
+                _logger.LogWarning(ex, "[DirectRAG] Calibration failed, using fallback values: {ChunkSize} chars, {MaxChars} chars", 
                     _calibratedChunkSize, _calibratedMaxChars);
                 _calibrated = true; // Mark as attempted to avoid repeated failures
             }
         }
 
-        private List<string> SplitIntoChunks(string text, int chunkSize, int overlap)
+        private List<string> SplitIntoChunks(string text, int chunkSizeChars, int overlapChars)
         {
             var chunks = new List<string>();
-            var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            int textLength = text.Length;
+            int position = 0;
             
-            for (int i = 0; i < words.Length; i += chunkSize - overlap)
+            while (position < textLength)
             {
-                var chunkWords = words.Skip(i).Take(chunkSize);
-                var chunk = string.Join(" ", chunkWords);
+                // Calculate chunk end position
+                int chunkLength = Math.Min(chunkSizeChars, textLength - position);
+                int chunkEnd = position + chunkLength;
+                
+                // Try to break at word boundary for better context (search backward max 10% of chunk)
+                if (chunkEnd < textLength && chunkLength == chunkSizeChars)
+                {
+                    int searchStart = Math.Max(position, chunkEnd - (chunkSizeChars / 10));
+                    int lastSpace = text.LastIndexOf(' ', chunkEnd - 1, chunkEnd - searchStart);
+                    
+                    if (lastSpace > position)
+                    {
+                        chunkEnd = lastSpace;
+                        chunkLength = chunkEnd - position;
+                    }
+                }
+                
+                // Extract chunk
+                string chunk = text.Substring(position, chunkLength).Trim();
                 
                 if (!string.IsNullOrWhiteSpace(chunk))
                 {
                     chunks.Add(chunk);
                 }
                 
-                // Break if we've processed all words
-                if (i + chunkSize >= words.Length)
-                    break;
+                // Move to next chunk position (overlap maintained)
+                position += chunkLength - overlapChars;
+                
+                // Ensure we make progress (avoid infinite loop)
+                if (position <= position - chunkLength + overlapChars)
+                {
+                    position = chunkEnd;
+                }
             }
 
             return chunks;
