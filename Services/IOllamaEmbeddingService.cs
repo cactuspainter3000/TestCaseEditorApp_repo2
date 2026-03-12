@@ -48,8 +48,9 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Calibrate maximum safe input size for the embedding model using binary search
         /// </summary>
+        /// <param name="sampleText">Optional: Real document text to use for calibration. If provided, tests with actual document samples for accurate tokenization.</param>
         /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Maximum safe character count (90% of discovered limit)</returns>
-        Task<int> CalibrateMaxInputSizeAsync(CancellationToken cancellationToken = default);
+        /// <returns>Maximum safe character count (50% of discovered limit for safety)</returns>
+        Task<int> CalibrateMaxInputSizeAsync(string sampleText = null, CancellationToken cancellationToken = default);
     }
 }

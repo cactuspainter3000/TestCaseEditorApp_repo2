@@ -189,7 +189,7 @@ namespace TestCaseEditorApp.Services
             return Math.Max(0f, Math.Min(1f, similarity));
         }
 
-        public async Task<int> CalibrateMaxInputSizeAsync(CancellationToken cancellationToken = default)
+        public async Task<int> CalibrateMaxInputSizeAsync(string sampleText = null, CancellationToken cancellationToken = default)
         {
             // Check cache first
             if (_modelMaxChars.TryGetValue(_embeddingModel, out int cached))
@@ -199,7 +199,13 @@ namespace TestCaseEditorApp.Services
                 return cached;
             }
 
-            TestCaseEditorApp.Services.Logging.Log.Info($"[OllamaEmbedding] 🔬 Calibrating maximum input size for {_embeddingModel}...");
+            if (!string.IsNullOrWhiteSpace(sampleText))
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[OllamaEmbedding] 🔬 Calibrating with real document samples for {_embeddingModel}...");
+                return await CalibrateWithRealSamplesAsync(sampleText, cancellationToken);
+            }
+
+            TestCaseEditorApp.Services.Logging.Log.Info($"[OllamaEmbedding] 🔬 Calibrating maximum input size for {_embeddingModel} (synthetic test)...");
             
             // Binary search to find actual limit
             int low = 100, high = 2000;
@@ -261,6 +267,101 @@ namespace TestCaseEditorApp.Services
             
             TestCaseEditorApp.Services.Logging.Log.Info($"[OllamaEmbedding] ✅ Calibration complete for {_embeddingModel}: {safeLimit} chars safe limit (discovered max: {maxWorking} chars, {attempts} attempts)");
             return safeLimit;
+        }
+
+        /// <summary>
+        /// Calibrate using real document samples for accurate tokenization measurement
+        /// </summary>
+        private async Task<int> CalibrateWithRealSamplesAsync(string documentText, CancellationToken cancellationToken)
+        {
+            // Extract 3 samples from different parts of the document
+            var samples = new List<string>();
+            int docLength = documentText.Length;
+            int sampleSize = Math.Min(2000, docLength);
+
+            // Sample from start
+            samples.Add(documentText.Substring(0, Math.Min(sampleSize, docLength)));
+            
+            // Sample from middle (if doc is long enough)
+            if (docLength > sampleSize * 2)
+            {
+                int midStart = (docLength - sampleSize) / 2;
+                samples.Add(documentText.Substring(midStart, sampleSize));
+            }
+            
+            // Sample from end (if doc is long enough)
+            if (docLength > sampleSize)
+            {
+                int endStart = Math.Max(0, docLength - sampleSize);
+                samples.Add(documentText.Substring(endStart));
+            }
+
+            TestCaseEditorApp.Services.Logging.Log.Info($"[OllamaEmbedding] Testing {samples.Count} document samples for calibration");
+
+            // Test each sample and find the most conservative limit
+            int safestLimit = int.MaxValue;
+            int totalAttempts = 0;
+
+            for (int sampleIdx = 0; sampleIdx < samples.Count; sampleIdx++)
+            {
+                var sample = samples[sampleIdx];
+                int low = 100, high = Math.Min(2000, sample.Length);
+                int maxWorking = 100;
+                int attempts = 0;
+
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[Calibration] Testing sample {sampleIdx + 1}/{samples.Count} ({sample.Length} chars available)");
+
+                while (low <= high && attempts < 12) // Fewer attempts per sample
+                {
+                    attempts++;
+                    totalAttempts++;
+                    int mid = (low + high) / 2;
+
+                    // Use actual document text up to mid characters
+                    string testText = sample.Substring(0, Math.Min(mid, sample.Length));
+
+                    try
+                    {
+                        var payload = new { model = _embeddingModel, input = testText };
+                        var json = JsonSerializer.Serialize(payload);
+                        using var response = await _http.PostAsync("api/embed",
+                            new StringContent(json, Encoding.UTF8, "application/json"), cancellationToken);
+
+                        if (response.IsSuccessStatusCode)
+                        {
+                            maxWorking = mid;
+                            low = mid + 1;
+                            TestCaseEditorApp.Services.Logging.Log.Debug($"[Calibration] Sample {sampleIdx + 1}, {mid} chars: ✅ SUCCESS");
+                        }
+                        else
+                        {
+                            high = mid - 1;
+                            TestCaseEditorApp.Services.Logging.Log.Debug($"[Calibration] Sample {sampleIdx + 1}, {mid} chars: ❌ HTTP {(int)response.StatusCode}");
+                        }
+                    }
+                    catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+                    {
+                        high = mid - 1;
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[Calibration] Sample {sampleIdx + 1}, {mid} chars: ❌ {ex.GetType().Name}");
+                    }
+
+                    await Task.Delay(50, cancellationToken);
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[Calibration] Sample {sampleIdx + 1} result: {maxWorking} chars maximum");
+                safestLimit = Math.Min(safestLimit, maxWorking);
+            }
+
+            // Use 50% safety margin (conservative for document variance)
+            int finalLimit = (int)(safestLimit * 0.5);
+            _modelMaxChars[_embeddingModel] = finalLimit;
+            _calibratedMaxChars = finalLimit;
+
+            TestCaseEditorApp.Services.Logging.Log.Info(
+                $"[OllamaEmbedding] ✅ Sample-based calibration complete for {_embeddingModel}: {finalLimit} chars safe limit " +
+                $"(safest sample: {safestLimit} chars, {samples.Count} samples, {totalAttempts} total attempts)");
+
+            return finalLimit;
         }
     }
 }

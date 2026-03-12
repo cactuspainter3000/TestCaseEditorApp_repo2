@@ -72,10 +72,10 @@ namespace TestCaseEditorApp.Services
                 // Get or create project index
                 var projectIndex = await GetProjectIndexAsync(projectId);
                 
-                // Calibrate on first use (lazy initialization)
+                // Calibrate on first use (lazy initialization with real document samples)
                 if (!_calibrated)
                 {
-                    await CalibrateChunkingParametersAsync(cancellationToken);
+                    await CalibrateChunkingParametersAsync(documentContent, cancellationToken);
                 }
                 
                 // Remove existing document if present (re-indexing)
@@ -349,20 +349,25 @@ namespace TestCaseEditorApp.Services
             }
         }
 
-        private async Task CalibrateChunkingParametersAsync(CancellationToken cancellationToken = default)
+        private async Task CalibrateChunkingParametersAsync(string documentContent, CancellationToken cancellationToken = default)
         {
             try
             {
-                _logger.LogInformation("[DirectRAG] 🔬 Calibrating chunking parameters for optimal embedding performance...");
+                _logger.LogInformation("[DirectRAG] 🔬 Calibrating chunking parameters using real document samples...");
                 
-                // Run calibration on the embedding service
-                _calibratedMaxChars = await _embeddingService.CalibrateMaxInputSizeAsync(cancellationToken);
+                // Run sample-based calibration using actual document content
+                _calibratedMaxChars = await _embeddingService.CalibrateMaxInputSizeAsync(documentContent, cancellationToken);
                 
-                // Calculate optimal word count from discovered char limit
-                // Technical documents with part numbers, compound words, acronyms: ~15-20 chars per word
-                // Use conservative estimate of 18 chars/word (accounts for worst-case technical terminology)
-                const int avgCharsPerWord = 18;
-                _calibratedChunkSize = _calibratedMaxChars / avgCharsPerWord;
+                // Measure actual chars-per-word ratio from this specific document
+                var words = documentContent.Split(new[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+                int actualCharsPerWord = documentContent.Length / Math.Max(1, words.Length);
+                
+                // Use measured ratio, capped at reasonable range (10-30 chars/word)
+                int charsPerWord = Math.Max(10, Math.Min(30, actualCharsPerWord));
+                _calibratedChunkSize = _calibratedMaxChars / charsPerWord;
+                
+                _logger.LogInformation("[DirectRAG] Document analysis: {CharsPerWord} chars/word (measured from {TotalChars} chars, {WordCount} words)",
+                    charsPerWord, documentContent.Length, words.Length);
                 
                 // Set overlap to 25% of chunk size (maintains good context continuity)
                 _calibratedChunkOverlap = _calibratedChunkSize / 4;
