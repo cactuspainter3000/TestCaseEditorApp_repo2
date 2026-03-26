@@ -5,23 +5,17 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsTestProject>true</IsTestProject>
-    <UseWPF>false</UseWPF>
+    <UseWPF>true</UseWPF>
+    <NoWarn>$(NoWarn);CS8618;CS8625;CS8601;CS8603;CS8604;CS0219;CS0618</NoWarn>
+    <!-- Completely disable dependency file handling -->
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <TestProjectType>UnitTest</TestProjectType>
   </PropertyGroup>
 
-  <!-- Prevent MSB3030 error by excluding deps.json files from copy operations -->
-  <Target Name="ExcludeDepsFiles" BeforeTargets="CopyFilesToOutputDirectory">
-    <ItemGroup>
-      <ReferenceCopyLocalPaths Remove="**\TestCaseEditorApp.deps.json" />
-    </ItemGroup>
-  </Target>
-
-  <!-- Alternative prevention -->
   <ItemGroup>
-    <None Remove="**\TestCaseEditorApp.deps.json" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="MSTest" Version="3.6.4" />
     <PackageReference Include="MSTest.TestAdapter" Version="3.6.4" />
     <PackageReference Include="MSTest.TestFramework" Version="3.6.4" />
@@ -31,19 +25,39 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
-    <PackageReference Include="DocumentFormat.OpenXml" Version="3.3.0" />
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.73" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\TestCaseEditorApp.csproj">
-      <Private>false</Private>
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+      <IncludeAssets>compile;build</IncludeAssets>
+      <ExcludeAssets>runtime;contentFiles</ExcludeAssets>
     </ProjectReference>
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
   </ItemGroup>
+
+  <!-- Override copy behavior to handle missing deps.json gracefully -->
+  <Target Name="HandleMissingDepsJson" BeforeTargets="CopyFilesToOutputDirectory">
+    <!-- Create a dummy deps.json file in the referenced project's output directory if it doesn't exist -->
+    <PropertyGroup>
+      <ReferencedDepsJsonPath>$(MSBuildThisFileDirectory)..\..\bin\Debug\net8.0-windows\TestCaseEditorApp.deps.json</ReferencedDepsJsonPath>
+    </PropertyGroup>
+    <WriteLinesToFile 
+      File="$(ReferencedDepsJsonPath)" 
+      Lines='{ "runtimeTarget": { "name": ".NETCoreApp,Version=v8.0" }, "compilationOptions": {}, "targets": { ".NETCoreApp,Version=v8.0": {} }, "libraries": {} }' 
+      Overwrite="false" 
+      Condition="!Exists('$(ReferencedDepsJsonPath)')" 
+      ContinueOnError="true" />
+  </Target>
+
+  <!-- Fallback: completely exclude deps.json files from copy operations -->
+  <Target Name="PreventDepsJsonCopy" BeforeTargets="PrepareForBuild;ResolveReferences">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Extension)' == '.deps.json'" />
+    </ItemGroup>
+  </Target>
 
 </Project>

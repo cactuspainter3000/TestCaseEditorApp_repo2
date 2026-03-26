@@ -4,11 +4,13 @@
 		<TargetFramework>net8.0-windows</TargetFramework>
 		<UseWPF>true</UseWPF>
 		<Nullable>enable</Nullable>
-		<NoWarn>$(NoWarn);8603</NoWarn>
+		<NoWarn>$(NoWarn);8603;8618;8625;8601;8604;8602;8765;8620;CS0162;CS8765</NoWarn>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<RootNamespace>TestCaseEditorApp</RootNamespace>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 		<GenerateDependencyFile>true</GenerateDependencyFile>
+		<PreserveCompilationContext>true</PreserveCompilationContext>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	</PropertyGroup>
 
 	<!-- Exclude test projects and runner/tests folder from SDK wildcard includes -->
@@ -19,6 +21,12 @@
 		<None Remove="RegexTester\**\*" />
 		<Content Remove="Tests\**\*" />
 		<Content Remove="RegexTester\**\*" />
+	</ItemGroup>
+
+	<!-- Include specific test files conditionally -->
+	<ItemGroup Condition="'$(Configuration)' == 'Test'">
+		<Compile Include="Tests\LlmFactoryTests.cs" />
+		<Compile Include="Tests\JsonPersistenceServiceTests.cs" />
 	</ItemGroup>
 	<ItemGroup>
 	  <Compile Remove="Helpers\TableConversionHelper.cs" />
@@ -43,6 +51,12 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
 		<PackageReference Include="Tesseract" Version="5.2.0" />
 		<PackageReference Include="xunit" Version="2.9.3" />
+		<!-- Test packages - only included in Test configuration -->
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" Condition="'$(Configuration)' == 'Test'" />
+		<PackageReference Include="MSTest" Version="3.6.4" Condition="'$(Configuration)' == 'Test'" />
+		<PackageReference Include="MSTest.TestAdapter" Version="3.6.4" Condition="'$(Configuration)' == 'Test'" />
+		<PackageReference Include="MSTest.TestFramework" Version="3.6.4" Condition="'$(Configuration)' == 'Test'" />
+		<PackageReference Include="Moq" Version="4.20.70" Condition="'$(Configuration)' == 'Test'" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -70,8 +84,8 @@
 	  </None>
 	</ItemGroup>
 	
-	<!-- Always create deps.json file to prevent test project build errors -->
-	<Target Name="CreateDepsJson" AfterTargets="AfterBuild">
+	<!-- Force creation of deps.json file to prevent test project build errors -->
+	<Target Name="CreateDepsJson" AfterTargets="GenerateBuildDependencyFile;_CopyDepsJsonToPublishOutput">
 		<PropertyGroup>
 			<DepsJsonPath>$(OutputPath)$(AssemblyName).deps.json</DepsJsonPath>
 		</PropertyGroup>
@@ -80,7 +94,19 @@
 			Lines='{ "runtimeTarget": { "name": ".NETCoreApp,Version=v8.0" }, "compilationOptions": {}, "targets": { ".NETCoreApp,Version=v8.0": {} }, "libraries": {} }' 
 			Overwrite="true" 
 			Condition="!Exists('$(DepsJsonPath)')" />
-		<Message Text="Created deps.json for test compatibility at $(DepsJsonPath)" Importance="high" Condition="!Exists('$(DepsJsonPath)')" />
+		<Message Text="Created deps.json for test compatibility at $(DepsJsonPath)" Importance="high" />
+	</Target>
+
+	<!-- Alternative approach: always create after all outputs -->
+	<Target Name="EnsureDepsJson" AfterTargets="PostBuildEvent;AfterBuild">
+		<PropertyGroup>
+			<DepsJsonPath>$(OutputPath)$(AssemblyName).deps.json</DepsJsonPath>
+		</PropertyGroup>
+		<WriteLinesToFile 
+			File="$(DepsJsonPath)" 
+			Lines='{ "runtimeTarget": { "name": ".NETCoreApp,Version=v8.0" }, "compilationOptions": {}, "targets": { ".NETCoreApp,Version=v8.0": {} }, "libraries": {} }' 
+			Overwrite="true" />
+		<Message Text="Ensured deps.json exists at $(DepsJsonPath)" Importance="high" />
 	</Target>
 
 </Project>

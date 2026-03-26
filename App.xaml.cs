@@ -142,18 +142,18 @@ namespace TestCaseEditorApp
                     services.AddSingleton<IOllamaProcessManager, OllamaProcessManager>();
                     services.AddSingleton<IOllamaStatusMonitor, OllamaStatusMonitor>();
 
-                    // LLM services (shared infrastructure)
+                    // LLM services (shared infrastructure) - lazy loaded to avoid startup validation
                     services.AddSingleton<ITextGenerationService>(provider =>
                     {
                         var anythingLlmService = provider.GetService<IAnythingLLMService>();
-                        return LlmFactory.Create(anythingLlmService: anythingLlmService);
+                        return LlmFactory.CreateLazy(anythingLlmService: anythingLlmService);
                     });
                     
-                    // LLM Health Monitoring - configured to be less aggressive with fallback
+                    // LLM Health Monitoring - lazy loaded to avoid startup validation
                     services.AddSingleton<LlmServiceHealthMonitor>(provider =>
                     {
                         var anythingLlmService = provider.GetService<IAnythingLLMService>();
-                        var primaryLlmService = LlmFactory.Create(anythingLlmService: anythingLlmService);
+                        var primaryLlmService = LlmFactory.CreateLazy(anythingLlmService: anythingLlmService);
                         var logger = provider.GetRequiredService<ILogger<LlmServiceHealthMonitor>>();
                         return new LlmServiceHealthMonitor(
                             primaryLlmService, 
@@ -181,12 +181,12 @@ namespace TestCaseEditorApp
                     services.AddSingleton<ICapabilityDerivationPromptBuilder>(provider => 
                         provider.GetRequiredService<TestCaseEditorApp.Prompts.CapabilityDerivationPromptBuilder>());
                     
-                    // RequirementAnalysisService with proper dependency injection
+                    // RequirementAnalysisService with proper dependency injection - lazy loaded
                     // Task 4.4: Enhanced with derivation analysis capabilities
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService, TestCaseEditorApp.MVVM.Domains.Requirements.Services.RequirementAnalysisService>(provider =>
                     {
                         var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
-                        var primaryLlmService = LlmFactory.Create(anythingLlmService: anythingLLMService);
+                        var primaryLlmService = LlmFactory.CreateLazy(anythingLlmService: anythingLLMService);
                         var directRagService = provider.GetService<IDirectRagService>(); // RAG-enhanced processing
                         var promptBuilder = provider.GetRequiredService<RequirementAnalysisPromptBuilder>();
                         var parserManager = provider.GetRequiredService<ResponseParserManager>();
@@ -280,6 +280,9 @@ namespace TestCaseEditorApp
                     
                     // Direct RAG Service - Document indexing and search without AnythingLLM
                     services.AddSingleton<IDirectRagService, DirectRagService>();
+                    
+                    // PowerPoint RAG Service - Specialized service for PowerPoint presentations
+                    services.AddSingleton<IPowerPointRagService, PowerPointRagService>();
                     
                     services.AddSingleton<TestCaseAnythingLLMService>();
                     
