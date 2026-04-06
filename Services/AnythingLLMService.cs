@@ -1361,7 +1361,36 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                     }
                 }
                 
-                // Use /v1/document/raw-text with addToWorkspaces parameter
+                // Try two-step file-based upload first (more reliable with AnythingLLM Desktop)
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Using two-step file upload for '{documentName}'");
+                var (uploadSuccess, documentLocation) = await TryMultipartUploadAsync(documentName, content, cancellationToken);
+                
+                if (uploadSuccess && !string.IsNullOrEmpty(documentLocation))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Document uploaded to: {documentLocation}");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Adding document to workspace '{workspaceSlug}'");
+                    
+                    var addSuccess = await AddDocumentToWorkspaceAsync(workspaceSlug, documentLocation, cancellationToken);
+                    
+                    if (addSuccess)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Document '{documentName}' successfully added to workspace");
+                        // Document embedding already completed - no need for additional verification
+                        StatusUpdated?.Invoke("✅ Document embedded successfully");
+                        return (true, "Document uploaded and embedded successfully");
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Failed to add document to workspace, falling back to raw-text method");
+                    }
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] File upload failed, falling back to raw-text method");
+                }
+                
+                // Fallback: Use /v1/document/raw-text with addToWorkspaces parameter
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Attempting raw-text upload as fallback");
                 var payload = new
                 {
                     textContent = content,
@@ -1384,6 +1413,7 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                 {
                     var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
                     TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Direct upload successful for '{documentName}' to '{workspaceSlug}'");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[AnythingLLM] Upload API response: {responseContent}");
                     
                     // Wait for vectorization and verify document presence
                     TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Waiting for document vectorization...");
@@ -1560,9 +1590,8 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                 }
                 embeddingHttpClient.DefaultRequestHeaders.Add("Accept", "application/json");
                 
-                // Start embedding operation and progress monitoring concurrently
+                // Start embedding operation - progress is tracked by the API response itself
                 var embeddingTask = embeddingHttpClient.PostAsync($"{_baseUrl}/api/v1/workspace/{workspaceSlug}/update-embeddings", httpContent, cancellationToken);
-                var progressTask = MonitorEmbeddingProgressAsync(workspaceSlug, cancellationToken);
                 
                 // Wait for embedding to complete
                 var response = await embeddingTask;

@@ -183,12 +183,33 @@
                                 Cursor="Hand"
                                 Width="180"
                                 IsEnabled="{Binding IsWorkspaceCreated, Converter={StaticResource InvertBoolConverter}}">
+                                
+                                <Button.ToolTip>
+                                    <ToolTip>
+                                        <ToolTip.Style>
+                                            <Style TargetType="ToolTip">
+                                                <Setter Property="Content" Value="Click to create and configure the AnythingLLM workspace"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsAnythingLLMAvailable}" Value="False">
+                                                        <Setter Property="Content" Value="AnythingLLM service is not available. Please start AnythingLLM Desktop."/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsWorkspaceCreated}" Value="True">
+                                                        <Setter Property="Content" Value="Workspace successfully created"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ToolTip.Style>
+                                    </ToolTip>
+                                </Button.ToolTip>
 
                                 <TextBlock>
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Text" Value="Create Workspace"/>
                                             <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsAnythingLLMAvailable}" Value="False">
+                                                    <Setter Property="Text" Value="⚠️ LLM Not Available"/>
+                                                </DataTrigger>
                                                 <DataTrigger Binding="{Binding IsValidatingWorkspace}" Value="True">
                                                     <Setter Property="Text" Value="Creating..."/>
                                                 </DataTrigger>

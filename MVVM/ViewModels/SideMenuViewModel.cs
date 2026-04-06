@@ -664,11 +664,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         private void OnProjectCreated(NewProjectEvents.ProjectCreated evt)
         {
-            IsProjectLoaded = true; // Track that a project is now loaded
-            HasRequirements = evt.Workspace?.Requirements?.Count > 0;
-            HasUnsavedChanges = false; // Newly created project, no unsaved changes yet
-            _logger.LogInformation("[SideMenuVM] Project created, IsProjectLoaded=true, HasRequirements set to {HasReq} ({Count} requirements)", 
-                HasRequirements, evt.Workspace?.Requirements?.Count ?? 0);
+            // Marshal to UI thread since this is called from mediator background thread
+            System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+            {
+                IsProjectLoaded = true; // Track that a project is now loaded
+                HasRequirements = evt.Workspace?.Requirements?.Count > 0;
+                HasUnsavedChanges = false; // Newly created project, no unsaved changes yet
+                _logger.LogInformation("[SideMenuVM] Project created, IsProjectLoaded=true, HasRequirements set to {HasReq} ({Count} requirements)", 
+                    HasRequirements, evt.Workspace?.Requirements?.Count ?? 0);
+            });
         }
         
         /// <summary>
@@ -676,11 +680,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         private void OnProjectOpened(OpenProjectEvents.ProjectOpened evt)
         {
-            IsProjectLoaded = true; // Track that a project is now loaded
-            HasRequirements = evt.Workspace?.Requirements?.Count > 0;
-            HasUnsavedChanges = false; // Fresh project load, no unsaved changes
-            _logger.LogInformation("[SideMenuVM] Project opened, IsProjectLoaded=true, HasRequirements set to {HasReq} ({Count} requirements)", 
-                HasRequirements, evt.Workspace?.Requirements?.Count ?? 0);
+            // Marshal to UI thread since this is called from mediator background thread
+            System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+            {
+                IsProjectLoaded = true; // Track that a project is now loaded
+                HasRequirements = evt.Workspace?.Requirements?.Count > 0;
+                HasUnsavedChanges = false; // Fresh project load, no unsaved changes
+                _logger.LogInformation("[SideMenuVM] Project opened, IsProjectLoaded=true, HasRequirements set to {HasReq} ({Count} requirements)", 
+                    HasRequirements, evt.Workspace?.Requirements?.Count ?? 0);
+            });
         }
 
         /// <summary>

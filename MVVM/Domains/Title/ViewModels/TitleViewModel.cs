@@ -70,10 +70,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Title.ViewModels
 
         private void OnProjectCreated(NewProjectEvents.ProjectCreated evt)
         {
-            ProjectTitle = $"Test Case Generator - {evt.WorkspaceName}";
-            HasProject = true;
-            HasUnsavedChanges = false;
-            _logger.LogInformation("[TitleVM] Project created: {Name}", evt.WorkspaceName);
+            // Marshal to UI thread since this is called from mediator background thread
+            System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+            {
+                ProjectTitle = $"Test Case Generator - {evt.WorkspaceName}";
+                HasProject = true;
+                HasUnsavedChanges = false;
+                _logger.LogInformation("[TitleVM] Project created: {Name}", evt.WorkspaceName);
+            });
         }
 
         private void OnProjectOpened(OpenProjectEvents.ProjectOpened evt)

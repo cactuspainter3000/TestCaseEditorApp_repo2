@@ -59,10 +59,11 @@ public class OllamaProcessManager : IOllamaProcessManager
         // Set load timeout to 10 minutes (model loads in ~4s but allows buffer for slow systems)
         Environment.SetEnvironmentVariable("OLLAMA_LOAD_TIMEOUT", "10m");
         
-        // Keep model in memory for 20 minutes to avoid cold-start delays between requests
-        Environment.SetEnvironmentVariable("OLLAMA_KEEP_ALIVE", "20m");
+        // Keep model in memory for 5 minutes to avoid cold-start delays between requests
+        // With 32GB RAM, both models (3.2GB total) can coexist comfortably
+        Environment.SetEnvironmentVariable("OLLAMA_KEEP_ALIVE", "5m");
 
-        Log.Info("[OllamaProcessManager] Environment variables configured: LOAD_TIMEOUT=10m, KEEP_ALIVE=20m");
+        Log.Info("[OllamaProcessManager] Environment variables configured: LOAD_TIMEOUT=10m, KEEP_ALIVE=5m");
         _environmentConfigured = true;
     }
 
@@ -264,3 +265,4 @@ public class OllamaProcessManager : IOllamaProcessManager
         }
     }
 }
+

@@ -82,6 +82,9 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         
         [ObservableProperty]
         private bool isProjectCreated = false;
+        
+        [ObservableProperty]
+        private bool isAnythingLLMAvailable = false;
 
         // Step tracking
         [ObservableProperty]
@@ -234,6 +237,9 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             // Initialize import mode to Jama by default
             IsJamaImportMode = true;
             
+            // Start checking AnythingLLM availability
+            _ = CheckAnythingLLMAvailabilityAsync();
+            
             // Property change handlers for command state
             PropertyChanged += (s, e) =>
             {
@@ -380,8 +386,8 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         
         private bool CanValidateWorkspace()
         {
-            var canValidate = !string.IsNullOrWhiteSpace(WorkspaceName) && !IsWorkspaceCreated && !IsValidatingWorkspace;
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[WORKSPACE] CanValidateWorkspace: WorkspaceName='{WorkspaceName}', IsWorkspaceCreated={IsWorkspaceCreated}, IsValidatingWorkspace={IsValidatingWorkspace}, Result={canValidate}");
+            var canValidate = !string.IsNullOrWhiteSpace(WorkspaceName) && !IsWorkspaceCreated && !IsValidatingWorkspace && IsAnythingLLMAvailable;
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[WORKSPACE] CanValidateWorkspace: WorkspaceName='{WorkspaceName}', IsWorkspaceCreated={IsWorkspaceCreated}, IsValidatingWorkspace={IsValidatingWorkspace}, IsAnythingLLMAvailable={IsAnythingLLMAvailable}, Result={canValidate}");
             return canValidate;
         }
 
@@ -392,6 +398,62 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             
             // Notify the command that CanExecute may have changed
             ((AsyncRelayCommand)ValidateWorkspaceCommand).NotifyCanExecuteChanged();
+        }
+        
+        partial void OnIsAnythingLLMAvailableChanged(bool value)
+        {
+            TestCaseEditorApp.Services.Logging.Log.Info($"[WORKSPACE] AnythingLLM availability changed to: {value}");
+            
+            // Notify the command that CanExecute may have changed
+            ((AsyncRelayCommand)ValidateWorkspaceCommand).NotifyCanExecuteChanged();
+            
+            if (value)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[WORKSPACE] AnythingLLM service is now available - Create Workspace button should be enabled");
+            }
+            else
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[WORKSPACE] AnythingLLM service is not available - workspace creation will be disabled");
+            }
+            
+            // Force a CanExecute check
+            var canValidate = CanValidateWorkspace();
+            TestCaseEditorApp.Services.Logging.Log.Info($"[WORKSPACE] After availability change, CanValidateWorkspace = {canValidate}");
+        }
+        
+        private async Task CheckAnythingLLMAvailabilityAsync()
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[WORKSPACE] Checking AnythingLLM availability...");
+                var isAvailable = await _anythingLLMService.IsServiceAvailableAsync();
+                
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[WORKSPACE] AnythingLLM availability result: {isAvailable}");
+                
+                // Update property on UI thread
+                System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+                {
+                    IsAnythingLLMAvailable = isAvailable;
+                });
+                
+                // Re-check every 10 seconds if not available, less frequently if available
+                var delaySeconds = isAvailable ? 30 : 10;
+                await Task.Delay(TimeSpan.FromSeconds(delaySeconds));
+                _ = CheckAnythingLLMAvailabilityAsync(); // Continue checking
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[WORKSPACE] Error checking AnythingLLM availability");
+                
+                // Update property on UI thread
+                System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+                {
+                    IsAnythingLLMAvailable = false;
+                });
+                
+                await Task.Delay(TimeSpan.FromSeconds(10));
+                _ = CheckAnythingLLMAvailabilityAsync(); // Retry
+            }
         }
         
         partial void OnIsValidatingWorkspaceChanged(bool value)
@@ -570,7 +632,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             
             if (!IsWorkspaceCreated)
             {
-                TestCaseEditorApp.Services.Logging.Log.Warn("[PROJECT] CreateProject called but workspace not yet created. Please validate workspace first.");
+                TestCaseEditorApp.Services.Logging.Log.Warn("[PROJECT] CreateProject called but workspace not created yet");
                 WorkspaceValidationMessage = "Please create the workspace first by clicking 'Create Workspace'";
                 HasValidationMessage = true;
                 return;
@@ -771,51 +833,46 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 }
                 else
                 {
-                    // Create the workspace with optimal configuration immediately
-                    IsValidatingWorkspace = true;
+                    // Name is available - create the workspace now
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[WORKSPACE] Creating workspace '{WorkspaceName}'...");
                     
                     try
                     {
-                        // Use full configuration method to apply optimal settings during project creation
                         var (createdWorkspace, configurationSuccessful) = await _anythingLLMService.CreateAndConfigureWorkspaceAsync(
                             WorkspaceName,
-                            preserveOriginalName: true, // Preserve user's chosen name
+                            preserveOriginalName: true,
                             onProgress: (message) => {
-                                // Could add progress updates to UI here if needed
                                 TestCaseEditorApp.Services.Logging.Log.Info($"[NewProject] {message}");
                             });
                             
                         if (createdWorkspace != null)
                         {
-                            // Clear loading state immediately
-                            IsValidatingWorkspace = false;
-                            
-                            // Clear validation message UI and update status
-                            WorkspaceValidationMessage = "";
+                            WorkspaceValidationMessage = string.Empty;
+                            WorkspaceValidationSuccess = true;
                             HasValidationMessage = false;
                             HasWorkspaceName = true;
                             IsWorkspaceCreated = true;
+                            IsDuplicateName = false;
                             
-                            // Update CanProceed status after workspace creation
-                            UpdateCanProceed();
-                            OnPropertyChanged(nameof(CreateProjectButtonText));
-                            OnPropertyChanged(nameof(CreateProjectButtonTooltip));
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[WORKSPACE] Workspace '{WorkspaceName}' created successfully");
                         }
                         else
                         {
-                            IsValidatingWorkspace = false;
                             WorkspaceValidationMessage = $"Failed to create workspace '{WorkspaceName}'. Please try again.";
                             WorkspaceValidationSuccess = false;
                             HasValidationMessage = true;
                         }
                     }
-                    catch (Exception ex)
+                    catch (Exception wsEx)
                     {
-                        IsValidatingWorkspace = false;
-                        WorkspaceValidationMessage = $"Error creating workspace: {ex.Message}";
+                        TestCaseEditorApp.Services.Logging.Log.Error(wsEx, $"[WORKSPACE] Error creating workspace '{WorkspaceName}'");
+                        WorkspaceValidationMessage = $"Error creating workspace: {wsEx.Message}";
                         WorkspaceValidationSuccess = false;
                         HasValidationMessage = true;
                     }
+                    
+                    // Update CanProceed to enable next steps
+                    UpdateCanProceed();
                 }
             }
             catch (Exception ex)

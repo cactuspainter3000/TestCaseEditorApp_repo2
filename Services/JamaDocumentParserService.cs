@@ -14,6 +14,7 @@ using TestCaseEditorApp.Services.Templates; // Template Form Architecture (Phase
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Presentation;
 using iText.Kernel.Pdf;
 using iText.Kernel.Pdf.Canvas.Parser;
 using iText.Kernel.Pdf.Canvas.Parser.Listener;
@@ -126,7 +127,7 @@ namespace TestCaseEditorApp.Services
                 if (_directRagService?.IsConfigured == true && _textGenerationService != null)
                 {
                     // Check if it's a document type that DirectRag can handle effectively
-                    if (attachment.IsWord || attachment.IsExcel || attachment.IsPdf || attachment.MimeType?.Contains("text") == true)
+                    if (attachment.IsWord || attachment.IsExcel || attachment.IsPowerPoint || attachment.IsPdf || attachment.MimeType?.Contains("text") == true)
                     {
                         TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Using DirectRagService for document analysis ({attachment.MimeType})");
                         progressCallback?.Invoke($"🚀 Processing with reliable RAG-enhanced analysis...");
@@ -1187,6 +1188,7 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
             if (attachment.IsPdf) return "PDF Document";
             if (attachment.IsWord) return "Word Document";
             if (attachment.IsExcel) return "Excel Spreadsheet";
+            if (attachment.IsPowerPoint) return "PowerPoint Presentation";
             return "Document";
         }
 
@@ -1226,6 +1228,11 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
                     {
                         // Use DocumentFormat.OpenXml for Excel documents  
                         documentContent = await ExtractExcelTextAsync(fileBytes);
+                    }
+                    else if (attachment.IsPowerPoint)
+                    {
+                        // Use DocumentFormat.OpenXml for PowerPoint documents
+                        documentContent = await ExtractPowerPointTextAsync(fileBytes);
                     }
                     else if (attachment.IsPdf)
                     {
@@ -1698,6 +1705,96 @@ Extract all legitimate requirements:";
         }
 
         /// <summary>
+        /// Extract text from PowerPoint document using DocumentFormat.OpenXml
+        /// </summary>
+        private async Task<string> ExtractPowerPointTextAsync(byte[] powerPointBytes)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    using var stream = new MemoryStream(powerPointBytes);
+                    using var presentationDoc = PresentationDocument.Open(stream, false);
+                    
+                    if (presentationDoc.PresentationPart == null)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn("[DirectRag] PowerPoint document has no presentation part");
+                        return $"[PowerPoint] Document structure error - no presentation content found";
+                    }
+
+                    var text = new StringBuilder();
+                    var slidesPart = presentationDoc.PresentationPart.Presentation.SlideIdList;
+                    
+                    if (slidesPart == null)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn("[DirectRag] PowerPoint document has no slides");
+                        return $"[PowerPoint] No slides found in presentation";
+                    }
+
+                    int slideNumber = 1;
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Starting PowerPoint text extraction from {slidesPart.Count()} slides ({powerPointBytes.Length} bytes)");
+
+                    foreach (var slideId in slidesPart.OfType<DocumentFormat.OpenXml.Presentation.SlideId>())
+                    {
+                        try
+                        {
+                            var slidePart = (SlidePart)presentationDoc.PresentationPart.GetPartById(slideId.RelationshipId.Value);
+                            
+                            text.AppendLine($"--- Slide {slideNumber} ---");
+                            
+                            // Extract text from all text runs in the slide
+                            foreach (var textElement in slidePart.Slide.Descendants<DocumentFormat.OpenXml.Drawing.Text>())
+                            {
+                                if (!string.IsNullOrWhiteSpace(textElement.Text))
+                                {
+                                    text.AppendLine(textElement.Text.Trim());
+                                }
+                            }
+                            
+                            // Also check for text in table cells if any
+                            foreach (var table in slidePart.Slide.Descendants<DocumentFormat.OpenXml.Drawing.Table>())
+                            {
+                                foreach (var cell in table.Descendants<DocumentFormat.OpenXml.Drawing.TableCell>())
+                                {
+                                    foreach (var cellText in cell.Descendants<DocumentFormat.OpenXml.Drawing.Text>())
+                                    {
+                                        if (!string.IsNullOrWhiteSpace(cellText.Text))
+                                        {
+                                            text.AppendLine(cellText.Text.Trim());
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            text.AppendLine(); // Add spacing between slides
+                            slideNumber++;
+                            
+                            // Log progress for large presentations
+                            if (slideNumber % 10 == 0)
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Debug($"[DirectRag] PowerPoint extraction progress: {slideNumber}/{slidesPart.Count()} slides processed");
+                            }
+                        }
+                        catch (Exception slideEx)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Failed to extract text from slide {slideNumber}: {slideEx.Message}");
+                            text.AppendLine($"[Slide {slideNumber} - extraction failed: {slideEx.Message}]");
+                        }
+                    }
+
+                    var result = text.ToString();
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Successfully extracted {result.Length} characters from {slideNumber - 1} slides");
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error(ex, "[DirectRag] Failed to extract PowerPoint document text");
+                    throw;
+                }
+            });
+        }
+
+        /// <summary>
         /// Derive requirements from document content using SystemCapabilityDerivationService (ATP derivation system from 5 phases)
         /// </summary>
         private async Task<List<Requirement>> DeriveRequirementsFromDocumentContentAsync(string documentContent, JamaAttachment attachment, int projectId, System.Action<string>? progressCallback = null, System.Action<Requirement>? onRequirementDiscovered = null, CancellationToken cancellationToken = default)
@@ -2056,8 +2153,8 @@ Extract all legitimate requirements:";
                 // If model is already loaded, test if it's responsive
                 if (currentStatus == OllamaModelStatus.Loaded)
                 {
-                    progressCallback?.Invoke("✅ Model already loaded - verifying (10s max)...");
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Model already loaded - quick responsiveness check (10s timeout)");
+                    progressCallback?.Invoke("✅ Model already loaded - verifying (45s max)...");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Model already loaded - quick responsiveness check (45s timeout)");
                     
                     var testSuccess = await PreWarmOllamaModelAsync(cancellationToken);
                     if (testSuccess)
@@ -2075,7 +2172,7 @@ Extract all legitimate requirements:";
                 else if (currentStatus == OllamaModelStatus.NotLoaded)
                 {
                     progressCallback?.Invoke("🔥 Initializing AI model (checking readiness)...");
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Model not loaded - attempting quick pre-warm (10s timeout)");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Model not loaded - attempting quick pre-warm (45s timeout)");
                     
                     var preWarmSuccess = await PreWarmOllamaModelAsync(cancellationToken);
                     if (preWarmSuccess)
@@ -2147,11 +2244,11 @@ Extract all legitimate requirements:";
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Pre-warming Ollama model...");
                 
                 // Make a simple generation request to load the model
-                // Use 10s timeout - if it takes longer, model is likely stuck (will restart)
+                // Use 45s timeout to allow time for large models to load (phi4-mini is 2.5GB)
                 // Pre-warm is optional - extraction continues with retry logic if it fails
                 var warmupPrompt = "Test"; 
                 
-                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(45));
                 using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
                 
                 var response = await _textGenerationService.GenerateAsync(warmupPrompt, linkedCts.Token);
@@ -2162,7 +2259,7 @@ Extract all legitimate requirements:";
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
                 // Pre-warming timed out - log warning but don't throw (extraction will retry)
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] ⚠️ Model pre-warming timed out after 10 seconds - model likely stuck, will restart");
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] ⚠️ Model pre-warming timed out after 45 seconds - model likely stuck, will restart");
                 return false;
             }
             catch (Exception ex)

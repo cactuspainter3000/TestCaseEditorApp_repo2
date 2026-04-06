@@ -72,19 +72,19 @@ namespace TestCaseEditorApp.Services
                 // Get or create project index
                 var projectIndex = await GetProjectIndexAsync(projectId);
                 
-                // Calibrate on first use (lazy initialization with real document samples)
-                if (!_calibrated)
-                {
-                    await CalibrateChunkingParametersAsync(documentContent, cancellationToken);
-                }
+                // Use fixed chunk size based on mxbai-embed-large's 512 token limit
+                // 512 tokens ≈ 400 chars for technical text (part numbers, special chars)
+                // With truncate=true, Ollama handles overflow, but we size conservatively to avoid loss
+                const int chunkSize = 400;
+                const int overlap = 100; // 25% overlap for context continuity
                 
                 // Remove existing document if present (re-indexing)
                 projectIndex.RemoveDocument(attachment.Id);
 
-                // Split document into chunks using calibrated parameters (character-based)
-                var chunks = SplitIntoChunks(documentContent, _calibratedChunkSize, _calibratedChunkOverlap);
+                // Split document into chunks
+                var chunks = SplitIntoChunks(documentContent, chunkSize, overlap);
                 _logger.LogInformation("[DirectRAG] Split document into {ChunkCount} chunks (chunk size: {ChunkSize} chars, overlap: {Overlap} chars)", 
-                    chunks.Count, _calibratedChunkSize, _calibratedChunkOverlap);
+                    chunks.Count, chunkSize, overlap);
 
                 // Generate embeddings for each chunk
                 var documentChunks = new List<DocumentChunk>();

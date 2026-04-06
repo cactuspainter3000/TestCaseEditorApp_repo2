@@ -44,7 +44,7 @@
             "command": "echo",
             "args": ["Create MVVM/Models/SystemRequirementTaxonomy.cs with A-N categories"],
             "group": "build",
-            "problems": ["$msCompile"]
+            "problemMatcher": ["$msCompile"]
         },
         {
             "label": "1.2: Add Capability Derivation Models",
@@ -406,7 +406,7 @@
             "command": "dotnet",
             "args": ["build", "TestCaseEditorApp.csproj"],
             "group": "build", 
-            "problems": ["$msCompile"]
+            "problemMatcher": ["$msCompile"]
         },
         {
             "label": "🧪 Run All Tests",
@@ -414,7 +414,7 @@
             "command": "powershell",
             "args": ["-ExecutionPolicy", "Bypass", "-File", "./run-tests.ps1"],
             "group": "test",
-            "problems": ["$msCompile"]
+            "problemMatcher": ["$msCompile"]
         }
     ]
 }

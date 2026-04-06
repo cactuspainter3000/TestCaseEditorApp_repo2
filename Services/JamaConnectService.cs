@@ -4762,7 +4762,11 @@ namespace TestCaseEditorApp.Services
                                MimeType?.Contains("spreadsheet", StringComparison.OrdinalIgnoreCase) ??
                                FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase) ||
                                FileName.EndsWith(".xls", StringComparison.OrdinalIgnoreCase);
-        public bool IsSupportedDocument => IsPdf || IsWord || IsExcel;
+        public bool IsPowerPoint => MimeType?.Contains("presentation", StringComparison.OrdinalIgnoreCase) ?? 
+                                   MimeType?.Contains("powerpoint", StringComparison.OrdinalIgnoreCase) ??
+                                   FileName.EndsWith(".pptx", StringComparison.OrdinalIgnoreCase) ||
+                                   FileName.EndsWith(".ppt", StringComparison.OrdinalIgnoreCase);
+        public bool IsSupportedDocument => IsPdf || IsWord || IsExcel || IsPowerPoint;
         
         private static string FormatFileSize(long bytes)
         {

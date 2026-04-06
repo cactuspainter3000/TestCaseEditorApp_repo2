@@ -95,7 +95,7 @@ namespace TestCaseEditorApp.Services
                 var avgProcessingTime = TimeSpan.FromMilliseconds(usageRecords.Average(r => r.ProcessingTime.TotalMilliseconds));
                 var validationApprovalRate = usageRecords
                     .Where(r => r.ValidationApproved.HasValue)
-                    .Count(r => r.ValidationApproved.Value) / (double)usageRecords.Count(r => r.ValidationApproved.HasValue);
+                    .Count(r => r.ValidationApproved!.Value) / (double)usageRecords.Count(r => r.ValidationApproved.HasValue);
 
                 // Update prompt performance metrics
                 prompt.Performance = new PromptPerformanceMetrics
@@ -259,7 +259,7 @@ namespace TestCaseEditorApp.Services
                         AverageProcessingTime = TimeSpan.FromMilliseconds(usageRecords.Average(r => r.ProcessingTime.TotalMilliseconds)),
                         ValidationApprovalRate = usageRecords
                             .Where(r => r.ValidationApproved.HasValue)
-                            .Count(r => r.ValidationApproved.Value) / (double)usageRecords.Count(r => r.ValidationApproved.HasValue)
+                            .Count(r => r.ValidationApproved!.Value) / (double)usageRecords.Count(r => r.ValidationApproved.HasValue)
                     };
 
                     comparison.DetailedMetrics[promptId] = metrics;
@@ -531,7 +531,7 @@ namespace TestCaseEditorApp.Services
                         AverageProcessingTime = TimeSpan.FromMilliseconds(recentUsage.Average(r => r.ProcessingTime.TotalMilliseconds)),
                         ValidationApprovalRate = recentUsage
                             .Where(r => r.ValidationApproved.HasValue)
-                            .Count(r => r.ValidationApproved.Value) / (double)recentUsage.Count(r => r.ValidationApproved.HasValue)
+                            .Count(r => r.ValidationApproved!.Value) / (double)recentUsage.Count(r => r.ValidationApproved.HasValue)
                     };
                 }
             }
@@ -664,7 +664,7 @@ Return your analysis in structured format.",
             var validationRecords = usageRecords.Where(r => r.ValidationApproved.HasValue).ToList();
             if (validationRecords.Any())
             {
-                var rejectionRate = validationRecords.Count(r => !r.ValidationApproved.Value) / (double)validationRecords.Count;
+                var rejectionRate = validationRecords.Count(r => !r.ValidationApproved!.Value) / (double)validationRecords.Count;
                 if (rejectionRate > 0.4) // More than 40% rejected
                 {
                     issues.Add(new PromptIssue

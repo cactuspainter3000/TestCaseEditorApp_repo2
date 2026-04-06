@@ -49,19 +49,14 @@ namespace TestCaseEditorApp.Services
             if (string.IsNullOrWhiteSpace(text))
                 return new float[_embeddingDimensions]; // Return zero vector
 
-            // Use calibrated value if available, otherwise fall back to conservative default
-            int maxChars = _calibratedMaxChars > 0 ? _calibratedMaxChars : 750;
+            // With truncate=true, Ollama automatically truncates at model's token limit (512 for mxbai-embed-large)
+            // No need for manual character truncation - let Ollama handle it consistently
             
-            if (text.Length > maxChars)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[OllamaEmbedding] Truncating text from {text.Length} to {maxChars} chars (calibrated: {_calibratedMaxChars > 0})");
-                text = text.Substring(0, maxChars);
-            }
-
             var payload = new
             {
                 model = _embeddingModel,
-                input = text
+                input = text,
+                truncate = true  // Explicitly enable truncation (512 token limit for mxbai-embed-large)
             };
 
             var json = JsonSerializer.Serialize(payload);
