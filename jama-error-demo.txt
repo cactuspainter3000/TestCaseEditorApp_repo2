@@ -1,0 +1,47 @@
+=== Basic Jama OAuth Scope Error Demo ===
+
+Step 1: OAuth Authentication REQUEST
+POST https://yourcompany.jamacloud.com/rest/oauth/token
+Authorization: Basic [base64(client_id:client_secret)]
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials
+
+Step 1: OAuth Authentication RESPONSE
+HTTP 200 OK
+{
+  "access_token": "eyJhbGciOiJIUzI1NiJ9...",
+  "token_type": "bearer",
+  "expires_in": 3600
+}
+
+Step 2: API Call REQUEST
+GET https://yourcompany.jamacloud.com/rest/v1/projects
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+Accept: application/json
+
+Step 2: API Call RESPONSE - ERROR
+HTTP 500 Internal Server Error
+{
+  "meta": {
+    "status": "error",
+    "timestamp": "2026-01-09T10:30:00Z"
+  },
+  "error": {
+    "message": "java.lang.IndexOutOfBounds: Index 0 out of bounds for length 0",
+    "details": "Insufficient scope permissions"
+  }
+}
+
+PROBLEM ANALYSIS:
+  OAuth client scope = 'Token Information' (can only validate tokens)
+  API requires scope = 'read' (can access data endpoints)
+
+SOLUTION:
+  1. Login to Jama Admin Console
+  2. Go to Admin > OAuth Clients
+  3. Edit your OAuth client
+  4. Change scope from 'Token Information' to 'read'
+  5. Save changes
+
+Press Enter to continue...

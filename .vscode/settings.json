@@ -1,0 +1,14 @@
+{
+    "accessibility.signals.lineHasBreakpoint": {
+        "announcement": "off",
+        "sound": "off"
+    },
+    "accessibility.signals.lineHasError": {
+        "sound": "off",
+        "announcement": "off"
+    },
+    "accessibility.signals.lineHasWarning": {
+        "sound": "off",
+        "announcement": "off"
+    }
+}

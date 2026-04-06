@@ -36,12 +36,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         // UI flags
         [ObservableProperty] private bool isSelected;
+        [ObservableProperty] private bool isEditing;
+
+        // Editor ViewModel for embedded editing
+        [ObservableProperty] private EditableTableEditorViewModel? editorViewModel;
 
         // Optional owner-supplied callback used by MainViewModel to open a shared editor
         public Action<ITableViewProvider>? EditTableCallback { get; set; }
 
-        // Command bound from the UI
+        // Commands bound from the UI
         public IRelayCommand EditTableCommand { get; }
+        public IRelayCommand SaveTableCommand { get; }
+        public IRelayCommand CancelEditCommand { get; }
 
         public TableItemViewModel(TableDto dto, Action<ITableViewProvider>? editCallback = null)
         {
@@ -97,27 +103,107 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Default selected
             IsSelected = true;
 
-            // Command
+            // Commands
             EditTableCommand = new RelayCommand(OnEditTable);
+            SaveTableCommand = new RelayCommand(OnSaveTable);
+            CancelEditCommand = new RelayCommand(OnCancelEdit);
         }
 
         private void OnEditTable()
         {
-            if (EditTableCallback is not null)
+            // Use embedded editing - create editor ViewModel and enter edit mode
+            EditorViewModel = EditableTableEditorViewModel.From(Title, Columns, Rows);
+            IsEditing = true;
+        }
+
+        private void OnSaveTable()
+        {
+            // Apply changes from editor ViewModel back to this ViewModel
+            if (EditorViewModel != null)
             {
-                EditTableCallback(this);
-                return;
+                // Update title
+                Title = EditorViewModel.Title;
+                
+                // Clear and rebuild columns and rows from editor
+                Columns.Clear();
+                Rows.Clear();
+                
+                foreach (var col in EditorViewModel.Columns)
+                {
+                    Columns.Add(col);
+                }
+                
+                foreach (var row in EditorViewModel.Rows)
+                {
+                    Rows.Add(row);
+                }
+                
+                // Clear editor ViewModel
+                EditorViewModel = null;
+            }
+            
+            // Exit edit mode
+            IsEditing = false;
+        }
+
+        private void OnCancelEdit()
+        {
+            // Clear editor ViewModel without applying changes
+            EditorViewModel = null;
+            
+            // Exit edit mode
+            IsEditing = false;
+        }
+
+        private void RestoreFromDto()
+        {
+            // Restore title
+            Title = SourceDto.Title ?? string.Empty;
+
+            // Restore columns
+            var headers = SourceDto.Columns ?? new List<string>();
+            if (headers.Count == 0)
+            {
+                var maxCols = SourceDto.Rows?.Count > 0 ? SourceDto.Rows.Max(r => r?.Count ?? 0) : 0;
+                if (maxCols <= 0) maxCols = 1;
+                headers = Enumerable.Range(0, maxCols).Select(i => $"Column {i + 1}").ToList();
             }
 
-            var dlg = new TestCaseEditorApp.MVVM.Views.EditableTableEditorWindow(this)
+            Columns.Clear();
+            for (int i = 0; i < headers.Count; i++)
             {
-                Owner = Application.Current?.MainWindow
-            };
+                Columns.Add(new ColumnDefinitionModel
+                {
+                    Header = headers[i],
+                    BindingPath = $"c{i}"
+                });
+            }
 
-            if (dlg.ShowDialog() == true)
+            // Restore rows
+            Rows.Clear();
+            if (SourceDto.Rows != null)
             {
-                // Editor applied changes through ProviderBackplane.ReplaceWith or by writing back in OK handler;
-                // we don't mutate the original SourceDto (immutable Rows). Use ToDto() when persisting.
+                foreach (var srcRow in SourceDto.Rows)
+                {
+                    var tr = new TableRowModel();
+                    if (srcRow != null)
+                    {
+                        for (int i = 0; i < srcRow.Count && i < Columns.Count; i++)
+                        {
+                            var key = Columns[i].BindingPath ?? "";
+                            tr[key] = srcRow[i] ?? string.Empty;
+                        }
+                    }
+                    Rows.Add(tr);
+                }
+            }
+
+            // Ensure at least one empty row if none provided
+            if (Rows.Count == 0)
+            {
+                var tr = new TableRowModel();
+                foreach (var c in Columns) tr[c.BindingPath ?? ""] = string.Empty;
+                Rows.Add(tr);
             }
         }
 

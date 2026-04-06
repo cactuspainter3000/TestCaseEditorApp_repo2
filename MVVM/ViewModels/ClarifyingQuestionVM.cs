@@ -15,17 +15,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     /// </summary>
     public class ClarifyingQuestionVM : ObservableObject
     {
-        private readonly MainViewModel? _mainVm;
+        private readonly Action? _onChanged;
         private bool _isLoading = false;
 
-        public ClarifyingQuestionVM(MainViewModel? mainVm = null)
+        public ClarifyingQuestionVM(Action? onChanged = null)
         {
-            _mainVm = mainVm;
+            _onChanged = onChanged;
             Id = Guid.NewGuid().ToString("N");
             Options.CollectionChanged += Options_CollectionChanged;
         }
 
-        public ClarifyingQuestionVM(string textValue, IReadOnlyList<string>? options = null, MainViewModel? mainVm = null) : this(mainVm)
+        public ClarifyingQuestionVM(string textValue, IReadOnlyList<string>? options = null, Action? onChanged = null) : this(onChanged)
         {
             Text = textValue ?? string.Empty;
             if (options != null)
@@ -57,10 +57,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     OnPropertyChanged(nameof(IsAnswered));
                     
                     // Mark workspace dirty when answer changes (skip if loading)
-                    if (_mainVm != null && !_isLoading)
+                    if (_onChanged != null && !_isLoading)
                     {
-                        _mainVm.IsDirty = true;
-                        TestCaseEditorApp.Services.Logging.Log.Debug("[Question] Answer changed - marked workspace dirty");
+                        _onChanged();
+                        TestCaseEditorApp.Services.Logging.Log.Debug("[Question] Answer changed - marked workspace dirty via delegate");
                     }
                 }
             }

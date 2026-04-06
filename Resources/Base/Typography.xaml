@@ -1,0 +1,49 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <!-- ========================================== -->
+    <!-- TYPOGRAPHY STYLES - SEMANTIC NAMING       -->
+    <!-- ========================================== -->
+    <!-- These are app-wide text styles that any control can reference -->
+    
+    <!-- Merge DesignSystem for access to typography tokens -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/DesignSystem.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+    
+    <!-- PRIMARY HEADERS -->
+    <Style x:Key="Text.Header.Primary" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{DynamicResource FontSize.H1}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Accent.Primary}"/>
+    </Style>
+    
+    <!-- SECONDARY HEADERS -->
+    <Style x:Key="Text.Header.Secondary" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{DynamicResource FontSize.H2}"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
+    </Style>
+    
+    <!-- TERTIARY HEADERS (for sub-sections) -->
+    <Style x:Key="Text.Header.Tertiary" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{DynamicResource FontSize.Body}"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Accent.Primary}"/>
+    </Style>
+    
+    <!-- BODY TEXT -->
+    <Style x:Key="Text.Body" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{DynamicResource FontSize.Body}"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+    </Style>
+    
+    <!-- CAPTION TEXT -->
+    <Style x:Key="Text.Caption" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{DynamicResource FontSize.Caption}"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
+    </Style>
+    
+</ResourceDictionary>

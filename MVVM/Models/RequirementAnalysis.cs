@@ -15,6 +15,13 @@ namespace TestCaseEditorApp.MVVM.Models
         public int QualityScore { get; set; }
 
         /// <summary>
+        /// Self-reported hallucination check from the LLM.
+        /// "NO_FABRICATION" if only original requirement terms were used,
+        /// "FABRICATED_DETAILS" if new technical details were added.
+        /// </summary>
+        public string? HallucinationCheck { get; set; }
+
+        /// <summary>
         /// Identified issues with the requirement (ambiguity, testability problems, scope issues, etc.)
         /// </summary>
         public List<AnalysisIssue> Issues { get; set; } = new List<AnalysisIssue>();
@@ -28,6 +35,12 @@ namespace TestCaseEditorApp.MVVM.Models
         /// Freeform text feedback from the LLM providing additional context and insights.
         /// </summary>
         public string? FreeformFeedback { get; set; }
+
+        /// <summary>
+        /// Complete rewritten requirement that addresses all identified issues.
+        /// This is the main deliverable - the improved requirement text that should be used.
+        /// </summary>
+        public string? ImprovedRequirement { get; set; }
 
         /// <summary>
         /// When this analysis was generated.
@@ -64,6 +77,12 @@ namespace TestCaseEditorApp.MVVM.Models
         /// Description of the issue.
         /// </summary>
         public string Description { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Past-tense description of what was addressed/improved to fix this issue.
+        /// Example: "Defined specific acceptance criteria", "Clarified technical requirements"
+        /// </summary>
+        public string Fix { get; set; } = string.Empty;
     }
 
     /// <summary>
@@ -82,8 +101,10 @@ namespace TestCaseEditorApp.MVVM.Models
         public string Description { get; set; } = string.Empty;
 
         /// <summary>
-        /// Optional: Example of how to implement this recommendation.
+        /// Complete suggested rewrite of the requirement that incorporates 
+        /// details from supplemental information directly into the requirement text.
+        /// This is the actual improved requirement text the user should use.
         /// </summary>
-        public string? Example { get; set; }
+        public string? SuggestedEdit { get; set; }
     }
 }

@@ -44,8 +44,16 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // New: whether to include this table in the LLM prompt
         [ObservableProperty] private bool includeInPrompt;
 
-        // Optional custom editor opener
-        [ObservableProperty] private Action<ITableViewProvider>? editTableCallback;
+        // Editor ViewModel for embedded editing
+        [ObservableProperty] private EditableTableEditorViewModel? editorViewModel;
+
+        // UI editing state
+        [ObservableProperty] private bool isEditing;
+
+        // Save and Cancel commands for embedded editing
+        public IRelayCommand SaveTableCommand => new RelayCommand(SaveTable);
+        public IRelayCommand CancelEditCommand => new RelayCommand(CancelEdit);
+        public IRelayCommand ExitEditingModeCommand => new RelayCommand(ExitEditingMode);
 
         public LooseTableViewModel() { }
 
@@ -118,24 +126,118 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
         }
 
-        /// <summary>Open the modal editor; on OK normalize, mark modified, and save to session.</summary>
+        /// <summary>Switch to embedded editing mode instead of opening modal dialog.</summary>
         [RelayCommand]
         private void EditTable()
         {
-            if (EditTableCallback is not null)
+            // Create editor ViewModel and enter embedded edit mode
+            EditorViewModel = EditableTableEditorViewModel.From(Title, Columns, Rows);
+            IsEditing = true;
+        }
+
+        private void SaveTable()
+        {
+            // Apply changes from editor ViewModel back to this ViewModel
+            if (EditorViewModel != null)
             {
-                EditTableCallback(this);
+                // Forward to inner backplane first (true write-through to model/DTO if available)
+                _innerBackplane?.ReplaceWith(EditorViewModel.Columns, EditorViewModel.Rows);
+
+                // Update title
+                Title = EditorViewModel.Title;
+                
+                // Clear and rebuild columns and rows from editor
+                Columns.Clear();
+                Rows.Clear();
+                
+                foreach (var col in EditorViewModel.Columns)
+                {
+                    Columns.Add(col);
+                }
+                
+                foreach (var row in EditorViewModel.Rows)
+                {
+                    Rows.Add(row);
+                }
+                
+                // Clear editor ViewModel
+                EditorViewModel = null;
+                
+                // Perform post-edit processing
                 AfterEditCommit();
+            }
+            
+            // Exit edit mode
+            IsEditing = false;
+        }
+
+        private void CancelEdit()
+        {
+            // Clear editor ViewModel without applying changes
+            EditorViewModel = null;
+            
+            // Exit edit mode
+            IsEditing = false;
+        }
+
+        private void ExitEditingMode()
+        {
+            // If not editing, nothing to do
+            if (!IsEditing) return;
+
+            // If there's no editor VM, just exit
+            if (EditorViewModel is null)
+            {
+                IsEditing = false;
                 return;
             }
 
-            var dlg = new TestCaseEditorApp.MVVM.Views.EditableTableEditorWindow(this)
-            {
-                Owner = Application.Current?.MainWindow
-            };
+            // Determine if there are unsaved changes compared to current VM state
+            bool hasUnsaved = HasUnsavedChanges();
 
-            if (dlg.ShowDialog() == true)
-                AfterEditCommit();
+            if (!hasUnsaved)
+            {
+                // No changes — behave like cancel (discard editor VM and exit)
+                CancelEdit();
+                return;
+            }
+
+            // Prompt the user: Save and Exit / Discard / Stay
+            var result = MessageBox.Show(
+                "You have unsaved changes. Save before exiting?\n\nYes = Save and Exit\nNo = Discard Changes\nCancel = Keep Editing",
+                "Unsaved Changes",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Warning);
+
+            switch (result)
+            {
+                case MessageBoxResult.Yes:
+                    // Save applies changes and exits editing mode
+                    SaveTable();
+                    break;
+                case MessageBoxResult.No:
+                    // Discard edits and exit
+                    CancelEdit();
+                    break;
+                case MessageBoxResult.Cancel:
+                default:
+                    // Stay in editing mode
+                    break;
+            }
+        }
+
+        private bool HasUnsavedChanges()
+        {
+            if (EditorViewModel is null) return false;
+
+            // Compare title
+            if (!string.Equals(Title ?? string.Empty, EditorViewModel.Title ?? string.Empty, StringComparison.Ordinal))
+                return true;
+
+            // Compare snapshot hashes of columns+rows
+            var currentHash = SnapshotHash(Columns, Rows);
+            var editorHash = SnapshotHash(EditorViewModel.Columns, EditorViewModel.Rows);
+            return !string.Equals(currentHash, editorHash, StringComparison.Ordinal);
         }
 
         private void AfterEditCommit()

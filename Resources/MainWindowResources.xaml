@@ -1,12 +1,42 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
+                    xmlns:tcgvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels"
+                    xmlns:tccvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels"
+                    xmlns:npvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels"
+                    xmlns:opvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels"
                     xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
+                    xmlns:tcgviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views"
+                    xmlns:tccviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Views"
+                    xmlns:npviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.Views"
+                    xmlns:opviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.Views"
                     xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
                     xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models">
 
     <DataTemplate DataType="{x:Type vm:WorkspaceHeaderViewModel}">
         <views:WorkspaceHeaderView />
+    </DataTemplate>
+    
+    <DataTemplate DataType="{x:Type tcgvm:TestCaseGeneratorViewModel}">
+        <tcgviews:TestCaseGeneratorRequirements_View />
+    </DataTemplate>
+    
+    <DataTemplate DataType="{x:Type tcgvm:TestCaseGeneratorSplashScreenViewModel}">
+        <tcgviews:TestCaseGeneratorSplashScreen />
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type tccvm:TestCaseCreationMainVM}">
+        <tccviews:TestCaseCreation_MainView />
+    </DataTemplate>
+
+    <!-- NewProject Domain DataTemplates -->
+    <DataTemplate DataType="{x:Type npvm:NewProjectWorkflowViewModel}">
+        <npviews:NewProject_MainView />
+    </DataTemplate>
+
+    <!-- OpenProject Domain DataTemplates -->
+    <DataTemplate DataType="{x:Type opvm:OpenProjectWorkflowViewModel}">
+        <opviews:OpenProject_MainView />
     </DataTemplate>
 
     <Style x:Key="IconButtonStyle" TargetType="Button">
@@ -128,7 +158,7 @@
     <!-- Optional: a smaller inset border for workspace header -->
     <Style x:Key="HeaderBorderStyle" TargetType="Border" BasedOn="{StaticResource MenuSectionBorderStyle}">
         <Setter Property="CornerRadius" Value="4"/>
-        <Setter Property="BorderThickness" Value="1.5"/>
+        <Setter Property="BorderThickness" Value="2"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Padding" Value="4"/>
     </Style>
@@ -167,7 +197,6 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="{StaticResource MenuHover}"/>
-                            <Setter Property="Foreground" Value="{StaticResource Accent}"/>
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
@@ -217,18 +246,16 @@
 
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Accent}"/>
-                            <Setter Property="Foreground" Value="White"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource MenuHover}"/>
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="#CC6A00"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource MenuPressed}"/>
                             <Setter TargetName="Bd" Property="RenderTransform">
                                 <Setter.Value>
                                     <TranslateTransform Y="1"/>
                                 </Setter.Value>
                             </Setter>
-                            <Setter Property="Foreground" Value="White"/>
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">

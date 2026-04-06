@@ -4,13 +4,20 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
+        xmlns:tcgvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels"
+        xmlns:wmvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels"
         xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
+        xmlns:tcgviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views"
+        xmlns:startupvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Startup.ViewModels"
+        xmlns:startupviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Startup.Views"
+        xmlns:wmviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.Views"
+        xmlns:dummyvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels"
+        xmlns:dummyviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Dummy.Views"
         xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models"
         xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
         Height="665" Width="1200"
-        d:DataContext="{d:DesignInstance vm:MainViewModelDesignStub, IsDesignTimeCreatable=True}"
         WindowStyle="None"
-        Title="{Binding DisplayName}"
+        Title="{Binding DisplayName, FallbackValue='Test Case Editor'}"
         ResizeMode="CanResizeWithGrip"
         Background="Transparent"
         WindowStartupLocation="CenterScreen"
@@ -21,38 +28,343 @@
 
     <Window.Resources>
         <conv:SectionSelectedConverter x:Key="SectionSelectedConverter" />
+        <conv:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+        <conv:EmptyStringToCollapsedConverter x:Key="EmptyStringToCollapsedConverter" />
 
         <!-- Put resources directly in Window.Resources (do NOT nest a ResourceDictionary element here) -->
 
-        <DataTemplate DataType="{x:Type vm:TestCaseGenerator_VM}">
-            <views:TestCaseGenerator_View />
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_VM}">
+            <tcgviews:TestCaseGeneratorRequirements_View />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type vm:TestCaseGenerator_AssumptionsVM}">
-            <views:TestCaseGenerator_AssumptionsView />
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_AssumptionsVM}">
+            <tcgviews:TestCaseGenerator_AssumptionsView />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type vm:TestCaseGenerator_QuestionsVM}">
-            <views:TestCaseGenerator_QuestionsView />
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_QuestionsVM}">
+            <tcgviews:TestCaseGenerator_QuestionsView />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type vm:TestCaseGenerator_CreationVM}">
-            <views:TestCaseGenerator_CreationView />
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_CreationVM}">
+            <tcgviews:TestCaseGenerator_CreationView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:WorkspaceHeaderViewModel}">
             <views:WorkspaceHeaderView />
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type vm:DefaultNotificationViewModel}">
+            <!-- Simple default notification area - shows minimal ready state -->
+            <Border Background="#222222" 
+                    Padding="10,4"
+                    Height="28">
+                <TextBlock Text="{Binding DefaultText}" 
+                          FontSize="11" 
+                          Foreground="#666666" 
+                          VerticalAlignment="Center"
+                          HorizontalAlignment="Center"/>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGeneratorNotificationViewModel}">
+            <!-- Test Case Generator notification area layout -->
+            <Border Background="#222222" 
+                    Padding="10,4"
+                    Height="28">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- AnythingLLM Status -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <Ellipse Width="8" Height="8" 
+                                Fill="{Binding AnythingLlmStatusColor}" 
+                                VerticalAlignment="Center" 
+                                Margin="0,0,6,0"/>
+                        <TextBlock Text="{Binding AnythingLlmStatusText}" 
+                                  FontSize="11" 
+                                  Foreground="#BBBBBB" 
+                                  VerticalAlignment="Center"/>
+                    </StackPanel>
+                    
+                    <!-- Current Requirement Verification Method -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" 
+                               HorizontalAlignment="Right"
+                               Margin="0,0,8,0"
+                               Visibility="{Binding CurrentRequirementVerificationMethod, Converter={StaticResource EmptyStringToCollapsedConverter}}">
+                        <TextBlock Text="Method:" 
+                                  Width="50"
+                                  FontSize="11" 
+                                  Foreground="#999999" 
+                                  VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding CurrentRequirementVerificationMethod}" 
+                                  FontSize="11" 
+                                  Foreground="#DDDDDD" 
+                                  VerticalAlignment="Center"
+                                  FontWeight="SemiBold"/>
+                        <TextBlock Text=" | " 
+                                  FontSize="11" 
+                                  Foreground="#666666" 
+                                  VerticalAlignment="Center"
+                                  Margin="8,0,0,0"/>
+                    </StackPanel>
+                    
+                    <!-- Requirements Progress -->
+                    <StackPanel Grid.Column="3" Orientation="Horizontal">
+                        <TextBlock Text="{Binding RequirementsProgressText}" 
+                                  FontSize="11" 
+                                  Foreground="#BBBBBB" 
+                                  VerticalAlignment="Center"
+                                  Margin="0,0,8,0"/>
+                        <ProgressBar Width="60" Height="4" 
+                                    VerticalAlignment="Center"
+                                    Value="{Binding RequirementsProgress}"
+                                    Maximum="100"
+                                    Background="#333333"
+                                    Foreground="#51CF66"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_TitleVM}">
+            <tcgviews:TestCaseGenerator_TitleView />
+        </DataTemplate>
+
+        <!-- Startup ViewModels DataTemplates -->
+        <DataTemplate DataType="{x:Type startupvm:StartUp_TitleViewModel}">
+            <startupviews:StartUp_TitleView />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type startupvm:StartUp_HeaderViewModel}">
+            <startupviews:StartUp_HeaderView />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type startupvm:StartUp_MainViewModel}">
+            <startupviews:StartUp_MainView />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type startupvm:StartUp_NavigationViewModel}">
+            <startupviews:StartUp_NavigationView />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type startupvm:StartUp_NotificationViewModel}">
+            <startupviews:StartUp_NotificationView />
+        </DataTemplate>
+
+        <!-- NEW-STYLE Dummy ViewModels DataTemplates (AI Guide compliant) -->
+        <DataTemplate DataType="{x:Type dummyvm:Dummy_TitleViewModel}">
+            <dummyviews:Dummy_TitleView />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type dummyvm:Dummy_HeaderViewModel}">
+            <dummyviews:Dummy_HeaderView />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type dummyvm:Dummy_MainViewModel}">
+            <dummyviews:Dummy_MainView />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type dummyvm:Dummy_NavigationViewModel}">
+            <dummyviews:Dummy_NavigationView />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type dummyvm:Dummy_NotificationViewModel}">
+            <dummyviews:Dummy_NotificationView />
+        </DataTemplate>
+
         <DataTemplate DataType="{x:Type vm:PlaceholderViewModel}">
-            <Border Padding="10" Background="White" CornerRadius="6">
+            <Border Padding="10" Background="Transparent" CornerRadius="6">
                 <TextBlock Text="{Binding Title}" FontSize="16" VerticalAlignment="Center" HorizontalAlignment="Center" />
             </Border>
         </DataTemplate>
 
+        <!--<DataTemplate DataType="{x:Type startupvm:StartUp_MainViewModel}">
+            <startupviews:StartUp_MainView />
+        </DataTemplate>-->
+
+        <!--<DataTemplate DataType="{x:Type vm:ProjectViewModel}">
+            <views:ProjectView />
+        </DataTemplate>-->
+
+        <DataTemplate DataType="{x:Type tcgvm:RequirementsViewModel}">
+            <views:RequirementsView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type tcgvm:RequirementsWorkspaceViewModel}">
+            <tcgviews:RequirementsWorkspaceView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:LLMLearningViewModel}">
+            <views:LLMLearningView />
+        </DataTemplate>
+
+        <!-- App Icon Style -->
+        <Style x:Key="AppIconStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <!-- Button Container Style with background hover -->
+        <Style x:Key="IconButtonContainer" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="4"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#33FFFFFF"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Header Container Style with hover background -->
+        <Style x:Key="HeaderContainerStyle" TargetType="StackPanel">
+            <Setter Property="Background" Value="Transparent"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#22FFFFFF"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Window Control Button Style with background and color hover -->
+        <Style x:Key="WindowControlButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="38"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource MenuForeground}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Border x:Name="Bd"
+                                    Width="{TemplateBinding Width}"
+                                    Height="{TemplateBinding Height}"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="6"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <Border x:Name="KbdFocus" CornerRadius="8" BorderBrush="{StaticResource FocusRing}" BorderThickness="1" Opacity="0" Margin="-2"/>
+                        </Grid>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource MenuHover}"/>
+                            </Trigger>
+
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource MenuPressed}"/>
+                                <Setter TargetName="Bd" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <TranslateTransform Y="1"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                                <Setter Property="Foreground" Value="{StaticResource DisabledBrush}"/>
+                            </Trigger>
+
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsKeyboardFocused" Value="True"/>
+                                    <Condition Property="IsEnabled" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="KbdFocus" Property="Opacity" Value="1"/>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Window Control Icon Style with orange hover -->
+        <Style x:Key="WindowControlIconStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="DarkOrange"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- DataTemplate for TestCaseGenerator_HeaderVM -->
-        <DataTemplate DataType="{x:Type vm:TestCaseGenerator_HeaderVM}">
-            <views:TestCaseGenerator_HeaderView />
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_HeaderVM}">
+            <tcgviews:TestCaseGenerator_HeaderView />
+        </DataTemplate>
+
+        <!-- Modal ViewModels DataTemplates -->
+        <DataTemplate DataType="{x:Type vm:WorkspaceSelectionViewModel}">
+            <views:WorkspaceSelectionView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:ApiKeyConfigViewModel}">
+            <views:ApiKeyConfigView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:ImportMethodSelectionViewModel}">
+            <views:ImportMethodSelectionView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:ImportWorkflowViewModel}">
+            <views:ImportWorkflowView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:ImportRequirementsWorkflowViewModel}">
+            <views:ImportRequirementsWorkflowView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type wmvm:NewProjectWorkflowViewModel}">
+            <wmviews:NewProject_MainView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type wmvm:NewProjectHeaderViewModel}">
+            <wmviews:NewProjectHeaderView />
+        </DataTemplate>
+
+        <!-- DUMMY DOMAIN DataTemplates - Perfect AI Guide Reference Implementation -->
+        <DataTemplate DataType="{x:Type dummyvm:DummyMainWorkspaceViewModel}">
+            <dummyviews:DummyMainWorkspaceView />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type dummyvm:DummyHeaderWorkspaceViewModel}">
+            <dummyviews:DummyHeaderWorkspaceView />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type dummyvm:DummyNavigationWorkspaceViewModel}">
+            <dummyviews:DummyNavigationWorkspaceView />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type dummyvm:DummyTitleWorkspaceViewModel}">
+            <dummyviews:DummyTitleWorkspaceView />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type dummyvm:DummyNotificationWorkspaceViewModel}">
+            <dummyviews:DummyNotificationWorkspaceView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:RequirementDescriptionEditorViewModel}">
+            <views:RequirementDescriptionEditorView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:SplitTextEditorViewModel}">
+            <views:SplitTextEditorView />
         </DataTemplate>
 
         <DataTemplate x:Key="StepDescriptorTemplate" DataType="{x:Type models:StepDescriptor}">
@@ -87,7 +399,11 @@
                 <RowDefinition Height="Auto"/>
                 <!-- title bar -->
                 <RowDefinition Height="4"/>
+                <!-- gap between title and notification -->
                 <RowDefinition Height="Auto"/>
+                <!-- notification area -->
+                <RowDefinition Height="4"/>
+                <RowDefinition Height="60"/>
                 <!-- workspace header / summary -->
                 <RowDefinition Height="4"/>
                 <RowDefinition Height="*"/>
@@ -101,123 +417,98 @@
             <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
                     Style="{StaticResource ContentBorderStyle}">
                 <Grid HorizontalAlignment="Stretch">
-                    <TextBlock Text="Systems App"
-                               VerticalAlignment="Center"
-                               HorizontalAlignment="Left"
-                               Foreground="DarkOrange"
-                               FontSize="25"
-                               Margin="4,0,0,0"/>
+                    <!-- Dynamic Title Area - managed by ViewAreaCoordinator -->
+                    <ContentPresenter Content="{Binding TitleWorkspace}"
+                                      VerticalAlignment="Center"
+                                      HorizontalAlignment="Left"
+                                      Margin="4,0,0,0"/>
                     
-                    <!-- Save indicator -->
-                    <Button HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Padding="8,4"
-                            Cursor="Hand"
-                            Command="{Binding SaveWorkspaceCommand}"
-                            ToolTip="Click to save workspace">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="Visibility" Value="Visible"/>
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border Background="{TemplateBinding Background}"
-                                                    Padding="{TemplateBinding Padding}"
-                                                    CornerRadius="4">
-                                                <ContentPresenter />
-                                            </Border>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding WorkspacePath}" Value="{x:Null}">
-                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding WorkspacePath}" Value="">
-                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                    </DataTrigger>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#22FFFFFF"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock FontFamily="Segoe MDL2 Assets"
-                                       FontSize="16"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,6,0">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Text" Value="&#xE74E;"/> <!-- Save icon -->
-                                        <Setter Property="Foreground" Value="#4CAF50"/> <!-- Green = Saved -->
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsDirty}" Value="True">
-                                                <Setter Property="Text" Value="&#xE734;"/> <!-- Warning icon -->
-                                                <Setter Property="Foreground" Value="#FF9800"/> <!-- Orange = Unsaved -->
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                            <TextBlock VerticalAlignment="Center"
-                                       FontSize="13"
-                                       Foreground="#CCCCCC">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Text" Value="Saved"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsDirty}" Value="True">
-                                                <Setter Property="Text" Value="Unsaved changes"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                        </StackPanel>
-                    </Button>
-                    
-                    <DockPanel Width="150" HorizontalAlignment="Right" Margin="3">
+                    <DockPanel HorizontalAlignment="Right" Margin="3">
+                        
                         <Grid VerticalAlignment="Center" HorizontalAlignment="Right">
                             <Grid.ColumnDefinitions>
+                                <!-- Save Status button -->
+                                <ColumnDefinition Width="Auto"/>
+                                <!-- Undo button -->
+                                <ColumnDefinition Width="Auto"/>
+                                <!-- Minimize, Maximize, Close -->
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <!-- Minimize -->
+                            <!-- Save Status button - clean icon only -->
                             <Button Grid.Column="0"
-                                    Content="&#xE90F;"
-                                    FontFamily="Segoe MDL2 Assets"
-                                    FontSize="14"
+                                    Command="{Binding HeaderWorkspace.SaveWorkspaceCommand}"
+                                    ToolTip="{Binding HeaderWorkspace.LastSaveTimestamp}"
+                                    Visibility="{Binding HeaderWorkspace.WorkspaceFilePath, Converter={StaticResource NullToVisibilityConverter}}"
+                                    Style="{StaticResource MainWindowButtonControls}">
+                                <TextBlock FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="&#xE74E;"/> <!-- Save icon - 3.5" disc -->
+                                            <Setter Property="Foreground" Value="#4CAF50"/> <!-- Green = Saved -->
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HeaderWorkspace.IsDirty}" Value="True">
+                                                    <Setter Property="Foreground" Value="#9E9E9E"/> <!-- Light Grey = Unsaved -->
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Button>
+
+                            <!-- Undo last save button - always visible but enabled/disabled -->
+                            <Button Grid.Column="1"
                                     Style="{StaticResource MainWindowButtonControls}"
-                                    Click="ButtonMinimize_Click"/>
+                                    Command="{Binding HeaderWorkspace.UndoLastSaveCommand}"
+                                    IsEnabled="{Binding HeaderWorkspace.CanUndoLastSave}"
+                                    ToolTip="Undo last save operation">
+                                <TextBlock Text="&#xE7A7;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Style="{StaticResource WindowControlIconStyle}"/>
+                            </Button>
+
+                            <!-- Minimize -->
+                            <Button Grid.Column="2"
+                                    Style="{StaticResource MainWindowButtonControls}"
+                                    Click="ButtonMinimize_Click">
+                                <TextBlock Text="&#xE90F;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Style="{StaticResource WindowControlIconStyle}"/>
+                            </Button>
 
                             <!-- Maximize/Restore -->
-                            <Button Grid.Column="1"
-                                    Content="&#xE923;"
-                                    FontFamily="Segoe MDL2 Assets"
-                                    FontSize="14"
+                            <Button Grid.Column="3"
                                     Style="{StaticResource MainWindowButtonControls}"
                                     Click="WindowStateButton_Click"
-                                    Margin="4,0"/>
+                                    Margin="4,0">
+                                <TextBlock Text="&#xE923;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Style="{StaticResource WindowControlIconStyle}"/>
+                            </Button>
 
                             <!-- Close -->
-                            <Button Grid.Column="2"
-                                    Content="✕"
-                                    FontSize="14"
+                            <Button Grid.Column="4"
                                     Style="{StaticResource MainWindowCloseButton}"
                                     Click="CloseButton_Click"
-                                    Margin="4,0"/>
+                                    Margin="4,0">
+                                <TextBlock Text="✕"
+                                           FontSize="14"
+                                           Style="{StaticResource WindowControlIconStyle}"/>
+                            </Button>
                         </Grid>
                     </DockPanel>
                 </Grid>
             </Border>
 
             <!-- Workspace header -->
-            <Border Grid.Row="2" Grid.Column="2" Style="{StaticResource HeaderBorderStyle}" Height="75" Padding="0" Margin="0">
+            <Border Grid.Row="4" Grid.Column="2" Style="{StaticResource HeaderBorderStyle}" Padding="0" Margin="0">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1*"/>
@@ -228,16 +519,22 @@
 
                     <Grid Grid.ColumnSpan="4" Margin="0">
                         <!-- Header content rendered via the HeaderViewModel (DataTemplate or UserControl) -->
-                        <ContentControl Content="{Binding ActiveHeader}" />
+                        <ContentControl Content="{Binding HeaderWorkspace}" />
                     </Grid>
                 </Grid>
             </Border>
 
             <!-- Left menu section: Test Case / Test Flow, with one-open-at-a-time behavior -->
-            <views:SideMenuView Grid.Column="0" Grid.Row="2" Grid.RowSpan="5" />
+            <views:NewSideMenuView Grid.Column="0" Grid.Row="4" Grid.RowSpan="5" 
+                               DataContext="{Binding SideMenuWorkspace}"/>
+            
+            <!-- Notification area - positioned directly below title with full width -->
+            <Border Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="3" Style="{StaticResource ContentBorderStyle}">
+                <ContentControl Content="{Binding NotificationWorkspace}" />
+            </Border>
 
             <!-- Content area -->
-            <Border Grid.Column="2" Grid.Row="4" Style="{StaticResource ContentBorderStyle}">
+            <Border Grid.Column="2" Grid.Row="6" Style="{StaticResource ContentBorderStyle}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <!-- use relative stars that are easy to reason about -->
@@ -252,16 +549,121 @@
                     </Grid.RowDefinitions>
 
                     <ContentControl Grid.Row="1" Grid.ColumnSpan="4" Margin="6"
-                                    Content="{Binding CurrentStepViewModel}" />
+                                    Content="{Binding MainWorkspace}" />
                 </Grid>
             </Border>
 
-            <!-- Navigation area: compact, responsive controls (keeps your original placement) -->
-            <!-- Bottom requirement navigation (Grid.Column=2 Grid.Row=6) -->
-            <views:TestCaseGenerator_NavigationControl
-                Grid.Column="2"
-                Grid.Row="6"
-                DataContext="{Binding RequirementsNavigator}"/>
+            <!-- Navigation workspace area - uses proper workspace coordination -->
+            <Border Grid.Column="2" Grid.Row="8" Style="{StaticResource ContentBorderStyle}">
+                <ContentControl Content="{Binding NavigationWorkspace}" 
+                              HorizontalAlignment="Stretch" 
+                              VerticalAlignment="Stretch"/>
+            </Border>
+            
+            <!-- Modal overlay system - TEMPORARILY DISABLED while debugging -->
+            <Grid Grid.Row="0" Grid.RowSpan="9" Grid.Column="0" Grid.ColumnSpan="3"
+                  Panel.ZIndex="9998"
+                  Visibility="Collapsed"
+                  x:Name="ModalOverlay"
+                  IsEnabled="False">
+                  <!-- Visibility="{Binding ModalViewModel, Converter={StaticResource NullToVisibilityConverter}}"> -->
+                <!-- Semi-transparent overlay background -->
+                <Border Background="#80000000" />
+                
+                <!-- Modal content container -->
+                <Border Background="#2B2B2B"
+                        BorderBrush="{StaticResource Brush.Accent.Primary}"
+                        BorderThickness="2"
+                        CornerRadius="8"
+                        MinWidth="400"
+                        MinHeight="200"
+                        MaxWidth="800"
+                        MaxHeight="600"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Margin="50">
+                    <Border.Effect>
+                        <DropShadowEffect Color="{StaticResource Accent.Primary}" 
+                                         BlurRadius="12" 
+                                         ShadowDepth="0" 
+                                         Opacity="0.3"/>
+                    </Border.Effect>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- Modal header with close button -->
+                        <Border Grid.Row="0" 
+                                Background="#333333" 
+                                BorderBrush="{StaticResource Brush.Accent.Primary}"
+                                BorderThickness="0,0,0,2"
+                                CornerRadius="8,8,0,0"
+                                Padding="15,10">
+                            <Grid>
+                                <TextBlock Text="{Binding ModalTitle, FallbackValue='Modal Dialog'}" 
+                                          Foreground="{StaticResource Brush.Accent.Primary}" 
+                                          FontSize="16" 
+                                          FontWeight="SemiBold"
+                                          HorizontalAlignment="Left"
+                                          VerticalAlignment="Center"/>
+                                
+                                <Button Content="✕"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Width="28" Height="28"
+                                        Background="Transparent"
+                                        BorderThickness="1"
+                                        BorderBrush="Transparent"
+                                        Foreground="#CCCCCC"
+                                        FontSize="16"
+                                        FontWeight="Bold"
+                                        Command="{Binding CloseModalCommand}"
+                                        ToolTip="Close"
+                                        Cursor="Hand">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border x:Name="border"
+                                                                Background="{TemplateBinding Background}"
+                                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                                CornerRadius="4"
+                                                                Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center"
+                                                                            VerticalAlignment="Center"
+                                                                            TextElement.Foreground="{TemplateBinding Foreground}"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="border" Property="Background" Value="{StaticResource Brush.Background.Menu.Hover}"/>
+                                                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource Brush.Accent.Primary}"/>
+                                                                <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsPressed" Value="True">
+                                                                <Setter TargetName="border" Property="Background" Value="{StaticResource Brush.Accent.Primary}"/>
+                                                                <Setter Property="Foreground" Value="White"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </Grid>
+                        </Border>
+                        
+                        <!-- Modal content area -->
+                        <ContentControl Grid.Row="1" 
+                                       Content="{Binding ModalViewModel}" 
+                                       Margin="15"/>
+                    </Grid>
+                </Border>
+            </Grid>
             
             <!-- Toast notification container - bottom-right corner -->
             <ItemsControl Grid.Row="0" Grid.RowSpan="7" Grid.Column="0" Grid.ColumnSpan="3"

@@ -58,6 +58,8 @@
     <Color x:Key="Border.Subtle">#11000000</Color>
     <Color x:Key="Border.Default">#444444</Color>
     <Color x:Key="Border.Accent">#FF8C00</Color>
+    <Color x:Key="Border.Hover">#666666</Color>
+    <!-- Subtle grey border for hover states -->
     <Color x:Key="Border.Focus">#66B26A00</Color>
     <!-- Orange with transparency -->
     
@@ -109,6 +111,7 @@
     <SolidColorBrush x:Key="Brush.Border.Default" Color="{StaticResource Border.Default}"/>
     <SolidColorBrush x:Key="Brush.Border.Accent" Color="{StaticResource Border.Accent}"/>
     <SolidColorBrush x:Key="Brush.Border.Focus" Color="{StaticResource Border.Focus}"/>
+    <SolidColorBrush x:Key="Brush.Border.Hover" Color="{StaticResource Border.Hover}"/>
     
     <!-- State Brushes -->
     <SolidColorBrush x:Key="Brush.State.Success" Color="{StaticResource State.Success}"/>
@@ -205,6 +208,10 @@
         <Setter Property="FontWeight" Value="{StaticResource FontWeight.Bold}"/>
         <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        <Setter Property="TextOptions.TextRenderingMode" Value="Auto"/>
     </Style>
     
     <Style x:Key="Text.H3" TargetType="TextBlock">
@@ -212,6 +219,10 @@
         <Setter Property="FontWeight" Value="{StaticResource FontWeight.SemiBold}"/>
         <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        <Setter Property="TextOptions.TextRenderingMode" Value="Auto"/>
     </Style>
     
     <!-- Body Styles -->
@@ -220,6 +231,10 @@
         <Setter Property="FontWeight" Value="{StaticResource FontWeight.Regular}"/>
         <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        <Setter Property="TextOptions.TextRenderingMode" Value="Auto"/>
     </Style>
     
     <Style x:Key="Text.Body.Small" TargetType="TextBlock">
@@ -235,6 +250,10 @@
         <Setter Property="FontWeight" Value="{StaticResource FontWeight.Regular}"/>
         <Setter Property="Foreground" Value="{StaticResource Brush.Text.Tertiary}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        <Setter Property="TextOptions.TextRenderingMode" Value="Auto"/>
     </Style>
     
     <Style x:Key="Text.Caption.Small" TargetType="TextBlock">
@@ -307,5 +326,9 @@
     <!-- Measurement Aliases -->
     <sys:Double x:Key="DescTwoLineHeight">48</sys:Double>
     <sys:Double x:Key="SupportPaneHeight">420</sys:Double>
+
+    <!-- Button Style Aliases for Compatibility -->
+    <!-- Add SecondaryButton alias that references the proper Button.Secondary style -->
+    <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource Button.Secondary}" />
 
 </ResourceDictionary>

@@ -8,7 +8,7 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
-using TestCaseEditorApp.Import;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 using TestCaseEditorApp.MVVM.Models;
 using VMVerMethod = TestCaseEditorApp.MVVM.Models.VerificationMethod;
 // Alias Word table to avoid confusion with Spreadsheet types
@@ -33,8 +33,7 @@ namespace TestCaseEditorApp.Services
             {
                 EnsureDocx(path);
 
-                // Use the overload to enable debug dumps for this import only
-                return JamaAllDataDocxParser.Parse(path, debugDump: true);
+                return JamaAllDataDocxParser.Parse(path, debugDump: false);
             }
             catch (NotSupportedException nse)
             {
@@ -162,7 +161,21 @@ namespace TestCaseEditorApp.Services
                             ExtractRequirementInfo(body, candidate, ref i);
 
                             if (!string.IsNullOrEmpty(candidate.Item) || !string.IsNullOrEmpty(candidate.Name))
+                            {
+                                // 🔍 Check for duplicate requirement IDs (ignore name variations for baselines)
+                                var existingReq = requirements.FirstOrDefault(r => 
+                                    !string.IsNullOrEmpty(r.Item) && 
+                                    !string.IsNullOrEmpty(candidate.Item) && 
+                                    r.Item.Equals(candidate.Item, StringComparison.OrdinalIgnoreCase));
+                                    
+                                if (existingReq != null)
+                                {
+                                    // Skip duplicate requirement ID
+                                    continue;
+                                }
+                                
                                 requirements.Add(candidate);
+                            }
 
                             continue;
                         }
@@ -249,6 +262,8 @@ namespace TestCaseEditorApp.Services
             requirement.ConsumedElements.Add(table);
             return true;
         }
+        
+
 
         // Extracts header, description, and metadata only. Defers ALL loose content to AssignLooseContentBetweenRequirements.
         private void ExtractRequirementInfo(Body body, Requirement requirement, ref int index)
@@ -444,6 +459,36 @@ namespace TestCaseEditorApp.Services
         private static bool IsRequirementHeaderText(string text)
         {
             if (string.IsNullOrWhiteSpace(text)) return false;
+            
+            // Enhanced version history filtering
+            // Pattern 1: Baselines with dates
+            if (text.Contains("Baselines:", StringComparison.OrdinalIgnoreCase))
+            {
+                if (System.Text.RegularExpressions.Regex.IsMatch(text, @"\d{1,2}/\d{1,2}/\d{4}|\d{4}-\d{2}-\d{2}"))
+                {
+                    return false; // Skip version history entries
+                }
+            }
+            
+            // Pattern 2: Version numbers like "#1:", "#2:", etc.
+            if (System.Text.RegularExpressions.Regex.IsMatch(text, @"^\s*#\d+\s*:"))
+            {
+                return false; // Skip version history entries
+            }
+            
+            // Pattern 3: Common version history indicators
+            var versionIndicators = new[] { "Version:", "Modified:", "Created:", "Last Modified:", "Baseline:" };
+            if (versionIndicators.Any(indicator => text.Contains(indicator, StringComparison.OrdinalIgnoreCase)))
+            {
+                return false; // Skip version metadata entries
+            }
+            
+            // Pattern 4: Date-only lines that often appear in version history
+            if (System.Text.RegularExpressions.Regex.IsMatch(text, @"^\s*\d{1,2}/\d{1,2}/\d{4}\s*$|^\s*\d{4}-\d{2}-\d{2}\s*$"))
+            {
+                return false; // Skip standalone date entries
+            }
+            
             if (text.Contains("StdTestReq-", StringComparison.OrdinalIgnoreCase)) return true;
             return ReqRcTokenRegex.IsMatch(text);
         }

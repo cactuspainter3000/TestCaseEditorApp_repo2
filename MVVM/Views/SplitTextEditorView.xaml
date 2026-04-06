@@ -1,0 +1,184 @@
+<UserControl x:Class="TestCaseEditorApp.MVVM.Views.SplitTextEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/><!-- Header -->
+            <RowDefinition Height="Auto"/><!-- Instructions -->
+            <RowDefinition Height="2*"/>  <!-- Text Editor -->
+            <RowDefinition Height="Auto"/><!-- Status -->
+            <RowDefinition Height="*"/>   <!-- Preview -->
+            <RowDefinition Height="Auto"/><!-- Buttons -->
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0"
+                Background="{DynamicResource MenuBackground}"
+                BorderBrush="{DynamicResource AccentBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="20,16">
+            <TextBlock Text="Split Text"
+                       Foreground="White"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       HorizontalAlignment="Center"/>
+        </Border>
+
+        <!-- Instructions -->
+        <Border Grid.Row="1"
+                Background="#3C3C3C"
+                BorderBrush="#555555"
+                BorderThickness="0,0,0,1"
+                Padding="20,12">
+            <TextBlock TextWrapping="Wrap" Foreground="#CCCCCC" FontSize="12">
+                <Run Text="Edit the text below. Use"/>
+                <Run Text=" ||| " FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
+                <Run Text="to separate items, or click 'Insert Split' to add a separator."/>
+            </TextBlock>
+        </Border>
+
+        <!-- Text Editor with Insert Split button -->
+        <Grid Grid.Row="2" Margin="20,20,20,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Insert Split button -->
+            <Button Grid.Row="0"
+                    Command="{Binding InsertSplitCommand}"
+                    HorizontalAlignment="Left"
+                    Margin="0,0,0,8"
+                    Padding="12,6"
+                    MinWidth="120">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                        <Setter Property="Content" Value="Insert Split (|||)"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+
+            <!-- Text editor -->
+            <Border Grid.Row="1"
+                    Background="#2D2D30"
+                    BorderBrush="{DynamicResource AccentBrush}"
+                    BorderThickness="1">
+                <TextBox Text="{Binding EditedText, UpdateSourceTrigger=PropertyChanged}"
+                         TextWrapping="Wrap"
+                         AcceptsReturn="True"
+                         VerticalScrollBarVisibility="Auto"
+                         Foreground="White"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         Padding="12"
+                         FontSize="12"
+                         FontFamily="Consolas, Courier New"
+                         MinHeight="150">
+                    <TextBox.Style>
+                        <Style TargetType="TextBox">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="TextBox">
+                                        <ScrollViewer x:Name="PART_ContentHost"
+                                                      Background="{TemplateBinding Background}"
+                                                      BorderThickness="0"
+                                                      IsTabStop="False"
+                                                      VerticalScrollBarVisibility="{TemplateBinding VerticalScrollBarVisibility}"
+                                                      HorizontalScrollBarVisibility="{TemplateBinding HorizontalScrollBarVisibility}"/>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
+            </Border>
+        </Grid>
+
+        <!-- Status Message -->
+        <Border Grid.Row="3"
+                Background="#4A4A4A"
+                Padding="20,8"
+                Margin="20,12,20,0">
+            <TextBlock Text="{Binding StatusMessage}"
+                       Foreground="{DynamicResource AccentBrush}"
+                       FontSize="11"
+                       FontWeight="SemiBold"/>
+        </Border>
+
+        <!-- Preview -->
+        <Grid Grid.Row="4" Margin="20,12,20,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0"
+                       Text="Preview (after split):"
+                       Foreground="{DynamicResource AccentBrush}"
+                       FontWeight="SemiBold"
+                       FontSize="11"
+                       Margin="0,0,0,8"/>
+
+            <Border Grid.Row="1"
+                    Background="#2D2D30"
+                    BorderBrush="#555555"
+                    BorderThickness="1"
+                    MinHeight="80">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding PreviewItems}"
+                                  Padding="8">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#3D3D40"
+                                        BorderBrush="#555555"
+                                        BorderThickness="1"
+                                        Margin="0,2"
+                                        Padding="8">
+                                    <TextBlock Text="{Binding}"
+                                               Foreground="White"
+                                               TextWrapping="Wrap"
+                                               FontSize="11"/>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- Action Buttons -->
+        <Grid Grid.Row="5" Margin="20,20,20,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Split button -->
+            <Button Grid.Column="1"
+                    Command="{Binding SplitCommand}"
+                    Margin="0,0,12,0"
+                    Padding="20,8"
+                    MinWidth="80">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+                        <Setter Property="Content" Value="Split"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+
+            <!-- Cancel button -->
+            <Button Grid.Column="2"
+                    Command="{Binding CancelCommand}"
+                    Padding="16,8"
+                    MinWidth="80">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                        <Setter Property="Content" Value="Cancel"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </Grid>
+    </Grid>
+</UserControl>

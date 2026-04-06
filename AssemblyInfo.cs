@@ -1,4 +1,10 @@
+using System.Reflection;
 using System.Windows;
+
+[assembly: AssemblyTitle("TestCaseEditorApp")]
+[assembly: AssemblyProduct("TestCaseEditorApp")]
+[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.0.0")]
 
 [assembly: ThemeInfo(
     ResourceDictionaryLocation.None,            //where theme specific resource dictionaries are located

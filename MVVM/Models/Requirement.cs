@@ -269,7 +269,8 @@ namespace TestCaseEditorApp.MVVM.Models
                 return $"{Item} — {Name}";
             if (!string.IsNullOrWhiteSpace(Item))
                 return Item;
-            return Name ?? base.ToString();
+            // Name is non-nullable; return it (may be empty string)
+            return Name;
         }
 
     }

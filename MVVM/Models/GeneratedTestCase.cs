@@ -1,11 +1,11 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using TestCaseEditorApp.MVVM.ViewModels;
+using System;
 
 namespace TestCaseEditorApp.MVVM.Models
 {
     public class GeneratedTestCase : ObservableObject
     {
-        private readonly MainViewModel? _mainVm;
+        private readonly Action? _onChanged;
         private bool _isLoading = false;
         private string _title = string.Empty;
         private string _preconditions = string.Empty;
@@ -13,9 +13,9 @@ namespace TestCaseEditorApp.MVVM.Models
         private string _expectedResults = string.Empty;
         private bool _isSelected;
 
-        public GeneratedTestCase(MainViewModel? mainVm = null)
+        public GeneratedTestCase(Action? onChanged = null)
         {
-            _mainVm = mainVm;
+            _onChanged = onChanged;
         }
 
         public string Title
@@ -68,10 +68,10 @@ namespace TestCaseEditorApp.MVVM.Models
 
         private void MarkDirty()
         {
-            if (_mainVm != null && !_isLoading)
+            if (_onChanged != null && !_isLoading)
             {
-                _mainVm.IsDirty = true;
-                TestCaseEditorApp.Services.Logging.Log.Debug("[TestCase] Property changed - marked workspace dirty");
+                _onChanged();
+                TestCaseEditorApp.Services.Logging.Log.Debug("[TestCase] Property changed - marked workspace dirty via delegate");
             }
         }
 

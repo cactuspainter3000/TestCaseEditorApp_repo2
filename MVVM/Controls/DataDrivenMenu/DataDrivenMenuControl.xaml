@@ -1,0 +1,177 @@
+<UserControl x:Class="TestCaseEditorApp.MVVM.Controls.DataDrivenMenu.DataDrivenMenuControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:TestCaseEditorApp.MVVM.Controls.DataDrivenMenu"
+             xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models.DataDrivenMenu"
+             xmlns:controls="clr-namespace:TestCaseEditorApp.MVVM.Controls"
+             xmlns:conv="clr-namespace:TestCaseEditorApp.Converters">
+    
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="MenuContentTemplates.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            
+            <!-- Local converter registration -->
+            <conv:EmptyStringToCollapsedConverter x:Key="EmptyStringToCollapsedConverter" />
+            
+            <!-- Template Selector with template assignments (after templates are loaded) -->
+            <local:MenuContentTemplateSelector x:Key="MenuContentTemplateSelector"
+                                              MenuActionTemplate="{StaticResource MenuActionTemplate}"
+                                              SectionHeaderTemplate="{StaticResource SectionHeaderTemplate}"
+                                              ConditionalGroupTemplate="{StaticResource ConditionalGroupTemplate}"
+                                              ComplexActionTemplate="{StaticResource ComplexActionTemplate}"/>
+            
+            <!-- Main Section Animation Storyboards - exact timing from analysis -->
+            <Storyboard x:Key="ExpandAnimation">
+                <!-- ScaleY expand: 0.35s with AccelDecel easing -->
+                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
+                               To="1" Duration="0:0:0.35"
+                               AccelerationRatio="0.15" DecelerationRatio="0.85"/>
+                <!-- Opacity expand: 0.25s with AccelDecel easing -->
+                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                               To="1" Duration="0:0:0.25"
+                               AccelerationRatio="0.15" DecelerationRatio="0.85"/>
+            </Storyboard>
+            
+            <Storyboard x:Key="CollapseAnimation">
+                <!-- ScaleY collapse: 0.30s with AccelDecel easing -->
+                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
+                               To="0" Duration="0:0:0.30"
+                               AccelerationRatio="0.15" DecelerationRatio="0.85"/>
+                <!-- Opacity collapse: 0.20s with AccelDecel easing -->
+                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                               To="0" Duration="0:0:0.20"
+                               AccelerationRatio="0.15" DecelerationRatio="0.85"/>
+            </Storyboard>
+            
+            <!-- Sub-Items Animation Storyboards - exact timing from analysis -->
+            <Storyboard x:Key="SubItemsExpandAnimation">
+                <!-- MaxHeight expand: 0.4s -->
+                <DoubleAnimation Storyboard.TargetProperty="MaxHeight"
+                               To="2000" Duration="0:0:0.4"/>
+                <!-- ScaleY expand: 0.4s -->
+                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
+                               To="1" Duration="0:0:0.4"/>
+                <!-- Opacity expand: 0.35s -->
+                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                               To="1" Duration="0:0:0.35"/>
+            </Storyboard>
+            
+            <Storyboard x:Key="SubItemsCollapseAnimation">
+                <!-- MaxHeight collapse: 0.35s -->
+                <DoubleAnimation Storyboard.TargetProperty="MaxHeight"
+                               To="0" Duration="0:0:0.35"/>
+                <!-- ScaleY collapse: 0.35s -->
+                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
+                               To="0" Duration="0:0:0.35"/>
+                <!-- Opacity collapse: 0.3s -->
+                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                               To="0" Duration="0:0:0.3"/>
+            </Storyboard>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <!-- Reusable section renderer - takes any MenuSection and renders it properly -->
+    <Border Background="Transparent">
+        <StackPanel DataContext="{Binding MenuSection, RelativeSource={RelativeSource AncestorType=local:DataDrivenMenuControl}}">
+            
+            <!-- Section Header - data-driven with MenuSection properties -->
+            <ToggleButton x:Name="SectionToggle"
+                          Style="{StaticResource ActionToggleButton}"
+                          HorizontalAlignment="Stretch"
+                          Cursor="Hand"
+                          Margin="0,6,0,0"
+                          IsChecked="{Binding IsExpanded, Mode=TwoWay}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>  <!-- Icon -->
+                        <ColumnDefinition Width="*"/>     <!-- Text -->
+                        <ColumnDefinition Width="Auto"/>  <!-- Chevron -->
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- Dynamic Icon (if provided) -->
+                    <TextBlock Grid.Column="0"
+                              Text="{Binding HeaderIcon}" 
+                              FontSize="16" 
+                              Margin="0,0,8,0"
+                              VerticalAlignment="Center"
+                              Visibility="{Binding HeaderIcon, Converter={StaticResource EmptyStringToCollapsedConverter}}"/>
+                              
+                    <!-- Dynamic Header Text -->
+                    <TextBlock Grid.Column="1" 
+                              Text="{Binding HeaderText}" 
+                              FontSize="16" 
+                              FontWeight="Normal" 
+                              HorizontalAlignment="Left" />
+                              
+                    <!-- Animated Chevron -->
+                    <controls:AnimatedChevron Grid.Column="2" 
+                                             IsExpanded="{Binding IsChecked, ElementName=SectionToggle}"/>
+                </Grid>
+            </ToggleButton>
+
+            <!-- Expandable Content Area - reusable animation pattern -->
+            <Border Margin="0,4,0,0" 
+                   Padding="0" 
+                   Background="Transparent" 
+                   ClipToBounds="True">
+                <Border.LayoutTransform>
+                    <ScaleTransform ScaleY="0" />
+                </Border.LayoutTransform>
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Opacity" Value="0" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsChecked, ElementName=SectionToggle}" Value="True">
+                                <DataTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <!-- Exact animation timing from original -->
+                                            <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
+                                                           To="1" Duration="0:0:0.35" 
+                                                           AccelerationRatio="0.15" DecelerationRatio="0.85"/>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" 
+                                                           To="1" Duration="0:0:0.25" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.EnterActions>
+                                <DataTrigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="LayoutTransform.ScaleY" 
+                                                           To="0" Duration="0:0:0.30" 
+                                                           AccelerationRatio="0.15" DecelerationRatio="0.85"/>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" 
+                                                           To="0" Duration="0:0:0.20" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.ExitActions>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                
+                <!-- Data-driven content - renders items using template system -->
+                <ItemsControl ItemsSource="{Binding Items}"
+                              ItemTemplateSelector="{StaticResource MenuContentTemplateSelector}"
+                              Margin="8,4">
+                    
+                    <!-- Standard layout -->
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Vertical"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    
+                    <!-- Ensure proper stretching -->
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                </ItemsControl>
+            </Border>
+        </StackPanel>
+    </Border>
+</UserControl>

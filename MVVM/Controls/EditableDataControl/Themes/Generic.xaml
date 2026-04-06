@@ -51,28 +51,137 @@
                     <Border Background="{DynamicResource HeaderBackground}" BorderBrush="#555555" BorderThickness="0,0,1,0" Padding="0">
                         <Border BorderBrush="{DynamicResource AccentBrush}" BorderThickness="0,0,0,2" Padding="4">
                         <Grid DataContext="{Binding Column.Header, RelativeSource={RelativeSource AncestorType=DataGridColumnHeader}}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
 
-                            <TextBox Grid.Column="0"
+                            <!-- Column name text box at the top -->
+                            <TextBox Grid.Row="0"
                                      Text="{Binding Header, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                      Background="#2D2D30" Foreground="White"
-                                     BorderThickness="0" HorizontalAlignment="Stretch" Margin="0,0,8,0"
-                                     VerticalAlignment="Center"/>
+                                     BorderThickness="0" HorizontalAlignment="Stretch"
+                                     VerticalAlignment="Center" Margin="0,2,0,4"/>
 
-                            <StackPanel Grid.Column="1" Orientation="Horizontal"
-                                        HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <!-- Action buttons below the text box -->
+                            <StackPanel Grid.Row="1" Orientation="Horizontal"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                                        Margin="0,0,0,2">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Header}" Value="">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Header}" Value="{x:Null}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
                                 <Button Content="◄"
                                         Command="{Binding DataContext.MoveColumnLeftCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                        CommandParameter="{Binding}" FontSize="11" Margin="0,0,4,0"/>
+                                        CommandParameter="{Binding}" FontSize="11" Margin="0,0,4,0"
+                                        Padding="6,3"
+                                        Background="{DynamicResource MenuBackground}"
+                                        Foreground="White"
+                                        BorderBrush="#555555"
+                                        BorderThickness="1">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}"
+                                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                                CornerRadius="3"
+                                                                Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Foreground" Value="DarkOrange"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsPressed" Value="True">
+                                                                <Setter Property="Foreground" Value="#CC6600"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
                                 <Button Content="►"
                                         Command="{Binding DataContext.MoveColumnRightCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                        CommandParameter="{Binding}" FontSize="11" Margin="0,0,4,0"/>
+                                        CommandParameter="{Binding}" FontSize="11" Margin="0,0,4,0"
+                                        Padding="6,3"
+                                        Background="{DynamicResource MenuBackground}"
+                                        Foreground="White"
+                                        BorderBrush="#555555"
+                                        BorderThickness="1">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}"
+                                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                                CornerRadius="3"
+                                                                Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Foreground" Value="DarkOrange"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsPressed" Value="True">
+                                                                <Setter Property="Foreground" Value="#CC6600"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
                                 <Button Content="Delete"
                                         Command="{Binding DataContext.DeleteColumnCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                        CommandParameter="{Binding}" FontSize="11"/>
+                                        CommandParameter="{Binding}" FontSize="11"
+                                        Padding="6,3"
+                                        Background="{DynamicResource MenuBackground}"
+                                        Foreground="White"
+                                        BorderBrush="#555555"
+                                        BorderThickness="1">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}"
+                                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                                CornerRadius="3"
+                                                                Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Foreground" Value="DarkOrange"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsPressed" Value="True">
+                                                                <Setter Property="Foreground" Value="#CC6600"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
                             </StackPanel>
                         </Grid>
                         </Border>
@@ -89,83 +198,53 @@
                 <ControlTemplate TargetType="{x:Type local:EditableDataControl}">
                     <Border x:Name="PART_Border"
                             Padding="12"
+                            UseLayoutRounding="True"
+                            SnapsToDevicePixels="True"
+                            TextOptions.TextRenderingMode="ClearType"
+                            TextOptions.TextFormattingMode="Display"
                             DataContext="{Binding EditorViewModel, RelativeSource={RelativeSource TemplatedParent}}">
                         <DockPanel>
 
                             <!-- Toolbar -->
-                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" VerticalAlignment="Center" Margin="0,0,0,8">
-                                <TextBlock Text="Title:" Foreground="White" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                <TextBox Width="320" Text="{Binding Title, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <TextBlock Grid.Column="0" Text="Title:" Foreground="White" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBox Grid.Column="1" Width="320" Text="{Binding Title, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                          Background="{DynamicResource MenuBackground}" Foreground="White" 
-                                         BorderBrush="{DynamicResource AccentBrush}" BorderThickness="0,0,0,2" Padding="8,4"/>
-                                <Separator Margin="12,0,12,0" Background="#555555"/>
-                                <Button Content="Add Column" Command="{Binding AddColumnCommand}" Margin="0,0,8,0"
-                                        Padding="10,5">
-                                    <Button.Style>
-                                        <Style TargetType="Button">
-                                            <Setter Property="Background" Value="{DynamicResource MenuHover}"/>
-                                            <Setter Property="Foreground" Value="White"/>
-                                            <Setter Property="BorderBrush" Value="#555555"/>
-                                            <Setter Property="BorderThickness" Value="1"/>
-                                            <Setter Property="Template">
-                                                <Setter.Value>
-                                                    <ControlTemplate TargetType="Button">
-                                                        <Border Background="{TemplateBinding Background}"
-                                                                BorderBrush="{TemplateBinding BorderBrush}"
-                                                                BorderThickness="{TemplateBinding BorderThickness}"
-                                                                CornerRadius="4"
-                                                                Padding="{TemplateBinding Padding}">
-                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                        </Border>
-                                                    </ControlTemplate>
-                                                </Setter.Value>
-                                            </Setter>
-                                            <Style.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter Property="Background" Value="{DynamicResource MenuBackground}"/>
-                                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-                                                </Trigger>
-                                                <Trigger Property="IsPressed" Value="True">
-                                                    <Setter Property="Background" Value="{DynamicResource HeaderBackground}"/>
-                                                </Trigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                </Button>
-                                <Button Content="Add Row" Command="{Binding AddRowCommand}"
-                                        Padding="10,5">
-                                    <Button.Style>
-                                        <Style TargetType="Button">
-                                            <Setter Property="Background" Value="{DynamicResource MenuHover}"/>
-                                            <Setter Property="Foreground" Value="White"/>
-                                            <Setter Property="BorderBrush" Value="#555555"/>
-                                            <Setter Property="BorderThickness" Value="1"/>
-                                            <Setter Property="Template">
-                                                <Setter.Value>
-                                                    <ControlTemplate TargetType="Button">
-                                                        <Border Background="{TemplateBinding Background}"
-                                                                BorderBrush="{TemplateBinding BorderBrush}"
-                                                                BorderThickness="{TemplateBinding BorderThickness}"
-                                                                CornerRadius="4"
-                                                                Padding="{TemplateBinding Padding}">
-                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                        </Border>
-                                                    </ControlTemplate>
-                                                </Setter.Value>
-                                            </Setter>
-                                            <Style.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter Property="Background" Value="{DynamicResource MenuBackground}"/>
-                                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-                                                </Trigger>
-                                                <Trigger Property="IsPressed" Value="True">
-                                                    <Setter Property="Background" Value="{DynamicResource HeaderBackground}"/>
-                                                </Trigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                </Button>
-                            </StackPanel>
+                                         BorderBrush="{DynamicResource AccentBrush}" BorderThickness="0,0,0,2" Padding="8,4" Margin="0,0,16,0"/>
+                                
+                                <!-- Add Column/Row buttons on the left -->
+                                <Button Grid.Column="2" Content="Add Column" Command="{Binding AddColumnCommand}" Margin="0,0,8,0"
+                                        Style="{StaticResource PillActionButtonStyle}"
+                                        Padding="10,4"/>
+                                <Button Grid.Column="3" Content="Add Row" Command="{Binding AddRowCommand}" Margin="0,0,16,0"
+                                        Style="{StaticResource PillActionButtonStyle}"
+                                        Padding="10,4"/>
+                                
+                                <!-- Spacer column 4 takes remaining space -->
+                                
+                                <!-- Save/Cancel buttons on the right -->
+                                <!-- Bind to the host VM (LooseTableViewModel) via TemplatedParent.DataContext -->
+                                <Button Grid.Column="5" Content="Save" 
+                                    Command="{Binding DataContext.SaveTableCommand, RelativeSource={RelativeSource TemplatedParent}}" 
+                                    Style="{StaticResource PillActionButtonStyle}"
+                                    Margin="0,0,8,0" 
+                                    Padding="10,4"/>
+                                <Button Grid.Column="6" Content="Cancel" 
+                                    Command="{Binding DataContext.CancelEditCommand, RelativeSource={RelativeSource TemplatedParent}}" 
+                                    Style="{StaticResource PillActionButtonStyle}"
+                                    Margin="0,0,0,0" 
+                                    Padding="10,4"/>
+                            </Grid>
 
                             <!-- Main grid -->
                             <Grid>
@@ -196,6 +275,10 @@
                                           AlternatingRowBackground="{DynamicResource MenuBackground}"
                                           BorderBrush="#555555"
                                           ColumnHeaderStyle="{StaticResource EditorHeaderCard}"
+                                          UseLayoutRounding="True"
+                                          SnapsToDevicePixels="True"
+                                          TextOptions.TextRenderingMode="ClearType"
+                                          TextOptions.TextFormattingMode="Display"
                                           local:DebugCellMenu.Enable="True"
                                           local:DebugColumnMenu.EnableHeader="True"
                                           local:EditorGridColumnBuilder.ColumnsSource="{Binding Columns}"

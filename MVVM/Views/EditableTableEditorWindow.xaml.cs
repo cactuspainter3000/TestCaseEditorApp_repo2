@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Windows;
+using System.Windows.Input;
 using AppColumn = EditableDataControl.ViewModels.ColumnDefinitionModel;
 // app-side types:
 using AppProvider = TestCaseEditorApp.MVVM.ViewModels.ITableViewProvider;
@@ -173,6 +174,20 @@ namespace TestCaseEditorApp.MVVM.Views
             Close();
         }
 
+        private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                DragMove();
+            }
+        }
+
+        private void Close_Click(object sender, RoutedEventArgs e)
+        {
+            DialogResult = false;
+            Close();
+        }
+
         // Helper: read/write your app row without assuming an indexer
         private static string TryGetCellValue(AppRow appRow, string key)
         {
@@ -205,7 +220,7 @@ namespace TestCaseEditorApp.MVVM.Views
             var cells = cellsProp?.GetValue(appRow) as System.Collections.IList;
             if (cells != null)
             {
-                object found = null;
+                object? found = null;
                 foreach (var cell in cells)
                 {
                     var k = cell.GetType().GetProperty("Key")?.GetValue(cell)?.ToString();
