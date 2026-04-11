@@ -15,12 +15,16 @@
 
 	<!-- Exclude test projects and runner/tests folder from SDK wildcard includes -->
 	<ItemGroup>
+		<Compile Remove="Copilot-TesetCaseEditorApp\**" />
 		<Compile Remove="Tests\**\*.cs" />
 		<Compile Remove="RegexTester\**\*.cs" />
+		<None Remove="Copilot-TesetCaseEditorApp\**" />
 		<None Remove="Tests\**\*" />
 		<None Remove="RegexTester\**\*" />
 		<Content Remove="Tests\**\*" />
 		<Content Remove="RegexTester\**\*" />
+		<EmbeddedResource Remove="Copilot-TesetCaseEditorApp\**" />
+		<Page Remove="Copilot-TesetCaseEditorApp\**" />
 	</ItemGroup>
 
 	<!-- Include specific test files conditionally -->
@@ -89,11 +93,7 @@
 		<PropertyGroup>
 			<DepsJsonPath>$(OutputPath)$(AssemblyName).deps.json</DepsJsonPath>
 		</PropertyGroup>
-		<WriteLinesToFile 
-			File="$(DepsJsonPath)" 
-			Lines='{ "runtimeTarget": { "name": ".NETCoreApp,Version=v8.0" }, "compilationOptions": {}, "targets": { ".NETCoreApp,Version=v8.0": {} }, "libraries": {} }' 
-			Overwrite="true" 
-			Condition="!Exists('$(DepsJsonPath)')" />
+		<WriteLinesToFile File="$(DepsJsonPath)" Lines="{ &quot;runtimeTarget&quot;: { &quot;name&quot;: &quot;.NETCoreApp,Version=v8.0&quot; }, &quot;compilationOptions&quot;: {}, &quot;targets&quot;: { &quot;.NETCoreApp,Version=v8.0&quot;: {} }, &quot;libraries&quot;: {} }" Overwrite="true" Condition="!Exists('$(DepsJsonPath)')" />
 		<Message Text="Created deps.json for test compatibility at $(DepsJsonPath)" Importance="high" />
 	</Target>
 
@@ -102,10 +102,7 @@
 		<PropertyGroup>
 			<DepsJsonPath>$(OutputPath)$(AssemblyName).deps.json</DepsJsonPath>
 		</PropertyGroup>
-		<WriteLinesToFile 
-			File="$(DepsJsonPath)" 
-			Lines='{ "runtimeTarget": { "name": ".NETCoreApp,Version=v8.0" }, "compilationOptions": {}, "targets": { ".NETCoreApp,Version=v8.0": {} }, "libraries": {} }' 
-			Overwrite="true" />
+		<WriteLinesToFile File="$(DepsJsonPath)" Lines="{ &quot;runtimeTarget&quot;: { &quot;name&quot;: &quot;.NETCoreApp,Version=v8.0&quot; }, &quot;compilationOptions&quot;: {}, &quot;targets&quot;: { &quot;.NETCoreApp,Version=v8.0&quot;: {} }, &quot;libraries&quot;: {} }" Overwrite="true" />
 		<Message Text="Ensured deps.json exists at $(DepsJsonPath)" Importance="high" />
 	</Target>
 
