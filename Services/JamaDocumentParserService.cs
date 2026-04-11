@@ -21,6 +21,14 @@ using iText.Kernel.Pdf.Canvas.Parser.Listener;
 
 namespace TestCaseEditorApp.Services
 {
+    public enum PreWarmResult
+    {
+        Success,
+        TimedOut,
+        Cancelled,
+        OllamaUnavailable,
+        NonRecoverableApplicationError
+    }
     /// <summary>
     /// Service for parsing Jama attachments (PDFs, Word, Excel) using AnythingLLM
     /// Extracts requirements and metadata from source documents
@@ -2154,74 +2162,167 @@ Extract all legitimate requirements:";
                 if (currentStatus == OllamaModelStatus.Loaded)
                 {
                     progressCallback?.Invoke("✅ Model already loaded - verifying (45s max)...");
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Model already loaded - quick responsiveness check (45s timeout)");
-                    
-                    var testSuccess = await PreWarmOllamaModelAsync(cancellationToken);
-                    if (testSuccess)
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        "[JamaDocumentParser] Model already loaded - quick responsiveness check (45s timeout)");
+
+                    var testResult = await PreWarmOllamaModelAsync(cancellationToken);
+
+                    switch (testResult)
                     {
-                        progressCallback?.Invoke("✅ Model responsive and ready");
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Model already loaded and responsive - no restart needed");
-                        return true;
+                        case PreWarmResult.Success:
+                            progressCallback?.Invoke("✅ Model responsive and ready");
+                            TestCaseEditorApp.Services.Logging.Log.Info(
+                                "[JamaDocumentParser] ✅ Model already loaded and responsive - no restart needed");
+                            return true;
+
+                        case PreWarmResult.TimedOut:
+                        case PreWarmResult.OllamaUnavailable:
+                            progressCallback?.Invoke("⚠️ Model loaded but not responding - restarting...");
+                            TestCaseEditorApp.Services.Logging.Log.Warn(
+                                $"[JamaDocumentParser] Loaded model returned {testResult} - restart needed");
+                            break;
+
+                        case PreWarmResult.NonRecoverableApplicationError:
+                            progressCallback?.Invoke("⚠️ Pre-check failed, but restart is not needed");
+                            TestCaseEditorApp.Services.Logging.Log.Warn(
+                                "[JamaDocumentParser] Loaded model pre-check failed due to non-recoverable application error - skipping restart");
+                            return true;
+
+                        case PreWarmResult.Cancelled:
+                            TestCaseEditorApp.Services.Logging.Log.Info(
+                                "[JamaDocumentParser] Pre-warming cancelled");
+                            return true;
                     }
-                    
-                    // Model stuck despite being loaded - restart needed
-                    progressCallback?.Invoke("⚠️ Model loaded but not responding - restarting...");
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Model loaded but not responsive - restarting Ollama");
                 }
-                // If model not loaded, try to pre-warm (will load model)
+                // If model not loaded, try to pre-warm first
                 else if (currentStatus == OllamaModelStatus.NotLoaded)
                 {
                     progressCallback?.Invoke("🔥 Initializing AI model (checking readiness)...");
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Model not loaded - attempting quick pre-warm (45s timeout)");
-                    
-                    var preWarmSuccess = await PreWarmOllamaModelAsync(cancellationToken);
-                    if (preWarmSuccess)
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        "[JamaDocumentParser] Model not loaded - attempting quick pre-warm (45s timeout)");
+
+                    var preWarmResult = await PreWarmOllamaModelAsync(cancellationToken);
+
+                    switch (preWarmResult)
                     {
-                        progressCallback?.Invoke("✅ AI model ready");
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Model pre-warmed successfully");
-                        return true;
+                        case PreWarmResult.Success:
+                            progressCallback?.Invoke("✅ AI model ready");
+                            TestCaseEditorApp.Services.Logging.Log.Info(
+                                "[JamaDocumentParser] ✅ Model pre-warmed successfully");
+                            return true;
+
+                        case PreWarmResult.TimedOut:
+                        case PreWarmResult.OllamaUnavailable:
+                            progressCallback?.Invoke("⚠️ Model not responding - restarting service...");
+                            TestCaseEditorApp.Services.Logging.Log.Warn(
+                                $"[JamaDocumentParser] Pre-warm returned {preWarmResult} - restart needed");
+                            break;
+
+                        case PreWarmResult.NonRecoverableApplicationError:
+                            progressCallback?.Invoke("⚠️ Pre-check failed, but restart is not needed");
+                            TestCaseEditorApp.Services.Logging.Log.Warn(
+                                "[JamaDocumentParser] Skipping restart because pre-warm failure was not an Ollama health issue");
+                            return true;
+
+                        case PreWarmResult.Cancelled:
+                            TestCaseEditorApp.Services.Logging.Log.Info(
+                                "[JamaDocumentParser] Pre-warming cancelled");
+                            return true;
                     }
-                    
-                    // Pre-warm failed - restart and try again
-                    progressCallback?.Invoke("⚠️ Model not responding - restarting service (~5s)...");
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Pre-warm failed or timed out - restarting Ollama");
                 }
                 else
                 {
-                    // Status is Unknown or Loading - something's wrong, restart
-                    progressCallback?.Invoke($"⚠️ Ollama status {currentStatus} - restarting...");
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Ollama status {currentStatus} - restarting for clean state");
+                    // Status is Unknown or Loading - do not automatically restart without a real health check
+                    progressCallback?.Invoke($"🔎 Ollama status {currentStatus} - verifying readiness...");
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        $"[JamaDocumentParser] Ollama status {currentStatus} - running readiness check before deciding on restart");
+
+                    var preWarmResult = await PreWarmOllamaModelAsync(cancellationToken);
+
+                    switch (preWarmResult)
+                    {
+                        case PreWarmResult.Success:
+                            progressCallback?.Invoke("✅ AI model ready");
+                            TestCaseEditorApp.Services.Logging.Log.Info(
+                                "[JamaDocumentParser] ✅ Model responsive despite ambiguous status - no restart needed");
+                            return true;
+
+                        case PreWarmResult.TimedOut:
+                        case PreWarmResult.OllamaUnavailable:
+                            progressCallback?.Invoke("⚠️ Model not responding - restarting service...");
+                            TestCaseEditorApp.Services.Logging.Log.Warn(
+                                $"[JamaDocumentParser] Readiness check returned {preWarmResult} - restart needed");
+                            break;
+
+                        case PreWarmResult.NonRecoverableApplicationError:
+                            progressCallback?.Invoke("⚠️ Pre-check failed, but restart is not needed");
+                            TestCaseEditorApp.Services.Logging.Log.Warn(
+                                "[JamaDocumentParser] Skipping restart because ambiguous-status failure was not an Ollama health issue");
+                            return true;
+
+                        case PreWarmResult.Cancelled:
+                            TestCaseEditorApp.Services.Logging.Log.Info(
+                                "[JamaDocumentParser] Pre-warming cancelled");
+                            return true;
+                    }
                 }
 
-                // Restart Ollama and try pre-warming
+                // Restart only for recoverable Ollama-health cases
                 if (_ollamaProcessManager != null)
                 {
                     await _ollamaProcessManager.RestartOllamaAsync(cancellationToken);
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Ollama restarted successfully");
-                    
-                    progressCallback?.Invoke("� Service restarted - verifying readiness...");
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        "[JamaDocumentParser] ✅ Ollama restarted successfully");
+
+                    progressCallback?.Invoke("🔄 Service restarted - verifying readiness...");
+
                     var finalPreWarm = await PreWarmOllamaModelAsync(cancellationToken);
-                    
-                    if (!finalPreWarm)
+
+                    switch (finalPreWarm)
                     {
-                        progressCallback?.Invoke("⚠️ Model still not ready - will retry during extraction");
-                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Pre-warming after restart failed - extraction will use retry logic");
-                    }
-                    else
-                    {
-                        progressCallback?.Invoke("✅ AI model ready after restart");
+                        case PreWarmResult.Success:
+                            progressCallback?.Invoke("✅ AI model ready after restart");
+                            TestCaseEditorApp.Services.Logging.Log.Info(
+                                "[JamaDocumentParser] ✅ Model ready after restart");
+                            break;
+
+                        case PreWarmResult.TimedOut:
+                        case PreWarmResult.OllamaUnavailable:
+                            progressCallback?.Invoke("⚠️ Model still not ready - will retry during extraction");
+                            TestCaseEditorApp.Services.Logging.Log.Warn(
+                                $"[JamaDocumentParser] Pre-warming after restart returned {finalPreWarm} - extraction will use retry logic");
+                            break;
+
+                        case PreWarmResult.NonRecoverableApplicationError:
+                            progressCallback?.Invoke("⚠️ Post-restart pre-check failed, but restart is not needed");
+                            TestCaseEditorApp.Services.Logging.Log.Warn(
+                                "[JamaDocumentParser] Post-restart pre-warm failed due to non-recoverable application error");
+                            break;
+
+                        case PreWarmResult.Cancelled:
+                            TestCaseEditorApp.Services.Logging.Log.Info(
+                                "[JamaDocumentParser] Pre-warming cancelled after restart");
+                            break;
                     }
                 }
                 else
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] IOllamaProcessManager not available - cannot restart");
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        "[JamaDocumentParser] IOllamaProcessManager not available - cannot restart");
                 }
-                
+
                 return true; // Always return true - let extraction handle failures with retry logic
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    "[JamaDocumentParser] Ollama connection test cancelled by caller");
+                return false;
             }
             catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Failed in Ollama connection test: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Error(
+                    $"[JamaDocumentParser] Failed in Ollama connection test: {ex.Message}");
                 return false; // Only return false if entire test process failed
             }
         }
@@ -2231,42 +2332,80 @@ Extract all legitimate requirements:";
         /// This loads the model into memory. Should complete in ~45 seconds on clean Ollama instance.
         /// Returns true if successful, false if failed (extraction can still proceed with retry logic)
         /// </summary>
-        private async Task<bool> PreWarmOllamaModelAsync(CancellationToken cancellationToken)
+        private async Task<PreWarmResult> PreWarmOllamaModelAsync(CancellationToken cancellationToken)
         {
             try
             {
-                if (_textGenerationService == null) 
+                if (_textGenerationService == null)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Text generation service not available for pre-warming");
-                    return false;
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        "[JamaDocumentParser] Text generation service not available for pre-warming");
+                    return PreWarmResult.NonRecoverableApplicationError;
                 }
-                
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Pre-warming Ollama model...");
-                
-                // Make a simple generation request to load the model
-                // Use 45s timeout to allow time for large models to load (phi4-mini is 2.5GB)
-                // Pre-warm is optional - extraction continues with retry logic if it fails
-                var warmupPrompt = "Test"; 
-                
+
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    "[JamaDocumentParser] Pre-warming Ollama model...");
+
+                // Make a simple generation request to encourage model load/readiness.
+                // Use a 45s timeout to allow time for larger models to load.
+                var warmupPrompt = "Test";
+
                 using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(45));
-                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
-                
-                var response = await _textGenerationService.GenerateAsync(warmupPrompt, linkedCts.Token);
-                
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Model pre-warmed successfully - ready for extraction");
-                return true;
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+                    cancellationToken, timeoutCts.Token);
+
+                _ = await _textGenerationService.GenerateAsync(warmupPrompt, linkedCts.Token);
+
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    "[JamaDocumentParser] ✅ Model pre-warmed successfully - ready for extraction");
+
+                return PreWarmResult.Success;
             }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                // Pre-warming timed out - log warning but don't throw (extraction will retry)
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] ⚠️ Model pre-warming timed out after 45 seconds - model likely stuck, will restart");
-                return false;
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    "[JamaDocumentParser] Pre-warming cancelled by caller");
+
+                return PreWarmResult.Cancelled;
+            }
+            catch (OperationCanceledException)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn(
+                    "[JamaDocumentParser] ⚠️ Model pre-warming timed out after 45 seconds");
+
+                return PreWarmResult.TimedOut;
+            }
+            catch (TimeoutException ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn(
+                    $"[JamaDocumentParser] Timeout during pre-warm: {ex.Message}");
+
+                return PreWarmResult.TimedOut;
+            }
+            catch (HttpRequestException ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn(
+                    $"[JamaDocumentParser] HTTP connectivity failure during pre-warm: {ex.Message}");
+
+                // Important:
+                // This pre-warm path may run through AnythingLLM or other intermediaries,
+                // so an HTTP failure here is not reliable proof that Ollama itself is unavailable.
+                return PreWarmResult.NonRecoverableApplicationError;
+            }
+            catch (InvalidOperationException ex) when (
+                ex.Message.Contains("Properties can only be modified before sending the first request.", StringComparison.OrdinalIgnoreCase))
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn(
+                    $"[JamaDocumentParser] Pre-warming failed due to shared HttpClient mutation bug: {ex.Message}");
+
+                return PreWarmResult.NonRecoverableApplicationError;
             }
             catch (Exception ex)
             {
-                // Pre-warming failed - log warning but don't throw (extraction will retry)
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Model pre-warming failed: {ex.Message} - extraction will proceed with retry logic");
-                return false;
+                TestCaseEditorApp.Services.Logging.Log.Warn(
+                    $"[JamaDocumentParser] Pre-warming failed due to non-Ollama application error: {ex.Message}");
+
+                return PreWarmResult.NonRecoverableApplicationError;
             }
         }
 

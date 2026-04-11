@@ -32,22 +32,30 @@ namespace TestCaseEditorApp.Services
         {
             try
             {
-                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLMTextGen] Sending prompt to AnythingLLM workspace '{_workspaceSlug}' (prompt length: {prompt.Length})");
-                
-                // Use 3-minute timeout for document parsing (can be long)
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    $"[AnythingLLMTextGen] Sending prompt to AnythingLLM workspace '{_workspaceSlug}' (prompt length: {prompt.Length})");
+
                 var response = await _anythingLlmService.SendChatMessageAsync(
-                    _workspaceSlug, 
-                    prompt, 
-                    TimeSpan.FromMinutes(3), 
+                    _workspaceSlug,
+                    prompt,
+                    TimeSpan.FromMinutes(3),
                     ct);
-                
-                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLMTextGen] Received response from AnythingLLM (length: {response?.Length ?? 0})");
-                
-                return response ?? string.Empty;
+
+                if (string.IsNullOrWhiteSpace(response))
+                {
+                    throw new InvalidOperationException(
+                        $"AnythingLLM returned an empty response for workspace '{_workspaceSlug}'.");
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    $"[AnythingLLMTextGen] Received response from AnythingLLM (length: {response.Length})");
+
+                return response;
             }
             catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLMTextGen] Failed to generate via AnythingLLM: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Error(
+                    $"[AnythingLLMTextGen] Failed to generate via AnythingLLM: {ex.Message}");
                 throw;
             }
         }

@@ -363,6 +363,23 @@ namespace TestCaseEditorApp.Services
             return (false, null);
         }
 
+        public async Task<string?> SendChatMessageAsync(
+            string workspaceSlug,
+            string message,
+            TimeSpan timeout,
+            CancellationToken cancellationToken = default)
+        {
+            using var timeoutCts = new CancellationTokenSource(timeout);
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                timeoutCts.Token);
+
+            TestCaseEditorApp.Services.Logging.Log.Info(
+                $"[AnythingLLM] Using per-request timeout: {timeout.TotalMinutes:F1} minutes");
+
+            return await SendChatMessageAsync(workspaceSlug, message, linkedCts.Token);
+        }
+
         /// <summary>
         /// Checks if the AnythingLLM service is properly configured with an API key
         /// </summary>
@@ -2218,7 +2235,15 @@ Your task: Extract technical requirements from the provided document content wit
         /// <summary>
         /// Sends a chat message to a workspace
         /// </summary>
-        public async Task<string?> SendChatMessageAsync(string workspaceSlug, string message, CancellationToken cancellationToken = default)
+        /// 
+
+        /// <summary>
+        /// Send a chat message to a workspace with custom timeout (overload for operations like recovery that need shorter timeouts)
+        /// </summary>
+        public async Task<string?> SendChatMessageAsync(
+            string workspaceSlug,
+            string message,
+            CancellationToken cancellationToken = default)
         {
             int retryCount = 0;
             int delayMs = INITIAL_RETRY_DELAY_MS;
@@ -2234,73 +2259,109 @@ Your task: Extract technical requirements from the provided document content wit
                     };
 
                     var json = JsonSerializer.Serialize(payload);
-                    var content = new StringContent(json, Encoding.UTF8, "application/json");
-                    
+
+                    using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
                     OnStatusUpdated($"[Attempt {retryCount + 1}/{MAX_RETRY_ATTEMPTS + 1}] Sending request to LLM...");
-                    
-                    var response = await _httpClient.PostAsync($"{_baseUrl}/api/v1/workspace/{workspaceSlug}/chat", content, cancellationToken);
-                    
+
+                    using var response = await _httpClient.PostAsync(
+                        $"{_baseUrl}/api/v1/workspace/{workspaceSlug}/chat",
+                        content,
+                        cancellationToken);
+
                     if (!response.IsSuccessStatusCode)
                     {
-                        var errorMsg = $"LLM request failed with status {response.StatusCode}";
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] {errorMsg} - workspace: '{workspaceSlug}'");
-                        
-                        if (response.StatusCode == System.Net.HttpStatusCode.RequestTimeout || 
-                            response.StatusCode == System.Net.HttpStatusCode.GatewayTimeout)
+                        var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                        TestCaseEditorApp.Services.Logging.Log.Warn(
+                            $"[AnythingLLM] Request failed with status {(int)response.StatusCode} ({response.StatusCode}) " +
+                            $"- workspace: '{workspaceSlug}' - body: {errorBody}");
+
+                        switch (response.StatusCode)
                         {
-                            if (retryCount < MAX_RETRY_ATTEMPTS)
-                            {
-                                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Timeout detected, retrying in {delayMs}ms...");
-                                await Task.Delay(delayMs, cancellationToken);
-                                delayMs = Math.Min(delayMs * 2, MAX_RETRY_DELAY_MS);
-                                retryCount++;
-                                continue;
-                            }
-                            else
-                            {
-                                TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] Timeout after {MAX_RETRY_ATTEMPTS} retries");
-                                return null;
-                            }
+                            // Non-retryable client/request issues
+                            case System.Net.HttpStatusCode.BadRequest:
+                            case System.Net.HttpStatusCode.Unauthorized:
+                            case System.Net.HttpStatusCode.Forbidden:
+                            case System.Net.HttpStatusCode.NotFound:
+                            case System.Net.HttpStatusCode.UnprocessableEntity:
+                                throw new HttpRequestException(
+                                    $"AnythingLLM request failed with non-retryable status {(int)response.StatusCode} ({response.StatusCode}). " +
+                                    $"Workspace='{workspaceSlug}'. Body: {errorBody}");
+
+                            // Retryable HTTP statuses
+                            case System.Net.HttpStatusCode.RequestTimeout:
+                            case System.Net.HttpStatusCode.TooManyRequests:
+                            case System.Net.HttpStatusCode.BadGateway:
+                            case System.Net.HttpStatusCode.ServiceUnavailable:
+                            case System.Net.HttpStatusCode.GatewayTimeout:
+                                if (retryCount < MAX_RETRY_ATTEMPTS)
+                                {
+                                    TestCaseEditorApp.Services.Logging.Log.Info(
+                                        $"[AnythingLLM] Transient HTTP failure ({(int)response.StatusCode}) - retrying in {delayMs}ms...");
+                                    await Task.Delay(delayMs, cancellationToken);
+                                    delayMs = Math.Min(delayMs * 2, MAX_RETRY_DELAY_MS);
+                                    retryCount++;
+                                    continue;
+                                }
+
+                                throw new TimeoutException(
+                                    $"AnythingLLM request failed with retryable status {(int)response.StatusCode} ({response.StatusCode}) " +
+                                    $"after {MAX_RETRY_ATTEMPTS + 1} attempts. Workspace='{workspaceSlug}'. Body: {errorBody}");
+
+                            default:
+                                // Other statuses: treat as non-retryable unless you later decide otherwise
+                                throw new HttpRequestException(
+                                    $"AnythingLLM request failed with status {(int)response.StatusCode} ({response.StatusCode}). " +
+                                    $"Workspace='{workspaceSlug}'. Body: {errorBody}");
                         }
-                        
-                        return null;
                     }
 
                     var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
-                    
+
                     if (string.IsNullOrWhiteSpace(responseJson))
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Received empty response from workspace '{workspaceSlug}'");
-                        
-                        if (retryCount < MAX_RETRY_ATTEMPTS)
-                        {
-                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Empty response, retrying in {delayMs}ms...");
-                            await Task.Delay(delayMs, cancellationToken);
-                            delayMs = Math.Min(delayMs * 2, MAX_RETRY_DELAY_MS);
-                            retryCount++;
-                            continue;
-                        }
-                    }
-                    
-                    var result = JsonSerializer.Deserialize<ChatResponse>(responseJson, new JsonSerializerOptions 
-                    { 
-                        PropertyNameCaseInsensitive = true 
-                    });
+                        TestCaseEditorApp.Services.Logging.Log.Warn(
+                            $"[AnythingLLM] Received empty response body from workspace '{workspaceSlug}'");
 
-                    if (string.IsNullOrEmpty(result?.TextResponse))
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] LLM returned empty response text");
-                        
                         if (retryCount < MAX_RETRY_ATTEMPTS)
                         {
-                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Empty text response, retrying in {delayMs}ms...");
+                            TestCaseEditorApp.Services.Logging.Log.Info(
+                                $"[AnythingLLM] Empty response body, retrying in {delayMs}ms...");
                             await Task.Delay(delayMs, cancellationToken);
                             delayMs = Math.Min(delayMs * 2, MAX_RETRY_DELAY_MS);
                             retryCount++;
                             continue;
                         }
-                        
-                        return null;
+
+                        throw new InvalidOperationException(
+                            $"AnythingLLM returned an empty response body after {MAX_RETRY_ATTEMPTS + 1} attempts. Workspace='{workspaceSlug}'.");
+                    }
+
+                    var result = JsonSerializer.Deserialize<ChatResponse>(
+                        responseJson,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                    if (string.IsNullOrWhiteSpace(result?.TextResponse))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn(
+                            $"[AnythingLLM] LLM returned empty response text - workspace: '{workspaceSlug}' - raw body: {responseJson}");
+
+                        if (retryCount < MAX_RETRY_ATTEMPTS)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info(
+                                $"[AnythingLLM] Empty text response, retrying in {delayMs}ms...");
+                            await Task.Delay(delayMs, cancellationToken);
+                            delayMs = Math.Min(delayMs * 2, MAX_RETRY_DELAY_MS);
+                            retryCount++;
+                            continue;
+                        }
+
+                        throw new InvalidOperationException(
+                            $"AnythingLLM returned empty response text after {MAX_RETRY_ATTEMPTS + 1} attempts. Workspace='{workspaceSlug}'.");
                     }
 
                     OnStatusUpdated("LLM response received successfully");
@@ -2308,94 +2369,77 @@ Your task: Extract technical requirements from the provided document content wit
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Info("[AnythingLLM] Request was cancelled by user");
-                    return null;
-                }
-                catch (OperationCanceledException ex)
-                {
-                    // Timeout from HttpClient.Timeout - treat as timeout and retry
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Request timeout after {_httpClient.Timeout.TotalMinutes} minutes");
-                    
-                    if (retryCount < MAX_RETRY_ATTEMPTS)
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Timeout occurred, retrying in {delayMs}ms... (Attempt {retryCount + 1}/{MAX_RETRY_ATTEMPTS})");
-                        await Task.Delay(delayMs, CancellationToken.None); // Don't use cancellationToken for retry delay
-                        delayMs = Math.Min(delayMs * 2, MAX_RETRY_DELAY_MS);
-                        retryCount++;
-                        continue;
-                    }
-                    
-                    TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Timeout after {MAX_RETRY_ATTEMPTS} retry attempts");
-                    return null;
+                    TestCaseEditorApp.Services.Logging.Log.Info("[AnythingLLM] Request cancelled");
+                    throw;
                 }
                 catch (TimeoutException ex)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Request timeout: {ex.Message}");
-                    
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        $"[AnythingLLM] Timeout: {ex.Message}");
+
                     if (retryCount < MAX_RETRY_ATTEMPTS)
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Timeout occurred, retrying in {delayMs}ms... (Attempt {retryCount + 1}/{MAX_RETRY_ATTEMPTS})");
+                        TestCaseEditorApp.Services.Logging.Log.Info(
+                            $"[AnythingLLM] Timeout occurred, retrying in {delayMs}ms... (Attempt {retryCount + 1}/{MAX_RETRY_ATTEMPTS + 1})");
                         await Task.Delay(delayMs, cancellationToken);
                         delayMs = Math.Min(delayMs * 2, MAX_RETRY_DELAY_MS);
                         retryCount++;
                         continue;
                     }
-                    
-                    TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Timeout after {MAX_RETRY_ATTEMPTS} retry attempts");
-                    return null;
+
+                    TestCaseEditorApp.Services.Logging.Log.Error(
+                        ex,
+                        $"[AnythingLLM] Timeout after {MAX_RETRY_ATTEMPTS + 1} attempts");
+                    throw;
                 }
                 catch (HttpRequestException ex)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Request error: {ex.Message}");
-                    
-                    if (retryCount < MAX_RETRY_ATTEMPTS)
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        $"[AnythingLLM] HTTP request error: {ex.Message}");
+
+                    // Retry only true transport/transient HTTP failures.
+                    // If this exception was thrown from a non-retryable status above, do not retry.
+                    bool looksTransient =
+                        ex.Message.Contains("502", StringComparison.OrdinalIgnoreCase) ||
+                        ex.Message.Contains("503", StringComparison.OrdinalIgnoreCase) ||
+                        ex.Message.Contains("504", StringComparison.OrdinalIgnoreCase) ||
+                        ex.Message.Contains("408", StringComparison.OrdinalIgnoreCase) ||
+                        ex.Message.Contains("429", StringComparison.OrdinalIgnoreCase) ||
+                        ex.InnerException is TimeoutException;
+
+                    if (looksTransient && retryCount < MAX_RETRY_ATTEMPTS)
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Connection error, retrying in {delayMs}ms...");
+                        TestCaseEditorApp.Services.Logging.Log.Info(
+                            $"[AnythingLLM] Transient HTTP error, retrying in {delayMs}ms...");
                         await Task.Delay(delayMs, cancellationToken);
                         delayMs = Math.Min(delayMs * 2, MAX_RETRY_DELAY_MS);
                         retryCount++;
                         continue;
                     }
-                    
-                    TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnythingLLM] HTTP request failed after retries");
-                    return null;
+
+                    TestCaseEditorApp.Services.Logging.Log.Error(
+                        ex,
+                        "[AnythingLLM] HTTP request failed");
+                    throw;
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Unexpected error sending chat message to workspace '{workspaceSlug}'");
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Exception type: {ex.GetType().Name}");
+                    TestCaseEditorApp.Services.Logging.Log.Error(
+                        ex,
+                        $"[AnythingLLM] Unexpected error sending chat message to workspace '{workspaceSlug}'");
+
                     if (ex.InnerException != null)
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Inner exception: {ex.InnerException.Message}");
+                        TestCaseEditorApp.Services.Logging.Log.Info(
+                            $"[AnythingLLM] Inner exception: {ex.InnerException.Message}");
                     }
-                    return null;
+
+                    throw;
                 }
             }
 
-            TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] Failed to get response after {MAX_RETRY_ATTEMPTS} retry attempts");
-            return null;
-        }
-
-        /// <summary>
-        /// Send a chat message to a workspace with custom timeout (overload for operations like recovery that need shorter timeouts)
-        /// </summary>
-        public async Task<string?> SendChatMessageAsync(string workspaceSlug, string message, TimeSpan timeout, CancellationToken cancellationToken = default)
-        {
-            var originalTimeout = _httpClient.Timeout;
-            try
-            {
-                // Temporarily set the custom timeout
-                _httpClient.Timeout = timeout;
-                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Using custom timeout: {timeout.TotalMinutes:F1} minutes for recovery operation");
-                
-                // Use the existing method with the custom timeout
-                return await SendChatMessageAsync(workspaceSlug, message, cancellationToken);
-            }
-            finally
-            {
-                // Always restore the original timeout
-                _httpClient.Timeout = originalTimeout;
-            }
+            throw new InvalidOperationException(
+                $"[AnythingLLM] Failed to get response after {MAX_RETRY_ATTEMPTS + 1} attempts");
         }
 
         /// <summary>

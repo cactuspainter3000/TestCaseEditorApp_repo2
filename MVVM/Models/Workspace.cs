@@ -6,27 +6,53 @@ namespace TestCaseEditorApp.MVVM.Models
     // ---- Simple JSON-persisted workspace ----
     public class Workspace
     {
-        public const int SchemaVersion = 1;
+        public const int SchemaVersion = 2;
         public int Version { get; set; } = SchemaVersion;
+
+        public string? Name { get; set; }
         public string? SourceDocPath { get; set; }
         public DateTime LastSavedUtc { get; set; }
         public List<Requirement> Requirements { get; set; } = new();
 
-        /// <summary>Default Jama Project name to use on export (CSV "Project" column).</summary>
+        /// <summary>
+        /// Default Jama Project name to use on export (CSV "Project" column).
+        /// Legacy/general field. Prefer JamaProjectName for canonical project identity.
+        /// </summary>
         public string? JamaProject { get; set; }
 
-        /// <summary>Default Jama Test Plan name to use on export (CSV "Test Plan" column).</summary>
+        /// <summary>
+        /// Canonical Jama project ID for restoring the correct Jama project context.
+        /// </summary>
+        public int? JamaProjectId { get; set; }
+
+        /// <summary>
+        /// Canonical Jama project name for restoring the correct Jama project context.
+        /// </summary>
+        public string? JamaProjectName { get; set; }
+
+        /// <summary>
+        /// Default Jama Test Plan name to use on export (CSV "Test Plan" column).
+        /// </summary>
         public string? JamaTestPlan { get; set; }
 
         /// <summary>
-        /// Import source type for proper view routing
+        /// Persisted AnythingLLM workspace slug for reopening the correct workspace without name matching.
+        /// </summary>
+        public string? AnythingLLMWorkspaceSlug { get; set; }
+
+        /// <summary>
+        /// Persisted AnythingLLM workspace display name.
+        /// </summary>
+        public string? AnythingLLMWorkspaceName { get; set; }
+
+        /// <summary>
+        /// Import source type for proper view routing.
         /// Values: "Jama", "Document", "Manual", etc.
         /// </summary>
         [JsonPropertyName("ImportSource")]
         public string? ImportSource { get; set; }
 
         public DefaultsBlock? Defaults { get; set; }
-        public string? Name { get; internal set; }
 
         // Metadata for tracking workspace lifecycle
         public string? CreatedBy { get; set; }
@@ -46,7 +72,3 @@ namespace TestCaseEditorApp.MVVM.Models
         public DateTime LastModifiedUtc { get; set; }
     }
 }
-
-
-
-

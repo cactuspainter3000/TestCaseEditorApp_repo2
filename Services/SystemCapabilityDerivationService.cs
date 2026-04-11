@@ -144,7 +144,7 @@ namespace TestCaseEditorApp.Services
 
                 // Process each step for capability derivation with progress tracking
                 int stepCounter = 0;
-                var modelName = Environment.GetEnvironmentVariable("OLLAMA_MODEL") ?? "phi3.5";
+                var modelName = Environment.GetEnvironmentVariable("OLLAMA_MODEL") ?? "phi4-mini:3.8b-q4_K_M";
                 var shortModelName = modelName.Split(':')[0]; // Extract just "phi3.5" from "phi3.5:3.8b-mini-instruct-q4_K_M"
                 foreach (var parsedStep in parsedSteps)
                 {

@@ -1250,6 +1250,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// </summary>
         public async Task<List<JamaAttachment>> ScanProjectAttachmentsAsync(int projectId, IProgress<AttachmentScanProgressData>? progress = null, CancellationToken cancellationToken = default)
         {
+            TestCaseEditorApp.Services.Logging.Log.Info(
+    $"[RequirementsMediator] Workspace context before scan: " +
+    $"CurrentWorkspace.JamaProject='{_workspaceContext.CurrentWorkspace?.JamaProject}', " +
+    $"CurrentWorkspace.JamaTestPlan='{_workspaceContext.CurrentWorkspace?.JamaTestPlan}', " +
+    $"CurrentWorkspaceInfo.Name='{_workspaceContext.CurrentWorkspaceInfo?.Name}'");
+
             try
             {
                 _logger.LogInformation("[RequirementsMediator] Starting attachment scan for project {ProjectId}", projectId);

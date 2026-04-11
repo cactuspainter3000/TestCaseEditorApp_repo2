@@ -59,11 +59,14 @@
             {
                 var path = PathFor(key);
                 if (!File.Exists(path)) return default;
+
                 var json = File.ReadAllText(path);
                 return JsonSerializer.Deserialize<T>(json);
             }
-            catch
+            catch (Exception ex)
             {
+                TestCaseEditorApp.Services.Logging.Log.Error(
+                    $"[JsonPersistence] Failed to load key '{key}': {ex.Message}");
                 return default;
             }
         }
@@ -178,13 +181,15 @@
 
                 var fileName = Path.GetFileName(filePath);
                 var backupPattern = $"{fileName}.bak_*";
-                
+
                 return Directory.GetFiles(directory, backupPattern)
                     .OrderByDescending(f => File.GetCreationTime(f))
                     .ToArray();
             }
-            catch
+            catch (Exception ex)
             {
+                TestCaseEditorApp.Services.Logging.Log.Error(
+                    $"[JsonPersistence] Failed to get backups for file '{filePath}': {ex.Message}");
                 return Array.Empty<string>();
             }
         }
