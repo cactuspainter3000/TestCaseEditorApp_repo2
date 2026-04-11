@@ -22,6 +22,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         
         private readonly AnythingLLMService _anythingLLMService;
         private readonly ToastNotificationService _toastService;
+        private string? _validatedAnythingLLMWorkspaceSlug;
         
         // Event fired when project creation is completed
         public event EventHandler<NewProjectCompletedEventArgs>? ProjectCompleted;
@@ -242,6 +243,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             
             // Reset workspace creation status when name changes
             IsWorkspaceCreated = false;
+            _validatedAnythingLLMWorkspaceSlug = null;
             
             // Notify the command that CanExecute may have changed
             ((AsyncRelayCommand)ValidateWorkspaceCommand).NotifyCanExecuteChanged();
@@ -423,7 +425,14 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Calling CreateNewProjectWithWarningAsync with documentPath: '{SelectedDocumentPath}'");
                 
                 // Call the workspace management mediator to complete the project creation with proper warning handling
-                var creationSuccessful = await _mediator.CreateNewProjectWithWarningAsync(WorkspaceName, ProjectName, ProjectSavePath, SelectedDocumentPath);
+                var workspaceSlugForProject = _validatedAnythingLLMWorkspaceSlug ?? WorkspaceName;
+                TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Using AnythingLLM workspace slug '{workspaceSlugForProject}' for workspace '{WorkspaceName}'");
+                var creationSuccessful = await _mediator.CreateNewProjectWithWarningAsync(
+                    workspaceSlugForProject,
+                    ProjectName,
+                    ProjectSavePath,
+                    SelectedDocumentPath,
+                    WorkspaceName);
                 
                 // Always mark project as created if method completed without exception
                 // Even if requirements import failed, the project file was still created successfully
@@ -554,6 +563,9 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                             
                         if (createdWorkspace != null)
                         {
+                            _validatedAnythingLLMWorkspaceSlug = createdWorkspace.Slug;
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[NewProject] Created AnythingLLM workspace '{createdWorkspace.Name}' with slug '{createdWorkspace.Slug}'");
+
                             // Clear loading state immediately
                             IsValidatingWorkspace = false;
                             
@@ -576,6 +588,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                         }
                         else
                         {
+                            _validatedAnythingLLMWorkspaceSlug = null;
                             IsValidatingWorkspace = false;
                             WorkspaceValidationMessage = $"Failed to create workspace '{WorkspaceName}'. Please try again.";
                             WorkspaceValidationSuccess = false;
@@ -584,6 +597,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                     }
                     catch (Exception ex)
                     {
+                        _validatedAnythingLLMWorkspaceSlug = null;
                         IsValidatingWorkspace = false;
                         WorkspaceValidationMessage = $"Error creating workspace: {ex.Message}";
                         WorkspaceValidationSuccess = false;
@@ -619,6 +633,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 // Reset workflow state
                 IsWorkspaceCreated = false;
                 IsProjectCreated = false;
+                _validatedAnythingLLMWorkspaceSlug = null;
                 WorkspaceValidationMessage = "";
                 HasValidationMessage = false;
                 IsDuplicateName = false;

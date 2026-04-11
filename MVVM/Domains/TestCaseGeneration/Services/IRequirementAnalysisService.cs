@@ -48,10 +48,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         RequirementAnalysisCache.CacheStatistics? CacheStatistics { get; }
 
         /// <summary>
-        /// Sets the workspace context for project-specific analysis
+        /// Sets the workspace context for project-specific analysis.
         /// </summary>
-        /// <param name="workspaceName">Name of the project workspace to use for analysis</param>
-        void SetWorkspaceContext(string? workspaceName);
+        /// <param name="workspaceName">Human-readable AnythingLLM workspace name or project name.</param>
+        /// <param name="workspaceSlug">Canonical AnythingLLM workspace slug when known.</param>
+        void SetWorkspaceContext(string? workspaceName, string? workspaceSlug = null);
 
         /// <summary>
         /// Analyzes a requirement for quality issues and generates structured analysis.

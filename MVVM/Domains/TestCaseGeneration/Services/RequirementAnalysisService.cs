@@ -28,6 +28,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         private string? _cachedSystemMessage;
         private string? _currentWorkspaceSlug;
         private string? _projectWorkspaceName;
+        private string? _projectWorkspaceSlug;
         
         // Instance-based cache for workspace prompt validation to avoid repeated checks
         private bool? _workspaceSystemPromptConfigured;
@@ -65,15 +66,30 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         public bool IsUsingFallback => _healthMonitor?.IsUsingFallback ?? false;
 
         /// <summary>
-        /// Sets the workspace context for project-specific analysis
+        /// Sets the workspace context for project-specific analysis.
         /// </summary>
-        /// <param name="workspaceName">Name of the project workspace to use for analysis</param>
-        public void SetWorkspaceContext(string? workspaceName)
+        /// <param name="workspaceName">Human-readable AnythingLLM workspace name or project name.</param>
+        /// <param name="workspaceSlug">Canonical AnythingLLM workspace slug when known.</param>
+        public void SetWorkspaceContext(string? workspaceName, string? workspaceSlug = null)
         {
-            _projectWorkspaceName = workspaceName;
-            // Clear cached workspace slug when context changes
-            _currentWorkspaceSlug = null;
-            TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Workspace context set to: {workspaceName ?? "<none>"}");
+            var normalizedName = string.IsNullOrWhiteSpace(workspaceName) ? null : workspaceName.Trim();
+            var normalizedSlug = string.IsNullOrWhiteSpace(workspaceSlug) ? null : workspaceSlug.Trim();
+
+            var nameChanged = !string.Equals(_projectWorkspaceName, normalizedName, StringComparison.OrdinalIgnoreCase);
+            var slugChanged = !string.Equals(_projectWorkspaceSlug, normalizedSlug, StringComparison.OrdinalIgnoreCase);
+
+            _projectWorkspaceName = normalizedName;
+            _projectWorkspaceSlug = normalizedSlug;
+            _currentWorkspaceSlug = normalizedSlug;
+
+            if (nameChanged || slugChanged)
+            {
+                _workspaceSystemPromptConfigured = null;
+                _lastWorkspaceValidation = DateTime.MinValue;
+            }
+
+            TestCaseEditorApp.Services.Logging.Log.Info(
+                $"[RequirementAnalysisService] Workspace context set: Name='{_projectWorkspaceName ?? "<none>"}', Slug='{_projectWorkspaceSlug ?? "<none>"}'");
         }
 
         /// <summary>
@@ -1150,13 +1166,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 return null;
             }
 
-            // Check if we already have a cached workspace
-            if (!string.IsNullOrEmpty(_currentWorkspaceSlug))
-            {
-                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Using cached workspace slug: '{_currentWorkspaceSlug}'");
-                return _currentWorkspaceSlug;
-            }
-
             try
             {
                 onProgressUpdate?.Invoke("Checking RAG workspace...");
@@ -1167,44 +1176,78 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 var workspaces = await _anythingLLMService.GetWorkspacesAsync(cancellationToken);
                 var listTime = DateTime.UtcNow - listStart;
                 System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Got {workspaces?.Count() ?? 0} workspaces in {listTime.TotalMilliseconds}ms");
-                
-                // Look for project-specific workspace
-                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Looking for project workspace: '{_projectWorkspaceName ?? "<none>"}'...");
-                
+
                 AnythingLLMService.Workspace? targetWorkspace = null;
-                
-                if (!string.IsNullOrEmpty(_projectWorkspaceName))
+
+                if (!string.IsNullOrWhiteSpace(_currentWorkspaceSlug))
+                {
+                    targetWorkspace = workspaces.FirstOrDefault(w =>
+                        string.Equals(w.Slug, _currentWorkspaceSlug, StringComparison.OrdinalIgnoreCase));
+
+                    if (targetWorkspace != null)
+                    {
+                        _currentWorkspaceSlug = targetWorkspace.Slug;
+                        _projectWorkspaceSlug ??= targetWorkspace.Slug;
+                        _projectWorkspaceName ??= targetWorkspace.Name;
+                        System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Validated cached workspace slug: '{_currentWorkspaceSlug}'");
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] Saved workspace slug '{_currentWorkspaceSlug}' was not found. Falling back to workspace discovery.");
+                        System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Cached workspace slug '{_currentWorkspaceSlug}' was not found in the current AnythingLLM workspace list");
+                        _currentWorkspaceSlug = null;
+                    }
+                }
+
+                if (targetWorkspace == null && !string.IsNullOrWhiteSpace(_projectWorkspaceSlug))
+                {
+                    targetWorkspace = workspaces.FirstOrDefault(w =>
+                        string.Equals(w.Slug, _projectWorkspaceSlug, StringComparison.OrdinalIgnoreCase));
+
+                    System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Exact slug match found: {targetWorkspace != null}");
+                }
+
+                // Look for project-specific workspace by name only as a backward-compatible fallback
+                System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Looking for project workspace: name='{_projectWorkspaceName ?? "<none>"}', slug='{_projectWorkspaceSlug ?? "<none>"}'...");
+
+                if (targetWorkspace == null && !string.IsNullOrEmpty(_projectWorkspaceName))
                 {
                     // Look for exact project workspace match first
-                    targetWorkspace = workspaces.FirstOrDefault(w => 
-                        string.Equals(w.Name, _projectWorkspaceName, StringComparison.OrdinalIgnoreCase));
-                    
-                    System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Exact match found: {targetWorkspace != null}");
-                    
+                    targetWorkspace = workspaces.FirstOrDefault(w =>
+                        string.Equals(w.Name, _projectWorkspaceName, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(w.Slug, _projectWorkspaceName, StringComparison.OrdinalIgnoreCase));
+
+                    System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Exact name match found: {targetWorkspace != null}");
+
                     // If no exact match, try fuzzy matching for common variations
                     if (targetWorkspace == null)
                     {
                         var normalizedProjectName = _projectWorkspaceName.Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant();
                         System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] No exact match, trying fuzzy match for normalized name: '{normalizedProjectName}'");
-                        
+
                         // Try exact fuzzy match first
-                        targetWorkspace = workspaces.FirstOrDefault(w => 
+                        targetWorkspace = workspaces.FirstOrDefault(w =>
                         {
                             var normalizedWorkspaceName = w.Name.Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant();
-                            return string.Equals(normalizedWorkspaceName, normalizedProjectName, StringComparison.OrdinalIgnoreCase);
+                            var normalizedWorkspaceSlug = w.Slug.Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant();
+                            return string.Equals(normalizedWorkspaceName, normalizedProjectName, StringComparison.OrdinalIgnoreCase) ||
+                                   string.Equals(normalizedWorkspaceSlug, normalizedProjectName, StringComparison.OrdinalIgnoreCase);
                         });
-                        
+
                         // If still no match, try partial matching (workspace name is contained in project name or vice versa)
                         if (targetWorkspace == null)
                         {
                             System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] No exact fuzzy match, trying partial matching...");
-                            targetWorkspace = workspaces.FirstOrDefault(w => 
+                            targetWorkspace = workspaces.FirstOrDefault(w =>
                             {
                                 var normalizedWorkspaceName = w.Name.Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant();
-                                // Check if workspace name is a substring of project name or project name contains workspace name
-                                return normalizedProjectName.Contains(normalizedWorkspaceName) || normalizedWorkspaceName.Contains(normalizedProjectName);
+                                var normalizedWorkspaceSlug = w.Slug.Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant();
+                                return normalizedProjectName.Contains(normalizedWorkspaceName) ||
+                                       normalizedWorkspaceName.Contains(normalizedProjectName) ||
+                                       normalizedProjectName.Contains(normalizedWorkspaceSlug) ||
+                                       normalizedWorkspaceSlug.Contains(normalizedProjectName);
                             });
-                            
+
                             System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Partial match found: {targetWorkspace != null} ('{targetWorkspace?.Name}')");
                         }
                         else
@@ -1213,7 +1256,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                         }
                     }
                 }
-                
+
                 // Fallback to "Test Case Editor" pattern if no project context or no matches
                 if (targetWorkspace == null)
                 {
@@ -1225,14 +1268,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                     //     .OrderByDescending(w => w.CreatedAt)
                     //     .FirstOrDefault();
                 }
-                
+
                 var testCaseWorkspace = targetWorkspace;
 
                 if (testCaseWorkspace != null)
                 {
                     _currentWorkspaceSlug = testCaseWorkspace.Slug;
+                    _projectWorkspaceSlug = testCaseWorkspace.Slug;
+                    _projectWorkspaceName ??= testCaseWorkspace.Name;
                     System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Found existing workspace: '{testCaseWorkspace.Name}' with slug '{_currentWorkspaceSlug}'");
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Using existing workspace: {testCaseWorkspace.Name}");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Using existing workspace: {testCaseWorkspace.Name} (slug: {_currentWorkspaceSlug})");
                     
                     // Try to configure workspace settings to ensure optimal system prompt
                     onProgressUpdate?.Invoke("Configuring workspace settings...");
@@ -1284,8 +1329,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 if (newWorkspace != null)
                 {
                     _currentWorkspaceSlug = newWorkspace.Slug;
+                    _projectWorkspaceSlug = newWorkspace.Slug;
+                    _projectWorkspaceName = newWorkspace.Name;
                     System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Created new workspace: '{newWorkspace.Name}' with slug '{_currentWorkspaceSlug}'");
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Created new workspace: {newWorkspace.Name}");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[RAG] Created new workspace: {newWorkspace.Name} (slug: {_currentWorkspaceSlug})");
                     return _currentWorkspaceSlug;
                 }
                 else

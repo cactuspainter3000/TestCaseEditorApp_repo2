@@ -1349,9 +1349,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 _logger.LogInformation("HandleBroadcast: ProjectCreated - WorkspaceName: {WorkspaceName}, HeaderViewModel: {HeaderViewModel}", 
                     projectCreated.WorkspaceName, _headerViewModel?.GetType().Name ?? "NULL");
                     
-                // Set workspace context for analysis service with project name
-                _analysisService.SetWorkspaceContext(projectCreated.WorkspaceName);
-                _logger.LogDebug("Set workspace context for analysis service: {WorkspaceName}", projectCreated.WorkspaceName);
+                var analysisWorkspaceName = projectCreated.Workspace?.AnythingLLMWorkspaceName
+                    ?? projectCreated.WorkspaceName;
+                var analysisWorkspaceSlug = projectCreated.AnythingLLMWorkspaceSlug
+                    ?? projectCreated.Workspace?.AnythingLLMWorkspaceSlug;
+
+                _analysisService.SetWorkspaceContext(analysisWorkspaceName, analysisWorkspaceSlug);
+                _logger.LogDebug("Set workspace context for analysis service: Name={WorkspaceName}, Slug={WorkspaceSlug}", 
+                    analysisWorkspaceName, analysisWorkspaceSlug ?? "<none>");
                 
                 _headerViewModel?.UpdateProjectStatus(projectCreated.WorkspaceName, true);
                 _logger.LogDebug("Updated header with project created: {ProjectName}", projectCreated.WorkspaceName);
@@ -1371,9 +1376,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 _logger.LogInformation("🚀 HandleBroadcast: ProjectOpened - WorkspaceName: {WorkspaceName}, HeaderViewModel: {HeaderViewModel}", 
                     projectOpened.WorkspaceName, _headerViewModel?.GetType().Name ?? "NULL");
                     
-                // Set workspace context for analysis service with project name
-                _analysisService.SetWorkspaceContext(projectOpened.WorkspaceName);
-                _logger.LogDebug("Set workspace context for analysis service: {WorkspaceName}", projectOpened.WorkspaceName);
+                var analysisWorkspaceName = projectOpened.Workspace?.AnythingLLMWorkspaceName
+                    ?? projectOpened.WorkspaceName;
+                var analysisWorkspaceSlug = projectOpened.AnythingLLMWorkspaceSlug
+                    ?? projectOpened.Workspace?.AnythingLLMWorkspaceSlug;
+
+                _analysisService.SetWorkspaceContext(analysisWorkspaceName, analysisWorkspaceSlug);
+                _logger.LogDebug("Set workspace context for analysis service: Name={WorkspaceName}, Slug={WorkspaceSlug}", 
+                    analysisWorkspaceName, analysisWorkspaceSlug ?? "<none>");
                 
                 _headerViewModel?.UpdateProjectStatus(projectOpened.WorkspaceName, true);
                 _logger.LogDebug("Updated header with project opened: {ProjectName}", projectOpened.WorkspaceName);
