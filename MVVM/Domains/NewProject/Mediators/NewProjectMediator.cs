@@ -1035,33 +1035,46 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         private async Task CompleteProjectOpeningAsync(string workspaceSlug, string workspaceName)
         {
             UpdateProgress("Opening existing project workspace...", 75);
-            
-            // TODO: Implement actual workspace loading logic
-            await Task.Delay(500); // Placeholder
-            
+
+            // Try to resolve a local .tcex.json by AnythingLLM identity first.
+            var resolvedPath = ResolveWorkspacePathByAnythingLlmIdentity(workspaceSlug, workspaceName);
+            if (string.IsNullOrWhiteSpace(resolvedPath))
+            {
+                // Fall back to standard project-open file selection instead of opening a fake empty workspace.
+                await OpenProjectAsync();
+                return;
+            }
+
+            Workspace workspace;
+            try
+            {
+                workspace = WorkspaceFileManager.Load(resolvedPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to load resolved workspace file: {WorkspacePath}", resolvedPath);
+                ShowNotification($"Failed to load workspace file '{Path.GetFileName(resolvedPath)}': {ex.Message}", DomainNotificationType.Error);
+                HideProgress();
+                return;
+            }
+
+            var projectName = !string.IsNullOrWhiteSpace(workspace.Name) ? workspace.Name! : workspaceName;
+
             _currentWorkspaceInfo = new WorkspaceInfo
             {
-                Name = workspaceName,
-                Path = $"path/to/workspace/{workspaceName}", // TODO: Get actual path
-                AnythingLLMSlug = workspaceSlug,
-                AnythingLLMWorkspaceName = workspaceName,
+                Name = projectName,
+                Path = resolvedPath,
+                AnythingLLMSlug = workspace.AnythingLLMWorkspaceSlug ?? workspaceSlug,
+                AnythingLLMWorkspaceName = workspace.AnythingLLMWorkspaceName ?? workspaceName,
                 HasUnsavedChanges = false,
                 LastModified = DateTime.Now
-            };
-            
-            // TODO: Load actual workspace data
-            var workspace = new Workspace
-            {
-                Name = workspaceName,
-                AnythingLLMWorkspaceName = workspaceName,
-                AnythingLLMWorkspaceSlug = workspaceSlug
             };
             
             var projectOpenedEvent = new NewProjectEvents.ProjectOpened 
             { 
                 WorkspacePath = _currentWorkspaceInfo.Path,
-                WorkspaceName = workspaceName,
-                AnythingLLMWorkspaceSlug = workspaceSlug,
+                WorkspaceName = projectName,
+                AnythingLLMWorkspaceSlug = _currentWorkspaceInfo.AnythingLLMSlug,
                 Workspace = workspace
             };
             
@@ -1071,10 +1084,63 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             _logger.LogInformation("📡 Broadcasting ProjectOpened event (AnythingLLM) to other domains: {ProjectName}", workspaceName);
             BroadcastToAllDomains(projectOpenedEvent);
             
-            ShowNotification($"Project '{workspaceName}' opened successfully", DomainNotificationType.Success);
+            if (workspace.Requirements?.Any() == true)
+            {
+                BroadcastToAllDomains(new TestCaseGenerationEvents.RequirementsImported
+                {
+                    Requirements = workspace.Requirements,
+                    SourceFile = resolvedPath,
+                    ImportType = "Project",
+                    ImportTime = TimeSpan.Zero
+                });
+            }
+
+            ShowNotification($"Project '{projectName}' opened successfully", DomainNotificationType.Success);
             HideProgress();
             
             NavigateToStep("ProjectActive", _currentWorkspaceInfo);
+        }
+
+        private string? ResolveWorkspacePathByAnythingLlmIdentity(string workspaceSlug, string workspaceName)
+        {
+            IEnumerable<string> candidateFiles = Enumerable.Empty<string>();
+
+            try
+            {
+                var stagingDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TestCaseEditorApp", "Staging");
+                if (Directory.Exists(stagingDir))
+                {
+                    candidateFiles = candidateFiles.Concat(Directory.GetFiles(stagingDir, "*.tcex.json", SearchOption.TopDirectoryOnly));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to enumerate staging workspace files");
+            }
+
+            foreach (var file in candidateFiles.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var ws = WorkspaceFileManager.Load(file);
+                    var slugMatch = !string.IsNullOrWhiteSpace(workspaceSlug) &&
+                                    string.Equals(ws.AnythingLLMWorkspaceSlug, workspaceSlug, StringComparison.OrdinalIgnoreCase);
+                    var nameMatch = !string.IsNullOrWhiteSpace(workspaceName) &&
+                                    string.Equals(ws.AnythingLLMWorkspaceName, workspaceName, StringComparison.OrdinalIgnoreCase);
+
+                    if (slugMatch || nameMatch)
+                    {
+                        _logger.LogInformation("Resolved workspace by AnythingLLM identity: {WorkspaceFile}", file);
+                        return file;
+                    }
+                }
+                catch
+                {
+                    // Ignore malformed files and continue scanning.
+                }
+            }
+
+            return null;
         }
 
         public WorkspaceInfo? GetCurrentWorkspaceInfo()

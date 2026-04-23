@@ -359,6 +359,49 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
 
         private async Task SelectDocumentAsync()
         {
+            var sourceChoice = System.Windows.MessageBox.Show(
+                "Choose requirements source:\n\n" +
+                "Yes = Pull from Jama project\n" +
+                "No = Select Word document\n" +
+                "Cancel = Do nothing",
+                "Requirements Source",
+                System.Windows.MessageBoxButton.YesNoCancel,
+                System.Windows.MessageBoxImage.Question);
+
+            if (sourceChoice == System.Windows.MessageBoxResult.Cancel)
+            {
+                return;
+            }
+
+            if (sourceChoice == System.Windows.MessageBoxResult.No)
+            {
+                // Explicit Word-document path
+                var docDialog = new OpenFileDialog
+                {
+                    Title = "Select Requirements Document",
+                    Filter = "Word Documents (*.docx)|*.docx|All Files (*.*)|*.*",
+                    RestoreDirectory = true
+                };
+
+                if (docDialog.ShowDialog() == true)
+                {
+                    SelectedDocumentPath = docDialog.FileName;
+
+                    if (string.IsNullOrWhiteSpace(ProjectName))
+                    {
+                        ProjectName = Path.GetFileNameWithoutExtension(docDialog.FileName);
+                    }
+
+                    var fileName = System.IO.Path.GetFileName(docDialog.FileName);
+                    _toastService.ShowToast($"Requirements document selected: {fileName}", durationSeconds: 3, type: ToastType.Success);
+
+                    OnPropertyChanged(nameof(CreateProjectButtonText));
+                    OnPropertyChanged(nameof(CreateProjectButtonTooltip));
+                }
+
+                return;
+            }
+
             // Preferred path: select Jama project directly for import
             if (_jamaConnectService.IsConfigured)
             {
@@ -402,44 +445,30 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                             // User cancelled selection; do not force fallback dialog.
                             return;
                         }
+
+                        _toastService.ShowToast("No Jama projects found for this account.", durationSeconds: 4, type: ToastType.Warning);
+                        return;
                     }
                     else
                     {
                         TestCaseEditorApp.Services.Logging.Log.Warn($"[NewProject] Jama connection unavailable: {connectionMessage}");
+                        _toastService.ShowToast($"Jama connection unavailable: {connectionMessage}", durationSeconds: 5, type: ToastType.Warning);
+                        return;
                     }
                 }
                 catch (Exception ex)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[NewProject] Jama project selection failed: {ex.Message}");
+                    _toastService.ShowToast($"Jama project selection failed: {ex.Message}", durationSeconds: 5, type: ToastType.Warning);
+                    return;
                 }
             }
 
-            // Fallback path: Word document import
-            var dlg = new OpenFileDialog
-            {
-                Title = "Select Requirements Document",
-                Filter = "Word Documents (*.docx)|*.docx|All Files (*.*)|*.*",
-                RestoreDirectory = true
-            };
-
-            if (dlg.ShowDialog() == true)
-            {
-                SelectedDocumentPath = dlg.FileName;
-                
-                // Auto-suggest project name from document name
-                if (string.IsNullOrWhiteSpace(ProjectName))
-                {
-                    ProjectName = Path.GetFileNameWithoutExtension(dlg.FileName);
-                }
-                
-                // Provide user feedback
-                var fileName = System.IO.Path.GetFileName(dlg.FileName);
-                _toastService.ShowToast($"Requirements document selected: {fileName}", durationSeconds: 3, type: ToastType.Success);
-                
-                // Update button text
-                OnPropertyChanged(nameof(CreateProjectButtonText));
-                OnPropertyChanged(nameof(CreateProjectButtonTooltip));
-            }
+            // Jama chosen but not configured
+            _toastService.ShowToast(
+                "Jama is not configured on this machine. Set JAMA_BASE_URL and one of: JAMA_API_TOKEN, JAMA_USERNAME/JAMA_PASSWORD, or JAMA_CLIENT_ID/JAMA_CLIENT_SECRET.",
+                durationSeconds: 6,
+                type: ToastType.Warning);
         }
 
         private void ChooseProjectSaveLocation()
