@@ -11,7 +11,7 @@ namespace TestCaseEditorApp.Services
     public static class LlmFactory
     {
         /// <summary>
-        /// Create a lazy ITextGenerationService that defers validation until first use.
+        /// Create a lazy ITextGenerationService that defers initialization until first use.
         /// This avoids blocking application startup with LLM validation.
         /// </summary>
         public static ITextGenerationService CreateLazy(string? provider = null, IAnythingLLMService? anythingLlmService = null)
@@ -29,6 +29,14 @@ namespace TestCaseEditorApp.Services
             provider ??= Environment.GetEnvironmentVariable("LLM_PROVIDER") ?? "ollama";
             provider = provider.Trim().ToLowerInvariant();
 
+            if (provider == "anythinglm")
+            {
+                provider = "anythingllm";
+            }
+
+            TestCaseEditorApp.Services.Logging.Log.Info(
+                $"[LlmFactory] Create called with provider='{provider}'");
+
             try
             {
                 switch (provider)
@@ -36,65 +44,63 @@ namespace TestCaseEditorApp.Services
                     case "anythingllm":
                         if (anythingLlmService == null)
                         {
-                            throw new InvalidOperationException("AnythingLLM provider requested but service not provided. Please ensure AnythingLLM service is properly configured and running.");
+                            throw new InvalidOperationException(
+                                "AnythingLLM provider requested but service not provided. Please ensure AnythingLLM service is properly configured and running.");
                         }
+
+                        TestCaseEditorApp.Services.Logging.Log.Info(
+                            "[LlmFactory] Creating AnythingLLMTextGenerationService");
+
                         return new AnythingLLMTextGenerationService(anythingLlmService);
 
                     case "openai":
+                        TestCaseEditorApp.Services.Logging.Log.Info(
+                            "[LlmFactory] Creating OpenAITextGenerationService");
+
                         var openaiHttp = new HttpClient();
                         return new global::OpenAITextGenerationService(openaiHttp, model: null);
 
                     case "noop":
+                        TestCaseEditorApp.Services.Logging.Log.Info(
+                            "[LlmFactory] Creating NoopTextGenerationService");
+
                         return new NoopTextGenerationService();
 
                     case "ollama":
                     default:
-                        var ollamaClient = new HttpClient { BaseAddress = new Uri("http://localhost:11434/") };
-                        var model = Environment.GetEnvironmentVariable("OLLAMA_MODEL") ?? "phi3.5:3.8b-mini-instruct-q4_K_M";
-                        
+                        var ollamaClient = new HttpClient
+                        {
+                            BaseAddress = new Uri("http://localhost:11434/")
+                        };
+
+                        var envModel = Environment.GetEnvironmentVariable("OLLAMA_MODEL");
+                        TestCaseEditorApp.Services.Logging.Log.Info(
+                            $"[LlmFactory] OLLAMA_MODEL env var = '{envModel ?? "(null)"}'");
+
+                        var model = Environment.GetEnvironmentVariable("OLLAMA_MODEL") ?? "phi4-mini:3.8b-q4_K_M";
+
+                        TestCaseEditorApp.Services.Logging.Log.Info(
+                            $"[LlmFactory] Creating OllamaTextGenerationService with model '{model}'");
+
                         // DEVELOPMENT MODE: Check for dev override to skip validation
                         var skipValidation = Environment.GetEnvironmentVariable("SKIP_LLM_VALIDATION");
                         if (!string.IsNullOrEmpty(skipValidation) && skipValidation.ToLowerInvariant() == "true")
                         {
-                            TestCaseEditorApp.Services.Logging.Log.Info($"[LlmFactory] DEVELOPMENT MODE: Skipping model validation for '{model}' - returning NoopTextGenerationService");
-                            return new NoopTextGenerationService();
+                            TestCaseEditorApp.Services.Logging.Log.Info(
+                                $"[LlmFactory] DEVELOPMENT MODE: Skipping model validation for '{model}' and returning OllamaTextGenerationService directly");
                         }
-                        
-                        // Validate model availability before proceeding - fail fast if not available
-                        try
-                        {
-                            var testRequest = new HttpRequestMessage(HttpMethod.Post, "/api/generate")
-                            {
-                                Content = new StringContent($$"""{"model": "{{model}}", "prompt": "test", "stream": false}""", 
-                                    System.Text.Encoding.UTF8, "application/json")
-                            };
-                            var testResponse = ollamaClient.Send(testRequest);
-                            if (!testResponse.IsSuccessStatusCode)
-                            {
-                                var errorContent = testResponse.Content.ReadAsStringAsync().Result;
-                                throw new InvalidOperationException($"Ollama model '{model}' is not available. Please install the model using: ollama pull {model}\n\nError: {errorContent}\n\nTo temporarily bypass this for development, set environment variable: SKIP_LLM_VALIDATION=true");
-                            }
-                        }
-                        catch (HttpRequestException ex)
-                        {
-                            throw new InvalidOperationException($"Cannot connect to Ollama service at http://localhost:11434. Please ensure Ollama is running with: ollama serve\n\nError: {ex.Message}\n\nTo temporarily bypass this for development, set environment variable: SKIP_LLM_VALIDATION=true");
-                        }
-                        catch (InvalidOperationException)
-                        {
-                            throw; // Re-throw our custom exceptions
-                        }
-                        catch (Exception ex)
-                        {
-                            throw new InvalidOperationException($"Failed to validate Ollama model '{model}'. Please check Ollama installation and model availability.\n\nError: {ex.Message}\n\nTo temporarily bypass this for development, set environment variable: SKIP_LLM_VALIDATION=true");
-                        }
-                        
+
+                        // IMPORTANT:
+                        // Do not do a blocking validation request here.
+                        // Let the actual Generate call be the first real request so fallback starts fast and logs clearly.
+
                         return new global::OllamaTextGenerationService(model: model, http: ollamaClient);
                 }
             }
             catch (Exception ex) when (!(ex is InvalidOperationException))
             {
-                // Only catch unexpected exceptions, not our validation failures
-                throw new InvalidOperationException($"Failed to create LLM service for provider '{provider}'. Please check your configuration.\n\nError: {ex.Message}", ex);
+                throw new InvalidOperationException(
+                    $"Failed to create LLM service for provider '{provider}'. Please check your configuration.\n\nError: {ex.Message}", ex);
             }
         }
     }
@@ -116,23 +122,37 @@ namespace TestCaseEditorApp.Services
 
         private ITextGenerationService GetService()
         {
+            TestCaseEditorApp.Services.Logging.Log.Info("[LazyTextGen] GetService called");
+
             if (_inner == null)
             {
                 lock (_lock)
                 {
-                    _inner ??= _factory();
+                    if (_inner == null)
+                    {
+                        _inner = _factory();
+                        TestCaseEditorApp.Services.Logging.Log.Info(
+                            $"[LazyTextGen] Resolved service type: {_inner.GetType().Name}");
+                    }
                 }
             }
+
             return _inner;
         }
 
         public async System.Threading.Tasks.Task<string> GenerateAsync(string prompt, System.Threading.CancellationToken ct = default)
         {
+            TestCaseEditorApp.Services.Logging.Log.Info(
+                $"[LazyTextGen] GenerateAsync called. Prompt length={prompt?.Length ?? 0}");
+
             return await GetService().GenerateAsync(prompt, ct);
         }
 
         public async System.Threading.Tasks.Task<string> GenerateWithSystemAsync(string systemMessage, string contextMessage, System.Threading.CancellationToken ct = default)
         {
+            TestCaseEditorApp.Services.Logging.Log.Info(
+                $"[LazyTextGen] GenerateWithSystemAsync called. System length={systemMessage?.Length ?? 0}, Context length={contextMessage?.Length ?? 0}");
+
             return await GetService().GenerateWithSystemAsync(systemMessage, contextMessage, ct);
         }
 

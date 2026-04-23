@@ -180,36 +180,37 @@ namespace TestCaseEditorApp
                     services.AddSingleton<TestCaseEditorApp.Prompts.CapabilityDerivationPromptBuilder>();
                     services.AddSingleton<ICapabilityDerivationPromptBuilder>(provider => 
                         provider.GetRequiredService<TestCaseEditorApp.Prompts.CapabilityDerivationPromptBuilder>());
-                    
+
                     // RequirementAnalysisService with proper dependency injection - lazy loaded
                     // Task 4.4: Enhanced with derivation analysis capabilities
-                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService, TestCaseEditorApp.MVVM.Domains.Requirements.Services.RequirementAnalysisService>(provider =>
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService>(provider =>
                     {
                         var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
                         var primaryLlmService = LlmFactory.CreateLazy(anythingLlmService: anythingLLMService);
-                        var directRagService = provider.GetService<IDirectRagService>(); // RAG-enhanced processing
                         var promptBuilder = provider.GetRequiredService<RequirementAnalysisPromptBuilder>();
                         var parserManager = provider.GetRequiredService<ResponseParserManager>();
-                        var cache = provider.GetService<RequirementAnalysisCache>(); // Optional
-                        
-                        // Task 4.4: Optional derivation analysis services
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.Services.RequirementAnalysisService>>();
+                        var healthMonitor = provider.GetService<LlmServiceHealthMonitor>();
+                        var cache = provider.GetService<TestCaseEditorApp.Services.RequirementAnalysisCache>();
+                        var anythingLlmService = provider.GetRequiredService<IAnythingLLMService>();
+
                         var derivationService = provider.GetService<ISystemCapabilityDerivationService>();
                         var gapAnalyzer = provider.GetService<IRequirementGapAnalyzer>();
-                        
+
                         return new TestCaseEditorApp.MVVM.Domains.Requirements.Services.RequirementAnalysisService(
-                            primaryLlmService, 
-                            promptBuilder, 
+                            primaryLlmService,
+                            promptBuilder,
                             parserManager,
-                            healthMonitor: null, // No health monitor for performance
-                            cache: cache,
-                            anythingLLMService: anythingLLMService,
-                            directRagService: directRagService, // RAG-enhanced processing
-                            derivationService: derivationService,
-                            gapAnalyzer: gapAnalyzer);
+                            logger,
+                            anythingLlmService,
+                            healthMonitor,
+                            cache,
+                            derivationService,
+                            gapAnalyzer);
                     });
 
                     // ===== SYSTEM CAPABILITY DERIVATION SERVICES =====
-                    
+
                     // ATP Step Parser - Extract and classify test procedure steps
                     services.AddSingleton<ATPStepParser>();
                     
@@ -254,11 +255,11 @@ namespace TestCaseEditorApp
                     services.AddSingleton<IPromptOptimizationIntegrationService, PromptOptimizationIntegrationService>();
 
                     // ===== REQUIREMENTS DOMAIN SERVICES (Refactored Architecture) =====
-                    
+
                     // Register the new analysis engine that consolidates analysis functionality
-                    services.AddScoped<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisEngine, 
-                                      TestCaseEditorApp.MVVM.Domains.Requirements.Services.RequirementAnalysisEngine>();
-                    
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisEngine,
+                                         TestCaseEditorApp.MVVM.Domains.Requirements.Services.RequirementAnalysisEngine>();
+
                     // Register the focused RequirementAnalysisViewModel for Requirements domain
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel>();
                     
@@ -778,9 +779,9 @@ namespace TestCaseEditorApp
                     // REMOVED: RequirementAnalysisViewModel (TestCaseGeneration namespace) - duplicate of Requirements domain version, deleted
                     // REMOVED: ChatGptExportAnalysisViewModel - dead code domain, never used
                     services.AddSingleton<WorkspaceHeaderViewModel>(); // workspace header shared instance
-                    // Old NotificationAreaViewModel deleted - now using shared NotificationWorkspaceViewModel
-                    
-                    services.AddTransient<MainViewModel>(provider =>
+                                                                       // Old NotificationAreaViewModel deleted - now using shared NotificationWorkspaceViewModel
+
+                    services.AddSingleton<MainViewModel>(provider =>
                     {
                         var viewAreaCoordinator = provider.GetRequiredService<IViewAreaCoordinator>();
                         var navigationService = provider.GetRequiredService<INavigationService>();
@@ -801,10 +802,13 @@ namespace TestCaseEditorApp
                     // RequirementImportExportViewModel (legacy root version) REMOVED - duplicate of domain version
                     // Use TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementImportExportViewModel
                     // ChatGptExportAnalysisViewModel is registered in its domain
-                    
+
 
                     // REMOVED: RequirementsWorkspaceViewModel - dead code, use Requirements_MainViewModel from Requirements domain
                     // REMOVED: TestCaseGeneratorNotificationViewModel - use NotificationWorkspaceViewModel from Notification domain instead
+
+                    services.AddSingleton<IRequirementAnalyzer>(provider =>
+                    (IRequirementAnalyzer)provider.GetRequiredService<IRequirementAnalysisService>());
 
                     // Core application services
                     services.AddSingleton<ChatGptExportService>();
@@ -1003,26 +1007,26 @@ namespace TestCaseEditorApp
                 return;
             }
 
-            // Load merged dictionary BEFORE creating MainWindow so StaticResource resolves at parse time
-            var asm = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
-            var asmName = asm.GetName().Name ?? "TestCaseEditorApp";
-            try
-            {
-                var dict = new ResourceDictionary
-                {
-                    Source = new Uri($"/{asmName};component/Resources/MainWindowResources.xaml", UriKind.Relative)
-                };
-                Resources.MergedDictionaries.Add(dict);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Failed to load resources: {ex.Message}", "Startup error", MessageBoxButton.OK, MessageBoxImage.Error);
-                try { await _host.StopAsync(); } catch { }
-                _host.Dispose();
-                _host = null;
-                Shutdown(-1);
-                return;
-            }
+            //// Load merged dictionary BEFORE creating MainWindow so StaticResource resolves at parse time
+            //var asm = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+            //var asmName = asm.GetName().Name ?? "TestCaseEditorApp";
+            //try
+            //{
+            //    var dict = new ResourceDictionary
+            //    {
+            //        Source = new Uri($"/{asmName};component/Resources/MainWindowResources.xaml", UriKind.Relative)
+            //    };
+            //    Resources.MergedDictionaries.Add(dict);
+            //}
+            //catch (Exception ex)
+            //{
+            //    MessageBox.Show($"Failed to load resources: {ex.Message}", "Startup error", MessageBoxButton.OK, MessageBoxImage.Error);
+            //    try { await _host.StopAsync(); } catch { }
+            //    _host.Dispose();
+            //    _host = null;
+            //    Shutdown(-1);
+            //    return;
+            //}
 
             // Resolve MainWindow from DI so its constructor can receive injected dependencies (MainViewModel, etc.)
             MainWindow mainWindow;

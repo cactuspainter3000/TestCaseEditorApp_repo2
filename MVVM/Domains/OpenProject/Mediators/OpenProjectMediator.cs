@@ -176,9 +176,10 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
                 {
                     _logger.LogDebug("Looking up AnythingLLM workspace for project: {ProjectName}", projectName);
                     var workspaces = await _anythingLLMService.GetWorkspacesAsync();
-                    var matchingWorkspace = workspaces?.FirstOrDefault(w => 
-                        string.Equals(w.Name, projectName, StringComparison.OrdinalIgnoreCase));
-                    
+                    var matchingWorkspace = workspaces != null
+                        ? AnythingLLMService.FindBestWorkspaceMatch(workspaces, projectName)
+                        : null;
+
                     if (matchingWorkspace != null)
                     {
                         anythingLLMSlug = matchingWorkspace.Slug;
@@ -208,8 +209,8 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
                 _logger.LogInformation("📡 Broadcasting ProjectOpened event to other domains: {ProjectName}", projectName);
                 BroadcastToAllDomains(projectOpenedEvent);
 
-                // Publish domain-specific success event (same event, but for internal domain subscribers)
-                PublishEvent(projectOpenedEvent);
+                //// Publish domain-specific success event (same event, but for internal domain subscribers)
+                //PublishEvent(projectOpenedEvent);
 
                 ShowProgress("Complete", 100);
                 return true;

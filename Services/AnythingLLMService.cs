@@ -65,25 +65,40 @@ namespace TestCaseEditorApp.Services
         private static string? _cachedShortcutPath;
         private static bool? _cachedInstallationStatus;
 
+        //public AnythingLLMService(string? baseUrl = null, string? apiKey = null)
+        //{
+        //    // Try to get API key from user configuration, parameter, or environment
+        //    _apiKey = apiKey ?? GetUserApiKey();
+
+        //    // Force localhost for local AnythingLLM instance
+        //    _baseUrl = (baseUrl ?? "http://localhost:3001").TrimEnd('/');
+
+        //    _httpClient = new HttpClient();
+        //    _httpClient.Timeout = TimeSpan.FromMinutes(4); // 4 minutes per attempt; with 3 retries = 12+ min total max
+
+        //    if (!string.IsNullOrEmpty(_apiKey))
+        //    {
+        //        _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
+        //    }
+
+        //    _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+        //}
+
         public AnythingLLMService(string? baseUrl = null, string? apiKey = null)
         {
-            // Try to get API key from user configuration, parameter, or environment
             _apiKey = apiKey ?? GetUserApiKey();
-            
-            // Force localhost for local AnythingLLM instance
             _baseUrl = (baseUrl ?? "http://localhost:3001").TrimEnd('/');
-            
+
             _httpClient = new HttpClient();
-            _httpClient.Timeout = TimeSpan.FromMinutes(4); // 4 minutes per attempt; with 3 retries = 12+ min total max
-            
+            _httpClient.Timeout = Timeout.InfiniteTimeSpan;
+
             if (!string.IsNullOrEmpty(_apiKey))
             {
                 _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
             }
-            
+
             _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
         }
-
         /// <summary>
         /// Gets or sets the user's API key in local configuration
         /// </summary>
@@ -797,11 +812,11 @@ namespace TestCaseEditorApp.Services
                     
                     // LLM Provider Configuration: Use local Ollama for data security and consistency
                     chatProvider = "ollama", // Local Ollama provider (no internet, keeps data secure)
-                    chatModel = "phi3.5:3.8b-mini-instruct-q4_K_M",  // Phi-3.5 Mini Instruct model - better instruction following, less refusal
-                    
+                    chatModel = "phi4-mini:3.8b-q4_K_M",  // Default local Ollama chat model for instruction-following tasks
+
                     // RAG Configuration (based on official docs):
                     // Document similarity threshold: No restriction to ensure comprehensive access to supplemental materials
-                similarityThreshold = (int?)null, // CRITICAL: Set to null for "No Restriction" mode per AnythingLLM docs
+                    similarityThreshold = (int?)null, // CRITICAL: Set to null for "No Restriction" mode per AnythingLLM docs
                 topN = 8, // Maximum allowed value - essential for large technical documents with many requirements
                 
                 // Vector search preference: Accuracy optimized to prevent hallucinations
@@ -1934,103 +1949,278 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
             }
         }
 
-        /// <summary>
-        /// Sends a chat message to a specific thread with streaming response and progress updates
-        /// </summary>
         public async Task<string?> SendChatMessageStreamingAsync(
-            string workspaceSlug, 
-            string message, 
-            Action<string>? onChunkReceived = null, 
+            string workspaceSlug,
+            string message,
+            Action<string>? onChunkReceived = null,
             Action<string>? onProgressUpdate = null,
             string? threadSlug = null,
             CancellationToken cancellationToken = default)
         {
-            try
+            const int maxAttempts = 1;
+            TimeSpan overallTimeout = TimeSpan.FromSeconds(45);
+            TimeSpan firstTokenTimeout = TimeSpan.FromSeconds(20);
+            TimeSpan stallTimeout = TimeSpan.FromSeconds(20);
+
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
             {
-                onProgressUpdate?.Invoke("Starting streaming request...");
-                
-                var payload = new
-                {
-                    message = message,
-                    mode = "chat",
-                    stream = true
-                };
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    $"[AnythingLLM] Streaming attempt {attempt}/{maxAttempts} starting for workspace '{workspaceSlug}', thread '{threadSlug ?? "(default)"}'");
 
-                var json = JsonSerializer.Serialize(payload);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                
-                onProgressUpdate?.Invoke("Sending request to AnythingLLM...");
-                
-                // Use thread-specific endpoint if thread is specified
-                var endpoint = string.IsNullOrEmpty(threadSlug) 
-                    ? $"{_baseUrl}/api/v1/workspace/{workspaceSlug}/stream-chat"
-                    : $"{_baseUrl}/api/v1/workspace/{workspaceSlug}/thread/{threadSlug}/stream-chat";
-                
-                using var response = await _httpClient.PostAsync(endpoint, content, cancellationToken);
-                
-                if (!response.IsSuccessStatusCode)
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Failed to start streaming chat to '{workspaceSlug}': {response.StatusCode} - {errorContent}");
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[AnythingLLM] Request endpoint: {endpoint}");
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[AnythingLLM] API Key configured: {!string.IsNullOrEmpty(_apiKey)}");
-                    return null;
-                }
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    $"[AnythingLLM] Streaming timeouts: overall={overallTimeout.TotalSeconds}s, firstToken={firstTokenTimeout.TotalSeconds}s, stall={stallTimeout.TotalSeconds}s");
 
-                onProgressUpdate?.Invoke("Receiving streaming response...");
-                
-                var responseBuilder = new StringBuilder();
-                
-                using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-                using var reader = new StreamReader(stream);
-                
-                string? line;
-                while ((line = await reader.ReadLineAsync()) != null && !cancellationToken.IsCancellationRequested)
+                try
                 {
-                    if (string.IsNullOrWhiteSpace(line)) continue;
-                    
-                    // Handle Server-Sent Events format
-                    if (line.StartsWith("data: "))
+                    onProgressUpdate?.Invoke($"Starting streaming request (attempt {attempt}/{maxAttempts})...");
+
+                    var payload = new
                     {
-                        var chunkData = line.Substring(6); // Remove "data: " prefix
-                        
-                        if (chunkData == "[DONE]") break;
-                        
+                        message = message,
+                        mode = "chat",
+                        stream = true
+                    };
+
+                    var json = JsonSerializer.Serialize(payload);
+
+                    var endpoint = string.IsNullOrEmpty(threadSlug)
+                        ? $"{_baseUrl}/api/v1/workspace/{workspaceSlug}/stream-chat"
+                        : $"{_baseUrl}/api/v1/workspace/{workspaceSlug}/thread/{threadSlug}/stream-chat";
+
+                    using var overallCts = new CancellationTokenSource(overallTimeout);
+                    using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+                        cancellationToken,
+                        overallCts.Token);
+
+                    var ct = linkedCts.Token;
+
+                    using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
+                    {
+                        Content = new StringContent(json, Encoding.UTF8, "application/json")
+                    };
+
+                    onProgressUpdate?.Invoke("Sending request to AnythingLLM...");
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        $"[AnythingLLM] Streaming attempt {attempt}/{maxAttempts}: sending HTTP request to stream-chat endpoint");
+
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        $"[AnythingLLM] Streaming request details: workspace='{workspaceSlug}', thread='{threadSlug ?? "(default)"}', messageLength={message?.Length ?? 0}, endpoint='{endpoint}'");
+
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        $"[AnythingLLM] Streaming payload preview: {(string.IsNullOrEmpty(message) ? "(empty)" : message.Substring(0, Math.Min(500, message.Length)))}");
+
+                    using var response = await _httpClient.SendAsync(
+                        request,
+                        HttpCompletionOption.ResponseHeadersRead,
+                        ct);
+
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        $"[AnythingLLM] Streaming attempt {attempt}/{maxAttempts}: HTTP response received with status {response.StatusCode}");
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync(ct);
+                        TestCaseEditorApp.Services.Logging.Log.Warn(
+                            $"[AnythingLLM] Failed to start streaming chat to '{workspaceSlug}': {response.StatusCode} - {errorContent}");
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[AnythingLLM] Request endpoint: {endpoint}");
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[AnythingLLM] API Key configured: {!string.IsNullOrEmpty(_apiKey)}");
+                        return null;
+                    }
+
+                    onProgressUpdate?.Invoke("Receiving streaming response...");
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        $"[AnythingLLM] Streaming attempt {attempt}/{maxAttempts}: opening response stream");
+
+                    var responseBuilder = new StringBuilder();
+                    bool receivedAnyChunk = false;
+
+                    await using var stream = await response.Content.ReadAsStreamAsync(ct);
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        $"[AnythingLLM] Streaming attempt {attempt}/{maxAttempts}: response stream opened successfully");
+
+                    using var reader = new StreamReader(stream);
+
+                    while (!ct.IsCancellationRequested)
+                    {
+                        var timeoutForNextLine = receivedAnyChunk ? stallTimeout : firstTokenTimeout;
+                        var line = await ReadLineWithTimeoutAsync(reader, timeoutForNextLine, ct);
+
+                        TestCaseEditorApp.Services.Logging.Log.Info(
+                            $"[AnythingLLM] ReadLine result: {(line == null ? "(null)" : $"'{line.Substring(0, Math.Min(300, line.Length))}'")}");
+
+                        if (line == null)
+                            break;
+
+                        if (string.IsNullOrWhiteSpace(line))
+                            continue;
+
+                        if (!line.StartsWith("data:", StringComparison.Ordinal))
+                            continue;
+
+                        var chunkData = line.Substring(5).Trim();
+
+                        if (string.Equals(chunkData, "[DONE]", StringComparison.OrdinalIgnoreCase))
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info(
+                                $"[AnythingLLM] Streaming attempt {attempt}/{maxAttempts}: received [DONE] marker");
+                            break;
+                        }
+
+                        TestCaseEditorApp.Services.Logging.Log.Info(
+                            $"[AnythingLLM] Raw SSE chunk: {chunkData.Substring(0, Math.Min(500, chunkData.Length))}");
+
                         try
                         {
-                            var chunkJson = JsonSerializer.Deserialize<StreamChunkResponse>(chunkData, new JsonSerializerOptions 
-                            { 
-                                PropertyNameCaseInsensitive = true 
-                            });
-                            
-                            if (!string.IsNullOrEmpty(chunkJson?.TextResponse))
+                            using var chunkDoc = JsonDocument.Parse(chunkData);
+                            var root = chunkDoc.RootElement;
+
+                            string? textPiece = null;
+
+                            if (root.TryGetProperty("textResponse", out var textResponseEl))
+                                textPiece = textResponseEl.GetString();
+                            else if (root.TryGetProperty("response", out var responseEl))
+                                textPiece = responseEl.GetString();
+                            else if (root.TryGetProperty("text", out var textEl))
+                                textPiece = textEl.GetString();
+                            else if (root.TryGetProperty("content", out var contentEl))
+                                textPiece = contentEl.GetString();
+
+                            if (string.IsNullOrWhiteSpace(textPiece))
                             {
-                                responseBuilder.Append(chunkJson.TextResponse);
-                                onChunkReceived?.Invoke(chunkJson.TextResponse);
+                                TestCaseEditorApp.Services.Logging.Log.Info(
+                                    $"[AnythingLLM] SSE chunk parsed but no recognized text field was found.");
+                                continue;
                             }
+
+                            var cleanedTextPiece = textPiece.Trim();
+
+                            TestCaseEditorApp.Services.Logging.Log.Info(
+                                $"[AnythingLLM] Parsed JSON chunk text: '{cleanedTextPiece.Substring(0, Math.Min(200, cleanedTextPiece.Length))}' (len={cleanedTextPiece.Length})");
+
+                            if (cleanedTextPiece == "```" ||
+                                cleanedTextPiece == "```json" ||
+                                cleanedTextPiece == "```text")
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Info(
+                                    $"[AnythingLLM] Ignoring fence-only chunk.");
+                                continue;
+                            }
+
+                            if (!receivedAnyChunk)
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Info(
+                                    $"[AnythingLLM] Streaming attempt {attempt}/{maxAttempts}: first response chunk received");
+                            }
+
+                            receivedAnyChunk = true;
+                            responseBuilder.Append(textPiece);
+                            onChunkReceived?.Invoke(textPiece);
                         }
                         catch (JsonException)
                         {
-                            // Handle plain text chunks
+                            if (string.IsNullOrWhiteSpace(chunkData))
+                                continue;
+
+                            var cleanedChunkData = chunkData.Trim();
+
+                            TestCaseEditorApp.Services.Logging.Log.Info(
+                                $"[AnythingLLM] Parsed non-JSON chunk text: '{cleanedChunkData.Substring(0, Math.Min(500, cleanedChunkData.Length))}' (len={cleanedChunkData.Length})");
+
+                            if (cleanedChunkData == "```" ||
+                                cleanedChunkData == "```json" ||
+                                cleanedChunkData == "```text")
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Info(
+                                    $"[AnythingLLM] Ignoring fence-only non-JSON chunk.");
+                                continue;
+                            }
+
+                            if (!receivedAnyChunk)
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Info(
+                                    $"[AnythingLLM] Streaming attempt {attempt}/{maxAttempts}: first non-JSON response chunk received");
+                            }
+
+                            receivedAnyChunk = true;
                             responseBuilder.Append(chunkData);
                             onChunkReceived?.Invoke(chunkData);
                         }
                     }
+
+                    var finalText = responseBuilder.ToString().Trim();
+
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        $"[AnythingLLM] Final streamed text: '{(string.IsNullOrEmpty(finalText) ? "(empty)" : finalText.Substring(0, Math.Min(500, finalText.Length)))}' (len={finalText.Length})");
+
+                    if (string.IsNullOrWhiteSpace(finalText) ||
+                        finalText == "```" ||
+                        finalText == "```json" ||
+                        finalText == "```text")
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn(
+                            $"[AnythingLLM] Streaming chat completed but returned no usable text for workspace '{workspaceSlug}'.");
+                        return null;
+                    }
+
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        $"[AnythingLLM] Streaming attempt {attempt}/{maxAttempts}: completed successfully, response length={finalText.Length}");
+
+                    onProgressUpdate?.Invoke("Stream complete");
+                    return finalText;
                 }
-                
-                onProgressUpdate?.Invoke("Stream complete");
-                return responseBuilder.ToString();
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        $"[AnythingLLM] Streaming chat to workspace '{workspaceSlug}' was canceled by caller.");
+                    return null;
+                }
+                catch (OperationCanceledException ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        $"[AnythingLLM] Streaming chat attempt {attempt}/{maxAttempts} timed out for workspace '{workspaceSlug}': {ex.Message}");
+
+                    if (attempt == maxAttempts)
+                        return null;
+                }
+                catch (StreamingStallException ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        $"[AnythingLLM] Streaming chat stalled on attempt {attempt}/{maxAttempts} for workspace '{workspaceSlug}': {ex.Message}");
+
+                    if (attempt == maxAttempts)
+                        return null;
+                }
+                catch (IOException ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        $"[AnythingLLM] Streaming chat transport broke on attempt {attempt}/{maxAttempts} for workspace '{workspaceSlug}': {ex.Message}");
+
+                    if (attempt == maxAttempts)
+                        return null;
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error(
+                        ex,
+                        $"[AnythingLLM] Error in streaming chat to workspace '{workspaceSlug}' on attempt {attempt}/{maxAttempts}");
+
+                    if (!IsTransientStreamingException(ex) || attempt == maxAttempts)
+                        return null;
+                }
+
+                onProgressUpdate?.Invoke("Streaming stalled or timed out. Retrying...");
+                await Task.Delay(750, CancellationToken.None);
             }
-            catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Timeout in streaming chat to workspace '{workspaceSlug}' - model may be overloaded");
-                return null; // Let caller handle fallback
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error in streaming chat to workspace '{workspaceSlug}'");
-                return null;
-            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Thrown when a streaming response stops producing data for too long.
+        /// </summary>
+        private sealed class StreamingStallException : TimeoutException
+        {
+            public StreamingStallException(string message) : base(message) { }
         }
 
         /// <summary>
@@ -2049,7 +2239,7 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                     similarityThreshold = 0.0, // 0.0 = "No Restriction" mode per docs - prevents relevant chunks being filtered
                     
                     // Maximize context retrieval for technical documents
-                    topN = 16, // Maximum increase for dense technical documents
+                    topN = 8, // Maximum increase for dense technical documents
                     
                     // Force accuracy optimization for better semantic matching
                     vectorSearchMode = "accuracy", // Enhanced semantic matching for requirement extraction
@@ -2072,7 +2262,7 @@ Your task: Extract technical requirements from the provided document content wit
                     
                     // Database and model settings optimized for document retrieval
                     chatProvider = "ollama",
-                    chatModel = "phi3.5:3.8b-mini-instruct-q4_K_M",
+                    chatModel = "phi4-mini:3.8b-q4_K_M",
                     chatMode = "chat"
                 };
 
@@ -2097,13 +2287,13 @@ Your task: Extract technical requirements from the provided document content wit
                         
                         TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Configuration verification - similarityThreshold: {currentThreshold}, topN: {currentTopN}");
                         
-                        if (Math.Abs(currentThreshold - 0.0) < 0.001 && currentTopN == 16)
+                        if (Math.Abs(currentThreshold - 0.0) < 0.001 && currentTopN == 8)
                         {
                             TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Configuration verified as applied");
                         }
                         else
                         {
-                            TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Configuration API succeeded but settings didn't change - threshold: {currentThreshold} (expected 0.0), topN: {currentTopN} (expected 16)");
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ Configuration API succeeded but settings didn't change - threshold: {currentThreshold} (expected 0.0), topN: {currentTopN} (expected 8)");
                             return false;
                         }
                     }
@@ -2216,6 +2406,42 @@ Your task: Extract technical requirements from the provided document content wit
         }
 
         /// <summary>
+        /// Send a chat message to a workspace with a per-call timeout.
+        /// Uses a linked cancellation token instead of mutating shared HttpClient.Timeout.
+        /// </summary>
+        public async Task<string?> SendChatMessageAsync(
+            string workspaceSlug,
+            string message,
+            TimeSpan timeout,
+            CancellationToken cancellationToken = default)
+        {
+            using var timeoutCts = new CancellationTokenSource(timeout);
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                timeoutCts.Token);
+
+            TestCaseEditorApp.Services.Logging.Log.Info(
+                $"[AnythingLLM] Using per-call timeout: {timeout.TotalSeconds:F0} seconds for workspace '{workspaceSlug}'");
+
+            try
+            {
+                return await SendChatMessageAsync(workspaceSlug, message, linkedCts.Token);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    $"[AnythingLLM] Request was cancelled by caller for workspace '{workspaceSlug}'");
+                return null;
+            }
+            catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    $"[AnythingLLM] Request timed out after {timeout.TotalSeconds:F0} seconds for workspace '{workspaceSlug}'");
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Sends a chat message to a workspace
         /// </summary>
         public async Task<string?> SendChatMessageAsync(string workspaceSlug, string message, CancellationToken cancellationToken = default)
@@ -2235,17 +2461,22 @@ Your task: Extract technical requirements from the provided document content wit
 
                     var json = JsonSerializer.Serialize(payload);
                     var content = new StringContent(json, Encoding.UTF8, "application/json");
-                    
+
                     OnStatusUpdated($"[Attempt {retryCount + 1}/{MAX_RETRY_ATTEMPTS + 1}] Sending request to LLM...");
-                    
-                    var response = await _httpClient.PostAsync($"{_baseUrl}/api/v1/workspace/{workspaceSlug}/chat", content, cancellationToken);
-                    
+
+                    var response = await _httpClient.PostAsync(
+                        $"{_baseUrl}/api/v1/workspace/{workspaceSlug}/chat",
+                        content,
+                        cancellationToken);
+
                     if (!response.IsSuccessStatusCode)
                     {
+                        var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
                         var errorMsg = $"LLM request failed with status {response.StatusCode}";
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] {errorMsg} - workspace: '{workspaceSlug}'");
-                        
-                        if (response.StatusCode == System.Net.HttpStatusCode.RequestTimeout || 
+                        TestCaseEditorApp.Services.Logging.Log.Info(
+                            $"[AnythingLLM] {errorMsg} - workspace: '{workspaceSlug}' - body: {errorBody}");
+
+                        if (response.StatusCode == System.Net.HttpStatusCode.RequestTimeout ||
                             response.StatusCode == System.Net.HttpStatusCode.GatewayTimeout)
                         {
                             if (retryCount < MAX_RETRY_ATTEMPTS)
@@ -2262,16 +2493,16 @@ Your task: Extract technical requirements from the provided document content wit
                                 return null;
                             }
                         }
-                        
+
                         return null;
                     }
 
                     var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
-                    
+
                     if (string.IsNullOrWhiteSpace(responseJson))
                     {
                         TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Received empty response from workspace '{workspaceSlug}'");
-                        
+
                         if (retryCount < MAX_RETRY_ATTEMPTS)
                         {
                             TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Empty response, retrying in {delayMs}ms...");
@@ -2281,16 +2512,16 @@ Your task: Extract technical requirements from the provided document content wit
                             continue;
                         }
                     }
-                    
-                    var result = JsonSerializer.Deserialize<ChatResponse>(responseJson, new JsonSerializerOptions 
-                    { 
-                        PropertyNameCaseInsensitive = true 
+
+                    var result = JsonSerializer.Deserialize<ChatResponse>(responseJson, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
                     });
 
                     if (string.IsNullOrEmpty(result?.TextResponse))
                     {
                         TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] LLM returned empty response text");
-                        
+
                         if (retryCount < MAX_RETRY_ATTEMPTS)
                         {
                             TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Empty text response, retrying in {delayMs}ms...");
@@ -2299,7 +2530,7 @@ Your task: Extract technical requirements from the provided document content wit
                             retryCount++;
                             continue;
                         }
-                        
+
                         return null;
                     }
 
@@ -2308,30 +2539,30 @@ Your task: Extract technical requirements from the provided document content wit
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Info("[AnythingLLM] Request was cancelled by user");
-                    return null;
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        $"[AnythingLLM] Request cancellation observed for workspace '{workspaceSlug}'");
+                    throw;
                 }
                 catch (OperationCanceledException ex)
                 {
-                    // Timeout from HttpClient.Timeout - treat as timeout and retry
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Request timeout after {_httpClient.Timeout.TotalMinutes} minutes");
-                    
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Request canceled or timed out: {ex.Message}");
+
                     if (retryCount < MAX_RETRY_ATTEMPTS)
                     {
                         TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Timeout occurred, retrying in {delayMs}ms... (Attempt {retryCount + 1}/{MAX_RETRY_ATTEMPTS})");
-                        await Task.Delay(delayMs, CancellationToken.None); // Don't use cancellationToken for retry delay
+                        await Task.Delay(delayMs, CancellationToken.None);
                         delayMs = Math.Min(delayMs * 2, MAX_RETRY_DELAY_MS);
                         retryCount++;
                         continue;
                     }
-                    
+
                     TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Timeout after {MAX_RETRY_ATTEMPTS} retry attempts");
                     return null;
                 }
                 catch (TimeoutException ex)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Request timeout: {ex.Message}");
-                    
+
                     if (retryCount < MAX_RETRY_ATTEMPTS)
                     {
                         TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Timeout occurred, retrying in {delayMs}ms... (Attempt {retryCount + 1}/{MAX_RETRY_ATTEMPTS})");
@@ -2340,14 +2571,14 @@ Your task: Extract technical requirements from the provided document content wit
                         retryCount++;
                         continue;
                     }
-                    
+
                     TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Timeout after {MAX_RETRY_ATTEMPTS} retry attempts");
                     return null;
                 }
                 catch (HttpRequestException ex)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Request error: {ex.Message}");
-                    
+
                     if (retryCount < MAX_RETRY_ATTEMPTS)
                     {
                         TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Connection error, retrying in {delayMs}ms...");
@@ -2356,7 +2587,7 @@ Your task: Extract technical requirements from the provided document content wit
                         retryCount++;
                         continue;
                     }
-                    
+
                     TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnythingLLM] HTTP request failed after retries");
                     return null;
                 }
@@ -2375,29 +2606,6 @@ Your task: Extract technical requirements from the provided document content wit
             TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] Failed to get response after {MAX_RETRY_ATTEMPTS} retry attempts");
             return null;
         }
-
-        /// <summary>
-        /// Send a chat message to a workspace with custom timeout (overload for operations like recovery that need shorter timeouts)
-        /// </summary>
-        public async Task<string?> SendChatMessageAsync(string workspaceSlug, string message, TimeSpan timeout, CancellationToken cancellationToken = default)
-        {
-            var originalTimeout = _httpClient.Timeout;
-            try
-            {
-                // Temporarily set the custom timeout
-                _httpClient.Timeout = timeout;
-                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Using custom timeout: {timeout.TotalMinutes:F1} minutes for recovery operation");
-                
-                // Use the existing method with the custom timeout
-                return await SendChatMessageAsync(workspaceSlug, message, cancellationToken);
-            }
-            finally
-            {
-                // Always restore the original timeout
-                _httpClient.Timeout = originalTimeout;
-            }
-        }
-
         /// <summary>
         /// Gets workspace documents to verify document presence and vectorization status
         /// </summary>
@@ -4116,5 +4324,121 @@ Your task: Extract technical requirements from the provided document content wit
                 TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] Test embedding exception: {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// Reads a single line from the stream with a timeout so stalled streams can be aborted.
+        /// </summary>
+        private static async Task<string?> ReadLineWithTimeoutAsync(
+            StreamReader reader,
+            TimeSpan timeout,
+            CancellationToken cancellationToken)
+        {
+            var readTask = reader.ReadLineAsync();
+            var timeoutTask = Task.Delay(timeout);
+
+            var completedTask = await Task.WhenAny(readTask, timeoutTask);
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (completedTask != readTask)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn(
+                    $"[AnythingLLM] Stream read timed out after {timeout.TotalSeconds:F0}s while waiting for next SSE line.");
+
+                throw new StreamingStallException(
+                    $"Streaming stalled for more than {timeout.TotalSeconds:F0} seconds while waiting for the next line.");
+            }
+
+            return await readTask;
+        }
+
+        /// <summary>
+        /// Determines whether an exception likely indicates an AnythingLLM/Ollama connectivity or timeout issue.
+        /// </summary>
+        private static bool IsTransientStreamingException(Exception ex)
+        {
+            var text = ex.ToString();
+
+            return ex is HttpRequestException
+                || ex is TimeoutException
+                || ex is IOException
+                || text.Contains("timeout", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("timed out", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("connection", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("refused", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("forcibly closed", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("reset by peer", StringComparison.OrdinalIgnoreCase);
+        }
+
+        public static AnythingLLMService.Workspace? FindBestWorkspaceMatch(
+    IEnumerable<AnythingLLMService.Workspace> workspaces,
+    string projectName)
+        {
+            if (workspaces == null || string.IsNullOrWhiteSpace(projectName))
+                return null;
+
+            var workspaceList = workspaces.ToList();
+
+            var targetWorkspace = workspaceList.FirstOrDefault(w =>
+                string.Equals(w.Name, projectName, StringComparison.OrdinalIgnoreCase));
+
+            if (targetWorkspace != null)
+                return targetWorkspace;
+
+            var jamaPatternName = $"Jama Document Parse: {projectName}";
+            targetWorkspace = workspaceList.FirstOrDefault(w =>
+                string.Equals(w.Name, jamaPatternName, StringComparison.OrdinalIgnoreCase));
+
+            if (targetWorkspace != null)
+                return targetWorkspace;
+
+            var normalizedProjectName = projectName
+                .Replace(" ", "")
+                .Replace("-", "")
+                .Replace("_", "")
+                .ToLowerInvariant();
+
+            targetWorkspace = workspaceList.FirstOrDefault(w =>
+            {
+                var normalizedWorkspaceName = w.Name
+                    .Replace(" ", "")
+                    .Replace("-", "")
+                    .Replace("_", "")
+                    .ToLowerInvariant();
+
+                return string.Equals(normalizedWorkspaceName, normalizedProjectName, StringComparison.OrdinalIgnoreCase);
+            });
+
+            if (targetWorkspace != null)
+                return targetWorkspace;
+
+            targetWorkspace = workspaceList.FirstOrDefault(w =>
+            {
+                var normalizedWorkspaceName = w.Name
+                    .Replace(" ", "")
+                    .Replace("-", "")
+                    .Replace("_", "")
+                    .ToLowerInvariant();
+
+                if (w.Name.StartsWith("Jama Document Parse: ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var documentName = w.Name.Substring("Jama Document Parse: ".Length);
+                    var normalizedDocName = documentName
+                        .Replace(" ", "")
+                        .Replace("-", "")
+                        .Replace("_", "")
+                        .ToLowerInvariant();
+
+                    return normalizedProjectName.Contains(normalizedDocName) ||
+                           normalizedDocName.Contains(normalizedProjectName);
+                }
+
+                return normalizedProjectName.Contains(normalizedWorkspaceName) ||
+                       normalizedWorkspaceName.Contains(normalizedProjectName);
+            });
+
+            return targetWorkspace;
+        }
     }
+
 }

@@ -18,6 +18,11 @@ namespace TestCaseEditorApp.MVVM.Models
 
         [ObservableProperty]
         private List<ExtractedImageText> extractedImageTexts = new();
+
+        public static implicit operator Requirement(RequirementLooseContent v)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     /// <summary>

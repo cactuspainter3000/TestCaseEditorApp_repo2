@@ -6,7 +6,7 @@ namespace TestCaseEditorApp.MVVM.Models
     // ---- Simple JSON-persisted workspace ----
     public class Workspace
     {
-        public const int SchemaVersion = 1;
+        public const int SchemaVersion = 2;
         public int Version { get; set; } = SchemaVersion;
         public string? SourceDocPath { get; set; }
         public DateTime LastSavedUtc { get; set; }

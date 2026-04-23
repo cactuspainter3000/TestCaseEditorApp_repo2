@@ -557,11 +557,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
 
                 requirement.Analysis = analysis;
 
+                var success =
+                    analysis != null &&
+                    analysis.IsAnalyzed &&
+                    string.IsNullOrWhiteSpace(analysis.ErrorMessage);
+
                 PublishEvent(new RequirementsEvents.RequirementAnalyzed
                 {
                     Requirement = requirement,
                     Analysis = analysis,
-                    Success = true,
+                    Success = success,
                     AnalysisTime = duration
                 });
 
@@ -1068,8 +1073,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 {
                     _ = LoadFromProjectAsync(projectCreated.Workspace);
                     // Trigger automatic RAG document sync for analysis service
-                    _analysisService?.SetWorkspaceContext(projectCreated.WorkspaceName);
-                    
+                    _analysisService?.SetWorkspaceContext(
+    projectCreated.WorkspaceName,
+    projectCreated.AnythingLLMWorkspaceSlug);
+
                     // NOTE: WorkspaceContext notification is handled by NewProjectMediator
                     // No need for explicit refresh - proper architectural separation
                 }
@@ -1087,8 +1094,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     
                     _ = LoadFromProjectAsync(openProjectOpened.Workspace);
                     // Trigger automatic RAG document sync for analysis service
-                    _analysisService?.SetWorkspaceContext(openProjectOpened.WorkspaceName);
-                    
+                    _analysisService?.SetWorkspaceContext(
+    openProjectOpened.WorkspaceName,
+    openProjectOpened.AnythingLLMWorkspaceSlug);
+
                     // NOTE: WorkspaceContext notification is handled by NewProjectMediator
                     // No need for explicit refresh - proper architectural separation
                 }

@@ -62,8 +62,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                 {
                     _logger.LogInformation("[AnalysisEngine] Analysis completed successfully for {RequirementId}. Original Quality: {OriginalScore}, Issues: {IssueCount}", 
                         requirement.Item, analysis.OriginalQualityScore, analysis.Issues?.Count ?? 0);
-                    
-                    progressCallback?.Invoke($"Analysis complete. Your requirement quality: {analysis.OriginalQualityScore}/10");
+
+                    progressCallback?.Invoke($"Analysis complete. Requirement quality score: {analysis.OriginalQualityScore}/100");
 
                     // Store the result on the requirement
                     requirement.Analysis = analysis;

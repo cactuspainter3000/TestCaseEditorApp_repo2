@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.Services;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services; // For RequirementAnalysisCache
 
 namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
 {
@@ -15,143 +14,45 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
     /// </summary>
     public interface IRequirementAnalysisService
     {
-        /// <summary>
-        /// Enable/disable self-reflection feature. When enabled, the LLM will review its own responses for quality.
-        /// </summary>
         bool EnableSelfReflection { get; set; }
-
-        /// <summary>
-        /// Enable/disable caching of analysis results. When enabled, identical requirement content will use cached results.
-        /// </summary>
         bool EnableCaching { get; set; }
-
-        /// <summary>
-        /// Enable/disable thread cleanup after analysis. When enabled, analysis threads are deleted after completion.
-        /// </summary>
         bool EnableThreadCleanup { get; set; }
-
-        /// <summary>
-        /// Timeout for LLM analysis operations. Default is 90 seconds to allow for RAG processing.
-        /// </summary>
         TimeSpan AnalysisTimeout { get; set; }
-
-        /// <summary>
-        /// Current health status of the LLM service (null if no health monitor configured)
-        /// </summary>
         LlmServiceHealthMonitor.HealthReport? ServiceHealth { get; }
-
-        /// <summary>
-        /// Whether the service is currently using fallback mode
-        /// </summary>
         bool IsUsingFallback { get; }
-
-        /// <summary>
-        /// Current cache statistics (null if no cache configured)
-        /// </summary>
         RequirementAnalysisCache.CacheStatistics? CacheStatistics { get; }
 
-        /// <summary>
-        /// Sets the workspace context for project-specific analysis
-        /// </summary>
-        /// <param name="workspaceName">Name of the project workspace to use for analysis</param>
-        void SetWorkspaceContext(string? workspaceName);
+        void SetWorkspaceContext(string? workspaceName, string? anythingLlmWorkspaceSlug = null);
 
-        /// <summary>
-        /// Analyzes a requirement for quality issues and generates structured analysis.
-        /// </summary>
-        /// <param name="requirement">The requirement to analyze</param>
-        /// <param name="cancellationToken">Token to cancel the analysis operation</param>
-        /// <returns>Structured analysis with quality score, issues, and recommendations</returns>
         Task<RequirementAnalysis> AnalyzeRequirementAsync(Requirement requirement, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Analyzes a requirement with streaming support for real-time feedback and timeout enforcement.
-        /// This method includes 90-second timeout protection to prevent indefinite hangs.
-        /// </summary>
-        /// <param name="requirement">The requirement to analyze</param>
-        /// <param name="onPartialResult">Callback for partial LLM response chunks</param>
-        /// <param name="onProgressUpdate">Callback for progress status updates</param>
-        /// <param name="cancellationToken">Token to cancel the analysis operation</param>
-        /// <returns>Structured analysis with quality score, issues, and recommendations</returns>
         Task<RequirementAnalysis> AnalyzeRequirementWithStreamingAsync(
             Requirement requirement,
             Action<string>? onPartialResult = null,
             Action<string>? onProgressUpdate = null,
             CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Generates a prompt for inspection purposes.
-        /// </summary>
-        /// <param name="requirement">The requirement to generate prompt for</param>
-        /// <returns>The generated prompt string</returns>
         string GeneratePromptForInspection(Requirement requirement);
 
-        /// <summary>
-        /// Gets detailed health information for the analysis service.
-        /// </summary>
-        /// <param name="cancellationToken">Token to cancel the operation</param>
-        /// <returns>Detailed health report or null if not available</returns>
         Task<LlmServiceHealthMonitor.HealthReport?> GetDetailedHealthAsync(CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Invalidates cached analysis for a specific requirement.
-        /// </summary>
-        /// <param name="requirementGlobalId">The global ID of the requirement to invalidate</param>
         void InvalidateCache(string requirementGlobalId);
-
-        /// <summary>
-        /// Clears all cached analysis data.
-        /// </summary>
         void ClearAnalysisCache();
 
-        // =====================================================
-        // TASK 4.4: ENHANCED DERIVATION ANALYSIS CAPABILITIES
-        // =====================================================
+        Task<RequirementDerivationAnalysis> AnalyzeRequirementDerivationAsync(
+            Requirement requirement,
+            CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Analyzes a requirement for ATP (Automated Test Procedure) content and derives system capabilities.
-        /// Integrates with the systematic capability derivation service for comprehensive analysis.
-        /// </summary>
-        /// <param name="requirement">The requirement to analyze for ATP content</param>
-        /// <param name="cancellationToken">Token to cancel the operation</param>
-        /// <returns>Derivation analysis result with detected capabilities and gap analysis</returns>
-        Task<RequirementDerivationAnalysis> AnalyzeRequirementDerivationAsync(Requirement requirement, CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// Performs comprehensive gap analysis between derived capabilities and existing requirements.
-        /// Uses the RequirementGapAnalyzer for multi-dimensional comparison.
-        /// </summary>
-        /// <param name="derivedCapabilities">List of capabilities derived from ATP analysis</param>
-        /// <param name="existingRequirements">Current requirements to compare against</param>
-        /// <param name="cancellationToken">Token to cancel the operation</param>
-        /// <returns>Gap analysis results with identified gaps, overlaps, and recommendations</returns>
         Task<RequirementGapAnalysisResult> AnalyzeRequirementGapAsync(
-            IEnumerable<DerivedCapability> derivedCapabilities, 
-            IEnumerable<Requirement> existingRequirements, 
+            IEnumerable<DerivedCapability> derivedCapabilities,
+            IEnumerable<Requirement> existingRequirements,
             CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Validates testing workflows end-to-end using derived capabilities and gap analysis.
-        /// Provides comprehensive testing workflow validation for enhanced quality assurance.
-        /// </summary>
-        /// <param name="requirements">Requirements to validate testing workflows for</param>
-        /// <param name="testingContext">Optional context for testing validation</param>
-        /// <param name="cancellationToken">Token to cancel the operation</param>
-        /// <returns>Testing workflow validation result with recommendations</returns>
         Task<TestingWorkflowValidationResult> ValidateTestingWorkflowAsync(
-            IEnumerable<Requirement> requirements, 
-            TestingValidationContext? testingContext = null, 
+            IEnumerable<Requirement> requirements,
+            TestingValidationContext? testingContext = null,
             CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Performs batch analysis of multiple requirements for derivation capabilities.
-        /// Optimized for processing large sets of requirements efficiently.
-        /// </summary>
-        /// <param name="requirements">Collection of requirements to analyze</param>
-        /// <param name="batchOptions">Options for batch processing</param>
-        /// <param name="onProgress">Callback for progress updates</param>
-        /// <param name="cancellationToken">Token to cancel the operation</param>
-        /// <returns>Collection of derivation analysis results</returns>
         Task<IEnumerable<RequirementDerivationAnalysis>> AnalyzeBatchDerivationAsync(
             IEnumerable<Requirement> requirements,
             BatchAnalysisOptions? batchOptions = null,
@@ -280,7 +181,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
         /// <summary>
         /// Timeout for individual analysis operations
         /// </summary>
-        public TimeSpan AnalysisTimeout { get; set; } = TimeSpan.FromMinutes(2);
+        public TimeSpan AnalysisTimeout { get; set; } = TimeSpan.FromMinutes(4);
     }
 
     /// <summary>

@@ -390,29 +390,53 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// </summary>
         private void UpdateUIFromAnalysis(RequirementAnalysis analysis)
         {
-            _logger.LogInformation("[RequirementAnalysisVM] UpdateUIFromAnalysis called with OriginalQualityScore: {OriginalScore}, ImprovedQualityScore: {ImprovedScore}", 
-                analysis.OriginalQualityScore, analysis.ImprovedQualityScore);
-            
-            // DEBUG: Log the actual analysis object properties to see what we're getting
-            _logger.LogWarning("[RequirementAnalysisVM] DEBUG SCORE INVESTIGATION - OriginalQualityScore: {Original}, ImprovedQualityScore: {Improved}, Legacy QualityScore property: {Legacy}",
-                analysis.OriginalQualityScore, analysis.ImprovedQualityScore, analysis.OriginalQualityScore); // Use OriginalQualityScore instead of obsolete QualityScore
-            
+            _logger.LogInformation(
+                "[RequirementAnalysisVM] UpdateUIFromAnalysis called with OriginalQualityScore: {OriginalScore}, ImprovedQualityScore: {ImprovedScore}",
+                analysis.OriginalQualityScore,
+                analysis.ImprovedQualityScore);
+
+            _logger.LogWarning(
+                "[RequirementAnalysisVM] DEBUG SCORE INVESTIGATION - OriginalQualityScore: {Original}, ImprovedQualityScore: {Improved}, Legacy QualityScore property: {Legacy}",
+                analysis.OriginalQualityScore,
+                analysis.ImprovedQualityScore,
+                analysis.OriginalQualityScore);
+
             HasAnalysis = true;
             _logger.LogInformation("[RequirementAnalysisVM] HasAnalysis set to TRUE - this should trigger UI visibility");
-            
-            // Ensure we're showing the ORIGINAL requirement score, not the LLM's self-rated improved score
-            QualityScore = analysis.OriginalQualityScore; // This should be the user's original requirement quality
-            
-            // Log what we're actually displaying
-            _logger.LogInformation("[RequirementAnalysisVM] Displaying QualityScore: {DisplayScore} (should be original, not improved)", QualityScore);
-            
+
+            // Always display the score for the ORIGINAL requirement, not a hypothetical improved one.
+            QualityScore = analysis.OriginalQualityScore;
+
+            _logger.LogInformation(
+                "[RequirementAnalysisVM] Displaying QualityScore: {DisplayScore} (should be original, not improved)",
+                QualityScore);
+
             Issues = analysis.Issues ?? new List<AnalysisIssue>();
             Recommendations = analysis.Recommendations ?? new List<AnalysisRecommendation>();
-            OnPropertyChanged(nameof(HasRecommendations)); // Update computed property
-            OnPropertyChanged(nameof(HasIssues)); // Update computed property
+            OnPropertyChanged(nameof(HasRecommendations));
+            OnPropertyChanged(nameof(HasIssues));
+
             FreeformFeedback = analysis.FreeformFeedback ?? string.Empty;
-            ImprovedRequirement = analysis.ImprovedRequirement;
-            HasImprovedRequirement = !string.IsNullOrWhiteSpace(analysis.ImprovedRequirement);
+
+            // Only expose an improved requirement to the UI if it is actually usable text.
+            var improvedRequirementText = analysis.ImprovedRequirement?.Trim() ?? string.Empty;
+            var hasUsableImprovedRequirement = !string.IsNullOrWhiteSpace(improvedRequirementText);
+
+            ImprovedRequirement = hasUsableImprovedRequirement ? improvedRequirementText : string.Empty;
+            HasImprovedRequirement = hasUsableImprovedRequirement;
+
+            if (hasUsableImprovedRequirement)
+            {
+                _logger.LogInformation(
+                    "[RequirementAnalysisVM] Improved requirement available for display. Length: {Length}",
+                    improvedRequirementText.Length);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "[RequirementAnalysisVM] No usable improved requirement available. Edit/commit actions should remain unavailable.");
+            }
+
             AnalysisTimestamp = $"Analyzed on {analysis.Timestamp:MMM d, yyyy 'at' h:mm tt}";
 
             _logger.LogDebug("[RequirementAnalysisVM] UI updated with analysis results");
@@ -819,7 +843,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // AnythingLLM refined version (if available)
             if (!string.IsNullOrWhiteSpace(ImprovedRequirement))
             {
-                sb.AppendLine("ANYTHINGLM REFINED VERSION:");
+                sb.AppendLine("ANYTHINGLLM REFINED VERSION:");
                 sb.AppendLine("=" + new string('=', 50));
                 sb.AppendLine(ImprovedRequirement);
                 sb.AppendLine();
@@ -1432,31 +1456,44 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         protected override void OnPropertyChanged(PropertyChangedEventArgs e)
         {
             base.OnPropertyChanged(e);
-            
-            // Update command states when relevant properties change
+
             if (e.PropertyName == nameof(IsAnalyzing))
             {
                 ((RelayCommand)CancelAnalysisCommand).NotifyCanExecuteChanged();
                 ((AsyncRelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
                 ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
-                OnPropertyChanged(nameof(HasNoAnalysis)); // Computed property depends on IsAnalyzing
+                ((RelayCommand)CommitImprovedRequirementCommand).NotifyCanExecuteChanged();
+                OnPropertyChanged(nameof(HasNoAnalysis));
             }
             else if (e.PropertyName == nameof(HasAnalysis))
             {
-                OnPropertyChanged(nameof(HasNoAnalysis)); // Computed property depends on HasAnalysis
+                OnPropertyChanged(nameof(HasNoAnalysis));
             }
             else if (e.PropertyName == nameof(HasImprovedRequirement))
             {
+                ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
+                ((RelayCommand)CommitImprovedRequirementCommand).NotifyCanExecuteChanged();
+            }
+            else if (e.PropertyName == nameof(ImprovedRequirement))
+            {
+                ((RelayCommand)CommitImprovedRequirementCommand).NotifyCanExecuteChanged();
                 ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
             }
             else if (e.PropertyName == nameof(IsEditingRequirement))
             {
                 ((RelayCommand)CancelEditRequirementCommand).NotifyCanExecuteChanged();
                 ((RelayCommand)SaveRequirementCommand).NotifyCanExecuteChanged();
+                ((RelayCommand)CommitImprovedRequirementCommand).NotifyCanExecuteChanged();
+                ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
+            }
+            else if (e.PropertyName == nameof(EditingRequirementText))
+            {
+                ((RelayCommand)SaveRequirementCommand).NotifyCanExecuteChanged();
+                ((RelayCommand)CopyAnalysisPromptCommand).NotifyCanExecuteChanged();
             }
             else if (e.PropertyName == nameof(FreeformFeedback))
             {
-                OnPropertyChanged(nameof(HasFreeformFeedback)); // Computed property depends on FreeformFeedback
+                OnPropertyChanged(nameof(HasFreeformFeedback));
             }
         }
 

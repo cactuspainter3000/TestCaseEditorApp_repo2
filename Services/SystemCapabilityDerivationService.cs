@@ -144,8 +144,8 @@ namespace TestCaseEditorApp.Services
 
                 // Process each step for capability derivation with progress tracking
                 int stepCounter = 0;
-                var modelName = Environment.GetEnvironmentVariable("OLLAMA_MODEL") ?? "phi3.5";
-                var shortModelName = modelName.Split(':')[0]; // Extract just "phi3.5" from "phi3.5:3.8b-mini-instruct-q4_K_M"
+                var modelName = Environment.GetEnvironmentVariable("OLLAMA_MODEL") ?? "phi4-mini:3.8b-q4_K_M";
+                var shortModelName = modelName.Split(':')[0]; // Extract short display name, e.g. "phi4-mini" from "phi4-mini:3.8b-q4_K_M"
                 foreach (var parsedStep in parsedSteps)
                 {
                     stepCounter++;
@@ -554,22 +554,7 @@ namespace TestCaseEditorApp.Services
         {
             try
             {
-                var isLlmAvailable = false;
-                var statusMessage = "";
-
-                // Test LLM service availability
-                try
-                {
-                    var testResponse = await _llmService.GenerateAsync("Test connection");
-                    isLlmAvailable = !string.IsNullOrEmpty(testResponse);
-                    statusMessage = isLlmAvailable ? "Service operational" : "LLM service not responding";
-                }
-                catch (Exception ex)
-                {
-                    isLlmAvailable = false;
-                    statusMessage = $"LLM service unavailable: {ex.Message}";
-                }
-
+                var isLlmAvailable = _llmService != null;
                 var taxonomyLoaded = _taxonomy?.Categories?.Count > 0;
                 var isHealthy = taxonomyLoaded && isLlmAvailable;
 
@@ -578,7 +563,9 @@ namespace TestCaseEditorApp.Services
                     ServiceName = "SystemCapabilityDerivation",
                     IsAvailable = isHealthy,
                     IsStarting = false,
-                    StatusMessage = isHealthy ? "Service operational" : statusMessage,
+                    StatusMessage = isHealthy
+                        ? "Service operational"
+                        : (!taxonomyLoaded ? "Taxonomy not loaded" : "LLM dependency unavailable"),
                     LastChecked = DateTime.Now,
                     Type = ServiceType.Generic
                 };

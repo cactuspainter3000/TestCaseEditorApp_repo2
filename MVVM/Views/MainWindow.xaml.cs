@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Windows;
@@ -17,29 +18,36 @@ namespace TestCaseEditorApp.MVVM.Views
         private readonly MainViewModel? _vm;
         private bool _disposed;
 
-        // Parameterless ctor keeps the XAML designer happy. DataContext will be set at runtime via DI ctor.
-        public MainWindow()
-        {
-            System.Diagnostics.Debug.WriteLine("*** MainWindow: Parameterless constructor called! ***");
-            InitializeComponent();
-            
-            // Set DataContext early to avoid binding warnings during startup
-            // Prefer DI-provided DataContext. Fall back to App.ServiceProvider if available.
-            if (DataContext == null && !System.ComponentModel.DesignerProperties.GetIsInDesignMode(this))
-            {
-                System.Diagnostics.Debug.WriteLine("*** MainWindow: Attempting to resolve MainViewModel from App.ServiceProvider ***");
-                DataContext = App.ServiceProvider?.GetService(typeof(MainViewModel)) as MainViewModel;
-                System.Diagnostics.Debug.WriteLine($"*** MainWindow: DataContext resolved as: {DataContext?.GetType().Name ?? "null"} ***");
-            }
-        }
+        //// Parameterless ctor keeps the XAML designer happy. DataContext will be set at runtime via DI ctor.
+        //public MainWindow()
+        //{
+        //    System.Diagnostics.Debug.WriteLine("*** MainWindow: Parameterless constructor called! ***");
+        //    InitializeComponent();
 
-        // DI constructor that accepts the MainViewModel (ensures the runtime VM has its services wired)
-        public MainWindow(MainViewModel vm) : this()
+        //    // Set DataContext early to avoid binding warnings during startup
+        //    // Prefer DI-provided DataContext. Fall back to App.ServiceProvider if available.
+        //    if (DataContext == null && !System.ComponentModel.DesignerProperties.GetIsInDesignMode(this))
+        //    {
+        //        System.Diagnostics.Debug.WriteLine("*** MainWindow: Attempting to resolve MainViewModel from App.ServiceProvider ***");
+        //        DataContext = App.ServiceProvider?.GetService(typeof(MainViewModel)) as MainViewModel;
+        //        System.Diagnostics.Debug.WriteLine($"*** MainWindow: DataContext resolved as: {DataContext?.GetType().Name ?? "null"} ***");
+        //    }
+        //}
+
+        //// DI constructor that accepts the MainViewModel (ensures the runtime VM has its services wired)
+        //public MainWindow(MainViewModel vm) : this()
+        //{
+        //    System.Diagnostics.Debug.WriteLine("*** MainWindow: DI constructor called with MainViewModel! ***");
+        //    _vm = vm ?? throw new ArgumentNullException(nameof(vm));
+        //    DataContext = _vm;
+        //    System.Diagnostics.Debug.WriteLine($"*** MainWindow: DataContext set to MainViewModel[{_vm.GetHashCode()}] via DI constructor ***");
+        //}
+
+        public MainWindow(MainViewModel vm)
         {
-            System.Diagnostics.Debug.WriteLine("*** MainWindow: DI constructor called with MainViewModel! ***");
+            InitializeComponent();
             _vm = vm ?? throw new ArgumentNullException(nameof(vm));
             DataContext = _vm;
-            System.Diagnostics.Debug.WriteLine($"*** MainWindow: DataContext set to MainViewModel[{_vm.GetHashCode()}] via DI constructor ***");
         }
 
         // Standard Dispose pattern
@@ -91,15 +99,9 @@ namespace TestCaseEditorApp.MVVM.Views
                 System.Diagnostics.Debug.WriteLine($"*** MainWindow: DataContext is MainViewModel[{mainVm.GetHashCode()}] ***");
                 System.Diagnostics.Debug.WriteLine($"*** MainWindow: MainViewModel.DisplayName = '{mainVm.DisplayName}' ***");
                 System.Diagnostics.Debug.WriteLine($"*** MainWindow: Current Window.Title = '{this.Title}' ***");
-                
+
                 // Subscribe to PropertyChanged to track DisplayName changes
-                mainVm.PropertyChanged += (s, args) => {
-                    if (args.PropertyName == "DisplayName")
-                    {
-                        System.Diagnostics.Debug.WriteLine($"*** MainWindow: DisplayName PropertyChanged detected! New value: '{mainVm.DisplayName}' ***");
-                        System.Diagnostics.Debug.WriteLine($"*** MainWindow: Current Window.Title after PropertyChanged: '{this.Title}' ***");
-                    }
-                };
+                mainVm.PropertyChanged += MainVm_PropertyChanged;
             }
             else
             {
@@ -107,11 +109,11 @@ namespace TestCaseEditorApp.MVVM.Views
             }
             System.Diagnostics.Debug.WriteLine($"*** MainWindow: Actual window title = '{Title}' ***");
             
-            // DataContext should already be set in constructor, but ensure it's not null
-            if (DataContext == null)
-            {
-                DataContext = App.ServiceProvider?.GetService(typeof(MainViewModel)) as MainViewModel;
-            }
+            //// DataContext should already be set in constructor, but ensure it's not null
+            //if (DataContext == null)
+            //{
+            //    DataContext = App.ServiceProvider?.GetService(typeof(MainViewModel)) as MainViewModel;
+            //}
 
             var vm = DataContext;
             TestCaseEditorApp.Services.Logging.Log.Debug($"MainWindow DataContext = {vm?.GetType().FullName ?? "<null>"}");
@@ -253,6 +255,14 @@ namespace TestCaseEditorApp.MVVM.Views
             }
         }
 
+        private void MainVm_PropertyChanged(object? sender, PropertyChangedEventArgs args)
+        {
+            if (args.PropertyName == nameof(MainViewModel.DisplayName) && DataContext is MainViewModel mainVm)
+            {
+                System.Diagnostics.Debug.WriteLine($"*** MainWindow: DisplayName PropertyChanged detected! New value: '{mainVm.DisplayName}' ***");
+                System.Diagnostics.Debug.WriteLine($"*** MainWindow: Current Window.Title after PropertyChanged: '{this.Title}' ***");
+            }
+        }
         public void ButtonMinimize_Click(object sender, RoutedEventArgs e)
         {
             var app = Application.Current;
