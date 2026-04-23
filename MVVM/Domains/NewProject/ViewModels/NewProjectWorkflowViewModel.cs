@@ -414,6 +414,18 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                         if (projects.Count > 0)
                         {
                             var projectList = string.Join(Environment.NewLine, projects.Select(p => $"{p.Id}: {p.Name}"));
+
+                            // Show the available IDs explicitly before asking for input.
+                            var previewList = string.Join(Environment.NewLine, projects.Take(20).Select(p => $"{p.Id}: {p.Name}"));
+                            var suffix = projects.Count > 20 ? Environment.NewLine + "..." : string.Empty;
+                            System.Windows.MessageBox.Show(
+                                $"Found {projects.Count} Jama project(s)." + Environment.NewLine + Environment.NewLine +
+                                previewList + suffix + Environment.NewLine + Environment.NewLine +
+                                "Click OK, then enter one of the Project IDs.",
+                                "Available Jama Projects",
+                                System.Windows.MessageBoxButton.OK,
+                                System.Windows.MessageBoxImage.Information);
+
                             var selectedIdText = Interaction.InputBox(
                                 "Enter Jama Project ID to import requirements from:" + Environment.NewLine + Environment.NewLine +
                                 projectList,
@@ -447,12 +459,23 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                         }
 
                         _toastService.ShowToast("No Jama projects found for this account.", durationSeconds: 4, type: ToastType.Warning);
+                        System.Windows.MessageBox.Show(
+                            "Connection succeeded, but no Jama projects were returned for this account." + Environment.NewLine + Environment.NewLine +
+                            "Verify project permissions/scopes for this user in Jama.",
+                            "No Jama Projects Found",
+                            System.Windows.MessageBoxButton.OK,
+                            System.Windows.MessageBoxImage.Warning);
                         return;
                     }
                     else
                     {
                         TestCaseEditorApp.Services.Logging.Log.Warn($"[NewProject] Jama connection unavailable: {connectionMessage}");
                         _toastService.ShowToast($"Jama connection unavailable: {connectionMessage}", durationSeconds: 5, type: ToastType.Warning);
+                        System.Windows.MessageBox.Show(
+                            "Jama connection test failed:" + Environment.NewLine + connectionMessage,
+                            "Jama Connection Unavailable",
+                            System.Windows.MessageBoxButton.OK,
+                            System.Windows.MessageBoxImage.Warning);
                         return;
                     }
                 }
@@ -460,6 +483,11 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[NewProject] Jama project selection failed: {ex.Message}");
                     _toastService.ShowToast($"Jama project selection failed: {ex.Message}", durationSeconds: 5, type: ToastType.Warning);
+                    System.Windows.MessageBox.Show(
+                        "Jama project retrieval failed:" + Environment.NewLine + ex.Message,
+                        "Jama Project Retrieval Failed",
+                        System.Windows.MessageBoxButton.OK,
+                        System.Windows.MessageBoxImage.Error);
                     return;
                 }
             }
