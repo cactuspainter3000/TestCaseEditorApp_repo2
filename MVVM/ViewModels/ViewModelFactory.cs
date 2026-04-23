@@ -116,11 +116,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             TestCaseEditorApp.Services.Logging.Log.Debug("[NewProject] Creating new workflow instance");
             var logger = _applicationServices.LoggerFactory?.CreateLogger<NewProjectWorkflowViewModel>() 
                 ?? throw new InvalidOperationException("Logger is required for NewProjectWorkflowViewModel");
+            var jamaConnectService = App.ServiceProvider?.GetService<JamaConnectService>()
+                ?? throw new InvalidOperationException("JamaConnectService is required for NewProjectWorkflowViewModel");
                 
             var workflowViewModel = new NewProjectWorkflowViewModel(
                 _workspaceManagementMediator,
                 logger,
                 _applicationServices.AnythingLLMService, 
+                jamaConnectService,
                 _applicationServices.ToastService);
             
             return workflowViewModel;

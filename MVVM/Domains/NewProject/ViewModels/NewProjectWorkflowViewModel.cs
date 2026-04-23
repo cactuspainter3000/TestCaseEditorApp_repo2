@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.VisualBasic;
 using Microsoft.Win32;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Models;
@@ -21,6 +22,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         private new readonly INewProjectMediator _mediator;
         
         private readonly AnythingLLMService _anythingLLMService;
+        private readonly JamaConnectService _jamaConnectService;
         private readonly ToastNotificationService _toastService;
         private string? _validatedAnythingLLMWorkspaceSlug;
         
@@ -93,7 +95,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 if (!IsWorkspaceCreated)
                     return "⚠️ Workspace Not Validated";
                 if (!HasSelectedDocument)
-                    return "⚠️ Select Requirements Document";
+                    return "⚠️ Select Jama Project or Requirements Document";
                 if (!HasProjectName)
                     return "⚠️ Enter Project Name";
                 if (!HasProjectSavePath)
@@ -113,7 +115,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 if (!IsWorkspaceCreated)
                     return "Click 'Create Workspace' to validate your workspace setup";
                 if (!HasSelectedDocument)
-                    return "Select a Word document containing your requirements";
+                    return "Select a Jama project (preferred) or a Word document containing your requirements";
                 if (!HasProjectName)
                     return "Enter a name for your new project";
                 if (!HasProjectSavePath)
@@ -138,16 +140,18 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         public NewProjectWorkflowViewModel(
             INewProjectMediator newProjectMediator,
             ILogger<NewProjectWorkflowViewModel> logger,
-            AnythingLLMService anythingLLMService, 
+            AnythingLLMService anythingLLMService,
+            JamaConnectService jamaConnectService,
             ToastNotificationService toastService)
             : base(newProjectMediator, logger)
         {
             // Store properly typed mediator
             _mediator = newProjectMediator ?? throw new ArgumentNullException(nameof(newProjectMediator));
             
-                        _anythingLLMService = anythingLLMService ?? throw new ArgumentNullException(nameof(anythingLLMService));
+            _anythingLLMService = anythingLLMService ?? throw new ArgumentNullException(nameof(anythingLLMService));
+            _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
             _toastService = toastService ?? throw new ArgumentNullException(nameof(toastService));
-            SelectDocumentCommand = new RelayCommand(SelectDocument);
+            SelectDocumentCommand = new AsyncRelayCommand(SelectDocumentAsync);
             ChooseProjectSaveLocationCommand = new RelayCommand(ChooseProjectSaveLocation);
             CreateProjectCommand = new RelayCommand(CreateProject);
             ValidateWorkspaceCommand = new AsyncRelayCommand(ValidateWorkspaceAsync, CanValidateWorkspace);
@@ -273,7 +277,8 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
 
         partial void OnSelectedDocumentPathChanged(string value)
         {
-            HasSelectedDocument = !string.IsNullOrWhiteSpace(value) && File.Exists(value);
+            HasSelectedDocument = !string.IsNullOrWhiteSpace(value) &&
+                                  (File.Exists(value) || value.StartsWith("jama://project/", StringComparison.OrdinalIgnoreCase));
             UpdateCanProceed();
             OnPropertyChanged(nameof(CreateProjectButtonText));
             OnPropertyChanged(nameof(CreateProjectButtonTooltip));
@@ -352,8 +357,64 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             }
         }
 
-        private void SelectDocument()
+        private async Task SelectDocumentAsync()
         {
+            // Preferred path: select Jama project directly for import
+            if (_jamaConnectService.IsConfigured)
+            {
+                try
+                {
+                    var (connected, connectionMessage) = await _jamaConnectService.TestConnectionAsync();
+                    if (connected)
+                    {
+                        var projects = await _jamaConnectService.GetProjectsAsync();
+                        if (projects.Count > 0)
+                        {
+                            var projectList = string.Join(Environment.NewLine, projects.Select(p => $"{p.Id}: {p.Name}"));
+                            var selectedIdText = Interaction.InputBox(
+                                "Enter Jama Project ID to import requirements from:" + Environment.NewLine + Environment.NewLine +
+                                projectList,
+                                "Select Jama Project",
+                                projects[0].Id.ToString());
+
+                            if (!string.IsNullOrWhiteSpace(selectedIdText) && int.TryParse(selectedIdText, out var selectedProjectId))
+                            {
+                                var selectedProject = projects.FirstOrDefault(p => p.Id == selectedProjectId);
+                                if (selectedProject != null)
+                                {
+                                    SelectedDocumentPath = $"jama://project/{selectedProject.Id}|{Uri.EscapeDataString(selectedProject.Name)}";
+
+                                    if (string.IsNullOrWhiteSpace(ProjectName))
+                                    {
+                                        ProjectName = selectedProject.Name;
+                                    }
+
+                                    _toastService.ShowToast($"Jama project selected: {selectedProject.Name} (ID: {selectedProject.Id})", durationSeconds: 3, type: ToastType.Success);
+                                    OnPropertyChanged(nameof(CreateProjectButtonText));
+                                    OnPropertyChanged(nameof(CreateProjectButtonTooltip));
+                                    return;
+                                }
+
+                                _toastService.ShowToast($"Project ID {selectedProjectId} was not found in the available Jama projects list.", durationSeconds: 4, type: ToastType.Warning);
+                                return;
+                            }
+
+                            // User cancelled selection; do not force fallback dialog.
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[NewProject] Jama connection unavailable: {connectionMessage}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[NewProject] Jama project selection failed: {ex.Message}");
+                }
+            }
+
+            // Fallback path: Word document import
             var dlg = new OpenFileDialog
             {
                 Title = "Select Requirements Document",

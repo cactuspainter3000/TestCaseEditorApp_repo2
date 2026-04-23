@@ -297,6 +297,7 @@ namespace TestCaseEditorApp
                         var notificationService = provider.GetRequiredService<NotificationService>();
                         var requirementService = provider.GetRequiredService<IRequirementService>();
                         var smartImporter = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.SmartRequirementImporter>();
+                        var jamaConnectService = provider.GetRequiredService<JamaConnectService>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
                         var workspaceValidationService = provider.GetRequiredService<IWorkspaceValidationService>();
                         var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
@@ -304,7 +305,7 @@ namespace TestCaseEditorApp
                         
                         return new NewProjectMediator(logger, uiCoordinator, persistenceService, 
                             fileDialogService, anythingLLMService, notificationService, requirementService,
-                            smartImporter, testCaseGenerationMediator, workspaceValidationService, performanceMonitor, eventReplay);
+                            smartImporter, jamaConnectService, testCaseGenerationMediator, workspaceValidationService, performanceMonitor, eventReplay);
                     });
 
                     // === OPEN PROJECT DOMAIN ===
