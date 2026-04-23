@@ -172,13 +172,17 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             // Initial load
             RefreshAnalysisDisplay();
             
-            // TODO: Remove after testing - Create dummy data for testing Edit functionality
-            CreateDummyRequirementForTesting();
+            // Optional: only load dummy requirement data when explicitly enabled for LLM testing.
+            if (ShouldLoadDummyRequirementForTesting())
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn("[AnalysisVM] Dummy requirement testing mode enabled via TCE_ENABLE_DUMMY_ANALYSIS.");
+                CreateDummyRequirementForTesting();
+            }
         }
         
         /// <summary>
         /// Creates dummy requirement with analysis data for testing Edit functionality.
-        /// TODO: Remove this method after Edit testing is complete.
+        /// Enable via environment variable TCE_ENABLE_DUMMY_ANALYSIS=true.
         /// </summary>
         private void CreateDummyRequirementForTesting()
         {
@@ -234,6 +238,20 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             ((AsyncRelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
             ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
             ((RelayCommand)InvalidateCurrentCacheCommand).NotifyCanExecuteChanged();
+        }
+
+        /// <summary>
+        /// Returns true only when dummy analysis test mode is explicitly enabled.
+        /// </summary>
+        private static bool ShouldLoadDummyRequirementForTesting()
+        {
+            var env = Environment.GetEnvironmentVariable("TCE_ENABLE_DUMMY_ANALYSIS");
+            if (string.IsNullOrWhiteSpace(env)) return false;
+
+            return env.Equals("1", StringComparison.OrdinalIgnoreCase) ||
+                   env.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+                   env.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
+                   env.Equals("on", StringComparison.OrdinalIgnoreCase);
         }
 
         // ===== DOMAIN EVENT HANDLERS =====

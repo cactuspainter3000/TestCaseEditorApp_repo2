@@ -10,7 +10,7 @@ namespace TestCaseEditorApp.MVVM.Models
     public class RequirementAnalysis
     {
         /// <summary>
-        /// Overall quality score from 1-10 (10 being excellent).
+        /// Overall quality score from 0-100 (100 being excellent).
         /// </summary>
         public int QualityScore { get; set; }
 

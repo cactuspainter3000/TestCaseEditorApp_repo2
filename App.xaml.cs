@@ -103,10 +103,11 @@ namespace TestCaseEditorApp
                     // LLM services (shared infrastructure)
                     services.AddSingleton<ITextGenerationService>(_ => LlmFactory.Create());
                     
-                    // LLM Health Monitoring - configured to be less aggressive with fallback
+                    // LLM Health Monitoring - reuses the shared ITextGenerationService singleton
+                    // to avoid creating an extra HttpClient that competes with the analysis path
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor>(provider =>
                     {
-                        var primaryLlmService = LlmFactory.Create();
+                        var primaryLlmService = provider.GetRequiredService<ITextGenerationService>();
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor>>();
                         return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor(
                             primaryLlmService, 
@@ -132,17 +133,18 @@ namespace TestCaseEditorApp
                     // Enhanced RequirementAnalysisService with proper dependency injection
                     services.AddSingleton<IRequirementAnalysisService, TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService>(provider =>
                     {
-                        var primaryLlmService = LlmFactory.Create();
+                        var primaryLlmService = provider.GetRequiredService<ITextGenerationService>();
                         var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
                         var promptBuilder = provider.GetRequiredService<RequirementAnalysisPromptBuilder>();
                         var parserManager = provider.GetRequiredService<ResponseParserManager>();
                         var cache = provider.GetService<RequirementAnalysisCache>(); // Optional
+                        var healthMonitor = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor>();
                         
                         return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService(
                             primaryLlmService, 
                             promptBuilder, 
                             parserManager,
-                            healthMonitor: null, // No health monitor for performance
+                            healthMonitor: healthMonitor,
                             cache: cache,
                             anythingLLMService: anythingLLMService);
                     });
