@@ -77,6 +77,13 @@ public static class WorkspaceService
             }
         }
 
+        try
+        {
+            TestCaseEditorApp.Services.Logging.Log.Info(
+                $"[Save] Workspace identity: Project='{ws.Name ?? "<none>"}', AnythingLLMName='{ws.AnythingLLMWorkspaceName ?? "<none>"}', AnythingLLMSlug='{ws.AnythingLLMWorkspaceSlug ?? "<none>"}', JamaProjectId={(ws.JamaProjectId?.ToString() ?? "<none>")}, JamaProjectName='{ws.JamaProjectName ?? ws.JamaProject ?? "<none>"}'");
+        }
+        catch { /* best-effort logging only */ }
+
         string json = JsonSerializer.Serialize(ws, _json) ?? string.Empty;
         TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] JSON serialized ({json.Length} bytes)");
         logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Debug, new Microsoft.Extensions.Logging.EventId(0), $"[Save] JSON serialized ({json.Length} bytes)", null, (s,e) => s ?? string.Empty);
@@ -374,6 +381,9 @@ public static class WorkspaceService
             ws.Version = Workspace.SchemaVersion;
         }
 
+        ws.AnythingLLMWorkspaceName ??= ws.Name;
+        ws.JamaProjectName ??= ws.JamaProject;
+
         // Probe: log what came back
         try
         {
@@ -387,6 +397,7 @@ public static class WorkspaceService
             TestCaseEditorApp.Services.Logging.Log.Debug($"[Load] Reqs with test cases: {withResponse}");
             TestCaseEditorApp.Services.Logging.Log.Debug($"[Load] Reqs with questions: {withQuestions}");
             TestCaseEditorApp.Services.Logging.Log.Debug($"[Load] Workspace saved {ws.SaveCount} times by {ws.CreatedBy ?? "unknown"}");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[Load] Workspace identity: Project='{ws.Name ?? "<none>"}', AnythingLLMName='{ws.AnythingLLMWorkspaceName ?? "<none>"}', AnythingLLMSlug='{ws.AnythingLLMWorkspaceSlug ?? "<none>"}', JamaProjectId={(ws.JamaProjectId?.ToString() ?? "<none>")}, JamaProjectName='{ws.JamaProjectName ?? ws.JamaProject ?? "<none>"}'");
         }
         catch { /* best-effort logging only */ }
 

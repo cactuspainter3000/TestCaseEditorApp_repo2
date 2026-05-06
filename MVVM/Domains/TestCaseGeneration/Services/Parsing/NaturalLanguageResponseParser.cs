@@ -63,7 +63,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
                         var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"\**(\d+)\**");
                         if (match.Success && int.TryParse(match.Groups[1].Value, out int score))
                         {
-                            analysis.OriginalQualityScore = Math.Max(1, Math.Min(10, score));
+                            analysis.QualityScore = Math.Max(0, Math.Min(100, score));
                             TestCaseEditorApp.Services.Logging.Log.Debug($"[{ParserName}Parser] Parsed quality score: {score} from line: '{trimmed}'");
                         }
                     }
@@ -224,24 +224,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
 
         private void PostProcessAnalysis(RequirementAnalysis analysis, string requirementId)
         {
-            // Set default original quality score if not found
-            if (analysis.OriginalQualityScore == 0 && analysis.OriginalQualityScore > 0)
+            // Set default quality score if not found
+            if (analysis.QualityScore == 0)
             {
-                analysis.OriginalQualityScore = analysis.OriginalQualityScore;
-            }
-            
-            if (analysis.OriginalQualityScore == 0)
-            {
-                analysis.OriginalQualityScore = analysis.Issues.Count > 3 ? 4 : 6; // Reasonable default based on issues found
-            }
-
-            // If an improved requirement is provided, estimate improved quality score
-            if (!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement) && !analysis.ImprovedQualityScore.HasValue)
-            {
-                // Improved version should score higher - add 1-3 points based on number of issues fixed
-                var issueCount = analysis.Issues?.Count ?? 0;
-                var improvement = Math.Min(3, Math.Max(1, issueCount / 2)); // 1-3 point improvement
-                analysis.ImprovedQualityScore = Math.Min(10, analysis.OriginalQualityScore + improvement);
+                analysis.QualityScore = analysis.Issues.Count > 3 ? 4 : 6; // Reasonable default based on issues found
             }
 
             // Set default hallucination check if not found
@@ -267,7 +253,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
             // Mark as successfully analyzed
             analysis.IsAnalyzed = true;
 
-            TestCaseEditorApp.Services.Logging.Log.Info($"[{ParserName}Parser] Natural language parsing successful for {requirementId}: Score={analysis.OriginalQualityScore}, Issues={analysis.Issues.Count}, ImprovedReq={!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement)}, Freeform={!string.IsNullOrWhiteSpace(analysis.FreeformFeedback)}");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[{ParserName}Parser] Natural language parsing successful for {requirementId}: Score={analysis.QualityScore}, Issues={analysis.Issues.Count}, ImprovedReq={!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement)}, Freeform={!string.IsNullOrWhiteSpace(analysis.FreeformFeedback)}");
         }
     }
 }

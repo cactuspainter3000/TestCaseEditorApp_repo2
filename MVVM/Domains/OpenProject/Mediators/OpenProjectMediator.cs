@@ -131,12 +131,25 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
 
                 ShowProgress("Setting up workspace...", 75);
 
-                // Extract project name from file path (same logic as NewProjectMediator)
-                var projectName = Path.GetFileNameWithoutExtension(filePath);
+                // Prefer persisted names/identities from the workspace file over filename inference
+                var projectName = !string.IsNullOrWhiteSpace(workspace.Name)
+                    ? workspace.Name!
+                    : Path.GetFileNameWithoutExtension(filePath);
                 if (projectName.EndsWith(".tcex", StringComparison.OrdinalIgnoreCase))
                 {
                     projectName = Path.GetFileNameWithoutExtension(projectName);
                 }
+
+                var anythingLLMWorkspaceName = workspace.AnythingLLMWorkspaceName ?? projectName;
+                var anythingLLMWorkspaceSlug = workspace.AnythingLLMWorkspaceSlug;
+
+                _logger.LogInformation(
+                    "📂 OpenProject restored identity. Project='{ProjectName}', AnythingLLMName='{AnythingLLMName}', AnythingLLMSlug='{AnythingLLMSlug}', JamaProjectId={JamaProjectId}, JamaProjectName='{JamaProjectName}'",
+                    projectName,
+                    anythingLLMWorkspaceName,
+                    anythingLLMWorkspaceSlug ?? "<none>",
+                    workspace.JamaProjectId,
+                    workspace.JamaProjectName ?? workspace.JamaProject ?? "<none>");
 
                 // Publish workspace loaded event
                 PublishEvent(new OpenProjectEvents.WorkspaceLoaded 
@@ -153,6 +166,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
                 {
                     WorkspacePath = filePath,
                     WorkspaceName = projectName,
+                    AnythingLLMWorkspaceSlug = anythingLLMWorkspaceSlug,
                     Workspace = workspace
                 };
 

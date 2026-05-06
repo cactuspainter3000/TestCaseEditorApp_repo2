@@ -70,12 +70,6 @@ namespace TestCaseEditorApp.Services
 
         private void OnSectionChangeRequested(NavigationEvents.SectionChangeRequested request)
         {
-            Console.WriteLine($"*** ViewAreaCoordinator: OnSectionChangeRequested called with '{request.SectionName}' ***");
-            
-            // Write to log file for easier debugging
-            System.IO.File.AppendAllText(@"c:\temp\navigation-debug.log", 
-                $"[{DateTime.Now:HH:mm:ss}] ViewAreaCoordinator: OnSectionChangeRequested('{request.SectionName}')\n");
-                
             TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewAreaCoordinator] Section change requested: '{request.SectionName}' - delegating to configuration service");
             
             try

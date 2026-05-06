@@ -2,7 +2,6 @@ using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
-using TestCaseEditorApp.MVVM.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -57,13 +56,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             CurrentContext = DetermineFriendlyName(configuration.SectionName);
             SectionName = configuration.SectionName;
             _currentConfiguration = configuration;
-            
-            // ✅ Trigger refresh on the header ViewModel if it supports it
-            if (configuration.HeaderViewModel is BaseDomainViewModel baseDomainVM)
-            {
-                System.Diagnostics.Debug.WriteLine($"[ConfigurableHeaderAreaViewModel] Refreshing header ViewModel: {baseDomainVM.GetType().Name}");
-                baseDomainVM.RefreshCommand?.Execute(null);
-            }
             
             // Publish that we applied the configuration and it changed
             _navigationMediator.Publish(new ViewConfigurationEvents.ViewConfigurationApplied(

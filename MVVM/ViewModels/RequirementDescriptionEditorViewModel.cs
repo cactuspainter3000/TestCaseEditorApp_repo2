@@ -263,7 +263,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     OriginalDescription = _requirement.Description,
                     EditedDescription = EditedDescription,
                     Timestamp = DateTime.UtcNow,
-                    OriginalQualityScore = _requirement.Analysis?.OriginalQualityScore,
+                    QualityScore = _requirement.Analysis?.QualityScore,
                     Issues = _requirement.Analysis?.Issues?.Select(i => new { i.Category, i.Description, i.Severity }),
                     Recommendations = _requirement.Analysis?.Recommendations?.Select(r => new { r.Category, r.Description, r.SuggestedEdit })
                 };

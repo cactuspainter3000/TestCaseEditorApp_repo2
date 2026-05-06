@@ -1,14 +1,12 @@
 using System;
-using System.IO;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
@@ -18,14 +16,6 @@ namespace TestCaseEditorApp.Services
     /// <summary>
     /// Implementation of view configuration service.
     /// Defines complete view configurations for each section and broadcasts them.
-    /// 
-    /// DOMAIN TERMINOLOGY:
-    /// - Menu Item Domains (_Mode suffix): Handle what displays when specific menu items are clicked
-    ///   Examples: TestCaseGenerator_Mode, Project_Mode, Requirements_Mode
-    /// - Codebase Domains (no suffix): Broader implementation functionality 
-    ///   Examples: TestCaseGeneration, WorkspaceManagement
-    /// 
-    /// CRITICAL DISTINCTION: TestCaseGenerator_Mode (menu item) vs TestCaseGeneration (codebase)
     /// </summary>
     public class ViewConfigurationService : IViewConfigurationService
     {
@@ -38,10 +28,10 @@ namespace TestCaseEditorApp.Services
         private WorkspaceHeaderViewModel? _workspaceHeader;
         private TestCaseGenerator_HeaderVM? _testCaseGeneratorHeader;
         private TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel? _testCaseGeneratorNotification;
+        private object? _projectContent;
+        private object? _requirementsContent;
+        private object? _testCaseGeneratorContent;
         private object? _testCaseCreationContent;
-        
-        // Cached navigation views - critical for idempotency
-        private object? _cachedRequirementsNavigationView;
         
         public ViewConfiguration? CurrentConfiguration { get; private set; }
 
@@ -59,55 +49,20 @@ namespace TestCaseEditorApp.Services
 
         public ViewConfiguration GetConfigurationForSection(string sectionName, object? context = null)
         {
-            Console.WriteLine($"*** ViewConfigurationService: GetConfigurationForSection called with '{sectionName}' ***");
-            Console.WriteLine($"*** ViewConfigurationService: sectionName.ToLowerInvariant() = '{sectionName?.ToLowerInvariant()}' ***");
-            
-            // Write to log file for easier debugging
-            File.AppendAllText(@"c:\temp\navigation-debug.log", 
-                $"[{DateTime.Now:HH:mm:ss}] ViewConfigurationService: GetConfigurationForSection('{sectionName}') - lowercase: '{sectionName?.ToLowerInvariant()}'\n");
-            
             TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewConfigurationService] GetConfigurationForSection called with: '{sectionName}' (lowercase: '{sectionName?.ToLowerInvariant()}')");
-            
-            // Debug: Add console output to see what's happening
-            System.Diagnostics.Debug.WriteLine($"*** ViewConfigurationService: GetConfigurationForSection('{sectionName}') ***");
-            Console.WriteLine($"*** ViewConfigurationService: GetConfigurationForSection('{sectionName}') ***");
-            Console.WriteLine($"*** Lowercase: '{sectionName?.ToLowerInvariant()}' ***");
             
             return sectionName?.ToLowerInvariant() switch
             {
-                // Startup domain - works correctly
                 "startup" => CreateStartupConfiguration(context),
-                
-                // Project domain - fix case mismatch
                 "project" => CreateProjectConfiguration(context),
-                
-                // Requirements domain - works correctly  
                 "requirements" => CreateRequirementsConfiguration(context),
-                
-                // TestCaseGenerator domain - fix case mismatch  
-                "testcasegenerator" or "test case generator" => DebugAndCallTestCaseGenerator(context),
-                
-                // TestCaseCreation domain - fix case mismatch
+                "testcase" or "test case creator" => CreateTestCaseGeneratorConfiguration(context),
                 "testcasecreation" or "test case creation" => CreateTestCaseCreationConfiguration(context),
-                
-                // TestFlow domain
                 "testflow" => CreateTestFlowConfiguration(context),
-                
-                // LLM Learning domain
-                "llm learning" => CreateLLMLearningConfiguration(context),
-                
-                // Import domain
                 "import" => CreateImportConfiguration(context),
-                
-                // NewProject domain - fix case mismatch
                 "newproject" or "new project" => CreateNewProjectConfiguration(context),
-                
-                // OpenProject domain - fix case mismatch  
                 "openproject" or "open project" => CreateOpenProjectConfiguration(context),
-                
-                // Dummy domain - fix case mismatch
                 "dummy" => CreateDummyConfiguration(context),
-                
                 _ => CreateDefaultConfiguration(context)
             };
         }
@@ -151,127 +106,100 @@ namespace TestCaseEditorApp.Services
 
         private ViewConfiguration CreateProjectConfiguration(object? context)
         {
-            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating Project configuration");
-            
-            try
+            EnsureTestCaseGeneratorHeader();
+
+            if (_projectContent == null)
             {
-                if (App.ServiceProvider == null)
-                {
-                    throw new InvalidOperationException("App.ServiceProvider is null - DI container not initialized yet");
-                }
-                
-                // Get Project domain ViewModels from DI container - use shared ViewModels from TestCaseGeneration
+                // Get Project_MainViewModel from DI container
                 var projectMainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Project.ViewModels.Project_MainViewModel>();
-                var sharedTitleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
-                var sharedHeaderVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_HeaderVM>();
-                
-                // Verify ViewModels were created
-                if (projectMainVM == null) throw new InvalidOperationException("Project_MainViewModel not resolved");
-                if (sharedTitleVM == null) throw new InvalidOperationException("TestCaseGenerator_TitleVM not resolved");
-                if (sharedHeaderVM == null) throw new InvalidOperationException("TestCaseGenerator_HeaderVM not resolved");
-                
-                TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Project ViewModels created successfully");
-
-                // Return ViewModels directly (same pattern as Friday working version - shared title/header)
-                return new ViewConfiguration(
-                    sectionName: "Project",
-                    titleViewModel: sharedTitleVM,               // Use shared TestCaseGeneration title
-                    headerViewModel: sharedHeaderVM,             // Use shared TestCaseGeneration header
-                    contentViewModel: projectMainVM,             // Return ViewModel directly
-                    navigationViewModel: null,                   // No specific navigation for Project
-                    notificationViewModel: null,
-                    context: context
-                );
+                if (projectMainVM != null)
+                {
+                    // Create the Project_MainView UserControl
+                    var projectMainView = new TestCaseEditorApp.MVVM.Domains.Project.Views.Project_MainView();
+                    projectMainView.DataContext = projectMainVM;
+                    _projectContent = projectMainView;
+                }
+                else
+                {
+                    _projectContent = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Project_MainViewModel not found in DI container");
+                }
             }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[ViewConfigurationService] Failed to create Project configuration");
-                
-                return new ViewConfiguration(
-                    sectionName: "Project (Error)",
-                    titleViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"Project Title Error: {ex.Message}"),
-                    headerViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"Project Header Error: {ex.Message}"),
-                    contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"Project Main Error: {ex.Message}"),
-                    notificationViewModel: null,
-                    context: context
-                );
-            }
-        }
-
-        private ViewConfiguration CreateLLMLearningConfiguration(object? context)
-        {
-            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating LLM Learning configuration using proper ViewModels");
-            
-            try
-            {
-                // ✅ Use same title view as TestCaseGenerator for consistency
-                var titleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
-                var headerVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Learning Configuration");
-                var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.ViewModels.LLMLearningViewModel>() 
-                            ?? new TestCaseEditorApp.MVVM.ViewModels.LLMLearningViewModel();
-                
-                return new ViewConfiguration(
-                    sectionName: "LLM Learning",
-                    titleViewModel: titleVM,
-                    headerViewModel: headerVM,
-                    contentViewModel: mainVM,        // ViewModel → DataTemplate renders LLMLearningView
-                    navigationViewModel: null,
-                    notificationViewModel: null,
-                    context: context
-                );
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[ViewConfigurationService] Failed to create LLMLearning configuration");
-                
-                return new ViewConfiguration(
-                    sectionName: "LLM Learning (Error)",
-                    titleViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"LLM Learning Error: {ex.Message}"),
-                    headerViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"LLM Learning Header Error: {ex.Message}"),
-                    contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"LLM Learning Main Error: {ex.Message}"),
-                    navigationViewModel: null,
-                    notificationViewModel: null,
-                    context: context
-                );
-            }
-        }
-
-        private ViewConfiguration CreateRequirementsConfiguration(object? context)
-        {
-            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating Requirements configuration using AI Guide standard pattern");
-            
-            // ✅ PHASE 2: Convert to AI Guide standard - ViewModels + DataTemplates pattern
-            // Resolve all ViewModels from DI container (use Requirements-specific header for requirement details)
-            var requirementsHeaderVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>();
-            var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel>();
-            var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>();
-            var sharedNotificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>();
-            
-            // Fail-fast validation (AI Guide requirement)
-            if (requirementsHeaderVM == null) throw new InvalidOperationException("Requirements_HeaderViewModel not registered in DI container");
-            if (mainVM == null) throw new InvalidOperationException("Requirements_MainViewModel not registered in DI container");
-            if (navigationVM == null) throw new InvalidOperationException("Requirements_NavigationViewModel not registered in DI container");
-            if (sharedNotificationVM == null) throw new InvalidOperationException("TestCaseGeneratorNotificationViewModel not registered in DI container");
-            
-            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] All Requirements ViewModels resolved successfully");
-
-            // Return ViewModels directly - DataTemplates automatically render corresponding Views
-            // Note: Requirements domain shares TestCaseGenerator title for consistency
-            var titleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
-            if (titleVM == null) throw new InvalidOperationException("TestCaseGenerator_TitleVM not registered (used for Requirements title)");
 
             return new ViewConfiguration(
-                sectionName: "Requirements",
-                titleViewModel: titleVM,         // Shared TestCaseGeneration title
-                headerViewModel: requirementsHeaderVM,       // Use Requirements-specific header to show requirement details
-                contentViewModel: mainVM,        // ViewModel → DataTemplate renders Requirements_MainView
-                navigationViewModel: navigationVM, // ViewModel → DataTemplate renders Requirements_NavigationView
-                notificationViewModel: sharedNotificationVM, // Use shared TestCaseGenerator notification (same as OpenProject_Mode)
+                sectionName: "Project",
+                titleViewModel: EnsureTestCaseGeneratorTitle(),
+                headerViewModel: _testCaseGeneratorHeader,
+                contentViewModel: _projectContent,
+                notificationViewModel: EnsureTestCaseGeneratorNotification(), // FIX: Use Test Case Generator notification for project operations
                 context: context
             );
         }
 
+        private ViewConfiguration CreateRequirementsConfiguration(object? context)
+        {
+            EnsureTestCaseGeneratorHeader();
+            
+            // Use direct DI injection - modern approach
+            if (_requirementsContent == null)
+            {
+                _requirementsContent = App.ServiceProvider?.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementsWorkspaceViewModel>()
+                    ?? throw new InvalidOperationException("RequirementsWorkspaceViewModel not registered in DI container");
+            }
 
+            return new ViewConfiguration(
+                sectionName: "Requirements",
+                titleViewModel: EnsureTestCaseGeneratorTitle(),
+                headerViewModel: _testCaseGeneratorHeader,
+                contentViewModel: _requirementsContent,
+                notificationViewModel: EnsureTestCaseGeneratorNotification(), // FIX: Use Test Case Generator notification for Requirements
+                context: context
+            );
+        }
+
+        private ViewConfiguration CreateTestCaseGeneratorConfiguration(object? context)
+        {
+            EnsureTestCaseGeneratorHeader();
+
+            // Get TestCaseGeneratorMainVM from DI and create the main view UserControl
+            var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorMainVM>();
+            object? mainContent = null;
+            if (mainVM != null)
+            {
+                var mainControl = new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views.TestCaseGeneratorMainView();
+                mainControl.DataContext = mainVM;
+                mainContent = mainControl;
+            }
+            else
+            {
+                mainContent = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Test Case Generator Main - ViewModel not found");
+            }
+
+            // Get TestCaseGenerator_NavigationVM from DI container
+            var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_NavigationVM>();
+            if (navigationVM == null) 
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] TestCaseGenerator_NavigationVM not resolved from DI");
+            }
+
+            // Create the actual UserControl and bind the ViewModel
+            object? navigationContent = null;
+            if (navigationVM != null)
+            {
+                var navigationControl = new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views.TestCaseGenerator_NavigationControl();
+                navigationControl.DataContext = navigationVM;
+                navigationContent = navigationControl;
+            }
+
+            return new ViewConfiguration(
+                sectionName: "TestCase",
+                titleViewModel: EnsureTestCaseGeneratorTitle(),
+                headerViewModel: _testCaseGeneratorHeader,
+                contentViewModel: mainContent, // Use the proper TestCaseGenerator main view
+                navigationViewModel: navigationContent, // Use the actual UserControl, not just ViewModel
+                notificationViewModel: EnsureTestCaseGeneratorNotification(),
+                context: context
+            );
+        }
 
         private ViewConfiguration CreateTestCaseCreationConfiguration(object? context)
         {
@@ -299,22 +227,11 @@ namespace TestCaseEditorApp.Services
                     }
                 }
 
-                // ✅ Use same title view as TestCaseGenerator for consistency
-                var titleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
-                
-                // ✅ Use same notification view as TestCaseGenerator for consistency
-                var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>();
-                
-                // ✅ Use same navigation view as TestCaseGenerator for consistency
-                var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_NavigationVM>();
-
                 var config = new ViewConfiguration(
                     sectionName: "TestCaseCreation",
-                    titleViewModel: titleVM,
                     headerViewModel: _workspaceHeader,
                     contentViewModel: _testCaseCreationContent,
-                    navigationViewModel: navigationVM,
-                    notificationViewModel: notificationVM,
+                    notificationViewModel: new TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel(App.ServiceProvider?.GetService<Microsoft.Extensions.Logging.ILogger<TestCaseEditorApp.MVVM.ViewModels.DefaultNotificationViewModel>>()),
                     context: context
                 );
                 TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewConfigurationService] TestCaseCreation ViewConfiguration created with content: {config.ContentViewModel?.GetType().Name}");
@@ -349,57 +266,6 @@ namespace TestCaseEditorApp.Services
                 headerViewModel: _workspaceHeader,
                 contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Import Requirements"),
                 notificationViewModel: EnsureTestCaseGeneratorNotification(), // FIX: Use Test Case Generator notification for Requirements Import
-                context: context
-            );
-        }
-
-        private ViewConfiguration DebugAndCallTestCaseGenerator(object? context)
-        {
-            Console.WriteLine($"[DEBUG] TestCaseGenerator called with context: {context}");
-            Console.WriteLine($"[DEBUG] Creating TestCaseGenerator configuration...");
-            
-            File.AppendAllText(@"c:\temp\navigation-debug.log", 
-                $"[{DateTime.Now:HH:mm:ss}] DebugAndCallTestCaseGenerator: Creating TestCaseGenerator configuration with context: {context}\n");
-                
-            var config = CreateTestCaseGeneratorConfiguration(context);
-            Console.WriteLine($"[DEBUG] TestCaseGenerator config created.");
-            Console.WriteLine($"[DEBUG] Config type: {config?.GetType().Name}");
-            
-            File.AppendAllText(@"c:\temp\navigation-debug.log", 
-                $"[{DateTime.Now:HH:mm:ss}] DebugAndCallTestCaseGenerator: TestCaseGenerator config created - type: {config?.GetType().Name}\n");
-                
-            return config;
-        }
-
-        private ViewConfiguration CreateTestCaseGeneratorConfiguration(object? context)
-        {
-            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating TestCaseGenerator configuration using AI Guide standard pattern");
-            
-            // ✅ PHASE 2: Convert to AI Guide standard - ViewModels + DataTemplates pattern
-            // Resolve all ViewModels from DI container (no manual UserControl creation)
-            var titleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
-            var headerVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_HeaderVM>();
-            var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels.TestCaseGeneratorMode_MainVM>();
-            var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_NavigationVM>();
-            var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>();
-            
-            // Fail-fast validation (AI Guide requirement)
-            if (titleVM == null) throw new InvalidOperationException("TestCaseGenerator_TitleVM not registered in DI container");
-            if (headerVM == null) throw new InvalidOperationException("TestCaseGenerator_HeaderVM not registered in DI container");
-            if (mainVM == null) throw new InvalidOperationException("TestCaseGeneratorMode_MainVM not registered in DI container");
-            if (navigationVM == null) throw new InvalidOperationException("TestCaseGenerator_NavigationVM not registered in DI container");
-            if (notificationVM == null) throw new InvalidOperationException("TestCaseGeneratorNotificationViewModel not registered in DI container");
-            
-            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] All TestCaseGenerator ViewModels resolved successfully");
-
-            // Return ViewModels directly - DataTemplates automatically render corresponding Views
-            return new ViewConfiguration(
-                sectionName: "TestCaseGenerator",
-                titleViewModel: titleVM,         // ViewModel → DataTemplate renders TestCaseGenerator_TitleView
-                headerViewModel: headerVM,       // ViewModel → DataTemplate renders TestCaseGenerator_HeaderView
-                contentViewModel: mainVM,        // ViewModel → DataTemplate renders TestCaseGeneratorMainView
-                navigationViewModel: navigationVM, // ViewModel → DataTemplate renders TestCaseGenerator_NavigationControl
-                notificationViewModel: notificationVM, // ViewModel → DataTemplate renders TestCaseGeneratorNotificationView
                 context: context
             );
         }
@@ -482,38 +348,41 @@ namespace TestCaseEditorApp.Services
 
         private ViewConfiguration CreateNewProjectConfiguration(object? context)
         {
-            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating NewProject configuration using AI Guide standard pattern");
+            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating New Project configuration");
             
             try
             {
-                if (App.ServiceProvider == null)
+                // Use same shared views as Project domain (title, header, notification)
+                // Only the main content differs between Project and NewProject
+                EnsureTestCaseGeneratorHeader();
+                
+                // Get NewProjectWorkflowViewModel from DI container
+                TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Attempting to resolve NewProjectWorkflowViewModel from DI...");
+                var newProjectMainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel>();
+                object? mainContent = null;
+                
+                if (newProjectMainVM != null)
                 {
-                    throw new InvalidOperationException("App.ServiceProvider is null - DI container not initialized yet");
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] NewProjectWorkflowViewModel resolved successfully, creating view...");
+                    // Create the NewProject_MainView UserControl
+                    var newProjectMainView = new TestCaseEditorApp.MVVM.Domains.NewProject.Views.NewProject_MainView();
+                    newProjectMainView.DataContext = newProjectMainVM;
+                    mainContent = newProjectMainView;
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] NewProject_MainView created and DataContext set");
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] NewProjectWorkflowViewModel is NULL - using placeholder");
+                    mainContent = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("NewProjectWorkflowViewModel not found in DI container");
                 }
                 
-                // ✅ PHASE 2: Convert to AI Guide standard - ViewModels + DataTemplates pattern
-                // Resolve all ViewModels from DI container (use shared title same as Project_Mode)
-                var sharedTitleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
-                var headerVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectHeaderViewModel>();
-                var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel>();
-                var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>();
-                
-                // Fail-fast validation (AI Guide requirement)
-                if (sharedTitleVM == null) throw new InvalidOperationException("TestCaseGenerator_TitleVM not registered in DI container");
-                if (headerVM == null) throw new InvalidOperationException("NewProjectHeaderViewModel not registered in DI container");
-                if (mainVM == null) throw new InvalidOperationException("NewProjectWorkflowViewModel not registered in DI container");
-                if (notificationVM == null) throw new InvalidOperationException("TestCaseGeneratorNotificationViewModel not registered in DI container");
-                
-                TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] All NewProject ViewModels resolved successfully");
-
-                // Return ViewModels directly - DataTemplates automatically render corresponding Views
                 return new ViewConfiguration(
-                    sectionName: "NewProject",
-                    titleViewModel: sharedTitleVM,         // Use shared TestCaseGeneration title (same as Project_Mode)
-                    headerViewModel: headerVM,       // ViewModel → DataTemplate renders NewProjectHeaderView  
-                    contentViewModel: mainVM,        // ViewModel → DataTemplate renders NewProject_MainView
-                    navigationViewModel: null,       // No navigation (blank, same as Project_Mode)
-                    notificationViewModel: notificationVM, // Shared TestCaseGenerator notification
+                    sectionName: "New Project",
+                    titleViewModel: EnsureTestCaseGeneratorTitle(),
+                    headerViewModel: _testCaseGeneratorHeader,
+                    contentViewModel: mainContent,
+                    navigationViewModel: null,
+                    notificationViewModel: EnsureTestCaseGeneratorNotification(),
                     context: context
                 );
             }
@@ -522,10 +391,10 @@ namespace TestCaseEditorApp.Services
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, "[ViewConfigurationService] Failed to create New Project configuration");
                 
                 return new ViewConfiguration(
-                    sectionName: "NewProject (Error)",
-                    titleViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"New Project Error: {ex.Message}"),
-                    headerViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"New Project Header Error: {ex.Message}"),
-                    contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"New Project Main Error: {ex.Message}"),
+                    sectionName: "New Project (Error)",
+                    titleViewModel: EnsureTestCaseGeneratorTitle(),
+                    headerViewModel: null,
+                    contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"New Project Error: {ex.Message}"),
                     notificationViewModel: null,
                     context: context
                 );
@@ -534,47 +403,51 @@ namespace TestCaseEditorApp.Services
 
         private ViewConfiguration CreateOpenProjectConfiguration(object? context)
         {
-            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating OpenProject configuration using AI Guide standard pattern");
-            
             try
             {
-                // ✅ PHASE 2: Convert to AI Guide standard - ViewModels + DataTemplates pattern
-                // Resolve all ViewModels from DI container (use Requirements_HeaderViewModel to show requirement details)
-                var sharedTitleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_TitleVM>();
-                var requirementsHeaderVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>();
-                var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel>();
-                var sharedNavigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>();
-                var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>();
+                TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] CreateOpenProjectConfiguration called");
                 
-                // Fail-fast validation (AI Guide requirement)
-                if (sharedTitleVM == null) throw new InvalidOperationException("TestCaseGenerator_TitleVM not registered in DI container");
-                if (requirementsHeaderVM == null) throw new InvalidOperationException("Requirements_HeaderViewModel not registered in DI container");
-                if (mainVM == null) throw new InvalidOperationException("OpenProjectWorkflowViewModel not registered in DI container");
-                if (sharedNavigationVM == null) throw new InvalidOperationException("Requirements_NavigationViewModel not registered in DI container");
-                if (notificationVM == null) throw new InvalidOperationException("TestCaseGeneratorNotificationViewModel not registered in DI container");
+                // Only the main content differs between NewProject and OpenProject
+                // Other workspaces remain the same - project title, header, notification
                 
-                TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] All OpenProject ViewModels resolved successfully");
-
-                // Return ViewModels directly - DataTemplates automatically render corresponding Views
+                // Get OpenProjectWorkflowViewModel from DI container
+                TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Attempting to resolve OpenProjectWorkflowViewModel from DI...");
+                var openProjectMainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel>();
+                object? mainContent = null;
+                
+                if (openProjectMainVM != null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] OpenProjectWorkflowViewModel resolved successfully, creating view...");
+                    // Create the OpenProject_MainView UserControl
+                    var openProjectMainView = new TestCaseEditorApp.MVVM.Domains.OpenProject.Views.OpenProject_MainView();
+                    openProjectMainView.DataContext = openProjectMainVM;
+                    mainContent = openProjectMainView;
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] OpenProject_MainView created and DataContext set");
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] OpenProjectWorkflowViewModel is NULL - using placeholder");
+                    mainContent = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("OpenProjectWorkflowViewModel not found in DI container");
+                }
+                
                 return new ViewConfiguration(
-                    sectionName: "OpenProject",
-                    titleViewModel: sharedTitleVM,         // Use shared TestCaseGeneration title (same as Project_Mode and NewProject_Mode)
-                    headerViewModel: requirementsHeaderVM,       // Use Requirements header to show requirement details when available
-                    contentViewModel: mainVM,        // ViewModel → DataTemplate renders OpenProject_MainView
-                    navigationViewModel: sharedNavigationVM, // Use shared Requirements navigation (same as Requirements_Mode)
-                    notificationViewModel: notificationVM, // Shared TestCaseGenerator notification
+                    sectionName: "Open Project",
+                    titleViewModel: EnsureTestCaseGeneratorTitle(),
+                    headerViewModel: null,
+                    contentViewModel: mainContent,
+                    notificationViewModel: EnsureTestCaseGeneratorNotification(),
                     context: context
                 );
             }
             catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[ViewConfigurationService] Failed to create OpenProject configuration");
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[ViewConfigurationService] Failed to create Open Project configuration");
                 
                 return new ViewConfiguration(
-                    sectionName: "OpenProject (Error)",
-                    titleViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"OpenProject Error: {ex.Message}"),
-                    headerViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"OpenProject Header Error: {ex.Message}"),
-                    contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"OpenProject Main Error: {ex.Message}"),
+                    sectionName: "Open Project (Error)",
+                    titleViewModel: EnsureTestCaseGeneratorTitle(),
+                    headerViewModel: null,
+                    contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"Open Project Error: {ex.Message}"),
                     notificationViewModel: null,
                     context: context
                 );
@@ -630,77 +503,6 @@ namespace TestCaseEditorApp.Services
                     ?? throw new InvalidOperationException("TestCaseGeneratorNotificationViewModel not registered in DI container");
             }
             return _testCaseGeneratorNotification;
-        }
-
-        /// <summary>
-        /// Ensure Requirements navigation view is cached and reused for idempotency
-        /// </summary>
-        private object EnsureRequirementsNavigationView()
-        {
-            if (_cachedRequirementsNavigationView == null)
-            {
-                // Create new navigation view and ViewModel
-                var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>();
-                if (navigationVM == null)
-                {
-                    throw new InvalidOperationException("Requirements_NavigationViewModel not registered in DI container");
-                }
-
-                var navigationControl = new TestCaseEditorApp.MVVM.Domains.Requirements.Views.RequirementsNavigationView();
-                navigationControl.DataContext = navigationVM;
-                _cachedRequirementsNavigationView = navigationControl;
-                
-                System.Diagnostics.Debug.WriteLine($"[ViewConfigurationService] Created cached Requirements navigation view: {_cachedRequirementsNavigationView.GetHashCode()}, DataContext: {navigationControl.DataContext?.GetType().Name}");
-                Console.WriteLine($"*** [ViewConfigurationService] Cached navigation view created with DataContext: {navigationControl.DataContext?.GetType().Name} ***");
-            }
-            else
-            {
-                // CRITICAL FIX: When reusing cached view, get a fresh ViewModel and ensure it's properly initialized
-                var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>();
-                if (navigationVM == null)
-                {
-                    throw new InvalidOperationException("Requirements_NavigationViewModel not registered in DI container");
-                }
-
-                if (_cachedRequirementsNavigationView is System.Windows.FrameworkElement cachedElement)
-                {
-                    // Set the fresh ViewModel as DataContext
-                    cachedElement.DataContext = navigationVM;
-                    
-                    // CRITICAL: Force the navigation ViewModel to refresh its data from the mediator
-                    try
-                    {
-                        // Call the known RefreshRequirementsFromMediator method
-                        var refreshMethod = navigationVM.GetType().GetMethod("RefreshRequirementsFromMediator", 
-                            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                        if (refreshMethod != null)
-                        {
-                            refreshMethod.Invoke(navigationVM, null);
-                            System.Diagnostics.Debug.WriteLine($"[ViewConfigurationService] Successfully called RefreshRequirementsFromMediator on NavigationVM");
-                            Console.WriteLine($"*** [ViewConfigurationService] RefreshRequirementsFromMediator called successfully ***");
-                        }
-                        else
-                        {
-                            // Fallback - check mediator state
-                            var mediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
-                            if (mediator != null)
-                            {
-                                System.Diagnostics.Debug.WriteLine($"[ViewConfigurationService] Mediator available - Requirements count: {mediator.Requirements.Count}, Current: {mediator.CurrentRequirement?.Item ?? "null"}");
-                                Console.WriteLine($"*** [ViewConfigurationService] Mediator has {mediator.Requirements.Count} requirements, Current: {mediator.CurrentRequirement?.Item ?? "null"} ***");
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[ViewConfigurationService] Error refreshing NavigationVM: {ex.Message}");
-                        Console.WriteLine($"*** [ViewConfigurationService] Error refreshing NavigationVM: {ex.Message} ***");
-                    }
-                    
-                    System.Diagnostics.Debug.WriteLine($"[ViewConfigurationService] Re-set DataContext on cached view: {cachedElement.DataContext?.GetType().Name}");
-                    Console.WriteLine($"*** [ViewConfigurationService] Fixed cached view DataContext: {cachedElement.DataContext?.GetType().Name} ***");
-                }
-            }
-            return _cachedRequirementsNavigationView;
         }
 
         #endregion

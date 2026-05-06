@@ -36,7 +36,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views
             // Clean up property change subscription - type-safe cleanup
             if (DataContext is TestCaseGeneration.ViewModels.TestCaseGenerator_VM viewModel)
             {
-                // viewModel.PropertyChanged -= OnViewModelPropertyChanged; // Commented out - method doesn't exist
+                viewModel.PropertyChanged -= OnViewModelPropertyChanged;
             }
         }
 
@@ -70,29 +70,27 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views
         private void SetupIsAnalyzingBinding()
         {
             // Clean up previous subscription - type-safe cleanup
-            if (DataContext is TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel previousViewModel &&
-                previousViewModel.RequirementAnalysisVM != null)
+            if (DataContext is TestCaseGeneration.ViewModels.TestCaseGenerator_VM previousViewModel)
             {
-                previousViewModel.RequirementAnalysisVM.PropertyChanged -= OnAnalysisViewModelPropertyChanged;
+                previousViewModel.PropertyChanged -= OnViewModelPropertyChanged;
             }
             
             // Subscribe to new ViewModel's property changes with type safety
-            if (DataContext is TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_MainViewModel currentViewModel &&
-                currentViewModel.RequirementAnalysisVM != null)
+            if (DataContext is TestCaseGeneration.ViewModels.TestCaseGenerator_VM currentViewModel)
             {
-                currentViewModel.RequirementAnalysisVM.PropertyChanged += OnAnalysisViewModelPropertyChanged;
+                currentViewModel.PropertyChanged += OnViewModelPropertyChanged;
                 
                 // Get initial state - type-safe access
-                UpdateAnimationState(currentViewModel.RequirementAnalysisVM.IsAnalyzing);
+                UpdateAnimationState(currentViewModel.IsAnalyzing);
             }
         }
 
-        private void OnAnalysisViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel.IsAnalyzing) && 
-                sender is TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel analysisViewModel)
+            if (e.PropertyName == nameof(TestCaseGeneration.ViewModels.TestCaseGenerator_VM.IsAnalyzing) && 
+                sender is TestCaseGeneration.ViewModels.TestCaseGenerator_VM viewModel)
             {
-                UpdateAnimationState(analysisViewModel.IsAnalyzing);
+                UpdateAnimationState(viewModel.IsAnalyzing);
             }
         }
         

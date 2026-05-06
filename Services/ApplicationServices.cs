@@ -20,7 +20,6 @@ namespace TestCaseEditorApp.Services
         public ChatGptExportService ChatGptExportService { get; }
         public IRequirementAnalysisService RequirementAnalysisService { get; }
         public ILoggerFactory? LoggerFactory { get; }
-        public JamaConnectService JamaConnectService { get; }
 
         public ApplicationServices(
             IRequirementService requirementService,
@@ -32,7 +31,6 @@ namespace TestCaseEditorApp.Services
             AnythingLLMService anythingLLMService,
             ChatGptExportService chatGptExportService,
             IRequirementAnalysisService requirementAnalysisService,
-            JamaConnectService jamaConnectService,
             ILoggerFactory? loggerFactory = null)
         {
             RequirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
@@ -44,7 +42,6 @@ namespace TestCaseEditorApp.Services
             AnythingLLMService = anythingLLMService ?? throw new ArgumentNullException(nameof(anythingLLMService));
             ChatGptExportService = chatGptExportService ?? throw new ArgumentNullException(nameof(chatGptExportService));
             RequirementAnalysisService = requirementAnalysisService ?? throw new ArgumentNullException(nameof(requirementAnalysisService));
-            JamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
             LoggerFactory = loggerFactory;
         }
     }

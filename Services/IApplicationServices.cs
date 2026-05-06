@@ -24,9 +24,6 @@ namespace TestCaseEditorApp.Services
         ChatGptExportService ChatGptExportService { get; }
         IRequirementAnalysisService RequirementAnalysisService { get; }
         
-        // External integration services
-        JamaConnectService JamaConnectService { get; }
-        
         // Logging factory for creating typed loggers
         ILoggerFactory? LoggerFactory { get; }
     }

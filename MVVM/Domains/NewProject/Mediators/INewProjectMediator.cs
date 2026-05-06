@@ -179,14 +179,14 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         void ShowNotification(string message, DomainNotificationType type = DomainNotificationType.Info);
         
         /// <summary>
-        /// Complete project creation with workspace details and document import
+        /// Complete project creation with workspace details and document import.
         /// </summary>
-        Task<bool> CompleteProjectCreationAsync(string workspaceName, string projectName, string projectSavePath, string documentPath);
+        Task<bool> CompleteProjectCreationAsync(string workspaceName, string projectName, string projectSavePath, string documentPath, string? workspaceDisplayName = null);
         
         /// <summary>
-        /// Create a new project with proper warning dialog if another project is currently open
+        /// Create a new project with proper warning dialog if another project is currently open.
         /// </summary>
-        Task<bool> CreateNewProjectWithWarningAsync(string workspaceName, string projectName, string projectSavePath, string documentPath);
+        Task<bool> CreateNewProjectWithWarningAsync(string workspaceName, string projectName, string projectSavePath, string documentPath, string? workspaceDisplayName = null);
         
         /// <summary>
         /// Show save file dialog with protection against overwriting currently open project
@@ -211,33 +211,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         /// Clears draft project information when project is created or cancelled.
         /// </summary>
         void ClearDraftProjectInfo();
-        
-        // ===== JAMA CONNECT INTEGRATION =====
-        
-        /// <summary>
-        /// Test connection to Jama Connect service
-        /// </summary>
-        Task<(bool Success, string Message)> TestJamaConnectionAsync();
-        
-        /// <summary>
-        /// Get available Jama projects
-        /// </summary>
-        Task<List<JamaProject>> GetJamaProjectsAsync();
-        
-        /// <summary>
-        /// Get requirements from a specific Jama project
-        /// </summary>
-        Task<List<Requirement>> GetJamaRequirementsAsync(int projectId);
-        
-        /// <summary>
-        /// Import requirements from Jama and create temporary file
-        /// </summary>
-        Task<string> ImportJamaRequirementsAsync(int projectId, string projectName, string projectKey);
-        
-        /// <summary>
-        /// Notify about connection errors for display in notification workspace
-        /// </summary>
-        Task NotifyConnectionErrorAsync(string message);
     }
     
     /// <summary>
@@ -248,6 +221,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         public string Name { get; set; } = string.Empty;
         public string Path { get; set; } = string.Empty;
         public string? AnythingLLMSlug { get; set; }
+        public string? AnythingLLMWorkspaceName { get; set; }
         public bool HasUnsavedChanges { get; set; }
         public DateTime LastModified { get; set; }
     }

@@ -6,7 +6,6 @@ using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
 {

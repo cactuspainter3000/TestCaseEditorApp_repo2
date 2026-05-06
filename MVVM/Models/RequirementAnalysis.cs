@@ -10,27 +10,9 @@ namespace TestCaseEditorApp.MVVM.Models
     public class RequirementAnalysis
     {
         /// <summary>
-        /// Quality score of the original requirement (1-10) before any LLM improvements.
-        /// This represents the user's actual requirement writing quality for learning purposes.
+        /// Overall quality score from 0-100 (100 being excellent).
         /// </summary>
-        public int OriginalQualityScore { get; set; }
-
-        /// <summary>
-        /// Quality score after LLM improvement (1-10). Optional field that shows what the 
-        /// improved requirement would score. Null if no improvement was generated.
-        /// </summary>
-        public int? ImprovedQualityScore { get; set; }
-
-        /// <summary>
-        /// Overall quality score from 1-10 (10 being excellent).
-        /// [DEPRECATED] Use OriginalQualityScore for display purposes.
-        /// </summary>
-        [Obsolete("Use OriginalQualityScore for user feedback. This field maintained for backward compatibility.")]
-        public int QualityScore 
-        { 
-            get => OriginalQualityScore; 
-            set => OriginalQualityScore = value; 
-        }
+        public int QualityScore { get; set; }
 
         /// <summary>
         /// Self-reported hallucination check from the LLM.
