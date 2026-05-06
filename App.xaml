@@ -33,6 +33,8 @@
             <conv:AnalysisStatusToTextConverter x:Key="AnalysisStatusToTextConverter" />
             <conv:ProgressToWidthConverter x:Key="ProgressToWidthConverter" />
             <conv:BoolToStatusColorConverter x:Key="BoolToStatusColorConverter" />
+            <conv:BooleanToTextConverter x:Key="BooleanToTextConverter" />
+            <conv:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
 
             <ResourceDictionary.MergedDictionaries>
                 <!-- ===================================== -->

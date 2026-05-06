@@ -233,6 +233,11 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         /// Import requirements from Jama and create temporary file
         /// </summary>
         Task<string> ImportJamaRequirementsAsync(int projectId, string projectName, string projectKey);
+        
+        /// <summary>
+        /// Notify about connection errors for display in notification workspace
+        /// </summary>
+        Task NotifyConnectionErrorAsync(string message);
     }
     
     /// <summary>

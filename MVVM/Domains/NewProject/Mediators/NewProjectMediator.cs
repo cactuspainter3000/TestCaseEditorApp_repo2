@@ -1254,9 +1254,33 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             }
         }
 
+        public async Task NotifyConnectionErrorAsync(string message)
+        {
+            // Publish a simple notification event that the notification workspace can listen for
+            // This keeps it simple - just a lightweight error notification
+            PublishEvent(new ConnectionErrorNotification
+            {
+                Message = message,
+                Timestamp = DateTime.UtcNow,
+                Source = "Jama Connect"
+            });
+            
+            await Task.CompletedTask; // Keep it async for interface compliance
+        }
+
         #endregion
 
 
+    }
+
+    /// <summary>
+    /// Simple notification for connection errors
+    /// </summary>
+    public class ConnectionErrorNotification
+    {
+        public string Message { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
+        public string Source { get; set; } = string.Empty;
     }
 
     /// <summary>
