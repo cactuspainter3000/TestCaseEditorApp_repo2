@@ -31,6 +31,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         private readonly NotificationService _notificationService;
         private readonly IRequirementService _requirementService;
         private readonly SmartRequirementImporter _smartImporter;
+        private readonly JamaConnectService _jamaConnectService;
         private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
         private readonly IWorkspaceValidationService _workspaceValidationService;
         private WorkspaceInfo? _currentWorkspaceInfo;
@@ -49,6 +50,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             NotificationService notificationService,
             IRequirementService requirementService,
             SmartRequirementImporter smartImporter,
+            JamaConnectService jamaConnectService,
             ITestCaseGenerationMediator testCaseGenerationMediator,
             IWorkspaceValidationService workspaceValidationService,
             PerformanceMonitoringService? performanceMonitor = null,
@@ -61,6 +63,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
             _requirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
             _smartImporter = smartImporter ?? throw new ArgumentNullException(nameof(smartImporter));
+            _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
             _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
             _workspaceValidationService = workspaceValidationService ?? throw new ArgumentNullException(nameof(workspaceValidationService));
         }
@@ -739,8 +742,41 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 
                 // 2. Import requirements first, then create workspace
                 List<Requirement> importedRequirements = new();
+                int? jamaProjectId = null;
+                string? jamaProjectName = null;
                 
-                if (!string.IsNullOrWhiteSpace(documentPath) && File.Exists(documentPath))
+                if (TryParseJamaProjectReference(documentPath, out var parsedJamaProjectId, out var parsedJamaProjectName))
+                {
+                    UpdateProgress("Importing requirements from Jama project...", 60);
+
+                    try
+                    {
+                        var jamaItems = await _jamaConnectService.GetRequirementsAsync(parsedJamaProjectId);
+                        importedRequirements = _jamaConnectService.ConvertToRequirements(jamaItems);
+                        jamaProjectId = parsedJamaProjectId;
+                        jamaProjectName = parsedJamaProjectName;
+
+                        _logger.LogInformation("✅ Successfully imported {Count} requirements from Jama project {ProjectId} ({ProjectName})",
+                            importedRequirements.Count,
+                            parsedJamaProjectId,
+                            parsedJamaProjectName ?? "Unknown");
+
+                        BroadcastToAllDomains(new TestCaseGenerationEvents.RequirementsImported
+                        {
+                            Requirements = importedRequirements,
+                            SourceFile = documentPath,
+                            ImportType = "Jama API",
+                            ImportTime = TimeSpan.Zero
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        requirementsImportedSuccessfully = false;
+                        _logger.LogError(ex, "❌ Error importing requirements from Jama project {ProjectId}", parsedJamaProjectId);
+                        ShowNotification($"Jama requirements import failed: {ex.Message}. Project created but requirements were not imported.", DomainNotificationType.Warning);
+                    }
+                }
+                else if (!string.IsNullOrWhiteSpace(documentPath) && File.Exists(documentPath))
                 {
                     UpdateProgress("Importing requirements from document...", 60);
                     
@@ -790,6 +826,9 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     SaveCount = 0,
                     SourceDocPath = documentPath,
                     Requirements = importedRequirements,
+                    JamaProjectId = jamaProjectId,
+                    JamaProjectName = jamaProjectName,
+                    JamaProject = jamaProjectName,
                     AnythingLLMWorkspaceName = anythingLLMWorkspaceName,
                     AnythingLLMWorkspaceSlug = workspaceSlugOrName
                 };
@@ -996,33 +1035,46 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         private async Task CompleteProjectOpeningAsync(string workspaceSlug, string workspaceName)
         {
             UpdateProgress("Opening existing project workspace...", 75);
-            
-            // TODO: Implement actual workspace loading logic
-            await Task.Delay(500); // Placeholder
-            
+
+            // Try to resolve a local .tcex.json by AnythingLLM identity first.
+            var resolvedPath = ResolveWorkspacePathByAnythingLlmIdentity(workspaceSlug, workspaceName);
+            if (string.IsNullOrWhiteSpace(resolvedPath))
+            {
+                // Fall back to standard project-open file selection instead of opening a fake empty workspace.
+                await OpenProjectAsync();
+                return;
+            }
+
+            Workspace workspace;
+            try
+            {
+                workspace = WorkspaceFileManager.Load(resolvedPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to load resolved workspace file: {WorkspacePath}", resolvedPath);
+                ShowNotification($"Failed to load workspace file '{Path.GetFileName(resolvedPath)}': {ex.Message}", DomainNotificationType.Error);
+                HideProgress();
+                return;
+            }
+
+            var projectName = !string.IsNullOrWhiteSpace(workspace.Name) ? workspace.Name! : workspaceName;
+
             _currentWorkspaceInfo = new WorkspaceInfo
             {
-                Name = workspaceName,
-                Path = $"path/to/workspace/{workspaceName}", // TODO: Get actual path
-                AnythingLLMSlug = workspaceSlug,
-                AnythingLLMWorkspaceName = workspaceName,
+                Name = projectName,
+                Path = resolvedPath,
+                AnythingLLMSlug = workspace.AnythingLLMWorkspaceSlug ?? workspaceSlug,
+                AnythingLLMWorkspaceName = workspace.AnythingLLMWorkspaceName ?? workspaceName,
                 HasUnsavedChanges = false,
                 LastModified = DateTime.Now
-            };
-            
-            // TODO: Load actual workspace data
-            var workspace = new Workspace
-            {
-                Name = workspaceName,
-                AnythingLLMWorkspaceName = workspaceName,
-                AnythingLLMWorkspaceSlug = workspaceSlug
             };
             
             var projectOpenedEvent = new NewProjectEvents.ProjectOpened 
             { 
                 WorkspacePath = _currentWorkspaceInfo.Path,
-                WorkspaceName = workspaceName,
-                AnythingLLMWorkspaceSlug = workspaceSlug,
+                WorkspaceName = projectName,
+                AnythingLLMWorkspaceSlug = _currentWorkspaceInfo.AnythingLLMSlug,
                 Workspace = workspace
             };
             
@@ -1032,10 +1084,63 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             _logger.LogInformation("📡 Broadcasting ProjectOpened event (AnythingLLM) to other domains: {ProjectName}", workspaceName);
             BroadcastToAllDomains(projectOpenedEvent);
             
-            ShowNotification($"Project '{workspaceName}' opened successfully", DomainNotificationType.Success);
+            if (workspace.Requirements?.Any() == true)
+            {
+                BroadcastToAllDomains(new TestCaseGenerationEvents.RequirementsImported
+                {
+                    Requirements = workspace.Requirements,
+                    SourceFile = resolvedPath,
+                    ImportType = "Project",
+                    ImportTime = TimeSpan.Zero
+                });
+            }
+
+            ShowNotification($"Project '{projectName}' opened successfully", DomainNotificationType.Success);
             HideProgress();
             
             NavigateToStep("ProjectActive", _currentWorkspaceInfo);
+        }
+
+        private string? ResolveWorkspacePathByAnythingLlmIdentity(string workspaceSlug, string workspaceName)
+        {
+            IEnumerable<string> candidateFiles = Enumerable.Empty<string>();
+
+            try
+            {
+                var stagingDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TestCaseEditorApp", "Staging");
+                if (Directory.Exists(stagingDir))
+                {
+                    candidateFiles = candidateFiles.Concat(Directory.GetFiles(stagingDir, "*.tcex.json", SearchOption.TopDirectoryOnly));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to enumerate staging workspace files");
+            }
+
+            foreach (var file in candidateFiles.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var ws = WorkspaceFileManager.Load(file);
+                    var slugMatch = !string.IsNullOrWhiteSpace(workspaceSlug) &&
+                                    string.Equals(ws.AnythingLLMWorkspaceSlug, workspaceSlug, StringComparison.OrdinalIgnoreCase);
+                    var nameMatch = !string.IsNullOrWhiteSpace(workspaceName) &&
+                                    string.Equals(ws.AnythingLLMWorkspaceName, workspaceName, StringComparison.OrdinalIgnoreCase);
+
+                    if (slugMatch || nameMatch)
+                    {
+                        _logger.LogInformation("Resolved workspace by AnythingLLM identity: {WorkspaceFile}", file);
+                        return file;
+                    }
+                }
+                catch
+                {
+                    // Ignore malformed files and continue scanning.
+                }
+            }
+
+            return null;
         }
 
         public WorkspaceInfo? GetCurrentWorkspaceInfo()
@@ -1160,6 +1265,32 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     Source = notification.OriginatingDomain
                 });
             }
+        }
+
+        private static bool TryParseJamaProjectReference(string? source, out int projectId, out string? projectName)
+        {
+            projectId = 0;
+            projectName = null;
+
+            if (string.IsNullOrWhiteSpace(source) ||
+                !source.StartsWith("jama://project/", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            var payload = source.Substring("jama://project/".Length);
+            var parts = payload.Split('|', 2);
+            if (!int.TryParse(parts[0], out projectId))
+            {
+                return false;
+            }
+
+            if (parts.Length > 1 && !string.IsNullOrWhiteSpace(parts[1]))
+            {
+                projectName = Uri.UnescapeDataString(parts[1]);
+            }
+
+            return true;
         }
         
         #endregion

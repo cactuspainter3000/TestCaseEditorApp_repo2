@@ -47,14 +47,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         public IViewAreaCoordinator CreateViewAreaCoordinator()
         {
-            var navigationMediator = CreateNavigationMediator();
-            // Don't resolve ViewConfigurationService here to avoid circular dependency
-            // It will be resolved later when actually needed
-            var sideMenuViewModel = App.ServiceProvider?.GetService<SideMenuViewModel>() 
-                ?? throw new InvalidOperationException("SideMenuViewModel not registered in DI container");
-            
-            return new ViewAreaCoordinator(this, navigationMediator, _workspaceManagementMediator!, _testCaseGenerationMediator!,
-                null, sideMenuViewModel);
+            // Always use the DI singleton to avoid multiple coordinator instances
+            // subscribing to the same NavigationMediator events.
+            return App.ServiceProvider?.GetRequiredService<IViewAreaCoordinator>()
+                ?? throw new InvalidOperationException("IViewAreaCoordinator not found in DI container");
         }
         
         public IViewConfigurationService CreateViewConfigurationService()
@@ -116,11 +112,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             TestCaseEditorApp.Services.Logging.Log.Debug("[NewProject] Creating new workflow instance");
             var logger = _applicationServices.LoggerFactory?.CreateLogger<NewProjectWorkflowViewModel>() 
                 ?? throw new InvalidOperationException("Logger is required for NewProjectWorkflowViewModel");
+            var jamaConnectService = App.ServiceProvider?.GetService<JamaConnectService>()
+                ?? throw new InvalidOperationException("JamaConnectService is required for NewProjectWorkflowViewModel");
                 
             var workflowViewModel = new NewProjectWorkflowViewModel(
                 _workspaceManagementMediator,
                 logger,
                 _applicationServices.AnythingLLMService, 
+                jamaConnectService,
                 _applicationServices.ToastService);
             
             return workflowViewModel;

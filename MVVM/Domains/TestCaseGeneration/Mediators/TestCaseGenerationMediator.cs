@@ -774,6 +774,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                         errors.Add($"{requirement.GlobalId}: {ex.Message}");
                         _logger.LogError(ex, "Batch analysis failed for requirement {RequirementId}", requirement.GlobalId);
                     }
+
+                    // Brief cooldown between requests so Ollama can fully unload the previous
+                    // response before accepting the next one. Skipped after the last item.
+                    if (i < requirements.Count - 1)
+                        await Task.Delay(500);
                 }
 
                 PublishEvent(new TestCaseGenerationEvents.BatchAnalysisCompleted 

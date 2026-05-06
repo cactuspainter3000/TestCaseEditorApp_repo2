@@ -23,6 +23,9 @@ namespace TestCaseEditorApp.Services
         private readonly string? _apiToken;
         private readonly string? _clientId;
         private readonly string? _clientSecret;
+        // "token_information" is the scope this Jama instance expects for OAuth client credentials.
+        // Using "read" or no scope triggers InternalServerError/IndexOutOfBounds on /users/current.
+        private readonly string _oauthScope;
         private string? _accessToken;
         private DateTime _tokenExpiry = DateTime.MinValue;
         
@@ -38,6 +41,7 @@ namespace TestCaseEditorApp.Services
         {
             _baseUrl = baseUrl.TrimEnd('/');
             _apiToken = apiToken;
+            _oauthScope = Environment.GetEnvironmentVariable("JAMA_OAUTH_SCOPE") ?? "token_information";
             _httpClient = CreateHttpClient();
         }
 
@@ -49,6 +53,7 @@ namespace TestCaseEditorApp.Services
             _baseUrl = baseUrl.TrimEnd('/');
             _username = username;
             _password = password;
+            _oauthScope = Environment.GetEnvironmentVariable("JAMA_OAUTH_SCOPE") ?? "token_information";
             _httpClient = CreateHttpClient();
         }
 
@@ -60,6 +65,7 @@ namespace TestCaseEditorApp.Services
             _baseUrl = baseUrl.TrimEnd('/');
             _clientId = clientId;
             _clientSecret = clientSecret;
+            _oauthScope = Environment.GetEnvironmentVariable("JAMA_OAUTH_SCOPE") ?? "token_information";
             _httpClient = CreateHttpClient();
         }
 
@@ -159,7 +165,11 @@ namespace TestCaseEditorApp.Services
                 
                 using var request = new HttpRequestMessage(HttpMethod.Post, tokenUrl);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Basic", credentials);
-                request.Content = new StringContent("grant_type=client_credentials", Encoding.UTF8, "application/x-www-form-urlencoded");
+                request.Content = new FormUrlEncodedContent(new[]
+                {
+                    new KeyValuePair<string, string>("grant_type", "client_credentials"),
+                    new KeyValuePair<string, string>("scope", _oauthScope)
+                });
                 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaOAuth] Sending token request with Basic Auth...");
                 
@@ -225,25 +235,39 @@ namespace TestCaseEditorApp.Services
                     }
                 }
 
-                var testUrl = $"{_baseUrl}/rest/v1/users/current";
+                // Test via /projects endpoint - /users/current returns InternalServerError/IndexOutOfBounds
+                // on this Jama instance and is NOT a reliable connectivity test here.
+                    var testUrl = $"{_baseUrl}/rest/v1/projects?startAt=0&maxResults=50";
                 var response = await _httpClient.GetAsync(testUrl);
-                
+
                 if (response.IsSuccessStatusCode)
                 {
-                    return (true, $"Successfully connected to Jama Connect at {_baseUrl}");
+                    var content = await response.Content.ReadAsStringAsync();
+                    var projects = JsonSerializer.Deserialize<JamaProjectsResponse>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    var count = projects?.Data?.Count ?? 0;
+                    return (true, $"Successfully connected to Jama Connect at {_baseUrl}. Found {count} project(s).");
                 }
                 else
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
-                    
-                    // Check if this is an OAuth scope issue
-                    if (response.StatusCode == System.Net.HttpStatusCode.InternalServerError && 
-                        errorContent.Contains("IndexOutOfBounds"))
+
+                    if (IsKnownProjectsListingServerBug(response.StatusCode, errorContent))
                     {
-                        return (false, $"Connection failed: OAuth client has insufficient permissions. Contact your Jama administrator to add 'read' scope to OAuth client. Current error: {response.StatusCode}");
+                        return (false,
+                            "Connected to Jama, but project listing failed due to a Jama server error (ArrayIndexOutOfBoundsException). " +
+                            "This is not an OAuth scope issue. Try manual project ID entry in the UI or ask Jama admin to check server logs. " +
+                            $"Status: {response.StatusCode}. Response: {TrimForDisplay(errorContent)}");
                     }
-                    
-                    return (false, $"Connection test failed: {response.StatusCode} - {response.ReasonPhrase}. Response: {errorContent}");
+
+                    if (IsLikelyPermissionOrScopeIssue(response.StatusCode, errorContent))
+                    {
+                        return (false,
+                            "Connection failed: OAuth client likely lacks required permissions/scopes. " +
+                            "Ask your Jama administrator to ensure the OAuth client has 'token_information' scope and access to projects endpoints. " +
+                            $"Status: {response.StatusCode}. Response: {TrimForDisplay(errorContent)}");
+                    }
+
+                    return (false, $"Connection test failed: {response.StatusCode} - {response.ReasonPhrase}. Response: {TrimForDisplay(errorContent)}");
                 }
             }
             catch (HttpRequestException ex)
@@ -266,7 +290,9 @@ namespace TestCaseEditorApp.Services
                 // Ensure we have a valid access token for OAuth
                 await EnsureAccessTokenAsync();
                 
-                var response = await _httpClient.GetAsync($"{_baseUrl}/rest/v1/projects", cancellationToken);
+                    // Explicit pagination params avoid a Jama server-side ArrayIndexOutOfBoundsException
+                    // that occurs on some instances when pagination headers are absent.
+                    var response = await _httpClient.GetAsync($"{_baseUrl}/rest/v1/projects?startAt=0&maxResults=50", cancellationToken);
                 
                 if (response.IsSuccessStatusCode)
                 {
@@ -280,7 +306,24 @@ namespace TestCaseEditorApp.Services
                 }
                 else
                 {
-                    throw new HttpRequestException($"Failed to get projects: {response.StatusCode}");
+                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                    if (IsKnownProjectsListingServerBug(response.StatusCode, errorContent))
+                    {
+                        throw new HttpRequestException(
+                            "Connected to Jama, but project listing failed due to a Jama server error (ArrayIndexOutOfBoundsException). " +
+                            "This is not an OAuth scope issue. Use manual project ID selection in the UI or ask Jama admin to investigate the /projects endpoint. " +
+                            $"Status: {response.StatusCode}. Response: {TrimForDisplay(errorContent)}");
+                    }
+
+                    if (IsLikelyPermissionOrScopeIssue(response.StatusCode, errorContent))
+                    {
+                        throw new HttpRequestException(
+                            "Failed to get projects due to Jama permissions/scopes. " +
+                            "Ensure OAuth client has read scope and user/project access. " +
+                            $"Status: {response.StatusCode}. Response: {TrimForDisplay(errorContent)}");
+                    }
+
+                    throw new HttpRequestException($"Failed to get projects: {response.StatusCode}. Response: {TrimForDisplay(errorContent)}");
                 }
             }
             catch (Exception ex)
@@ -288,6 +331,51 @@ namespace TestCaseEditorApp.Services
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"Failed to get Jama projects: {ex.Message}");
                 throw;
             }
+        }
+
+        private static bool IsLikelyPermissionOrScopeIssue(System.Net.HttpStatusCode statusCode, string? errorContent)
+        {
+            if (statusCode == System.Net.HttpStatusCode.Forbidden ||
+                statusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(errorContent))
+            {
+                return false;
+            }
+
+            var content = errorContent;
+            return content.Contains("insufficient", StringComparison.OrdinalIgnoreCase)
+                   || content.Contains("scope", StringComparison.OrdinalIgnoreCase)
+                   || content.Contains("forbidden", StringComparison.OrdinalIgnoreCase)
+                   || content.Contains("not authorized", StringComparison.OrdinalIgnoreCase)
+                   || content.Contains("permission", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsKnownProjectsListingServerBug(System.Net.HttpStatusCode statusCode, string? errorContent)
+        {
+            if (statusCode != System.Net.HttpStatusCode.InternalServerError || string.IsNullOrWhiteSpace(errorContent))
+            {
+                return false;
+            }
+
+            return errorContent.Contains("ArrayIndexOutOfBoundsException", StringComparison.OrdinalIgnoreCase)
+                   || errorContent.Contains("Index 1 out of bounds for length 1", StringComparison.OrdinalIgnoreCase)
+                   || errorContent.Contains("IndexOutOfBounds", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string TrimForDisplay(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return "<empty response>";
+            }
+
+            const int max = 300;
+            var cleaned = text.Replace(Environment.NewLine, " ").Trim();
+            return cleaned.Length <= max ? cleaned : cleaned.Substring(0, max) + "...";
         }
 
         /// <summary>

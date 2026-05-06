@@ -85,8 +85,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         public ICommand? LoadWorkspaceCommand { get; set; }
         public ICommand? ReloadCommand { get; set; }
         public ICommand? SaveWorkspaceCommand { get; set; }
+        public ICommand? UndoLastSaveCommand { get; set; }
         public ICommand? ExportAllToJamaCommand { get; set; }
         public ICommand? HelpCommand { get; set; }
+
+        // Save state properties for window controls binding
+        [ObservableProperty] private string? workspaceFilePath;
+        [ObservableProperty] private bool canUndoLastSave;
+        [ObservableProperty] private string lastSaveTimestamp = string.Empty;
 
         // Expose this ViewModel as DataContext for XAML binding compatibility
         public object DataContext => this;
