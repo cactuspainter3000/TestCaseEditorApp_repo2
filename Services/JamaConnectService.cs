@@ -23,6 +23,8 @@ namespace TestCaseEditorApp.Services
         private readonly string? _apiToken;
         private readonly string? _clientId;
         private readonly string? _clientSecret;
+        // "token_information" is the scope this Jama instance expects for OAuth client credentials.
+        // Using "read" or no scope triggers InternalServerError/IndexOutOfBounds on /users/current.
         private readonly string _oauthScope;
         private string? _accessToken;
         private DateTime _tokenExpiry = DateTime.MinValue;
@@ -39,7 +41,7 @@ namespace TestCaseEditorApp.Services
         {
             _baseUrl = baseUrl.TrimEnd('/');
             _apiToken = apiToken;
-            _oauthScope = Environment.GetEnvironmentVariable("JAMA_OAUTH_SCOPE") ?? "read";
+            _oauthScope = Environment.GetEnvironmentVariable("JAMA_OAUTH_SCOPE") ?? "token_information";
             _httpClient = CreateHttpClient();
         }
 
@@ -51,7 +53,7 @@ namespace TestCaseEditorApp.Services
             _baseUrl = baseUrl.TrimEnd('/');
             _username = username;
             _password = password;
-            _oauthScope = Environment.GetEnvironmentVariable("JAMA_OAUTH_SCOPE") ?? "read";
+            _oauthScope = Environment.GetEnvironmentVariable("JAMA_OAUTH_SCOPE") ?? "token_information";
             _httpClient = CreateHttpClient();
         }
 
@@ -63,7 +65,7 @@ namespace TestCaseEditorApp.Services
             _baseUrl = baseUrl.TrimEnd('/');
             _clientId = clientId;
             _clientSecret = clientSecret;
-            _oauthScope = Environment.GetEnvironmentVariable("JAMA_OAUTH_SCOPE") ?? "read";
+            _oauthScope = Environment.GetEnvironmentVariable("JAMA_OAUTH_SCOPE") ?? "token_information";
             _httpClient = CreateHttpClient();
         }
 
@@ -233,12 +235,17 @@ namespace TestCaseEditorApp.Services
                     }
                 }
 
-                var testUrl = $"{_baseUrl}/rest/v1/users/current";
+                // Test via /projects endpoint - /users/current returns InternalServerError/IndexOutOfBounds
+                // on this Jama instance and is NOT a reliable connectivity test here.
+                var testUrl = $"{_baseUrl}/rest/v1/projects";
                 var response = await _httpClient.GetAsync(testUrl);
-                
+
                 if (response.IsSuccessStatusCode)
                 {
-                    return (true, $"Successfully connected to Jama Connect at {_baseUrl}");
+                    var content = await response.Content.ReadAsStringAsync();
+                    var projects = JsonSerializer.Deserialize<JamaProjectsResponse>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    var count = projects?.Data?.Count ?? 0;
+                    return (true, $"Successfully connected to Jama Connect at {_baseUrl}. Found {count} project(s).");
                 }
                 else
                 {
@@ -248,7 +255,7 @@ namespace TestCaseEditorApp.Services
                     {
                         return (false,
                             "Connection failed: OAuth client likely lacks required permissions/scopes. " +
-                            "Ask your Jama administrator to ensure the OAuth client has 'read' scope and access to projects/users endpoints. " +
+                            "Ask your Jama administrator to ensure the OAuth client has 'token_information' scope and access to projects endpoints. " +
                             $"Status: {response.StatusCode}. Response: {TrimForDisplay(errorContent)}");
                     }
 
