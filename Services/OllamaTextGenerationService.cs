@@ -25,8 +25,6 @@ public sealed class OllamaTextGenerationService : ITextGenerationService
         {
             model = _model,
             stream = false,
-            keep_alive = -1,
-            options = new { num_ctx = 8192 },
             messages = new[] { new { role = "user", content = prompt } }
         };
 
@@ -70,8 +68,6 @@ public sealed class OllamaTextGenerationService : ITextGenerationService
         {
             model = _model,
             stream = false,
-            keep_alive = -1,
-            options = new { num_ctx = 8192 },
             messages = new[] 
             { 
                 new { role = "system", content = systemMessage },

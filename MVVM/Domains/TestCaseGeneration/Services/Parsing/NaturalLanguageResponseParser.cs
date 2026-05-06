@@ -63,7 +63,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
                         var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"\**(\d+)\**");
                         if (match.Success && int.TryParse(match.Groups[1].Value, out int score))
                         {
-                            analysis.QualityScore = Math.Max(0, Math.Min(100, score));
+                            analysis.QualityScore = Math.Max(1, Math.Min(10, score));
                             TestCaseEditorApp.Services.Logging.Log.Debug($"[{ParserName}Parser] Parsed quality score: {score} from line: '{trimmed}'");
                         }
                     }

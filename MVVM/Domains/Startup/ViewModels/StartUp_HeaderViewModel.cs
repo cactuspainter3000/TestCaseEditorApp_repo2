@@ -1,7 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Threading.Tasks;
-using System.Windows.Input;
 using TestCaseEditorApp.MVVM.Domains.Startup.Mediators;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.ViewModels;
@@ -23,14 +22,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
         
         [ObservableProperty]
         private DateTime lastUpdated = DateTime.Now;
-
-        // Save state properties for window controls binding (startup has no active workspace)
-        public ICommand? SaveWorkspaceCommand => null;
-        public ICommand? UndoLastSaveCommand => null;
-        public string? WorkspaceFilePath => null;
-        public bool IsDirty => false;
-        public bool CanUndoLastSave => false;
-        public string LastSaveTimestamp => string.Empty;
         
         public StartUp_HeaderViewModel(
             IStartupMediator mediator,

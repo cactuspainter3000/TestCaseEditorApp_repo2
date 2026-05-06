@@ -103,11 +103,10 @@ namespace TestCaseEditorApp
                     // LLM services (shared infrastructure)
                     services.AddSingleton<ITextGenerationService>(_ => LlmFactory.Create());
                     
-                    // LLM Health Monitoring - reuses the shared ITextGenerationService singleton
-                    // to avoid creating an extra HttpClient that competes with the analysis path
+                    // LLM Health Monitoring - configured to be less aggressive with fallback
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor>(provider =>
                     {
-                        var primaryLlmService = provider.GetRequiredService<ITextGenerationService>();
+                        var primaryLlmService = LlmFactory.Create();
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor>>();
                         return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor(
                             primaryLlmService, 
@@ -133,18 +132,17 @@ namespace TestCaseEditorApp
                     // Enhanced RequirementAnalysisService with proper dependency injection
                     services.AddSingleton<IRequirementAnalysisService, TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService>(provider =>
                     {
-                        var primaryLlmService = provider.GetRequiredService<ITextGenerationService>();
+                        var primaryLlmService = LlmFactory.Create();
                         var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
                         var promptBuilder = provider.GetRequiredService<RequirementAnalysisPromptBuilder>();
                         var parserManager = provider.GetRequiredService<ResponseParserManager>();
                         var cache = provider.GetService<RequirementAnalysisCache>(); // Optional
-                        var healthMonitor = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor>();
                         
                         return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService(
                             primaryLlmService, 
                             promptBuilder, 
                             parserManager,
-                            healthMonitor: healthMonitor,
+                            healthMonitor: null, // No health monitor for performance
                             cache: cache,
                             anythingLLMService: anythingLLMService);
                     });
@@ -162,7 +160,24 @@ namespace TestCaseEditorApp
                     {
                         try
                         {
-                            return JamaConnectService.FromConfiguration();
+                            var baseUrl = Environment.GetEnvironmentVariable("JAMA_BASE_URL");
+                            var clientId = Environment.GetEnvironmentVariable("JAMA_CLIENT_ID");
+                            var clientSecret = Environment.GetEnvironmentVariable("JAMA_CLIENT_SECRET");
+                            
+                            if (!string.IsNullOrEmpty(baseUrl) && !string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(clientSecret))
+                            {
+                                // Handle common Jama path variations
+                                if (baseUrl.Contains("rockwellcollins.com") && !baseUrl.Contains("/contour") && !baseUrl.EndsWith("/contour"))
+                                {
+                                    baseUrl = baseUrl.TrimEnd('/') + "/contour";
+                                }
+                                
+                                return new JamaConnectService(baseUrl, clientId, clientSecret, true);
+                            }
+                            else
+                            {
+                                return new JamaConnectService("", "");
+                            }
                         }
                         catch (Exception)
                         {
@@ -280,7 +295,6 @@ namespace TestCaseEditorApp
                         var notificationService = provider.GetRequiredService<NotificationService>();
                         var requirementService = provider.GetRequiredService<IRequirementService>();
                         var smartImporter = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.SmartRequirementImporter>();
-                        var jamaConnectService = provider.GetRequiredService<JamaConnectService>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
                         var workspaceValidationService = provider.GetRequiredService<IWorkspaceValidationService>();
                         var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
@@ -288,7 +302,7 @@ namespace TestCaseEditorApp
                         
                         return new NewProjectMediator(logger, uiCoordinator, persistenceService, 
                             fileDialogService, anythingLLMService, notificationService, requirementService,
-                            smartImporter, jamaConnectService, testCaseGenerationMediator, workspaceValidationService, performanceMonitor, eventReplay);
+                            smartImporter, testCaseGenerationMediator, workspaceValidationService, performanceMonitor, eventReplay);
                     });
 
                     // === OPEN PROJECT DOMAIN ===

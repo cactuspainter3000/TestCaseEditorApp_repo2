@@ -230,7 +230,7 @@
                     </Border.Style>
                     <Grid>
                         <StackPanel>
-                            <TextBlock Text="Select the Jama project to pull requirements from (preferred), or choose a Word document fallback." 
+                            <TextBlock Text="Select the Word document containing your requirements." 
                                    Foreground="#CCCCCC" 
                                    TextWrapping="Wrap" 
                                    Margin="0,0,0,15"

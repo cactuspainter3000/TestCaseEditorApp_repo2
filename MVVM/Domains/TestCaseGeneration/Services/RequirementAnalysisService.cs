@@ -118,11 +118,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             _promptBuilder = promptBuilder ?? throw new ArgumentNullException(nameof(promptBuilder));
             _parserManager = parserManager ?? throw new ArgumentNullException(nameof(parserManager));
             _healthMonitor = healthMonitor;
-            // If a health monitor is provided, route all LLM calls through its proxy so
-            // the active-generation counter stays accurate and health probes are suppressed
-            // while real analysis requests are in flight.
-            if (healthMonitor != null)
-                _llmService = healthMonitor.GetHealthyService();
             _cache = cache;
             _anythingLLMService = anythingLLMService;
         }
@@ -468,7 +463,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                     analysis.ErrorMessage = "🚨 CRITICAL WARNING: AI FABRICATED TECHNICAL DETAILS NOT IN ORIGINAL REQUIREMENT 🚨\n\n" +
                                            "This analysis contains invented specifications that could mislead engineers. " +
                                            "All recommendations have been removed for safety. Manual review required.";
-                    analysis.QualityScore = Math.Max(0, analysis.QualityScore - 30); // Reduce quality score as penalty
+                    analysis.QualityScore = Math.Max(1, analysis.QualityScore - 3); // Reduce quality score as penalty
                     
                     // Clear all recommendations to prevent misleading guidance
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] Removing {analysis.Recommendations?.Count ?? 0} recommendations due to fabrication");
@@ -496,7 +491,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                         analysis.ErrorMessage = "⚠️  CAUTION: POSSIBLE AI FABRICATION DETECTED  ⚠️\n\n" +
                                                "AI analysis may contain technical details not in the original requirement. " +
                                                "Please verify all recommendations against the source material.";
-                        analysis.QualityScore = Math.Max(0, analysis.QualityScore - 20); // Smaller penalty for suspected fabrication
+                        analysis.QualityScore = Math.Max(1, analysis.QualityScore - 2); // Smaller penalty for suspected fabrication
                     }
                 }
 

@@ -39,7 +39,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
 
         private volatile HealthReport _lastHealthReport;
         private volatile bool _isUsingFallback;
-        private int _activeGenerations; // Interlocked counter — non-zero means Ollama is busy
 
         /// <summary>
         /// Event fired when health status changes
@@ -159,13 +158,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
 
         private async Task PerformHealthCheckAsync()
         {
-            // Skip probe if a real generation is already in-flight — avoids competing with Ollama
-            if (System.Threading.Interlocked.CompareExchange(ref _activeGenerations, 0, 0) > 0)
-            {
-                _logger.LogDebug("[LlmHealthMonitor] Skipping health check — {Count} generation(s) in flight", _activeGenerations);
-                return;
-            }
-
             if (!await _healthCheckSemaphore.WaitAsync(1000)) // Quick timeout for timer-based checks
                 return;
 
@@ -302,7 +294,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
 
             public async Task<string> GenerateAsync(string prompt, CancellationToken ct = default)
             {
-                System.Threading.Interlocked.Increment(ref _monitor._activeGenerations);
                 try
                 {
                     return await _primary.GenerateAsync(prompt, ct);
@@ -332,15 +323,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
 
                     return await _monitor._fallbackService.GenerateAsync(prompt, ct);
                 }
-                finally
-                {
-                    System.Threading.Interlocked.Decrement(ref _monitor._activeGenerations);
-                }
             }
 
             public async Task<string> GenerateWithSystemAsync(string systemMessage, string contextMessage, CancellationToken ct = default)
             {
-                System.Threading.Interlocked.Increment(ref _monitor._activeGenerations);
                 try
                 {
                     return await _primary.GenerateWithSystemAsync(systemMessage, contextMessage, ct);
@@ -369,10 +355,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                     _monitor.HealthStatusChanged?.Invoke(report);
 
                     return await _monitor._fallbackService.GenerateWithSystemAsync(systemMessage, contextMessage, ct);
-                }
-                finally
-                {
-                    System.Threading.Interlocked.Decrement(ref _monitor._activeGenerations);
                 }
             }
         }
