@@ -169,7 +169,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 {
                     ProjectName = "No Project";
                     IsProjectLoaded = false;
+                    
+                    // Reset requirement-specific properties when project is closed
+                    CurrentRequirementName = null;
+                    CurrentRequirementSummary = null;
+                    WorkspaceName = "Workspace";
+                    RequirementsWithTestCasesCount = 0;
+                    StatusHint = null;
+                    
                     TestCaseEditorApp.Services.Logging.Log.Debug($"[TestCaseGenerator_HeaderVM] Project cleared: ProjectName={ProjectName}, IsProjectLoaded={IsProjectLoaded}");
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[TestCaseGenerator_HeaderVM] Reset requirement properties: CurrentRequirementName=null, WorkspaceName={WorkspaceName}");
                 }
             });
         }

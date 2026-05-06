@@ -17,6 +17,7 @@ using TestCaseEditorApp.MVVM.Events;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Services; // For IRequirementAnalysisService
 using Microsoft.Extensions.DependencyInjection;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
@@ -52,7 +53,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
             ITestCaseGenerationMediator mediator,
             IPersistenceService persistence,
             ITextEditingDialogService textEditingDialogService,
-            IRequirementAnalysisService analysisService,
+            TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.IRequirementAnalysisService analysisService,
             ILogger<TestCaseGenerator_VM> logger,
             Func<Requirement?, IEnumerable<LooseTableViewModel>>? tableProvider = null,
             Func<Requirement?, IEnumerable<string>>? paragraphProvider = null)
@@ -156,6 +157,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// </summary>
         private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected e)
         {
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[TestCaseGenerator_VM] OnRequirementSelected called with: {e.Requirement?.GlobalId ?? "NULL"}");
             if (!ReferenceEquals(_selectedRequirement, e.Requirement))
             {
                 _selectedRequirement = e.Requirement;
@@ -174,12 +176,20 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// </summary>
         private void OnRequirementsCollectionChanged(TestCaseGenerationEvents.RequirementsCollectionChanged e)
         {
+            _logger.LogInformation("🔔 TestCaseGenerator_VM: OnRequirementsCollectionChanged - Action={Action}, NewCount={NewCount}, AffectedCount={AffectedCount}",
+                e.Action, e.NewCount, e.AffectedRequirements?.Count ?? 0);
+                
             // Update local requirements collection
+            var beforeCount = _requirements.Count;
             _requirements.Clear();
-            foreach (var req in e.AffectedRequirements)
+            foreach (var req in e.AffectedRequirements ?? Enumerable.Empty<Requirement>())
             {
                 _requirements.Add(req);
             }
+            var afterCount = _requirements.Count;
+            
+            _logger.LogInformation("🔄 TestCaseGenerator_VM: Requirements collection updated - Before={BeforeCount}, After={AfterCount}",
+                beforeCount, afterCount);
             
             OnPropertyChanged(nameof(Requirements));
             try { ((RelayCommand)RemoveRequirementCommand).NotifyCanExecuteChanged(); } catch { }
@@ -354,7 +364,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                     var selectedIndices = new List<int>();
                     for (int i = 0; i < SelectedParagraphVMs.Count; i++)
                     {
-                        if (SelectedParagraphVMs[i].IsSelected)
+                        if (SelectedParagraphVMs[i]?.IsSelected == true)
                         {
                             selectedIndices.Add(i);
                         }
@@ -666,9 +676,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         private void UpdateVisibleChipsFromRequirement(Requirement? r)
         {
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[TestCaseGenerator_VM] UpdateVisibleChipsFromRequirement called with: {r?.GlobalId ?? "NULL"}");
             var list = new ObservableCollection<ChipViewModel>();
             if (r != null)
             {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[TestCaseGenerator_VM] Creating chips for requirement: {r.GlobalId}");
                 int orderCounter = 10;
                 
                 // Helper: always add field, show placeholder if empty
@@ -736,7 +748,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 DateChips = new ObservableCollection<ChipViewModel>();
             }
 
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[TestCaseGenerator_VM] Setting VisibleChips with {list.Count} items");
             VisibleChips = list;
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[TestCaseGenerator_VM] VisibleChips now has {VisibleChips.Count} items");
         }
 
         // ===== SUPPORT VIEW SELECTION =====
@@ -809,7 +823,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         /// <summary>
         /// Analysis quality score for current requirement
         /// </summary>
-        public double AnalysisQualityScore => SelectedRequirement?.Analysis?.QualityScore ?? 0.0;
+        public double AnalysisQualityScore => SelectedRequirement?.Analysis?.OriginalQualityScore ?? 0.0;
 
         // ===== ABSTRACT METHOD IMPLEMENTATIONS =====
         

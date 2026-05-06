@@ -33,11 +33,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         StartUp_MainViewModel CreateInitialStateViewModel();
         
         // Navigation ViewModels
-        TestCaseGenerator_NavigationVM CreateRequirementsNavigationViewModel();
         
         // Legacy ViewModels (for backwards compatibility)
         WorkspaceHeaderViewModel CreateWorkspaceHeaderViewModel();
-        NavigationViewModel CreateNavigationViewModel();
+        TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel CreateNavigationViewModel();
         ImportRequirementsWorkflowViewModel CreateImportWorkflowViewModel();
         // REMOVED: TestCaseGenerator_HeaderVM CreateTestCaseGeneratorHeaderViewModel - now handled by mediator
         // REMOVED: NewProjectWorkflowViewModel CreateNewProjectWorkflowViewModel - use DI container directly

@@ -2,6 +2,9 @@ using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
@@ -33,6 +36,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         private readonly SmartRequirementImporter _smartImporter;
         private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
         private readonly IWorkspaceValidationService _workspaceValidationService;
+        private readonly JamaConnectService _jamaConnectService;
         private WorkspaceInfo? _currentWorkspaceInfo;
         
         // Form persistence state for architectural compliance
@@ -51,6 +55,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             SmartRequirementImporter smartImporter,
             ITestCaseGenerationMediator testCaseGenerationMediator,
             IWorkspaceValidationService workspaceValidationService,
+            JamaConnectService jamaConnectService,
             PerformanceMonitoringService? performanceMonitor = null,
             EventReplayService? eventReplay = null)
             : base(logger, uiCoordinator, "Workspace Management", performanceMonitor, eventReplay)
@@ -63,6 +68,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             _smartImporter = smartImporter ?? throw new ArgumentNullException(nameof(smartImporter));
             _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
             _workspaceValidationService = workspaceValidationService ?? throw new ArgumentNullException(nameof(workspaceValidationService));
+            _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
         }
 
         public override void NavigateToInitialStep()
@@ -507,8 +513,12 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             await Task.CompletedTask;
             try
             {
+                _logger.LogInformation("🔍 CloseProjectAsync called - checking workspace state: {HasWorkspace}", 
+                    _currentWorkspaceInfo != null ? $"Yes ({_currentWorkspaceInfo.Path})" : "No workspace loaded");
+                
                 if (_currentWorkspaceInfo == null)
                 {
+                    _logger.LogWarning("⚠️ CloseProjectAsync: No workspace to close (_currentWorkspaceInfo is null)");
                     return;
                 }
 
@@ -656,6 +666,13 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             HideProgress();
             
             NavigateToStep("ProjectActive", _currentWorkspaceInfo);
+            
+            // Request navigation to NewProject section to show the project view
+            RequestCrossDomainAction(new NavigateToSectionRequest 
+            { 
+                SectionName = "NewProject",
+                Context = "Project created successfully"
+            });
         }
         
         /// <summary>
@@ -1067,10 +1084,34 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     HandleWorkspaceContextChanged(workspaceChanged);
                     break;
                     
+                case TestCaseEditorApp.MVVM.Domains.OpenProject.Events.OpenProjectEvents.ProjectOpened projectOpened:
+                    HandleProjectOpened(projectOpened);
+                    break;
+                    
                 default:
                     _logger.LogDebug("Unhandled notification type: {NotificationType}", typeof(T).Name);
                     break;
             }
+        }
+        
+        /// <summary>
+        /// Handle project opened events from OpenProjectMediator to track current workspace
+        /// </summary>
+        private void HandleProjectOpened(TestCaseEditorApp.MVVM.Domains.OpenProject.Events.OpenProjectEvents.ProjectOpened notification)
+        {
+            _logger.LogInformation("🔔 NewProjectMediator received ProjectOpened event: {WorkspaceName} ({WorkspacePath})", 
+                notification.WorkspaceName, notification.WorkspacePath);
+                
+            // Update our workspace tracking to match the opened project
+            _currentWorkspaceInfo = new WorkspaceInfo
+            {
+                Name = notification.WorkspaceName,
+                Path = notification.WorkspacePath,
+                LastModified = DateTime.Now
+            };
+            
+            _logger.LogInformation("✅ NewProjectMediator workspace tracking updated for: {WorkspaceName}", 
+                notification.WorkspaceName);
         }
 
         /// <summary>
@@ -1099,6 +1140,122 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         
         #endregion
 
+        #region Jama Connect Integration
+
+        /// <summary>
+        /// Test connection to Jama Connect service
+        /// </summary>
+        public async Task<(bool Success, string Message)> TestJamaConnectionAsync()
+        {
+            try
+            {
+                if (!_jamaConnectService.IsConfigured)
+                {
+                    return (false, "Jama not configured. Set environment variables: JAMA_BASE_URL, JAMA_CLIENT_ID, JAMA_CLIENT_SECRET");
+                }
+
+                var result = await _jamaConnectService.TestConnectionAsync();
+                _logger.LogInformation($"[NewProject] Jama connection test: {result.Success}");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[NewProject] Failed to test Jama connection");
+                return (false, $"Error testing connection: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Get available Jama projects
+        /// </summary>
+        public async Task<List<JamaProject>> GetJamaProjectsAsync()
+        {
+            try
+            {
+                var projects = await _jamaConnectService.GetProjectsAsync(CancellationToken.None);
+                _logger.LogInformation($"[NewProject] Retrieved {projects.Count} Jama projects");
+                return projects;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[NewProject] Failed to get Jama projects");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Get requirements from a specific Jama project
+        /// </summary>
+        public async Task<List<Requirement>> GetJamaRequirementsAsync(int projectId)
+        {
+            try
+            {
+                var jamaItems = await _jamaConnectService.GetRequirementsAsync(projectId, CancellationToken.None);
+                var requirements = _jamaConnectService.ConvertToRequirements(jamaItems);
+                _logger.LogInformation($"[NewProject] Retrieved {requirements.Count} requirements from Jama project {projectId}");
+                return requirements;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"[NewProject] Failed to get requirements from Jama project {projectId}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Import requirements from Jama and create a JSON requirements file for standard processing pipeline
+        /// </summary>
+        public async Task<string> ImportJamaRequirementsAsync(int projectId, string projectName, string projectKey)
+        {
+            try
+            {
+                // Get the requirements data from Jama
+                var jamaItems = await _jamaConnectService.GetRequirementsAsync(projectId, CancellationToken.None);
+                var requirements = _jamaConnectService.ConvertToRequirements(jamaItems);
+
+                // Set source project information
+                foreach (var req in requirements)
+                {
+                    if (string.IsNullOrEmpty(req.Project))
+                    {
+                        req.Project = projectName;
+                    }
+                }
+
+                // Create a temporary JSON file that can be processed by SmartRequirementImporter
+                var tempPath = Path.Combine(Path.GetTempPath(), $"JamaRequirements_{projectKey}_{DateTime.Now:yyyyMMdd_HHmmss}.json");
+
+                // Create a workspace object to serialize (this is the standard format)
+                var workspace = new Workspace
+                {
+                    Name = $"Jama Import - {projectName}",
+                    Version = Workspace.SchemaVersion,
+                    CreatedBy = Environment.UserName,
+                    CreatedUtc = DateTime.UtcNow,
+                    LastSavedUtc = DateTime.UtcNow,
+                    JamaProject = projectName,
+                    Requirements = requirements,
+                    SourceDocPath = $"Jama Project: {projectName} ({projectKey})"
+                };
+
+                // Serialize workspace to JSON file
+                await File.WriteAllTextAsync(tempPath, JsonSerializer.Serialize(workspace, new JsonSerializerOptions 
+                { 
+                    WriteIndented = true 
+                }));
+
+                _logger.LogInformation($"[NewProject] Successfully imported {requirements.Count} requirements from Jama project {projectName} to {tempPath}");
+                return tempPath;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"[NewProject] Failed to import requirements from Jama project {projectName}");
+                throw;
+            }
+        }
+
+        #endregion
+
 
     }
 
@@ -1109,5 +1266,14 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
     {
         public bool ForOpenExisting { get; set; }
         public string DomainContext { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Cross-domain request for navigating to a section
+    /// </summary>
+    public class NavigateToSectionRequest
+    {
+        public string SectionName { get; set; } = string.Empty;
+        public string? Context { get; set; }
     }
 }

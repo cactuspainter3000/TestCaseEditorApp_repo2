@@ -10,14 +10,17 @@ using TestCaseEditorApp.Prompts;
 using TestCaseEditorApp.Services.Prompts;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Services; // For Requirements domain interface
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
 {
     /// <summary>
     /// Service for analyzing requirement quality using LLM.
     /// Generates structured analysis with quality scores, issues, and recommendations.
+    /// Implements both TestCaseGeneration and Requirements domain interfaces during migration.
     /// </summary>
-    public sealed class RequirementAnalysisService : IRequirementAnalysisService
+    public sealed class RequirementAnalysisService : IRequirementAnalysisService, 
+        TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService
     {
         private readonly ITextGenerationService _llmService;
         private readonly RequirementAnalysisPromptBuilder _promptBuilder;
@@ -203,7 +206,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 if (ragResult.success)
                 {
                     System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Using RAG response, length: {ragResult.response?.Length ?? 0}");
-                    response = ragResult.response;
+                    response = ragResult.response ?? throw new InvalidOperationException("RAG analysis succeeded but returned null response");
                 }
                 // Use AnythingLLM with workspace-configured system prompt (avoids sending ~793 lines per request)
                 else if (_llmService is AnythingLLMService anythingLlmService)
@@ -254,6 +257,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 
                 // Parse response using parser manager
                 var analysis = _parserManager.ParseResponse(reflectedResponse, requirement.Item ?? "UNKNOWN");
+                
+                // Check if parsing was successful
+                if (analysis == null)
+                {
+                    return CreateErrorAnalysis("Failed to parse LLM response");
+                }
 
                 // Set timestamp and cache if enabled
                 analysis.Timestamp = DateTime.Now;
@@ -435,6 +444,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 
                 // Parse response using parser manager
                 var analysis = _parserManager.ParseResponse(reflectedResponse ?? string.Empty, requirement.Item ?? "UNKNOWN");
+                
+                // Check if parsing was successful
+                if (analysis == null)
+                {
+                    return CreateErrorAnalysis("Failed to parse LLM response");
+                }
 
                 // Check for self-reported fabrication
                 if (!string.IsNullOrEmpty(analysis.HallucinationCheck) && 
@@ -447,7 +462,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                     analysis.ErrorMessage = "🚨 CRITICAL WARNING: AI FABRICATED TECHNICAL DETAILS NOT IN ORIGINAL REQUIREMENT 🚨\n\n" +
                                            "This analysis contains invented specifications that could mislead engineers. " +
                                            "All recommendations have been removed for safety. Manual review required.";
-                    analysis.QualityScore = Math.Max(1, analysis.QualityScore - 3); // Reduce quality score as penalty
+                    analysis.OriginalQualityScore = Math.Max(1, analysis.OriginalQualityScore - 3); // Reduce quality score as penalty
                     
                     // Clear all recommendations to prevent misleading guidance
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] Removing {analysis.Recommendations?.Count ?? 0} recommendations due to fabrication");
@@ -475,12 +490,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                         analysis.ErrorMessage = "⚠️  CAUTION: POSSIBLE AI FABRICATION DETECTED  ⚠️\n\n" +
                                                "AI analysis may contain technical details not in the original requirement. " +
                                                "Please verify all recommendations against the source material.";
-                        analysis.QualityScore = Math.Max(1, analysis.QualityScore - 2); // Smaller penalty for suspected fabrication
+                        analysis.OriginalQualityScore = Math.Max(1, analysis.OriginalQualityScore - 2); // Smaller penalty for suspected fabrication
                     }
                 }
 
                 // Log what we got from the LLM for debugging
-                TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] LLM response for {requirement.Item}: QualityScore={analysis.QualityScore}, Issues={analysis.Issues?.Count ?? 0}, Recommendations={analysis.Recommendations?.Count ?? 0}, HallucinationCheck={analysis.HallucinationCheck}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] LLM response for {requirement.Item}: OriginalQualityScore={analysis.OriginalQualityScore}, Issues={analysis.Issues?.Count ?? 0}, Recommendations={analysis.Recommendations?.Count ?? 0}, HallucinationCheck={analysis.HallucinationCheck}");
                 
                 // Validate that recommendations have required fields (now cleans up invalid ones)
                 ValidateRecommendationQuality(analysis, requirement.Item ?? "UNKNOWN");
@@ -526,7 +541,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             {
                 IsAnalyzed = false,
                 ErrorMessage = errorMessage,
-                QualityScore = 0,
+                OriginalQualityScore = 0,
                 Issues = new System.Collections.Generic.List<AnalysisIssue>(),
                 Recommendations = new System.Collections.Generic.List<AnalysisRecommendation>(),
                 FreeformFeedback = string.Empty,
@@ -1103,7 +1118,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Starting RAG request at {ragRequestStart:HH:mm:ss.fff}");
                 var response = await _anythingLLMService.SendChatMessageStreamingAsync(
                     workspaceSlug,
-                    ragPrompt,
+                    ragPrompt!,
                     onChunkReceived: onPartialResult,
                     onProgressUpdate: onProgressUpdate,
                     threadSlug: threadSlug,
@@ -1173,7 +1188,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 
                 AnythingLLMService.Workspace? targetWorkspace = null;
                 
-                if (!string.IsNullOrEmpty(_projectWorkspaceName))
+                if (!string.IsNullOrEmpty(_projectWorkspaceName) && workspaces != null)
                 {
                     // Look for exact project workspace match first
                     targetWorkspace = workspaces.FirstOrDefault(w => 

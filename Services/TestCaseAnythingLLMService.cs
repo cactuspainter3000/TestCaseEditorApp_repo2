@@ -127,7 +127,7 @@ namespace TestCaseEditorApp.Services
                 }
             }
             
-            var successCount = results.Count(r => r.QualityScore > 0);
+            var successCount = results.Count(r => r.OriginalQualityScore > 0);
             onProgress?.Invoke($"Parallel analysis complete: {successCount}/{requirementsList.Count} successful", requirementsList.Count, requirementsList.Count);
             
             return results;
@@ -186,7 +186,7 @@ Please generate detailed test cases covering normal, edge, and error conditions.
             // For now, return a basic analysis
             return new RequirementAnalysis
             {
-                QualityScore = 8,
+                OriginalQualityScore = 8,
                 Issues = new List<AnalysisIssue>(),
                 Recommendations = new List<AnalysisRecommendation>(),
                 FreeformFeedback = "Analysis completed via streaming",
@@ -199,7 +199,7 @@ Please generate detailed test cases covering normal, edge, and error conditions.
         {
             return new RequirementAnalysis
             {
-                QualityScore = 1,
+                OriginalQualityScore = 1,
                 Issues = new List<AnalysisIssue> 
                 { 
                     new AnalysisIssue 

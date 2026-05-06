@@ -94,13 +94,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             return headerViewModel;
         }
 
-        public NavigationViewModel CreateNavigationViewModel()
+        public TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel CreateNavigationViewModel()
         {
             if (_testCaseGenerationMediator == null)
                 throw new InvalidOperationException("TestCaseGenerationMediator is required for NavigationViewModel");
                 
-            var logger = _applicationServices.LoggerFactory?.CreateLogger<NavigationViewModel>();
-            return new NavigationViewModel(_testCaseGenerationMediator, logger!);
+            var logger = _applicationServices.LoggerFactory?.CreateLogger<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel>();
+            return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.NavigationViewModel(_testCaseGenerationMediator, logger!);
         }
 
         public ImportRequirementsWorkflowViewModel CreateImportWorkflowViewModel()
@@ -159,16 +159,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                    throw new InvalidOperationException("StartUp_MainViewModel not registered in DI container");
         }
 
-        public TestCaseGenerator_NavigationVM CreateRequirementsNavigationViewModel()
-        {
-            if (_testCaseGenerationMediator == null)
-                throw new InvalidOperationException("TestCaseGenerationMediator is required for navigation ViewModel");
-            
-            return new TestCaseGenerator_NavigationVM(
-                _testCaseGenerationMediator,
-                _applicationServices.LoggerFactory?.CreateLogger<TestCaseGenerator_NavigationVM>());
-        }
-        
+
         public object CreateProjectViewModel()
         {
             // Redirect to new Project domain - get Project_MainViewModel from DI container
@@ -196,7 +187,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 _applicationServices.FileDialogService,
                 _applicationServices.ChatGptExportService,
                 _applicationServices.NotificationService,
-                null, // Navigation will be handled differently
+                null!, // Navigation will be handled differently
                 new System.Collections.ObjectModel.ObservableCollection<Requirement>(), // Will be bound to shared collection
                 _applicationServices.PersistenceService,
                 _applicationServices.RequirementService as IRequirementDataScrubber ?? throw new InvalidOperationException("RequirementDataScrubber is required"),

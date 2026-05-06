@@ -12,11 +12,14 @@ using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Services; // For IRequirementAnalysisService
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
+using TestCaseEditorApp.MVVM.Domains.OpenProject.Events;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
 {
@@ -29,7 +32,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
     {
         private readonly IRequirementService _requirementService;
         private readonly SmartRequirementImporter _smartImporter;
-        private readonly IRequirementAnalysisService _analysisService;
+        private readonly TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService _analysisService;
         private readonly ITextGenerationService _llmService;
         private readonly IRequirementDataScrubber _scrubber;
         
@@ -174,7 +177,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             ILogger<TestCaseGenerationMediator> logger,
             IDomainUICoordinator uiCoordinator,
             IRequirementService requirementService,
-            IRequirementAnalysisService analysisService,
+            TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService analysisService,
             ITextGenerationService llmService,
             IRequirementDataScrubber scrubber,
             PerformanceMonitoringService? performanceMonitor = null,
@@ -358,6 +361,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         {
             if (requirement == null) throw new ArgumentNullException(nameof(requirement));
             
+            // Clear any stale analysis errors when navigating with a requirement
+            if (requirement.Analysis != null)
+            {
+                requirement.Analysis.ErrorMessage = string.Empty;
+            }
+            
             NavigateToStep("Assumptions", null);
             PublishEvent(new TestCaseGenerationEvents.StepChanged 
             { 
@@ -376,6 +385,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         {
             if (requirement == null) throw new ArgumentNullException(nameof(requirement));
             
+            // Clear any stale analysis errors when navigating with a requirement
+            if (requirement.Analysis != null)
+            {
+                requirement.Analysis.ErrorMessage = string.Empty;
+            }
+            
             NavigateToStep("Questions", null);
             PublishEvent(new TestCaseGenerationEvents.StepChanged 
             { 
@@ -393,6 +408,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         public void NavigateToTestCaseCreation(Requirement requirement)
         {
             if (requirement == null) throw new ArgumentNullException(nameof(requirement));
+            
+            // Clear any stale analysis errors when navigating with a requirement
+            if (requirement.Analysis != null)
+            {
+                requirement.Analysis.ErrorMessage = string.Empty;
+            }
             
             NavigateToStep("TestCaseCreation", null);
             PublishEvent(new TestCaseGenerationEvents.StepChanged 
@@ -820,6 +841,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         public void SelectRequirement(Requirement requirement)
         {
             if (requirement == null) throw new ArgumentNullException(nameof(requirement));
+            
+            // Clear any stale analysis state when selecting a new requirement to ensure clean UI
+            if (requirement.Analysis != null && !requirement.Analysis.IsAnalyzed)
+            {
+                // If analysis failed or is incomplete, remove it entirely for clean state
+                requirement.Analysis = null;
+                _logger.LogDebug("Removed failed analysis state for requirement: {RequirementId}", requirement.GlobalId);
+            }
             
             // Track current requirement for auto-sync functionality
             _currentRequirement = requirement;
@@ -1320,11 +1349,11 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                     }
                 });
                 
-                // Set the first requirement as current if available
+                // Set the first requirement as current if available - use SelectRequirement to ensure clean state
                 if (e.Requirements.Count > 0)
                 {
-                    CurrentRequirement = e.Requirements.First();
-                    _logger.LogDebug("Set current requirement to: {RequirementId}", CurrentRequirement.GlobalId);
+                    SelectRequirement(e.Requirements.First());
+                    _logger.LogDebug("Selected first requirement during import: {RequirementId}", CurrentRequirement?.GlobalId);
                 }
                 
                 _logger.LogInformation("✅ Successfully imported {Count} requirements from cross-domain event", e.Requirements.Count);
@@ -1341,6 +1370,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         /// </summary>
         public void HandleBroadcastNotification<T>(T notification) where T : class
         {
+            _logger.LogInformation("🔔🔔🔔 BROADCAST RECEIVED: {NotificationType} - TestCaseGenerationMediator", typeof(T).Name);
             _logger.LogInformation("🔔 Received broadcast notification: {NotificationType}", typeof(T).Name);
             
             // Handle workspace management events
@@ -1385,8 +1415,40 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 _logger.LogInformation("🔄 About to load requirements for project: {ProjectName}", projectOpened.WorkspaceName);
                 LoadProjectRequirements(projectOpened.WorkspaceName, projectOpened.Workspace);
             }
+            else if (notification is OpenProjectEvents.ProjectOpened openedProject)
+            {
+                _logger.LogInformation("🚀 HandleBroadcast: OpenProjectEvents.ProjectOpened - WorkspaceName: {WorkspaceName}, HeaderViewModel: {HeaderViewModel}", 
+                    openedProject.WorkspaceName, _headerViewModel?.GetType().Name ?? "NULL");
+                    
+                // DEBUG: Log workspace details
+                if (openedProject.Workspace == null)
+                {
+                    _logger.LogError("🚨 OpenProjectEvents.ProjectOpened: Workspace is NULL!");
+                }
+                else
+                {
+                    _logger.LogInformation("📊 OpenProject Workspace Info: Version={Version}, Requirements.Count={RequirementCount}",
+                        openedProject.Workspace.Version, openedProject.Workspace.Requirements?.Count ?? -1);
+                }
+                    
+                // Set workspace context for analysis service with project name
+                _analysisService.SetWorkspaceContext(openedProject.WorkspaceName);
+                _logger.LogDebug("Set workspace context for analysis service: {WorkspaceName}", openedProject.WorkspaceName);
+                
+                _headerViewModel?.UpdateProjectStatus(openedProject.WorkspaceName, true);
+                _logger.LogDebug("Updated header with project opened: {ProjectName}", openedProject.WorkspaceName);
+                
+                // Update project title
+                UpdateProjectContext(openedProject.WorkspaceName);
+                
+                // Load requirements for the opened project
+                _logger.LogInformation("🔄 About to load requirements for opened project: {ProjectName}", openedProject.WorkspaceName);
+                LoadProjectRequirements(openedProject.WorkspaceName, openedProject.Workspace);
+                _logger.LogInformation("✅ LoadProjectRequirements call completed for: {ProjectName}", openedProject.WorkspaceName);
+            }
             else if (notification is NewProjectEvents.ProjectClosed)
             {
+                _logger.LogInformation("🔔 RECEIVED ProjectClosed event - starting cleanup");
                 _logger.LogInformation("HandleBroadcast: ProjectClosed - HeaderViewModel: {HeaderViewModel}", 
                     _headerViewModel?.GetType().Name ?? "NULL");
                     
@@ -1399,13 +1461,19 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                 _logger.LogInformation("🔄 Clearing requirements collection on project close...");
                 Application.Current.Dispatcher.Invoke(() =>
                 {
+                    _logger.LogInformation("🗑️ Before clear: Requirements.Count = {Count}", _requirements.Count);
                     _requirements.Clear();
-                    PublishEvent(new TestCaseGenerationEvents.RequirementsCollectionChanged
+                    _logger.LogInformation("✅ After clear: Requirements.Count = {Count}", _requirements.Count);
+                    
+                    var collectionEvent = new TestCaseGenerationEvents.RequirementsCollectionChanged
                     {
                         Action = "Clear",
                         AffectedRequirements = new List<Requirement>(),
                         NewCount = 0
-                    });
+                    };
+                    
+                    _logger.LogInformation("📢 Publishing RequirementsCollectionChanged event: Action=Clear, NewCount=0");
+                    PublishEvent(collectionEvent);
                 });
                 
                 _logger.LogDebug("Updated header with project closed and cleared requirements");
@@ -1431,17 +1499,40 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
             {
                 _logger.LogInformation("📋 Loading requirements for project: {ProjectName}", projectName);
                 
+                // DEBUG: Log workspace details
+                if (workspace == null)
+                {
+                    _logger.LogError("🚨 Workspace is NULL in LoadProjectRequirements!");
+                    return;
+                }
+                
+                _logger.LogInformation("📊 Workspace Info: Version={Version}, SourceDoc={SourceDoc}, Requirements.Count={RequirementCount}",
+                    workspace.Version, workspace.SourceDocPath, workspace.Requirements?.Count ?? -1);
+                
                 // Get actual requirements from the loaded workspace
                 var actualRequirements = workspace?.Requirements?.ToList() ?? new List<Requirement>();
                 
                 _logger.LogInformation("✅ Found {Count} actual requirements in workspace", actualRequirements.Count);
+                
+                // DEBUG: Log first few requirement details
+                if (actualRequirements.Count > 0)
+                {
+                    for (int i = 0; i < Math.Min(3, actualRequirements.Count); i++)
+                    {
+                        var req = actualRequirements[i];
+                        _logger.LogInformation("📋 Requirement {Index}: GlobalId={GlobalId}, Item={Item}, Name={Name}",
+                            i + 1, req.GlobalId, req.Item, req.Name);
+                    }
+                }
                 
                 // Update the Requirements collection on UI thread using Dispatcher.Invoke
                 _logger.LogInformation("🧵 Updating UI on dispatcher thread...");
                 System.Windows.Application.Current.Dispatcher.Invoke(() =>
                 {
                     _logger.LogInformation("🔄 Clearing existing requirements collection...");
+                    var beforeCount = _requirements.Count;
                     _requirements.Clear();
+                    _logger.LogInformation("🗑️ Cleared {BeforeCount} existing requirements", beforeCount);
                     
                     _logger.LogInformation("➕ Adding {Count} real requirements to collection (sorted naturally by numeric suffix)...", actualRequirements.Count);
                     // Sort requirements using natural numeric order to ensure RC-5 comes before RC-12, etc.
@@ -1456,8 +1547,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
                         _requirements.Add(requirement);
                     }
                     
+                    var afterCount = _requirements.Count;
                     _logger.LogInformation("✅ Loaded {Count} requirements for project {ProjectName} - Collection now has {ActualCount} items", 
-                        actualRequirements.Count, projectName, _requirements.Count);
+                        actualRequirements.Count, projectName, afterCount);
                     
                     // Publish event to notify NavigationVM that requirements collection has changed
                     PublishEvent(new TestCaseGenerationEvents.RequirementsCollectionChanged 

@@ -40,6 +40,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             System.Diagnostics.Debug.WriteLine($"[ConfigurableNavigationAreaViewModel] *** Navigation configuration requested for: {configuration.SectionName} ***");
             System.Diagnostics.Debug.WriteLine($"[ConfigurableNavigationAreaViewModel] *** Navigation content type: {configuration.NavigationViewModel?.GetType().Name} ***");
             
+            // FORCE REFRESH: Clear content first to ensure clean binding state
+            if (CurrentContent != null && configuration.SectionName == "Requirements")
+            {
+                System.Diagnostics.Debug.WriteLine($"[ConfigurableNavigationAreaViewModel] *** REQUIREMENTS DOMAIN: Force clearing old content to prevent binding conflicts ***");
+                CurrentContent = null;
+                ContentType = "Clearing";
+                
+                // Force UI update on dispatcher
+                System.Windows.Application.Current?.Dispatcher.BeginInvoke(new System.Action(() => {
+                    SetRequirementsContent(configuration);
+                }), System.Windows.Threading.DispatcherPriority.Normal);
+                return;
+            }
+            
             // IDEMPOTENCY CHECK: Already showing this content?
             if (ReferenceEquals(_currentConfiguration?.NavigationViewModel, configuration.NavigationViewModel))
             {
@@ -52,6 +66,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
 
             // UPDATE NEEDED: New content or different configuration
+            SetRequirementsContent(configuration);
+        }
+        
+        private void SetRequirementsContent(ViewConfiguration configuration)
+        {
             System.Diagnostics.Debug.WriteLine($"[ConfigurableNavigationAreaViewModel] Switching to {configuration.SectionName} with navigation content: {configuration.NavigationViewModel?.GetType().Name ?? "null"}");
 
             // Store the new configuration for future idempotency checks

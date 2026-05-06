@@ -6,6 +6,10 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Windows;
+using TestCaseEditorApp.MVVM.Models;  // TableDto
+using TestCaseEditorApp.Services;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
+using Microsoft.Extensions.DependencyInjection;
 // using TestCaseEditorApp.Session;          // SessionTableStore, TableSnapshot - TODO: implement session persistence
 
 namespace TestCaseEditorApp.MVVM.ViewModels
@@ -43,6 +47,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         // New: whether to include this table in the LLM prompt
         [ObservableProperty] private bool includeInPrompt;
+        
+        // Dirty flag tracking
+        [ObservableProperty] private bool isDirty;
 
         // Editor ViewModel for embedded editing
         [ObservableProperty] private EditableTableEditorViewModel? editorViewModel;
@@ -160,6 +167,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     Rows.Add(row);
                 }
                 
+                // Mark as dirty - save will happen during navigation
+                IsDirty = true;
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[LooseTableViewModel] Table '{Title}' marked as dirty for requirement '{RequirementId}'");
+                
                 // Clear editor ViewModel
                 EditorViewModel = null;
                 
@@ -224,6 +235,101 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     // Stay in editing mode
                     break;
             }
+        }
+
+        /// <summary>
+        /// Save table changes to the source requirement data.
+        /// Called from navigation logic when IsDirty is true.
+        /// </summary>
+        public void SaveToSourceRequirement()
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[SaveToSourceRequirement] Starting save for table '{Title}', RequirementId: '{RequirementId}', IsDirty: {IsDirty}");
+                
+                // Find the requirement in the TestCaseGeneration mediator
+                var testCaseGenMediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.ITestCaseGenerationMediator>();
+                if (testCaseGenMediator == null) return;
+
+                var requirement = testCaseGenMediator.Requirements.FirstOrDefault(r => r.Item == RequirementId || r.GlobalId == RequirementId);
+                if (requirement == null) return;
+
+                // Ensure LooseContent exists
+                if (requirement.LooseContent == null)
+                    requirement.LooseContent = new RequirementLooseContent();
+                
+                if (requirement.LooseContent.Tables == null)
+                    requirement.LooseContent.Tables = new List<LooseTable>();
+
+                // Convert current table data to LooseTable format
+                var looseTable = ConvertToLooseTable();
+                
+                // Find and replace the matching table in the source data
+                var tables = requirement.LooseContent.Tables;
+                bool found = false;
+                
+                for (int i = 0; i < tables.Count; i++)
+                {
+                    if (tables[i] is LooseTable existingTable && 
+                        existingTable.EditableTitle == Title)
+                    {
+                        tables[i] = looseTable;
+                        found = true;
+                        break;
+                    }
+                }
+                
+                // If not found, add as new table
+                if (!found)
+                {
+                    tables.Add(looseTable);
+                }
+                
+                // Reset dirty flag after successful save
+                IsDirty = false;
+                
+                // Invalidate cache so future requests get updated data
+                var testCaseGeneratorVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_VM>();
+                if (testCaseGeneratorVM?.TestCaseGenerator != null && !string.IsNullOrEmpty(RequirementId))
+                {
+                    testCaseGeneratorVM.TestCaseGenerator.InvalidateTableCache(RequirementId);
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[SaveToSourceRequirement] Invalidated cache for requirement: {RequirementId}");
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[SaveToSourceRequirement] Updated source data for table '{Title}' in requirement '{RequirementId}'");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[SaveToSourceRequirement] Failed to update source requirement data for table '{Title}'");
+            }
+        }
+
+        private LooseTable ConvertToLooseTable()
+        {
+            var looseTable = new LooseTable
+            {
+                EditableTitle = Title
+            };
+
+            // Convert columns to headers
+            var headers = Columns.Select(c => c.Header ?? string.Empty).ToList();
+            looseTable.ColumnHeaders = headers;
+            
+            // Convert rows to raw string data
+            var rows = new List<List<string>>();
+            foreach (var row in Rows)
+            {
+                var stringRow = new List<string>();
+                foreach (var col in Columns)
+                {
+                    var cellValue = row[col.BindingPath ?? ""]?.ToString() ?? string.Empty;
+                    stringRow.Add(cellValue);
+                }
+                rows.Add(stringRow);
+            }
+            looseTable.Rows = rows;
+
+            return looseTable;
         }
 
         private bool HasUnsavedChanges()

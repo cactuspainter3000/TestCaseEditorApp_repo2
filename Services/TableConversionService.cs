@@ -168,5 +168,19 @@ namespace TestCaseEditorApp.Services
 
             return new TableDto { Title = title ?? string.Empty, Columns = columns, Rows = rowsList };
         }
+
+        /// <summary>
+        /// Converts a TableDto back to a LooseTable for persistence
+        /// </summary>
+        public static LooseTable ConvertDtoToLooseTable(TableDto dto)
+        {
+            return new LooseTable
+            {
+                EditableTitle = dto.Title ?? string.Empty,
+                ColumnHeaders = dto.Columns?.ToList() ?? new List<string>(),
+                ColumnKeys = dto.Columns?.Select((_, i) => $"c{i}").ToList() ?? new List<string>(),
+                Rows = dto.Rows?.Select(row => row?.ToList() ?? new List<string>()).ToList() ?? new List<List<string>>()
+            };
+        }
     }
 }

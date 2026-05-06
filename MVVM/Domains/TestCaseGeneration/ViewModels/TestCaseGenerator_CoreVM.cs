@@ -31,6 +31,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
         public ObservableCollection<object> LooseTablesDtos { get; } = new ObservableCollection<object>();
         public ObservableCollection<string> LooseParagraphs { get; } = new ObservableCollection<string>();
 
+        // Cache for requirement-specific table ViewModels to preserve edits
+        private readonly Dictionary<string, List<LooseTableViewModel>> _tableViewModelCache = new Dictionary<string, List<LooseTableViewModel>>();
+
         // Flexible delegate used by older code paths. Consumers may set this to a Func<(IEnumerable<string> paras, IEnumerable<TableDto> tables)>
         // or a similar tuple shape; we use DynamicInvoke to be forgiving.
         public Delegate? GetSelectedContext { get; set; }
@@ -216,12 +219,24 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
 
         /// <summary>
         /// Return LooseTableViewModel instances for a requirement.
-        /// Uses existing TableItemViewModel instances when present, otherwise converts DTOs or other shapes.
+        /// Uses cached instances when available to preserve edits, otherwise creates new ones.
         /// </summary>
         public IEnumerable<LooseTableViewModel> GetLooseTableVMsForRequirement(Requirement? req)
         {
             if (req == null) return Enumerable.Empty<LooseTableViewModel>();
 
+            var requirementId = req.GlobalId ?? req.Item ?? string.Empty;
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[GetLooseTableVMsForRequirement] Called for requirement: {requirementId}");
+            
+            // Check if we have cached ViewModels for this requirement
+            if (_tableViewModelCache.TryGetValue(requirementId, out var cachedTables))
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[GetLooseTableVMsForRequirement] Using cached {cachedTables.Count} tables for requirement: {requirementId}");
+                return cachedTables;
+            }
+
+            // No cache found, create new ViewModels
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[GetLooseTableVMsForRequirement] Creating new tables for requirement: {requirementId}");
             try { ResetForRequirement(req); } catch { /* ignore */ }
 
             var outList = new List<LooseTableViewModel>();
@@ -241,7 +256,13 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                     outList.Add(ltv);
                     idx++;
                 }
-                if (outList.Count > 0) return outList;
+                if (outList.Count > 0) 
+                {
+                    // Cache the newly created ViewModels
+                    _tableViewModelCache[requirementId] = outList;
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[GetLooseTableVMsForRequirement] Cached {outList.Count} new tables for requirement: {requirementId}");
+                    return outList;
+                }
             }
 
             // 2) Convert DTOs or other shapes
@@ -353,158 +374,43 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                     }
                 }
 
-                if (outList.Count > 0) return outList;
-            }
-
-            // 3) As last resort, try the GetSelectedContext delegate
-            if (GetSelectedContext != null)
-            {
-                try
+                if (outList.Count > 0) 
                 {
-                    var ctxResult = GetSelectedContext.DynamicInvoke();
-                    if (ctxResult != null)
-                    {
-                        var rt = ctxResult.GetType();
-                        var tablesObj = rt.GetProperty("tables")?.GetValue(ctxResult) ?? rt.GetProperty("Item2")?.GetValue(ctxResult);
-                        if (tablesObj is IEnumerable tbls && !(tablesObj is string))
-                        {
-                            int idx = 0;
-                            foreach (var t in tbls)
-                            {
-                                if (t == null) continue;
-
-                                var dto = t as TableDto;
-                                if (dto != null)
-                                {
-                                    // convert as above
-                                    var cols = new ObservableCollection<ColumnDefinitionModel>();
-                                    var rows = new ObservableCollection<TableRowModel>();
-
-                                    var headers = dto.Columns ?? new List<string>();
-                                    if (headers.Count == 0)
-                                    {
-                                        var maxCols = dto.Rows?.Count > 0 ? dto.Rows.Max(r => r?.Count ?? 0) : 1;
-                                        headers = Enumerable.Range(0, maxCols).Select(i => $"Column {i + 1}").ToList();
-                                    }
-
-                                    for (int i = 0; i < headers.Count; i++)
-                                        cols.Add(new ColumnDefinitionModel { Header = headers[i] ?? $"Column {i + 1}", BindingPath = string.IsNullOrWhiteSpace(headers[i]) ? $"c{i}" : headers[i] });
-
-                                    var dtoRows = dto.Rows ?? new List<List<string>>();
-                                    foreach (var r in dtoRows)
-                                    {
-                                        var tr = new TableRowModel();
-                                        for (int c = 0; c < cols.Count; c++)
-                                        {
-                                            var colKey = cols[c].BindingPath ?? $"c{c}";
-                                            var val = (r != null && c < r.Count) ? (r[c] ?? string.Empty) : string.Empty;
-                                            tr[colKey] = val;
-                                        }
-                                        rows.Add(tr);
-                                    }
-
-                                    if (rows.Count == 0) { var tr = new TableRowModel(); foreach (var cdef in cols) tr[cdef.BindingPath ?? ""] = string.Empty; rows.Add(tr); }
-                                    var tableKey = !string.IsNullOrWhiteSpace(dto.Title) ? $"table:{idx}:{SanitizeKey(dto.Title)}" : $"table:{idx}";
-                                    outList.Add(new LooseTableViewModel(req.Item ?? string.Empty, tableKey, dto.Title, cols, rows, innerBackplane: null));
-                                    idx++;
-                                }
-                                else
-                                {
-                                    var tivm = t as TableItemViewModel;
-                                    if (tivm != null)
-                                    {
-                                        var tableKey = !string.IsNullOrWhiteSpace(tivm.SourceDto?.Title) ? $"table:{idx}:{SanitizeKey(tivm.SourceDto.Title)}" : $"table:{idx}";
-                                        outList.Add(new LooseTableViewModel(req.Item ?? string.Empty, tableKey, tivm.Title, tivm.Columns, tivm.Rows, innerBackplane: tivm));
-                                        idx++;
-                                        continue;
-                                    }
-
-                                    if (t is LooseTable lt)
-                                    {
-                                        var maybeDtoFromLoose = TableConversionService.ConvertLooseTableToDto(lt);
-                                        // convert maybeDto (same pattern)
-                                        var cols = new ObservableCollection<ColumnDefinitionModel>();
-                                        var rows = new ObservableCollection<TableRowModel>();
-
-                                        var headers = maybeDtoFromLoose.Columns ?? new List<string>();
-                                        if (headers.Count == 0)
-                                        {
-                                            var maxCols = maybeDtoFromLoose.Rows?.Count > 0 ? maybeDtoFromLoose.Rows.Max(r => r?.Count ?? 0) : 1;
-                                            headers = Enumerable.Range(0, maxCols).Select(i => $"Column {i + 1}").ToList();
-                                        }
-
-                                        for (int i = 0; i < headers.Count; i++)
-                                            cols.Add(new ColumnDefinitionModel { Header = headers[i] ?? $"Column {i + 1}", BindingPath = string.IsNullOrWhiteSpace(headers[i]) ? $"c{i}" : headers[i] });
-
-                                        var dtoRows = maybeDtoFromLoose.Rows ?? new List<List<string>>();
-                                        foreach (var r in dtoRows)
-                                        {
-                                            var tr = new TableRowModel();
-                                            for (int c = 0; c < cols.Count; c++)
-                                            {
-                                                var colKey = cols[c].BindingPath ?? $"c{c}";
-                                                var val = (r != null && c < r.Count) ? (r[c] ?? string.Empty) : string.Empty;
-                                                tr[colKey] = val;
-                                            }
-                                            rows.Add(tr);
-                                        }
-
-                                        if (rows.Count == 0) { var tr = new TableRowModel(); foreach (var cdef in cols) tr[cdef.BindingPath ?? ""] = string.Empty; rows.Add(tr); }
-                                        var tableKey = !string.IsNullOrWhiteSpace(maybeDtoFromLoose.Title) ? $"table:{idx}:{SanitizeKey(maybeDtoFromLoose.Title)}" : $"table:{idx}";
-                                        outList.Add(new LooseTableViewModel(req.Item ?? string.Empty, tableKey, maybeDtoFromLoose.Title, cols, rows, innerBackplane: null));
-                                        idx++;
-                                        continue;
-                                    }
-
-                                    var maybeDto = TableConversionService.TryConvertToTableDto(t);
-                                    if (maybeDto != null)
-                                    {
-                                        // convert maybeDto (same pattern)
-                                        var cols = new ObservableCollection<ColumnDefinitionModel>();
-                                        var rows = new ObservableCollection<TableRowModel>();
-
-                                        var headers = maybeDto.Columns ?? new List<string>();
-                                        if (headers.Count == 0)
-                                        {
-                                            var maxCols = maybeDto.Rows?.Count > 0 ? maybeDto.Rows.Max(r => r?.Count ?? 0) : 1;
-                                            headers = Enumerable.Range(0, maxCols).Select(i => $"Column {i + 1}").ToList();
-                                        }
-
-                                        for (int i = 0; i < headers.Count; i++)
-                                            cols.Add(new ColumnDefinitionModel { Header = headers[i] ?? $"Column {i + 1}", BindingPath = string.IsNullOrWhiteSpace(headers[i]) ? $"c{i}" : headers[i] });
-
-                                        var dtoRows = maybeDto.Rows ?? new List<List<string>>();
-                                        foreach (var r in dtoRows)
-                                        {
-                                            var tr = new TableRowModel();
-                                            for (int c = 0; c < cols.Count; c++)
-                                            {
-                                                var colKey = cols[c].BindingPath ?? $"c{c}";
-                                                var val = (r != null && c < r.Count) ? (r[c] ?? string.Empty) : string.Empty;
-                                                tr[colKey] = val;
-                                            }
-                                            rows.Add(tr);
-                                        }
-
-                                        if (rows.Count == 0) { var tr = new TableRowModel(); foreach (var cdef in cols) tr[cdef.BindingPath ?? ""] = string.Empty; rows.Add(tr); }
-                                        var tableKey = !string.IsNullOrWhiteSpace(maybeDto.Title) ? $"table:{idx}:{SanitizeKey(maybeDto.Title)}" : $"table:{idx}";
-                                        outList.Add(new LooseTableViewModel(req.Item ?? string.Empty, tableKey, maybeDto.Title, cols, rows, innerBackplane: null));
-                                        idx++;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                catch
-                {
-                    // ignore
+                    // Cache the newly created ViewModels
+                    _tableViewModelCache[requirementId] = outList;
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[GetLooseTableVMsForRequirement] Cached {outList.Count} tables from DTOs for requirement: {requirementId}");
+                    return outList;
                 }
             }
 
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[GetLooseTableVMsForRequirement] No tables found for requirement: {requirementId}");
             return Enumerable.Empty<LooseTableViewModel>();
         }
 
+        /// <summary>
+        /// Invalidate the cached table ViewModels for a specific requirement.
+        /// This should be called when table changes are saved to source data.
+        /// </summary>
+        public void InvalidateTableCache(string requirementId)
+        {
+            if (_tableViewModelCache.ContainsKey(requirementId))
+            {
+                _tableViewModelCache.Remove(requirementId);
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[InvalidateTableCache] Invalidated cache for requirement: {requirementId}");
+            }
+        }
+
+        /// <summary>
+        /// <summary>
+        /// Clear all cached table ViewModels.
+        /// </summary>
+        public void ClearTableCache()
+        {
+            _tableViewModelCache.Clear();
+            TestCaseEditorApp.Services.Logging.Log.Debug("[ClearTableCache] Cleared all table view model cache");
+        }
+
+        /// <summary>
         /// <summary>
         /// Return the loose paragraphs for the requirement (prefers LooseParagraphs then GetSelectedContext).
         /// </summary>

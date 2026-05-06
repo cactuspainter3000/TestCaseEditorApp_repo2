@@ -301,6 +301,7 @@
     <SolidColorBrush x:Key="HeaderTextBrush" Color="{StaticResource Accent.Primary}"/>
     <SolidColorBrush x:Key="HeaderAccentBrush" Color="{StaticResource Accent.Primary}"/>
     <SolidColorBrush x:Key="HeaderStatusTextBrush" Color="{StaticResource Text.Secondary}"/>
+    <SolidColorBrush x:Key="SecondaryTextBrush" Color="{StaticResource Text.Secondary}"/>
     <SolidColorBrush x:Key="HeaderHighlightBackground" Color="{StaticResource Special.HeaderHighlight}"/>
     <SolidColorBrush x:Key="HeaderHighlightBorderBrush" Color="{StaticResource Border.Accent}"/>
     

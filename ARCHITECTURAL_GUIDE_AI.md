@@ -4,6 +4,37 @@
 
 ---
 
+## 🏛️ DOMAIN TERMINOLOGY (CRITICAL)
+
+**Two distinct types of "domains" - DO NOT CONFUSE:**
+
+### **Menu Item Domains (_Mode suffix)**
+- **Purpose**: Handle what displays when specific menu items are clicked
+- **Naming**: `{MenuName}_Mode` (e.g., TestCaseGenerator_Mode, Project_Mode, Requirements_Mode)
+- **Contains**: Views, ViewModels, and responsibilities for that menu selection
+- **Status**: Just one domain among many - no special architectural status
+- **Example**: TestCaseGenerator_Mode = what shows when you click "Test Case Generator" menu item
+
+### **Codebase Domains (no suffix)**
+- **Purpose**: Broader implementation functionality shared across menu items
+- **Naming**: `{FeatureName}` (e.g., TestCaseGeneration, WorkspaceManagement)
+- **Contains**: Core implementation code, services, mediators, business logic
+- **Status**: Reference implementations that _Mode domains copy from
+- **Example**: TestCaseGeneration = the broader codebase for test case generation functionality
+
+**Key Distinction**: TestCaseGenerator_Mode (menu item) vs TestCaseGeneration (codebase implementation)
+
+---
+
+## 🚨 CRITICAL DOMAIN VIEW RULE
+
+**⚠️ FOR ANY DOMAIN VIEW CREATION**: 
+- **NEVER CREATE CUSTOM VIEWS** - Always copy authentic views from TestCaseGeneration domain
+- **Follow Domain View Creation Chain** (see section below) - Missing steps cause build failures
+- **TestCaseGeneration is the reference implementation** - All domains copy from this source
+
+---
+
 ## 🎯 FAIL-FAST ARCHITECTURE PRINCIPLES
 
 | **Principle** | **Implementation** | **Enforcement** |
@@ -13,6 +44,96 @@
 | Type-safe communication | Domain events strongly typed | Wrong event types can't cross domains |
 | Architectural violations | Caught at compile/startup time | Never at runtime |
 | Dependency chains | Complete DI chain validation | Missing links cause startup failure |
+
+---
+
+## 🏢 DOMAIN IMPLEMENTATION STATUS
+
+| **Domain** | **Header** | **Main** | **Navigation** | **Status** | **Source Pattern** |
+|------------|------------|----------|----------------|------------|-------------------|
+| TestCaseGeneration | ✅ | ✅ | ✅ | **Reference Implementation** | Original domain |
+| Dummy | ✅ | ✅ | ✅ | **Complete** | Created as blueprint |
+| Requirements | ✅ | ✅ | ✅ | **Complete** | Copied from TestCaseGeneration |
+| WorkspaceManagement | ✅ | ✅ | ❌ | **Partial** | TBD |
+| TestCaseCreation | ✅ | ❌ | ❌ | **Partial** | TBD |
+
+**🎯 Pattern**: All new domains should copy authentic views from TestCaseGeneration, never fabricate custom views
+
+---
+
+## ⚠️ DOMAIN MIGRATION LESSONS LEARNED
+
+### **Critical Failure Points in Requirements Domain Migration (Jan 2026)**
+
+**❌ Failed Approach: Hybrid ViewModels**
+- Mixed Requirements navigation + TestCaseGeneration headers
+- Event domain mismatches (RequirementsEvents ≠ TestCaseGenerationEvents)
+- Incomplete data initialization chains
+- Complex cross-domain event coordination
+
+**🔍 Root Causes Identified:**
+1. **Event System Fragmentation**: Each domain has separate event namespaces, making cross-domain communication complex
+2. **Incomplete ViewModel Copying**: Missed critical initialization logic from source ViewModels
+3. **Data Flow Assumptions**: Assumed event subscriptions would be sufficient without verifying complete data chains
+4. **Integration Testing Gaps**: No validation of actual requirement data display until runtime
+
+---
+
+## 📋 REQUIREMENTS DOMAIN MIGRATION - DETAILED EXECUTION PLAN
+
+> **Current Status: Jan 16, 2026 - Planning Phase**  
+> **Safe Revert Point**: Commit `379e43b` - "SAFE REVERT POINT: Third attempt at Requirements domain refactoring"
+
+### **Phase 1: Deep Source Analysis** 
+
+| Step | Task | Status | Notes |
+|------|------|--------|--------|
+| 1.1 | Analyze TestCaseGenerator_VM complete property list | ✅ **COMPLETE** | Found: 20+ properties including VisibleChips, Requirements, SelectedRequirement, IsMetaSelected, IsTablesSelected, IsParagraphsSelected, HasTables, HasParagraphs, BulkActionsVisible, and 13 ICommand properties |
+| 1.2 | Map TestCaseGenerator_VM data initialization chains | ✅ **COMPLETE** | Key chain: Event → OnRequirementSelected() → _selectedRequirement = value → UpdateVisibleChipsFromRequirement() → VisibleChips populated with chips for all requirement fields |
+| 1.3 | Document TestCaseGenerator_VM event subscription patterns | ✅ **COMPLETE** | 3 subscriptions: RequirementSelected, RequirementsCollectionChanged, WorkflowStateChanged with proper cleanup |
+| 1.4 | Identify ALL UI binding requirements from views | ✅ **COMPLETE** | Key bindings: IsMetaSelected, IsTablesSelected, IsParagraphsSelected, IsAnalysisSelected, VisibleChipsWithValuesCount, BulkActionsVisible, SelectAllVisibleCommand, ClearAllVisibleCommand, AnalysisVM.*, HasMeta, HasTables, HasParagraphs, HasAnalysis |
+| 1.5 | Map cross-domain event dependencies | ✅ **COMPLETE** | Critical cross-domain consumers: SideMenuViewModel, NavigationViewModel, TestCaseGeneratorNotificationViewModel - ALL depend on TestCaseGenerationEvents. Requirements domain MUST publish to both RequirementsEvents AND TestCaseGenerationEvents for compatibility |
+
+### **Phase 2: Complete ViewModel Replication**
+
+| Step | Task | Status | Notes |
+|------|------|--------|--------|
+| 2.1 | Copy TestCaseGenerator_VM → Requirements_MainViewModel (COMPLETE) | ✅ **COMPLETE** | Copied complete functionality: chip system, event handling, command structure, tab selections, content loading. Build succeeds with 0 errors. |
+| 2.2 | Copy TestCaseGenerator_NavigationVM → Requirements_NavigationViewModel (COMPLETE) | 🔲 **Pending** | Include ALL navigation logic |
+| 2.3 | Verify ALL XAML bindings have matching ViewModel properties | 🔲 **Pending** | Cross-reference step 1.4 findings |
+| 2.4 | Implement complete data initialization chain | 🔲 **Pending** | Copy ALL initialization logic from source |
+| 2.5 | Test Requirements ViewModels in isolation (unit tests) | 🔲 **Pending** | Verify data flow before UI integration |
+
+### **Phase 3: All-at-Once Switch**
+
+| Step | Task | Status | Notes |
+|------|------|--------|--------|
+| 3.1 | Update ViewConfigurationService (ALL Requirements ViewModels) | 🔲 **Pending** | NO hybrid approaches |
+| 3.2 | Build and verify zero errors | 🔲 **Pending** | Must succeed before testing |
+| 3.3 | Test complete Requirements section functionality | 🔲 **Pending** | Verify actual requirement data display |
+| 3.4 | Verify navigation updates headers correctly | 🔲 **Pending** | Test Next/Previous buttons |
+| 3.5 | Verify all tabs and chip displays work correctly | 🔲 **Pending** | Test Details, Tables, etc. |
+
+### **Phase 4: Event System Validation**
+
+| Step | Task | Status | Notes |
+|------|------|--------|--------|
+| 4.1 | Verify RequirementsEvents publish correctly | 🔲 **Pending** | Add debugging logs |
+| 4.2 | Test cross-domain communication (if needed) | 🔲 **Pending** | May need dual event publishing |
+| 4.3 | Verify all workspace switching works | 🔲 **Pending** | Test from other sections to Requirements |
+| 4.4 | Full end-to-end testing | 🔲 **Pending** | Complete user workflow validation |
+
+### **Success Criteria**
+- ✅ Requirements section displays actual requirement data (not placeholders)
+- ✅ Navigation buttons update main content correctly  
+- ✅ All tabs (Details, Tables, Supplemental Info, LLM Analysis) function
+- ✅ Header/title updates when navigating between requirements
+- ✅ No functional regression from working baseline
+
+### **Failure Protocol**
+- 🚨 **Any step failure**: Document specific error and revert to commit `379e43b`
+- 🚨 **Any functional regression**: Immediate revert and analysis
+- 🚨 **Build failures**: Fix immediately before proceeding
 
 ---
 
@@ -28,11 +149,14 @@
 │   ├── Constructor: `(I{Domain}Mediator mediator, ILogger<VM> logger)`
 │   └── Register: App.xaml.cs `services.AddTransient<VM>()`
 │
-├── 🖥️ **View Registration** (REQUIRED FOR UI)
-│   ├── Create: `/MVVM/Domains/{Domain}/Views/{Domain}_{Purpose}View.xaml`
-│   ├── DataTemplate: Add to App.xaml or ResourceDictionary
-│   ├── Naming: `<DataTemplate DataType="{x:Type vm:{Domain}_{Purpose}VM}">`
-│   └── Validate: App.xaml.Resources.MergedDictionaries includes view
+├── 🖥️ **View Creation** (REQUIRED FOR DOMAIN UI)
+│   ├── **NEVER CREATE CUSTOM VIEWS** - Always copy from TestCaseGeneration
+│   ├── Source: Find equivalent in `/MVVM/Domains/TestCaseGeneration/Views/`
+│   ├── Copy: Both `.xaml` and `.xaml.cs` files to new domain
+│   ├── Update: All namespace and class references to new domain
+│   ├── Analyze: `grep` copied XAML for ALL property bindings
+│   ├── Match: Ensure ViewModel has every property referenced in XAML
+│   └── Validate: Build with zero errors before proceeding
 │
 ├── 🔄 **Event Subscriptions** (IF NEEDED)
 │   ├── Subscribe: In ViewModel constructor via mediator
@@ -43,6 +167,49 @@
     ├── Create: Converter classes implementing IValueConverter
     ├── Register: App.xaml `<conv:ConverterName x:Key="ConverterKey" />`
     └── Reference: View uses `{StaticResource ConverterKey}`
+```
+
+### **Domain View Creation Chain** ⭐ **CRITICAL PATTERN**
+```
+🏗️ New Domain Views Request
+│
+├── 🔍 **Source Discovery** (MANDATORY FIRST STEP)
+│   ├── Identify: Equivalent views in TestCaseGeneration domain
+│   ├── Pattern: `TestCaseGeneratorRequirements_View.xaml` → `{Domain}MainView.xaml`
+│   ├── Pattern: `TestCaseGenerator_NavigationControl.xaml` → `{Domain}NavigationView.xaml`
+│   └── **NEVER**: Create custom views from scratch
+│
+├── 📋 **File Copying** (EXACT DUPLICATION)
+│   ├── Copy: Both `.xaml` and `.xaml.cs` files
+│   ├── Rename: To match domain naming convention
+│   ├── Update: All namespace declarations
+│   ├── Update: All class names and references
+│   └── Clean: Remove any domain-specific event handlers
+│
+├── 🔍 **Property Analysis** (PREVENT BUILD FAILURES)
+│   ├── Command: `grep -r "Binding.*}" {copied}.xaml`
+│   ├── Extract: ALL property names referenced in XAML
+│   ├── List: Every binding, including UI-specific properties
+│   └── Document: Required properties for ViewModel
+│
+├── 🎯 **ViewModel Creation** (COMPLETE PROPERTY MATCHING)
+│   ├── Inherit: `BaseDomainViewModel`
+│   ├── Add: ALL properties found in XAML analysis
+│   ├── Include: UI-specific properties (RequirementsDropdown, etc.)
+│   ├── Constructor: `(I{Domain}Mediator mediator, ILogger<VM> logger)`
+│   └── Initialize: Any complex properties in constructor
+│
+├── 🔗 **Registration Chain** (COMPLETE 4-STEP PROCESS)
+│   ├── DI: `App.xaml.cs` - `services.AddTransient<ViewModel>()`
+│   ├── DataTemplate: `MainWindow.xaml` - ViewModel to View mapping
+│   ├── ViewConfig: `ViewConfigurationService` - include in workspace method
+│   └── Using: Add all required namespace references
+│
+└── ✅ **Validation** (ZERO-TOLERANCE)
+    ├── Build: Must succeed with 0 errors
+    ├── Properties: All XAML bindings have matching ViewModel properties
+    ├── Navigation: Test workspace switching renders correctly
+    └── Clean: No duplicate or backup files exist
 ```
 
 ### **Cross-Domain Communication Chain**
@@ -107,6 +274,8 @@
 | **New Domain Event** | `find . -name "*Events.cs" -path "*/Domains/*"` | Event class structure + property patterns |
 | **Cross-Domain Communication** | `grep -r "HandleBroadcastNotification" --include="*.cs"` | Broadcast handling patterns + event types |
 | **New Mediator** | `grep -r "BaseDomainMediator" --include="*.cs"` | Constructor dependencies + registration pattern |
+| **Domain View Creation** | `find . -name "*_VM.cs" -path "*/TestCaseGeneration/*"` | Authentic view source + ViewModel properties + DataTemplate mapping |
+| **Workspace Navigation** | `grep -r "NavigationView" --include="*.xaml"` | Navigation controls + dropdown properties + event handlers |
 
 ### **Critical Registration Points**
 
@@ -115,6 +284,8 @@
 | **App.xaml.cs DI** | ViewModels, Mediators, Services | Build fails if missing dependencies |
 | **App.xaml Resources** | Converters, Global styles | Runtime fails if StaticResource missing |
 | **App.xaml ResourceDictionary** | DataTemplates for Views | Views don't render if missing |
+| **MainWindow.xaml DataTemplates** | ViewModel-to-View mapping | Workspace content fails to render if missing |
+| **ViewConfigurationService** | Workspace ViewModel assignments | Navigation fails if ViewModels not included |
 | **Domain Coordinator** | Domain mediators for cross-communication | Cross-domain events fail if not registered |
 
 ---
@@ -494,13 +665,63 @@ private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected 
 
 ---
 
-## 🚀 QUICK START CHECKLIST
+## � DOMAIN VIEW CREATION LESSONS (Requirements Implementation)
+
+**❌ Critical Mistakes to Avoid:**
+
+### **Fabricated vs Authentic Views**
+- **Problem**: Creating custom views from scratch instead of copying existing working patterns
+- **Symptom**: Views that look different or have missing functionality compared to source domain
+- **Solution**: Always copy authentic views from TestCaseGeneration domain as source material
+- **Pattern**: `TestCaseGeneratorRequirements_View.xaml` → `RequirementsMainView.xaml`
+
+### **ViewModel Property Mismatches**
+- **Problem**: Copied XAML expects properties that don't exist in new ViewModel
+- **Symptom**: Build errors like 'RequirementsDropdown' does not contain definition
+- **Solution**: Copy ALL properties referenced by XAML, including UI-specific ones like dropdown controls
+- **Validation**: `grep` copied XAML for property bindings and ensure ViewModel has matching properties
+
+### **Incomplete DI Registration Chain**
+- **Problem**: Missing any link in the registration chain causes runtime failures
+- **Required Chain**: 
+  1. ViewModel DI registration in `App.xaml.cs`
+  2. DataTemplate mapping in `MainWindow.xaml` 
+  3. ViewConfigurationService parameter addition
+  4. Using statements for all referenced types
+- **Validation**: Build must succeed with zero errors before testing
+
+### **Code-Behind Reference Stale Types**
+- **Problem**: `.xaml.cs` files still reference old ViewModel types after copying
+- **Symptom**: Build errors about missing type references
+- **Solution**: Update ALL type references in code-behind to match new ViewModel names
+- **Pattern**: `TestCaseGenerator_NavigationVM` → `Requirements_NavigationViewModel`
+
+### **Duplicate File Conflicts**
+- **Problem**: Multiple versions of same file causing build conflicts
+- **Symptom**: CS0102 errors about duplicate definitions
+- **Solution**: Clean up ALL duplicate/backup files before building
+- **Prevention**: Use git commits instead of backup files
+
+**✅ Proven Success Pattern:**
+1. **Copy Authentic Views**: Use TestCaseGeneration as source, never fabricate
+2. **Match ALL Properties**: Ensure ViewModel has every property referenced in XAML
+3. **Complete Registration Chain**: DI → DataTemplate → ViewConfiguration → Using statements
+4. **Update All References**: Code-behind, namespaces, class names
+5. **Clean Build Validation**: Zero errors required before testing UI
+6. **Single File Policy**: Delete duplicates immediately
+
+**🎯 Key Insight**: Domain views are NOT custom implementations - they are architectural copies with updated references
+
+---
+
+## �🚀 QUICK START CHECKLIST
 
 ### **Before ANY Implementation**
 - [ ] **Find Similar**: `grep` for similar existing functionality first
 - [ ] **Trace Dependencies**: Follow complete implementation chain  
 - [ ] **Check Broadcasts**: Does HandleBroadcastNotification already handle this?
 - [ ] **Validate Complexity**: If complex, look for simpler existing patterns
+- [ ] **FOR DOMAIN VIEWS**: Always find TestCaseGeneration equivalent first
 
 ### **For New ViewModel**
 - [ ] Inherit from `BaseDomainViewModel`
@@ -508,6 +729,14 @@ private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected 
 - [ ] Register in App.xaml.cs: `services.AddTransient<VM>()`
 - [ ] Create DataTemplate with correct DataType
 - [ ] Add ResourceDictionary to App.xaml if new file
+
+### **For Domain View Creation (FOLLOW CHAIN ABOVE)**
+- [ ] **Find Source**: Identify TestCaseGeneration equivalent view
+- [ ] **Copy Files**: Both .xaml and .xaml.cs to new domain
+- [ ] **Analyze XAML**: `grep` for ALL property bindings before creating ViewModel
+- [ ] **Match Properties**: Ensure ViewModel has every property referenced in XAML
+- [ ] **Complete Chain**: DI → DataTemplate → ViewConfig → Using statements
+- [ ] **Validate Build**: Zero errors required before testing UI
 
 ### **For Cross-Domain Communication**
 - [ ] Search for existing `HandleBroadcastNotification` patterns
@@ -520,6 +749,16 @@ private void OnRequirementSelected(TestCaseGenerationEvents.RequirementSelected 
 - [ ] Verify StaticResource keys match registrations
 - [ ] Ensure proper ViewModel inheritance
 - [ ] Validate converter registration in App.xaml
+
+### **For Domain View Creation (NEW)**
+- [ ] **Copy Authentic Views**: Use TestCaseGeneration as source, never fabricate custom views
+- [ ] **Identify ALL Properties**: `grep` XAML for all property bindings before creating ViewModel
+- [ ] **Match Property Types**: Ensure ViewModel properties match exact types expected by XAML
+- [ ] **Complete DI Chain**: ViewModel registration → DataTemplate → ViewConfiguration → Using statements
+- [ ] **Update All References**: Code-behind, namespaces, class names in all copied files  
+- [ ] **Clean Duplicates**: Remove any backup/duplicate files before building
+- [ ] **Validate Build**: Achieve zero build errors before testing UI functionality
+- [ ] **Test Navigation**: Verify workspace switching renders all three areas correctly
 
 ---
 

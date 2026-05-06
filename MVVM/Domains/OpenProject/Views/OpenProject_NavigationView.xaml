@@ -1,0 +1,29 @@
+<UserControl x:Class="TestCaseEditorApp.MVVM.Domains.OpenProject.Views.OpenProject_NavigationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border Background="#1A202C" 
+            Padding="12"
+            BorderBrush="#2D3748"
+            BorderThickness="0,0,1,0">
+        <StackPanel>
+            <TextBlock Text="{Binding NavigationTitle}" 
+                      FontSize="14" 
+                      FontWeight="Bold"
+                      Foreground="#E2E8F0"
+                      Margin="0,0,0,12"/>
+            
+            <TextBlock Text="{Binding CurrentAction}" 
+                      FontSize="12" 
+                      Foreground="#A0AEC0"
+                      Margin="0,0,0,8"/>
+                      
+            <Border Background="#2D3748" 
+                    CornerRadius="4"
+                    Padding="8,4">
+                <TextBlock Text="📁 Recent Projects" 
+                          FontSize="11" 
+                          Foreground="#9CA3AF"/>
+            </Border>
+        </StackPanel>
+    </Border>
+</UserControl>

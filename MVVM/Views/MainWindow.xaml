@@ -5,14 +5,24 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
         xmlns:tcgvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels"
+        xmlns:tcgmodevm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels"
+        xmlns:tcgmodeviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.Views"
         xmlns:wmvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels"
         xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
         xmlns:tcgviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views"
         xmlns:startupvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Startup.ViewModels"
         xmlns:startupviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Startup.Views"
         xmlns:wmviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.Views"
+        xmlns:opvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels"
+        xmlns:opviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.Views"
         xmlns:dummyvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels"
         xmlns:dummyviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Dummy.Views"
+        xmlns:reqvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels"
+        xmlns:reqviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.Views"
+        xmlns:projvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Project.ViewModels"
+        xmlns:projviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Project.Views"
+        xmlns:sharedvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Shared.ViewModels"
+        xmlns:sharedviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Shared.Views"
         xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models"
         xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
         Height="665" Width="1200"
@@ -33,20 +43,33 @@
 
         <!-- Put resources directly in Window.Resources (do NOT nest a ResourceDictionary element here) -->
 
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_VM}">
-            <tcgviews:TestCaseGeneratorRequirements_View />
+        <DataTemplate DataType="{x:Type tcgmodevm:TestCaseGeneratorMode_MainVM}">
+            <tcgmodeviews:TestCaseGeneratorMainView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_TitleVM}">
+            <tcgmodeviews:TestCaseGenerator_TitleView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_HeaderVM}">
+            <tcgmodeviews:TestCaseGenerator_HeaderView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_AssumptionsVM}">
-            <tcgviews:TestCaseGenerator_AssumptionsView />
+            <tcgmodeviews:TestCaseGenerator_AssumptionsView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_QuestionsVM}">
-            <tcgviews:TestCaseGenerator_QuestionsView />
+            <tcgmodeviews:TestCaseGenerator_QuestionsView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_CreationVM}">
-            <tcgviews:TestCaseGenerator_CreationView />
+            <tcgmodeviews:TestCaseGenerator_CreationView />
+        </DataTemplate>
+
+        <!-- Shared Analysis ViewModel - consolidates duplicate analysis controls -->
+        <DataTemplate DataType="{x:Type sharedvm:SharedAnalysisViewModel}">
+            <sharedviews:SharedAnalysisView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:WorkspaceHeaderViewModel}">
@@ -131,8 +154,9 @@
             </Border>
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_TitleVM}">
-            <tcgviews:TestCaseGenerator_TitleView />
+        <!-- TestCaseGeneratorMainVM DataTemplate - Added for AI Guide compliance -->
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGeneratorMainVM}">
+            <tcgmodeviews:TestCaseGeneratorMainView />
         </DataTemplate>
 
         <!-- Startup ViewModels DataTemplates -->
@@ -191,12 +215,20 @@
             <views:ProjectView />
         </DataTemplate>-->
 
-        <DataTemplate DataType="{x:Type tcgvm:RequirementsViewModel}">
-            <views:RequirementsView />
+        <DataTemplate DataType="{x:Type reqvm:Requirements_MainViewModel}">
+            <tcgviews:TestCaseGeneratorRequirements_View />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type tcgvm:RequirementsWorkspaceViewModel}">
-            <tcgviews:RequirementsWorkspaceView />
+        <DataTemplate DataType="{x:Type reqvm:Requirements_HeaderViewModel}">
+            <reqviews:RequirementsHeaderView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type reqvm:Requirements_NavigationViewModel}">
+            <reqviews:RequirementsNavigationView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type reqvm:Requirements_NotificationViewModel}">
+            <reqviews:RequirementsNotificationView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:LLMLearningViewModel}">
@@ -304,9 +336,9 @@
             </Style.Triggers>
         </Style>
 
-        <!-- DataTemplate for TestCaseGenerator_HeaderVM -->
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_HeaderVM}">
-            <tcgviews:TestCaseGenerator_HeaderView />
+        <!-- DataTemplate for TestCaseGenerator_NavigationVM -->
+        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_NavigationVM}">
+            <tcgmodeviews:TestCaseGenerator_NavigationControl />
         </DataTemplate>
 
         <!-- Modal ViewModels DataTemplates -->
@@ -336,6 +368,33 @@
 
         <DataTemplate DataType="{x:Type wmvm:NewProjectHeaderViewModel}">
             <wmviews:NewProjectHeaderView />
+        </DataTemplate>
+
+        <!-- NewProject Domain Title and Navigation ViewModels -->
+        <DataTemplate DataType="{x:Type wmvm:DummyNewProjectTitleViewModel}">
+            <wmviews:DummyNewProjectTitleView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type wmvm:DummyNewProjectNavigationViewModel}">
+            <wmviews:DummyNewProjectNavigationView />
+        </DataTemplate>
+
+        <!-- OpenProject Domain ViewModels -->
+        <DataTemplate DataType="{x:Type opvm:OpenProject_TitleViewModel}">
+            <opviews:OpenProject_TitleView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type opvm:OpenProject_HeaderViewModel}">
+            <opviews:OpenProject_HeaderView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type opvm:OpenProject_NavigationViewModel}">
+            <opviews:OpenProject_NavigationView />
+        </DataTemplate>
+
+        <!-- Project Domain DataTemplates -->
+        <DataTemplate DataType="{x:Type projvm:Project_MainViewModel}">
+            <projviews:Project_MainView />
         </DataTemplate>
 
         <!-- DUMMY DOMAIN DataTemplates - Perfect AI Guide Reference Implementation -->

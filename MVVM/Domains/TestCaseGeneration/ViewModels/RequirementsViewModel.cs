@@ -11,6 +11,7 @@ using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
@@ -108,7 +109,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 _mediator, 
                 persistence, 
                 App.ServiceProvider?.GetService(typeof(ITextEditingDialogService)) as ITextEditingDialogService ?? throw new InvalidOperationException("ITextEditingDialogService not registered"),
-                requirementAnalysisService,  // Use injected service with RAG and proper configuration
+                App.ServiceProvider?.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.IRequirementAnalysisService>() ?? requirementAnalysisService,  // Use TestCaseGeneration domain interface
                 testCaseGeneratorVMLogger);
             if (testCaseGenerator is TestCaseGenerator_CoreVM coreVm)
             {
@@ -156,6 +157,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 
                 StatusMessage = "Requirements saved successfully";
                 _logger.LogInformation("Requirements saved successfully via domain mediator");
+                await Task.CompletedTask;
             }
             catch (Exception ex)
             {
@@ -190,6 +192,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 
                 StatusMessage = "Requirements refreshed successfully";
                 _logger.LogInformation("Requirements refreshed via domain mediator");
+                await Task.CompletedTask;
             }
             catch (Exception ex)
             {
