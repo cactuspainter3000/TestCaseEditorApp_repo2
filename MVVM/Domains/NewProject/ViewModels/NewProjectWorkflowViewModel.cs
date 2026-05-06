@@ -466,6 +466,11 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 }
                 catch (Exception ex)
                 {
+                    if (TrySelectJamaProjectByManualId(ex.Message))
+                    {
+                        return;
+                    }
+
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[NewProject] Jama project selection failed: {ex.Message}");
                     _toastService.ShowToast($"Jama project selection failed: {ex.Message}", durationSeconds: 5, type: ToastType.Warning);
                     System.Windows.MessageBox.Show(
@@ -482,6 +487,65 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 "Jama is not configured on this machine. Set JAMA_BASE_URL and one of: JAMA_API_TOKEN, JAMA_USERNAME/JAMA_PASSWORD, or JAMA_CLIENT_ID/JAMA_CLIENT_SECRET.",
                 durationSeconds: 6,
                 type: ToastType.Warning);
+        }
+
+        private bool TrySelectJamaProjectByManualId(string? errorMessage)
+        {
+            if (!IsKnownJamaProjectsListingServerError(errorMessage))
+            {
+                return false;
+            }
+
+            var selectedIdText = Interaction.InputBox(
+                "Jama project listing failed due to a Jama server error (ArrayIndexOutOfBoundsException)." + Environment.NewLine + Environment.NewLine +
+                "You can continue by entering a Jama Project ID manually." + Environment.NewLine +
+                "Leave blank to cancel.",
+                "Manual Jama Project Selection",
+                "");
+
+            if (string.IsNullOrWhiteSpace(selectedIdText))
+            {
+                return true;
+            }
+
+            if (!int.TryParse(selectedIdText, out var selectedProjectId))
+            {
+                _toastService.ShowToast("Invalid Jama Project ID. Please enter a numeric ID.", durationSeconds: 4, type: ToastType.Warning);
+                return true;
+            }
+
+            var selectedNameText = Interaction.InputBox(
+                "Optional: Enter project name (for display/project name defaults).",
+                "Manual Jama Project Name",
+                $"Jama Project {selectedProjectId}");
+
+            var projectName = string.IsNullOrWhiteSpace(selectedNameText)
+                ? $"Jama Project {selectedProjectId}"
+                : selectedNameText.Trim();
+
+            SelectedDocumentPath = $"jama://project/{selectedProjectId}|{Uri.EscapeDataString(projectName)}";
+
+            if (string.IsNullOrWhiteSpace(ProjectName))
+            {
+                ProjectName = projectName;
+            }
+
+            _toastService.ShowToast($"Jama project selected by ID: {selectedProjectId}", durationSeconds: 4, type: ToastType.Success);
+            OnPropertyChanged(nameof(CreateProjectButtonText));
+            OnPropertyChanged(nameof(CreateProjectButtonTooltip));
+            return true;
+        }
+
+        private static bool IsKnownJamaProjectsListingServerError(string? message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return false;
+            }
+
+            return message.Contains("ArrayIndexOutOfBoundsException", StringComparison.OrdinalIgnoreCase)
+                   || message.Contains("Index 1 out of bounds for length 1", StringComparison.OrdinalIgnoreCase)
+                   || message.Contains("IndexOutOfBounds", StringComparison.OrdinalIgnoreCase);
         }
 
         private void ChooseProjectSaveLocation()

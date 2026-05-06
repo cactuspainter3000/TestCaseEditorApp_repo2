@@ -251,6 +251,14 @@ namespace TestCaseEditorApp.Services
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
 
+                    if (IsKnownProjectsListingServerBug(response.StatusCode, errorContent))
+                    {
+                        return (false,
+                            "Connected to Jama, but project listing failed due to a Jama server error (ArrayIndexOutOfBoundsException). " +
+                            "This is not an OAuth scope issue. Try manual project ID entry in the UI or ask Jama admin to check server logs. " +
+                            $"Status: {response.StatusCode}. Response: {TrimForDisplay(errorContent)}");
+                    }
+
                     if (IsLikelyPermissionOrScopeIssue(response.StatusCode, errorContent))
                     {
                         return (false,
@@ -299,6 +307,14 @@ namespace TestCaseEditorApp.Services
                 else
                 {
                     var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                    if (IsKnownProjectsListingServerBug(response.StatusCode, errorContent))
+                    {
+                        throw new HttpRequestException(
+                            "Connected to Jama, but project listing failed due to a Jama server error (ArrayIndexOutOfBoundsException). " +
+                            "This is not an OAuth scope issue. Use manual project ID selection in the UI or ask Jama admin to investigate the /projects endpoint. " +
+                            $"Status: {response.StatusCode}. Response: {TrimForDisplay(errorContent)}");
+                    }
+
                     if (IsLikelyPermissionOrScopeIssue(response.StatusCode, errorContent))
                     {
                         throw new HttpRequestException(
@@ -331,12 +347,23 @@ namespace TestCaseEditorApp.Services
             }
 
             var content = errorContent;
-            return content.Contains("IndexOutOfBounds", StringComparison.OrdinalIgnoreCase)
-                   || content.Contains("insufficient", StringComparison.OrdinalIgnoreCase)
+            return content.Contains("insufficient", StringComparison.OrdinalIgnoreCase)
                    || content.Contains("scope", StringComparison.OrdinalIgnoreCase)
                    || content.Contains("forbidden", StringComparison.OrdinalIgnoreCase)
                    || content.Contains("not authorized", StringComparison.OrdinalIgnoreCase)
                    || content.Contains("permission", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsKnownProjectsListingServerBug(System.Net.HttpStatusCode statusCode, string? errorContent)
+        {
+            if (statusCode != System.Net.HttpStatusCode.InternalServerError || string.IsNullOrWhiteSpace(errorContent))
+            {
+                return false;
+            }
+
+            return errorContent.Contains("ArrayIndexOutOfBoundsException", StringComparison.OrdinalIgnoreCase)
+                   || errorContent.Contains("Index 1 out of bounds for length 1", StringComparison.OrdinalIgnoreCase)
+                   || errorContent.Contains("IndexOutOfBounds", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string TrimForDisplay(string? text)
