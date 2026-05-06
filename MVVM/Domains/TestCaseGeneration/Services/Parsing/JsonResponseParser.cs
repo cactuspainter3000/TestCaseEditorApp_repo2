@@ -106,9 +106,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing
             }
 
             // Validate quality score is in valid range
-            if (analysis.QualityScore < 0 || analysis.QualityScore > 100)
+            if (analysis.QualityScore < 1 || analysis.QualityScore > 10)
             {
-                analysis.QualityScore = Math.Clamp(analysis.QualityScore, 0, 100);
+                analysis.QualityScore = Math.Clamp(analysis.QualityScore, 1, 10);
             }
 
             // Ensure collections are initialized

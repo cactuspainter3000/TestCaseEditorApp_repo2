@@ -98,7 +98,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels
                 promptBuilder.AppendLine();
                 promptBuilder.AppendLine("**ANALYSIS TRAINING:**");
                 promptBuilder.AppendLine("When I send you a requirement for analysis, please always respond with EXACTLY this JSON format:");
-                promptBuilder.AppendLine("{\"QualityScore\": <0-100>, \"Issues\": [{\"Category\": \"<category>\", \"Severity\": \"<High|Medium|Low>\", \"Description\": \"...\"}], \"Recommendations\": [{\"Category\": \"<category>\", \"Description\": \"...\", \"Example\": \"...\"}], \"FreeformFeedback\": \"...\"}");
+                promptBuilder.AppendLine("{\"QualityScore\": <1-10>, \"Issues\": [{\"Category\": \"<category>\", \"Severity\": \"<High|Medium|Low>\", \"Description\": \"...\"}], \"Recommendations\": [{\"Category\": \"<category>\", \"Description\": \"...\", \"Example\": \"...\"}], \"FreeformFeedback\": \"...\"}");
                 promptBuilder.AppendLine();
                 promptBuilder.AppendLine("**TEST CASE TRAINING:**");
                 promptBuilder.AppendLine("When I send you a requirement for test case generation, please always respond with test cases in this format:");
