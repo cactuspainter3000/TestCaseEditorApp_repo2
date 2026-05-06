@@ -23,6 +23,7 @@ namespace TestCaseEditorApp.Services
         private readonly string? _apiToken;
         private readonly string? _clientId;
         private readonly string? _clientSecret;
+        private readonly string _oauthScope;
         private string? _accessToken;
         private DateTime _tokenExpiry = DateTime.MinValue;
         
@@ -38,6 +39,7 @@ namespace TestCaseEditorApp.Services
         {
             _baseUrl = baseUrl.TrimEnd('/');
             _apiToken = apiToken;
+            _oauthScope = Environment.GetEnvironmentVariable("JAMA_OAUTH_SCOPE") ?? "token_information";
             _httpClient = CreateHttpClient();
         }
 
@@ -49,6 +51,7 @@ namespace TestCaseEditorApp.Services
             _baseUrl = baseUrl.TrimEnd('/');
             _username = username;
             _password = password;
+            _oauthScope = Environment.GetEnvironmentVariable("JAMA_OAUTH_SCOPE") ?? "token_information";
             _httpClient = CreateHttpClient();
         }
 
@@ -60,6 +63,7 @@ namespace TestCaseEditorApp.Services
             _baseUrl = baseUrl.TrimEnd('/');
             _clientId = clientId;
             _clientSecret = clientSecret;
+            _oauthScope = Environment.GetEnvironmentVariable("JAMA_OAUTH_SCOPE") ?? "token_information";
             _httpClient = CreateHttpClient();
         }
 
@@ -159,7 +163,11 @@ namespace TestCaseEditorApp.Services
                 
                 using var request = new HttpRequestMessage(HttpMethod.Post, tokenUrl);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Basic", credentials);
-                request.Content = new StringContent("grant_type=client_credentials", Encoding.UTF8, "application/x-www-form-urlencoded");
+                request.Content = new FormUrlEncodedContent(new[]
+                {
+                    new KeyValuePair<string, string>("grant_type", "client_credentials"),
+                    new KeyValuePair<string, string>("scope", _oauthScope)
+                });
                 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaOAuth] Sending token request with Basic Auth...");
                 
@@ -225,7 +233,8 @@ namespace TestCaseEditorApp.Services
                     }
                 }
 
-                var testUrl = $"{_baseUrl}/rest/v1/users/current";
+                // /users/current is unreliable on this Jama instance; /projects is the validated test path.
+                var testUrl = $"{_baseUrl}/rest/v1/projects";
                 var response = await _httpClient.GetAsync(testUrl);
                 
                 if (response.IsSuccessStatusCode)
@@ -240,7 +249,7 @@ namespace TestCaseEditorApp.Services
                     if (response.StatusCode == System.Net.HttpStatusCode.InternalServerError && 
                         errorContent.Contains("IndexOutOfBounds"))
                     {
-                        return (false, $"Connection failed: OAuth client has insufficient permissions. Contact your Jama administrator to add 'read' scope to OAuth client. Current error: {response.StatusCode}");
+                        return (false, $"Connection failed: OAuth client has insufficient permissions. Contact your Jama administrator to add 'token_information' scope to OAuth client. Current error: {response.StatusCode}");
                     }
                     
                     return (false, $"Connection test failed: {response.StatusCode} - {response.ReasonPhrase}. Response: {errorContent}");
