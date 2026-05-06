@@ -407,9 +407,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             {
                 try
                 {
-                    var (connected, connectionMessage) = await _jamaConnectService.TestConnectionAsync();
-                    if (connected)
-                    {
                         var projects = await _jamaConnectService.GetProjectsAsync();
                         if (projects.Count > 0)
                         {
@@ -466,18 +463,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                             System.Windows.MessageBoxButton.OK,
                             System.Windows.MessageBoxImage.Warning);
                         return;
-                    }
-                    else
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Warn($"[NewProject] Jama connection unavailable: {connectionMessage}");
-                        _toastService.ShowToast($"Jama connection unavailable: {connectionMessage}", durationSeconds: 5, type: ToastType.Warning);
-                        System.Windows.MessageBox.Show(
-                            "Jama connection test failed:" + Environment.NewLine + connectionMessage,
-                            "Jama Connection Unavailable",
-                            System.Windows.MessageBoxButton.OK,
-                            System.Windows.MessageBoxImage.Warning);
-                        return;
-                    }
                 }
                 catch (Exception ex)
                 {

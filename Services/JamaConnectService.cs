@@ -237,7 +237,7 @@ namespace TestCaseEditorApp.Services
 
                 // Test via /projects endpoint - /users/current returns InternalServerError/IndexOutOfBounds
                 // on this Jama instance and is NOT a reliable connectivity test here.
-                var testUrl = $"{_baseUrl}/rest/v1/projects";
+                    var testUrl = $"{_baseUrl}/rest/v1/projects?startAt=0&maxResults=50";
                 var response = await _httpClient.GetAsync(testUrl);
 
                 if (response.IsSuccessStatusCode)
@@ -282,7 +282,9 @@ namespace TestCaseEditorApp.Services
                 // Ensure we have a valid access token for OAuth
                 await EnsureAccessTokenAsync();
                 
-                var response = await _httpClient.GetAsync($"{_baseUrl}/rest/v1/projects", cancellationToken);
+                    // Explicit pagination params avoid a Jama server-side ArrayIndexOutOfBoundsException
+                    // that occurs on some instances when pagination headers are absent.
+                    var response = await _httpClient.GetAsync($"{_baseUrl}/rest/v1/projects?startAt=0&maxResults=50", cancellationToken);
                 
                 if (response.IsSuccessStatusCode)
                 {
