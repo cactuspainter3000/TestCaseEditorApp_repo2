@@ -162,24 +162,7 @@ namespace TestCaseEditorApp
                     {
                         try
                         {
-                            var baseUrl = Environment.GetEnvironmentVariable("JAMA_BASE_URL");
-                            var clientId = Environment.GetEnvironmentVariable("JAMA_CLIENT_ID");
-                            var clientSecret = Environment.GetEnvironmentVariable("JAMA_CLIENT_SECRET");
-                            
-                            if (!string.IsNullOrEmpty(baseUrl) && !string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(clientSecret))
-                            {
-                                // Handle common Jama path variations
-                                if (baseUrl.Contains("rockwellcollins.com") && !baseUrl.Contains("/contour") && !baseUrl.EndsWith("/contour"))
-                                {
-                                    baseUrl = baseUrl.TrimEnd('/') + "/contour";
-                                }
-                                
-                                return new JamaConnectService(baseUrl, clientId, clientSecret, true);
-                            }
-                            else
-                            {
-                                return new JamaConnectService("", "");
-                            }
+                            return JamaConnectService.FromConfiguration();
                         }
                         catch (Exception)
                         {
