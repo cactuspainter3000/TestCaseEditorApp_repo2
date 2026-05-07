@@ -85,6 +85,13 @@ public static class WorkspaceService
         TestCaseEditorApp.Services.Logging.Log.Info($"[Save] 🔍 PERSISTENCE DEBUG: Serializing {totalTestCasesInWorkspace} total GeneratedTestCases");
         TestCaseEditorApp.Services.Logging.Log.Info($"[Save] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: {hasGeneratedTestCasesInJson}");
         
+        try
+        {
+            TestCaseEditorApp.Services.Logging.Log.Info(
+                $"[Save] Workspace identity: Project='{ws.Name ?? "<none>"}', AnythingLLMName='{ws.AnythingLLMWorkspaceName ?? "<none>"}', AnythingLLMSlug='{ws.AnythingLLMWorkspaceSlug ?? "<none>"}', JamaProjectId={(ws.JamaProjectId?.ToString() ?? "<none>")}, JamaProjectName='{ws.JamaProjectName ?? ws.JamaProject ?? "<none>"}'" );
+        }
+        catch { /* best-effort logging only */ }
+
         TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] JSON serialized ({json.Length} bytes)");
         logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Debug, new Microsoft.Extensions.Logging.EventId(0), $"[Save] JSON serialized ({json.Length} bytes)", null, (s,e) => s ?? string.Empty);
 
@@ -385,6 +392,9 @@ public static class WorkspaceService
             // Example: if (ws.Version == 1) MigrateV1ToV2(ws);
             ws.Version = Workspace.SchemaVersion;
         }
+
+        ws.AnythingLLMWorkspaceName ??= ws.Name;
+        ws.JamaProjectName ??= ws.JamaProject;
 
         // Auto-detect ImportSource for existing workspaces (helpful for troubleshooting)
         if (string.IsNullOrEmpty(ws.ImportSource))
