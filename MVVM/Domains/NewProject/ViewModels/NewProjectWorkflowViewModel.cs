@@ -364,48 +364,40 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             {
                 try
                 {
-                    var (connected, connectionMessage) = await _jamaConnectService.TestConnectionAsync();
-                    if (connected)
+                    var projects = await _jamaConnectService.GetProjectsAsync();
+                    if (projects.Count > 0)
                     {
-                        var projects = await _jamaConnectService.GetProjectsAsync();
-                        if (projects.Count > 0)
+                        var projectList = string.Join(Environment.NewLine, projects.Select(p => $"{p.Id}: {p.Name}"));
+                        var selectedIdText = Interaction.InputBox(
+                            "Enter Jama Project ID to import requirements from:" + Environment.NewLine + Environment.NewLine +
+                            projectList,
+                            "Select Jama Project",
+                            projects[0].Id.ToString());
+
+                        if (!string.IsNullOrWhiteSpace(selectedIdText) && int.TryParse(selectedIdText, out var selectedProjectId))
                         {
-                            var projectList = string.Join(Environment.NewLine, projects.Select(p => $"{p.Id}: {p.Name}"));
-                            var selectedIdText = Interaction.InputBox(
-                                "Enter Jama Project ID to import requirements from:" + Environment.NewLine + Environment.NewLine +
-                                projectList,
-                                "Select Jama Project",
-                                projects[0].Id.ToString());
-
-                            if (!string.IsNullOrWhiteSpace(selectedIdText) && int.TryParse(selectedIdText, out var selectedProjectId))
+                            var selectedProject = projects.FirstOrDefault(p => p.Id == selectedProjectId);
+                            if (selectedProject != null)
                             {
-                                var selectedProject = projects.FirstOrDefault(p => p.Id == selectedProjectId);
-                                if (selectedProject != null)
+                                SelectedDocumentPath = $"jama://project/{selectedProject.Id}|{Uri.EscapeDataString(selectedProject.Name)}";
+
+                                if (string.IsNullOrWhiteSpace(ProjectName))
                                 {
-                                    SelectedDocumentPath = $"jama://project/{selectedProject.Id}|{Uri.EscapeDataString(selectedProject.Name)}";
-
-                                    if (string.IsNullOrWhiteSpace(ProjectName))
-                                    {
-                                        ProjectName = selectedProject.Name;
-                                    }
-
-                                    _toastService.ShowToast($"Jama project selected: {selectedProject.Name} (ID: {selectedProject.Id})", durationSeconds: 3, type: ToastType.Success);
-                                    OnPropertyChanged(nameof(CreateProjectButtonText));
-                                    OnPropertyChanged(nameof(CreateProjectButtonTooltip));
-                                    return;
+                                    ProjectName = selectedProject.Name;
                                 }
 
-                                _toastService.ShowToast($"Project ID {selectedProjectId} was not found in the available Jama projects list.", durationSeconds: 4, type: ToastType.Warning);
+                                _toastService.ShowToast($"Jama project selected: {selectedProject.Name} (ID: {selectedProject.Id})", durationSeconds: 3, type: ToastType.Success);
+                                OnPropertyChanged(nameof(CreateProjectButtonText));
+                                OnPropertyChanged(nameof(CreateProjectButtonTooltip));
                                 return;
                             }
 
-                            // User cancelled selection; do not force fallback dialog.
+                            _toastService.ShowToast($"Project ID {selectedProjectId} was not found in the available Jama projects list.", durationSeconds: 4, type: ToastType.Warning);
                             return;
                         }
-                    }
-                    else
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Warn($"[NewProject] Jama connection unavailable: {connectionMessage}");
+
+                        // User cancelled selection; do not force fallback dialog.
+                        return;
                     }
                 }
                 catch (Exception ex)

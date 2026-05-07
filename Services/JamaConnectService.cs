@@ -249,7 +249,7 @@ namespace TestCaseEditorApp.Services
                     if (response.StatusCode == System.Net.HttpStatusCode.InternalServerError && 
                         errorContent.Contains("IndexOutOfBounds"))
                     {
-                        return (false, $"Connection failed: OAuth client has insufficient permissions. Contact your Jama administrator to add 'token_information' scope to OAuth client. Current error: {response.StatusCode}");
+                        return (false, $"Connection test hit a Jama server-side error (IndexOutOfBounds) on /projects. OAuth token exchange succeeded, but Jama returned {response.StatusCode} for the projects endpoint.");
                     }
                     
                     return (false, $"Connection test failed: {response.StatusCode} - {response.ReasonPhrase}. Response: {errorContent}");
