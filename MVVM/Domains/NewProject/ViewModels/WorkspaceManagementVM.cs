@@ -420,13 +420,11 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 return;
             }
 
-            var ws = CurrentWorkspace ?? new Workspace();
-            ws.SourceDocPath = CurrentSourcePath;
-            ws.Requirements = Requirements.ToList();
-            ws.Version = Workspace.SchemaVersion;
-            ws.Name ??= !string.IsNullOrWhiteSpace(WorkspacePath)
-                ? Path.GetFileNameWithoutExtension(WorkspacePath)
-                : Path.GetFileNameWithoutExtension(WordFilePath);
+            var ws = new Workspace
+            {
+                SourceDocPath = CurrentSourcePath,
+                Requirements = Requirements.ToList()
+            };
 
             try
             {
@@ -493,11 +491,11 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 }
 
                 WorkspacePath = chosen;
-                var ws = CurrentWorkspace ?? new Workspace();
-                ws.SourceDocPath = CurrentSourcePath;
-                ws.Requirements = Requirements.ToList();
-                ws.Version = Workspace.SchemaVersion;
-                ws.Name ??= Path.GetFileNameWithoutExtension(chosen);
+                var ws = new Workspace
+                {
+                    SourceDocPath = CurrentSourcePath,
+                    Requirements = Requirements.ToList()
+                };
 
                 WorkspaceFileManager.Save(WorkspacePath!, ws);
                 CurrentWorkspace = ws;

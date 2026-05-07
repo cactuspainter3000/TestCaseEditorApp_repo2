@@ -175,26 +175,13 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 
                 ShowProgress("Setting up project...", 75);
                 
-                // Prefer persisted names/identities from the workspace file over filename inference
-                var projectName = !string.IsNullOrWhiteSpace(workspace.Name)
-                    ? workspace.Name!
-                    : Path.GetFileNameWithoutExtension(selectedPath);
-
+                // Extract project name from file path
+                var projectName = Path.GetFileNameWithoutExtension(selectedPath);
+                // Remove .tcex extension if present
                 if (projectName.EndsWith(".tcex", StringComparison.OrdinalIgnoreCase))
                 {
                     projectName = Path.GetFileNameWithoutExtension(projectName);
                 }
-
-                var anythingLLMWorkspaceName = workspace.AnythingLLMWorkspaceName ?? projectName;
-                var anythingLLMWorkspaceSlug = workspace.AnythingLLMWorkspaceSlug;
-
-                _logger.LogInformation(
-                    "📂 Restored workspace identity from file. Project='{ProjectName}', AnythingLLMName='{AnythingLLMName}', AnythingLLMSlug='{AnythingLLMSlug}', JamaProjectId={JamaProjectId}, JamaProjectName='{JamaProjectName}'",
-                    projectName,
-                    anythingLLMWorkspaceName,
-                    anythingLLMWorkspaceSlug ?? "<none>",
-                    workspace.JamaProjectId,
-                    workspace.JamaProjectName ?? workspace.JamaProject ?? "<none>");
                 
                 // Project status will be communicated via cross-domain events below
                 
@@ -205,7 +192,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 { 
                     WorkspacePath = selectedPath,
                     WorkspaceName = projectName,
-                    AnythingLLMWorkspaceSlug = anythingLLMWorkspaceSlug,
                     Workspace = workspace
                 };
                 
@@ -233,8 +219,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 {
                     Name = projectName,
                     Path = selectedPath,
-                    AnythingLLMSlug = anythingLLMWorkspaceSlug,
-                    AnythingLLMWorkspaceName = anythingLLMWorkspaceName,
                     LastModified = DateTime.Now
                 };
                 
@@ -293,47 +277,17 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 
                 _logger.LogInformation("Gathering current workspace data - found {RequirementCount} requirements", currentRequirements.Count);
                 
-                Workspace? existingWorkspace = null;
-                if (File.Exists(_currentWorkspaceInfo.Path))
+                // 2. Build current workspace object with all data
+                var workspace = new Workspace
                 {
-                    try
-                    {
-                        existingWorkspace = WorkspaceFileManager.Load(_currentWorkspaceInfo.Path);
-                    }
-                    catch (Exception loadEx)
-                    {
-                        _logger.LogWarning(loadEx, "Could not load existing workspace metadata before save: {WorkspacePath}", _currentWorkspaceInfo.Path);
-                    }
-                }
-
-                // 2. Build current workspace object with all data and preserve canonical identity fields
-                var workspace = existingWorkspace ?? new Workspace();
-                workspace.Name = _currentWorkspaceInfo.Name;
-                workspace.Requirements = currentRequirements;
-                workspace.Version = Workspace.SchemaVersion;
-                workspace.CreatedBy ??= Environment.UserName;
-                workspace.CreatedUtc ??= DateTime.UtcNow;
-                workspace.LastSavedUtc = DateTime.UtcNow;
-                workspace.SaveCount = existingWorkspace?.SaveCount ?? workspace.SaveCount;
-                workspace.SourceDocPath ??= existingWorkspace?.SourceDocPath;
-                workspace.Defaults ??= existingWorkspace?.Defaults;
-                workspace.JamaProject ??= existingWorkspace?.JamaProject;
-                workspace.JamaTestPlan ??= existingWorkspace?.JamaTestPlan;
-                workspace.JamaProjectId ??= existingWorkspace?.JamaProjectId;
-                workspace.JamaProjectName ??= existingWorkspace?.JamaProjectName ?? workspace.JamaProject;
-                workspace.AnythingLLMWorkspaceName = _currentWorkspaceInfo.AnythingLLMWorkspaceName
-                    ?? existingWorkspace?.AnythingLLMWorkspaceName
-                    ?? workspace.Name;
-                workspace.AnythingLLMWorkspaceSlug = _currentWorkspaceInfo.AnythingLLMSlug
-                    ?? existingWorkspace?.AnythingLLMWorkspaceSlug;
-
-                _logger.LogInformation(
-                    "💾 Persisting workspace identity on save. Project='{ProjectName}', AnythingLLMName='{AnythingLLMName}', AnythingLLMSlug='{AnythingLLMSlug}', JamaProjectId={JamaProjectId}, JamaProjectName='{JamaProjectName}'",
-                    workspace.Name,
-                    workspace.AnythingLLMWorkspaceName ?? "<none>",
-                    workspace.AnythingLLMWorkspaceSlug ?? "<none>",
-                    workspace.JamaProjectId,
-                    workspace.JamaProjectName ?? workspace.JamaProject ?? "<none>");
+                    Name = _currentWorkspaceInfo.Name,
+                    Requirements = currentRequirements,
+                    Version = Workspace.SchemaVersion,
+                    CreatedBy = Environment.UserName,
+                    CreatedUtc = DateTime.UtcNow,
+                    LastSavedUtc = DateTime.UtcNow,
+                    SaveCount = 1 // Will be incremented in future versions
+                };
                 
                 // 3. Validate workspace data before save
                 var validationService = App.ServiceProvider?.GetService<IWorkspaceValidationService>();
@@ -458,8 +412,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     {
                         Workspace = restoredWorkspace,
                         WorkspacePath = _currentWorkspaceInfo.Path,
-                        WorkspaceName = _currentWorkspaceInfo.Name,
-                        AnythingLLMWorkspaceSlug = restoredWorkspace.AnythingLLMWorkspaceSlug
+                        WorkspaceName = _currentWorkspaceInfo.Name
                     });
 
                     ShowProgress("Undo completed successfully", 100);
@@ -688,7 +641,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 Name = workspaceName,
                 Path = $"path/to/workspace/{workspaceName}", // TODO: Get actual path
                 AnythingLLMSlug = workspaceSlug,
-                AnythingLLMWorkspaceName = workspaceName,
                 HasUnsavedChanges = false,
                 LastModified = DateTime.Now
             };
@@ -709,7 +661,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         /// <summary>
         /// Complete project creation with workspace details, requirements import, and workspace setup
         /// </summary>
-        public async Task<bool> CompleteProjectCreationAsync(string workspaceSlugOrName, string projectName, string projectSavePath, string documentPath, string? workspaceDisplayName = null)
+        public async Task<bool> CompleteProjectCreationAsync(string workspaceName, string projectName, string projectSavePath, string documentPath)
         {
             bool requirementsImportedSuccessfully = true;
             
@@ -720,10 +672,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 
                 ShowProgress($"Creating project '{projectName}'...", 25);
                 
-                var anythingLLMWorkspaceName = string.IsNullOrWhiteSpace(workspaceDisplayName)
-                    ? workspaceSlugOrName
-                    : workspaceDisplayName;
-                
                 // 1. Set workspace path and configuration
                 UpdateProgress("Setting up workspace configuration...", 40);
                 
@@ -731,8 +679,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 {
                     Name = projectName,
                     Path = projectSavePath,
-                    AnythingLLMSlug = workspaceSlugOrName,
-                    AnythingLLMWorkspaceName = anythingLLMWorkspaceName,
+                    AnythingLLMSlug = workspaceName,
                     HasUnsavedChanges = false,
                     LastModified = DateTime.Now
                 };
@@ -789,9 +736,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     LastSavedUtc = DateTime.UtcNow,
                     SaveCount = 0,
                     SourceDocPath = documentPath,
-                    Requirements = importedRequirements,
-                    AnythingLLMWorkspaceName = anythingLLMWorkspaceName,
-                    AnythingLLMWorkspaceSlug = workspaceSlugOrName
+                    Requirements = importedRequirements
                 };
 
                 // 4. Save workspace configuration
@@ -806,11 +751,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 
                 // Save workspace file
                 _persistenceService.Save(projectSavePath, workspace);
-                _logger.LogInformation(
-                    "💾 Workspace file saved: {ProjectSavePath} (AnythingLLMName='{AnythingLLMName}', AnythingLLMSlug='{AnythingLLMSlug}')",
-                    projectSavePath,
-                    anythingLLMWorkspaceName,
-                    workspaceSlugOrName);
+                _logger.LogInformation("💾 Workspace file saved: {ProjectSavePath}", projectSavePath);
                 
                 UpdateProgress("Project created successfully!", 100);
                 
@@ -826,7 +767,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 { 
                     WorkspacePath = projectSavePath,
                     WorkspaceName = displayProjectName,
-                    AnythingLLMWorkspaceSlug = workspaceSlugOrName,
+                    AnythingLLMWorkspaceSlug = workspaceName,
                     Workspace = workspace
                 };
                 
@@ -877,7 +818,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         /// <summary>
         /// Create a new project with proper warning if another project is currently open
         /// </summary>
-        public async Task<bool> CreateNewProjectWithWarningAsync(string workspaceName, string projectName, string projectSavePath, string documentPath, string? workspaceDisplayName = null)
+        public async Task<bool> CreateNewProjectWithWarningAsync(string workspaceName, string projectName, string projectSavePath, string documentPath)
         {
             try
             {
@@ -905,7 +846,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 }
                 
                 // Proceed with project creation
-                return await CompleteProjectCreationAsync(workspaceName, projectName, projectSavePath, documentPath, workspaceDisplayName);
+                return await CompleteProjectCreationAsync(workspaceName, projectName, projectSavePath, documentPath);
             }
             catch (Exception ex)
             {
@@ -1005,18 +946,12 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 Name = workspaceName,
                 Path = $"path/to/workspace/{workspaceName}", // TODO: Get actual path
                 AnythingLLMSlug = workspaceSlug,
-                AnythingLLMWorkspaceName = workspaceName,
                 HasUnsavedChanges = false,
                 LastModified = DateTime.Now
             };
             
             // TODO: Load actual workspace data
-            var workspace = new Workspace
-            {
-                Name = workspaceName,
-                AnythingLLMWorkspaceName = workspaceName,
-                AnythingLLMWorkspaceSlug = workspaceSlug
-            };
+            var workspace = new Workspace { Name = workspaceName };
             
             var projectOpenedEvent = new NewProjectEvents.ProjectOpened 
             { 
