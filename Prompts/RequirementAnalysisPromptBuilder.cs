@@ -195,7 +195,7 @@ namespace TestCaseEditorApp.Prompts
             sb.AppendLine("Use this exact structure:");
             sb.AppendLine();
             sb.AppendLine(@"{");
-            sb.AppendLine(@"  ""QualityScore"": <integer from 1-10>,");
+            sb.AppendLine(@"  ""OriginalQualityScore"": <integer from 1-10>,");
             sb.AppendLine(@"  ""HallucinationCheck"": ""<REQUIRED: Choose based on your approach - 'NO_FABRICATION' if you used ONLY terms/concepts from the original requirement/supplemental materials (complete rewrite mode), 'HELPFUL_ELABORATION' if you provided realistic examples in [brackets] to show what information is needed (coaching mode), or 'FABRICATED_DETAILS' if you added technical terms not present in the source material.>"",");
             sb.AppendLine(@"  ""Issues"": [");
             sb.AppendLine(@"    {");
@@ -205,6 +205,14 @@ namespace TestCaseEditorApp.Prompts
             sb.AppendLine(@"      ""Fix"": ""<past tense description of what was addressed/improved (e.g., 'Defined specific acceptance criteria', 'Clarified technical requirements', 'Specified measurable thresholds')>""");
             sb.AppendLine(@"    }");
             sb.AppendLine(@"  ],");
+            sb.AppendLine(@"  ""Recommendations"": [");
+            sb.AppendLine(@"    {");
+            sb.AppendLine(@"      ""Category"": ""<Clarity|Testability|Completeness|Atomicity|Actionability|Consistency>"",");
+            sb.AppendLine(@"      ""Description"": ""<actionable recommendation>"",");
+            sb.AppendLine(@"      ""SuggestedEdit"": ""<improved requirement text>""");
+            sb.AppendLine(@"    }");
+            sb.AppendLine(@"  ],");
+            sb.AppendLine(@"  ""ImprovedRequirement"": ""<complete rewritten requirement that addresses all identified issues - the main deliverable that should be used>"",");
             sb.AppendLine(@"  ""FreeformFeedback"": ""<OPTIONAL: Only include if you have meaningful additional insights, context, or strategic observations not covered in the structured issues above. If no additional insights are needed, you may leave this as an empty string or omit entirely. Do not include placeholder text like 'No additional insights necessary'.>""");
             sb.AppendLine(@"}");
             sb.AppendLine();

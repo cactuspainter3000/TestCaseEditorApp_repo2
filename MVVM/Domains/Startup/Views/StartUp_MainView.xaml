@@ -15,6 +15,7 @@
     </UserControl.Resources>
 
     <Grid Background="{StaticResource Brush.Background.Menu}">
+        <Grid>
         <ScrollViewer VerticalScrollBarVisibility="Auto" 
                       HorizontalScrollBarVisibility="Disabled">
             <StackPanel VerticalAlignment="Top" 
@@ -75,5 +76,8 @@
             
         </StackPanel>
         </ScrollViewer>
+        
+        </Grid>
+        
     </Grid>
 </UserControl>

@@ -2,13 +2,23 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
-    <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsTestProject>true</IsTestProject>
-    <GenerateDependencyFile>false</GenerateDependencyFile>
-    <SkipRemoveStrayDepsJson>true</SkipRemoveStrayDepsJson>
+    <UseWPF>false</UseWPF>
   </PropertyGroup>
+
+  <!-- Prevent MSB3030 error by excluding deps.json files from copy operations -->
+  <Target Name="ExcludeDepsFiles" BeforeTargets="CopyFilesToOutputDirectory">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths Remove="**\TestCaseEditorApp.deps.json" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Alternative prevention -->
+  <ItemGroup>
+    <None Remove="**\TestCaseEditorApp.deps.json" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
@@ -18,6 +28,18 @@
     <PackageReference Include="Moq" Version="4.20.70" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.3.0" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.73" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\TestCaseEditorApp.csproj">
+      <Private>false</Private>
+    </ProjectReference>
   </ItemGroup>
 
   <ItemGroup>

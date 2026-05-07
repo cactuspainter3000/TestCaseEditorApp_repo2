@@ -27,6 +27,16 @@ namespace TestCaseEditorApp.MVVM.Utils
         /// Get the current domain coordinator
         /// </summary>
         protected static IDomainCoordinator? GetDomainCoordinator() => _domainCoordinator;
+        
+        /// <summary>
+        /// Handle incoming cross-domain broadcast (called by DomainCoordinator)
+        /// </summary>
+        public abstract void HandleCrossDomainBroadcast<T>(T notification) where T : class;
+        
+        /// <summary>
+        /// Get the domain name for this mediator
+        /// </summary>
+        public abstract string GetDomainName();
     }
 
     /// <summary>
@@ -37,6 +47,7 @@ namespace TestCaseEditorApp.MVVM.Utils
     public abstract class BaseDomainMediator<TEvents> : BaseDomainMediatorBase, IDisposable where TEvents : class
     {
         protected readonly Dictionary<Type, List<Delegate>> _subscriptions = new();
+        protected readonly Dictionary<Type, List<Delegate>> _crossDomainSubscriptions = new();
         protected readonly ILogger _logger;
         protected readonly IDomainUICoordinator _uiCoordinator;
         protected readonly string _domainName;
@@ -110,6 +121,100 @@ namespace TestCaseEditorApp.MVVM.Utils
                 _logger.LogDebug("Unsubscribed from {EventType} in {MediatorType}", eventType.Name, GetType().Name);
             }
         }
+        
+        /// <summary>
+        /// Subscribe to cross-domain events with strong typing.
+        /// Automatically registers with DomainCoordinator for filtered broadcasts.
+        /// </summary>
+        public virtual void SubscribeToCrossDomainEvent<T>(Action<T> handler) where T : class
+        {
+            ValidateNotDisposed();
+            
+            var eventType = typeof(T);
+            var isFirstSubscription = !_crossDomainSubscriptions.ContainsKey(eventType);
+            
+            if (isFirstSubscription)
+            {
+                _crossDomainSubscriptions[eventType] = new List<Delegate>();
+            }
+            
+            _crossDomainSubscriptions[eventType].Add(handler);
+            _logger.LogDebug("Subscribed to cross-domain {EventType} in {MediatorType}", eventType.Name, GetType().Name);
+            
+            // Register with DomainCoordinator on first subscription to this event type
+            if (isFirstSubscription)
+            {
+                var domainCoordinator = GetDomainCoordinator();
+                if (domainCoordinator != null)
+                {
+                    domainCoordinator.RegisterCrossDomainSubscription(eventType, this);
+                    _logger.LogDebug("Registered cross-domain subscription for {EventType} with DomainCoordinator", eventType.Name);
+                }
+                else
+                {
+                    _logger.LogWarning("Cannot register cross-domain subscription - DomainCoordinator not configured");
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Unsubscribe from cross-domain events
+        /// </summary>
+        public virtual void UnsubscribeFromCrossDomainEvent<T>(Action<T> handler) where T : class
+        {
+            ValidateNotDisposed();
+            
+            var eventType = typeof(T);
+            if (_crossDomainSubscriptions.ContainsKey(eventType))
+            {
+                _crossDomainSubscriptions[eventType].Remove(handler);
+                _logger.LogDebug("Unsubscribed from cross-domain {EventType} in {MediatorType}", eventType.Name, GetType().Name);
+                
+                // If no more subscriptions for this event type, could unregister with DomainCoordinator
+                // For now, keeping registration active is simpler and has negligible overhead
+            }
+        }
+        
+        /// <summary>
+        /// Handle incoming cross-domain broadcast (called by DomainCoordinator).
+        /// Forwards to registered cross-domain event handlers.
+        /// </summary>
+        public override void HandleCrossDomainBroadcast<T>(T notification)
+        {
+            ValidateNotDisposed();
+            
+            var eventType = typeof(T);
+            if (_crossDomainSubscriptions.ContainsKey(eventType))
+            {
+                var handlersToNotify = _crossDomainSubscriptions[eventType].ToList(); // Create snapshot
+                
+                _logger.LogDebug("Forwarding cross-domain {EventType} to {HandlerCount} handler(s) in {MediatorType}", 
+                    eventType.Name, handlersToNotify.Count, GetType().Name);
+                
+                foreach (var handler in handlersToNotify.Cast<Action<T>>())
+                {
+                    try
+                    {
+                        handler(notification);
+                        _logger.LogDebug("Delivered cross-domain {EventType} to handler in {MediatorType}", eventType.Name, GetType().Name);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error delivering cross-domain {EventType} in {MediatorType}", eventType.Name, GetType().Name);
+                        // Continue to other handlers - don't let one failure break everything
+                    }
+                }
+            }
+            else
+            {
+                _logger.LogDebug("No cross-domain subscribers for {EventType} in {MediatorType} (should not happen)", eventType.Name, GetType().Name);
+            }
+        }
+        
+        /// <summary>
+        /// Get the domain name for this mediator (required by BaseDomainMediatorBase)
+        /// </summary>
+        public override string GetDomainName() => _domainName;
         
         /// <summary>
         /// Publish events within this domain with error handling and optional replay recording
@@ -348,6 +453,7 @@ namespace TestCaseEditorApp.MVVM.Utils
             if (!_isDisposed)
             {
                 _subscriptions.Clear();
+                _crossDomainSubscriptions.Clear();
                 _navigationHistory.Clear();
                 _isDisposed = true;
                 _logger.LogDebug("Disposed {MediatorType}", GetType().Name);

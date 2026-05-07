@@ -19,7 +19,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
         
         [ObservableProperty]
         private string description = "Generate comprehensive test cases using AI-powered analysis. Import requirements, analyze context, and automatically create detailed test scenarios to ensure thorough coverage of your application's functionality.";
-        
+
         public StartUp_MainViewModel(
             IStartupMediator mediator,
             ILogger<StartUp_MainViewModel> logger)

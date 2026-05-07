@@ -16,11 +16,16 @@ public sealed class OllamaTextGenerationService : ITextGenerationService
     {
         _http = http ?? new HttpClient { BaseAddress = new System.Uri("http://localhost:11434/") };
         _model = model;
-        _http.Timeout = System.TimeSpan.FromMinutes(5);
+        _http.Timeout = System.TimeSpan.FromMinutes(15); // Increased timeout for large document processing
+        
+        // Log which model is configured
+        TestCaseEditorApp.Services.Logging.Log.Info($"[OllamaTextGen] Initialized with model: {_model}");
     }
 
     public async Task<string> GenerateAsync(string prompt, CancellationToken ct = default)
     {
+        TestCaseEditorApp.Services.Logging.Log.Info($"[OllamaTextGen] Starting generation request with model: {_model} (prompt length: {prompt.Length})");
+        
         var payload = new
         {
             model = _model,
@@ -31,7 +36,16 @@ public sealed class OllamaTextGenerationService : ITextGenerationService
         var json = JsonSerializer.Serialize(payload);
         using var resp = await _http.PostAsync("api/chat",
             new StringContent(json, Encoding.UTF8, "application/json"), ct);
-        resp.EnsureSuccessStatusCode();
+        
+        TestCaseEditorApp.Services.Logging.Log.Info($"[OllamaTextGen] Received response: HTTP {(int)resp.StatusCode}");
+        
+        // Capture error details from Ollama before throwing
+        if (!resp.IsSuccessStatusCode)
+        {
+            var errorBody = await resp.Content.ReadAsStringAsync(ct);
+            TestCaseEditorApp.Services.Logging.Log.Error($"[OllamaTextGen] HTTP {(int)resp.StatusCode} from Ollama: {errorBody}");
+            resp.EnsureSuccessStatusCode(); // This will throw with proper context
+        }
 
         using var s = await resp.Content.ReadAsStreamAsync(ct);
         using var doc = await JsonDocument.ParseAsync(s, cancellationToken: ct);
@@ -78,7 +92,14 @@ public sealed class OllamaTextGenerationService : ITextGenerationService
         var json = JsonSerializer.Serialize(payload);
         using var resp = await _http.PostAsync("api/chat",
             new StringContent(json, Encoding.UTF8, "application/json"), ct);
-        resp.EnsureSuccessStatusCode();
+        
+        // Capture error details from Ollama before throwing
+        if (!resp.IsSuccessStatusCode)
+        {
+            var errorBody = await resp.Content.ReadAsStringAsync(ct);
+            TestCaseEditorApp.Services.Logging.Log.Error($"[OllamaTextGen] HTTP {(int)resp.StatusCode} from Ollama GenerateWithSystemAsync: {errorBody}");
+            resp.EnsureSuccessStatusCode(); // This will throw with proper context
+        }
 
         using var s = await resp.Content.ReadAsStreamAsync(ct);
         using var doc = await JsonDocument.ParseAsync(s, cancellationToken: ct);

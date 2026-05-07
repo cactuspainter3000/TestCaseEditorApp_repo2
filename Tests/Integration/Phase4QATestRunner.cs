@@ -1,0 +1,61 @@
+using System;
+using System.Threading.Tasks;
+
+namespace TestCaseEditorApp.Tests.Integration
+{
+    /// <summary>
+    /// Test runner for Phase 4 Integration Quality Assurance
+    /// </summary>
+    public class Phase4QATestRunner
+    {
+        /// <summary>
+        /// Main entry point for running Phase 4 QA tests
+        /// </summary>
+        public static async Task<int> Main(string[] args)
+        {
+            Console.WriteLine("🎯 PHASE 4 INTEGRATION QUALITY ASSURANCE TEST RUNNER");
+            Console.WriteLine("====================================================");
+            Console.WriteLine();
+
+            try
+            {
+                var testResult = await Phase4IntegrationQualityAssurance.RunCompleteQualityAssurance();
+                
+                if (testResult)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("🎉 ALL TESTS PASSED - Phase 4 integration is ready for production!");
+                    return 0; // Success exit code
+                }
+                else
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("💥 SOME TESTS FAILED - Review issues before proceeding to Phase 5");
+                    return 1; // Failure exit code
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ CRITICAL ERROR during test execution: {ex.Message}");
+                Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+                return 2; // Critical error exit code
+            }
+        }
+
+        /// <summary>
+        /// Runs QA tests when called from other contexts
+        /// </summary>
+        public static async Task<bool> RunQATestsAsync()
+        {
+            try
+            {
+                return await Phase4IntegrationQualityAssurance.RunCompleteQualityAssurance();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error running QA tests: {ex.Message}");
+                return false;
+            }
+        }
+    }
+}

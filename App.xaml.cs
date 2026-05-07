@@ -2,23 +2,33 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Views;
+using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
+
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
+using TestCaseEditorApp.MVVM.Domains.Startup.Mediators;
 using TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.Parsing;
+
+using TestCaseEditorApp.MVVM.Domains.Requirements.Services;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services; // For still-used services
+using TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Services;
+using TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Mediators;
+using TestCaseEditorApp.Services.Parsing; // For ResponseParserManager
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
+using TestCaseEditorApp.Services.Templates;
 using TestCaseEditorApp.MVVM.Extensions;
 using TestCaseEditorApp.MVVM.Mediators;
 using TestCaseEditorApp.Prompts;
@@ -41,22 +51,45 @@ namespace TestCaseEditorApp
 
         protected override async void OnStartup(StartupEventArgs e)
         {
+            // Suppress Visual Studio designer binding errors
+            System.Diagnostics.PresentationTraceSources.DataBindingSource.Switch.Level = System.Diagnostics.SourceLevels.Critical;
+            
             base.OnStartup(e);
 
             _host = Host.CreateDefaultBuilder()
                 .ConfigureLogging(logging =>
                 {
-                    // Configure default console and debug logging plus a simple file sink
+                    // Clear default providers that might cause permission issues
+                    logging.ClearProviders();
+                    
+                    // Add only basic providers that don't require special permissions
                     logging.AddDebug();
                     logging.AddConsole();
+                    
+                    // Add file logging with robust error handling
                     try
                     {
-                        var logs = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TestCaseEditorApp", "logs");
+                        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                        var logs = System.IO.Path.Combine(userProfile, "TestCaseEditorApp", "logs");
+                        
+                        // Ensure directory exists and is writable
+                        if (!System.IO.Directory.Exists(logs))
+                        {
+                            System.IO.Directory.CreateDirectory(logs);
+                        }
+                        
+                        // Test write permissions
+                        var testFile = System.IO.Path.Combine(logs, "test.tmp");
+                        System.IO.File.WriteAllText(testFile, "test");
+                        System.IO.File.Delete(testFile);
+                        
+                        // If we get here, directory is writable
                         logging.AddProvider(new TestCaseEditorApp.Services.Logging.FileLoggerProvider(logs));
                     }
                     catch
                     {
-                        // best-effort - do not fail startup for logging provider issues
+                        // Silently skip file logging if there are permission issues
+                        // App will still work with console/debug logging
                     }
                 })
                 .ConfigureServices((ctx, services) =>
@@ -64,6 +97,8 @@ namespace TestCaseEditorApp
                     // Core / persistence services
                     services.AddSingleton<IPersistenceService, JsonPersistenceService>();
                     services.AddSingleton<IWorkspaceValidationService, WorkspaceValidationService>();
+                    services.AddSingleton<IWorkspaceContext, WorkspaceContextService>();
+                    services.AddSingleton<RecentFilesService>();
 
                     // Toast notification system
                     services.AddSingleton<ToastNotificationService>(provider => 
@@ -76,10 +111,13 @@ namespace TestCaseEditorApp
                     // Requirement parsing - wrap with notification support
                     services.AddSingleton<RequirementService>(); // Core service
                     services.AddSingleton<IRequirementService, NotifyingRequirementService>(); // Wrapper with notifications
-                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.SmartRequirementImporter>(); // Smart importer with fallback logic
+                    services.AddSingleton<SmartRequirementImporter>(); // Smart importer with fallback logic
 
                     // File dialog helper used by the VM
                     services.AddSingleton<IFileDialogService, FileDialogService>();
+                    
+                    // OCR service for image text extraction
+                    services.AddSingleton<IOCRService, TesseractOCRService>();
                     
                     // Text editing dialog service for architectural compliance
                     services.AddSingleton<ITextEditingDialogService, TextEditingDialogService>();
@@ -100,25 +138,34 @@ namespace TestCaseEditorApp
                     // Requirement data scrubber (shared infrastructure)
                     services.AddScoped<IRequirementDataScrubber, RequirementDataScrubber>();
 
+                    // Ollama process management (must be registered before LLM services)
+                    services.AddSingleton<IOllamaProcessManager, OllamaProcessManager>();
+                    services.AddSingleton<IOllamaStatusMonitor, OllamaStatusMonitor>();
+
                     // LLM services (shared infrastructure)
-                    services.AddSingleton<ITextGenerationService>(_ => LlmFactory.Create());
+                    services.AddSingleton<ITextGenerationService>(provider =>
+                    {
+                        var anythingLlmService = provider.GetService<IAnythingLLMService>();
+                        return LlmFactory.Create(anythingLlmService: anythingLlmService);
+                    });
                     
                     // LLM Health Monitoring - configured to be less aggressive with fallback
-                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor>(provider =>
+                    services.AddSingleton<LlmServiceHealthMonitor>(provider =>
                     {
-                        var primaryLlmService = LlmFactory.Create();
-                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor>>();
-                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.LlmServiceHealthMonitor(
+                        var anythingLlmService = provider.GetService<IAnythingLLMService>();
+                        var primaryLlmService = LlmFactory.Create(anythingLlmService: anythingLlmService);
+                        var logger = provider.GetRequiredService<ILogger<LlmServiceHealthMonitor>>();
+                        return new LlmServiceHealthMonitor(
                             primaryLlmService, 
                             logger, 
                             TimeSpan.FromMinutes(2)); // Less frequent health checks to avoid premature fallback
                     });
                     
                     // LLM Analysis Caching
-                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisCache>(provider =>
+                    services.AddSingleton<TestCaseEditorApp.Services.RequirementAnalysisCache>(provider =>
                     {
-                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisCache>>();
-                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisCache(
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.Services.RequirementAnalysisCache>>();
+                        return new TestCaseEditorApp.Services.RequirementAnalysisCache(
                             logger,
                             maxCacheSize: 500, // Cache up to 500 analysis results
                             maxAge: TimeSpan.FromHours(8), // Cache expires after 8 hours
@@ -129,78 +176,303 @@ namespace TestCaseEditorApp
                     services.AddSingleton<RequirementAnalysisPromptBuilder>();
                     services.AddSingleton<ResponseParserManager>();
                     
-                    // Enhanced RequirementAnalysisService with proper dependency injection
-                    services.AddSingleton<IRequirementAnalysisService, TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService>(provider =>
+                    // Capability Derivation Prompt Builder - ATP-specific prompts with A-N taxonomy
+                    services.AddSingleton<TestCaseEditorApp.Prompts.CapabilityDerivationPromptBuilder>();
+                    services.AddSingleton<ICapabilityDerivationPromptBuilder>(provider => 
+                        provider.GetRequiredService<TestCaseEditorApp.Prompts.CapabilityDerivationPromptBuilder>());
+                    
+                    // RequirementAnalysisService with proper dependency injection
+                    // Task 4.4: Enhanced with derivation analysis capabilities
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService, TestCaseEditorApp.MVVM.Domains.Requirements.Services.RequirementAnalysisService>(provider =>
                     {
-                        var primaryLlmService = LlmFactory.Create();
                         var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
+                        var primaryLlmService = LlmFactory.Create(anythingLlmService: anythingLLMService);
+                        var directRagService = provider.GetService<IDirectRagService>(); // RAG-enhanced processing
                         var promptBuilder = provider.GetRequiredService<RequirementAnalysisPromptBuilder>();
                         var parserManager = provider.GetRequiredService<ResponseParserManager>();
                         var cache = provider.GetService<RequirementAnalysisCache>(); // Optional
                         
-                        return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.RequirementAnalysisService(
+                        // Task 4.4: Optional derivation analysis services
+                        var derivationService = provider.GetService<ISystemCapabilityDerivationService>();
+                        var gapAnalyzer = provider.GetService<IRequirementGapAnalyzer>();
+                        
+                        return new TestCaseEditorApp.MVVM.Domains.Requirements.Services.RequirementAnalysisService(
                             primaryLlmService, 
                             promptBuilder, 
                             parserManager,
                             healthMonitor: null, // No health monitor for performance
                             cache: cache,
-                            anythingLLMService: anythingLLMService);
+                            anythingLLMService: anythingLLMService,
+                            directRagService: directRagService, // RAG-enhanced processing
+                            derivationService: derivationService,
+                            gapAnalyzer: gapAnalyzer);
                     });
+
+                    // ===== SYSTEM CAPABILITY DERIVATION SERVICES =====
+                    
+                    // ATP Step Parser - Extract and classify test procedure steps
+                    services.AddSingleton<ATPStepParser>();
+                    
+                    // Taxonomy Validator - Validate A-N taxonomy assignments and quality
+                    services.AddSingleton<TaxonomyValidator>();
+                    
+                    // CapabilityAllocator - Intelligent subsystem allocation using A-N taxonomy
+                    services.AddSingleton<ICapabilityAllocator, CapabilityAllocator>();
+                    
+                    // SyntheticTrainingDataGenerator - Generate synthetic ATP+derivation pairs for training
+                    services.AddSingleton<ISyntheticTrainingDataGenerator, SyntheticTrainingDataGenerator>();
+                    
+                    // MBSERequirementClassifier - MBSE-compliant system-level requirement classification
+                    services.AddSingleton<IMBSERequirementClassifier, MBSERequirementClassifier>();
+                    
+                    // DerivationQualityScorer - Multi-dimensional scoring of derivation quality (moved here for dependency order)
+                    services.AddSingleton<IDerivationQualityScorer, DerivationQualityScorer>();
+                    
+                    // SystemCapabilityDerivationService - ATP-to-requirements derivation with A-N taxonomy
+                    services.AddSingleton<ISystemCapabilityDerivationService, SystemCapabilityDerivationService>();
+                    
+                    // RequirementGapAnalyzer - Compare derived capabilities with existing requirements
+                    services.AddSingleton<IRequirementGapAnalyzer, RequirementGapAnalyzer>();
+
+                    // ===== TRAINING DATA VALIDATION DOMAIN SERVICES =====
+                    
+                    // TrainingDataValidationService - Human validation workflow for synthetic examples
+                    services.AddSingleton<ITrainingDataValidationService, TrainingDataValidationService>();
+                    
+                    // TrainingDataValidationMediator - Cross-domain communication for validation workflows
+                    services.AddSingleton<ITrainingDataValidationMediator, TrainingDataValidationMediator>();
+                    
+                    // TrainingDataValidationViewModel - Main ViewModel for validation UI
+                    services.AddTransient<TrainingDataValidationViewModel>();
+
+                    // ===== PROMPT REFINEMENT AND QUALITY SCORING SERVICES =====
+                    
+                    // PromptRefinementEngine - Intelligent prompt optimization with A/B testing
+                    services.AddSingleton<IPromptRefinementEngine, PromptRefinementEngine>();
+                    
+                    // PromptOptimizationIntegrationService - Integration between refinement and derivation systems
+                    services.AddSingleton<IPromptOptimizationIntegrationService, PromptOptimizationIntegrationService>();
+
+                    // ===== REQUIREMENTS DOMAIN SERVICES (Refactored Architecture) =====
+                    
+                    // Register the new analysis engine that consolidates analysis functionality
+                    services.AddScoped<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisEngine, 
+                                      TestCaseEditorApp.MVVM.Domains.Requirements.Services.RequirementAnalysisEngine>();
+                    
+                    // Register the focused RequirementAnalysisViewModel for Requirements domain
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel>();
+                    
+                    // Register the shared analysis ViewModel for cross-domain usage (DRY principle)
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Shared.ViewModels.SharedAnalysisViewModel>();
+                    
+                    // AnythingLLM Service - LLM workspace management and chat operations
                     services.AddSingleton<AnythingLLMService>(provider =>
                         new AnythingLLMService()); // Let it get baseUrl and apiKey from defaults/user config
+                    
+                    // Register interface for testable architecture
+                    services.AddSingleton<IAnythingLLMService>(provider => provider.GetRequiredService<AnythingLLMService>());
+
+                    // ===== DIRECT RAG SERVICES (Ollama-based, AnythingLLM replacement) =====
+                    
+                    // Ollama Embedding Service - Direct embedding generation
+                    services.AddSingleton<IOllamaEmbeddingService, OllamaEmbeddingService>(provider =>
+                        new OllamaEmbeddingService("mxbai-embed-large:335m-v1-fp16")); // Use correct model tag
+                    
+                    // Direct RAG Service - Document indexing and search without AnythingLLM
+                    services.AddSingleton<IDirectRagService, DirectRagService>();
+                    
                     services.AddSingleton<TestCaseAnythingLLMService>();
+                    
+                    // RAG Context Service for tracking and optimizing RAG integration
+                    services.AddSingleton<RAGContextService>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<RAGContextService>>();
+                        var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
+                        return new RAGContextService(logger, anythingLLMService);
+                    });
+                    
+                    // RAG Feedback and Optimization Services
+                    services.AddSingleton<RAGFeedbackService>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<RAGFeedbackService>>();
+                        var ragContextService = provider.GetRequiredService<RAGContextService>();
+                        return new RAGFeedbackService(logger, ragContextService);
+                    });
+
+                    services.AddSingleton<RAGParameterOptimizer>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<RAGParameterOptimizer>>();
+                        var feedbackService = provider.GetRequiredService<RAGFeedbackService>();
+                        var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
+                        return new RAGParameterOptimizer(logger, feedbackService, anythingLLMService);
+                    });
+
+                    services.AddSingleton<RAGFeedbackIntegrationService>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<RAGFeedbackIntegrationService>>();
+                        var feedbackService = provider.GetRequiredService<RAGFeedbackService>();
+                        var parameterOptimizer = provider.GetRequiredService<RAGParameterOptimizer>();
+                        var ragContextService = provider.GetRequiredService<RAGContextService>();
+                        return new RAGFeedbackIntegrationService(logger, feedbackService, parameterOptimizer, ragContextService);
+                    });
                     
                     // LLM Learning Feedback Services
                     services.AddSingleton<ITextSimilarityService, TextSimilarityService>();
                     services.AddSingleton<ILLMLearningService, LLMLearningService>();
                     services.AddSingleton<IEditDetectionService, EditDetectionService>();
                     
-                    // Jama Connect integration service
+                    // ===== TEST CASE CREATION DOMAIN SERVICES (LLM-based generation) =====
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseGenerationService>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.TestCaseGenerationService>>();
+                        var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
+                        var ragContextService = provider.GetService<RAGContextService>(); // Optional
+                        var ragFeedbackService = provider.GetService<RAGFeedbackIntegrationService>(); // Optional
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.TestCaseGenerationService(
+                            logger, anythingLLMService, ragContextService, ragFeedbackService);
+                    });
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseDeduplicationService, 
+                                         TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.TestCaseDeduplicationService>();
+                    
+                    // Prompt Diagnostics ViewModel (for debugging and comparing LLM responses)
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.PromptDiagnosticsViewModel>();
+                    
+                    // Jama Connect Service with OCR integration
                     services.AddSingleton<JamaConnectService>(provider =>
                     {
                         try
                         {
-                            var baseUrl = Environment.GetEnvironmentVariable("JAMA_BASE_URL");
-                            var clientId = Environment.GetEnvironmentVariable("JAMA_CLIENT_ID");
-                            var clientSecret = Environment.GetEnvironmentVariable("JAMA_CLIENT_SECRET");
+                            var jamaService = JamaConnectService.FromConfiguration();
                             
-                            if (!string.IsNullOrEmpty(baseUrl) && !string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(clientSecret))
+                            // Inject OCR service for image text extraction
+                            var ocrService = provider.GetService<IOCRService>();
+                            if (ocrService != null)
                             {
-                                // Handle common Jama path variations
-                                if (baseUrl.Contains("rockwellcollins.com") && !baseUrl.Contains("/contour") && !baseUrl.EndsWith("/contour"))
-                                {
-                                    baseUrl = baseUrl.TrimEnd('/') + "/contour";
-                                }
-                                
-                                return new JamaConnectService(baseUrl, clientId, clientSecret, true);
+                                jamaService.SetOCRService(ocrService);
                             }
-                            else
-                            {
-                                return new JamaConnectService("", "");
-                            }
+                            
+                            return jamaService;
                         }
-                        catch (Exception)
+                        catch (Exception ex)
                         {
-                            return new JamaConnectService("", "");
+                            // Create a non-configured service that will report proper errors
+                            var logger = provider.GetService<ILogger<JamaConnectService>>();
+                            logger?.LogWarning("Jama Connect not configured: {Error}", ex.Message);
+                            return new JamaConnectService("", ""); // This will properly report "not configured" in IsConfigured
                         }
+                    });
+                    
+                    // Register interface for testable architecture
+                    services.AddSingleton<IJamaConnectService>(provider => provider.GetRequiredService<JamaConnectService>());
+                    
+                    // Jama Document Parser Service - LLM-powered requirement extraction from attachments + ATP derivation system
+                    services.AddSingleton<IJamaDocumentParserService, JamaDocumentParserService>(provider =>
+                    {
+                        var jamaService = provider.GetRequiredService<IJamaConnectService>();
+                        var llmService = provider.GetRequiredService<IAnythingLLMService>();
+                        var directRagService = provider.GetService<IDirectRagService>(); // Optional fallback
+                        var textGenerationService = provider.GetService<ITextGenerationService>(); // For DirectRag fallback
+                        var derivationService = provider.GetService<ISystemCapabilityDerivationService>(); // ATP derivation system (5 phases)
+                        
+                        // Template Form Architecture services (Phase 6 integration for attachment scraping)
+                        var envelopeService = provider.GetService<IOutputEnvelopeService>();
+                        var qualityService = provider.GetService<IFieldLevelQualityService>();
+                        var complianceWrapper = provider.GetService<IServiceComplianceWrapper>();
+                        var abTestingFramework = provider.GetService<IABTestingFramework>();
+                        var telemetryService = provider.GetService<ITelemetryDashboardService>();
+                        
+                        // Ollama process manager for automatic restart on stuck state
+                        var ollamaProcessManager = provider.GetService<IOllamaProcessManager>();
+                        var ollamaStatusMonitor = provider.GetService<IOllamaStatusMonitor>();
+                        
+                        return new JamaDocumentParserService(
+                            jamaService, 
+                            llmService, 
+                            directRagService, 
+                            textGenerationService, 
+                            derivationService,
+                            envelopeService,
+                            qualityService,
+                            complianceWrapper,
+                            abTestingFramework,
+                            telemetryService,
+                            ollamaProcessManager,
+                            ollamaStatusMonitor);
+                    });
+                    
+                    // Jama Test Case Conversion Service - Business logic for converting requirements to Jama test cases
+                    services.AddSingleton<IJamaTestCaseConversionService, JamaTestCaseConversionService>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<JamaTestCaseConversionService>>();
+                        return new JamaTestCaseConversionService(logger);
                     });
                     
                     // Generic service monitoring
                     services.AddSingleton<GenericServiceMonitor>();
 
+                    // ===== TEMPLATE FORM ARCHITECTURE SERVICES (Phase 6.1) =====
+                    
+                    // Core Template Form Architecture services - structured LLM interaction
+                    services.AddTransient<TestCaseEditorApp.Services.Templates.ICapabilityDerivationTemplateService, 
+                                           TestCaseEditorApp.Services.Templates.CapabilityDerivationTemplateService>();
+                                           
+                    services.AddTransient<TestCaseEditorApp.Services.Templates.ISelfAuditingTemplateService, 
+                                           TestCaseEditorApp.Services.Templates.SelfAuditingTemplateService>();
+                    
+                    // Hard/Soft Constraint System (Phase 6.2) - graceful degradation for LLM responses
+                    services.AddTransient<TestCaseEditorApp.Services.Templates.IConstraintProcessor, 
+                                           TestCaseEditorApp.Services.Templates.ConstraintProcessor>();
+                                           
+                    services.AddTransient<TestCaseEditorApp.Services.Templates.ITemplateConstraintService, 
+                                           TestCaseEditorApp.Services.Templates.TemplateConstraintService>();
+                                           
+                    services.AddTransient<TestCaseEditorApp.Services.Templates.IConstraintRuleEngine, 
+                                           TestCaseEditorApp.Services.Templates.ConstraintRuleEngine>();
+                                           
+                    services.AddTransient<TestCaseEditorApp.Services.Templates.IConstraintMetricsCollector, 
+                                           TestCaseEditorApp.Services.Templates.ConstraintMetricsCollector>();
+                    
+                    // Deterministic Output Envelopes (Phase 6.3) - standardized LLM output format 
+                    services.AddTransient<TestCaseEditorApp.Services.Templates.IEnvelopeSchemaService,
+                                           TestCaseEditorApp.Services.Templates.EnvelopeSchemaService>();
+                                           
+                    services.AddTransient<TestCaseEditorApp.Services.Templates.IOutputEnvelopeService,
+                                           TestCaseEditorApp.Services.Templates.OutputEnvelopeService>();
+                    
+                    // Field-Level Quality Metrics (Task 6.5) - Template Form Architecture quality integration
+                    services.AddTransient<TestCaseEditorApp.Services.Templates.IFieldLevelQualityService,
+                                           TestCaseEditorApp.Services.Templates.FieldLevelQualityService>();
+                    
+                    // Service Compliance Wrapper (Task 6.8) - Universal compliance enforcement interface
+                    services.AddSingleton<TestCaseEditorApp.Services.Templates.IServiceComplianceWrapper,
+                                           TestCaseEditorApp.Services.Templates.ServiceComplianceWrapper>();
+                    
+                    // A/B Testing Framework (Task 6.9) - Compare template vs legacy approaches with statistical analysis
+                    services.AddSingleton<TestCaseEditorApp.Services.Templates.IABTestingFramework,
+                                           TestCaseEditorApp.Services.Templates.ABTestingFramework>();
+                    
+                    // Telemetry Dashboard Service (Task 6.10) - Enterprise monitoring with field completion rates and confidence calibration
+                    services.AddSingleton<TestCaseEditorApp.Services.Templates.ITelemetryDashboardService,
+                                           TestCaseEditorApp.Services.Templates.TelemetryDashboardService>();
+
                     // ViewModels that need DI
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Title.ViewModels.TitleViewModel>();
+                    
                     services.AddSingleton<SideMenuViewModel>(provider =>
                     {
                         var newProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator>();
                         var openProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.IOpenProjectMediator>();
                         var navigationMediator = provider.GetRequiredService<INavigationMediator>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
+                        var requirementsMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
                         var testCaseAnythingLLMService = provider.GetRequiredService<TestCaseAnythingLLMService>();
                         var jamaConnectService = provider.GetRequiredService<JamaConnectService>();
+                        var requirementService = provider.GetRequiredService<IRequirementService>();
+                        var jamaTestCaseConversionService = provider.GetRequiredService<IJamaTestCaseConversionService>();
                         var logger = provider.GetRequiredService<ILogger<SideMenuViewModel>>();
                         
                         return new SideMenuViewModel(newProjectMediator, openProjectMediator, navigationMediator, 
-                            testCaseGenerationMediator, testCaseAnythingLLMService, jamaConnectService, logger);
+                            testCaseGenerationMediator, requirementsMediator, testCaseAnythingLLMService, jamaConnectService, requirementService, jamaTestCaseConversionService, logger);
                     });
 
                     // Domain coordination
@@ -223,25 +495,14 @@ namespace TestCaseEditorApp
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.TestCaseGenerationMediator>>();
                         var uiCoordinator = provider.GetRequiredService<IDomainUICoordinator>();
                         var requirementService = provider.GetRequiredService<IRequirementService>();
-                        var analysisService = provider.GetRequiredService<IRequirementAnalysisService>();
+                        var analysisService = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService>();
                         var llmService = provider.GetRequiredService<ITextGenerationService>();
                         var scrubber = provider.GetRequiredService<IRequirementDataScrubber>();
                         var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
                         var eventReplay = provider.GetService<EventReplayService>();
                         
                         return new TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.TestCaseGenerationMediator(logger, uiCoordinator, requirementService, 
-                            analysisService, llmService, scrubber, performanceMonitor, eventReplay);
-                    });
-                    
-                    services.AddSingleton<ITestCaseCreationMediator>(provider =>
-                    {
-                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators.TestCaseCreationMediator>>();
-                        var uiCoordinator = provider.GetRequiredService<IDomainUICoordinator>();
-                        var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
-                        var eventReplay = provider.GetService<EventReplayService>();
-                        
-                        return new TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators.TestCaseCreationMediator(
-                            logger, uiCoordinator, performanceMonitor, eventReplay);
+                            analysisService, llmService, scrubber, provider.GetRequiredService<SmartRequirementImporter>(), performanceMonitor, eventReplay);
                     });
 
                     services.AddSingleton<ITestFlowMediator>(provider =>
@@ -262,11 +523,97 @@ namespace TestCaseEditorApp
                     // === STARTUP DOMAIN REGISTRATION ===
                     services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Startup.Mediators.IStartupMediator, TestCaseEditorApp.MVVM.Domains.Startup.Mediators.StartupMediator>();
                     
-                    // === PROJECT DOMAIN REGISTRATION ===
-                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Project.Mediators.IProjectMediator, TestCaseEditorApp.MVVM.Domains.Project.Mediators.ProjectMediator>();
+                    // === REQUIREMENTS DOMAIN REGISTRATION ===
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator>>();
+                        var uiCoordinator = provider.GetRequiredService<IDomainUICoordinator>();
+                        var requirementService = provider.GetRequiredService<IRequirementService>();
+                        var analysisService = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService>();
+                        var scrubber = provider.GetRequiredService<IRequirementDataScrubber>();
+                        var workspaceContext = provider.GetRequiredService<IWorkspaceContext>();
+                        var newProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator>();
+                        var jamaConnectService = provider.GetRequiredService<IJamaConnectService>();
+                        var jamaDocumentParserService = provider.GetRequiredService<IJamaDocumentParserService>();
+                        var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
+                        var eventReplay = provider.GetService<TestCaseEditorApp.MVVM.Utils.EventReplayService>();
+                        
+                        // NEW: Get the Requirements domain analysis engine
+                        var analysisEngine = provider.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisEngine>();
+                        
+                        return new TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator(
+                            logger, uiCoordinator, requirementService, analysisService, scrubber, 
+                            workspaceContext, newProjectMediator, jamaConnectService, jamaDocumentParserService, 
+                            provider.GetRequiredService<SmartRequirementImporter>(), 
+                            provider, // ✅ IServiceProvider for eager ViewModel instantiation
+                            analysisEngine, performanceMonitor, eventReplay);
+                    });
+                    
+                    // Requirements domain ViewModels - Navigation as Singleton to maintain state
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel>(provider =>
+                    {
+                        var reqMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
+                        var persistence = provider.GetRequiredService<IPersistenceService>();
+                        var textEditingService = provider.GetRequiredService<ITextEditingDialogService>();
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel>>();
+                        var requirementsSearchAttachmentsViewModel = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel>();
+                        var analysisService = provider.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService>();
+                        
+                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel(
+                            reqMediator, logger, persistence, textEditingService, requirementsSearchAttachmentsViewModel, analysisService);
+                    });
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>(provider =>
+                    {
+                        // Use RequirementsMediator as independent data source for header
+                        var reqMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
+                        var workspaceContext = provider.GetRequiredService<IWorkspaceContext>();
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>>();
+                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel(reqMediator, workspaceContext, logger);
+                    });
+                    
+                    // RequirementsIndexViewModel - dependency for Requirements_NavigationViewModel  
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsIndexViewModel>(provider =>
+                    {
+                        var reqMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>() as TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator;
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsIndexViewModel>>();
+                        
+                        if (reqMediator == null)
+                            throw new InvalidOperationException("RequirementsMediator implementation not found");
+                            
+                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsIndexViewModel(
+                            requirements: reqMediator.Requirements,
+                            getCurrentRequirement: () => reqMediator.CurrentRequirement,
+                            setCurrentRequirement: (req) => reqMediator.CurrentRequirement = req,
+                            commitPendingEdits: null, // Optional - not implemented in mediator
+                            logger: logger
+                        );
+                    });
+                    
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>(provider =>
+                    {
+                        var requirementsIndexVM = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsIndexViewModel>();
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>>();
+                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel(requirementsIndexVM, logger);
+                    });
+                    
+
+
+                    // Requirements Search in Attachments ViewModel for Jama document parsing
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel>(provider =>
+                    {
+                        var reqMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
+                        var workspaceContext = provider.GetRequiredService<TestCaseEditorApp.Services.IWorkspaceContext>();
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel>>();
+                        var ollamaProcessManager = provider.GetService<IOllamaProcessManager>();
+                        return new TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel(reqMediator, workspaceContext, logger, ollamaProcessManager);
+                    });
+
+                    // Self-contained Document Scraper ViewModel (shared component)
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Shared.ViewModels.DocumentScraperViewModel>();
+                    
+                    // Requirements uses shared NavigationViewModel and NotificationWorkspaceViewModel
                     
                     // Project domain ViewModels
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Project.ViewModels.Project_MainViewModel>();
                     
                     // Dummy domain ViewModels - updated naming convention
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_MainViewModel>();
@@ -275,15 +622,95 @@ namespace TestCaseEditorApp
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_TitleViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_NotificationViewModel>();
                     
+                    // === NOTIFICATION DOMAIN REGISTRATION ===
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator, TestCaseEditorApp.MVVM.Domains.Notification.Mediators.NotificationMediator>();
+
+                    // === TEST CASE CREATION DOMAIN REGISTRATION ===
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators.ITestCaseCreationMediator>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators.TestCaseCreationMediator>>();
+                        var uiCoordinator = provider.GetRequiredService<IDomainUICoordinator>();
+                        var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
+                        var eventReplay = provider.GetService<EventReplayService>();
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators.TestCaseCreationMediator(
+                            logger, uiCoordinator, performanceMonitor, eventReplay);
+                    });
+                    
+                    // Notification domain ViewModels - singleton to maintain event subscriptions
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>(provider =>
+                    {
+                        var notificationMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator>();
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>>();
+                        var ollamaStatusMonitor = provider.GetService<IOllamaStatusMonitor>();
+                        return new TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel(notificationMediator, logger, ollamaStatusMonitor);
+                    });
+                    
+                    // NewProject domain ViewModels - using proper domain ViewModels
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel>(provider =>
+                    {
+                        var newProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator>();
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel>>();
+                        var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
+                        
+                        return new TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel(
+                            newProjectMediator, logger, anythingLLMService);
+                    });
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectHeaderViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.DummyNewProjectTitleViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.DummyNewProjectNavigationViewModel>();
+                    
                     // === STARTUP DOMAIN REGISTRATION (FOR INITIAL APP STATE) ===
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_MainViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_MainViewModel>(provider =>
+                    {
+                        var mediator = provider.GetRequiredService<IStartupMediator>();
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_MainViewModel>>();
+                        return new TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_MainViewModel(mediator, logger);
+                    });
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_HeaderViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_NavigationViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_TitleViewModel>();
                     services.AddTransient<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_NotificationViewModel>();
 
                     // === TEST CASE GENERATION DOMAIN WORKSPACE VIEWMODELS ===
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorMainVM>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels.TestCaseGeneratorMode_MainVM>();
+                    
+                    // TestCaseCreation domain ViewModels
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel>>();
+                        var generationService = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseGenerationService>();
+                        var deduplicationService = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseDeduplicationService>();
+                        var requirementsMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
+                        var newProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator>();
+                        var openProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.IOpenProjectMediator>();
+                        var promptDiagnostics = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.PromptDiagnosticsViewModel>();
+                        
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel(
+                            logger, generationService, deduplicationService, requirementsMediator, newProjectMediator, openProjectMediator, promptDiagnostics);
+                    });
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.RAGDiagnosticsViewModel>(provider =>
+                    {
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.RAGDiagnosticsViewModel>>();
+                        var ragContextService = provider.GetRequiredService<RAGContextService>();
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.RAGDiagnosticsViewModel(logger, ragContextService);
+                    });
+                    
+                    // TestCaseCreationMainVM - Manual test case editing
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreationMainVM>(provider =>
+                    {
+                        var mediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators.ITestCaseCreationMediator>();
+                        var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreationMainVM>>();
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreationMainVM(mediator, logger);
+                    });
+                    
+                    // TestCaseCreation_NavigationViewModel - Wraps mainVM for navigation dropdown
+                    services.AddSingleton<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreation_NavigationViewModel>(provider =>
+                    {
+                        var mainVM = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel>();
+                        return new TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreation_NavigationViewModel(mainVM);
+                    });
+                    
+                    // DEPRECATED: TestCaseGeneratorNotificationViewModel - use NotificationWorkspaceViewModel instead
 
                     services.AddSingleton<INewProjectMediator>(provider =>
                     {
@@ -294,15 +721,16 @@ namespace TestCaseEditorApp
                         var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
                         var notificationService = provider.GetRequiredService<NotificationService>();
                         var requirementService = provider.GetRequiredService<IRequirementService>();
-                        var smartImporter = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services.SmartRequirementImporter>();
+                        var smartImporter = provider.GetRequiredService<SmartRequirementImporter>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
                         var workspaceValidationService = provider.GetRequiredService<IWorkspaceValidationService>();
+                        var jamaConnectService = provider.GetRequiredService<JamaConnectService>();
                         var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
                         var eventReplay = provider.GetService<EventReplayService>();
                         
                         return new NewProjectMediator(logger, uiCoordinator, persistenceService, 
                             fileDialogService, anythingLLMService, notificationService, requirementService,
-                            smartImporter, testCaseGenerationMediator, workspaceValidationService, performanceMonitor, eventReplay);
+                            smartImporter, testCaseGenerationMediator, workspaceValidationService, jamaConnectService, performanceMonitor, eventReplay);
                     });
 
                     // === OPEN PROJECT DOMAIN ===
@@ -316,11 +744,12 @@ namespace TestCaseEditorApp
                         var notificationService = provider.GetRequiredService<NotificationService>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
                         var workspaceValidationService = provider.GetRequiredService<IWorkspaceValidationService>();
+                        var newProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator>();
                         var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
                         var eventReplay = provider.GetService<EventReplayService>();
                         
                         return new TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.OpenProjectMediator(logger, uiCoordinator, persistenceService, 
-                            fileDialogService, anythingLLMService, notificationService, testCaseGenerationMediator, workspaceValidationService, performanceMonitor, eventReplay);
+                            fileDialogService, anythingLLMService, notificationService, testCaseGenerationMediator, workspaceValidationService, newProjectMediator, performanceMonitor, eventReplay);
                     });
 
                     // OpenProject ViewModels
@@ -328,53 +757,51 @@ namespace TestCaseEditorApp
                     {
                         var mediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.IOpenProjectMediator>();
                         var persistenceService = provider.GetRequiredService<IPersistenceService>();
+                        var recentFilesService = provider.GetRequiredService<RecentFilesService>();
+                        var jamaConnectService = provider.GetRequiredService<IJamaConnectService>();
+                        var workspaceContext = provider.GetRequiredService<IWorkspaceContext>();
                         var logger = provider.GetRequiredService<ILogger<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel>>();
-                        return new TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel(mediator, persistenceService, logger);
+                        return new TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel(mediator, persistenceService, recentFilesService, jamaConnectService, workspaceContext, logger);
                     });
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProject_TitleViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProject_HeaderViewModel>();
+                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProject_NavigationViewModel>();
 
                     // ViewModels and header VM
-                    services.AddTransient<TestCaseGenerator_VM>();
-                    services.AddTransient<TestCaseGeneratorViewModel>();
-                    services.AddTransient<RequirementGenerationViewModel>();
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementImportExportViewModel>();
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorSplashViewModel>();
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorSplashScreenViewModel>();
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementAnalysisViewModel>();
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.ChatGptExportAnalysisViewModel>();
+                    // REMOVED: RequirementGenerationViewModel - dead code, never resolved
+                    // REMOVED: RequirementImportExportViewModel - dead code, never resolved (functionality in services/mediators)
+                    // REMOVED: TestCaseGeneratorSplashViewModel - dead code, never used
+                    // REMOVED: TestCaseGeneratorSplashScreenViewModel - dead code, never used
+                    // REMOVED: RequirementAnalysisViewModel (TestCaseGeneration namespace) - duplicate of Requirements domain version, deleted
+                    // REMOVED: ChatGptExportAnalysisViewModel - dead code domain, never used
                     services.AddSingleton<WorkspaceHeaderViewModel>(); // workspace header shared instance
-                    services.AddTransient<NotificationAreaViewModel>(); // notification area for status indicators
+                    // Old NotificationAreaViewModel deleted - now using shared NotificationWorkspaceViewModel
                     
                     services.AddTransient<MainViewModel>(provider =>
                     {
-                        var viewModelFactory = provider.GetRequiredService<IViewModelFactory>();
+                        var viewAreaCoordinator = provider.GetRequiredService<IViewAreaCoordinator>();
                         var navigationService = provider.GetRequiredService<INavigationService>();
+                        var titleViewModel = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Title.ViewModels.TitleViewModel>();
                         var logger = provider.GetService<ILogger<MainViewModel>>();
                         
-                        return new MainViewModel(viewModelFactory, navigationService, logger);
+                        return new MainViewModel(viewAreaCoordinator, navigationService, titleViewModel, logger);
                     });
-                    services.AddTransient<NavigationViewModel>();
+
 
                     // New domain ViewModels for consolidation
                     // UIModalManagementViewModel REMOVED - Cross-cutting infrastructure violation, use domain mediators
                     // LLMServiceManagementViewModel REMOVED - Duplicate of TestCaseGeneration domain LLM infrastructure
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementProcessingViewModel>();
+                    // REMOVED: RequirementProcessingViewModel - dead code, never resolved
                     // RequirementAnalysisManagementViewModel REMOVED - duplicate functionality, use RequirementAnalysisViewModel in TestCaseGeneration domain
                     // WorkspaceManagementViewModel REMOVED - duplicate functionality, use WorkspaceProjectViewModel
                     // NavigationHeaderManagementViewModel REMOVED - Cross-cutting infrastructure violation
                     // RequirementImportExportViewModel (legacy root version) REMOVED - duplicate of domain version
                     // Use TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementImportExportViewModel
                     // ChatGptExportAnalysisViewModel is registered in its domain
+                    
 
-                    // Test Case Creation domain ViewModels
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreationMainVM>();
-                    
-                    // Test Case Generation domain ViewModels - proper DI registration
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGenerator_VM>();
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.RequirementsWorkspaceViewModel>();
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels.TestCaseGeneratorNotificationViewModel>();
-                    
-                    // NewProject domain ViewModels - proper DI registration
-                    services.AddTransient<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel>();
+                    // REMOVED: RequirementsWorkspaceViewModel - dead code, use Requirements_MainViewModel from Requirements domain
+                    // REMOVED: TestCaseGeneratorNotificationViewModel - use NotificationWorkspaceViewModel from Notification domain instead
 
                     // Core application services
                     services.AddSingleton<ChatGptExportService>();
@@ -384,30 +811,20 @@ namespace TestCaseEditorApp
                     {
                         var newProjectMediator = provider.GetRequiredService<INewProjectMediator>();
                         var openProjectMediator = provider.GetRequiredService<IOpenProjectMediator>();
-                        var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
-                        var testCaseCreationMediator = provider.GetRequiredService<ITestCaseCreationMediator>();
-                        
-                        return new ViewConfigurationService(newProjectMediator, openProjectMediator, testCaseGenerationMediator, testCaseCreationMediator);
-                    });
-                    
-                    services.AddSingleton<IViewModelFactory>(provider =>
-                    {
-                        var applicationServices = provider.GetRequiredService<IApplicationServices>();
-                        var newProjectMediator = provider.GetRequiredService<INewProjectMediator>();
-                        var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
-                        return new ViewModelFactory(applicationServices, newProjectMediator, testCaseGenerationMediator);
+                        var requirementsMediator = provider.GetRequiredService<IRequirementsMediator>();
+
+                        return new ViewConfigurationService(newProjectMediator, openProjectMediator, requirementsMediator);
                     });
                     
                     // ViewAreaCoordinator registration - required for workspace coordination
                     services.AddSingleton<IViewAreaCoordinator>(provider =>
                     {
-                        var viewModelFactory = provider.GetRequiredService<IViewModelFactory>();
                         var navigationMediator = provider.GetRequiredService<INavigationMediator>();
                         var newProjectMediator = provider.GetRequiredService<INewProjectMediator>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
                         var viewConfigurationService = provider.GetRequiredService<IViewConfigurationService>();
                         var sideMenuViewModel = provider.GetRequiredService<SideMenuViewModel>();
-                        return new ViewAreaCoordinator(viewModelFactory, navigationMediator, newProjectMediator, testCaseGenerationMediator, viewConfigurationService, sideMenuViewModel);
+                        return new ViewAreaCoordinator(navigationMediator, newProjectMediator, testCaseGenerationMediator, viewConfigurationService, sideMenuViewModel);
                     });
                     
                     services.AddSingleton<IApplicationServices, ApplicationServices>();
@@ -423,9 +840,26 @@ namespace TestCaseEditorApp
             {
                 await _host.StartAsync();
                 
+                // Ensure Ollama is running and healthy before any LLM operations
+                var ollamaProcessManager = _host.Services.GetRequiredService<IOllamaProcessManager>();
+                var logger = _host.Services.GetRequiredService<ILogger<App>>();
+                
+                try
+                {
+                    logger.LogInformation("Ensuring Ollama service is running...");
+                    await ollamaProcessManager.EnsureOllamaRunningAsync();
+                    logger.LogInformation("✅ Ollama service is ready");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to start Ollama - LLM features may not work properly");
+                }
+                
+                // Ollama status monitoring starts lazily when LLM sections (like Test Case Generator) are first accessed
+                // NotificationWorkspaceViewModel is a singleton - monitoring begins in its constructor on first use
+                
                 // Initialize extension system (Phase 7)
                 var extensionManager = _host.Services.GetRequiredService<ExtensionManager>();
-                var logger = _host.Services.GetRequiredService<ILogger<App>>();
                 
                 try
                 {
@@ -449,9 +883,6 @@ namespace TestCaseEditorApp
                 var testCaseGenMediator = _host.Services.GetRequiredService<ITestCaseGenerationMediator>();
                 testCaseGenMediator.MarkAsRegistered();
                 
-                var testCaseCreationMediator = _host.Services.GetRequiredService<ITestCaseCreationMediator>();
-                testCaseCreationMediator.MarkAsRegistered();
-                
                 var testFlowMediator = _host.Services.GetRequiredService<ITestFlowMediator>();
                 testFlowMediator.MarkAsRegistered();
                 
@@ -465,9 +896,20 @@ namespace TestCaseEditorApp
                 var dummyMediator = _host.Services.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Dummy.Mediators.IDummyMediator>();
                 dummyMediator.MarkAsRegistered();
                 
+                // Mark Requirements mediator as registered for requirements domain
+                var requirementsMediator = _host.Services.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
+                requirementsMediator.MarkAsRegistered();
+                
                 // Mark Startup mediator as registered for startup domain
                 var startupMediator = _host.Services.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Startup.Mediators.IStartupMediator>();
                 startupMediator.MarkAsRegistered();
+                
+                // Mark Notification mediator as registered for notification domain
+                var notificationMediatorService = _host.Services.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator>();
+                if (notificationMediatorService is TestCaseEditorApp.MVVM.Domains.Notification.Mediators.NotificationMediator notificationMediator)
+                {
+                    notificationMediator.MarkAsRegistered();
+                }
                 
                 // Wire cross-domain commands - enable workspace commands in header
                 if (testCaseGenMediator is MVVM.Domains.TestCaseGeneration.Mediators.TestCaseGenerationMediator tcgMediator)
@@ -479,9 +921,14 @@ namespace TestCaseEditorApp
                 var domainCoordinator = _host.Services.GetRequiredService<IDomainCoordinator>();
                 TestCaseEditorApp.MVVM.Utils.BaseDomainMediatorBase.SetDomainCoordinator(domainCoordinator);
                 
+                var navigationMediator = _host.Services.GetRequiredService<INavigationMediator>();
+                domainCoordinator.RegisterDomainMediator("Navigation", navigationMediator);
                 domainCoordinator.RegisterDomainMediator("TestCaseGeneration", testCaseGenMediator);
-                domainCoordinator.RegisterDomainMediator("TestCaseCreation", testCaseCreationMediator);
                 domainCoordinator.RegisterDomainMediator("TestFlow", testFlowMediator);
+                domainCoordinator.RegisterDomainMediator("NewProject", newProjectMediator);
+                domainCoordinator.RegisterDomainMediator("OpenProject", openProjectMediator);
+                domainCoordinator.RegisterDomainMediator("Requirements", requirementsMediator);
+                domainCoordinator.RegisterDomainMediator("Notification", notificationMediatorService);
                 
                 // Register any extension-provided domain mediators
                 foreach (var domainExtension in extensionManager.DomainExtensions.Values)
@@ -505,7 +952,7 @@ namespace TestCaseEditorApp
                 serviceMonitor.AddService(new ServiceMonitorConfig
                 {
                     Name = "AnythingLLM",
-                    Endpoint = "http://localhost:3001/api/system/status",
+                    Endpoint = "http://localhost:3001/api/v1/workspaces",
                     CheckInterval = TimeSpan.FromSeconds(10),
                     Type = ServiceType.AnythingLLM
                 });
@@ -513,6 +960,36 @@ namespace TestCaseEditorApp
                 // Start monitoring all configured services
                 serviceMonitor.StartAll();
                 logger.LogInformation("Service monitoring started for AnythingLLM");
+                
+                // Auto-start AnythingLLM service if not running
+                try
+                {
+                    var anythingLLMService = _host.Services.GetRequiredService<AnythingLLMService>();
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            logger.LogInformation("Attempting to auto-start AnythingLLM service...");
+                            var result = await anythingLLMService.EnsureServiceRunningAsync();
+                            if (result.Success)
+                            {
+                                logger.LogInformation("AnythingLLM auto-start completed successfully");
+                            }
+                            else
+                            {
+                                logger.LogWarning("AnythingLLM auto-start failed: {Message}", result.Message);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, "Error during AnythingLLM auto-start");
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to initiate AnythingLLM auto-start");
+                }
             }
             catch (Exception ex)
             {

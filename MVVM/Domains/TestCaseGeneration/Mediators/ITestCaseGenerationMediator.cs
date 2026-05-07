@@ -5,7 +5,9 @@ using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
+// DEPRECATED: ViewModels namespace removed after domain architecture refactor
+// using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
 {
@@ -91,21 +93,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         void NavigateToExport(IReadOnlyList<Requirement> requirements);
         
         // ===== REQUIREMENTS MANAGEMENT =====
-        
-        /// <summary>
-        /// Start requirements import workflow
-        /// </summary>
-        Task<bool> ImportRequirementsAsync(string filePath, string importType = "Auto");
-        
-        /// <summary>
-        /// Start requirements analysis for a single requirement
-        /// </summary>
-        Task<bool> AnalyzeRequirementAsync(Requirement requirement);
-        
-        /// <summary>
-        /// Start batch requirements analysis
-        /// </summary>
-        Task<bool> AnalyzeBatchRequirementsAsync(IReadOnlyList<Requirement> requirements);
         
         /// <summary>
         /// Select a requirement for further processing
@@ -207,12 +194,16 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         /// <summary>
         /// HeaderVM instance created and managed by this mediator
         /// </summary>
-        TestCaseGenerator_HeaderVM? HeaderViewModel { get; }
+        // DEPRECATED: HeaderViewModel and TitleViewModel types changed to object? after domain refactor
+        // Original types TestCaseGenerator_HeaderVM and TestCaseGenerator_TitleVM were removed
+        object? HeaderViewModel { get; }
         
         /// <summary>
         /// TitleVM instance created and managed by this mediator
         /// </summary>
-        TestCaseGenerator_TitleVM? TitleViewModel { get; }
+        // DEPRECATED: TitleViewModel type changed to object? after domain refactor  
+        // Original type TestCaseGenerator_TitleVM was removed
+        object? TitleViewModel { get; }
         
         // ===== HEADER INTEGRATION =====
         

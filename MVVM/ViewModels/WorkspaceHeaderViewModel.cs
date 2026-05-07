@@ -65,6 +65,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty] private string ragStatusMessage = "";
         [ObservableProperty] private string? ragWorkspaceName = null;
 
+        // Timer properties for attachment parsing
+        [ObservableProperty] private bool isParsingTimerVisible = false;
+        [ObservableProperty] private string parsingTimerDisplay = "";
+        [ObservableProperty] private string parsingDocumentName = "";
+
         // Computed properties for UI visibility
         public bool CanInitializeRag => !IsRagInitializing && !string.IsNullOrEmpty(WorkspaceName);
 

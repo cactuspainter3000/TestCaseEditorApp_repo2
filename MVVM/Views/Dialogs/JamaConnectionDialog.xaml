@@ -1,0 +1,117 @@
+<Window x:Class="TestCaseEditorApp.MVVM.Views.Dialogs.JamaConnectionDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Connect to Jama"
+        Height="300"
+        Width="500"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Background="#2d2d30"
+        Foreground="#f1f1f1">
+
+    <Window.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#f1f1f1"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+        </Style>
+        
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#3c3c3c"/>
+            <Setter Property="Foreground" Value="#f1f1f1"/>
+            <Setter Property="BorderBrush" Value="#007acc"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+        
+        <Style TargetType="PasswordBox">
+            <Setter Property="Background" Value="#3c3c3c"/>
+            <Setter Property="Foreground" Value="#f1f1f1"/>
+            <Setter Property="BorderBrush" Value="#007acc"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+        
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#007acc"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1f8ad4"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0" 
+                   Text="🌐 Connect to Jama Connect"
+                   FontSize="18"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,20"
+                   HorizontalAlignment="Center"/>
+
+        <!-- Base URL -->
+        <TextBlock Grid.Row="1" 
+                   Text="Jama Base URL:"
+                   Margin="0,0,0,5"/>
+        
+        <TextBox Grid.Row="2" 
+                 x:Name="BaseUrlTextBox"
+                 Text="https://your-company.jamacloud.com"
+                 Margin="0,0,0,15"/>
+
+        <!-- API Token -->
+        <TextBlock Grid.Row="3" 
+                   Text="API Token:"
+                   Margin="0,0,0,5"/>
+        
+        <PasswordBox Grid.Row="4" 
+                     x:Name="ApiTokenBox"
+                     Margin="0,0,0,15"/>
+
+        <!-- Help Text -->
+        <TextBlock Grid.Row="5" 
+                   Text="💡 To get your API token, go to Jama Connect → Account Settings → API Token"
+                   FontSize="12"
+                   Opacity="0.8"
+                   TextWrapping="Wrap"
+                   VerticalAlignment="Center"
+                   Margin="0,10,0,20"/>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="6" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right">
+            <Button Content="Cancel" 
+                    IsCancel="True" 
+                    Click="Cancel_Click"
+                    Background="#505050"
+                    Margin="0,0,10,0"/>
+            
+            <Button Content="Connect" 
+                    IsDefault="True" 
+                    Click="Connect_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

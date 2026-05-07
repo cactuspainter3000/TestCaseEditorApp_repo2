@@ -1,5 +1,4 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
 using TestCaseEditorApp.MVVM.Utils;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
@@ -48,17 +47,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         /// <summary>
-        /// Sets the test case generator header as active (legacy method for compatibility)
-        /// </summary>
-        public void ShowTestCaseGeneratorHeader(TestCaseGenerator_HeaderVM testCaseHeader)
-        {
-            ActiveHeader = testCaseHeader;
-            CurrentContext = "TestCaseGenerator";
-        }
-
-        /// <summary>
-        /// <summary>
-        /// Sets a custom header as active (legacy method for compatibility)
+        /// Sets a custom header as active
         /// </summary>
         public void ShowCustomHeader(object headerViewModel, string context)
         {

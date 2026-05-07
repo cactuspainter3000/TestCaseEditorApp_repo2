@@ -45,6 +45,23 @@ namespace TestCaseEditorApp.MVVM.Events
             public string RequestingDomain { get; set; } = "TestCaseGeneration";
         }
 
+        // ===== PROJECT LIFECYCLE MESSAGES =====
+
+        /// <summary>
+        /// Notification that a new project has been created and is ready for domain-specific processing
+        /// </summary>
+        public class ProjectCreatedNotification
+        {
+            public string ProjectName { get; set; } = string.Empty;
+            public string WorkspaceName { get; set; } = string.Empty;
+            public string ProjectPath { get; set; } = string.Empty;
+            public bool IsJamaImport { get; set; }
+            public int? JamaProjectId { get; set; }
+            public string? JamaProjectName { get; set; }
+            public DateTime CreatedTime { get; set; } = DateTime.Now;
+            public string SourceDomain { get; set; } = "NewProject";
+        }
+
         // ===== TESTFLOW → TESTCASE GENERATION REQUESTS =====
 
         /// <summary>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
+using TestCaseEditorApp.MVVM.Domains.OpenProject.Events;
 using TestCaseEditorApp.MVVM.Utils;
 
 namespace TestCaseEditorApp.Services
@@ -24,6 +25,11 @@ namespace TestCaseEditorApp.Services
         event EventHandler<string>? TitleChanged;
         
         /// <summary>
+        /// Get the current title for ViewModel initialization
+        /// </summary>
+        string GetCurrentTitle();
+        
+        /// <summary>
         /// Navigate to a section and update breadcrumb trail
         /// </summary>
         void NavigateToSection(string section, string? context = null);
@@ -37,11 +43,6 @@ namespace TestCaseEditorApp.Services
         /// Clear navigation and reset to base application title
         /// </summary>
         void ClearNavigation();
-        
-        /// <summary>
-        /// Update the application title based on current section/context (legacy method)
-        /// </summary>
-        void UpdateTitle(string section, string? context = null);
         
         /// <summary>
         /// Initialize service with workspace coordinator for project event handling
@@ -75,6 +76,16 @@ namespace TestCaseEditorApp.Services
         
         public event EventHandler<string>? TitleChanged;
         
+        /// <summary>
+        /// Get the current title for ViewModel initialization
+        /// </summary>
+        public string GetCurrentTitle()
+        {
+            // Ensure current title is up-to-date before returning it
+            UpdateCurrentTitle();
+            return _title;
+        }
+        
         public void Initialize(IViewAreaCoordinator? coordinator = null)
         {
             _coordinator = coordinator;
@@ -90,7 +101,13 @@ namespace TestCaseEditorApp.Services
             if (_coordinator?.WorkspaceManagement != null)
             {
                 _coordinator.WorkspaceManagement.Subscribe<NewProjectEvents.ProjectOpened>(e => {
-                    _logger?.LogInformation("NavigationService: Project opened: {ProjectName}", e.WorkspaceName);
+                    _logger?.LogInformation("NavigationService: NewProject opened: {ProjectName}", e.WorkspaceName);
+                    _currentProject = e.WorkspaceName;
+                    UpdateCurrentTitle();
+                });
+                
+                _coordinator.WorkspaceManagement.Subscribe<OpenProjectEvents.ProjectOpened>(e => {
+                    _logger?.LogInformation("NavigationService: OpenProject opened: {ProjectName}", e.WorkspaceName);
                     _currentProject = e.WorkspaceName;
                     UpdateCurrentTitle();
                 });
@@ -109,13 +126,14 @@ namespace TestCaseEditorApp.Services
                     _logger?.LogInformation("NavigationService: Section changed to: {Section}", e.NewSection);
                     _currentSection = e.NewSection ?? "TestCase";
                     
-                    // Get current project name if available for context
-                    if (_currentProject == null)
+                    // Always ensure we have the current project name when sections change
+                    if (string.IsNullOrWhiteSpace(_currentProject))
                     {
                         var workspaceInfo = _coordinator.WorkspaceManagement?.GetCurrentWorkspaceInfo();
                         if (workspaceInfo != null && !string.IsNullOrWhiteSpace(workspaceInfo.Name))
                         {
                             _currentProject = workspaceInfo.Name;
+                            _logger?.LogDebug("NavigationService: Restored project name on section change: {ProjectName}", _currentProject);
                         }
                     }
                     
@@ -127,6 +145,17 @@ namespace TestCaseEditorApp.Services
         private void UpdateCurrentTitle()
         {
             var previousTitle = _title;
+            
+            // Always ensure we have current project name when updating title
+            if (string.IsNullOrWhiteSpace(_currentProject) && _coordinator?.WorkspaceManagement != null)
+            {
+                var workspaceInfo = _coordinator.WorkspaceManagement.GetCurrentWorkspaceInfo();
+                if (workspaceInfo != null && !string.IsNullOrWhiteSpace(workspaceInfo.Name))
+                {
+                    _currentProject = workspaceInfo.Name;
+                    _logger?.LogDebug("NavigationService: Auto-restored project name during title update: {ProjectName}", _currentProject);
+                }
+            }
             
             // Map section codes to proper display names
             string sectionName = _currentSection.ToLower() switch
@@ -158,6 +187,8 @@ namespace TestCaseEditorApp.Services
         public void NavigateToSection(string section, string? context = null)
         {
             _currentSection = section;
+            // Only update project context if explicitly provided
+            // Preserve existing project name when context is null
             if (context != null)
             {
                 _currentProject = context;
@@ -182,12 +213,6 @@ namespace TestCaseEditorApp.Services
             _currentProject = null;
             _logger?.LogInformation("Navigation cleared: '{PreviousTitle}' → '{NewTitle}'", previousTitle, _title);
             TitleChanged?.Invoke(this, _title);
-        }
-        
-        // Legacy method for backward compatibility
-        public void UpdateTitle(string section, string? context = null)
-        {
-            NavigateToSection(section, context);
         }
     }
 }

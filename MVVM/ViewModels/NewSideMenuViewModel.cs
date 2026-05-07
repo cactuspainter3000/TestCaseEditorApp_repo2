@@ -75,7 +75,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private void NavigateToProject()
         {
-            Console.WriteLine("*** NewSideMenuViewModel.NavigateToProject called! ***");
+// ("*** NewSideMenuViewModel.NavigateToProject called! ***");
             // TODO: Use ViewModelFactory for proper dependency injection
             // var projectViewModel = _viewModelFactory.CreateProjectViewModel();
             // For now, placeholder until factory is integrated  
@@ -85,13 +85,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private async Task CreateNewProjectAsync()
         {
-            Console.WriteLine("*** NewSideMenuViewModel.CreateNewProject called! ***");
+// ("*** NewSideMenuViewModel.CreateNewProject called! ***");
             await _workspaceManagementMediator.CreateNewProjectAsync();
         }
 
         private async Task OpenProjectAsync()
         {
-            Console.WriteLine("*** NewSideMenuViewModel.OpenProject called! ***");
+// ("*** NewSideMenuViewModel.OpenProject called! ***");
             await _workspaceManagementMediator.OpenProjectAsync();
         }
     }

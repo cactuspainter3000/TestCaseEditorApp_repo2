@@ -31,7 +31,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // === SIMPLE CONTAINER FIELDS ===
         // MainViewModel should only manage 4 workspace areas, no coordination logic
         private readonly IViewAreaCoordinator _viewAreaCoordinator;
-        private readonly IViewModelFactory _viewModelFactory;
         private readonly ILogger<MainViewModel>? _logger;
         private readonly INavigationService _navigationService;
         private string _displayName = "Systems ATE APP";
@@ -42,13 +41,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty]
         private string modalTitle = string.Empty;
         
+        /// <summary>
+        /// Title domain ViewModel - manages title bar and global actions
+        /// </summary>
+        public object TitleVM { get; }
+        
         // === 6-WORKSPACE PROPERTIES ===
         // All UI areas are managed by ViewAreaCoordinator
         
         /// <summary>
         /// Navigation mediator access for UI binding
         /// </summary>
-        public INavigationMediator NavigationMediator => _viewAreaCoordinator.NavigationMediator;
+        public INavigationMediator? NavigationMediator => _viewAreaCoordinator?.NavigationMediator;
         
         /// <summary>
         /// Title workspace area
@@ -56,7 +60,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public object? TitleWorkspace => _viewAreaCoordinator?.TitleArea?.ActiveTitle;
         
         /// <summary>
-        /// Main content workspace area
+        /// Main content workspace area  
         /// </summary>
         public object? MainWorkspace => _viewAreaCoordinator?.WorkspaceContent?.CurrentContent;
         
@@ -73,19 +77,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// <summary>
         /// Navigation workspace area
         /// </summary>
-        public object? NavigationWorkspace => _viewAreaCoordinator.NavigationArea.CurrentContent;
+        public object? NavigationWorkspace => _viewAreaCoordinator?.NavigationArea?.CurrentContent;
         
         /// <summary>
         /// Side menu workspace area
         /// </summary>
-        public object? SideMenuWorkspace => _viewAreaCoordinator.SideMenu;
+        public object? SideMenuWorkspace => _viewAreaCoordinator?.SideMenu;
         
-        /// <summary>
-        /// Exposes the data-driven Test Case Generator menu section for UI binding
-        /// </summary>
-        public MenuSection? TestCaseGeneratorMenuSection => 
-            (_viewAreaCoordinator.SideMenu as ViewModels.SideMenuViewModel)?.TestCaseGeneratorMenuSection;
-
         /// <summary>
         /// Dynamic title for the application window
         /// </summary>
@@ -103,11 +101,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// According to architectural guidelines: MainViewModel should be a simple container that 
         /// sets up 5 workspace areas. Once workspace assigned ? hands-off.
         /// </summary>
-        public MainViewModel(IViewModelFactory viewModelFactory, INavigationService navigationService, ILogger<MainViewModel>? logger = null)
+        public MainViewModel(IViewAreaCoordinator viewAreaCoordinator, INavigationService navigationService, 
+            TestCaseEditorApp.MVVM.Domains.Title.ViewModels.TitleViewModel titleViewModel, ILogger<MainViewModel>? logger = null)
         {
             System.Diagnostics.Debug.WriteLine($"*** MainViewModel constructor called! Instance: {GetHashCode()} ***");
-            _viewModelFactory = viewModelFactory ?? throw new ArgumentNullException(nameof(viewModelFactory));
+            _viewAreaCoordinator = viewAreaCoordinator ?? throw new ArgumentNullException(nameof(viewAreaCoordinator));
             _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+            TitleVM = titleViewModel ?? throw new ArgumentNullException(nameof(titleViewModel));
             _logger = logger;
             
             // Initialize modal command - ensure modal starts hidden
@@ -130,14 +130,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 _logger?.LogInformation("MainViewModel: DisplayName updated to '{DisplayName}'", DisplayName);
             };
             
-            // Initialize unified navigation system - this is the ONLY responsibility
-            _viewAreaCoordinator = _viewModelFactory.CreateViewAreaCoordinator();
+            // ViewAreaCoordinator injected directly via DI - no factory needed
             
             // Initialize NavigationService with coordinator for proper title management
             _navigationService.Initialize(_viewAreaCoordinator);
-            
-            // Initialize the requirements navigator for UI binding
-            RequirementsNavigator = _viewModelFactory.CreateRequirementsNavigationViewModel();
             
             // Subscribe to navigation events for UI property binding notifications ONLY
             _viewAreaCoordinator.NavigationMediator.Subscribe<NavigationEvents.HeaderChanged>(
@@ -214,9 +210,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         [ObservableProperty]
         private bool isLlmBusy;
-        
-        [ObservableProperty]
-        private object? requirementsNavigator;
         
         [ObservableProperty]
         private System.Collections.ObjectModel.ObservableCollection<object> toastNotifications = new();

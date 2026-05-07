@@ -40,6 +40,9 @@ namespace TestCaseEditorApp.Services
 
             // Normalize path
             filePath = Path.GetFullPath(filePath);
+            
+            TestCaseEditorApp.Services.Logging.Log.Info($"[RecentFiles] AddRecentFile called with: {filePath}");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[RecentFiles] Current count before: {_recentFiles.Count}");
 
             // Remove if already exists (will re-add at top)
             _recentFiles.Remove(filePath);
@@ -53,6 +56,12 @@ namespace TestCaseEditorApp.Services
             // Trim to max count
             if (_recentFiles.Count > MaxRecentFiles)
                 _recentFiles = _recentFiles.Take(MaxRecentFiles).ToList();
+                
+            TestCaseEditorApp.Services.Logging.Log.Info($"[RecentFiles] Current count after: {_recentFiles.Count}");
+            foreach (var f in _recentFiles)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[RecentFiles]   - {f}");
+            }
 
             Save();
         }
@@ -83,20 +92,29 @@ namespace TestCaseEditorApp.Services
         {
             try
             {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[RecentFiles] Load() called, path: {_settingsPath}");
+                
                 if (!File.Exists(_settingsPath))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[RecentFiles] Settings file does not exist");
                     return;
+                }
 
                 var json = File.ReadAllText(_settingsPath);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[RecentFiles] Loaded JSON: {json}");
+                
                 var files = JsonSerializer.Deserialize<List<string>>(json);
                 if (files != null)
                 {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[RecentFiles] Deserialized {files.Count} files");
                     // Clean up non-existent files on load
                     _recentFiles = files.Where(File.Exists).ToList();
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[RecentFiles] After filtering non-existent: {_recentFiles.Count} files");
                 }
             }
             catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[RecentFiles] Load failed: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[RecentFiles] Load failed: {ex.Message}");
                 _recentFiles = new List<string>();
             }
         }

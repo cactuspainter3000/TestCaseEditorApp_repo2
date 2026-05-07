@@ -8,7 +8,8 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
+using TestCaseEditorApp.Services;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Services; // For JamaAllDataDocxParser
 using TestCaseEditorApp.MVVM.Models;
 using VMVerMethod = TestCaseEditorApp.MVVM.Models.VerificationMethod;
 // Alias Word table to avoid confusion with Spreadsheet types
@@ -392,12 +393,29 @@ namespace TestCaseEditorApp.Services
 
                         if (rows.Count > 0)
                         {
-                            string? title = TryGetTableTitle(elements, i);
-                            looseTables.Add(new LooseTable
+                            // Clean up table data at parse time
+                            for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++)
                             {
-                                EditableTitle = title ?? $"Untitled Table {looseTables.Count + 1}",
-                                Rows = rows
-                            });
+                                var row = rows[rowIndex];
+                                // Remove trailing empty cells
+                                while (row.Count > 0 && string.IsNullOrWhiteSpace(row[row.Count - 1]))
+                                {
+                                    row.RemoveAt(row.Count - 1);
+                                }
+                            }
+                            
+                            // Remove rows that became completely empty
+                            rows = rows.Where(row => row.Count > 0 && row.Any(cell => !string.IsNullOrWhiteSpace(cell))).ToList();
+                            
+                            if (rows.Count > 0)
+                            {
+                                string? title = TryGetTableTitle(elements, i);
+                                looseTables.Add(new LooseTable
+                                {
+                                    EditableTitle = title ?? $"Untitled Table {looseTables.Count + 1}",
+                                    Rows = rows
+                                });
+                            }
                         }
                     }
                 }

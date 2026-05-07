@@ -20,7 +20,22 @@
             <!-- Register converters here so they're available app-wide -->
             <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
             <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" CollapseWhenFalse="True" />
+            <conv:BoolToVisibilityConverter x:Key="BoolToVis" CollapseWhenFalse="True" />
             <conv:InvertedBoolToVisibilityConverter x:Key="InvertedBoolToVis" />
+            <conv:InvertBoolConverter x:Key="InvertBoolConverter" />
+            <conv:AddOneConverter x:Key="AddOneConverter" />
+            <conv:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+            <conv:NullToVisibilityConverter x:Key="NullToCollapsedConverter" />
+            <conv:EmptyStringToCollapsedConverter x:Key="EmptyStringToCollapsedConverter" />
+            <conv:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
+            <conv:ZeroToVisibilityConverter x:Key="ZeroToVisibleConverter" Invert="True" />
+            <conv:AnalysisStatusToColorConverter x:Key="AnalysisStatusToColorConverter" />
+            <conv:AnalysisStatusToTextConverter x:Key="AnalysisStatusToTextConverter" />
+            <conv:ProgressToWidthConverter x:Key="ProgressToWidthConverter" />
+            <conv:BoolToStatusColorConverter x:Key="BoolToStatusColorConverter" />
+            <conv:EnumToVisibilityConverter x:Key="EnumToVisibilityConverter" />
+            <conv:BooleanToTextConverter x:Key="BooleanToTextConverter" />
+            <conv:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
 
             <ResourceDictionary.MergedDictionaries>
                 <!-- ===================================== -->
@@ -33,8 +48,10 @@
                 <!-- ===================================== -->
                 <!-- CORE STYLES                           -->
                 <!-- ===================================== -->
-                <!-- Colors.xaml now references DesignSystem, kept for backward compatibility -->
-                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/Colors.xaml" />
+                
+                <!-- SharedStyles contains UI building blocks (badges, pills, menu items, scroll bars) -->
+                <!-- Must be loaded early as other styles reference CustomScrollBarStyle -->
+                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/SharedStyles.xaml" />
                 
                 <!-- Component styles (reference DesignSystem tokens) -->
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/ButtonStyles.xaml" />
@@ -45,9 +62,6 @@
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/InputStyles.xaml" />
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/ListStyles.xaml" />
                 <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/CommonHeaderResources.xaml" />
-                
-                <!-- SharedStyles contains UI building blocks (badges, pills, menu items) -->
-                <ResourceDictionary Source="/TestCaseEditorApp;component/Resources/SharedStyles.xaml" />
                 
                 <!-- ===================================== -->
                 <!-- LEGACY RESOURCES                      -->

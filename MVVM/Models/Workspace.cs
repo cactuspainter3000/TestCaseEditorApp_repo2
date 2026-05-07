@@ -18,6 +18,13 @@ namespace TestCaseEditorApp.MVVM.Models
         /// <summary>Default Jama Test Plan name to use on export (CSV "Test Plan" column).</summary>
         public string? JamaTestPlan { get; set; }
 
+        /// <summary>
+        /// Import source type for proper view routing
+        /// Values: "Jama", "Document", "Manual", etc.
+        /// </summary>
+        [JsonPropertyName("ImportSource")]
+        public string? ImportSource { get; set; }
+
         public DefaultsBlock? Defaults { get; set; }
         public string? Name { get; internal set; }
 

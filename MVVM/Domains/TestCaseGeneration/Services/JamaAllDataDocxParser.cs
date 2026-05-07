@@ -8,7 +8,7 @@ using TestCaseEditorApp.MVVM.Models;
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
 {
     /// <summary>
-    /// Structure-first DOCX parser for Jama “All Data” export.
+    /// Structure-first DOCX parser for Jama ï¿½All Dataï¿½ export.
     /// - Walks blocks in order (Paragraphs, Tables, SdtBlocks) and buffers prelude content until a Jama KV table is found.
     /// - On KV table: extracts KV pairs, finds the nearest header above, extracts Description + Supporting Info (paragraphs + non-KV tables).
     /// - Normalizes Unicode whitespace/dashes; avoids false splits on "Global ID ..." by ignoring paragraph KV lines before a requirement is open.
@@ -101,7 +101,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
 
         // --- Public API -----------------------------------------------------
 
-        /// <summary>Parses a Jama “All Data” DOCX into a list of Requirement models.</summary>
+        /// <summary>Parses a Jama ï¿½All Dataï¿½ DOCX into a list of Requirement models.</summary>
         public static List<Requirement> Parse(string path)
         {
             bool suppressPostSection = false;
@@ -138,7 +138,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 if (t.Length == 0) return false;
 
                 // Avoid obvious non-titles
-                if (t.StartsWith("•") || t.StartsWith("- ")) return false;
+                if (t.StartsWith("ï¿½") || t.StartsWith("- ")) return false;
                 if (t.Length <= 3) return false; // e.g., "Tags" alone can be a KV label, not a title
 
                 // Strong signals
@@ -283,6 +283,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                                 };
 
                                 JamaRequirementMapper.MapFromKv(req, kv);
+                                
+                                // Check for ATP content in this requirement
+                                DetectAndMarkATPContent(req);
+                                
                                 results.Add(req);
 
                                 // After consuming a KV table, suppress the trailing post section until next header/label
@@ -526,7 +530,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         "# of Links"
     };
 
-            // Gather ALL rows (we’ll need them to build fused support tables from the pre/post segments)
+            // Gather ALL rows (weï¿½ll need them to build fused support tables from the pre/post segments)
             var allRows = t.Elements<TableRow>().ToList();
 
             // Build a 2-cell-only projection for KV detection/windowing
@@ -590,7 +594,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             }
             else
             {
-                // No anchors ? fall back to “all 2-cell rows” as the KV candidate region
+                // No anchors ? fall back to ï¿½all 2-cell rowsï¿½ as the KV candidate region
                 window2 = rows2;
             }
 
@@ -786,16 +790,202 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             return kvKeys.Contains(left);
         }
 
-        /// <summary>Detect simple bullet/numbered patterns; we also treat "• ..." as bullet.</summary>
+        /// <summary>Detect simple bullet/numbered patterns; we also treat "ï¿½ ..." as bullet.</summary>
         private static bool IsBulletOrNumbered(string line)
         {
-            // Rough but effective: leading bullet, dash, or numbering (1., 1.2., a), -, •)
-            if (line.StartsWith("•", StringComparison.Ordinal)) return true;
+            // Rough but effective: leading bullet, dash, or numbering (1., 1.2., a), -, ï¿½)
+            if (line.StartsWith("ï¿½", StringComparison.Ordinal)) return true;
             if (line.StartsWith("-", StringComparison.Ordinal)) return true;
             if (Regex.IsMatch(line, @"^\d+(\.\d+)*\.\s+")) return true;         // "1. " or "1.2. "
             if (Regex.IsMatch(line, @"^[a-zA-Z]\)\s+")) return true;            // "a) "
-            if (Regex.IsMatch(line, @"^(\*|\u2022)\s+")) return true;           // "* " or •
+            if (Regex.IsMatch(line, @"^(\*|\u2022)\s+")) return true;           // "* " or ï¿½
             return false;
+        }
+
+        // --- ATP Detection --------------------------------------------------
+
+        /// <summary>
+        /// Detects ATP (Acceptance Test Procedure) content in a requirement and adds ATP-specific tags
+        /// </summary>
+        private static void DetectAndMarkATPContent(Requirement requirement)
+        {
+            var allText = string.Empty;
+            
+            // Combine all text sources for analysis
+            var textSources = new List<string>
+            {
+                requirement.Description,
+                requirement.VerificationMethodText,
+                requirement.ValidationMethodText,
+                requirement.ValidationEvidence,
+                requirement.ValidationConclusion,
+                requirement.Rationale,
+                requirement.ComplianceRationale,
+                requirement.StatementOfCompliance
+            };
+            
+            // Add loose content text
+            if (requirement.LooseContent?.Paragraphs != null)
+            {
+                textSources.AddRange(requirement.LooseContent.Paragraphs);
+            }
+            
+            // Add table content from loose tables
+            if (requirement.LooseContent?.Tables != null)
+            {
+                foreach (var table in requirement.LooseContent.Tables)
+                {
+                    if (table.Rows != null)
+                    {
+                        foreach (var row in table.Rows)
+                        {
+                            if (row != null)
+                                textSources.AddRange(row);
+                        }
+                    }
+                }
+            }
+            
+            allText = string.Join(" ", textSources.Where(s => !string.IsNullOrWhiteSpace(s)));
+            
+            if (string.IsNullOrWhiteSpace(allText))
+                return;
+            
+            // ATP Detection Logic
+            var atpResult = AnalyzeForATPContent(allText);
+            
+            if (atpResult.IsATP)
+            {
+                // Add ATP indicator to rationale (using existing field)
+                var atpNote = $"ðŸ§ª ATP DETECTED: {atpResult.StepCount} steps, Score: {atpResult.Score}";
+                if (!string.IsNullOrWhiteSpace(requirement.Rationale))
+                    requirement.Rationale += " | " + atpNote;
+                else
+                    requirement.Rationale = atpNote;
+                
+                // Add ATP-specific tags if not already present
+                var currentTags = requirement.Tags ?? string.Empty;
+                var tagsToAdd = new[] { "ATP", "Test-Procedure", "Derivable" };
+                
+                foreach (var tag in tagsToAdd)
+                {
+                    if (!currentTags.Contains($"[{tag}]", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (string.IsNullOrWhiteSpace(currentTags))
+                            currentTags = $"[{tag}]";
+                        else
+                            currentTags += $" [{tag}]";
+                    }
+                }
+                
+                requirement.Tags = currentTags;
+                
+                TestCaseEditorApp.Services.Logging.Log.Debug($"ATP detected in requirement {requirement.Item}: {atpResult.StepCount} steps, score {atpResult.Score}");
+            }
+        }
+
+        /// <summary>
+        /// Analyzes text content for ATP characteristics
+        /// </summary>
+        private static (bool IsATP, int StepCount, int Score, List<string> Indicators) AnalyzeForATPContent(string text)
+        {
+            var indicators = new List<string>();
+            var lowerText = text.ToLowerInvariant();
+            
+            // ATP Keywords with weights
+            var atpKeywords = new Dictionary<string, int>
+            {
+                { "acceptance test procedure", 20 },
+                { "test procedure", 15 },
+                { "atp", 10 },
+                { "test steps", 12 },
+                { "procedure", 8 },
+                { "verify", 6 },
+                { "measure", 6 },
+                { "apply", 4 },
+                { "configure", 5 },
+                { "calibrate", 8 },
+                { "monitor", 4 },
+                { "control", 4 },
+                { "pass criteria", 10 },
+                { "fail criteria", 10 },
+                { "expected result", 8 },
+                { "actual result", 8 },
+                { "tolerance", 6 },
+                { "within", 3 },
+                { "equipment", 5 },
+                { "setup", 4 },
+                { "initialization", 6 }
+            };
+            
+            int totalScore = 0;
+            var foundKeywords = new List<string>();
+            
+            // Score based on keyword frequency
+            foreach (var (keyword, weight) in atpKeywords)
+            {
+                var count = CountOccurrences(lowerText, keyword);
+                if (count > 0)
+                {
+                    totalScore += count * weight;
+                    foundKeywords.Add(keyword);
+                }
+            }
+            
+            // Additional patterns for test steps
+            var stepPatterns = new[]
+            {
+                @"\bstep\s+\d+",                    // "step 1", "step 2"
+                @"\d+\.\s*[a-z]",                  // "1. verify", "2. measure"  
+                @"\d+\.\d+\s*[a-z]",               // "3.1 apply", "3.2 check"
+                @"^(verify|measure|apply|configure|calibrate|monitor|control|check|test)\s", // Action verbs at line start
+                @"(pass|fail)\s+(criteria|condition|threshold)", // Pass/fail criteria
+            };
+            
+            int stepCount = 0;
+            foreach (var pattern in stepPatterns)
+            {
+                var regex = new System.Text.RegularExpressions.Regex(pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Multiline);
+                var matches = regex.Matches(text);
+                stepCount += matches.Count;
+                if (matches.Count > 0)
+                {
+                    totalScore += matches.Count * 5; // Bonus for structured patterns
+                }
+            }
+            
+            // ATP detection logic
+            bool isATP = totalScore > 30 ||  // Lower threshold than document detector since this is focused content
+                        foundKeywords.Contains("acceptance test procedure") ||
+                        (foundKeywords.Contains("atp") && totalScore > 15) ||
+                        (stepCount > 5 && foundKeywords.Count > 3);
+            
+            if (isATP)
+            {
+                indicators.Add($"Score: {totalScore}");
+                indicators.Add($"Keywords: {foundKeywords.Count}");
+                indicators.Add($"Steps: {stepCount}");
+                
+                if (foundKeywords.Contains("acceptance test procedure"))
+                    indicators.Add("Explicit ATP reference");
+            }
+            
+            return (isATP, stepCount, totalScore, indicators);
+        }
+
+        /// <summary>
+        /// Count occurrences of a keyword in text
+        /// </summary>
+        private static int CountOccurrences(string text, string keyword)
+        {
+            int count = 0;
+            int index = 0;
+            while ((index = text.IndexOf(keyword, index, StringComparison.OrdinalIgnoreCase)) != -1)
+            {
+                count++;
+                index += keyword.Length;
+            }
+            return count;
         }
 
         // --- Debug ----------------------------------------------------------

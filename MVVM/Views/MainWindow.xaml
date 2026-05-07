@@ -4,15 +4,29 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
-        xmlns:tcgvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels"
+
+        xmlns:tcgmodevm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels"
+        xmlns:tcgmodeviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.Views"
         xmlns:wmvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels"
         xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
-        xmlns:tcgviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Views"
+
         xmlns:startupvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Startup.ViewModels"
         xmlns:startupviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Startup.Views"
         xmlns:wmviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.Views"
+        xmlns:opvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels"
+        xmlns:opviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.Views"
         xmlns:dummyvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels"
         xmlns:dummyviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Dummy.Views"
+        xmlns:titlevm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Title.ViewModels"
+        xmlns:titleviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Title.Views"
+        xmlns:reqvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels"
+        xmlns:reqviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.Views"
+        xmlns:sharedvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Shared.ViewModels"
+        xmlns:sharedviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Shared.Views"
+        xmlns:tccvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels"
+        xmlns:tccviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Views"
+        xmlns:notificationvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Notification.ViewModels"
+        xmlns:notificationviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Notification.Views"
         xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models"
         xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
         Height="665" Width="1200"
@@ -33,107 +47,42 @@
 
         <!-- Put resources directly in Window.Resources (do NOT nest a ResourceDictionary element here) -->
 
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_VM}">
-            <tcgviews:TestCaseGeneratorRequirements_View />
+        <DataTemplate DataType="{x:Type tcgmodevm:TestCaseGeneratorMode_MainVM}">
+            <tcgmodeviews:TestCaseGeneratorMainView />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_AssumptionsVM}">
-            <tcgviews:TestCaseGenerator_AssumptionsView />
+        <!-- REMOVED: TestCaseGenerator_TitleVM DataTemplate - deprecated -->
+
+        <!-- REMOVED: TestCaseGenerator_HeaderVM DataTemplate - deprecated -->
+
+        <!-- REMOVED: TestCaseGenerator_AssumptionsVM DataTemplate - deprecated -->
+
+        <!-- REMOVED: TestCaseGenerator_QuestionsVM DataTemplate - deprecated -->
+
+        <!-- REMOVED: TestCaseGenerator_CreationVM DataTemplate - deprecated -->
+
+        <!-- Shared Analysis ViewModel - consolidates duplicate analysis controls -->
+        <DataTemplate DataType="{x:Type sharedvm:SharedAnalysisViewModel}">
+            <sharedviews:SharedAnalysisView />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_QuestionsVM}">
-            <tcgviews:TestCaseGenerator_QuestionsView />
-        </DataTemplate>
-
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_CreationVM}">
-            <tcgviews:TestCaseGenerator_CreationView />
+        <!-- Requirement Analysis ViewModel - maps to SharedAnalysisView -->
+        <DataTemplate DataType="{x:Type reqvm:RequirementAnalysisViewModel}">
+            <sharedviews:SharedAnalysisView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:WorkspaceHeaderViewModel}">
             <views:WorkspaceHeaderView />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type vm:DefaultNotificationViewModel}">
-            <!-- Simple default notification area - shows minimal ready state -->
-            <Border Background="#222222" 
-                    Padding="10,4"
-                    Height="28">
-                <TextBlock Text="{Binding DefaultText}" 
-                          FontSize="11" 
-                          Foreground="#666666" 
-                          VerticalAlignment="Center"
-                          HorizontalAlignment="Center"/>
-            </Border>
+        <!-- DefaultNotificationViewModel DataTemplate deleted - obsolete notification system -->
+
+        <!-- Notification Domain DataTemplate - maps to proper view -->
+        <DataTemplate DataType="{x:Type notificationvm:NotificationWorkspaceViewModel}">
+            <notificationviews:NotificationWorkspaceView />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGeneratorNotificationViewModel}">
-            <!-- Test Case Generator notification area layout -->
-            <Border Background="#222222" 
-                    Padding="10,4"
-                    Height="28">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    
-                    <!-- AnythingLLM Status -->
-                    <StackPanel Grid.Column="0" Orientation="Horizontal">
-                        <Ellipse Width="8" Height="8" 
-                                Fill="{Binding AnythingLlmStatusColor}" 
-                                VerticalAlignment="Center" 
-                                Margin="0,0,6,0"/>
-                        <TextBlock Text="{Binding AnythingLlmStatusText}" 
-                                  FontSize="11" 
-                                  Foreground="#BBBBBB" 
-                                  VerticalAlignment="Center"/>
-                    </StackPanel>
-                    
-                    <!-- Current Requirement Verification Method -->
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" 
-                               HorizontalAlignment="Right"
-                               Margin="0,0,8,0"
-                               Visibility="{Binding CurrentRequirementVerificationMethod, Converter={StaticResource EmptyStringToCollapsedConverter}}">
-                        <TextBlock Text="Method:" 
-                                  Width="50"
-                                  FontSize="11" 
-                                  Foreground="#999999" 
-                                  VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding CurrentRequirementVerificationMethod}" 
-                                  FontSize="11" 
-                                  Foreground="#DDDDDD" 
-                                  VerticalAlignment="Center"
-                                  FontWeight="SemiBold"/>
-                        <TextBlock Text=" | " 
-                                  FontSize="11" 
-                                  Foreground="#666666" 
-                                  VerticalAlignment="Center"
-                                  Margin="8,0,0,0"/>
-                    </StackPanel>
-                    
-                    <!-- Requirements Progress -->
-                    <StackPanel Grid.Column="3" Orientation="Horizontal">
-                        <TextBlock Text="{Binding RequirementsProgressText}" 
-                                  FontSize="11" 
-                                  Foreground="#BBBBBB" 
-                                  VerticalAlignment="Center"
-                                  Margin="0,0,8,0"/>
-                        <ProgressBar Width="60" Height="4" 
-                                    VerticalAlignment="Center"
-                                    Value="{Binding RequirementsProgress}"
-                                    Maximum="100"
-                                    Background="#333333"
-                                    Foreground="#51CF66"/>
-                    </StackPanel>
-                </Grid>
-            </Border>
-        </DataTemplate>
-
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_TitleVM}">
-            <tcgviews:TestCaseGenerator_TitleView />
-        </DataTemplate>
+        <!-- REMOVED: TestCaseGeneratorMainVM DataTemplate - dead code, never used -->
 
         <!-- Startup ViewModels DataTemplates -->
         <DataTemplate DataType="{x:Type startupvm:StartUp_TitleViewModel}">
@@ -183,6 +132,21 @@
             </Border>
         </DataTemplate>
 
+        <!-- TestCaseCreation domain (LLM-based test case generation) -->
+        <DataTemplate DataType="{x:Type tccvm:LLMTestCaseGeneratorViewModel}">
+            <tccviews:LLMTestCaseGeneratorView />
+        </DataTemplate>
+
+        <!-- TestCaseCreation domain (Manual test case editing) -->
+        <DataTemplate DataType="{x:Type tccvm:TestCaseCreationMainVM}">
+            <tccviews:TestCaseCreation_MainView />
+        </DataTemplate>
+
+        <!-- TestCaseCreation navigation (requirement selection) -->
+        <DataTemplate DataType="{x:Type tccvm:TestCaseCreation_NavigationViewModel}">
+            <tccviews:TestCaseCreation_NavigationView />
+        </DataTemplate>
+
         <!--<DataTemplate DataType="{x:Type startupvm:StartUp_MainViewModel}">
             <startupviews:StartUp_MainView />
         </DataTemplate>-->
@@ -191,13 +155,25 @@
             <views:ProjectView />
         </DataTemplate>-->
 
-        <DataTemplate DataType="{x:Type tcgvm:RequirementsViewModel}">
-            <views:RequirementsView />
+        <!-- Unified Requirements ViewModel - source-agnostic architecture -->
+        <DataTemplate DataType="{x:Type reqvm:UnifiedRequirementsMainViewModel}">
+            <reqviews:UnifiedRequirementsMainView />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type tcgvm:RequirementsWorkspaceViewModel}">
-            <tcgviews:RequirementsWorkspaceView />
+        <DataTemplate DataType="{x:Type reqvm:Requirements_HeaderViewModel}">
+            <reqviews:RequirementsHeaderView />
         </DataTemplate>
+
+        <DataTemplate DataType="{x:Type reqvm:Requirements_NavigationViewModel}">
+            <reqviews:RequirementsNavigationView />
+        </DataTemplate>
+
+        <!-- Requirements Search in Attachments: proper DataTemplate mapping -->
+        <DataTemplate DataType="{x:Type reqvm:RequirementsSearchAttachmentsViewModel}">
+            <reqviews:RequirementsSearchAttachmentsView />
+        </DataTemplate>
+
+        <!-- Requirements uses shared NavigationViewModel and NotificationWorkspaceViewModel -->
 
         <DataTemplate DataType="{x:Type vm:LLMLearningViewModel}">
             <views:LLMLearningView />
@@ -304,10 +280,7 @@
             </Style.Triggers>
         </Style>
 
-        <!-- DataTemplate for TestCaseGenerator_HeaderVM -->
-        <DataTemplate DataType="{x:Type tcgvm:TestCaseGenerator_HeaderVM}">
-            <tcgviews:TestCaseGenerator_HeaderView />
-        </DataTemplate>
+        <!-- REMOVED: NavigationViewModel DataTemplate - deprecated after Requirements domain independence -->
 
         <!-- Modal ViewModels DataTemplates -->
         <DataTemplate DataType="{x:Type vm:WorkspaceSelectionViewModel}">
@@ -338,6 +311,29 @@
             <wmviews:NewProjectHeaderView />
         </DataTemplate>
 
+        <!-- NewProject Domain Title and Navigation ViewModels -->
+        <DataTemplate DataType="{x:Type wmvm:DummyNewProjectTitleViewModel}">
+            <wmviews:DummyNewProjectTitleView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type wmvm:DummyNewProjectNavigationViewModel}">
+            <wmviews:DummyNewProjectNavigationView />
+        </DataTemplate>
+
+        <!-- OpenProject Domain ViewModels -->
+        <DataTemplate DataType="{x:Type opvm:OpenProject_TitleViewModel}">
+            <opviews:OpenProject_TitleView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type opvm:OpenProject_HeaderViewModel}">
+            <opviews:OpenProject_HeaderView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type opvm:OpenProject_NavigationViewModel}">
+            <opviews:OpenProject_NavigationView />
+        </DataTemplate>
+
+
         <!-- DUMMY DOMAIN DataTemplates - Perfect AI Guide Reference Implementation -->
         <DataTemplate DataType="{x:Type dummyvm:DummyMainWorkspaceViewModel}">
             <dummyviews:DummyMainWorkspaceView />
@@ -353,6 +349,10 @@
         
         <DataTemplate DataType="{x:Type dummyvm:DummyTitleWorkspaceViewModel}">
             <dummyviews:DummyTitleWorkspaceView />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type titlevm:TitleViewModel}">
+            <titleviews:TitleView />
         </DataTemplate>
         
         <DataTemplate DataType="{x:Type dummyvm:DummyNotificationWorkspaceViewModel}">
@@ -409,101 +409,60 @@
                 <RowDefinition Height="*"/>
                 <!-- workspace content -->
                 <RowDefinition Height="4"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto" MaxHeight="240"/>
                 <!-- bottom navigation area -->
             </Grid.RowDefinitions>
 
             <!-- Top title bar -->
             <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
-                    Style="{StaticResource ContentBorderStyle}">
+                    Style="{StaticResource TitleBorderStyle}">
                 <Grid HorizontalAlignment="Stretch">
-                    <!-- Dynamic Title Area - managed by ViewAreaCoordinator -->
-                    <ContentPresenter Content="{Binding TitleWorkspace}"
-                                      VerticalAlignment="Center"
-                                      HorizontalAlignment="Left"
-                                      Margin="4,0,0,0"/>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/> <!-- Title content -->
+                        <ColumnDefinition Width="Auto"/> <!-- Window controls -->
+                    </Grid.ColumnDefinitions>
                     
-                    <DockPanel HorizontalAlignment="Right" Margin="3">
+                    <!-- Title Domain View - displays project name + save/undo actions -->
+                    <ContentPresenter Grid.Column="0"
+                                      Content="{Binding TitleVM}"
+                                      VerticalAlignment="Center"
+                                      HorizontalAlignment="Stretch"
+                                      Margin="4,0,10,0"/>
+                    
+                    <!-- Window Controls -->
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center">
                         
-                        <Grid VerticalAlignment="Center" HorizontalAlignment="Right">
-                            <Grid.ColumnDefinitions>
-                                <!-- Save Status button -->
-                                <ColumnDefinition Width="Auto"/>
-                                <!-- Undo button -->
-                                <ColumnDefinition Width="Auto"/>
-                                <!-- Minimize, Maximize, Close -->
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
+                        <!-- Minimize -->
+                        <Button Style="{StaticResource MainWindowButtonControls}"
+                                Click="ButtonMinimize_Click">
+                            <TextBlock Text="&#xE90F;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="14"
+                                       Style="{StaticResource WindowControlIconStyle}"/>
+                        </Button>
 
-                            <!-- Save Status button - clean icon only -->
-                            <Button Grid.Column="0"
-                                    Command="{Binding HeaderWorkspace.SaveWorkspaceCommand}"
-                                    ToolTip="{Binding HeaderWorkspace.LastSaveTimestamp}"
-                                    Visibility="{Binding HeaderWorkspace.WorkspaceFilePath, Converter={StaticResource NullToVisibilityConverter}}"
-                                    Style="{StaticResource MainWindowButtonControls}">
-                                <TextBlock FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
-                                           VerticalAlignment="Center">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Text" Value="&#xE74E;"/> <!-- Save icon - 3.5" disc -->
-                                            <Setter Property="Foreground" Value="#4CAF50"/> <!-- Green = Saved -->
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding HeaderWorkspace.IsDirty}" Value="True">
-                                                    <Setter Property="Foreground" Value="#9E9E9E"/> <!-- Light Grey = Unsaved -->
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </Button>
+                        <!-- Maximize/Restore -->
+                        <Button Style="{StaticResource MainWindowButtonControls}"
+                                Click="WindowStateButton_Click"
+                                Margin="4,0">
+                            <TextBlock Text="&#xE923;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="14"
+                                       Style="{StaticResource WindowControlIconStyle}"/>
+                        </Button>
 
-                            <!-- Undo last save button - always visible but enabled/disabled -->
-                            <Button Grid.Column="1"
-                                    Style="{StaticResource MainWindowButtonControls}"
-                                    Command="{Binding HeaderWorkspace.UndoLastSaveCommand}"
-                                    IsEnabled="{Binding HeaderWorkspace.CanUndoLastSave}"
-                                    ToolTip="Undo last save operation">
-                                <TextBlock Text="&#xE7A7;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
-                                           Style="{StaticResource WindowControlIconStyle}"/>
-                            </Button>
-
-                            <!-- Minimize -->
-                            <Button Grid.Column="2"
-                                    Style="{StaticResource MainWindowButtonControls}"
-                                    Click="ButtonMinimize_Click">
-                                <TextBlock Text="&#xE90F;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
-                                           Style="{StaticResource WindowControlIconStyle}"/>
-                            </Button>
-
-                            <!-- Maximize/Restore -->
-                            <Button Grid.Column="3"
-                                    Style="{StaticResource MainWindowButtonControls}"
-                                    Click="WindowStateButton_Click"
-                                    Margin="4,0">
-                                <TextBlock Text="&#xE923;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
-                                           Style="{StaticResource WindowControlIconStyle}"/>
-                            </Button>
-
-                            <!-- Close -->
-                            <Button Grid.Column="4"
-                                    Style="{StaticResource MainWindowCloseButton}"
-                                    Click="CloseButton_Click"
-                                    Margin="4,0">
-                                <TextBlock Text="✕"
-                                           FontSize="14"
-                                           Style="{StaticResource WindowControlIconStyle}"/>
-                            </Button>
-                        </Grid>
-                    </DockPanel>
+                        <!-- Close -->
+                        <Button Style="{StaticResource MainWindowCloseButton}"
+                                Click="CloseButton_Click"
+                                Margin="4,0">
+                            <TextBlock Text="✕"
+                                       FontSize="14"
+                                       Style="{StaticResource WindowControlIconStyle}"/>
+                        </Button>
+                    </StackPanel>
                 </Grid>
             </Border>
 

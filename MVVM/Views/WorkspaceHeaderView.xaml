@@ -90,6 +90,16 @@
                           Foreground="DarkOrange"/>
             </StackPanel>
             
+            <!-- Parsing Timer Display -->
+            <TextBlock Text="{Binding ParsingTimerDisplay}" 
+                       VerticalAlignment="Center" 
+                       FontFamily="Consolas"
+                       FontWeight="Bold"
+                       FontSize="13"
+                       Foreground="DarkOrange"
+                       Margin="0,0,12,0"
+                       Visibility="{Binding IsParsingTimerVisible, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            
             <!-- Status message display -->
             <TextBlock Text="{Binding StatusMessage}" 
                        VerticalAlignment="Center" 

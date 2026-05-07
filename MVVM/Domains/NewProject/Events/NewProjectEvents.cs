@@ -139,12 +139,57 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Events
         }
 
         /// <summary>
+        /// Fired when requirements are successfully imported from Jama
+        /// </summary>
+        public class RequirementsImported
+        {
+            public string ProjectName { get; set; } = string.Empty;
+            public int RequirementCount { get; set; }
+            public string FilePath { get; set; } = string.Empty;
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
+        
+        /// <summary>
+        /// Fired when workspace data is modified and needs to be saved
+        /// </summary>
+        public class WorkspaceModified
+        {
+            public string Reason { get; set; } = string.Empty; // e.g., "RequirementUpdated", "TestCaseAdded"
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
+
+        /// <summary>
         /// Fired when workspace dirty state changes (has unsaved changes)
         /// </summary>
         public class WorkspaceDirtyStateChanged
         {
             public bool HasUnsavedChanges { get; set; }
             public string Source { get; set; } = string.Empty; // Which domain triggered the change
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
+        
+        /// <summary>
+        /// Fired when a new project is created with Jama import, so other domains can react
+        /// </summary>
+        public class JamaProjectCreated
+        {
+            public int JamaProjectId { get; set; }
+            public string JamaProjectName { get; set; } = string.Empty;
+            public string ProjectName { get; set; } = string.Empty;
+            public DateTime Timestamp { get; set; } = DateTime.Now;
+        }
+        
+        /// <summary>
+        /// Fired when any new project is successfully created, regardless of import source
+        /// </summary>
+        public class ProjectCreatedWithWorkspace
+        {
+            public string ProjectName { get; set; } = string.Empty;
+            public string WorkspaceName { get; set; } = string.Empty;
+            public string ProjectPath { get; set; } = string.Empty;
+            public bool IsJamaImport { get; set; }
+            public int? JamaProjectId { get; set; }
+            public string? JamaProjectName { get; set; }
             public DateTime Timestamp { get; set; } = DateTime.Now;
         }
     }

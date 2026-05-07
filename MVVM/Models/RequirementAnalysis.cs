@@ -10,9 +10,18 @@ namespace TestCaseEditorApp.MVVM.Models
     public class RequirementAnalysis
     {
         /// <summary>
-        /// Overall quality score from 1-10 (10 being excellent).
+        /// Quality score of the original requirement (1-10) before any LLM improvements.
+        /// This represents the user's actual requirement writing quality for learning purposes.
         /// </summary>
-        public int QualityScore { get; set; }
+        public int OriginalQualityScore { get; set; }
+
+        /// <summary>
+        /// Quality score after LLM improvement (1-10). Optional field that shows what the 
+        /// improved requirement would score. Null if no improvement was generated.
+        /// </summary>
+        public int? ImprovedQualityScore { get; set; }
+
+
 
         /// <summary>
         /// Self-reported hallucination check from the LLM.
@@ -46,6 +55,12 @@ namespace TestCaseEditorApp.MVVM.Models
         /// When this analysis was generated.
         /// </summary>
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// How long the analysis took to complete (in seconds).
+        /// Used to display "Completed in Xs" per requirement.
+        /// </summary>
+        public double AnalysisDurationSeconds { get; set; }
 
         /// <summary>
         /// Whether analysis has been performed (vs. pending or failed).

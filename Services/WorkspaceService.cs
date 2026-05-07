@@ -11,8 +11,8 @@ public static class WorkspaceService
 {
     static readonly JsonSerializerOptions _json = new()
     {
-        WriteIndented = true,
-        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+        WriteIndented = true
+        // Removed DefaultIgnoreCondition.WhenWritingNull - ImportSource should always be included
     };
 
     private static Microsoft.Extensions.Logging.ILogger? GetLogger()
@@ -78,6 +78,13 @@ public static class WorkspaceService
         }
 
         string json = JsonSerializer.Serialize(ws, _json) ?? string.Empty;
+        
+        // 🔍 PERSISTENCE DEBUG: Check if GeneratedTestCases are included in serialized JSON
+        var hasGeneratedTestCasesInJson = json.Contains("GeneratedTestCases") && json.Contains("\"Id\":");
+        var totalTestCasesInWorkspace = ws.Requirements?.Sum(r => r.GeneratedTestCases?.Count ?? 0) ?? 0;
+        TestCaseEditorApp.Services.Logging.Log.Info($"[Save] 🔍 PERSISTENCE DEBUG: Serializing {totalTestCasesInWorkspace} total GeneratedTestCases");
+        TestCaseEditorApp.Services.Logging.Log.Info($"[Save] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: {hasGeneratedTestCasesInJson}");
+        
         TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] JSON serialized ({json.Length} bytes)");
         logger?.Log<string>(Microsoft.Extensions.Logging.LogLevel.Debug, new Microsoft.Extensions.Logging.EventId(0), $"[Save] JSON serialized ({json.Length} bytes)", null, (s,e) => s ?? string.Empty);
 
@@ -363,6 +370,11 @@ public static class WorkspaceService
     public static Workspace Load(string path)
     {
         var json = File.ReadAllText(path);
+        
+        // 🔍 PERSISTENCE DEBUG: Check if GeneratedTestCases exist in JSON before deserialization
+        var hasGeneratedTestCasesInJson = json.Contains("GeneratedTestCases") && json.Contains("\"Id\":");
+        TestCaseEditorApp.Services.Logging.Log.Info($"[Load] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: {hasGeneratedTestCasesInJson}");
+        
         var ws = JsonSerializer.Deserialize<Workspace>(json, _json) ?? new Workspace();
 
         // Migration logic for future schema changes
@@ -374,6 +386,36 @@ public static class WorkspaceService
             ws.Version = Workspace.SchemaVersion;
         }
 
+        // Auto-detect ImportSource for existing workspaces (helpful for troubleshooting)
+        if (string.IsNullOrEmpty(ws.ImportSource))
+        {
+            TestCaseEditorApp.Services.Logging.Log.Info($"[Load] ImportSource is missing - attempting auto-detection...");
+            
+            // Check if this looks like a Jama workspace (has GlobalId values in requirements)
+            var hasJamaIds = ws.Requirements?.Any(r => !string.IsNullOrEmpty(r.GlobalId)) ?? false;
+            
+            if (hasJamaIds)
+            {
+                ws.ImportSource = "Jama";
+                TestCaseEditorApp.Services.Logging.Log.Info($"[Load] Auto-detected Jama workspace (has GlobalId values), set ImportSource = 'Jama'");
+            }
+            else if (!string.IsNullOrEmpty(ws.SourceDocPath))
+            {
+                ws.ImportSource = "Document";
+                TestCaseEditorApp.Services.Logging.Log.Info($"[Load] Auto-detected Document workspace (has SourceDocPath), set ImportSource = 'Document'");
+            }
+            else
+            {
+                ws.ImportSource = "Manual";
+                TestCaseEditorApp.Services.Logging.Log.Info($"[Load] Auto-detected Manual workspace (fallback), set ImportSource = 'Manual'");
+            }
+        }
+
+        // 🔍 DEBUG: Log Jama project information from loaded workspace
+        TestCaseEditorApp.Services.Logging.Log.Info($"[Load] 🔍 JAMA DEBUG: JamaProject field: '{ws.JamaProject}' (null: {ws.JamaProject == null})");
+        TestCaseEditorApp.Services.Logging.Log.Info($"[Load] 🔍 JAMA DEBUG: JamaTestPlan field: '{ws.JamaTestPlan}' (null: {ws.JamaTestPlan == null})");
+        TestCaseEditorApp.Services.Logging.Log.Info($"[Load] 🔍 JAMA DEBUG: ImportSource: '{ws.ImportSource}'");
+
         // Probe: log what came back
         try
         {
@@ -382,11 +424,24 @@ public static class WorkspaceService
                                    !string.IsNullOrWhiteSpace(r?.CurrentResponse?.Output)) ?? 0;
             var withQuestions = ws.Requirements?.Count(r =>
                                    r?.ClarifyingQuestions?.Count > 0) ?? 0;
+            
+            // 🔍 PERSISTENCE DEBUG: Check if GeneratedTestCases are loaded correctly
+            var totalGeneratedTestCases = ws.Requirements?.Sum(r => r.GeneratedTestCases?.Count ?? 0) ?? 0;
+            var requirementsWithGeneratedTestCases = ws.Requirements?.Count(r => r.GeneratedTestCases?.Any() == true) ?? 0;
 
             TestCaseEditorApp.Services.Logging.Log.Debug($"[Load] Requirements: {reqCount}");
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[Load] Reqs with test cases: {withResponse}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[Load] Reqs with test cases (old model): {withResponse}");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[Load] 🔍 PERSISTENCE DEBUG: Total GeneratedTestCases loaded: {totalGeneratedTestCases}");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[Load] 🔍 PERSISTENCE DEBUG: Requirements with GeneratedTestCases: {requirementsWithGeneratedTestCases}/{reqCount}");
             TestCaseEditorApp.Services.Logging.Log.Debug($"[Load] Reqs with questions: {withQuestions}");
             TestCaseEditorApp.Services.Logging.Log.Debug($"[Load] Workspace saved {ws.SaveCount} times by {ws.CreatedBy ?? "unknown"}");
+            
+            // 🔍 PERSISTENCE DEBUG: Log specific test case IDs per requirement
+            foreach (var req in ws.Requirements?.Where(r => r.GeneratedTestCases?.Any() == true) ?? Enumerable.Empty<Requirement>())
+            {
+                var testCaseIds = string.Join(", ", req.GeneratedTestCases?.Select(tc => tc.Id) ?? new List<string>());
+                TestCaseEditorApp.Services.Logging.Log.Info($"[Load] 🔍 PERSISTENCE DEBUG: Requirement '{req.Item}' loaded {req.GeneratedTestCases?.Count ?? 0} test cases: [{testCaseIds}]");
+            }
         }
         catch { /* best-effort logging only */ }
 

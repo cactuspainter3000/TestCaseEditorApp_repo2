@@ -2,6 +2,9 @@ using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
@@ -14,7 +17,6 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Events;
 using static TestCaseEditorApp.MVVM.Events.CrossDomainMessages;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 
 namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
 {
@@ -33,6 +35,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         private readonly SmartRequirementImporter _smartImporter;
         private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
         private readonly IWorkspaceValidationService _workspaceValidationService;
+        private readonly JamaConnectService _jamaConnectService;
         private WorkspaceInfo? _currentWorkspaceInfo;
         
         // Form persistence state for architectural compliance
@@ -51,6 +54,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             SmartRequirementImporter smartImporter,
             ITestCaseGenerationMediator testCaseGenerationMediator,
             IWorkspaceValidationService workspaceValidationService,
+            JamaConnectService jamaConnectService,
             PerformanceMonitoringService? performanceMonitor = null,
             EventReplayService? eventReplay = null)
             : base(logger, uiCoordinator, "Workspace Management", performanceMonitor, eventReplay)
@@ -63,6 +67,26 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             _smartImporter = smartImporter ?? throw new ArgumentNullException(nameof(smartImporter));
             _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
             _workspaceValidationService = workspaceValidationService ?? throw new ArgumentNullException(nameof(workspaceValidationService));
+            _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
+        }
+
+        /// <summary>
+        /// Override BroadcastToAllDomains to also publish WorkspaceModified events locally.
+        /// This ensures UI infrastructure ViewModels (like TitleViewModel) that subscribe 
+        /// directly to this mediator also receive the event.
+        /// </summary>
+        public override void BroadcastToAllDomains<T>(T notification)
+        {
+            // Broadcast to other mediators via DomainCoordinator
+            base.BroadcastToAllDomains(notification);
+            
+            // Also publish locally for direct subscribers (UI infrastructure ViewModels)
+            if (notification is NewProjectEvents.WorkspaceModified workspaceModified)
+            {
+                _logger.LogDebug("[NewProjectMediator] Publishing WorkspaceModified locally for direct subscribers: {Reason}", 
+                    workspaceModified.Reason);
+                PublishEvent(workspaceModified);
+            }
         }
 
         public override void NavigateToInitialStep()
@@ -262,6 +286,9 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     ShowNotification("No active workspace to save", DomainNotificationType.Warning);
                     return;
                 }
+                
+                // Ensure proper async behavior
+                await Task.CompletedTask;
 
                 ShowProgress("Saving project...", 50);
                 
@@ -272,10 +299,29 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     WorkspacePath = _currentWorkspaceInfo.Path 
                 });
                 
-                // 1. Get current requirements from TestCaseGeneration domain
-                var currentRequirements = _testCaseGenerationMediator?.Requirements?.ToList() ?? new List<Requirement>();
+                // 1. Get current requirements from Requirements domain (primary source)
+                // Fall back to TestCaseGeneration domain for legacy compatibility
+                var requirementsMediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
+                var currentRequirements = requirementsMediator?.Requirements?.ToList() 
+                    ?? _testCaseGenerationMediator?.Requirements?.ToList() 
+                    ?? new List<Requirement>();
                 
-                _logger.LogInformation("Gathering current workspace data - found {RequirementCount} requirements", currentRequirements.Count);
+                _logger.LogInformation("Gathering current workspace data - found {RequirementCount} requirements (from {Source})", 
+                    currentRequirements.Count, 
+                    requirementsMediator?.Requirements?.Any() == true ? "RequirementsMediator" : "TestCaseGenerationMediator");
+                
+                // Debug: Check if any requirements have generated test cases before saving
+                var totalTestCases = currentRequirements.Sum(r => r.GeneratedTestCases?.Count ?? 0);
+                var requirementsWithTestCases = currentRequirements.Count(r => r.GeneratedTestCases?.Any() == true);
+                _logger.LogInformation("💾 PROJECT SAVE DEBUG: Found {TotalTestCases} total generated test cases across {RequirementsWithTestCases}/{TotalRequirements} requirements", 
+                    totalTestCases, requirementsWithTestCases, currentRequirements.Count);
+                
+                foreach (var req in currentRequirements.Where(r => r.GeneratedTestCases?.Any() == true))
+                {
+                    _logger.LogInformation("💾 PROJECT SAVE DEBUG: Requirement '{ReqId}' has {TestCaseCount} generated test cases: [{TestCaseIds}]", 
+                        req.Item, req.GeneratedTestCases?.Count ?? 0, 
+                        string.Join(", ", req.GeneratedTestCases?.Select(tc => tc.Id) ?? new List<string>()));
+                }
                 
                 // 2. Build current workspace object with all data
                 var workspace = new Workspace
@@ -287,6 +333,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     CreatedUtc = DateTime.UtcNow,
                     LastSavedUtc = DateTime.UtcNow,
                     SaveCount = 1 // Will be incremented in future versions
+                    // Note: ImportSource will be auto-detected during load if missing
                 };
                 
                 // 3. Validate workspace data before save
@@ -507,8 +554,12 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             await Task.CompletedTask;
             try
             {
+                _logger.LogInformation("🔍 CloseProjectAsync called - checking workspace state: {HasWorkspace}", 
+                    _currentWorkspaceInfo != null ? $"Yes ({_currentWorkspaceInfo.Path})" : "No workspace loaded");
+                
                 if (_currentWorkspaceInfo == null)
                 {
+                    _logger.LogWarning("⚠️ CloseProjectAsync: No workspace to close (_currentWorkspaceInfo is null)");
                     return;
                 }
 
@@ -523,6 +574,22 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 
                 var workspacePath = _currentWorkspaceInfo.Path;
                 _currentWorkspaceInfo = null;
+                
+                // Clear workspace context cache when project is unloaded
+                var workspaceContextService = App.ServiceProvider?.GetService<TestCaseEditorApp.Services.IWorkspaceContext>();
+                if (workspaceContextService is TestCaseEditorApp.Services.WorkspaceContextService contextService)
+                {
+                    _logger.LogInformation("🧹 Clearing workspace context cache on project unload");
+                    contextService.NotifyWorkspaceChanged(null, null, TestCaseEditorApp.Services.WorkspaceChangeType.Unloaded);
+                }
+                
+                // Clear view configuration to ensure fresh routing on next project load
+                var viewConfigService = App.ServiceProvider?.GetService<TestCaseEditorApp.Services.ViewConfigurationService>();
+                if (viewConfigService != null)
+                {
+                    _logger.LogInformation("🧹 Clearing view configuration on project unload");
+                    viewConfigService.ClearCurrentConfiguration();
+                }
                 
                 var projectClosedEvent = new NewProjectEvents.ProjectClosed 
                 { 
@@ -656,6 +723,13 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             HideProgress();
             
             NavigateToStep("ProjectActive", _currentWorkspaceInfo);
+            
+            // Request navigation to NewProject section to show the project view
+            RequestCrossDomainAction(new NavigateToSectionRequest 
+            { 
+                SectionName = "NewProject",
+                Context = "Project created successfully"
+            });
         }
         
         /// <summary>
@@ -687,35 +761,81 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 // 2. Import requirements first, then create workspace
                 List<Requirement> importedRequirements = new();
                 
+                // 🎯 Variables to preserve Jama project information
+                string? jamaProjectId = null;
+                string? jamaTestPlan = null;
+                
                 if (!string.IsNullOrWhiteSpace(documentPath) && File.Exists(documentPath))
                 {
                     UpdateProgress("Importing requirements from document...", 60);
                     
                     try
                     {
-                        // Use SmartRequirementImporter for automatic format detection and fallback
-                        var importResult = await _smartImporter.ImportRequirementsAsync(documentPath);
-                        
-                        if (importResult.Success)
+                        // Check if this is a JSON file from Jama import
+                        if (documentPath.EndsWith(".json", StringComparison.OrdinalIgnoreCase) && 
+                            Path.GetFileName(documentPath).StartsWith("JamaRequirements_", StringComparison.OrdinalIgnoreCase))
                         {
-                            importedRequirements = importResult.Requirements;
-                            _logger.LogInformation("✅ Successfully imported {Count} requirements using {Method}", 
-                                importedRequirements.Count, importResult.ImportMethod);
+                            _logger.LogInformation("📄 Detected Jama JSON file, loading requirements directly");
                             
-                            // Broadcast imported requirements to TestCaseGenerationMediator for UI sync
-                            BroadcastToAllDomains(new TestCaseGenerationEvents.RequirementsImported
+                            // Load requirements directly from JSON file created by Jama import
+                            var jsonContent = await File.ReadAllTextAsync(documentPath);
+                            var jamaWorkspace = JsonSerializer.Deserialize<Workspace>(jsonContent);
+                            
+                            if (jamaWorkspace?.Requirements != null)
                             {
-                                Requirements = importedRequirements,
-                                SourceFile = documentPath,
-                                ImportType = importResult.ImportMethod,
-                                ImportTime = importResult.ImportDuration
-                            });
+                                importedRequirements = jamaWorkspace.Requirements;
+                                
+                                // 🎯 Preserve Jama project information from original workspace
+                                jamaProjectId = jamaWorkspace.JamaProject;
+                                jamaTestPlan = jamaWorkspace.JamaTestPlan;
+                                
+                                _logger.LogInformation("✅ Successfully loaded {Count} requirements from Jama JSON file", 
+                                    importedRequirements.Count);
+                                _logger.LogInformation("🔍 DEBUG: Extracted Jama info - ProjectId: {ProjectId}, TestPlan: {TestPlan}", 
+                                    jamaProjectId, jamaTestPlan);
+                                
+                                // Broadcast imported requirements to TestCaseGenerationMediator for UI sync
+                                BroadcastToAllDomains(new TestCaseGenerationEvents.RequirementsImported
+                                {
+                                    Requirements = importedRequirements,
+                                    SourceFile = jamaWorkspace.SourceDocPath ?? "Jama Connect",
+                                    ImportType = "Jama Connect API",
+                                    ImportTime = TimeSpan.FromSeconds(1) // Approximate since we already imported
+                                });
+                            }
+                            else
+                            {
+                                requirementsImportedSuccessfully = false;
+                                _logger.LogWarning("⚠️ Jama JSON file contains no requirements");
+                                ShowNotification("Jama import file contains no requirements.", DomainNotificationType.Warning);
+                            }
                         }
                         else
                         {
-                            requirementsImportedSuccessfully = false;
-                            _logger.LogWarning("⚠️ Smart importer failed: {Error}", importResult.ErrorMessage);
-                            ShowNotification(importResult.UserMessage, DomainNotificationType.Warning);
+                            // Use SmartRequirementImporter for Word documents and other formats
+                            var importResult = await _smartImporter.ImportRequirementsAsync(documentPath);
+                            
+                            if (importResult.Success)
+                            {
+                                importedRequirements = importResult.Requirements;
+                                _logger.LogInformation("✅ Successfully imported {Count} requirements using {Method}", 
+                                    importedRequirements.Count, importResult.ImportMethod);
+                                
+                                // Broadcast imported requirements to TestCaseGenerationMediator for UI sync
+                                BroadcastToAllDomains(new TestCaseGenerationEvents.RequirementsImported
+                                {
+                                    Requirements = importedRequirements,
+                                    SourceFile = documentPath,
+                                    ImportType = importResult.ImportMethod,
+                                    ImportTime = importResult.ImportDuration
+                                });
+                            }
+                            else
+                            {
+                                requirementsImportedSuccessfully = false;
+                                _logger.LogWarning("⚠️ Smart importer failed: {Error}", importResult.ErrorMessage);
+                                ShowNotification(importResult.UserMessage, DomainNotificationType.Warning);
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -727,6 +847,30 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 }
                 
                 // 3. Create workspace object with imported requirements
+                
+                // Determine ImportSource based on actual import type
+                string importSource;
+                
+                // Debug: Check file path detection
+                string lowerPath = documentPath.ToLowerInvariant();
+                bool containsJama = lowerPath.Contains("jamarequirements");
+                bool isJson = lowerPath.EndsWith(".json");
+                _logger.LogInformation("🔍 DEBUG: File path detection - Path: '{0}', ContainsJama: {1}, IsJson: {2}", 
+                    documentPath, containsJama, isJson);
+                
+                if (containsJama && isJson)
+                {
+                    // This is a Jama JSON file - preserve original ImportSource = "Jama"
+                    importSource = "Jama";
+                    _logger.LogInformation("🎯 Setting ImportSource to 'Jama' - detected Jama JSON file");
+                }
+                else
+                {
+                    // Document import - user explicitly chose document import method
+                    importSource = "Document";
+                    _logger.LogInformation("🎯 Setting ImportSource to 'Document' - user chose document import method");
+                }
+                
                 var workspace = new Workspace
                 {
                     Name = projectName,
@@ -736,8 +880,15 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     LastSavedUtc = DateTime.UtcNow,
                     SaveCount = 0,
                     SourceDocPath = documentPath,
+                    ImportSource = importSource,  // 🎯 Set based on actual content type
+                    JamaProject = jamaProjectId,  // 🎯 Preserve Jama project ID for attachment scanning
+                    JamaTestPlan = jamaTestPlan,  // 🎯 Preserve Jama test plan name for display
                     Requirements = importedRequirements
                 };
+                
+                // 🔍 Debug: Verify ImportSource before saving
+                _logger.LogInformation($"🔍 DEBUG: About to save workspace with ImportSource = '{workspace.ImportSource}'");
+                Console.WriteLine($"🔍 DEBUG: About to save workspace with ImportSource = '{workspace.ImportSource}'");
 
                 // 4. Save workspace configuration
                 UpdateProgress("Saving workspace configuration...", 80);
@@ -776,6 +927,22 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 // Broadcast to other domains for cross-domain coordination
                 _logger.LogInformation("📡 Broadcasting ProjectCreated event to other domains: {ProjectName}", displayProjectName);
                 BroadcastToAllDomains(projectCreatedEvent);
+                
+                // Update workspace context for proper view routing (ImportSource-based)
+                var workspaceContextService = App.ServiceProvider?.GetService<TestCaseEditorApp.Services.IWorkspaceContext>();
+                if (workspaceContextService is TestCaseEditorApp.Services.WorkspaceContextService contextService)
+                {
+                    _logger.LogInformation("🔄 Updating workspace context for created project: ImportSource='{ImportSource}'", workspace.ImportSource);
+                    contextService.NotifyWorkspaceChanged(null, workspace, TestCaseEditorApp.Services.WorkspaceChangeType.Loaded);
+                }
+                
+                // Clear view configuration to ensure fresh routing based on new workspace data
+                var viewConfigService = App.ServiceProvider?.GetService<TestCaseEditorApp.Services.ViewConfigurationService>();
+                if (viewConfigService != null)
+                {
+                    _logger.LogInformation("🔄 Clearing view configuration for fresh routing");
+                    viewConfigService.ClearCurrentConfiguration();
+                }
                 
                 // Show success notification with appropriate message based on import success
                 if (requirementsImportedSuccessfully)
@@ -822,8 +989,11 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         {
             try
             {
-                // Check if a project is currently open
-                if (_currentWorkspaceInfo != null)
+                // Check if a real project is currently open (not just the auto-generated Default Workspace)
+                if (_currentWorkspaceInfo != null && 
+                    !string.IsNullOrEmpty(_currentWorkspaceInfo.Name) && 
+                    _currentWorkspaceInfo.Name != "Default Workspace" &&
+                    !_currentWorkspaceInfo.Path.Contains("default-workspace"))
                 {
                     string message = $"You currently have project '{_currentWorkspaceInfo.Name}' open.";
                     if (_currentWorkspaceInfo.HasUnsavedChanges)
@@ -951,7 +1121,10 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             };
             
             // TODO: Load actual workspace data
-            var workspace = new Workspace { Name = workspaceName };
+            var workspace = new Workspace { 
+                Name = workspaceName,
+                ImportSource = "Manual"  // 🎯 Empty/manual workspace
+            };
             
             var projectOpenedEvent = new NewProjectEvents.ProjectOpened 
             { 
@@ -1067,10 +1240,51 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     HandleWorkspaceContextChanged(workspaceChanged);
                     break;
                     
+                case TestCaseEditorApp.MVVM.Domains.OpenProject.Events.OpenProjectEvents.ProjectOpened projectOpened:
+                    HandleProjectOpened(projectOpened);
+                    break;
+                    
                 default:
                     _logger.LogDebug("Unhandled notification type: {NotificationType}", typeof(T).Name);
                     break;
             }
+        }
+        
+        /// <summary>
+        /// Handle project opened events from OpenProjectMediator to track current workspace
+        /// </summary>
+        private void HandleProjectOpened(TestCaseEditorApp.MVVM.Domains.OpenProject.Events.OpenProjectEvents.ProjectOpened notification)
+        {
+            _logger.LogInformation("🔔 NewProjectMediator received ProjectOpened event: {WorkspaceName} ({WorkspacePath})", 
+                notification.WorkspaceName, notification.WorkspacePath);
+                
+            // Update our workspace tracking to match the opened project
+            _currentWorkspaceInfo = new WorkspaceInfo
+            {
+                Name = notification.WorkspaceName,
+                Path = notification.WorkspacePath,
+                LastModified = DateTime.Now,
+                AnythingLLMSlug = notification.AnythingLLMWorkspaceSlug
+            };
+            
+            // Clear workspace context cache to ensure fresh data from new project
+            var workspaceContextService = App.ServiceProvider?.GetService<TestCaseEditorApp.Services.IWorkspaceContext>();
+            if (workspaceContextService is TestCaseEditorApp.Services.WorkspaceContextService contextService)
+            {
+                _logger.LogInformation("🔄 Refreshing workspace context cache for opened project");
+                contextService.NotifyWorkspaceChanged(null, notification.Workspace, TestCaseEditorApp.Services.WorkspaceChangeType.Loaded);
+            }
+            
+            // Clear view configuration to ensure fresh routing based on new workspace data
+            var viewConfigService = App.ServiceProvider?.GetService<TestCaseEditorApp.Services.ViewConfigurationService>();
+            if (viewConfigService != null)
+            {
+                _logger.LogInformation("🔄 Clearing view configuration for fresh routing");
+                viewConfigService.ClearCurrentConfiguration();
+            }
+            
+            _logger.LogInformation("✅ NewProjectMediator workspace tracking updated for: {WorkspaceName}", 
+                notification.WorkspaceName);
         }
 
         /// <summary>
@@ -1099,7 +1313,169 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         
         #endregion
 
+        #region Jama Connect Integration
 
+        /// <summary>
+        /// Test connection to Jama Connect service
+        /// </summary>
+        public async Task<(bool Success, string Message)> TestJamaConnectionAsync()
+        {
+            try
+            {
+                if (!_jamaConnectService.IsConfigured)
+                {
+                    return (false, "Jama not configured. Set environment variables: JAMA_BASE_URL, JAMA_CLIENT_ID, JAMA_CLIENT_SECRET");
+                }
+
+                var result = await _jamaConnectService.TestConnectionAsync();
+                _logger.LogInformation($"[NewProject] Jama connection test: {result.Success}");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[NewProject] Failed to test Jama connection");
+                return (false, $"Error testing connection: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Get available Jama projects
+        /// </summary>
+        public async Task<List<JamaProject>> GetJamaProjectsAsync()
+        {
+            try
+            {
+                if (!_jamaConnectService.IsConfigured)
+                {
+                    throw new InvalidOperationException("Jama not configured. Set environment variables: JAMA_BASE_URL, JAMA_CLIENT_ID, JAMA_CLIENT_SECRET");
+                }
+
+                var projects = await _jamaConnectService.GetProjectsAsync(CancellationToken.None);
+                _logger.LogInformation($"[NewProject] Retrieved {projects.Count} Jama projects");
+                return projects;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[NewProject] Failed to get Jama projects");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Get requirements from a specific Jama project with enhanced field data population
+        /// </summary>
+        public async Task<List<Requirement>> GetJamaRequirementsAsync(int projectId)
+        {
+            try
+            {
+                var jamaItems = await _jamaConnectService.GetRequirementsAsync(projectId, CancellationToken.None);
+                var requirements = await _jamaConnectService.ConvertToRequirementsWithEnumDecodingAsync(jamaItems, projectId, CancellationToken.None);
+                _logger.LogInformation($"[NewProject] Retrieved {requirements.Count} requirements from Jama project {projectId} with enhanced field data");
+                return requirements;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"[NewProject] Failed to get requirements from Jama project {projectId}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Import requirements from Jama and create a JSON requirements file for standard processing pipeline
+        /// </summary>
+        public async Task<string> ImportJamaRequirementsAsync(int projectId, string projectName, string projectKey)
+        {
+            try
+            {
+                // Get the requirements data from Jama with enhanced field population
+                var jamaItems = await _jamaConnectService.GetRequirementsAsync(projectId, CancellationToken.None);
+                var requirements = await _jamaConnectService.ConvertToRequirementsWithEnumDecodingAsync(jamaItems, projectId, CancellationToken.None);
+
+                // Set source project information
+                foreach (var req in requirements)
+                {
+                    if (string.IsNullOrEmpty(req.Project))
+                    {
+                        req.Project = projectName;
+                    }
+                }
+
+                // Create a temporary JSON file that can be processed by SmartRequirementImporter
+                var tempPath = Path.Combine(Path.GetTempPath(), $"JamaRequirements_{projectKey}_{DateTime.Now:yyyyMMdd_HHmmss}.json");
+
+                // Create a workspace object to serialize (this is the standard format)
+                var workspace = new Workspace
+                {
+                    Name = $"Jama Import - {projectName}",
+                    Version = Workspace.SchemaVersion,
+                    CreatedBy = Environment.UserName,
+                    CreatedUtc = DateTime.UtcNow,
+                    LastSavedUtc = DateTime.UtcNow,
+                    JamaProject = projectId.ToString(), // 🎯 Store project ID for attachment scanning
+                    JamaTestPlan = projectName, // Store project name for display
+                    Requirements = requirements,
+                    SourceDocPath = $"Jama Project: {projectName} ({projectKey})",
+                    ImportSource = "Jama"  // 🎯 Definitive flag for view routing
+                };
+
+                // 🔍 DEBUG: Log the ImportSource before saving
+                _logger.LogInformation($"🔍 DEBUG: About to save Jama workspace with ImportSource = '{workspace.ImportSource}'");
+                Console.WriteLine($"🔍 DEBUG: About to save Jama workspace with ImportSource = '{workspace.ImportSource}'");
+
+                // Save workspace using the standard WorkspaceService.Save method for consistency
+                global::WorkspaceService.Save(tempPath, workspace);
+
+                // 🔍 DEBUG: Verify the saved file contains ImportSource
+                var savedJson = File.ReadAllText(tempPath);
+                if (savedJson.Contains("ImportSource"))
+                {
+                    _logger.LogInformation("✅ DEBUG: Saved JSON contains ImportSource field");
+                    Console.WriteLine("✅ DEBUG: Saved JSON contains ImportSource field");
+                }
+                else
+                {
+                    _logger.LogError("❌ DEBUG: Saved JSON missing ImportSource field!");
+                    Console.WriteLine("❌ DEBUG: Saved JSON missing ImportSource field!");
+                    Console.WriteLine($"Saved JSON snippet: {savedJson.Substring(0, Math.Min(500, savedJson.Length))}");
+                }
+
+                _logger.LogInformation($"[NewProject] Successfully imported {requirements.Count} requirements from Jama project {projectName} to {tempPath}");
+                return tempPath;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"[NewProject] Failed to import requirements from Jama project {projectName}");
+                throw;
+            }
+        }
+
+        public async Task NotifyConnectionErrorAsync(string message)
+        {
+            // Publish a simple notification event that the notification workspace can listen for
+            // This keeps it simple - just a lightweight error notification
+            PublishEvent(new ConnectionErrorNotification
+            {
+                Message = message,
+                Timestamp = DateTime.UtcNow,
+                Source = "Jama Connect"
+            });
+            
+            await Task.CompletedTask; // Keep it async for interface compliance
+        }
+
+        #endregion
+
+
+    }
+
+    /// <summary>
+    /// Simple notification for connection errors
+    /// </summary>
+    public class ConnectionErrorNotification
+    {
+        public string Message { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
+        public string Source { get; set; } = string.Empty;
     }
 
     /// <summary>
@@ -1109,5 +1485,14 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
     {
         public bool ForOpenExisting { get; set; }
         public string DomainContext { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Cross-domain request for navigating to a section
+    /// </summary>
+    public class NavigateToSectionRequest
+    {
+        public string SectionName { get; set; } = string.Empty;
+        public string? Context { get; set; }
     }
 }

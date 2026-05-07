@@ -8,12 +8,17 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
+using TestCaseEditorApp.MVVM.Domains.OpenProject.Events;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Events;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Models.DataDrivenMenu;
 using TestCaseEditorApp.MVVM.Utils;
+using TestCaseEditorApp.MVVM.Views.Dialogs;
 using TestCaseEditorApp.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -30,8 +35,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly IOpenProjectMediator _openProjectMediator;
         private readonly INavigationMediator _navigationMediator;
         private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
+        private readonly IRequirementsMediator _requirementsMediator;
         private readonly TestCaseAnythingLLMService _testCaseAnythingLLMService;
         private readonly JamaConnectService _jamaConnectService;
+        private readonly IRequirementService _requirementService;
+        private readonly IJamaTestCaseConversionService _jamaTestCaseConversionService;
         private readonly ILogger<SideMenuViewModel> _logger;
         
         // AnythingLLM status tracking - use ObservableProperty for automatic command updates  
@@ -41,6 +49,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // Requirements state tracking - use ObservableProperty for automatic command updates
         [ObservableProperty] 
         private bool hasRequirements = false;
+        
+        // Workspace dirty state - indicates unsaved changes
+        [ObservableProperty]
+        private bool hasUnsavedChanges = false;
 
         // AnythingLLM status text for Test Case Generator section
         [ObservableProperty]
@@ -50,19 +62,28 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty]
         private bool isAnalysisTabActive = false;
 
+        // Project state tracking
+        [ObservableProperty]
+        private bool isProjectLoaded = false;
+
         [ObservableProperty]
         private string? selectedSection;
 
         [ObservableProperty]
         private ObservableCollection<MenuItemViewModel> menuItems = new();
         
+        // Domain-driven side menu section (not tied to TestCaseGenerator)
         [ObservableProperty]
-        private ObservableCollection<StepDescriptor> testCaseGeneratorSteps = new();
+        private MenuSection? sideMenuSection = new MenuSection 
+        { 
+            Id = "loading", 
+            Text = "Loading...", 
+            Icon = "", 
+            Items = new ObservableCollection<MenuContentItem>() 
+        };
         
         // === DATA-DRIVEN MENU SYSTEM ===
         // New data-driven approach that replaces hardcoded XAML
-        [ObservableProperty]
-        private MenuSection? testCaseGeneratorMenuSection;
 
         // Project Management Commands
         public ICommand NewProjectCommand { get; private set; } = null!;
@@ -71,14 +92,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand SaveProjectCommand { get; private set; } = null!;
 
         public ICommand ProjectNavigationCommand { get; private set; } = null!;
-        public ICommand TestCaseGeneratorNavigationCommand { get; private set; } = null!;
         public ICommand RequirementsNavigationCommand { get; private set; } = null!;
+        public ICommand TestCaseGeneratorNavigationCommand { get; private set; } = null!;
         public ICommand NewProjectNavigationCommand { get; private set; } = null!;
         public ICommand DummyNavigationCommand { get; private set; } = null!;
+        public ICommand LLMLearningNavigationCommand { get; private set; } = null!;
+        public ICommand LLMTestCaseGeneratorNavigationCommand { get; private set; } = null!;
+        public ICommand TestCaseCreationNavigationCommand { get; private set; } = null!;
         public ICommand StartupNavigationCommand { get; private set; } = null!;
 
         // Requirements Management Commands
         public ICommand ImportAdditionalCommand { get; private set; } = null!;
+        public ICommand RequirementsSearchAttachmentsCommand { get; private set; } = null!;
         
         // === MISSING COMMANDS FOR UI BINDING ===
         // These commands are bound to in XAML but were missing from the ViewModel
@@ -103,7 +128,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         // These properties are bound to in XAML but were missing from the ViewModel
         
         [ObservableProperty]
-        private string? sapStatus;
+        private string? sapStatus = "Systems ATE APP v2.0";
         
         [ObservableProperty]
         private string? selectedMenuSection;
@@ -117,26 +142,49 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty]
         private bool autoExportForChatGpt = false;
 
-        public SideMenuViewModel(INewProjectMediator newProjectMediator, IOpenProjectMediator openProjectMediator, INavigationMediator navigationMediator, ITestCaseGenerationMediator testCaseGenerationMediator, TestCaseAnythingLLMService testCaseAnythingLLMService, JamaConnectService jamaConnectService, ILogger<SideMenuViewModel> logger)
+        public SideMenuViewModel(INewProjectMediator newProjectMediator, IOpenProjectMediator openProjectMediator, INavigationMediator navigationMediator, ITestCaseGenerationMediator testCaseGenerationMediator, IRequirementsMediator requirementsMediator, TestCaseAnythingLLMService testCaseAnythingLLMService, JamaConnectService jamaConnectService, IRequirementService requirementService, IJamaTestCaseConversionService jamaTestCaseConversionService, ILogger<SideMenuViewModel> logger)
         {
+            //// ("*** SideMenuViewModel constructor called! ***");
+            //// ("*** SideMenuViewModel constructor called! ***");
+            
             _newProjectMediator = newProjectMediator ?? throw new ArgumentNullException(nameof(newProjectMediator));
             _openProjectMediator = openProjectMediator ?? throw new ArgumentNullException(nameof(openProjectMediator));
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
             _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
+            _requirementsMediator = requirementsMediator ?? throw new ArgumentNullException(nameof(requirementsMediator));
             _testCaseAnythingLLMService = testCaseAnythingLLMService ?? throw new ArgumentNullException(nameof(testCaseAnythingLLMService));
             _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
+            _requirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
+            _jamaTestCaseConversionService = jamaTestCaseConversionService ?? throw new ArgumentNullException(nameof(jamaTestCaseConversionService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             
-            // Subscribe to AnythingLLM status updates
-            AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusUpdated;
+            //// ("*** SideMenuViewModel constructor: Dependencies resolved successfully ***");
             
-            // Subscribe to requirements state changes for command availability
-            SetupRequirementsEventSubscriptions();
-            
-            InitializeCommands();
-            InitializeMenuItems();
-            InitializeTestCaseGeneratorSteps();
-            InitializeDataDrivenTestCaseGenerator(); // NEW: Data-driven menu
+            try
+            {
+                // Subscribe to AnythingLLM status updates
+                AnythingLLMMediator.StatusUpdated += OnAnythingLLMStatusUpdated;
+                
+                // Subscribe to requirements state changes for command availability
+                SetupRequirementsEventSubscriptions();
+                
+                //// ("*** SideMenuViewModel constructor: About to initialize commands ***");
+                InitializeCommands();
+                
+                //// ("*** SideMenuViewModel constructor: About to initialize menu items ***");
+                InitializeMenuItems();
+                
+                //// ("*** SideMenuViewModel constructor: About to initialize side menu ***");
+                InitializeSideMenu();
+                
+                //// ("*** SideMenuViewModel constructor: Initialization completed ***");
+            }
+            catch (Exception)
+            {
+                //// ("*** SideMenuViewModel constructor: ERROR during initialization ***");
+                throw;
+            }
+            // Removed TestCaseGenerator menu initialization - using Requirements domain directly
             
             // Request current status in case it was already set before we subscribed
             AnythingLLMMediator.RequestCurrentStatus();
@@ -147,26 +195,30 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             NewProjectCommand = new AsyncRelayCommand(CreateNewProjectAsync, CanExecuteProjectCommands);
             TestClickCommand = new RelayCommand(() => System.Windows.MessageBox.Show("Test button clicked!", "Data-Driven Test"));
             OpenProjectCommand = new RelayCommand(NavigateToOpenProject, CanExecuteProjectCommands);
-            SaveProjectCommand = new RelayCommand(() => { /* TODO: Implement save */ }, CanExecuteProjectActions);
+            SaveProjectCommand = new AsyncRelayCommand(SaveProjectAsync, CanExecuteProjectActions);
             ProjectNavigationCommand = new RelayCommand(NavigateToProject);
+            RequirementsNavigationCommand = new RelayCommand(NavigateToRequirements, CanAccessRequirements);
             TestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToTestCaseGenerator);
-            TestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToTestCaseGenerator);
-            RequirementsNavigationCommand = new RelayCommand(NavigateToRequirements);
             NewProjectNavigationCommand = new RelayCommand(NavigateToNewProject, CanExecuteProjectCommands);
             DummyNavigationCommand = new RelayCommand(NavigateToDummy);
+            LLMLearningNavigationCommand = new RelayCommand(NavigateToLLMLearning);
+            TestCaseCreationNavigationCommand = new RelayCommand(NavigateToTestCaseCreation);
+            LLMTestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToLLMTestCaseGenerator);
             StartupNavigationCommand = new RelayCommand(NavigateToStartup);
             
             // Requirements commands
             ImportAdditionalCommand = new AsyncRelayCommand(ImportAdditionalAsync, CanImportAdditionalRequirements);
+            RequirementsSearchAttachmentsCommand = new RelayCommand(NavigateToRequirementsSearchAttachments, CanAccessRequirementsSearchAttachments);
             
-            // Initialize missing commands
+            // Initialize missing commands with proper navigation
             UnloadProjectCommand = new AsyncRelayCommand(UnloadProjectAsync, CanExecuteProjectActions);
-            BatchAnalyzeCommand = new RelayCommand(() => { /* TODO: Implement batch analyze */ }, CanAnalyzeRequirements);
-            AnalyzeUnanalyzedCommand = new RelayCommand(() => { /* TODO: Implement analyze unanalyzed */ });
-            ReAnalyzeModifiedCommand = new RelayCommand(() => { /* TODO: Implement re-analyze modified */ });
-            GenerateAnalysisCommandCommand = new RelayCommand(() => { /* TODO: Implement generate analysis command */ });
-            GenerateTestCaseCommandCommand = new RelayCommand(NavigateToTestCaseCreation);
+            BatchAnalyzeCommand = new RelayCommand(NavigateToRequirements, CanAnalyzeRequirements); // Navigate to requirements for analysis
+            AnalyzeUnanalyzedCommand = new RelayCommand(NavigateToRequirements); // Navigate to requirements for analysis
+            ReAnalyzeModifiedCommand = new RelayCommand(NavigateToRequirements); // Navigate to requirements for re-analysis
+            GenerateAnalysisCommandCommand = new RelayCommand(NavigateToRequirements); // Navigate to requirements for analysis commands
+            GenerateTestCaseCommandCommand = new RelayCommand(NavigateToTestCaseGenerator); // Navigate to test case generator
             ToggleAutoExportCommand = new RelayCommand(() => AutoExportForChatGpt = !AutoExportForChatGpt);
+            ExportForChatGptCommand = new RelayCommand(NavigateToTestCaseGenerator); // Navigate to test case generator for export
             ExportAllToJamaCommand = new AsyncRelayCommand(ExportAllToJamaAsync);
             
             // Demo command for testing state management
@@ -175,8 +227,25 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private async Task CreateNewProjectAsync()
         {
-            Console.WriteLine("*** SideMenuViewModel.CreateNewProject called! ***");
+            //// ("*** SideMenuViewModel.CreateNewProject called! ***");
             await _newProjectMediator.CreateNewProjectAsync();
+        }
+
+        /// <summary>
+        /// Save the current project
+        /// </summary>
+        private async Task SaveProjectAsync()
+        {
+            try
+            {
+                _logger.LogInformation("[SideMenuViewModel] Save Project called");
+                await _newProjectMediator.SaveProjectAsync();
+                _logger.LogInformation("[SideMenuViewModel] Save Project completed");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[SideMenuViewModel] Error saving project");
+            }
         }
         
         /// <summary>
@@ -184,13 +253,26 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         private async Task UnloadProjectAsync()
         {
-            Console.WriteLine("*** SideMenuViewModel.UnloadProject called! ***");
-            await _newProjectMediator.CloseProjectAsync();
+            try
+            {
+                _logger.LogInformation("UnloadProject button clicked - starting project unload");
+// ("*** SideMenuViewModel.UnloadProject called! ***");
+                
+                await _newProjectMediator.CloseProjectAsync();
+                
+                _logger.LogInformation("Project unload completed successfully");
+// ("*** Project unload completed successfully ***");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during project unload: {Message}", ex.Message);
+// ($"*** Error during project unload: {ex.Message} ***");
+            }
         }
         private void NavigateToProject()
         {
-            System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToProject called! ***");
-            Console.WriteLine("*** SideMenuViewModel.NavigateToProject called! ***");
+// ("*** SideMenuViewModel.NavigateToProject called! ***");
+// ("*** SideMenuViewModel.NavigateToProject called! ***");
             
             SelectedSection = "Project"; // Update selected section to trigger SectionChanged event
             
@@ -201,47 +283,89 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToTestCaseCreation called! ***");
-                Console.WriteLine("*** SideMenuViewModel.NavigateToTestCaseCreation called! ***");
+// ("*** SideMenuViewModel.NavigateToTestCaseCreation called! ***");
+// ("*** SideMenuViewModel.NavigateToTestCaseCreation called! ***");
                 
-                Console.WriteLine($"*** Navigating to TestCaseCreation section, current selected: {SelectedSection} ***");
+// ($"*** Navigating to TestCaseCreation section, current selected: {SelectedSection} ***");
                 SelectedSection = "TestCaseCreation"; // Update selected section to trigger SectionChanged event
                 
-                Console.WriteLine("*** About to call NavigateToSection('TestCaseCreation') ***");
+// ("*** About to call NavigateToSection('TestCaseCreation') ***");
                 _navigationMediator.NavigateToSection("TestCaseCreation");
-                Console.WriteLine("*** NavigateToSection call completed ***");
+// ("*** NavigateToSection call completed ***");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"*** ERROR in NavigateToTestCaseCreation: {ex.Message} ***");
-                System.Diagnostics.Debug.WriteLine($"*** ERROR in NavigateToTestCaseCreation: {ex.Message} ***");
-                System.Diagnostics.Debug.WriteLine($"*** Stack trace: {ex.StackTrace} ***");
+// ("*** ERROR in NavigateToTestCaseCreation ***");
             }
         }
         
-        private async void NavigateToTestCaseGenerator()
+        private void NavigateToTestCaseGenerator()
         {
-            System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToTestCaseGenerator called! ***");
-            // Request fresh AnythingLLM status when navigating to Test Case Generator
-            AnythingLLMMediator.RequestCurrentStatus();
-            
-            SelectedSection = "TestCase"; // Update selected section to trigger SectionChanged event
-            
-            // Navigate to splash screen first
-            _navigationMediator.NavigateToSection("TestCase");
-            
-            // Then launch AnythingLLM in background
-            await _testCaseAnythingLLMService.ConnectAsync();
+            // When users click the parent "Test Case Generator" menu item,
+            // show them the useful LLM Test Case Generator instead of the placeholder view
+            SelectedSection = "LLMTestCaseGenerator";
+            _navigationMediator?.NavigateToSection("LLMTestCaseGenerator");
         }
         
         private void NavigateToRequirements()
         {
             System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToRequirements called! ***");
-            Console.WriteLine("*** SideMenuViewModel.NavigateToRequirements called! ***");
+            System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToRequirements called! ***");
+            
+            // Write to log file for visibility
+            try {
+                System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: SideMenuViewModel.NavigateToRequirements called\n");
+            } catch { /* ignore */ }
+            
+            // CRITICAL DEBUG: Force case-insensitive navigation
+            System.Diagnostics.Debug.WriteLine("*** FORCING NAVIGATION TO 'requirements' (lowercase) ***");
+            System.Diagnostics.Debug.WriteLine("*** FORCING NAVIGATION TO 'requirements' (lowercase) ***");
+            
+            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator is null: {_navigationMediator == null} ***");
+            System.Diagnostics.Debug.WriteLine($"*** NavigationMediator is null: {_navigationMediator == null} ***");
             
             SelectedSection = "Requirements"; // Update selected section to trigger SectionChanged event
             
-            _navigationMediator.NavigateToSection("Requirements");
+            try 
+            {
+                System.Diagnostics.Debug.WriteLine("*** About to call NavigateToSection ***");
+                System.Diagnostics.Debug.WriteLine("*** About to call NavigateToSection ***");
+                System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: About to call NavigationMediator.NavigateToSection('requirements')\n");
+                _navigationMediator?.NavigateToSection("requirements"); // Force lowercase
+                System.Diagnostics.Debug.WriteLine("*** NavigateToSection call completed ***");
+                System.Diagnostics.Debug.WriteLine("*** NavigateToSection call completed ***");
+                System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: NavigationMediator.NavigateToSection call completed\n");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"*** EXCEPTION in NavigateToSection: {ex.Message} ***");
+                System.Diagnostics.Debug.WriteLine($"*** EXCEPTION in NavigateToSection: {ex.Message} ***");
+                System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: EXCEPTION: {ex.Message}\n{ex.StackTrace}\n");
+            }
+        }
+        
+        /// <summary>
+        /// Navigate to Requirements Search in Attachments feature
+        /// Uses RequirementsMediator following Architectural Guide AI patterns
+        /// </summary>
+        private void NavigateToRequirementsSearchAttachments()
+        {
+            try
+            {
+                // Set selected section for UI state
+                SelectedSection = "Requirements";
+                
+                // Navigate to Requirements domain first
+                _navigationMediator?.NavigateToSection("requirements");
+                
+                // Use RequirementsMediator to navigate to specific feature within Requirements domain
+                // This follows the Architectural Guide AI pattern for domain-specific navigation
+                _requirementsMediator?.NavigateToRequirementsSearchAttachments();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "[SideMenu] Error navigating to Requirements Search in Attachments");
+            }
         }
         
         /// <summary>
@@ -253,16 +377,16 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 await _newProjectMediator.ImportAdditionalRequirementsAsync();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Error handling is done in the mediator, but log here for completeness
-                System.Diagnostics.Debug.WriteLine($"Error in ImportAdditionalAsync: {ex.Message}");
+// ("Error in ImportAdditionalAsync");
             }
         }
         
         private void NavigateToNewProject()
         {
-            Console.WriteLine("*** SideMenuViewModel.NavigateToNewProject called! ***");
+// ("*** SideMenuViewModel.NavigateToNewProject called! ***");
             
             SelectedSection = "NewProject"; // Update selected section to trigger SectionChanged event
             
@@ -271,18 +395,34 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         
         private void NavigateToDummy()
         {
-            System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToDummy called! ***");
-            Console.WriteLine("*** SideMenuViewModel.NavigateToDummy called! ***");
+// ("*** SideMenuViewModel.NavigateToDummy called! ***");
+// ("*** SideMenuViewModel.NavigateToDummy called! ***");
             
             SelectedSection = "Dummy"; // Update selected section to trigger SectionChanged event
             
             _navigationMediator.NavigateToSection("Dummy");
         }
         
+        private void NavigateToLLMLearning()
+        {
+// ("*** SideMenuViewModel.NavigateToLLMLearning called! ***");
+// ("*** SideMenuViewModel.NavigateToLLMLearning called! ***");
+            
+            SelectedSection = "LLMLearning"; // Update selected section to trigger SectionChanged event
+            
+            _navigationMediator.NavigateToSection("llm learning");
+        }
+        
+        private void NavigateToLLMTestCaseGenerator()
+        {
+            SelectedSection = "LLMTestCaseGenerator";
+            _navigationMediator.NavigateToSection("LLMTestCaseGenerator");
+        }
+        
         private void NavigateToStartup()
         {
-            System.Diagnostics.Debug.WriteLine("*** SideMenuViewModel.NavigateToStartup called! ***");
-            Console.WriteLine("*** SideMenuViewModel.NavigateToStartup called! ***");
+// ("*** SideMenuViewModel.NavigateToStartup called! ***");
+// ("*** SideMenuViewModel.NavigateToStartup called! ***");
             
             SelectedSection = "startup"; // Update selected section to trigger SectionChanged event
             
@@ -318,13 +458,25 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             return IsAnythingLLMReady && HasRequirements; // Analysis requires LLM
         }
+
+        private bool CanAccessRequirements()
+        {
+            return IsProjectLoaded; // Allow Requirements navigation when any project is loaded, regardless of whether it has requirements yet
+        }
+
+        private bool CanAccessRequirementsSearchAttachments()
+        {
+            // Available when project is loaded and Jama service is configured
+            // This allows searching for requirements in Jama attachments even if no requirements are loaded yet
+            return IsProjectLoaded && _jamaConnectService.IsConfigured;
+        }
         
         #endregion
         
         
         private void NavigateToOpenProject()
         {
-            Console.WriteLine("*** SideMenuViewModel.NavigateToOpenProject called! ***");
+// ("*** SideMenuViewModel.NavigateToOpenProject called! ***");
             
             SelectedSection = "OpenProject"; // Update selected section to trigger SectionChanged event
             
@@ -382,46 +534,120 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             MenuItems.Add(new MenuItemViewModel { Id = "NewProject", Title = "New Project", Badge = "" });
         }
         
-        private void InitializeTestCaseGeneratorSteps()
+        private void InitializeSideMenu()
         {
-            TestCaseGeneratorSteps.Add(new StepDescriptor 
-            { 
-                Id = "project",
-                DisplayName = "Project", 
-                Badge = "",
-                HasFileMenu = true
-            });
-            TestCaseGeneratorSteps.Add(new StepDescriptor 
-            { 
-                Id = "requirements",
-                DisplayName = "Requirements", 
-                Badge = "",
-                HasFileMenu = true
-            });
-            TestCaseGeneratorSteps.Add(new StepDescriptor 
-            { 
-                Id = "llm-learning",
-                DisplayName = "LLM Learning", 
-                Badge = "",
-                HasFileMenu = true
-            });
-            TestCaseGeneratorSteps.Add(new StepDescriptor 
-            { 
-                Id = "testcase-creation",
-                DisplayName = "Test Case Generator", 
-                Badge = "",
-                HasFileMenu = true
-            });
+            // Create domain-independent side menu using existing data-driven menu infrastructure
+            // Set up "Test Case Generator" as the main parent menu action with all functionality as children
+            SideMenuSection = new MenuSection
+            {
+                Id = "application-menu",
+                Text = "Application Menu",
+                Icon = "",
+                IsExpanded = true, // Make sure the section itself is expanded
+                Items = new ObservableCollection<MenuContentItem>
+                {
+                    new MenuAction
+                    {
+                        Id = "test-case-generator",
+                        Text = "Test Case Generator",
+                        Icon = "🧪",
+                        Command = TestCaseGeneratorNavigationCommand, // Route to TestCaseGenerator workspace
+                        IsDropdown = true,
+                        IsExpanded = false, // Start collapsed so user can expand to see functionality
+                        Children = new ObservableCollection<MenuContentItem>
+                        {
+                            new MenuAction
+                            {
+                                Id = "project",
+                                Text = "Project",
+                                Icon = "📁",
+                                Command = ProjectNavigationCommand,
+                                IsDropdown = true,
+                                Children = new ObservableCollection<MenuContentItem>
+                                {
+                                    new MenuAction { Id = "project.new", Text = "New Project", Icon = "🗂️", Command = NewProjectCommand },
+                                    new MenuAction { Id = "project.dummy", Text = "Dummy Domain", Icon = "🔧", Command = DummyNavigationCommand },
+                                    new MenuAction { Id = "project.open", Text = "Open Project", Icon = "📂", Command = OpenProjectCommand },
+                                    new MenuAction { Id = "project.save", Text = "Save Project", Icon = "💾", Command = SaveProjectCommand },
+                                    new MenuAction { Id = "project.unload", Text = "Unload Project", Icon = "📤", Command = UnloadProjectCommand }
+                                }
+                            },
+                            new MenuAction
+                            {
+                                Id = "requirements",
+                                Text = "Requirements",
+                                Icon = "📋",
+                                Command = RequirementsNavigationCommand,
+                                IsDropdown = true, // Proper dropdown pattern as per architectural guide
+                                Children = new ObservableCollection<MenuContentItem>
+                                {
+                                    new MenuAction { Id = "requirements.import", Text = "Import Additional Requirements", Icon = "📥", Command = ImportAdditionalCommand }
+                                }
+                            },
+                            new MenuAction
+                            {
+                                Id = "llm-learning",
+                                Text = "LLM Learning",
+                                Icon = "🤖",
+                                Command = LLMLearningNavigationCommand,
+                                IsDropdown = true,
+                                Children = new ObservableCollection<MenuContentItem>
+                                {
+                                    new MenuAction { Id = "llm.generate", Text = "Generate Analysis Command", Icon = "⚙️", Command = GenerateAnalysisCommandCommand },
+                                    new MenuAction { Id = "llm.export", Text = "Export for ChatGPT", Icon = "💬", Command = ExportForChatGptCommand },
+                                    new MenuAction { Id = "llm.toggle", Text = "Toggle Auto Export", Icon = "🔄", Command = ToggleAutoExportCommand }
+                                }
+                            },
+                            new MenuAction
+                            {
+                                Id = "llm-test-case-generator",
+                                Text = "LLM Test Case Generator",
+                                Icon = "🤖✨",
+                                Command = LLMTestCaseGeneratorNavigationCommand
+                            },
+                            new MenuAction
+                            {
+                                Id = "test-case-creation",
+                                Text = "Test Case Creation",
+                                Icon = "📝",
+                                Command = TestCaseCreationNavigationCommand,
+                                IsDropdown = true,
+                                Children = new ObservableCollection<MenuContentItem>
+                                {
+                                    new MenuAction { Id = "testcase.create", Text = "Test Case Creation", Icon = "📄", Command = TestCaseCreationNavigationCommand },
+                                    new MenuAction { Id = "testcase.generate", Text = "Generate Test Case Command", Icon = "⚡", Command = GenerateTestCaseCommandCommand },
+                                    new MenuAction { Id = "testcase.export", Text = "Import to Jama Connect...", Icon = "🌐", Command = ExportAllToJamaCommand }
+                                }
+                            }
+                        }
+                    }
+                }
+            };
         }
         
         /// <summary>
+        /// Setup event subscriptions for requirements state changes
+        /// </summary>
         private void SetupRequirementsEventSubscriptions()
         {
-            // Subscribe to requirements imported events
-            _testCaseGenerationMediator.Subscribe<TestCaseGenerationEvents.RequirementsImported>(OnRequirementsImported);
+            // Subscribe to TestCaseGeneration domain events (legacy compatibility)
+            _testCaseGenerationMediator.Subscribe<TestCaseGenerationEvents.RequirementsImported>(OnTestCaseGenerationRequirementsImported);
             _testCaseGenerationMediator.Subscribe<TestCaseGenerationEvents.AdditionalRequirementsImported>(OnAdditionalRequirementsImported);
-            _testCaseGenerationMediator.Subscribe<TestCaseGenerationEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
+            _testCaseGenerationMediator.Subscribe<TestCaseGenerationEvents.RequirementsCollectionChanged>(OnTestCaseGenerationRequirementsCollectionChanged);
             _testCaseGenerationMediator.Subscribe<TestCaseGenerationEvents.SupportViewChanged>(OnSupportViewChanged);
+            
+            // Subscribe to Requirements domain events (new independent domain)
+            _requirementsMediator.Subscribe<RequirementsEvents.RequirementsImported>(OnRequirementsImported);
+            _requirementsMediator.Subscribe<RequirementsEvents.RequirementsCollectionChanged>(OnRequirementsCollectionChanged);
+            
+            // Subscribe to OpenProject domain events (for project opening)
+            _openProjectMediator.Subscribe<OpenProjectEvents.ProjectOpened>(OnProjectOpened);
+            
+            // Subscribe to NewProject domain events (for workspace state)
+            _newProjectMediator.Subscribe<NewProjectEvents.ProjectCreated>(OnProjectCreated);
+            _newProjectMediator.Subscribe<NewProjectEvents.ProjectClosed>(OnProjectClosed);
+            _newProjectMediator.Subscribe<NewProjectEvents.WorkspaceModified>(OnWorkspaceModified);
+            _newProjectMediator.Subscribe<NewProjectEvents.ProjectSaved>(OnProjectSaved);
         }
         
         /// <summary>
@@ -434,9 +660,70 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
         
         /// <summary>
-        /// Handle requirements imported events
+        /// Handle project created from NewProject domain
         /// </summary>
-        private void OnRequirementsImported(TestCaseGenerationEvents.RequirementsImported evt)
+        private void OnProjectCreated(NewProjectEvents.ProjectCreated evt)
+        {
+            IsProjectLoaded = true; // Track that a project is now loaded
+            HasRequirements = evt.Workspace?.Requirements?.Count > 0;
+            HasUnsavedChanges = false; // Newly created project, no unsaved changes yet
+            _logger.LogInformation("[SideMenuVM] Project created, IsProjectLoaded=true, HasRequirements set to {HasReq} ({Count} requirements)", 
+                HasRequirements, evt.Workspace?.Requirements?.Count ?? 0);
+        }
+        
+        /// <summary>
+        /// Handle project opened from OpenProject domain
+        /// </summary>
+        private void OnProjectOpened(OpenProjectEvents.ProjectOpened evt)
+        {
+            IsProjectLoaded = true; // Track that a project is now loaded
+            HasRequirements = evt.Workspace?.Requirements?.Count > 0;
+            HasUnsavedChanges = false; // Fresh project load, no unsaved changes
+            _logger.LogInformation("[SideMenuVM] Project opened, IsProjectLoaded=true, HasRequirements set to {HasReq} ({Count} requirements)", 
+                HasRequirements, evt.Workspace?.Requirements?.Count ?? 0);
+        }
+
+        /// <summary>
+        /// Handle project closed state
+        /// </summary>
+        private void OnProjectClosed(NewProjectEvents.ProjectClosed evt)
+        {
+            IsProjectLoaded = false; // Track that no project is loaded
+            HasRequirements = false; // No requirements when project is closed
+            HasUnsavedChanges = false; // No unsaved changes when project is closed
+            _logger.LogInformation("[SideMenuVM] Project closed, IsProjectLoaded=false");
+        }
+        
+        /// <summary>
+        /// Handle workspace modifications (data changed, needs save)
+        /// </summary>
+        private void OnWorkspaceModified(NewProjectEvents.WorkspaceModified evt)
+        {
+            HasUnsavedChanges = true;
+            _logger.LogInformation("[SideMenuVM] Workspace modified: {Reason}", evt.Reason);
+        }
+        
+        /// <summary>
+        /// Handle project saved (clear dirty flag)
+        /// </summary>
+        private void OnProjectSaved(NewProjectEvents.ProjectSaved evt)
+        {
+            HasUnsavedChanges = false;
+            _logger.LogInformation("[SideMenuVM] Project saved, unsaved changes cleared");
+        }
+        
+        /// <summary>
+        /// Handle requirements imported events from TestCaseGeneration domain
+        /// </summary>
+        private void OnTestCaseGenerationRequirementsImported(TestCaseGenerationEvents.RequirementsImported evt)
+        {
+            HasRequirements = evt.Requirements?.Count > 0; // ObservableProperty automatically triggers command updates
+        }
+        
+        /// <summary>
+        /// Handle requirements imported events from Requirements domain
+        /// </summary>
+        private void OnRequirementsImported(RequirementsEvents.RequirementsImported evt)
         {
             HasRequirements = evt.Requirements?.Count > 0; // ObservableProperty automatically triggers command updates
         }
@@ -450,9 +737,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         /// <summary>
-        /// Handle requirements collection changes (add/remove/clear)
+        /// Handle requirements collection changes from TestCaseGeneration domain (add/remove/clear)
         /// </summary>
-        private void OnRequirementsCollectionChanged(TestCaseGenerationEvents.RequirementsCollectionChanged evt)
+        private void OnTestCaseGenerationRequirementsCollectionChanged(TestCaseGenerationEvents.RequirementsCollectionChanged evt)
+        {
+            HasRequirements = evt.NewCount > 0; // ObservableProperty automatically triggers command updates
+        }
+        
+        /// <summary>
+        /// Handle requirements collection changes from Requirements domain (add/remove/clear)
+        /// </summary>
+        private void OnRequirementsCollectionChanged(RequirementsEvents.RequirementsCollectionChanged evt)
         {
             HasRequirements = evt.NewCount > 0; // ObservableProperty automatically triggers command updates
         }
@@ -483,6 +778,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             (ImportAdditionalCommand as IRelayCommand)?.NotifyCanExecuteChanged();
             (BatchAnalyzeCommand as IRelayCommand)?.NotifyCanExecuteChanged();
             (UnloadProjectCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+            (RequirementsNavigationCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+        }
+
+        /// <summary>
+        /// Called when IsProjectLoaded changes - notify commands that depend on it
+        /// </summary>
+        partial void OnIsProjectLoadedChanged(bool value)
+        {
+            // Notify commands that depend on IsProjectLoaded to re-evaluate their CanExecute
+            (RequirementsNavigationCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+            (RequirementsSearchAttachmentsCommand as IRelayCommand)?.NotifyCanExecuteChanged();
         }
         
         
@@ -501,7 +807,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // _mediator.Publish(stateEvent);
             
             // For now, just demonstrate the pattern
-            System.Diagnostics.Debug.WriteLine($"Publishing global state change: {description}");
+// ($"Publishing global state change: {description}");
         }
         
         /// <summary>
@@ -550,75 +856,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
         
         /// <summary>
-        /// Initialize data-driven Test Case Generator with proper hierarchical structure
-        /// </summary>
-        private void InitializeDataDrivenTestCaseGenerator()
-        {
-            TestCaseGeneratorMenuSection = MenuSection.Create(
-                id: "test-case-generator-data-driven",
-                headerIcon: "🧪",
-                headerText: "Test Case Generator"
-            );
-
-            // Add a "Home" button at the top level to navigate to startup domain
-            var homeButton = CreateButton("home", "🏠", "Home", StartupNavigationCommand, "Return to application home screen", 0);
-            TestCaseGeneratorMenuSection.AddItem(homeButton);
-
-            // Create the main Test Case Generator dropdown with all sections as children
-            var mainTestCaseGeneratorDropdown = CreateDropdownWithLevel("test-case-generator-main", "🧪", "Test Case Generator", "Test case generation workflow", 0,
-                
-                // === PROJECT DROPDOWN (as sub-item) ===
-                CreateDropdown("project", "📁", "Project", "Project management options",
-                    CreateButton("new-project", "🆕", "New Project", NewProjectNavigationCommand, "Create a new test case project"),
-                    CreateButton("dummy-domain", "🎯", "Dummy Domain", DummyNavigationCommand, "Navigate to Dummy domain - AI Guide reference implementation"),
-                    CreateButton("open-project", "📁", "Open Project", OpenProjectCommand, "Load an existing project"),
-                    CreateButton("save-project", "💾", "Save Project", SaveProjectCommand, "Save current project"),
-                    CreateButton("unload-project", "📤", "Unload Project", UnloadProjectCommand, "Unload current project")
-                ),
-
-                // === REQUIREMENTS DROPDOWN (as sub-item) ===
-                CreateDropdown("requirements", "📋", "Requirements", "Requirements management options",
-                    CreateButton("import-additional", "📥", "Import Additional Requirements", ImportAdditionalCommand, "Import additional requirements"),
-                    CreateDropdown("analysis", "📊", "Analysis", "LLM analysis operations", 
-                        CreateButton("batch-analyze", "⚡", "Analyze All Requirements", BatchAnalyzeCommand, "Analyze all requirements"),
-                        CreateButton("analyze-unanalyzed", "🔍", "Analyze Unanalyzed", AnalyzeUnanalyzedCommand, "Analyze unanalyzed requirements"),
-                        CreateButton("reanalyze-modified", "🔄", "Re-analyze Modified", ReAnalyzeModifiedCommand, "Re-analyze modified requirements"),
-                        CreateButton("generate-analysis-command", "🔍", "Generate Analysis Command", GenerateAnalysisCommandCommand, "Generate analysis command")
-                    )
-                ),
-
-                // === LLM LEARNING DROPDOWN (as sub-item) ===
-                CreateDropdown("llm-learning", "🧠", "LLM Learning", "LLM learning and training options",
-                    CreateButton("toggle-auto-export", "📤", "Toggle Auto Export", ToggleAutoExportCommand, "Toggle auto-export for ChatGPT analysis")
-                ),
-
-                // === TEST CASE CREATION DROPDOWN (as sub-item) ===
-                CreateDropdown("testcase-creation", "⚙️", "Test Case Creation", "Test case generation options",
-                    CreateButton("testcase-creation-main", "🏠", "Test Case Creation", new RelayCommand(NavigateToTestCaseCreation), "Navigate to Test Case Creation workspace"),
-                    CreateButton("generate-testcase-command", "⚙️", "Generate Test Case Command", GenerateTestCaseCommandCommand, "Generate test case command for current requirement"),
-                    CreateButton("export-to-jama", "📋", "Export to Jama…", ExportAllToJamaCommand, "Export all test cases to Jama")
-                )
-            );
-
-            TestCaseGeneratorMenuSection.AddItem(mainTestCaseGeneratorDropdown);
-
-            // Set commands after creation
-            mainTestCaseGeneratorDropdown.Command = TestCaseGeneratorNavigationCommand; // Navigate when clicked
-            var projectDropdown = mainTestCaseGeneratorDropdown.Children.FirstOrDefault(x => x.Id == "project") as MenuAction;
-            if (projectDropdown != null)
-            {
-                projectDropdown.Command = ProjectNavigationCommand;
-            }
-            var requirementsDropdown = mainTestCaseGeneratorDropdown.Children.FirstOrDefault(x => x.Id == "requirements") as MenuAction;
-            if (requirementsDropdown != null)
-            {
-                requirementsDropdown.Command = RequirementsNavigationCommand;
-            }
-
-            System.Diagnostics.Debug.WriteLine($"[SideMenuViewModel] Data-driven TestCaseGenerator initialized with hierarchical structure: 1 main dropdown containing {mainTestCaseGeneratorDropdown.Children.Count} sub-sections");
-        }
-
-        /// <summary>
         /// Creates a test dropdown item to demonstrate expand/collapse functionality
         /// </summary>
         private MenuAction CreateTestDropdownItem()
@@ -638,89 +875,172 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public event System.Action<string?>? SectionChanged;
 
         /// <summary>
-        /// Export all generated test cases to Jama Connect
+        /// Export FIRST test case only to Jama Connect (for debugging)
         /// </summary>
         private async Task ExportAllToJamaAsync()
         {
             try
             {
-                _logger?.LogInformation("Starting Jama Connect export...");
+                _logger?.LogInformation("Starting SINGLE test case import to Jama Connect for debugging...");
                 
-                // JamaConnectService is now guaranteed to be non-null via DI, check if configured
-                if (!_jamaConnectService.IsConfigured)
+                // Check for both AI-generated test cases from requirements AND saved test cases
+                var requirements = _requirementsMediator.Requirements?.ToList() ?? new List<Requirement>();
+                
+                var requirementsWithAITests = requirements
+                    .Where(r => !string.IsNullOrWhiteSpace(r.CurrentResponse?.Output))
+                    .ToList();
+                
+                var requirementsWithSavedTests = requirements
+                    .Where(r => r.GeneratedTestCases?.Any() == true)
+                    .ToList();
+
+                // Find FIRST test case for debugging
+                Requirement? firstRequirement = null;
+                string testCaseSource = "";
+                
+                if (requirementsWithSavedTests.Any())
                 {
-                    // Add debugging info to see what's happening with environment variables
-                    var debugInfo = $"Debug Info:\n" +
-                        $"JAMA_BASE_URL = '{Environment.GetEnvironmentVariable("JAMA_BASE_URL")}'\n" +
-                        $"JAMA_CLIENT_ID = '{Environment.GetEnvironmentVariable("JAMA_CLIENT_ID")}'\n" +
-                        $"JAMA_CLIENT_SECRET = '{(string.IsNullOrEmpty(Environment.GetEnvironmentVariable("JAMA_CLIENT_SECRET")) ? "Not Set" : "Set")}'\n\n";
-                    
+                    firstRequirement = requirementsWithSavedTests.First();
+                    testCaseSource = $"saved test case from requirement '{firstRequirement.Item}' ({firstRequirement.GeneratedTestCases?.Count} saved test cases)";
+                }
+                else if (requirementsWithAITests.Any())
+                {
+                    firstRequirement = requirementsWithAITests.First();
+                    testCaseSource = $"AI-generated test from requirement '{firstRequirement.Item}'";
+                }
+
+                // Check if we have any test cases to export
+                if (firstRequirement == null)
+                {
                     MessageBox.Show(
-                        debugInfo +
-                        "Jama Connect is not configured.\n\n" +
-                        "To enable Jama integration, configure these environment variables:\n\n" +
-                        "Option 1 - API Token (if available):\n" +
-                        "• JAMA_BASE_URL (e.g., https://jama02.rockwellcollins.com/contour)\n" +
-                        "• JAMA_API_TOKEN\n\n" +
-                        "Option 2 - OAuth Client Credentials (recommended):\n" +
-                        "• JAMA_BASE_URL (e.g., https://jama02.rockwellcollins.com/contour)\n" +
-                        "• JAMA_CLIENT_ID\n" +
-                        "• JAMA_CLIENT_SECRET\n\n" +
-                        "Option 3 - Username/Password:\n" +
-                        "• JAMA_BASE_URL\n" +
-                        "• JAMA_USERNAME\n" +
-                        "• JAMA_PASSWORD",
-                        "Jama Connect Not Configured", MessageBoxButton.OK, MessageBoxImage.Information);
+                        "No test cases found to export.\n\n" +
+                        "Please ensure you have either:\n" +
+                        "• Generated test cases from requirements using AI, OR\n" +
+                        "• Created and saved test cases manually\n\n" +
+                        "You can generate test cases using the Test Case Generator or create them manually in the Test Case Creation section.",
+                        "No Test Cases Found", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
+
+                _logger?.LogInformation("Found first test case: {Source}", testCaseSource);
+
+                // Use the existing configured Jama service (credentials from environment variables)
+                var jamaService = _jamaConnectService;
                 
-                // Test connection first
-                var (success, message) = await _jamaConnectService.TestConnectionAsync();
-                if (!success)
+                // Test connection with enhanced logging
+                _logger?.LogInformation("Testing Jama connection...");
+                var (connectionSuccess, connectionMessage) = await jamaService.TestConnectionAsync();
+                if (!connectionSuccess)
                 {
+                    _logger?.LogError("Jama connection failed: {Message}", connectionMessage);
                     MessageBox.Show(
-                        $"Cannot connect to Jama Connect:\n{message}\n\n" +
-                        "Please check your configuration and network connection.",
+                        $"❌ Failed to connect to Jama:\n\n{connectionMessage}\n\n" +
+                        "Please check your Jama configuration:\n" +
+                        "• JAMA_BASE_URL environment variable\n" +
+                        "• JAMA_CLIENT_ID and JAMA_CLIENT_SECRET\n" +
+                        "• Network connectivity to Jama instance",
                         "Connection Failed", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
-                
-                _logger?.LogInformation("Jama connection successful: {Message}", message);
-                
-                // Get projects to let user choose
-                var projects = await _jamaConnectService.GetProjectsAsync();
-                if (projects == null || projects.Count == 0)
+                _logger?.LogInformation("Jama connection successful");
+
+                // Get projects with enhanced logging
+                _logger?.LogInformation("Fetching Jama projects...");
+                var projects = await jamaService.GetProjectsAsync();
+                if (!projects?.Any() == true)
                 {
+                    _logger?.LogWarning("No Jama projects found or accessible");
                     MessageBox.Show(
-                        "No projects found in Jama Connect.\n\n" +
-                        "Please ensure your user has access to at least one project.",
-                        "No Projects Found", MessageBoxButton.OK, MessageBoxImage.Information);
+                        "No Jama projects found.\n\n" +
+                        "Please ensure you have access to at least one project.",
+                        "No Projects Found", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                _logger?.LogInformation("Found {ProjectCount} Jama projects", projects.Count);
+
+                // Show project selection dialog
+                var projectDialog = new JamaProjectSelectionDialog(projects);
+                if (projectDialog.ShowDialog() != true || projectDialog.SelectedProject == null)
+                    return;
+
+                var selectedProject = projectDialog.SelectedProject;
+                _logger?.LogInformation("Selected Jama project: {ProjectName} (ID: {ProjectId})", 
+                    selectedProject.ProjectKey, selectedProject.Id);
+
+                // Convert ONLY the first test case to Jama format
+                var jamaCases = _jamaTestCaseConversionService.ConvertSingleTestCaseToJamaFormat(firstRequirement);
+                
+                if (!jamaCases.Any())
+                {
+                    _logger?.LogWarning("Failed to convert test case to Jama format for requirement: {RequirementId}", 
+                        firstRequirement.GlobalId ?? firstRequirement.Item ?? "Unknown");
+                    MessageBox.Show(
+                        "Failed to convert test case to Jama format.\n\n" +
+                        $"Source: {testCaseSource}\n\n" +
+                        "Please check the application logs for more details.",
+                        "Conversion Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
                 
-                // For now, show available projects and let user know this is a test
-                var projectList = string.Join("\n", projects.Select(p => $"• {p.Name} (ID: {p.Id})"));
-                
-                var result = MessageBox.Show(
-                    $"Jama Connect integration test successful!\n\n" +
-                    $"Found {projects.Count} project(s):\n{projectList}\n\n" +
-                    $"Would you like to run a test import of requirements from the first project?",
-                    "Jama Connect Test", MessageBoxButton.YesNo, MessageBoxImage.Question);
-                    
-                if (result == MessageBoxResult.Yes && projects.Count > 0)
+                _logger?.LogInformation("Converted single test case for import. Source: {Source}", testCaseSource);
+
+                // Import SINGLE test case with component-aware placement
+                _logger?.LogInformation("Starting component-aware Jama import for single test case...");
+                var (importSuccess, importMessage, createdId) = await jamaService.ImportTestCaseFromRequirementAsync(
+                    selectedProject.Id, jamaCases.First(), firstRequirement);
+
+                if (importSuccess && createdId.HasValue)
                 {
-                    await TestImportRequirementsAsync(projects[0].Id);
+                    var jamaBaseUrl = Environment.GetEnvironmentVariable("JAMA_BASE_URL") ?? "your Jama instance";
+                    var successMessage = $"✅ SINGLE Test Case Imported Successfully! (Component-Aware Mode)\n\n" +
+                        $"🎯 Project: {selectedProject.ProjectKey}\n" +
+                        $"📋 Source: {testCaseSource}\n" +
+                        $"📊 Import Summary:\n{importMessage}\n\n" +
+                        $"✨ Created Test Case ID: {createdId}\n\n" +
+                        $"🌐 View your test case in Jama Connect:\n{jamaBaseUrl}";
+
+                    _logger?.LogInformation("Successfully imported SINGLE test case to Jama project {Project}: {Id}. Source: {Source}", 
+                        selectedProject.ProjectKey, createdId, testCaseSource);
+
+                    MessageBox.Show(successMessage, "Component-Aware Test Case Import Successful", 
+                        MessageBoxButton.OK, MessageBoxImage.Information);
                 }
-                
+                else
+                {
+                    var errorMessage = $"❌ SINGLE Test Case Import Failed\n\n" +
+                        $"Project: {selectedProject.ProjectKey}\n" +
+                        $"Source: {testCaseSource}\n\n" +
+                        $"Error Details:\n{importMessage}";
+                    
+                    _logger?.LogError("Failed to import SINGLE test case to Jama: {Error}. Source: {Source}", importMessage, testCaseSource);
+                    
+                    MessageBox.Show(errorMessage, "Single Test Case Import Failed", 
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "Failed to export to Jama Connect");
+                _logger?.LogError(ex, "Unexpected error during SINGLE test case Jama import");
                 MessageBox.Show(
-                    $"Jama Connect export failed:\n{ex.Message}",
-                    "Export Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    $"❌ Unexpected Error (Single Test Case Import)\n\n" +
+                    $"An error occurred while importing to Jama:\n{ex.Message}\n\n" +
+                    "Please check the application logs for more details.",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+        /// <summary>
+        /// Convert SINGLE requirement's first test case to Jama format (for debugging)
+        /// </summary>
+        // Note: Test case conversion methods have been moved to IJamaTestCaseConversionService
+        // to follow architectural guidelines (separation of concerns, single responsibility)
+        // Methods moved:
+        // - ConvertSingleTestCaseToJamaFormat()
+        // - ConvertAllTestCasesToJamaFormat()
+        // - ConvertAIGeneratedTestCase()
+        // - ConvertSavedTestCase()  
+        // - ParseTestStepsFromOutput()
+        // - ExtractDescriptionFromOutput()
         
         /// <summary>
         /// Test importing requirements from Jama
@@ -732,7 +1052,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 _logger?.LogInformation("Testing requirement import from Jama project {ProjectId}", projectId);
                 
                 var jamaItems = await _jamaConnectService.GetRequirementsAsync(projectId);
-                var requirements = _jamaConnectService.ConvertToRequirements(jamaItems);
+                var requirements = await _jamaConnectService.ConvertToRequirementsAsync(jamaItems);
                 
                 MessageBox.Show(
                     $"Successfully imported {requirements.Count} requirements from Jama!\n\n" +
