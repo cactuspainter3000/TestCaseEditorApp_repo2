@@ -857,6 +857,11 @@ RESPOND WITH JSON ONLY:
 
             try
             {
+                static string NormalizeWorkspaceKey(string value)
+                {
+                    return new string(value.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
+                }
+
                 // Get all workspaces and find the one matching our project
                 var workspaces = await _anythingLLMService.GetWorkspacesAsync();
                 
@@ -878,9 +883,12 @@ RESPOND WITH JSON ONLY:
                 
                 if (workspaces != null)
                 {
+                    var normalizedProjectName = NormalizeWorkspaceKey(_projectWorkspaceName);
+
                     // Look for exact project workspace match first
                     targetWorkspace = workspaces.FirstOrDefault(w => 
-                        string.Equals(w.Name, _projectWorkspaceName, StringComparison.OrdinalIgnoreCase));
+                        string.Equals(w.Name, _projectWorkspaceName, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(w.Slug, _projectWorkspaceName, StringComparison.OrdinalIgnoreCase));
                     
                     _logger.LogDebug("[TestCaseGeneration] Exact match found: {Found}", targetWorkspace != null);
                     
@@ -897,14 +905,15 @@ RESPOND WITH JSON ONLY:
                     // If no exact match, try fuzzy matching for common variations
                     if (targetWorkspace == null)
                     {
-                        var normalizedProjectName = _projectWorkspaceName.Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant();
                         _logger.LogDebug("[TestCaseGeneration] No exact match, trying fuzzy match for normalized name: '{NormalizedName}'", normalizedProjectName);
                         
                         // Try exact fuzzy match first
                         targetWorkspace = workspaces.FirstOrDefault(w => 
                         {
-                            var normalizedWorkspaceName = w.Name.Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant();
-                            return string.Equals(normalizedWorkspaceName, normalizedProjectName, StringComparison.OrdinalIgnoreCase);
+                            var normalizedWorkspaceName = NormalizeWorkspaceKey(w.Name);
+                            var normalizedWorkspaceSlug = NormalizeWorkspaceKey(w.Slug);
+                            return string.Equals(normalizedWorkspaceName, normalizedProjectName, StringComparison.OrdinalIgnoreCase) ||
+                                   string.Equals(normalizedWorkspaceSlug, normalizedProjectName, StringComparison.OrdinalIgnoreCase);
                         });
                         
                         // If still no match, try partial matching (workspace name is contained in project name or vice versa)
@@ -914,18 +923,22 @@ RESPOND WITH JSON ONLY:
                             _logger.LogDebug("[TestCaseGeneration] No exact fuzzy match, trying partial matching");
                             targetWorkspace = workspaces.FirstOrDefault(w => 
                             {
-                                var normalizedWorkspaceName = w.Name.Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant();
+                                var normalizedWorkspaceName = NormalizeWorkspaceKey(w.Name);
+                                var normalizedWorkspaceSlug = NormalizeWorkspaceKey(w.Slug);
                                 
                                 // Handle "Jama Document Parse: " prefix pattern
                                 if (w.Name.StartsWith("Jama Document Parse: ", StringComparison.OrdinalIgnoreCase))
                                 {
                                     var documentName = w.Name.Substring("Jama Document Parse: ".Length);
-                                    var normalizedDocName = documentName.Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant();
+                                    var normalizedDocName = NormalizeWorkspaceKey(documentName);
                                     return normalizedProjectName.Contains(normalizedDocName) || normalizedDocName.Contains(normalizedProjectName);
                                 }
                                 
-                                // Check if workspace name is a substring of project name or project name contains workspace name
-                                return normalizedProjectName.Contains(normalizedWorkspaceName) || normalizedWorkspaceName.Contains(normalizedProjectName);
+                                // Check name/slug overlap in both directions
+                                return normalizedProjectName.Contains(normalizedWorkspaceName) ||
+                                       normalizedWorkspaceName.Contains(normalizedProjectName) ||
+                                       normalizedProjectName.Contains(normalizedWorkspaceSlug) ||
+                                       normalizedWorkspaceSlug.Contains(normalizedProjectName);
                             });
                             
                             if (targetWorkspace != null)

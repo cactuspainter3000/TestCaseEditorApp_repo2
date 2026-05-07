@@ -23,6 +23,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         private new readonly INewProjectMediator _mediator;
         
         private readonly AnythingLLMService _anythingLLMService;
+        private string? _resolvedAnythingLLMWorkspaceSlug;
         
         // Busy state properties for spinner feedback
         [ObservableProperty]
@@ -373,6 +374,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             
             // Reset workspace creation status when name changes
             IsWorkspaceCreated = false;
+            _resolvedAnythingLLMWorkspaceSlug = null;
             
             // Notify the command that CanExecute may have changed
             ((AsyncRelayCommand)ValidateWorkspaceCommand).NotifyCanExecuteChanged();
@@ -608,7 +610,12 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Calling CreateNewProjectWithWarningAsync with documentPath: '{documentPathToUse}'");
                 
                 // Call the workspace management mediator to complete the project creation with proper warning handling
-                var creationSuccessful = await _mediator.CreateNewProjectWithWarningAsync(WorkspaceName, ProjectName, ProjectSavePath, documentPathToUse);
+                var creationSuccessful = await _mediator.CreateNewProjectWithWarningAsync(
+                    WorkspaceName,
+                    ProjectName,
+                    ProjectSavePath,
+                    documentPathToUse,
+                    _resolvedAnythingLLMWorkspaceSlug);
                 
                 // Always mark project as created if method completed without exception
                 // Even if requirements import failed, the project file was still created successfully
@@ -787,6 +794,8 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                             
                         if (createdWorkspace != null)
                         {
+                            _resolvedAnythingLLMWorkspaceSlug = createdWorkspace.Slug;
+
                             // Clear loading state immediately
                             IsValidatingWorkspace = false;
                             

@@ -735,12 +735,16 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         /// <summary>
         /// Complete project creation with workspace details, requirements import, and workspace setup
         /// </summary>
-        public async Task<bool> CompleteProjectCreationAsync(string workspaceName, string projectName, string projectSavePath, string documentPath)
+        public async Task<bool> CompleteProjectCreationAsync(string workspaceName, string projectName, string projectSavePath, string documentPath, string? anythingLLMWorkspaceSlug = null)
         {
             bool requirementsImportedSuccessfully = true;
             
             try
             {
+                var resolvedAnythingLLMSlug = string.IsNullOrWhiteSpace(anythingLLMWorkspaceSlug)
+                    ? workspaceName
+                    : anythingLLMWorkspaceSlug;
+
                 _logger.LogInformation("🔍 CompleteProjectCreationAsync called - documentPath: '{DocumentPath}', exists: {Exists}", 
                     documentPath, !string.IsNullOrWhiteSpace(documentPath) && File.Exists(documentPath));
                 
@@ -753,7 +757,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 {
                     Name = projectName,
                     Path = projectSavePath,
-                    AnythingLLMSlug = workspaceName,
+                    AnythingLLMSlug = resolvedAnythingLLMSlug,
                     HasUnsavedChanges = false,
                     LastModified = DateTime.Now
                 };
@@ -880,6 +884,8 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     LastSavedUtc = DateTime.UtcNow,
                     SaveCount = 0,
                     SourceDocPath = documentPath,
+                    AnythingLLMWorkspaceName = workspaceName,
+                    AnythingLLMWorkspaceSlug = resolvedAnythingLLMSlug,
                     ImportSource = importSource,  // 🎯 Set based on actual content type
                     JamaProject = jamaProjectId,  // 🎯 Preserve Jama project ID for attachment scanning
                     JamaTestPlan = jamaTestPlan,  // 🎯 Preserve Jama test plan name for display
@@ -918,7 +924,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 { 
                     WorkspacePath = projectSavePath,
                     WorkspaceName = displayProjectName,
-                    AnythingLLMWorkspaceSlug = workspaceName,
+                    AnythingLLMWorkspaceSlug = workspace.AnythingLLMWorkspaceSlug,
                     Workspace = workspace
                 };
                 
@@ -985,7 +991,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         /// <summary>
         /// Create a new project with proper warning if another project is currently open
         /// </summary>
-        public async Task<bool> CreateNewProjectWithWarningAsync(string workspaceName, string projectName, string projectSavePath, string documentPath)
+        public async Task<bool> CreateNewProjectWithWarningAsync(string workspaceName, string projectName, string projectSavePath, string documentPath, string? anythingLLMWorkspaceSlug = null)
         {
             try
             {
@@ -1016,7 +1022,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 }
                 
                 // Proceed with project creation
-                return await CompleteProjectCreationAsync(workspaceName, projectName, projectSavePath, documentPath);
+                return await CompleteProjectCreationAsync(workspaceName, projectName, projectSavePath, documentPath, anythingLLMWorkspaceSlug);
             }
             catch (Exception ex)
             {

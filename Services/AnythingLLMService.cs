@@ -1281,14 +1281,24 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
             try
             {
                 TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Uploading document '{documentName}' to workspace '{slug}' using proper protocol");
-                
-                // Method 1: Try direct upload with workspace assignment (most efficient)
-                var directResult = await TryDirectUploadWithWorkspaceAsync(slug, documentName, content, cancellationToken);
-                if (directResult.success)
+
+                // On API variants where workspace document listing is unsupported,
+                // direct addToWorkspaces uploads can report success but not actually attach.
+                // Prefer the explicit two-step attach flow in that case.
+                if (_workspaceDocumentsListingSupported == false)
                 {
-                    return true;
+                    TestCaseEditorApp.Services.Logging.Log.Warn("[AnythingLLM] Document listing unsupported variant detected - bypassing direct workspace assignment and using explicit attach flow");
                 }
-                
+                else
+                {
+                    // Method 1: Try direct upload with workspace assignment (most efficient)
+                    var directResult = await TryDirectUploadWithWorkspaceAsync(slug, documentName, content, cancellationToken);
+                    if (directResult.success)
+                    {
+                        return true;
+                    }
+                }
+
                 // Method 2: Two-step process - Upload document then add to workspace
                 var uploadResult = await UploadDocumentToSystemAsync(documentName, content, cancellationToken);
                 if (!uploadResult.success || string.IsNullOrEmpty(uploadResult.documentLocation))
