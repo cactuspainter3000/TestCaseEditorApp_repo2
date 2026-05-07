@@ -4,6 +4,17 @@
 
 ---
 
+## 🚨 JAMA CONNECT — CRITICAL PROTECTION RULES (May 2026)
+
+> **See `IMPLEMENTATION_NOTES.md` for full root-cause analysis of the May 2026 Jama regression.**
+
+- **Do NOT modify `NewProjectWorkflowViewModel.cs` or `NewProject_MainView.xaml`** without verifying Jama project list still loads (shows "Found N projects").
+- **After any snapshot restore**, check `Services/JamaConnectService.cs` OAuth token request uses `FormUrlEncodedContent` with `scope=token_information`. This regression recurs on every rollback.
+- **`TestConnectionAsync()` must NOT gate the Browse/load flow.** The Rockwell Collins Jama server returns HTTP 500 on `/rest/v1/projects` (server-side bug), so TestConnection always fails even when OAuth is working.
+- **Working baseline commit**: `40c99d4` (March 13, 2026). Run `git diff 40c99d4 HEAD -- MVVM/Domains/NewProject/ViewModels/NewProjectWorkflowViewModel.cs` to spot regressions.
+
+---
+
 ## 🚨 TESTCASEGENERATION DOMAIN DEPRECATION (CRITICAL - Jan 2026)
 
 ### **TestCaseGeneration Domain is DEPRECATED**
