@@ -65,6 +65,10 @@ namespace TestCaseEditorApp.Services
         private static string? _cachedShortcutPath;
         private static bool? _cachedInstallationStatus;
 
+        // Capability cache for API variants that don't expose document listings
+        // via /workspace/{slug}/documents or /workspace/{slug} responses.
+        private bool? _workspaceDocumentsListingSupported;
+
         public AnythingLLMService(string? baseUrl = null, string? apiKey = null)
         {
             // Try to get API key from user configuration, parameter, or environment
@@ -2396,11 +2400,14 @@ Your task: Extract technical requirements from the provided document content wit
         {
             try
             {
+                bool usedWorkspaceFallback = false;
+
                 // Try the documents-specific endpoint first
                 var response = await _httpClient.GetAsync($"{_baseUrl}/api/v1/workspace/{workspaceSlug}/documents", cancellationToken);
                 if (!response.IsSuccessStatusCode)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Documents endpoint failed for '{workspaceSlug}': {response.StatusCode}, trying workspace endpoint");
+                    usedWorkspaceFallback = true;
                     
                     // Fallback to original workspace endpoint
                     response = await _httpClient.GetAsync($"{_baseUrl}/api/v1/workspace/{workspaceSlug}", cancellationToken);
@@ -2451,8 +2458,15 @@ Your task: Extract technical requirements from the provided document content wit
                 
                 if (documentsElement.HasValue && documentsElement.Value.ValueKind == JsonValueKind.Array)
                 {
+                    _workspaceDocumentsListingSupported = true;
                     TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Found {documentsElement.Value.GetArrayLength()} documents in workspace '{workspaceSlug}'");
                     return documentsElement;
+                }
+
+                if (usedWorkspaceFallback)
+                {
+                    _workspaceDocumentsListingSupported = false;
+                    TestCaseEditorApp.Services.Logging.Log.Warn("[AnythingLLM] Workspace document listing appears unsupported on this API variant; using soft-success behavior");
                 }
                 
                 TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] No documents array found in workspace '{workspaceSlug}' response");
@@ -3862,6 +3876,13 @@ Your task: Extract technical requirements from the provided document content wit
         private async Task<(bool success, string? error)> WaitForDocumentsWithAdaptiveTimingAsync(string workspaceSlug, string uploadType, CancellationToken cancellationToken, int? expectedChunks = null, bool allowSoftSuccess = false)
         {
             TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 DIAGNOSTICS: Starting verification for {uploadType}...");
+
+            if (allowSoftSuccess && _workspaceDocumentsListingSupported == false)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info("[AnythingLLM] Skipping verification retries because document listing is known unsupported for this API variant");
+                StatusUpdated?.Invoke("⚠️ Upload accepted; background indexing may still be in progress");
+                return (true, null);
+            }
             
             // Check system load for adaptive timing
             var systemPrefs = await GetSystemPreferencesAsync(cancellationToken);
