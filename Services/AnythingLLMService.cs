@@ -1384,6 +1384,21 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                 {
                     var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
                     TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Direct upload successful for '{documentName}' to '{workspaceSlug}'");
+
+                    var uploadedDocumentCount = 0;
+                    try
+                    {
+                        var uploadResponse = JsonSerializer.Deserialize<JsonElement>(responseContent);
+                        if (uploadResponse.TryGetProperty("documents", out var docs) && docs.ValueKind == JsonValueKind.Array)
+                        {
+                            uploadedDocumentCount = docs.GetArrayLength();
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Direct upload response contains {uploadedDocumentCount} document record(s)");
+                        }
+                    }
+                    catch (Exception parseEx)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[AnythingLLM] Could not parse direct upload response payload: {parseEx.Message}");
+                    }
                     
                     // Wait for vectorization and verify document presence
                     TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Waiting for document vectorization...");
@@ -1406,7 +1421,12 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                     StatusUpdated?.Invoke("✅ Embedding API ready - starting vectorization...");
                     
                     // Use unified adaptive document verification
-                    return await WaitForDocumentsWithAdaptiveTimingAsync(workspaceSlug, "direct upload", cancellationToken);
+                    return await WaitForDocumentsWithAdaptiveTimingAsync(
+                        workspaceSlug,
+                        "direct upload",
+                        cancellationToken,
+                        expectedChunks: null,
+                        allowSoftSuccess: uploadedDocumentCount > 0);
                 }
                 
                 var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -3839,7 +3859,7 @@ Your task: Extract technical requirements from the provided document content wit
         /// Unified adaptive document verification used by both direct and chunked uploads
         /// Intelligently adjusts timing based on system load and document complexity
         /// </summary>
-        private async Task<(bool success, string? error)> WaitForDocumentsWithAdaptiveTimingAsync(string workspaceSlug, string uploadType, CancellationToken cancellationToken, int? expectedChunks = null)
+        private async Task<(bool success, string? error)> WaitForDocumentsWithAdaptiveTimingAsync(string workspaceSlug, string uploadType, CancellationToken cancellationToken, int? expectedChunks = null, bool allowSoftSuccess = false)
         {
             TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🔍 DIAGNOSTICS: Starting verification for {uploadType}...");
             
@@ -3860,6 +3880,15 @@ Your task: Extract technical requirements from the provided document content wit
             int maxRetries = systemOverloaded ? 8 : 6;
             int baseWait = systemOverloaded ? 8000 : 5000; // 8s vs 5s base interval
             int chunkFactor = expectedChunks.HasValue ? Math.Min(expectedChunks.Value / 50, 6) : 0; // Extra time for lots of chunks
+
+            if (allowSoftSuccess)
+            {
+                // If upload API already confirmed documents, avoid blocking project creation for minutes
+                // on AnythingLLM variants where document listing endpoints are delayed or inconsistent.
+                maxRetries = Math.Min(maxRetries, 3);
+                baseWait = Math.Min(baseWait, 4000);
+                TestCaseEditorApp.Services.Logging.Log.Info("[AnythingLLM] Soft-success verification mode enabled for direct upload");
+            }
             
             for (int retry = 0; retry < maxRetries; retry++)
             {
@@ -3900,6 +3929,13 @@ Your task: Extract technical requirements from the provided document content wit
             // If we get here, verification failed after all retries
             var totalWaitTime = Enumerable.Range(0, maxRetries).Sum(i => baseWait + (i * (baseWait / 2)) + (chunkFactor * 1000)) / 1000;
             TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] ⚠️ {uploadType} succeeded but document verification failed after {maxRetries} attempts (~{totalWaitTime}s total)");
+
+            if (allowSoftSuccess)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn("[AnythingLLM] Proceeding with soft success: upload accepted by API, verification deferred");
+                StatusUpdated?.Invoke("⚠️ Upload accepted; background indexing may still be in progress");
+                return (true, null);
+            }
             
             if (systemOverloaded)
             {

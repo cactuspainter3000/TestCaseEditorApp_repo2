@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.Services;
 
@@ -236,7 +237,16 @@ namespace TestCaseEditorApp.MVVM.Utils
                 {
                     try
                     {
-                        handler(eventData);
+                        var dispatcher = Application.Current?.Dispatcher;
+                        if (dispatcher != null && !dispatcher.CheckAccess())
+                        {
+                            dispatcher.Invoke(() => handler(eventData));
+                        }
+                        else
+                        {
+                            handler(eventData);
+                        }
+
                         _logger.LogDebug("Published {EventType} to handler in {MediatorType}", eventType.Name, GetType().Name);
                     }
                     catch (Exception ex)
