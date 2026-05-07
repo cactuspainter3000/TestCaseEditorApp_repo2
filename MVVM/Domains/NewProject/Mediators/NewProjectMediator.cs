@@ -31,7 +31,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         private readonly NotificationService _notificationService;
         private readonly IRequirementService _requirementService;
         private readonly SmartRequirementImporter _smartImporter;
-        private readonly JamaConnectService _jamaConnectService;
         private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
         private readonly IWorkspaceValidationService _workspaceValidationService;
         private WorkspaceInfo? _currentWorkspaceInfo;
@@ -50,7 +49,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             NotificationService notificationService,
             IRequirementService requirementService,
             SmartRequirementImporter smartImporter,
-            JamaConnectService jamaConnectService,
             ITestCaseGenerationMediator testCaseGenerationMediator,
             IWorkspaceValidationService workspaceValidationService,
             PerformanceMonitoringService? performanceMonitor = null,
@@ -63,7 +61,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
             _requirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
             _smartImporter = smartImporter ?? throw new ArgumentNullException(nameof(smartImporter));
-            _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
             _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
             _workspaceValidationService = workspaceValidationService ?? throw new ArgumentNullException(nameof(workspaceValidationService));
         }
@@ -742,41 +739,8 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 
                 // 2. Import requirements first, then create workspace
                 List<Requirement> importedRequirements = new();
-                int? jamaProjectId = null;
-                string? jamaProjectName = null;
                 
-                if (TryParseJamaProjectReference(documentPath, out var parsedJamaProjectId, out var parsedJamaProjectName))
-                {
-                    UpdateProgress("Importing requirements from Jama project...", 60);
-
-                    try
-                    {
-                        var jamaItems = await _jamaConnectService.GetRequirementsAsync(parsedJamaProjectId);
-                        importedRequirements = _jamaConnectService.ConvertToRequirements(jamaItems);
-                        jamaProjectId = parsedJamaProjectId;
-                        jamaProjectName = parsedJamaProjectName;
-
-                        _logger.LogInformation("✅ Successfully imported {Count} requirements from Jama project {ProjectId} ({ProjectName})",
-                            importedRequirements.Count,
-                            parsedJamaProjectId,
-                            parsedJamaProjectName ?? "Unknown");
-
-                        BroadcastToAllDomains(new TestCaseGenerationEvents.RequirementsImported
-                        {
-                            Requirements = importedRequirements,
-                            SourceFile = documentPath,
-                            ImportType = "Jama API",
-                            ImportTime = TimeSpan.Zero
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        requirementsImportedSuccessfully = false;
-                        _logger.LogError(ex, "❌ Error importing requirements from Jama project {ProjectId}", parsedJamaProjectId);
-                        ShowNotification($"Jama requirements import failed: {ex.Message}. Project created but requirements were not imported.", DomainNotificationType.Warning);
-                    }
-                }
-                else if (!string.IsNullOrWhiteSpace(documentPath) && File.Exists(documentPath))
+                if (!string.IsNullOrWhiteSpace(documentPath) && File.Exists(documentPath))
                 {
                     UpdateProgress("Importing requirements from document...", 60);
                     
@@ -826,9 +790,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     SaveCount = 0,
                     SourceDocPath = documentPath,
                     Requirements = importedRequirements,
-                    JamaProjectId = jamaProjectId,
-                    JamaProjectName = jamaProjectName,
-                    JamaProject = jamaProjectName,
                     AnythingLLMWorkspaceName = anythingLLMWorkspaceName,
                     AnythingLLMWorkspaceSlug = workspaceSlugOrName
                 };
@@ -1199,32 +1160,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     Source = notification.OriginatingDomain
                 });
             }
-        }
-
-        private static bool TryParseJamaProjectReference(string? source, out int projectId, out string? projectName)
-        {
-            projectId = 0;
-            projectName = null;
-
-            if (string.IsNullOrWhiteSpace(source) ||
-                !source.StartsWith("jama://project/", StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            var payload = source.Substring("jama://project/".Length);
-            var parts = payload.Split('|', 2);
-            if (!int.TryParse(parts[0], out projectId))
-            {
-                return false;
-            }
-
-            if (parts.Length > 1 && !string.IsNullOrWhiteSpace(parts[1]))
-            {
-                projectName = Uri.UnescapeDataString(parts[1]);
-            }
-
-            return true;
         }
         
         #endregion
