@@ -114,6 +114,17 @@ namespace TestCaseEditorApp.Services
                 return null;
             }
         }
+        private static string GetPreferredOllamaChatModel()
+        {
+            var configuredModel = Environment.GetEnvironmentVariable("OLLAMA_MODEL");
+            if (!string.IsNullOrWhiteSpace(configuredModel))
+            {
+                return configuredModel.Trim();
+            }
+
+            // Keep default aligned with historical stable behavior in this app.
+            return "phi4-mini";
+        }
         
         /// <summary>
         /// Saves the user's API key to local configuration
@@ -788,6 +799,9 @@ namespace TestCaseEditorApp.Services
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Could not find workspace ID for slug '{slug}'");
                     return false;
                 }
+
+                var preferredChatModel = GetPreferredOllamaChatModel();
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Using chat model '{preferredChatModel}' for workspace '{slug}'");
                 
                 // Optimal settings based on official AnythingLLM documentation (v1.8.5+)
                 var settings = new
@@ -801,7 +815,7 @@ namespace TestCaseEditorApp.Services
                     
                     // LLM Provider Configuration: Use local Ollama for data security and consistency
                     chatProvider = "ollama", // Local Ollama provider (no internet, keeps data secure)
-                    chatModel = "phi3.5:3.8b-mini-instruct-q4_K_M",  // Phi-3.5 Mini Instruct model - better instruction following, less refusal
+                    chatModel = preferredChatModel,
                     
                     // RAG Configuration (based on official docs):
                     // Document similarity threshold: No restriction to ensure comprehensive access to supplemental materials
@@ -2033,6 +2047,7 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
             try
             {
                 TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Applying RAG troubleshooting configuration for workspace '{workspaceSlug}'");
+                var preferredChatModel = GetPreferredOllamaChatModel();
                 
                 // Enhanced RAG settings based on AnythingLLM troubleshooting documentation
                 var ragFixSettings = new
@@ -2064,7 +2079,7 @@ Your task: Extract technical requirements from the provided document content wit
                     
                     // Database and model settings optimized for document retrieval
                     chatProvider = "ollama",
-                    chatModel = "phi3.5:3.8b-mini-instruct-q4_K_M",
+                    chatModel = preferredChatModel,
                     chatMode = "chat"
                 };
 
