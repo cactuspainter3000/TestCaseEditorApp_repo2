@@ -104,6 +104,11 @@ namespace TestCaseEditorApp
                     services.AddSingleton<ToastNotificationService>(provider => 
                         new ToastNotificationService(Application.Current?.Dispatcher ?? System.Windows.Threading.Dispatcher.CurrentDispatcher));
                     services.AddSingleton<NotificationService>();
+
+                    // User-specific configuration and settings dialog
+                    services.AddSingleton<IUserSettingsService, UserSettingsService>();
+                    services.AddSingleton<ISettingsDialogService, SettingsDialogService>();
+                    services.AddTransient<UserSettingsViewModel>();
                     
                     // Modal service for cross-domain modal display
                     services.AddSingleton<IModalService, StubModalService>(); // Stub implementation to prevent modal issues
@@ -839,6 +844,13 @@ namespace TestCaseEditorApp
             try
             {
                 await _host.StartAsync();
+
+                // Load user settings and apply them to process environment before domain services run.
+#pragma warning disable CA1416
+                var userSettingsService = _host.Services.GetRequiredService<IUserSettingsService>();
+                var startupSettings = userSettingsService.LoadSettings();
+                userSettingsService.ApplySettingsToEnvironment(startupSettings);
+#pragma warning restore CA1416
                 
                 // Ensure Ollama is running and healthy before any LLM operations
                 var ollamaProcessManager = _host.Services.GetRequiredService<IOllamaProcessManager>();
@@ -1061,6 +1073,23 @@ namespace TestCaseEditorApp
             mainWindow.WindowState = WindowState.Normal;
             mainWindow.Show();
             mainWindow.Activate();
+
+            try
+            {
+#pragma warning disable CA1416
+                var userSettingsService = _host.Services.GetRequiredService<IUserSettingsService>();
+                if (userSettingsService.HasMissingRequiredSettings())
+                {
+                    var settingsDialogService = _host.Services.GetRequiredService<ISettingsDialogService>();
+                    settingsDialogService.ShowSettingsDialog(mainWindow, isRequired: true);
+                }
+#pragma warning restore CA1416
+            }
+            catch (Exception ex)
+            {
+                var logger = _host.Services.GetService<ILogger<App>>();
+                logger?.LogWarning(ex, "Unable to show first-run settings dialog");
+            }
         }
 
         protected override async void OnExit(ExitEventArgs e)

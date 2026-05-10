@@ -4,11 +4,12 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using System.Windows;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Events;
-using Microsoft.Extensions.DependencyInjection;
+using TestCaseEditorApp.Services;
 
 namespace TestCaseEditorApp.MVVM.Domains.Title.ViewModels
 {
@@ -20,6 +21,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Title.ViewModels
     {
         private readonly INewProjectMediator _newProjectMediator;
         private readonly IOpenProjectMediator _openProjectMediator;
+        private readonly ISettingsDialogService _settingsDialogService;
         private readonly ILogger<TitleViewModel> _logger;
 
         [ObservableProperty]
@@ -33,18 +35,22 @@ namespace TestCaseEditorApp.MVVM.Domains.Title.ViewModels
 
         public ICommand SaveProjectCommand { get; }
         public ICommand UndoLastSaveCommand { get; }
+        public ICommand OpenSettingsCommand { get; }
 
         public TitleViewModel(
             INewProjectMediator newProjectMediator,
             IOpenProjectMediator openProjectMediator,
+            ISettingsDialogService settingsDialogService,
             ILogger<TitleViewModel> logger)
         {
             _newProjectMediator = newProjectMediator ?? throw new ArgumentNullException(nameof(newProjectMediator));
             _openProjectMediator = openProjectMediator ?? throw new ArgumentNullException(nameof(openProjectMediator));
+            _settingsDialogService = settingsDialogService ?? throw new ArgumentNullException(nameof(settingsDialogService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             SaveProjectCommand = new AsyncRelayCommand(SaveProjectAsync, CanSaveProject);
             UndoLastSaveCommand = new RelayCommand(UndoLastSave, CanUndoLastSave);
+            OpenSettingsCommand = new RelayCommand(OpenSettings);
 
             SubscribeToEvents();
             
@@ -127,5 +133,17 @@ namespace TestCaseEditorApp.MVVM.Domains.Title.ViewModels
         }
 
         private bool CanUndoLastSave() => false; // TODO: Implement when undo is ready
+
+        private void OpenSettings()
+        {
+            try
+            {
+                _settingsDialogService.ShowSettingsDialog(Application.Current?.MainWindow, isRequired: false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[TitleVM] Failed to open settings dialog");
+            }
+        }
     }
 }
