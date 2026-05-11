@@ -944,9 +944,22 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
 
                     var optimizationGuideUploaded = await _anythingLLMService.UploadOptimizationGuideAsync(resolvedAnythingLLMSlug);
                     var ragTrainingDocumentsUploaded = await _anythingLLMService.UploadRagTrainingDocumentsAsync(resolvedAnythingLLMSlug);
+                    var debugUploadResult = await TryEmbedDebugDesktopFileAsync(resolvedAnythingLLMSlug);
                     var ragSetupVerified = await VerifyStandardRagDocumentsEmbeddedAsync(resolvedAnythingLLMSlug);
 
                     ragSetupEmbeddedSuccessfully = optimizationGuideUploaded && ragTrainingDocumentsUploaded && ragSetupVerified;
+
+                    if (debugUploadResult.attempted)
+                    {
+                        if (debugUploadResult.success)
+                        {
+                            _logger.LogInformation("✅ Debug embedding file uploaded successfully for workspace '{WorkspaceSlug}'", resolvedAnythingLLMSlug);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("⚠️ Debug embedding file upload failed for workspace '{WorkspaceSlug}'", resolvedAnythingLLMSlug);
+                        }
+                    }
 
                     if (ragSetupEmbeddedSuccessfully)
                     {
@@ -1147,6 +1160,29 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             }
 
             return Directory.GetCurrentDirectory();
+        }
+
+        private async Task<(bool attempted, bool success)> TryEmbedDebugDesktopFileAsync(string workspaceSlug)
+        {
+            try
+            {
+                var desktopDir = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+                var debugFilePath = Path.Combine(desktopDir, "simple text.txt");
+
+                if (!File.Exists(debugFilePath))
+                {
+                    return (false, false);
+                }
+
+                var debugContent = await File.ReadAllTextAsync(debugFilePath);
+                var uploadSuccess = await _anythingLLMService.UploadDocumentAsync(workspaceSlug, Path.GetFileName(debugFilePath), debugContent);
+                return (true, uploadSuccess);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "⚠️ Failed to upload debug embedding file during project creation");
+                return (true, false);
+            }
         }
         
         /// <summary>
