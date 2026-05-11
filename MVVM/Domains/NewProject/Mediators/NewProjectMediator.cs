@@ -1076,7 +1076,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         {
             try
             {
-                var documentsElement = await _anythingLLMService.GetWorkspaceDocumentsAsync(workspaceSlug);
+                var documentsElement = await _anythingLLMService.GetWorkspaceDocumentsAsync(workspaceSlug, skipSlugResolution: true);
                 if (!documentsElement.HasValue || documentsElement.Value.ValueKind != JsonValueKind.Array)
                 {
                     _logger.LogWarning("⚠️ Could not verify standard RAG documents because workspace document listing is unavailable for '{WorkspaceSlug}'", workspaceSlug);

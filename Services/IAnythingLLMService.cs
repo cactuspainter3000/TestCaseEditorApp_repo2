@@ -38,7 +38,7 @@ namespace TestCaseEditorApp.Services
         /// </summary>
         Task<string?> SendChatMessageAsync(string workspaceSlug, string message, CancellationToken cancellationToken = default);
         Task<string?> SendChatMessageAsync(string workspaceSlug, string message, TimeSpan timeout, CancellationToken cancellationToken = default);
-        Task<JsonElement?> GetWorkspaceDocumentsAsync(string workspaceSlug, CancellationToken cancellationToken = default);
+        Task<JsonElement?> GetWorkspaceDocumentsAsync(string workspaceSlug, CancellationToken cancellationToken = default, bool skipSlugResolution = false);
         Task<bool> ForceDocumentReprocessingAsync(string workspaceSlug, string documentName, string content, CancellationToken cancellationToken = default);
         Task<bool> DiagnoseVectorizationAsync(CancellationToken cancellationToken = default);
 

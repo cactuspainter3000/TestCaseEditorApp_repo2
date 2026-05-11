@@ -2480,11 +2480,11 @@ Your task: Extract technical requirements from the provided document content wit
         /// <summary>
         /// Gets workspace documents to verify document presence and vectorization status
         /// </summary>
-        public async Task<JsonElement?> GetWorkspaceDocumentsAsync(string workspaceSlug, CancellationToken cancellationToken = default)
+        public async Task<JsonElement?> GetWorkspaceDocumentsAsync(string workspaceSlug, CancellationToken cancellationToken = default, bool skipSlugResolution = false)
         {
             try
             {
-                var resolvedWorkspaceSlug = await ResolveWorkspaceSlugAsync(workspaceSlug, cancellationToken);
+                var resolvedWorkspaceSlug = skipSlugResolution ? workspaceSlug : await ResolveWorkspaceSlugAsync(workspaceSlug, cancellationToken);
                 if (!string.Equals(resolvedWorkspaceSlug, workspaceSlug, StringComparison.OrdinalIgnoreCase))
                 {
                     TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Resolved workspace identifier '{workspaceSlug}' to slug '{resolvedWorkspaceSlug}' for document lookup");
