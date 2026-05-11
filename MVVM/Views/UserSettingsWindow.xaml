@@ -50,8 +50,8 @@
                     <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding JamaClientSecret, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
 
                     <Button Grid.Row="3" Grid.Column="1"
-                            Content="Test Jama Connection"
-                            Width="190"
+                            Content="Set and Test Jama Connection"
+                            Width="230"
                             HorizontalAlignment="Left"
                             Command="{Binding TestJamaConnectionCommand}"/>
                 </Grid>
@@ -76,8 +76,8 @@
                     <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding AnythingLlmApiKey, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
 
                     <Button Grid.Row="2" Grid.Column="1"
-                            Content="Test AnythingLLM"
-                            Width="170"
+                            Content="Set and Test AnythingLLM"
+                            Width="220"
                             HorizontalAlignment="Left"
                             Command="{Binding TestAnythingLlmConnectionCommand}"/>
                 </Grid>
