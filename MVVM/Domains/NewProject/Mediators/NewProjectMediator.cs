@@ -1017,6 +1017,28 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                         DomainNotificationType.Warning);
                 }
 
+                   // --- Write filtered AnythingLLM/project creation log slice to repo log file ---
+                   try
+                   {
+                       var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                       var appLogPath = Path.Combine(userProfile, "TestCaseEditorApp", "logs", "app.log");
+                       var repoLogPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "logs", "last-anythingllm.log");
+                       var patterns = new[] { "[NewProject]", "[AnythingLLM]", "[RAG Sync]", "[RAG]", "CompleteProjectCreationAsync", "RAG setup", "optimization guide", "training document", "verification" };
+                       if (File.Exists(appLogPath))
+                       {
+                           var lines = File.ReadAllLines(appLogPath)
+                               .Where(line => patterns.Any(p => line.Contains(p, StringComparison.OrdinalIgnoreCase)))
+                               .TakeLast(120)
+                               .ToList();
+                           Directory.CreateDirectory(Path.GetDirectoryName(repoLogPath)!);
+                           File.WriteAllLines(repoLogPath, lines);
+                       }
+                   }
+                   catch (Exception logEx)
+                   {
+                       _logger.LogWarning(logEx, "[NewProjectMediator] Failed to write filtered AnythingLLM log to repo");
+                   }
+
                 if (!ragSetupEmbeddedSuccessfully)
                 {
                     ShowNotification(
