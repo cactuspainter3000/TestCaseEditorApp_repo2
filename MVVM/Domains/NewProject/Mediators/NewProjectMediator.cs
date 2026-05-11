@@ -934,6 +934,33 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 // Save workspace file
                 _persistenceService.Save(projectSavePath, workspace);
                 _logger.LogInformation("💾 Workspace file saved: {ProjectSavePath}", projectSavePath);
+
+                // Embed the standard RAG instruction/setup files in the associated AnythingLLM workspace
+                // so a newly created project starts with the baseline RAG context.
+                bool ragSetupEmbeddedSuccessfully = true;
+                if (_anythingLLMService != null && !string.IsNullOrWhiteSpace(resolvedAnythingLLMSlug))
+                {
+                    UpdateProgress("Embedding standard RAG setup files...", 88);
+
+                    var optimizationGuideUploaded = await _anythingLLMService.UploadOptimizationGuideAsync(resolvedAnythingLLMSlug);
+                    var ragTrainingDocumentsUploaded = await _anythingLLMService.UploadRagTrainingDocumentsAsync(resolvedAnythingLLMSlug);
+
+                    ragSetupEmbeddedSuccessfully = optimizationGuideUploaded && ragTrainingDocumentsUploaded;
+
+                    if (ragSetupEmbeddedSuccessfully)
+                    {
+                        _logger.LogInformation("✅ Embedded standard RAG setup files for workspace '{WorkspaceSlug}'", resolvedAnythingLLMSlug);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("⚠️ Some standard RAG setup files failed to embed for workspace '{WorkspaceSlug}'", resolvedAnythingLLMSlug);
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ Skipping RAG setup embedding because AnythingLLM service or workspace slug is unavailable");
+                    ragSetupEmbeddedSuccessfully = false;
+                }
                 
                 UpdateProgress("Project created successfully!", 100);
                 
@@ -986,6 +1013,13 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 {
                     ShowNotification(
                         $"Project '{displayProjectName}' created but requirements import failed. You can manually import requirements later.", 
+                        DomainNotificationType.Warning);
+                }
+
+                if (!ragSetupEmbeddedSuccessfully)
+                {
+                    ShowNotification(
+                        $"Project '{displayProjectName}' was created, but the standard RAG setup files did not finish embedding.", 
                         DomainNotificationType.Warning);
                 }
                     
