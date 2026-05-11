@@ -944,8 +944,9 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
 
                     var optimizationGuideUploaded = await _anythingLLMService.UploadOptimizationGuideAsync(resolvedAnythingLLMSlug);
                     var ragTrainingDocumentsUploaded = await _anythingLLMService.UploadRagTrainingDocumentsAsync(resolvedAnythingLLMSlug);
+                    var ragSetupVerified = await VerifyStandardRagDocumentsEmbeddedAsync(resolvedAnythingLLMSlug);
 
-                    ragSetupEmbeddedSuccessfully = optimizationGuideUploaded && ragTrainingDocumentsUploaded;
+                    ragSetupEmbeddedSuccessfully = optimizationGuideUploaded && ragTrainingDocumentsUploaded && ragSetupVerified;
 
                     if (ragSetupEmbeddedSuccessfully)
                     {
@@ -953,7 +954,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     }
                     else
                     {
-                        _logger.LogWarning("⚠️ Some standard RAG setup files failed to embed for workspace '{WorkspaceSlug}'", resolvedAnythingLLMSlug);
+                        _logger.LogWarning("⚠️ Standard RAG setup file verification failed for workspace '{WorkspaceSlug}'", resolvedAnythingLLMSlug);
                     }
                 }
                 else
@@ -1044,6 +1045,55 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 ShowNotification($"Error creating project: {ex.Message}", DomainNotificationType.Error);
                 HideProgress();
                 return false; // Return false instead of throwing to allow graceful handling
+            }
+        }
+
+        private async Task<bool> VerifyStandardRagDocumentsEmbeddedAsync(string workspaceSlug)
+        {
+            try
+            {
+                var documentsElement = await _anythingLLMService.GetWorkspaceDocumentsAsync(workspaceSlug);
+                if (!documentsElement.HasValue || documentsElement.Value.ValueKind != JsonValueKind.Array)
+                {
+                    _logger.LogWarning("⚠️ Could not verify standard RAG documents because workspace document listing is unavailable for '{WorkspaceSlug}'", workspaceSlug);
+                    return false;
+                }
+
+                var requiredMarkers = new[]
+                {
+                    "ANYTHINGLM_OPTIMIZATION_GUIDE.md",
+                    "RAG-JSON-Schema-Training.md",
+                    "RAG-Learning-Examples.md",
+                    "RAG-Optimization-Summary.md"
+                };
+
+                bool allFound = true;
+                foreach (var marker in requiredMarkers)
+                {
+                    var found = documentsElement.Value.EnumerateArray().Any(doc =>
+                    {
+                        var text = doc.GetRawText();
+                        return text.Contains(marker, StringComparison.OrdinalIgnoreCase);
+                    });
+
+                    if (!found)
+                    {
+                        _logger.LogWarning("⚠️ Standard RAG document marker '{DocumentMarker}' was not found in workspace '{WorkspaceSlug}'", marker, workspaceSlug);
+                        allFound = false;
+                    }
+                }
+
+                if (allFound)
+                {
+                    _logger.LogInformation("✅ Verified standard RAG documents are present in workspace '{WorkspaceSlug}'", workspaceSlug);
+                }
+
+                return allFound;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "⚠️ Failed to verify standard RAG documents for workspace '{WorkspaceSlug}'", workspaceSlug);
+                return false;
             }
         }
         
