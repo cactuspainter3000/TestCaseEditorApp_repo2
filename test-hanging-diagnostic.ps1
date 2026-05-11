@@ -2,7 +2,7 @@
 # This will run for exactly 15 seconds then kill the process
 
 $env:JAMA_BASE_URL = "https://jama02.rockwellcollins.com/contour"
-$env:JAMA_CLIENT_ID = "hycv5tyzpvyvhmi" 
+$env:JAMA_CLIENT_ID = "hpytk1ocbt0p01u" 
 $env:JAMA_CLIENT_SECRET = "Wy+qLYTczFkxwZIhJJ/I4Q=="
 
 Write-Host "=== QUICK HANGING DIAGNOSTIC ===" -ForegroundColor Yellow
