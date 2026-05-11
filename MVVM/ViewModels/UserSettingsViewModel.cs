@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net.Http;
@@ -48,6 +49,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private bool _isStatusError;
 
         public ObservableCollection<string> OllamaModels { get; } = new();
+        
+        public Func<Task<(bool Success, List<string> Issues)>>? ValidationCallback { get; set; }
 
         public event EventHandler<bool>? RequestClose;
 
@@ -181,7 +184,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         [RelayCommand]
-        private void Save()
+        private async Task SaveAsync()
         {
             if (!Validate())
             {
@@ -202,9 +205,48 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _userSettingsService.SaveSettings(settings);
             _userSettingsService.ApplySettingsToEnvironment(settings);
 
-            StatusMessage = "Settings saved and applied to this session.";
-            IsStatusError = false;
-            RequestClose?.Invoke(this, true);
+            // If there's a validation callback (from the validation gate), run it
+            if (ValidationCallback != null)
+            {
+                try
+                {
+                    IsBusy = true;
+                    StatusMessage = "Validating settings...";
+                    IsStatusError = false;
+
+                    var (success, issues) = await ValidationCallback();
+
+                    if (success)
+                    {
+                        StatusMessage = "Settings saved and validated. Proceeding to Test Case Generator...";
+                        IsStatusError = false;
+                        RequestClose?.Invoke(this, true);
+                    }
+                    else
+                    {
+                        // Validation failed; show errors and keep dialog open
+                        var details = string.Join("\n• ", issues);
+                        StatusMessage = $"Validation failed:\n• {details}\n\nPlease fix the issues and try again.";
+                        IsStatusError = true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    StatusMessage = $"Validation error: {ex.Message}";
+                    IsStatusError = true;
+                }
+                finally
+                {
+                    IsBusy = false;
+                }
+            }
+            else
+            {
+                // No validation callback; just close
+                StatusMessage = "Settings saved and applied to this session.";
+                IsStatusError = false;
+                RequestClose?.Invoke(this, true);
+            }
         }
 
         [RelayCommand]

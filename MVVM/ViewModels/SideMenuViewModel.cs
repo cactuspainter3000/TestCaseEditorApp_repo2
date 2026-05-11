@@ -325,33 +325,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 try
                 {
-                    var settings = _userSettingsService.LoadSettings();
-                    var issues = new List<string>();
+                    var (success, issues) = await PerformSettingsValidationAsync();
 
-                    if (_userSettingsService.HasMissingRequiredSettings())
-                    {
-                        issues.Add("One or more required settings are missing.");
-                    }
-
-                    var (jamaSuccess, jamaMessage) = await _jamaConnectService.TestConnectionAsync();
-                    if (!jamaSuccess)
-                    {
-                        issues.Add($"Jama: {jamaMessage}");
-                    }
-
-                    var (anythingSuccess, anythingMessage) = await TestAnythingLlmConfigurationAsync(settings);
-                    if (!anythingSuccess)
-                    {
-                        issues.Add($"AnythingLLM: {anythingMessage}");
-                    }
-
-                    var (ollamaSuccess, ollamaMessage) = await TestOllamaConfigurationAsync(settings);
-                    if (!ollamaSuccess)
-                    {
-                        issues.Add($"Ollama: {ollamaMessage}");
-                    }
-
-                    if (issues.Count == 0)
+                    if (success)
                     {
                         return true;
                     }
@@ -365,7 +341,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                     if (decision == MessageBoxResult.Yes)
                     {
-                        _settingsDialogService.ShowSettingsDialog(Application.Current?.MainWindow, isRequired: false);
+                        // Pass the validation callback so validation re-runs after save
+                        _settingsDialogService.ShowSettingsDialog(PerformSettingsValidationAsync, Application.Current?.MainWindow, isRequired: false);
                         continue;
                     }
 
@@ -401,6 +378,44 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                     return false;
                 }
+            }
+        }
+
+        private async Task<(bool Success, List<string> Issues)> PerformSettingsValidationAsync()
+        {
+            try
+            {
+                var settings = _userSettingsService.LoadSettings();
+                var issues = new List<string>();
+
+                if (_userSettingsService.HasMissingRequiredSettings())
+                {
+                    issues.Add("One or more required settings are missing.");
+                }
+
+                var (jamaSuccess, jamaMessage) = await _jamaConnectService.TestConnectionAsync();
+                if (!jamaSuccess)
+                {
+                    issues.Add($"Jama: {jamaMessage}");
+                }
+
+                var (anythingSuccess, anythingMessage) = await TestAnythingLlmConfigurationAsync(settings);
+                if (!anythingSuccess)
+                {
+                    issues.Add($"AnythingLLM: {anythingMessage}");
+                }
+
+                var (ollamaSuccess, ollamaMessage) = await TestOllamaConfigurationAsync(settings);
+                if (!ollamaSuccess)
+                {
+                    issues.Add($"Ollama: {ollamaMessage}");
+                }
+
+                return (issues.Count == 0, issues);
+            }
+            catch (Exception ex)
+            {
+                return (false, new List<string> { $"Validation error: {ex.Message}" });
             }
         }
 
