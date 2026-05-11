@@ -1644,15 +1644,6 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                     TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Resolved workspace identifier '{workspaceSlug}' to slug '{resolvedWorkspaceSlug}' for embedding update");
                 }
 
-                var payload = new
-                {
-                    adds = new[] { documentLocation },
-                    deletes = new string[0]
-                };
-
-                var json = JsonSerializer.Serialize(payload);
-                var httpContent = new StringContent(json, Encoding.UTF8, "application/json");
-                
                 // Use extended timeout for embedding operations - large documents can take 10+ minutes
                 TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🕐 Starting embedding operation with extended timeout (10 minutes)");
                 TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Large documents with thousands of chunks may take several minutes to embed");
@@ -1666,35 +1657,46 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                     embeddingHttpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
                 }
                 embeddingHttpClient.DefaultRequestHeaders.Add("Accept", "application/json");
-                
-                // Start embedding operation and progress monitoring concurrently
-                var embeddingTask = embeddingHttpClient.PostAsync($"{_baseUrl}/api/v1/workspace/{resolvedWorkspaceSlug}/update-embeddings", httpContent, cancellationToken);
-                var progressTask = MonitorEmbeddingProgressAsync(resolvedWorkspaceSlug, cancellationToken);
-                
-                // Wait for embedding to complete
-                var response = await embeddingTask;
-                
-                if (response.IsSuccessStatusCode)
+
+                var locationCandidates = BuildEmbeddingLocationCandidates(documentLocation).ToList();
+                foreach (var candidate in locationCandidates)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Document embedding completed successfully for workspace: {resolvedWorkspaceSlug}");
-                    StatusUpdated?.Invoke("✅ Document embedding completed successfully!");
-                    return true;
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Trying embedding attach with location candidate: {candidate}");
+
+                    var payload = new
+                    {
+                        adds = new[] { candidate },
+                        deletes = new string[0]
+                    };
+
+                    var json = JsonSerializer.Serialize(payload);
+                    using var httpContent = new StringContent(json, Encoding.UTF8, "application/json");
+
+                    var response = await embeddingHttpClient.PostAsync($"{_baseUrl}/api/v1/workspace/{resolvedWorkspaceSlug}/update-embeddings", httpContent, cancellationToken);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Failed embedding attach attempt ({candidate}) for workspace '{resolvedWorkspaceSlug}': {response.StatusCode} - {errorContent}");
+                        continue;
+                    }
+
+                    var verification = await WaitForDocumentsWithAdaptiveTimingAsync(
+                        resolvedWorkspaceSlug,
+                        $"workspace attach ({candidate})",
+                        cancellationToken,
+                        allowSoftSuccess: false);
+
+                    if (verification.success)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Document embedding completed successfully for workspace: {resolvedWorkspaceSlug}");
+                        StatusUpdated?.Invoke("✅ Document embedding completed successfully!");
+                        return true;
+                    }
+
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Attach attempt succeeded but verification still shows no workspace documents for '{resolvedWorkspaceSlug}' using candidate '{candidate}'");
                 }
-                
-                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Failed to add document to workspace embeddings ({resolvedWorkspaceSlug}): {response.StatusCode} - {errorContent}");
-                
-                // Detect context length limitations for better error messaging
-                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 🚨 BadRequest detected - likely indicates document exceeds embedding model context length");
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 💡 This will trigger chunked upload fallback in the calling method");
-                    StatusUpdated?.Invoke("🚨 Document too large for embedding - switching to chunked approach...");
-                }
-                else
-                {
-                    StatusUpdated?.Invoke($"❌ Embedding failed: {response.StatusCode}");
-                }
+
+                StatusUpdated?.Invoke("❌ Embedding completed but no documents became visible in workspace");
                 return false;
             }
             catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
@@ -1710,6 +1712,58 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error adding document to workspace embeddings: {ex.Message}");
                 StatusUpdated?.Invoke($"❌ Embedding error: {ex.Message}");
                 return false;
+            }
+        }
+
+        private IEnumerable<string> BuildEmbeddingLocationCandidates(string documentLocation)
+        {
+            if (string.IsNullOrWhiteSpace(documentLocation))
+            {
+                yield break;
+            }
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (seen.Add(documentLocation))
+            {
+                yield return documentLocation;
+            }
+
+            var normalized = documentLocation.Replace('\\', '/');
+            if (seen.Add(normalized))
+            {
+                yield return normalized;
+            }
+
+            const string marker = "/documents/";
+            var markerIndex = normalized.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (markerIndex >= 0)
+            {
+                var relativeFromDocuments = normalized.Substring(markerIndex + marker.Length);
+                if (seen.Add(relativeFromDocuments))
+                {
+                    yield return relativeFromDocuments;
+                }
+
+                var customDocumentsIndex = relativeFromDocuments.IndexOf("custom-documents/", StringComparison.OrdinalIgnoreCase);
+                if (customDocumentsIndex >= 0)
+                {
+                    var customDocumentsPath = relativeFromDocuments.Substring(customDocumentsIndex);
+                    if (seen.Add(customDocumentsPath))
+                    {
+                        yield return customDocumentsPath;
+                    }
+                }
+            }
+
+            var fileName = Path.GetFileName(normalized);
+            if (!string.IsNullOrWhiteSpace(fileName))
+            {
+                var customDocumentsFile = $"custom-documents/{fileName}";
+                if (seen.Add(customDocumentsFile))
+                {
+                    yield return customDocumentsFile;
+                }
             }
         }
 
