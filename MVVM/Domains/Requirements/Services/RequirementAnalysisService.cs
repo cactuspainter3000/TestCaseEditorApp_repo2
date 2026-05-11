@@ -1100,12 +1100,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                     return (false, string.Empty, RAGFailureReason.WorkspaceNotConfigured, $"Could not find or create AnythingLLM workspace. Project: '{_projectWorkspaceName ?? "Unknown"}'.");
                 }
 
-                // Upload supplemental information as documents if not already done
-                // NOTE: Document upload temporarily disabled due to API endpoint issues  
-                // Supplemental information is now included directly in the RAG prompt
+                // Upload supplemental information as documents so RAG has retrievable context.
+                // This was previously disabled while diagnosing API issues.
                 var uploadStart = DateTime.UtcNow;
                 System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Starting document upload at {uploadStart:HH:mm:ss.fff}");
-                // await EnsureSupplementalInfoUploadedAsync(requirement, workspaceSlug, onProgressUpdate, cancellationToken);
+                await EnsureSupplementalInfoUploadedAsync(requirement, workspaceSlug, onProgressUpdate, cancellationToken);
                 var uploadTime = DateTime.UtcNow - uploadStart;
                 System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] Document upload completed in {uploadTime.TotalMilliseconds}ms");
 
