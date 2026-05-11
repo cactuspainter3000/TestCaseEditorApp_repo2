@@ -1,275 +1,3 @@
-2026-05-11T17:45:19.2658695Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":57,"name":"this is the one","slug":"this-is-the-one","vectorTag":null,"createdAt":"2026-05-11T17:41:48.412Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T17:41:48.412Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vector...
-2026-05-11T17:45:19.2684295Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'this-is-the-one'
-2026-05-11T17:45:19.2722069Z	Information	App	[AnythingLLM] ?? Embedding progress: Processing chunks... (3m 3s elapsed)
-2026-05-11T17:45:19.2766922Z	Information	App	[AnythingLLM] ?? Embedding progress: Processing chunks... (0m 31s elapsed)
-2026-05-11T17:45:20.5981632Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:45:20.6128645Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:45:20.6594606Z	Information	App	[AnythingLLM] Documents endpoint failed for 'this-is-the-one': NotFound, trying workspace endpoint
-2026-05-11T17:45:20.6665443Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":57,"name":"this is the one","slug":"this-is-the-one","vectorTag":null,"createdAt":"2026-05-11T17:41:48.412Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T17:41:48.412Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vector...
-2026-05-11T17:45:20.6684316Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'this-is-the-one'
-2026-05-11T17:45:20.6702781Z	Information	App	[AnythingLLM] ?? Embedding progress: Processing chunks... (3m 30s elapsed)
-2026-05-11T17:45:33.4263584Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:45:33.4381001Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:45:33.5146869Z	Information	App	[AnythingLLM] Documents endpoint failed for 'this-is-the-one': NotFound, trying workspace endpoint
-2026-05-11T17:45:33.5217808Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":57,"name":"this is the one","slug":"this-is-the-one","vectorTag":null,"createdAt":"2026-05-11T17:41:48.412Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T17:41:48.412Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vector...
-2026-05-11T17:45:33.5237916Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'this-is-the-one'
-2026-05-11T17:45:33.5259344Z	Information	App	[AnythingLLM] ?? Embedding progress: Processing chunks... (0m 29s elapsed)
-2026-05-11T17:45:33.9915289Z	Information	App	[AnythingLLM] ? Document embedding completed successfully for workspace: matrix
-2026-05-11T17:45:33.9938440Z	Information	App	[AnythingLLM] Successfully uploaded document 'RAG-JSON-Schema-Training.md' to workspace 'matrix'
-2026-05-11T17:45:33.9957020Z	Information	App	[AnythingLLM] Successfully uploaded RAG document: RAG-JSON-Schema-Training.md
-2026-05-11T17:45:33.9991277Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:45:34.0101997Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:45:34.0505875Z	Information	App	[AnythingLLM] Uploading document 'RAG-Learning-Examples.md' to workspace 'matrix' using proper protocol
-2026-05-11T17:45:34.0526180Z	Information	App	[AnythingLLM] Using explicit upload+attach flow to ensure workspace visibility
-2026-05-11T17:45:34.1544114Z	Information	App	[AnythingLLM] Document uploaded to system: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-learning-examples-7112cd86-66e2-4c40-9091-7b218f94a89f.json
-2026-05-11T17:45:34.1572186Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:45:34.1724050Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:45:34.2098897Z	Information	App	[AnythingLLM] ?? Starting embedding operation with extended timeout (10 minutes)
-2026-05-11T17:45:34.2122148Z	Information	App	[AnythingLLM] Large documents with thousands of chunks may take several minutes to embed
-2026-05-11T17:45:39.0387030Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:45:39.0532799Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:45:39.1108806Z	Information	App	[AnythingLLM] Documents endpoint failed for 'this-is-the-one': NotFound, trying workspace endpoint
-2026-05-11T17:45:39.1168884Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":57,"name":"this is the one","slug":"this-is-the-one","vectorTag":null,"createdAt":"2026-05-11T17:41:48.412Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T17:41:48.412Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vector...
-2026-05-11T17:45:39.1190932Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'this-is-the-one'
-2026-05-11T17:45:39.1213672Z	Information	App	[AnythingLLM] ?? Embedding progress: Processing chunks... (3m 30s elapsed)
-2026-05-11T17:45:40.4418470Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:45:40.4536435Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:45:40.5073994Z	Information	App	[AnythingLLM] Documents endpoint failed for 'this-is-the-one': NotFound, trying workspace endpoint
-2026-05-11T17:45:40.5131799Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":57,"name":"this is the one","slug":"this-is-the-one","vectorTag":null,"createdAt":"2026-05-11T17:41:48.412Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T17:41:48.412Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vector...
-2026-05-11T17:45:40.5153798Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'this-is-the-one'
-2026-05-11T17:45:40.5176127Z	Information	App	[AnythingLLM] ?? Embedding progress: Processing chunks... (0m 30s elapsed)
-2026-05-11T17:45:40.8282038Z	Information	App	[AnythingLLM] ? Document embedding completed successfully for workspace: matrix
-2026-05-11T17:45:40.8312119Z	Information	App	[AnythingLLM] Successfully uploaded document 'RAG-Learning-Examples.md' to workspace 'matrix'
-2026-05-11T17:45:40.8334878Z	Information	App	[AnythingLLM] Successfully uploaded RAG document: RAG-Learning-Examples.md
-2026-05-11T17:45:40.8368298Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:45:40.8505587Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:45:40.8904757Z	Information	App	[AnythingLLM] Uploading document 'RAG-Optimization-Summary.md' to workspace 'matrix' using proper protocol
-2026-05-11T17:45:40.8924963Z	Information	App	[AnythingLLM] Using explicit upload+attach flow to ensure workspace visibility
-2026-05-11T17:45:41.0200725Z	Information	App	[AnythingLLM] Document uploaded to system: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-46bc13a2-ca3b-4b60-8f01-3f88657f6f7a.json
-2026-05-11T17:45:41.0223358Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:45:41.0359112Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:45:41.0710928Z	Information	App	[AnythingLLM] ?? Starting embedding operation with extended timeout (10 minutes)
-2026-05-11T17:45:41.0728831Z	Information	App	[AnythingLLM] Large documents with thousands of chunks may take several minutes to embed
-2026-05-11T17:45:42.4470571Z	Information	Microsoft.Hosting.Lifetime	Application is shutting down...
-2026-05-11T17:54:16.6348847Z	Information	App	[AnythingLLM] Checking AnythingLLM status...
-2026-05-11T17:54:16.6769335Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
-2026-05-11T17:54:16.6800170Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
-2026-05-11T17:54:16.6879900Z	Information	App	[AnythingLLM] Availability check result: True
-2026-05-11T17:54:16.6897505Z	Information	App	[AnythingLLM] AnythingLLM service is ready!
-2026-05-11T17:54:16.6941558Z	Information	App	[AnythingLLM] Availability check result: True
-2026-05-11T17:54:20.3914802Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:54:20.4090760Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:54:22.6421510Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProject] Jama connection test: True
-2026-05-11T17:54:22.6442388Z	Information	App	[NewProject] Auto-loading Jama projects on startup
-2026-05-11T17:54:22.9612600Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProject] Retrieved 17 Jama projects
-2026-05-11T17:54:40.8432086Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:54:40.8616582Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:54:40.9172406Z	Information	App	[NewProject] Creating workspace: Home Again...
-2026-05-11T17:54:40.9215692Z	Information	App	[AnythingLLM] Attempting to create workspace 'Home Again'
-2026-05-11T17:54:40.9236917Z	Information	App	[AnythingLLM] API Key configured: Yes
-2026-05-11T17:54:40.9257061Z	Information	App	[AnythingLLM] Base URL: http://localhost:3001
-2026-05-11T17:54:40.9278963Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:54:40.9440051Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:54:41.0031261Z	Information	App	[AnythingLLM] Creating new workspace 'Home Again'
-2026-05-11T17:54:41.0121935Z	Information	App	[AnythingLLM] Sending payload: {"name":"Home Again"}
-2026-05-11T17:54:41.0143876Z	Information	App	[AnythingLLM] POST endpoint: http://localhost:3001/api/v1/workspace/new
-2026-05-11T17:54:41.0485196Z	Information	App	[AnythingLLM] Configuring optimal settings for newly created workspace 'Home Again' (slug: 'home-again')
-2026-05-11T17:54:41.0523912Z	Information	App	[AnythingLLM] Configuring optimal settings for workspace 'home-again' using official documentation guidelines
-2026-05-11T17:54:41.0652418Z	Information	App	[AnythingLLM] Using chat model 'phi4-mini:3.8b-q4_K_M' for workspace 'home-again'
-2026-05-11T17:54:41.0921311Z	Information	App	[AnythingLLM] ? Successfully configured workspace settings for 'home-again' using POST: http://localhost:3001/api/v1/workspace/home-again/update
-2026-05-11T17:54:41.0940542Z	Information	App	[AnythingLLM] ?? DEBUG: API Response: {"workspace":{"id":59,"name":"Home Again","slug":"home-again","vectorTag":null,"createdAt":"2026-05-11T17:54:41.024Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T17:54:41.024Z","open
-2026-05-11T17:54:41.0959836Z	Information	App	[AnythingLLM] Successfully configured workspace 'Home Again' with system prompt for optimal performance
-2026-05-11T17:54:41.0978530Z	Information	App	[AnythingLLM] Applying preventive RAG configuration fix to new workspace 'home-again'
-2026-05-11T17:54:41.1015864Z	Information	App	[AnythingLLM] Applying RAG troubleshooting configuration for workspace 'home-again'
-2026-05-11T17:54:41.1212656Z	Information	App	[AnythingLLM] ? RAG configuration fix applied successfully
-2026-05-11T17:54:42.1358966Z	Information	App	[AnythingLLM] Configuration verification - similarityThreshold: 0, topN: 16
-2026-05-11T17:54:42.1379057Z	Information	App	[AnythingLLM] ? Configuration verified as applied
-2026-05-11T17:54:42.1397567Z	Information	App	[AnythingLLM] ? Preventive RAG fix applied successfully
-2026-05-11T17:54:42.1436418Z	Information	App	[AnythingLLM] Validating system prompt configuration for workspace 'home-again'
-2026-05-11T17:54:42.1545176Z	Warning	App	[AnythingLLM] ?? Workspace 'home-again' system prompt validation FAILED
-2026-05-11T17:54:42.1563324Z	Information	App	[AnythingLLM] ?? Prompt details - IsEmpty: False, Length: 628
-2026-05-11T17:54:42.1580847Z	Information	App	[AnythingLLM] ?? Has 'requirements quality analysis': False
-2026-05-11T17:54:42.1598242Z	Information	App	[AnythingLLM] ?? Has 'ANTI-FABRICATION RULES': False
-2026-05-11T17:54:42.1614625Z	Information	App	[AnythingLLM] ?? Attempting on-demand configuration for workspace 'home-again'
-2026-05-11T17:54:42.1631908Z	Information	App	[AnythingLLM] Configuring optimal settings for workspace 'home-again' using official documentation guidelines
-2026-05-11T17:54:42.1731918Z	Information	App	[AnythingLLM] Using chat model 'phi4-mini:3.8b-q4_K_M' for workspace 'home-again'
-2026-05-11T17:54:42.1873288Z	Information	App	[AnythingLLM] ? Successfully configured workspace settings for 'home-again' using POST: http://localhost:3001/api/v1/workspace/home-again/update
-2026-05-11T17:54:42.1891301Z	Information	App	[AnythingLLM] ?? DEBUG: API Response: {"workspace":{"id":59,"name":"Home Again","slug":"home-again","vectorTag":null,"createdAt":"2026-05-11T17:54:41.024Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T17:54:41.024Z","open
-2026-05-11T17:54:42.1915451Z	Information	App	[AnythingLLM] ? On-demand configuration succeeded for 'home-again'
-2026-05-11T17:54:42.1947755Z	Information	App	[AnythingLLM] Created workspace 'Home Again' - applying automated configuration...
-2026-05-11T17:54:42.1965325Z	Information	App	[NewProject] Applying optimal settings...
-2026-05-11T17:54:42.1982181Z	Information	App	[AnythingLLM] Configuring optimal settings for workspace 'home-again' using official documentation guidelines
-2026-05-11T17:54:42.2078949Z	Information	App	[AnythingLLM] Using chat model 'phi4-mini:3.8b-q4_K_M' for workspace 'home-again'
-2026-05-11T17:54:42.2148935Z	Information	App	[AnythingLLM] ? Successfully configured workspace settings for 'home-again' using POST: http://localhost:3001/api/v1/workspace/home-again/update
-2026-05-11T17:54:42.2168131Z	Information	App	[AnythingLLM] ?? DEBUG: API Response: {"workspace":{"id":59,"name":"Home Again","slug":"home-again","vectorTag":null,"createdAt":"2026-05-11T17:54:41.024Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T17:54:41.024Z","open
-2026-05-11T17:54:42.2188392Z	Information	App	[NewProject] Uploading optimization guide...
-2026-05-11T17:54:42.2229850Z	Information	App	[AnythingLLM] Uploading optimization guide to workspace 'home-again'
-2026-05-11T17:54:42.2257273Z	Warning	App	[AnythingLLM] Optimization guide not found at: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\Config\ANYTHINGLM_OPTIMIZATION_GUIDE.md
-2026-05-11T17:54:42.2276008Z	Warning	App	[AnythingLLM] Failed to upload optimization guide for workspace 'Home Again', but continuing...
-2026-05-11T17:54:42.2295240Z	Information	App	[NewProject] Uploading RAG training documents...
-2026-05-11T17:54:42.2326394Z	Information	App	[AnythingLLM] Uploading RAG training documents to workspace 'home-again'
-2026-05-11T17:54:42.2345222Z	Information	App	[AnythingLLM] Using Config directory: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\Config
-2026-05-11T17:54:42.2539781Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:54:42.2671887Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:54:42.3530735Z	Information	App	[AnythingLLM] Uploading document 'RAG-JSON-Schema-Training.md' to workspace 'home-again' using proper protocol
-2026-05-11T17:54:42.3549098Z	Information	App	[AnythingLLM] Using explicit upload+attach flow to ensure workspace visibility
-2026-05-11T17:54:42.4801818Z	Information	App	[AnythingLLM] Document uploaded to system: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-b36b386b-7d9f-478f-9b83-53b2784642fb.json
-2026-05-11T17:54:42.4838917Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:54:42.4949955Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:54:42.5687500Z	Information	App	[AnythingLLM] ?? Starting embedding operation with extended timeout (10 minutes)
-2026-05-11T17:54:42.5710018Z	Information	App	[AnythingLLM] Large documents with thousands of chunks may take several minutes to embed
-2026-05-11T17:54:58.0935745Z	Information	App	[AnythingLLM] ? Document embedding completed successfully for workspace: home-again
-2026-05-11T17:54:58.0966839Z	Information	App	[AnythingLLM] Successfully uploaded document 'RAG-JSON-Schema-Training.md' to workspace 'home-again'
-2026-05-11T17:54:58.0987928Z	Information	App	[AnythingLLM] Successfully uploaded RAG document: RAG-JSON-Schema-Training.md
-2026-05-11T17:54:58.1122090Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:54:58.1241835Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:54:58.1938648Z	Information	App	[AnythingLLM] Uploading document 'RAG-Learning-Examples.md' to workspace 'home-again' using proper protocol
-2026-05-11T17:54:58.1958853Z	Information	App	[AnythingLLM] Using explicit upload+attach flow to ensure workspace visibility
-2026-05-11T17:54:58.2976697Z	Information	App	[AnythingLLM] Document uploaded to system: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-learning-examples-335dfed8-07f7-4c31-b207-dc96685aab5f.json
-2026-05-11T17:54:58.2998293Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:54:58.3121008Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:54:58.3900261Z	Information	App	[AnythingLLM] ?? Starting embedding operation with extended timeout (10 minutes)
-2026-05-11T17:54:58.3925140Z	Information	App	[AnythingLLM] Large documents with thousands of chunks may take several minutes to embed
-2026-05-11T17:55:05.1526942Z	Information	App	[AnythingLLM] ? Document embedding completed successfully for workspace: home-again
-2026-05-11T17:55:05.1549729Z	Information	App	[AnythingLLM] Successfully uploaded document 'RAG-Learning-Examples.md' to workspace 'home-again'
-2026-05-11T17:55:05.1567340Z	Information	App	[AnythingLLM] Successfully uploaded RAG document: RAG-Learning-Examples.md
-2026-05-11T17:55:05.1736460Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:55:05.1879666Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:55:05.2632052Z	Information	App	[AnythingLLM] Uploading document 'RAG-Optimization-Summary.md' to workspace 'home-again' using proper protocol
-2026-05-11T17:55:05.2657953Z	Information	App	[AnythingLLM] Using explicit upload+attach flow to ensure workspace visibility
-2026-05-11T17:55:05.3791392Z	Information	App	[AnythingLLM] Document uploaded to system: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-ff0752d3-c448-424c-bda7-f3f2e7243175.json
-2026-05-11T17:55:05.3820310Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:55:05.3929629Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:55:05.4555880Z	Information	App	[AnythingLLM] ?? Starting embedding operation with extended timeout (10 minutes)
-2026-05-11T17:55:05.4574844Z	Information	App	[AnythingLLM] Large documents with thousands of chunks may take several minutes to embed
-2026-05-11T17:55:12.2551472Z	Information	App	[AnythingLLM] ? Document embedding completed successfully for workspace: home-again
-2026-05-11T17:55:12.2580490Z	Information	App	[AnythingLLM] Successfully uploaded document 'RAG-Optimization-Summary.md' to workspace 'home-again'
-2026-05-11T17:55:12.2609457Z	Information	App	[AnythingLLM] Successfully uploaded RAG document: RAG-Optimization-Summary.md
-2026-05-11T17:55:12.2632215Z	Information	App	[AnythingLLM] Successfully uploaded all RAG training documents to workspace 'home-again'
-2026-05-11T17:55:12.2653769Z	Information	App	[NewProject] ?? Workspace created but some optimizations failed
-2026-05-11T17:55:12.2674997Z	Warning	App	[AnythingLLM] Workspace 'Home Again' created but some configuration steps failed
-2026-05-11T17:55:12.5781729Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:55:12.5895972Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:55:12.6581617Z	Information	App	[AnythingLLM] Documents endpoint failed for 'home-again': NotFound, trying workspace endpoint
-2026-05-11T17:55:12.6632687Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":59,"name":"Home Again","slug":"home-again","vectorTag":null,"createdAt":"2026-05-11T17:54:41.024Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T17:54:41.024Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and ...
-2026-05-11T17:55:12.6657070Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'home-again'
-2026-05-11T17:55:12.6681872Z	Information	App	[AnythingLLM] ?? Embedding progress: Processing chunks... (0m 30s elapsed)
-2026-05-11T17:55:30.5030796Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:55:30.5160416Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:55:30.6031617Z	Information	App	[AnythingLLM] Documents endpoint failed for 'home-again': NotFound, trying workspace endpoint
-2026-05-11T17:55:30.6090204Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":59,"name":"Home Again","slug":"home-again","vectorTag":null,"createdAt":"2026-05-11T17:54:41.024Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T17:54:41.024Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and ...
-2026-05-11T17:55:30.6115698Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'home-again'
-2026-05-11T17:55:30.6141860Z	Information	App	[AnythingLLM] ?? Embedding progress: Processing chunks... (0m 32s elapsed)
-2026-05-11T17:55:35.4630765Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:55:35.4761571Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:55:35.5330583Z	Information	App	[AnythingLLM] Documents endpoint failed for 'home-again': NotFound, trying workspace endpoint
-2026-05-11T17:55:35.5381078Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":59,"name":"Home Again","slug":"home-again","vectorTag":null,"createdAt":"2026-05-11T17:54:41.024Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T17:54:41.024Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and ...
-2026-05-11T17:55:35.5399307Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'home-again'
-2026-05-11T17:55:35.5415728Z	Information	App	[AnythingLLM] ?? Embedding progress: Processing chunks... (0m 30s elapsed)
-2026-05-11T17:55:43.5525392Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:55:43.5636161Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:55:43.6434995Z	Information	App	[AnythingLLM] Documents endpoint failed for 'home-again': NotFound, trying workspace endpoint
-2026-05-11T17:55:43.6496540Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":59,"name":"Home Again","slug":"home-again","vectorTag":null,"createdAt":"2026-05-11T17:54:41.024Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T17:54:41.024Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and ...
-2026-05-11T17:55:43.6521551Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'home-again'
-2026-05-11T17:55:43.6542157Z	Information	App	[AnythingLLM] ?? Embedding progress: Processing chunks... (1m 0s elapsed)
-2026-05-11T17:55:44.4848205Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProject] Successfully imported 243 requirements from Jama project C1XMA2405_CMP-6000_Top Level Rehost to C:\Users\e10653214\AppData\Local\Temp\JamaRequirements_C1XMA2405_20260511_125544.json
-2026-05-11T17:56:00.6206512Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:56:00.6339730Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:56:00.6745477Z	Information	App	[AnythingLLM] Documents endpoint failed for 'home-again': NotFound, trying workspace endpoint
-2026-05-11T17:56:00.6794249Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":59,"name":"Home Again","slug":"home-again","vectorTag":null,"createdAt":"2026-05-11T17:54:41.024Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T17:54:41.024Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and ...
-2026-05-11T17:56:00.6814229Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'home-again'
-2026-05-11T17:56:00.6834191Z	Information	App	[AnythingLLM] ?? Embedding progress: Processing chunks... (1m 2s elapsed)
-2026-05-11T17:56:05.5449944Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:56:05.5559188Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:56:05.6006420Z	Information	App	[AnythingLLM] Documents endpoint failed for 'home-again': NotFound, trying workspace endpoint
-2026-05-11T17:56:05.6060288Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":59,"name":"Home Again","slug":"home-again","vectorTag":null,"createdAt":"2026-05-11T17:54:41.024Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T17:54:41.024Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and ...
-2026-05-11T17:56:05.6079554Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'home-again'
-2026-05-11T17:56:05.6103936Z	Information	App	[AnythingLLM] ?? Embedding progress: Processing chunks... (1m 0s elapsed)
-2026-05-11T17:56:13.6588780Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:56:13.6695348Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:56:13.7091313Z	Information	App	[AnythingLLM] Documents endpoint failed for 'home-again': NotFound, trying workspace endpoint
-2026-05-11T17:56:13.7160952Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":59,"name":"Home Again","slug":"home-again","vectorTag":null,"createdAt":"2026-05-11T17:54:41.024Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T17:54:41.024Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and ...
-2026-05-11T17:56:13.7184504Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'home-again'
-2026-05-11T17:56:13.7204721Z	Information	App	[AnythingLLM] ?? Embedding progress: Processing chunks... (1m 31s elapsed)
-2026-05-11T17:56:33.2872143Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:56:33.2997058Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:56:33.3481016Z	Information	App	[AnythingLLM] Documents endpoint failed for 'home-again': NotFound, trying workspace endpoint
-2026-05-11T17:56:33.3538239Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":59,"name":"Home Again","slug":"home-again","vectorTag":null,"createdAt":"2026-05-11T17:54:41.024Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T17:54:41.024Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and ...
-2026-05-11T17:56:33.3558497Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'home-again'
-2026-05-11T17:56:33.3577994Z	Information	App	[AnythingLLM] ?? Embedding progress: Processing chunks... (1m 34s elapsed)
-2026-05-11T17:56:35.6623281Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:56:35.6747785Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:56:35.7167863Z	Information	App	[AnythingLLM] Documents endpoint failed for 'home-again': NotFound, trying workspace endpoint
-2026-05-11T17:56:35.7228336Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":59,"name":"Home Again","slug":"home-again","vectorTag":null,"createdAt":"2026-05-11T17:54:41.024Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T17:54:41.024Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and ...
-2026-05-11T17:56:35.7245788Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'home-again'
-2026-05-11T17:56:35.7263195Z	Information	App	[AnythingLLM] ?? Embedding progress: Processing chunks... (1m 30s elapsed)
-2026-05-11T17:56:45.3002565Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:56:45.3138259Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:56:45.3821521Z	Information	App	[AnythingLLM] Documents endpoint failed for 'home-again': NotFound, trying workspace endpoint
-2026-05-11T17:56:45.3874093Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":59,"name":"Home Again","slug":"home-again","vectorTag":null,"createdAt":"2026-05-11T17:54:41.024Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T17:54:41.024Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and ...
-2026-05-11T17:56:45.3892071Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'home-again'
-2026-05-11T17:56:45.3909402Z	Information	App	[AnythingLLM] ?? Embedding progress: Processing chunks... (2m 2s elapsed)
-2026-05-11T17:56:46.0605823Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProject] Successfully imported 243 requirements from Jama project C1XMA2405_CMP-6000_Top Level Rehost to C:\Users\e10653214\AppData\Local\Temp\JamaRequirements_C1XMA2405_20260511_125646.json
-2026-05-11T17:56:46.1761154Z	Information	App	[AnythingLLM] Uploading optimization guide to workspace 'home-again'
-2026-05-11T17:56:46.1779516Z	Warning	App	[AnythingLLM] Optimization guide not found at: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\Config\ANYTHINGLM_OPTIMIZATION_GUIDE.md
-2026-05-11T17:56:46.1797388Z	Information	App	[AnythingLLM] Uploading RAG training documents to workspace 'home-again'
-2026-05-11T17:56:46.1815212Z	Information	App	[AnythingLLM] Using Config directory: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\Config
-2026-05-11T17:56:46.1857700Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:56:46.1988800Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:56:46.2774973Z	Information	App	[AnythingLLM] Uploading document 'RAG-JSON-Schema-Training.md' to workspace 'home-again' using proper protocol
-2026-05-11T17:56:46.2798497Z	Information	App	[AnythingLLM] Using explicit upload+attach flow to ensure workspace visibility
-2026-05-11T17:56:46.3946192Z	Information	App	[AnythingLLM] Document uploaded to system: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-cebdf3f7-1367-45bf-8a96-0d2e9141dec1.json
-2026-05-11T17:56:46.3970917Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:56:46.4102981Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:56:46.4841900Z	Information	App	[AnythingLLM] ?? Starting embedding operation with extended timeout (10 minutes)
-2026-05-11T17:56:46.4864362Z	Information	App	[AnythingLLM] Large documents with thousands of chunks may take several minutes to embed
-2026-05-11T17:57:01.6622869Z	Information	App	[AnythingLLM] ? Document embedding completed successfully for workspace: home-again
-2026-05-11T17:57:01.6646309Z	Information	App	[AnythingLLM] Successfully uploaded document 'RAG-JSON-Schema-Training.md' to workspace 'home-again'
-2026-05-11T17:57:01.6665301Z	Information	App	[AnythingLLM] Successfully uploaded RAG document: RAG-JSON-Schema-Training.md
-2026-05-11T17:57:01.6703786Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:57:01.6808785Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:57:01.7360473Z	Information	App	[AnythingLLM] Uploading document 'RAG-Learning-Examples.md' to workspace 'home-again' using proper protocol
-2026-05-11T17:57:01.7378036Z	Information	App	[AnythingLLM] Using explicit upload+attach flow to ensure workspace visibility
-2026-05-11T17:57:01.8263750Z	Information	App	[AnythingLLM] Document uploaded to system: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-learning-examples-12bcbb0f-9a52-4b18-ae77-af426a106e78.json
-2026-05-11T17:57:01.8289158Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:57:01.8419689Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:57:01.8886424Z	Information	App	[AnythingLLM] ?? Starting embedding operation with extended timeout (10 minutes)
-2026-05-11T17:57:01.8904878Z	Information	App	[AnythingLLM] Large documents with thousands of chunks may take several minutes to embed
-2026-05-11T17:57:03.3601775Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:57:03.3758589Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:57:03.4241251Z	Information	App	[AnythingLLM] Documents endpoint failed for 'home-again': NotFound, trying workspace endpoint
-2026-05-11T17:57:03.4318395Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":59,"name":"Home Again","slug":"home-again","vectorTag":null,"createdAt":"2026-05-11T17:54:41.024Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T17:54:41.024Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and ...
-2026-05-11T17:57:03.4344192Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'home-again'
-2026-05-11T17:57:03.4371482Z	Information	App	[AnythingLLM] ?? Embedding progress: Processing chunks... (2m 4s elapsed)
-2026-05-11T17:57:05.7298213Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:57:05.7458994Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:57:05.8216116Z	Information	App	[AnythingLLM] Documents endpoint failed for 'home-again': NotFound, trying workspace endpoint
-2026-05-11T17:57:05.8278180Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":59,"name":"Home Again","slug":"home-again","vectorTag":null,"createdAt":"2026-05-11T17:54:41.024Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T17:54:41.024Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and ...
-2026-05-11T17:57:05.8304135Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'home-again'
-2026-05-11T17:57:05.8328810Z	Information	App	[AnythingLLM] ?? Embedding progress: Processing chunks... (2m 0s elapsed)
-2026-05-11T17:57:08.3999576Z	Information	App	[AnythingLLM] ? Document embedding completed successfully for workspace: home-again
-2026-05-11T17:57:08.4020439Z	Information	App	[AnythingLLM] Successfully uploaded document 'RAG-Learning-Examples.md' to workspace 'home-again'
-2026-05-11T17:57:08.4040261Z	Information	App	[AnythingLLM] Successfully uploaded RAG document: RAG-Learning-Examples.md
-2026-05-11T17:57:08.4076112Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:57:08.4186653Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:57:08.4837994Z	Information	App	[AnythingLLM] Uploading document 'RAG-Optimization-Summary.md' to workspace 'home-again' using proper protocol
-2026-05-11T17:57:08.4859748Z	Information	App	[AnythingLLM] Using explicit upload+attach flow to ensure workspace visibility
-2026-05-11T17:57:08.5698531Z	Information	App	[AnythingLLM] Document uploaded to system: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-707b4c80-9da5-41af-a4ed-41a501c4c54a.json
-2026-05-11T17:57:08.5751047Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:57:08.5861678Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
-2026-05-11T17:57:08.6330595Z	Information	App	[AnythingLLM] ?? Starting embedding operation with extended timeout (10 minutes)
-2026-05-11T17:57:08.6351935Z	Information	App	[AnythingLLM] Large documents with thousands of chunks may take several minutes to embed
-2026-05-11T17:57:15.2650320Z	Information	App	[AnythingLLM] ? Document embedding completed successfully for workspace: home-again
-2026-05-11T17:57:15.2683822Z	Information	App	[AnythingLLM] Successfully uploaded document 'RAG-Optimization-Summary.md' to workspace 'home-again'
-2026-05-11T17:57:15.2709950Z	Information	App	[AnythingLLM] Successfully uploaded RAG document: RAG-Optimization-Summary.md
-2026-05-11T17:57:15.2736954Z	Information	App	[AnythingLLM] Successfully uploaded all RAG training documents to workspace 'home-again'
-2026-05-11T17:57:15.2834124Z	Information	App	[AnythingLLM] Documents endpoint failed for 'home-again': NotFound, trying workspace endpoint
-2026-05-11T17:57:15.2899075Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":59,"name":"Home Again","slug":"home-again","vectorTag":null,"createdAt":"2026-05-11T17:54:41.024Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T17:54:41.024Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and ...
-2026-05-11T17:57:15.2922059Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'home-again'
-2026-05-11T17:57:15.3039119Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	?? Standard RAG setup file verification failed for workspace 'home-again'
-2026-05-11T17:57:17.0123860Z	Information	App	[AnythingLLM] Configuration verification - similarityThreshold: 0, topN: 16
-2026-05-11T17:57:17.0157370Z	Information	App	[AnythingLLM] ? Configuration verified as applied
-2026-05-11T17:57:17.0190693Z	Information	App	[AnythingLLM] ? Preventive RAG fix applied successfully
 2026-05-11T17:57:17.0222878Z	Information	App	[AnythingLLM] Validating system prompt configuration for workspace 'new-edition'
 2026-05-11T17:57:17.0353665Z	Warning	App	[AnythingLLM] ?? Workspace 'new-edition' system prompt validation FAILED
 2026-05-11T17:57:17.0390119Z	Information	App	[AnythingLLM] ?? Prompt details - IsEmpty: False, Length: 628
@@ -398,3 +126,475 @@
 2026-05-11T17:57:48.0270965Z	Information	App	[AnythingLLM] ?? Embedding progress: Processing chunks... (3m 5s elapsed)
 2026-05-11T17:57:48.0301192Z	Information	App	[AnythingLLM] ?? Embedding progress: Processing chunks... (1m 1s elapsed)
 2026-05-11T17:57:54.2712567Z	Information	Microsoft.Hosting.Lifetime	Application is shutting down...
+2026-05-11T19:06:31.6676876Z	Information	App	[AnythingLLM] Checking AnythingLLM status...
+2026-05-11T19:06:31.7008427Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-05-11T19:06:31.7032943Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-05-11T19:06:31.7090182Z	Information	App	[AnythingLLM] Availability check result: True
+2026-05-11T19:06:31.7104555Z	Information	App	[AnythingLLM] AnythingLLM service is ready!
+2026-05-11T19:06:31.7150912Z	Information	App	[AnythingLLM] Availability check result: True
+2026-05-11T19:07:00.7624871Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:07:00.7806736Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:07:03.5242957Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProject] Jama connection test: True
+2026-05-11T19:07:03.5261057Z	Information	App	[NewProject] Auto-loading Jama projects on startup
+2026-05-11T19:07:03.8091601Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProject] Retrieved 17 Jama projects
+2026-05-11T19:07:17.4159657Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:07:17.4332936Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:07:17.4731103Z	Information	App	[NewProject] Creating workspace: embed is the way...
+2026-05-11T19:07:17.4773149Z	Information	App	[AnythingLLM] Attempting to create workspace 'embed is the way'
+2026-05-11T19:07:17.4793410Z	Information	App	[AnythingLLM] API Key configured: Yes
+2026-05-11T19:07:17.4813304Z	Information	App	[AnythingLLM] Base URL: http://localhost:3001
+2026-05-11T19:07:17.4829633Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:07:17.4951418Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:07:17.5353585Z	Information	App	[AnythingLLM] Creating new workspace 'embed is the way'
+2026-05-11T19:07:17.5416783Z	Information	App	[AnythingLLM] Sending payload: {"name":"embed is the way"}
+2026-05-11T19:07:17.5432746Z	Information	App	[AnythingLLM] POST endpoint: http://localhost:3001/api/v1/workspace/new
+2026-05-11T19:07:17.5781533Z	Information	App	[AnythingLLM] Configuring optimal settings for newly created workspace 'embed is the way' (slug: 'embed-is-the-way')
+2026-05-11T19:07:17.5812030Z	Information	App	[AnythingLLM] Configuring optimal settings for workspace 'embed-is-the-way' using official documentation guidelines
+2026-05-11T19:07:17.5942163Z	Information	App	[AnythingLLM] Using chat model 'phi4-mini:3.8b-q4_K_M' for workspace 'embed-is-the-way'
+2026-05-11T19:07:17.6151515Z	Information	App	[AnythingLLM] ? Successfully configured workspace settings for 'embed-is-the-way' using POST: http://localhost:3001/api/v1/workspace/embed-is-the-way/update
+2026-05-11T19:07:17.6167369Z	Information	App	[AnythingLLM] ?? DEBUG: API Response: {"workspace":{"id":61,"name":"embed is the way","slug":"embed-is-the-way","vectorTag":null,"createdAt":"2026-05-11T19:07:17.551Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:07:17
+2026-05-11T19:07:17.6187816Z	Information	App	[AnythingLLM] Successfully configured workspace 'embed is the way' with system prompt for optimal performance
+2026-05-11T19:07:17.6204548Z	Information	App	[AnythingLLM] Applying preventive RAG configuration fix to new workspace 'embed-is-the-way'
+2026-05-11T19:07:17.6244332Z	Information	App	[AnythingLLM] Applying RAG troubleshooting configuration for workspace 'embed-is-the-way'
+2026-05-11T19:07:17.6436316Z	Information	App	[AnythingLLM] ? RAG configuration fix applied successfully
+2026-05-11T19:07:18.6602911Z	Information	App	[AnythingLLM] Configuration verification - similarityThreshold: 0, topN: 16
+2026-05-11T19:07:18.6622866Z	Information	App	[AnythingLLM] ? Configuration verified as applied
+2026-05-11T19:07:18.6640397Z	Information	App	[AnythingLLM] ? Preventive RAG fix applied successfully
+2026-05-11T19:07:18.6673409Z	Information	App	[AnythingLLM] Validating system prompt configuration for workspace 'embed-is-the-way'
+2026-05-11T19:07:18.6764113Z	Warning	App	[AnythingLLM] ?? Workspace 'embed-is-the-way' system prompt validation FAILED
+2026-05-11T19:07:18.6784831Z	Information	App	[AnythingLLM] ?? Prompt details - IsEmpty: False, Length: 628
+2026-05-11T19:07:18.6807808Z	Information	App	[AnythingLLM] ?? Has 'requirements quality analysis': False
+2026-05-11T19:07:18.6828881Z	Information	App	[AnythingLLM] ?? Has 'ANTI-FABRICATION RULES': False
+2026-05-11T19:07:18.6847800Z	Information	App	[AnythingLLM] ?? Attempting on-demand configuration for workspace 'embed-is-the-way'
+2026-05-11T19:07:18.6871706Z	Information	App	[AnythingLLM] Configuring optimal settings for workspace 'embed-is-the-way' using official documentation guidelines
+2026-05-11T19:07:18.6987943Z	Information	App	[AnythingLLM] Using chat model 'phi4-mini:3.8b-q4_K_M' for workspace 'embed-is-the-way'
+2026-05-11T19:07:18.7142498Z	Information	App	[AnythingLLM] ? Successfully configured workspace settings for 'embed-is-the-way' using POST: http://localhost:3001/api/v1/workspace/embed-is-the-way/update
+2026-05-11T19:07:18.7166175Z	Information	App	[AnythingLLM] ?? DEBUG: API Response: {"workspace":{"id":61,"name":"embed is the way","slug":"embed-is-the-way","vectorTag":null,"createdAt":"2026-05-11T19:07:17.551Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:07:17
+2026-05-11T19:07:18.7192415Z	Information	App	[AnythingLLM] ? On-demand configuration succeeded for 'embed-is-the-way'
+2026-05-11T19:07:18.7223255Z	Information	App	[AnythingLLM] Created workspace 'embed is the way' - applying automated configuration...
+2026-05-11T19:07:18.7247886Z	Information	App	[NewProject] Applying optimal settings...
+2026-05-11T19:07:18.7265502Z	Information	App	[AnythingLLM] Configuring optimal settings for workspace 'embed-is-the-way' using official documentation guidelines
+2026-05-11T19:07:18.7375502Z	Information	App	[AnythingLLM] Using chat model 'phi4-mini:3.8b-q4_K_M' for workspace 'embed-is-the-way'
+2026-05-11T19:07:18.7448208Z	Information	App	[AnythingLLM] ? Successfully configured workspace settings for 'embed-is-the-way' using POST: http://localhost:3001/api/v1/workspace/embed-is-the-way/update
+2026-05-11T19:07:18.7464945Z	Information	App	[AnythingLLM] ?? DEBUG: API Response: {"workspace":{"id":61,"name":"embed is the way","slug":"embed-is-the-way","vectorTag":null,"createdAt":"2026-05-11T19:07:17.551Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:07:17
+2026-05-11T19:07:18.7480897Z	Information	App	[NewProject] Uploading optimization guide...
+2026-05-11T19:07:18.7505522Z	Information	App	[AnythingLLM] Uploading optimization guide to workspace 'embed-is-the-way'
+2026-05-11T19:07:18.7529653Z	Warning	App	[AnythingLLM] Optimization guide not found at: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\Config\ANYTHINGLM_OPTIMIZATION_GUIDE.md
+2026-05-11T19:07:18.7544547Z	Warning	App	[AnythingLLM] Failed to upload optimization guide for workspace 'embed is the way', but continuing...
+2026-05-11T19:07:18.7559649Z	Information	App	[NewProject] Uploading RAG training documents...
+2026-05-11T19:07:18.7581493Z	Information	App	[AnythingLLM] Uploading RAG training documents to workspace 'embed-is-the-way'
+2026-05-11T19:07:18.7604867Z	Information	App	[AnythingLLM] Using Config directory: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\Config
+2026-05-11T19:07:18.7878098Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:07:18.7994830Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:07:18.8389830Z	Information	App	[AnythingLLM] Uploading document 'RAG-JSON-Schema-Training.md' to workspace 'embed-is-the-way' using proper protocol
+2026-05-11T19:07:18.8411793Z	Information	App	[AnythingLLM] Using explicit upload+attach flow to ensure workspace visibility
+2026-05-11T19:07:18.9695395Z	Information	App	[AnythingLLM] Document uploaded to system: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-f0533398-ce77-4b79-9a8e-547450e8acd5.json
+2026-05-11T19:07:18.9727872Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:07:18.9847331Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:07:19.0235578Z	Information	App	[AnythingLLM] ?? Starting embedding operation with extended timeout (10 minutes)
+2026-05-11T19:07:19.0258291Z	Information	App	[AnythingLLM] Large documents with thousands of chunks may take several minutes to embed
+2026-05-11T19:07:19.0294100Z	Information	App	[AnythingLLM] Trying embedding attach with location candidate: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-f0533398-ce77-4b79-9a8e-547450e8acd5.json
+2026-05-11T19:07:38.0198000Z	Information	App	[AnythingLLM] ?? DIAGNOSTICS: Starting verification for workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-f0533398-ce77-4b79-9a8e-547450e8acd5.json)...
+2026-05-11T19:07:38.0327322Z	Warning	App	[AnythingLLM] ?? DIAGNOSTICS: System appears overloaded - using extended timeouts
+2026-05-11T19:07:38.0361260Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-f0533398-ce77-4b79-9a8e-547450e8acd5.json) verification attempt 1/8 - waiting 8s (overloaded: True)
+2026-05-11T19:07:46.0396950Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:07:46.0522427Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:07:46.0991292Z	Information	App	[AnythingLLM] Documents endpoint failed for 'embed-is-the-way': NotFound, trying workspace endpoint
+2026-05-11T19:07:46.1046784Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":61,"name":"embed is the way","slug":"embed-is-the-way","vectorTag":null,"createdAt":"2026-05-11T19:07:17.551Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:07:17.551Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vect...
+2026-05-11T19:07:46.1063640Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'embed-is-the-way'
+2026-05-11T19:07:46.1081075Z	Warning	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-f0533398-ce77-4b79-9a8e-547450e8acd5.json) verification attempt 1/8 - no documents found yet, retrying in 12s...
+2026-05-11T19:07:46.1104728Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-f0533398-ce77-4b79-9a8e-547450e8acd5.json) verification attempt 2/8 - waiting 12s (overloaded: True)
+2026-05-11T19:07:58.1133821Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:07:58.1297870Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:07:58.1762224Z	Information	App	[AnythingLLM] Documents endpoint failed for 'embed-is-the-way': NotFound, trying workspace endpoint
+2026-05-11T19:07:58.1834022Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":61,"name":"embed is the way","slug":"embed-is-the-way","vectorTag":null,"createdAt":"2026-05-11T19:07:17.551Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:07:17.551Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vect...
+2026-05-11T19:07:58.1855520Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'embed-is-the-way'
+2026-05-11T19:07:58.1876800Z	Warning	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-f0533398-ce77-4b79-9a8e-547450e8acd5.json) verification attempt 2/8 - no documents found yet, retrying in 16s...
+2026-05-11T19:07:58.1894405Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-f0533398-ce77-4b79-9a8e-547450e8acd5.json) verification attempt 3/8 - waiting 16s (overloaded: True)
+2026-05-11T19:08:14.1937590Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:08:14.2055263Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:08:14.2481512Z	Information	App	[AnythingLLM] Documents endpoint failed for 'embed-is-the-way': NotFound, trying workspace endpoint
+2026-05-11T19:08:14.2541315Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":61,"name":"embed is the way","slug":"embed-is-the-way","vectorTag":null,"createdAt":"2026-05-11T19:07:17.551Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:07:17.551Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vect...
+2026-05-11T19:08:14.2561997Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'embed-is-the-way'
+2026-05-11T19:08:14.2583298Z	Warning	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-f0533398-ce77-4b79-9a8e-547450e8acd5.json) verification attempt 3/8 - no documents found yet, retrying in 20s...
+2026-05-11T19:08:14.2604788Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-f0533398-ce77-4b79-9a8e-547450e8acd5.json) verification attempt 4/8 - waiting 20s (overloaded: True)
+2026-05-11T19:08:34.2641918Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:08:34.2756461Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:08:34.3284036Z	Information	App	[AnythingLLM] Documents endpoint failed for 'embed-is-the-way': NotFound, trying workspace endpoint
+2026-05-11T19:08:34.3353752Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":61,"name":"embed is the way","slug":"embed-is-the-way","vectorTag":null,"createdAt":"2026-05-11T19:07:17.551Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:07:17.551Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vect...
+2026-05-11T19:08:34.3377587Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'embed-is-the-way'
+2026-05-11T19:08:34.3397906Z	Warning	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-f0533398-ce77-4b79-9a8e-547450e8acd5.json) verification attempt 4/8 - no documents found yet, retrying in 24s...
+2026-05-11T19:08:34.3416993Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-f0533398-ce77-4b79-9a8e-547450e8acd5.json) verification attempt 5/8 - waiting 24s (overloaded: True)
+2026-05-11T19:08:58.3459126Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:08:58.3572314Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:08:58.3985640Z	Information	App	[AnythingLLM] Documents endpoint failed for 'embed-is-the-way': NotFound, trying workspace endpoint
+2026-05-11T19:08:58.4035691Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":61,"name":"embed is the way","slug":"embed-is-the-way","vectorTag":null,"createdAt":"2026-05-11T19:07:17.551Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:07:17.551Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vect...
+2026-05-11T19:08:58.4056644Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'embed-is-the-way'
+2026-05-11T19:08:58.4077565Z	Warning	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-f0533398-ce77-4b79-9a8e-547450e8acd5.json) verification attempt 5/8 - no documents found yet, retrying in 28s...
+2026-05-11T19:08:58.4099308Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-f0533398-ce77-4b79-9a8e-547450e8acd5.json) verification attempt 6/8 - waiting 28s (overloaded: True)
+2026-05-11T19:09:26.4116820Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:09:26.4248882Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:09:26.4676800Z	Information	App	[AnythingLLM] Documents endpoint failed for 'embed-is-the-way': NotFound, trying workspace endpoint
+2026-05-11T19:09:26.4726010Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":61,"name":"embed is the way","slug":"embed-is-the-way","vectorTag":null,"createdAt":"2026-05-11T19:07:17.551Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:07:17.551Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vect...
+2026-05-11T19:09:26.4746535Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'embed-is-the-way'
+2026-05-11T19:09:26.4773689Z	Warning	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-f0533398-ce77-4b79-9a8e-547450e8acd5.json) verification attempt 6/8 - no documents found yet, retrying in 32s...
+2026-05-11T19:09:26.4792556Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-f0533398-ce77-4b79-9a8e-547450e8acd5.json) verification attempt 7/8 - waiting 32s (overloaded: True)
+2026-05-11T19:09:58.4830776Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:09:58.4974110Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:09:58.5391533Z	Information	App	[AnythingLLM] Documents endpoint failed for 'embed-is-the-way': NotFound, trying workspace endpoint
+2026-05-11T19:09:58.5454571Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":61,"name":"embed is the way","slug":"embed-is-the-way","vectorTag":null,"createdAt":"2026-05-11T19:07:17.551Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:07:17.551Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vect...
+2026-05-11T19:09:58.5476114Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'embed-is-the-way'
+2026-05-11T19:09:58.5495978Z	Warning	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-f0533398-ce77-4b79-9a8e-547450e8acd5.json) verification attempt 7/8 - no documents found yet, retrying in 36s...
+2026-05-11T19:09:58.5512873Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-f0533398-ce77-4b79-9a8e-547450e8acd5.json) verification attempt 8/8 - waiting 36s (overloaded: True)
+2026-05-11T19:10:30.5784797Z	Information	Microsoft.Hosting.Lifetime	Application is shutting down...
+2026-05-11T19:16:04.4458442Z	Information	App	[AnythingLLM] Checking AnythingLLM status...
+2026-05-11T19:16:04.4779543Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-05-11T19:16:04.4820519Z	Information	App	[AnythingLLM] Availability check result: True
+2026-05-11T19:16:04.4857411Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-05-11T19:16:04.4920084Z	Information	App	[AnythingLLM] AnythingLLM service is ready!
+2026-05-11T19:16:04.4960065Z	Information	App	[AnythingLLM] Availability check result: True
+2026-05-11T19:16:16.5416599Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:16:16.5535552Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:16:17.3521297Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:16:17.3981872Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:16:18.1881128Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:16:18.1989861Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:16:20.9320299Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProject] Jama connection test: True
+2026-05-11T19:16:20.9340178Z	Information	App	[NewProject] Auto-loading Jama projects on startup
+2026-05-11T19:16:21.2049746Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProject] Retrieved 17 Jama projects
+2026-05-11T19:16:33.7089205Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:16:33.7306741Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:16:33.7885639Z	Information	App	[NewProject] Creating workspace: Hope...
+2026-05-11T19:16:33.7921859Z	Information	App	[AnythingLLM] Attempting to create workspace 'Hope'
+2026-05-11T19:16:33.7943782Z	Information	App	[AnythingLLM] API Key configured: Yes
+2026-05-11T19:16:33.7963914Z	Information	App	[AnythingLLM] Base URL: http://localhost:3001
+2026-05-11T19:16:33.7980947Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:16:33.8120554Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:16:33.8554387Z	Information	App	[AnythingLLM] Creating new workspace 'Hope'
+2026-05-11T19:16:33.8609685Z	Information	App	[AnythingLLM] Sending payload: {"name":"Hope"}
+2026-05-11T19:16:33.8629017Z	Information	App	[AnythingLLM] POST endpoint: http://localhost:3001/api/v1/workspace/new
+2026-05-11T19:16:33.8935880Z	Information	App	[AnythingLLM] Configuring optimal settings for newly created workspace 'Hope' (slug: 'hope')
+2026-05-11T19:16:33.8972633Z	Information	App	[AnythingLLM] Configuring optimal settings for workspace 'hope' using official documentation guidelines
+2026-05-11T19:16:33.9074918Z	Information	App	[AnythingLLM] Using chat model 'phi4-mini:3.8b-q4_K_M' for workspace 'hope'
+2026-05-11T19:16:33.9302082Z	Information	App	[AnythingLLM] ? Successfully configured workspace settings for 'hope' using POST: http://localhost:3001/api/v1/workspace/hope/update
+2026-05-11T19:16:33.9319078Z	Information	App	[AnythingLLM] ?? DEBUG: API Response: {"workspace":{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"Y
+2026-05-11T19:16:33.9337554Z	Information	App	[AnythingLLM] Successfully configured workspace 'Hope' with system prompt for optimal performance
+2026-05-11T19:16:33.9354080Z	Information	App	[AnythingLLM] Applying preventive RAG configuration fix to new workspace 'hope'
+2026-05-11T19:16:33.9384310Z	Information	App	[AnythingLLM] Applying RAG troubleshooting configuration for workspace 'hope'
+2026-05-11T19:16:33.9550896Z	Information	App	[AnythingLLM] ? RAG configuration fix applied successfully
+2026-05-11T19:16:34.9887715Z	Information	App	[AnythingLLM] Configuration verification - similarityThreshold: 0, topN: 16
+2026-05-11T19:16:34.9912585Z	Information	App	[AnythingLLM] ? Configuration verified as applied
+2026-05-11T19:16:34.9935346Z	Information	App	[AnythingLLM] ? Preventive RAG fix applied successfully
+2026-05-11T19:16:34.9973120Z	Information	App	[AnythingLLM] Validating system prompt configuration for workspace 'hope'
+2026-05-11T19:16:35.0130249Z	Warning	App	[AnythingLLM] ?? Workspace 'hope' system prompt validation FAILED
+2026-05-11T19:16:35.0158697Z	Information	App	[AnythingLLM] ?? Prompt details - IsEmpty: False, Length: 628
+2026-05-11T19:16:35.0180867Z	Information	App	[AnythingLLM] ?? Has 'requirements quality analysis': False
+2026-05-11T19:16:35.0198847Z	Information	App	[AnythingLLM] ?? Has 'ANTI-FABRICATION RULES': False
+2026-05-11T19:16:35.0216167Z	Information	App	[AnythingLLM] ?? Attempting on-demand configuration for workspace 'hope'
+2026-05-11T19:16:35.0234607Z	Information	App	[AnythingLLM] Configuring optimal settings for workspace 'hope' using official documentation guidelines
+2026-05-11T19:16:35.0362773Z	Information	App	[AnythingLLM] Using chat model 'phi4-mini:3.8b-q4_K_M' for workspace 'hope'
+2026-05-11T19:16:35.0546352Z	Information	App	[AnythingLLM] ? Successfully configured workspace settings for 'hope' using POST: http://localhost:3001/api/v1/workspace/hope/update
+2026-05-11T19:16:35.0567261Z	Information	App	[AnythingLLM] ?? DEBUG: API Response: {"workspace":{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"Y
+2026-05-11T19:16:35.0588743Z	Information	App	[AnythingLLM] ? On-demand configuration succeeded for 'hope'
+2026-05-11T19:16:35.0615357Z	Information	App	[AnythingLLM] Created workspace 'Hope' - applying automated configuration...
+2026-05-11T19:16:35.0634115Z	Information	App	[NewProject] Applying optimal settings...
+2026-05-11T19:16:35.0652071Z	Information	App	[AnythingLLM] Configuring optimal settings for workspace 'hope' using official documentation guidelines
+2026-05-11T19:16:35.0812698Z	Information	App	[AnythingLLM] Using chat model 'phi4-mini:3.8b-q4_K_M' for workspace 'hope'
+2026-05-11T19:16:35.1115486Z	Information	App	[AnythingLLM] ? Successfully configured workspace settings for 'hope' using POST: http://localhost:3001/api/v1/workspace/hope/update
+2026-05-11T19:16:35.1148982Z	Information	App	[AnythingLLM] ?? DEBUG: API Response: {"workspace":{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"Y
+2026-05-11T19:16:35.1179092Z	Information	App	[NewProject] Uploading optimization guide...
+2026-05-11T19:16:35.1229918Z	Information	App	[AnythingLLM] Uploading optimization guide to workspace 'hope'
+2026-05-11T19:16:35.1272161Z	Warning	App	[AnythingLLM] Optimization guide not found at: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\Config\ANYTHINGLM_OPTIMIZATION_GUIDE.md
+2026-05-11T19:16:35.1310220Z	Warning	App	[AnythingLLM] Failed to upload optimization guide for workspace 'Hope', but continuing...
+2026-05-11T19:16:35.1340555Z	Information	App	[NewProject] Uploading RAG training documents...
+2026-05-11T19:16:35.1396912Z	Information	App	[AnythingLLM] Uploading RAG training documents to workspace 'hope'
+2026-05-11T19:16:35.1430090Z	Information	App	[AnythingLLM] Using Config directory: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\Config
+2026-05-11T19:16:35.1757563Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:16:35.2046886Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:16:35.2529645Z	Information	App	[AnythingLLM] Uploading document 'RAG-JSON-Schema-Training.md' to workspace 'hope' using proper protocol
+2026-05-11T19:16:35.2549098Z	Information	App	[AnythingLLM] Using explicit upload+attach flow to ensure workspace visibility
+2026-05-11T19:16:35.4142508Z	Information	App	[AnythingLLM] Document uploaded to system: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json
+2026-05-11T19:16:35.4190216Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:16:35.4321550Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:16:35.4879863Z	Information	App	[AnythingLLM] ?? Starting embedding operation with extended timeout (10 minutes)
+2026-05-11T19:16:35.4901882Z	Information	App	[AnythingLLM] Large documents with thousands of chunks may take several minutes to embed
+2026-05-11T19:16:35.4931241Z	Information	App	[AnythingLLM] Trying embedding attach with location candidate: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json
+2026-05-11T19:16:52.0605773Z	Information	App	[AnythingLLM] ?? DIAGNOSTICS: Starting verification for workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json)...
+2026-05-11T19:16:52.0685805Z	Warning	App	[AnythingLLM] ?? DIAGNOSTICS: System appears overloaded - using extended timeouts
+2026-05-11T19:16:52.0713336Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json) verification attempt 1/8 - waiting 8s (overloaded: True)
+2026-05-11T19:17:00.0755352Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:17:00.0877487Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:17:00.1332579Z	Information	App	[AnythingLLM] Documents endpoint failed for 'hope': NotFound, trying workspace endpoint
+2026-05-11T19:17:00.1380997Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and is available...
+2026-05-11T19:17:00.1400810Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'hope'
+2026-05-11T19:17:00.1416969Z	Warning	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json) verification attempt 1/8 - no documents found yet, retrying in 12s...
+2026-05-11T19:17:00.1436906Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json) verification attempt 2/8 - waiting 12s (overloaded: True)
+2026-05-11T19:17:12.1471355Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:17:12.1588334Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:17:12.2011013Z	Information	App	[AnythingLLM] Documents endpoint failed for 'hope': NotFound, trying workspace endpoint
+2026-05-11T19:17:12.2064476Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and is available...
+2026-05-11T19:17:12.2084395Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'hope'
+2026-05-11T19:17:12.2102049Z	Warning	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json) verification attempt 2/8 - no documents found yet, retrying in 16s...
+2026-05-11T19:17:12.2118988Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json) verification attempt 3/8 - waiting 16s (overloaded: True)
+2026-05-11T19:17:28.2153100Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:17:28.2293347Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:17:28.2701443Z	Information	App	[AnythingLLM] Documents endpoint failed for 'hope': NotFound, trying workspace endpoint
+2026-05-11T19:17:28.2755639Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and is available...
+2026-05-11T19:17:28.2773239Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'hope'
+2026-05-11T19:17:28.2789758Z	Warning	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json) verification attempt 3/8 - no documents found yet, retrying in 20s...
+2026-05-11T19:17:28.2805500Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json) verification attempt 4/8 - waiting 20s (overloaded: True)
+2026-05-11T19:17:48.2848781Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:17:48.2985178Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:17:48.3392193Z	Information	App	[AnythingLLM] Documents endpoint failed for 'hope': NotFound, trying workspace endpoint
+2026-05-11T19:17:48.3443474Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and is available...
+2026-05-11T19:17:48.3463497Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'hope'
+2026-05-11T19:17:48.3480471Z	Warning	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json) verification attempt 4/8 - no documents found yet, retrying in 24s...
+2026-05-11T19:17:48.3496399Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json) verification attempt 5/8 - waiting 24s (overloaded: True)
+2026-05-11T19:18:12.3529049Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:18:12.3643096Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:18:12.4113581Z	Information	App	[AnythingLLM] Documents endpoint failed for 'hope': NotFound, trying workspace endpoint
+2026-05-11T19:18:12.4233522Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and is available...
+2026-05-11T19:18:12.4254657Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'hope'
+2026-05-11T19:18:12.4275984Z	Warning	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json) verification attempt 5/8 - no documents found yet, retrying in 28s...
+2026-05-11T19:18:12.4299789Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json) verification attempt 6/8 - waiting 28s (overloaded: True)
+2026-05-11T19:18:40.4344363Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:18:40.4449226Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:18:40.4859263Z	Information	App	[AnythingLLM] Documents endpoint failed for 'hope': NotFound, trying workspace endpoint
+2026-05-11T19:18:40.4910311Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and is available...
+2026-05-11T19:18:40.4929600Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'hope'
+2026-05-11T19:18:40.4955452Z	Warning	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json) verification attempt 6/8 - no documents found yet, retrying in 32s...
+2026-05-11T19:18:40.4972024Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json) verification attempt 7/8 - waiting 32s (overloaded: True)
+2026-05-11T19:19:12.5000727Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:19:12.5221799Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:19:12.5766638Z	Information	App	[AnythingLLM] Documents endpoint failed for 'hope': NotFound, trying workspace endpoint
+2026-05-11T19:19:12.5833848Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and is available...
+2026-05-11T19:19:12.5855785Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'hope'
+2026-05-11T19:19:12.5877085Z	Warning	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json) verification attempt 7/8 - no documents found yet, retrying in 36s...
+2026-05-11T19:19:12.5901258Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json) verification attempt 8/8 - waiting 36s (overloaded: True)
+2026-05-11T19:19:48.5938542Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:19:48.6054758Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:19:48.6556849Z	Information	App	[AnythingLLM] Documents endpoint failed for 'hope': NotFound, trying workspace endpoint
+2026-05-11T19:19:48.6613405Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and is available...
+2026-05-11T19:19:48.6631673Z	Information	App	[AnythingLLM] Found 0 documents in workspace 'hope'
+2026-05-11T19:19:48.6652512Z	Warning	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json) verification attempt 8/8 - no documents found yet, final attempt...
+2026-05-11T19:19:48.6674879Z	Warning	App	[AnythingLLM] ?? workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json) succeeded but document verification failed after 8 attempts (~176s total)
+2026-05-11T19:19:48.6693875Z	Error	App	[AnythingLLM] ? CRITICAL: System was overloaded during embedding - likely resource exhaustion
+2026-05-11T19:19:48.6713864Z	Warning	App	[AnythingLLM] Attach attempt succeeded but verification still shows no workspace documents for 'hope' using candidate 'C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json'
+2026-05-11T19:19:48.6730998Z	Information	App	[AnythingLLM] Trying embedding attach with location candidate: C:/Users/e10653214/AppData/Roaming/anythingllm-desktop/storage/documents/custom-documents/raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json
+2026-05-11T19:20:03.8286711Z	Information	App	[AnythingLLM] ?? DIAGNOSTICS: Starting verification for workspace attach (C:/Users/e10653214/AppData/Roaming/anythingllm-desktop/storage/documents/custom-documents/raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json)...
+2026-05-11T19:20:03.8346540Z	Warning	App	[AnythingLLM] ?? DIAGNOSTICS: System appears overloaded - using extended timeouts
+2026-05-11T19:20:03.8362919Z	Information	App	[AnythingLLM] workspace attach (C:/Users/e10653214/AppData/Roaming/anythingllm-desktop/storage/documents/custom-documents/raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json) verification attempt 1/8 - waiting 8s (overloaded: True)
+2026-05-11T19:20:11.8408078Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:20:11.8517787Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:20:11.8931968Z	Information	App	[AnythingLLM] Documents endpoint failed for 'hope': NotFound, trying workspace endpoint
+2026-05-11T19:20:11.8982984Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and is available...
+2026-05-11T19:20:11.9002719Z	Information	App	[AnythingLLM] Found 1 documents in workspace 'hope'
+2026-05-11T19:20:11.9020919Z	Information	App	[AnythingLLM] ? workspace attach (C:/Users/e10653214/AppData/Roaming/anythingllm-desktop/storage/documents/custom-documents/raw-rag-json-schema-training-2dd2d8d1-e7fd-4f13-97d7-f9909c384734.json) verified on attempt 1 - 1 documents in workspace
+2026-05-11T19:20:11.9037924Z	Information	App	[AnythingLLM] ? Document embedding completed successfully for workspace: hope
+2026-05-11T19:20:11.9059974Z	Information	App	[AnythingLLM] Successfully uploaded document 'RAG-JSON-Schema-Training.md' to workspace 'hope'
+2026-05-11T19:20:11.9081785Z	Information	App	[AnythingLLM] Successfully uploaded RAG document: RAG-JSON-Schema-Training.md
+2026-05-11T19:20:11.9207852Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:20:11.9322224Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:20:11.9718258Z	Information	App	[AnythingLLM] Uploading document 'RAG-Learning-Examples.md' to workspace 'hope' using proper protocol
+2026-05-11T19:20:11.9740876Z	Information	App	[AnythingLLM] Using explicit upload+attach flow to ensure workspace visibility
+2026-05-11T19:20:12.0511132Z	Information	App	[AnythingLLM] Document uploaded to system: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-learning-examples-a18921cb-8817-4fce-820e-d99143f38fe0.json
+2026-05-11T19:20:12.0535519Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:20:12.0658614Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:20:12.1046922Z	Information	App	[AnythingLLM] ?? Starting embedding operation with extended timeout (10 minutes)
+2026-05-11T19:20:12.1070181Z	Information	App	[AnythingLLM] Large documents with thousands of chunks may take several minutes to embed
+2026-05-11T19:20:12.1090708Z	Information	App	[AnythingLLM] Trying embedding attach with location candidate: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-learning-examples-a18921cb-8817-4fce-820e-d99143f38fe0.json
+2026-05-11T19:20:18.9134573Z	Information	App	[AnythingLLM] ?? DIAGNOSTICS: Starting verification for workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-learning-examples-a18921cb-8817-4fce-820e-d99143f38fe0.json)...
+2026-05-11T19:20:18.9211933Z	Warning	App	[AnythingLLM] ?? DIAGNOSTICS: System appears overloaded - using extended timeouts
+2026-05-11T19:20:18.9233755Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-learning-examples-a18921cb-8817-4fce-820e-d99143f38fe0.json) verification attempt 1/8 - waiting 8s (overloaded: True)
+2026-05-11T19:20:26.9258782Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:20:26.9370537Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:20:26.9862583Z	Information	App	[AnythingLLM] Documents endpoint failed for 'hope': NotFound, trying workspace endpoint
+2026-05-11T19:20:26.9909755Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and is available...
+2026-05-11T19:20:26.9931406Z	Information	App	[AnythingLLM] Found 1 documents in workspace 'hope'
+2026-05-11T19:20:26.9950868Z	Information	App	[AnythingLLM] ? workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-learning-examples-a18921cb-8817-4fce-820e-d99143f38fe0.json) verified on attempt 1 - 1 documents in workspace
+2026-05-11T19:20:26.9968354Z	Information	App	[AnythingLLM] ? Document embedding completed successfully for workspace: hope
+2026-05-11T19:20:26.9987362Z	Information	App	[AnythingLLM] Successfully uploaded document 'RAG-Learning-Examples.md' to workspace 'hope'
+2026-05-11T19:20:27.0005821Z	Information	App	[AnythingLLM] Successfully uploaded RAG document: RAG-Learning-Examples.md
+2026-05-11T19:20:27.0265331Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:20:27.0398663Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:20:27.0823282Z	Information	App	[AnythingLLM] Uploading document 'RAG-Optimization-Summary.md' to workspace 'hope' using proper protocol
+2026-05-11T19:20:27.0852500Z	Information	App	[AnythingLLM] Using explicit upload+attach flow to ensure workspace visibility
+2026-05-11T19:20:27.1746691Z	Information	App	[AnythingLLM] Document uploaded to system: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-c5f74f93-300c-4b18-80b4-68a602e2454d.json
+2026-05-11T19:20:27.1768513Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:20:27.1869750Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:20:27.2240936Z	Information	App	[AnythingLLM] ?? Starting embedding operation with extended timeout (10 minutes)
+2026-05-11T19:20:27.2260412Z	Information	App	[AnythingLLM] Large documents with thousands of chunks may take several minutes to embed
+2026-05-11T19:20:27.2276832Z	Information	App	[AnythingLLM] Trying embedding attach with location candidate: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-c5f74f93-300c-4b18-80b4-68a602e2454d.json
+2026-05-11T19:20:34.2633292Z	Information	App	[AnythingLLM] ?? DIAGNOSTICS: Starting verification for workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-c5f74f93-300c-4b18-80b4-68a602e2454d.json)...
+2026-05-11T19:20:34.2693077Z	Warning	App	[AnythingLLM] ?? DIAGNOSTICS: System appears overloaded - using extended timeouts
+2026-05-11T19:20:34.2712330Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-c5f74f93-300c-4b18-80b4-68a602e2454d.json) verification attempt 1/8 - waiting 8s (overloaded: True)
+2026-05-11T19:20:42.2738819Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:20:42.2841944Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:20:42.3342854Z	Information	App	[AnythingLLM] Documents endpoint failed for 'hope': NotFound, trying workspace endpoint
+2026-05-11T19:20:42.3390856Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and is available...
+2026-05-11T19:20:42.3409864Z	Information	App	[AnythingLLM] Found 1 documents in workspace 'hope'
+2026-05-11T19:20:42.3430201Z	Information	App	[AnythingLLM] ? workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-c5f74f93-300c-4b18-80b4-68a602e2454d.json) verified on attempt 1 - 1 documents in workspace
+2026-05-11T19:20:42.3447830Z	Information	App	[AnythingLLM] ? Document embedding completed successfully for workspace: hope
+2026-05-11T19:20:42.3464616Z	Information	App	[AnythingLLM] Successfully uploaded document 'RAG-Optimization-Summary.md' to workspace 'hope'
+2026-05-11T19:20:42.3481407Z	Information	App	[AnythingLLM] Successfully uploaded RAG document: RAG-Optimization-Summary.md
+2026-05-11T19:20:42.3496782Z	Information	App	[AnythingLLM] Successfully uploaded all RAG training documents to workspace 'hope'
+2026-05-11T19:20:42.3511191Z	Information	App	[NewProject] ?? Workspace created but some optimizations failed
+2026-05-11T19:20:42.3526786Z	Warning	App	[AnythingLLM] Workspace 'Hope' created but some configuration steps failed
+2026-05-11T19:21:55.0397590Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProject] Successfully imported 243 requirements from Jama project C1XMA2405_CMP-6000_Top Level Rehost to C:\Users\e10653214\AppData\Local\Temp\JamaRequirements_C1XMA2405_20260511_142154.json
+2026-05-11T19:23:18.5578037Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProject] Successfully imported 243 requirements from Jama project C1XMA2405_CMP-6000_Top Level Rehost to C:\Users\e10653214\AppData\Local\Temp\JamaRequirements_C1XMA2405_20260511_142318.json
+2026-05-11T19:23:18.6725597Z	Information	App	[AnythingLLM] Uploading optimization guide to workspace 'hope'
+2026-05-11T19:23:18.6743445Z	Warning	App	[AnythingLLM] Optimization guide not found at: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\Config\ANYTHINGLM_OPTIMIZATION_GUIDE.md
+2026-05-11T19:23:18.6767332Z	Information	App	[AnythingLLM] Uploading RAG training documents to workspace 'hope'
+2026-05-11T19:23:18.6791300Z	Information	App	[AnythingLLM] Using Config directory: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\Config
+2026-05-11T19:23:18.6830379Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:23:18.6954574Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:23:18.7376883Z	Information	App	[AnythingLLM] Uploading document 'RAG-JSON-Schema-Training.md' to workspace 'hope' using proper protocol
+2026-05-11T19:23:18.7397209Z	Information	App	[AnythingLLM] Using explicit upload+attach flow to ensure workspace visibility
+2026-05-11T19:23:18.8331983Z	Information	App	[AnythingLLM] Document uploaded to system: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-b019a08d-4849-4d34-9d4f-d7351df49527.json
+2026-05-11T19:23:18.8352397Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:23:18.8456098Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:23:18.8930659Z	Information	App	[AnythingLLM] ?? Starting embedding operation with extended timeout (10 minutes)
+2026-05-11T19:23:18.8950965Z	Information	App	[AnythingLLM] Large documents with thousands of chunks may take several minutes to embed
+2026-05-11T19:23:18.8969583Z	Information	App	[AnythingLLM] Trying embedding attach with location candidate: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-b019a08d-4849-4d34-9d4f-d7351df49527.json
+2026-05-11T19:23:35.0425878Z	Information	App	[AnythingLLM] ?? DIAGNOSTICS: Starting verification for workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-b019a08d-4849-4d34-9d4f-d7351df49527.json)...
+2026-05-11T19:23:35.0489897Z	Warning	App	[AnythingLLM] ?? DIAGNOSTICS: System appears overloaded - using extended timeouts
+2026-05-11T19:23:35.0508849Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-b019a08d-4849-4d34-9d4f-d7351df49527.json) verification attempt 1/8 - waiting 8s (overloaded: True)
+2026-05-11T19:23:43.0542504Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:23:43.0645476Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:23:43.1238763Z	Information	App	[AnythingLLM] Documents endpoint failed for 'hope': NotFound, trying workspace endpoint
+2026-05-11T19:23:43.1310701Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and is available...
+2026-05-11T19:23:43.1329289Z	Information	App	[AnythingLLM] Found 1 documents in workspace 'hope'
+2026-05-11T19:23:43.1346779Z	Information	App	[AnythingLLM] ? workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-b019a08d-4849-4d34-9d4f-d7351df49527.json) verified on attempt 1 - 1 documents in workspace
+2026-05-11T19:23:43.1364604Z	Information	App	[AnythingLLM] ? Document embedding completed successfully for workspace: hope
+2026-05-11T19:23:43.1391639Z	Information	App	[AnythingLLM] Successfully uploaded document 'RAG-JSON-Schema-Training.md' to workspace 'hope'
+2026-05-11T19:23:43.1415001Z	Information	App	[AnythingLLM] Successfully uploaded RAG document: RAG-JSON-Schema-Training.md
+2026-05-11T19:23:43.1455855Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:23:43.1605967Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:23:43.2153873Z	Information	App	[AnythingLLM] Uploading document 'RAG-Learning-Examples.md' to workspace 'hope' using proper protocol
+2026-05-11T19:23:43.2170801Z	Information	App	[AnythingLLM] Using explicit upload+attach flow to ensure workspace visibility
+2026-05-11T19:23:43.2997630Z	Information	App	[AnythingLLM] Document uploaded to system: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-learning-examples-d90ca64a-1416-422b-80e2-cc10acf1d7b1.json
+2026-05-11T19:23:43.3014621Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:23:43.3135155Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:23:43.3526890Z	Information	App	[AnythingLLM] ?? Starting embedding operation with extended timeout (10 minutes)
+2026-05-11T19:23:43.3547690Z	Information	App	[AnythingLLM] Large documents with thousands of chunks may take several minutes to embed
+2026-05-11T19:23:43.3566608Z	Information	App	[AnythingLLM] Trying embedding attach with location candidate: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-learning-examples-d90ca64a-1416-422b-80e2-cc10acf1d7b1.json
+2026-05-11T19:23:50.7166109Z	Information	App	[AnythingLLM] ?? DIAGNOSTICS: Starting verification for workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-learning-examples-d90ca64a-1416-422b-80e2-cc10acf1d7b1.json)...
+2026-05-11T19:23:50.7244599Z	Warning	App	[AnythingLLM] ?? DIAGNOSTICS: System appears overloaded - using extended timeouts
+2026-05-11T19:23:50.7262230Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-learning-examples-d90ca64a-1416-422b-80e2-cc10acf1d7b1.json) verification attempt 1/8 - waiting 8s (overloaded: True)
+2026-05-11T19:23:58.7303008Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:23:58.7464088Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:23:58.8152192Z	Information	App	[AnythingLLM] Documents endpoint failed for 'hope': NotFound, trying workspace endpoint
+2026-05-11T19:23:58.8217705Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and is available...
+2026-05-11T19:23:58.8239889Z	Information	App	[AnythingLLM] Found 1 documents in workspace 'hope'
+2026-05-11T19:23:58.8264230Z	Information	App	[AnythingLLM] ? workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-learning-examples-d90ca64a-1416-422b-80e2-cc10acf1d7b1.json) verified on attempt 1 - 1 documents in workspace
+2026-05-11T19:23:58.8284599Z	Information	App	[AnythingLLM] ? Document embedding completed successfully for workspace: hope
+2026-05-11T19:23:58.8306004Z	Information	App	[AnythingLLM] Successfully uploaded document 'RAG-Learning-Examples.md' to workspace 'hope'
+2026-05-11T19:23:58.8332000Z	Information	App	[AnythingLLM] Successfully uploaded RAG document: RAG-Learning-Examples.md
+2026-05-11T19:23:58.8378642Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:23:58.8495196Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:23:58.9151190Z	Information	App	[AnythingLLM] Uploading document 'RAG-Optimization-Summary.md' to workspace 'hope' using proper protocol
+2026-05-11T19:23:58.9180871Z	Information	App	[AnythingLLM] Using explicit upload+attach flow to ensure workspace visibility
+2026-05-11T19:23:59.0341571Z	Information	App	[AnythingLLM] Document uploaded to system: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-674c4222-27a2-48df-8edd-425bc3761657.json
+2026-05-11T19:23:59.0366873Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:23:59.0512539Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:23:59.1101173Z	Information	App	[AnythingLLM] ?? Starting embedding operation with extended timeout (10 minutes)
+2026-05-11T19:23:59.1118877Z	Information	App	[AnythingLLM] Large documents with thousands of chunks may take several minutes to embed
+2026-05-11T19:23:59.1136319Z	Information	App	[AnythingLLM] Trying embedding attach with location candidate: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-674c4222-27a2-48df-8edd-425bc3761657.json
+2026-05-11T19:24:06.8367353Z	Information	App	[AnythingLLM] ?? DIAGNOSTICS: Starting verification for workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-674c4222-27a2-48df-8edd-425bc3761657.json)...
+2026-05-11T19:24:06.8466580Z	Warning	App	[AnythingLLM] ?? DIAGNOSTICS: System appears overloaded - using extended timeouts
+2026-05-11T19:24:06.8488272Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-674c4222-27a2-48df-8edd-425bc3761657.json) verification attempt 1/8 - waiting 8s (overloaded: True)
+2026-05-11T19:24:14.8515052Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:24:14.8653910Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:24:14.9136463Z	Information	App	[AnythingLLM] Documents endpoint failed for 'hope': NotFound, trying workspace endpoint
+2026-05-11T19:24:14.9199999Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and is available...
+2026-05-11T19:24:14.9220406Z	Information	App	[AnythingLLM] Found 1 documents in workspace 'hope'
+2026-05-11T19:24:14.9240051Z	Information	App	[AnythingLLM] ? workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-674c4222-27a2-48df-8edd-425bc3761657.json) verified on attempt 1 - 1 documents in workspace
+2026-05-11T19:24:14.9262181Z	Information	App	[AnythingLLM] ? Document embedding completed successfully for workspace: hope
+2026-05-11T19:24:14.9280170Z	Information	App	[AnythingLLM] Successfully uploaded document 'RAG-Optimization-Summary.md' to workspace 'hope'
+2026-05-11T19:24:14.9300694Z	Information	App	[AnythingLLM] Successfully uploaded RAG document: RAG-Optimization-Summary.md
+2026-05-11T19:24:14.9324554Z	Information	App	[AnythingLLM] Successfully uploaded all RAG training documents to workspace 'hope'
+2026-05-11T19:24:14.9399854Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:24:14.9515082Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:24:14.9957369Z	Information	App	[AnythingLLM] Uploading document 'simple text.txt' to workspace 'hope' using proper protocol
+2026-05-11T19:24:14.9980320Z	Information	App	[AnythingLLM] Using explicit upload+attach flow to ensure workspace visibility
+2026-05-11T19:24:15.1106644Z	Information	App	[AnythingLLM] Document uploaded to system: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-simple-text-ea1697ee-38cd-4775-acb9-aa9a25dfb57c.json
+2026-05-11T19:24:15.1130019Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:24:15.1243152Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:24:15.1634601Z	Information	App	[AnythingLLM] ?? Starting embedding operation with extended timeout (10 minutes)
+2026-05-11T19:24:15.1662514Z	Information	App	[AnythingLLM] Large documents with thousands of chunks may take several minutes to embed
+2026-05-11T19:24:15.1682568Z	Information	App	[AnythingLLM] Trying embedding attach with location candidate: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-simple-text-ea1697ee-38cd-4775-acb9-aa9a25dfb57c.json
+2026-05-11T19:24:15.4538055Z	Information	App	[AnythingLLM] ?? DIAGNOSTICS: Starting verification for workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-simple-text-ea1697ee-38cd-4775-acb9-aa9a25dfb57c.json)...
+2026-05-11T19:24:15.4579516Z	Warning	App	[AnythingLLM] ?? DIAGNOSTICS: System appears overloaded - using extended timeouts
+2026-05-11T19:24:15.4598088Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-simple-text-ea1697ee-38cd-4775-acb9-aa9a25dfb57c.json) verification attempt 1/8 - waiting 8s (overloaded: True)
+2026-05-11T19:24:23.4625694Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:24:23.4742637Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:24:23.5177566Z	Information	App	[AnythingLLM] Documents endpoint failed for 'hope': NotFound, trying workspace endpoint
+2026-05-11T19:24:23.5230364Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and is available...
+2026-05-11T19:24:23.5249146Z	Information	App	[AnythingLLM] Found 1 documents in workspace 'hope'
+2026-05-11T19:24:23.5267330Z	Information	App	[AnythingLLM] ? workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-simple-text-ea1697ee-38cd-4775-acb9-aa9a25dfb57c.json) verified on attempt 1 - 1 documents in workspace
+2026-05-11T19:24:23.5290118Z	Information	App	[AnythingLLM] ? Document embedding completed successfully for workspace: hope
+2026-05-11T19:24:23.5309825Z	Information	App	[AnythingLLM] Successfully uploaded document 'simple text.txt' to workspace 'hope'
+2026-05-11T19:24:23.5367269Z	Information	App	[AnythingLLM] Documents endpoint failed for 'hope': NotFound, trying workspace endpoint
+2026-05-11T19:24:23.5422192Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and is available...
+2026-05-11T19:24:23.5441612Z	Information	App	[AnythingLLM] Found 1 documents in workspace 'hope'
+2026-05-11T19:24:23.5565083Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	? Debug embedding file uploaded successfully for workspace 'hope'
+2026-05-11T19:24:23.5583591Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	?? Standard RAG setup file verification failed for workspace 'hope'
+2026-05-11T19:24:40.7245032Z	Information	App	[AnythingLLM] ?? DIAGNOSTICS: Starting verification for workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-c64308e2-95e1-42c4-aeba-ef107d5094a2.json)...
+2026-05-11T19:24:40.7307645Z	Warning	App	[AnythingLLM] ?? DIAGNOSTICS: System appears overloaded - using extended timeouts
+2026-05-11T19:24:40.7330988Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-c64308e2-95e1-42c4-aeba-ef107d5094a2.json) verification attempt 1/8 - waiting 8s (overloaded: True)
+2026-05-11T19:24:48.7355725Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:24:48.7489382Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:24:48.7971485Z	Information	App	[AnythingLLM] Documents endpoint failed for 'hope': NotFound, trying workspace endpoint
+2026-05-11T19:24:48.8022565Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and is available...
+2026-05-11T19:24:48.8043651Z	Information	App	[AnythingLLM] Found 1 documents in workspace 'hope'
+2026-05-11T19:24:48.8062526Z	Information	App	[AnythingLLM] ? workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-c64308e2-95e1-42c4-aeba-ef107d5094a2.json) verified on attempt 1 - 1 documents in workspace
+2026-05-11T19:24:48.8082839Z	Information	App	[AnythingLLM] ? Document embedding completed successfully for workspace: hope
+2026-05-11T19:24:48.8104535Z	Information	App	[AnythingLLM] Successfully uploaded document 'RAG-JSON-Schema-Training.md' to workspace 'hope'
+2026-05-11T19:24:48.8123959Z	Information	App	[AnythingLLM] Successfully uploaded RAG document: RAG-JSON-Schema-Training.md
+2026-05-11T19:24:48.8154891Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:24:48.8277088Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:24:48.8660419Z	Information	App	[AnythingLLM] Uploading document 'RAG-Learning-Examples.md' to workspace 'hope' using proper protocol
+2026-05-11T19:24:48.8682808Z	Information	App	[AnythingLLM] Using explicit upload+attach flow to ensure workspace visibility
+2026-05-11T19:24:48.9471260Z	Information	App	[AnythingLLM] Document uploaded to system: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-learning-examples-e1031921-1902-4596-be2f-05654d567565.json
+2026-05-11T19:24:48.9493346Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:24:48.9625179Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:24:49.0016157Z	Information	App	[AnythingLLM] ?? Starting embedding operation with extended timeout (10 minutes)
+2026-05-11T19:24:49.0037871Z	Information	App	[AnythingLLM] Large documents with thousands of chunks may take several minutes to embed
+2026-05-11T19:24:49.0058374Z	Information	App	[AnythingLLM] Trying embedding attach with location candidate: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-learning-examples-e1031921-1902-4596-be2f-05654d567565.json
+2026-05-11T19:24:56.1523027Z	Information	App	[AnythingLLM] ?? DIAGNOSTICS: Starting verification for workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-learning-examples-e1031921-1902-4596-be2f-05654d567565.json)...
+2026-05-11T19:24:56.1599239Z	Warning	App	[AnythingLLM] ?? DIAGNOSTICS: System appears overloaded - using extended timeouts
+2026-05-11T19:24:56.1618893Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-learning-examples-e1031921-1902-4596-be2f-05654d567565.json) verification attempt 1/8 - waiting 8s (overloaded: True)
+2026-05-11T19:25:04.1655401Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:25:04.1795831Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:25:04.2633623Z	Information	App	[AnythingLLM] Documents endpoint failed for 'hope': NotFound, trying workspace endpoint
+2026-05-11T19:25:04.2685754Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and is available...
+2026-05-11T19:25:04.2708796Z	Information	App	[AnythingLLM] Found 1 documents in workspace 'hope'
+2026-05-11T19:25:04.2728442Z	Information	App	[AnythingLLM] ? workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-learning-examples-e1031921-1902-4596-be2f-05654d567565.json) verified on attempt 1 - 1 documents in workspace
+2026-05-11T19:25:04.2752441Z	Information	App	[AnythingLLM] ? Document embedding completed successfully for workspace: hope
+2026-05-11T19:25:04.2771511Z	Information	App	[AnythingLLM] Successfully uploaded document 'RAG-Learning-Examples.md' to workspace 'hope'
+2026-05-11T19:25:04.2790715Z	Information	App	[AnythingLLM] Successfully uploaded RAG document: RAG-Learning-Examples.md
+2026-05-11T19:25:04.2826265Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:25:04.2982548Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:25:04.3372465Z	Information	App	[AnythingLLM] Uploading document 'RAG-Optimization-Summary.md' to workspace 'hope' using proper protocol
+2026-05-11T19:25:04.3395288Z	Information	App	[AnythingLLM] Using explicit upload+attach flow to ensure workspace visibility
+2026-05-11T19:25:04.4407410Z	Information	App	[AnythingLLM] Document uploaded to system: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-dd1bdfaf-9643-431c-bf57-d06b9b8eea16.json
+2026-05-11T19:25:04.4429890Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:25:04.4552705Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:25:04.5081076Z	Information	App	[AnythingLLM] ?? Starting embedding operation with extended timeout (10 minutes)
+2026-05-11T19:25:04.5102599Z	Information	App	[AnythingLLM] Large documents with thousands of chunks may take several minutes to embed
+2026-05-11T19:25:04.5121850Z	Information	App	[AnythingLLM] Trying embedding attach with location candidate: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-dd1bdfaf-9643-431c-bf57-d06b9b8eea16.json
+2026-05-11T19:25:11.9551250Z	Information	App	[AnythingLLM] ?? DIAGNOSTICS: Starting verification for workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-dd1bdfaf-9643-431c-bf57-d06b9b8eea16.json)...
+2026-05-11T19:25:11.9619345Z	Warning	App	[AnythingLLM] ?? DIAGNOSTICS: System appears overloaded - using extended timeouts
+2026-05-11T19:25:11.9636775Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-dd1bdfaf-9643-431c-bf57-d06b9b8eea16.json) verification attempt 1/8 - waiting 8s (overloaded: True)
+2026-05-11T19:25:19.9668217Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:25:19.9826463Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-05-11T19:25:20.0357279Z	Information	App	[AnythingLLM] Documents endpoint failed for 'hope': NotFound, trying workspace endpoint
+2026-05-11T19:25:20.0422363Z	Information	App	[AnythingLLM] ?? Documents API response structure (truncated): {"workspace":[{"id":62,"name":"Hope","slug":"hope","vectorTag":null,"createdAt":"2026-05-11T19:16:33.870Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-05-11T19:16:33.870Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n?? CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed, vectorized, and is available...
+2026-05-11T19:25:20.0441704Z	Information	App	[AnythingLLM] Found 1 documents in workspace 'hope'
+2026-05-11T19:25:20.0460120Z	Information	App	[AnythingLLM] ? workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-dd1bdfaf-9643-431c-bf57-d06b9b8eea16.json) verified on attempt 1 - 1 documents in workspace
+2026-05-11T19:25:20.0483019Z	Information	App	[AnythingLLM] ? Document embedding completed successfully for workspace: hope
+2026-05-11T19:25:20.0507967Z	Information	App	[AnythingLLM] Successfully uploaded document 'RAG-Optimization-Summary.md' to workspace 'hope'
+2026-05-11T19:25:20.0528329Z	Information	App	[AnythingLLM] Successfully uploaded RAG document: RAG-Optimization-Summary.md
+2026-05-11T19:25:20.0544623Z	Information	App	[AnythingLLM] Successfully uploaded all RAG training documents to workspace 'hope'
+2026-05-11T19:25:20.0622576Z	Information	App	[RAG Sync] Successfully synced RAG documents for workspace: Hope is the name
+2026-05-11T19:25:55.3461783Z	Information	Microsoft.Hosting.Lifetime	Application is shutting down...
