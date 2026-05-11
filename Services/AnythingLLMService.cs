@@ -1199,35 +1199,16 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
             try
             {
                 TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Uploading optimization guide to workspace '{slug}'");
-                
-                // File is copied to output directory by build, so check there first
-                var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                var guidePath = Path.Combine(baseDir, "Config", "ANYTHINGLM_OPTIMIZATION_GUIDE.md");
-                
-                // Fallback: if not in output dir, try project root (for development)
-                if (!File.Exists(guidePath))
-                {
-                    var binParent = Directory.GetParent(baseDir); // Debug/net8.0-windows parent
-                    var debugParent = binParent?.Parent; // Debug parent
-                    var binFolder = debugParent?.Parent; // bin parent
-                    var projectRoot = binFolder?.Parent?.FullName; // Project root
-                    
-                    if (!string.IsNullOrEmpty(projectRoot))
-                    {
-                        guidePath = Path.Combine(projectRoot, "Config", "ANYTHINGLM_OPTIMIZATION_GUIDE.md");
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Using project root guide: {guidePath}");
-                    }
-                }
-                else
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Using output directory guide: {guidePath}");
-                }
+
+                var guidePath = ResolveConfigFilePath("ANYTHINGLM_OPTIMIZATION_GUIDE.md");
                 
                 if (!File.Exists(guidePath))
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Optimization guide not found at: {guidePath}");
                     return false;
                 }
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Using optimization guide: {guidePath}");
 
                 var guideContent = await File.ReadAllTextAsync(guidePath, cancellationToken);
                 
@@ -1274,29 +1255,9 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
             try
             {
                 TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Uploading RAG training documents to workspace '{slug}'");
-                
-                // Files are copied to output directory by build, so check there first
-                var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                var configDir = Path.Combine(baseDir, "Config");
-                
-                // Fallback: if not in output dir, try project root (for development)
-                if (!Directory.Exists(configDir))
-                {
-                    var binParent = Directory.GetParent(baseDir); // Debug/net8.0-windows parent
-                    var debugParent = binParent?.Parent; // Debug parent
-                    var binFolder = debugParent?.Parent; // bin parent
-                    var projectRoot = binFolder?.Parent?.FullName; // Project root
-                    
-                    if (!string.IsNullOrEmpty(projectRoot))
-                    {
-                        configDir = Path.Combine(projectRoot, "Config");
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Using project root Config directory: {configDir}");
-                    }
-                }
-                else
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Using output directory Config: {configDir}");
-                }
+
+                var configDir = ResolveConfigDirectoryPath();
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Using Config directory: {configDir}");
                 
                 // RAG documents to upload
                 var ragDocuments = new[]
@@ -1349,6 +1310,41 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error uploading RAG training documents to workspace '{slug}'");
                 return false;
             }
+        }
+
+        private string ResolveConfigDirectoryPath()
+        {
+            var candidateRoots = new[]
+            {
+                AppDomain.CurrentDomain.BaseDirectory,
+                AppContext.BaseDirectory,
+                Directory.GetCurrentDirectory()
+            }
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var root in candidateRoots)
+            {
+                var current = new DirectoryInfo(root);
+                while (current != null)
+                {
+                    var configPath = Path.Combine(current.FullName, "Config");
+                    if (Directory.Exists(configPath))
+                    {
+                        return configPath;
+                    }
+
+                    current = current.Parent;
+                }
+            }
+
+            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Config");
+        }
+
+        private string ResolveConfigFilePath(string fileName)
+        {
+            var configDir = ResolveConfigDirectoryPath();
+            return Path.Combine(configDir, fileName);
         }
 
         /// <summary>
