@@ -1,12 +1,15 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using System.Threading.Tasks;
+using System.Net.Http;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
@@ -40,6 +43,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private readonly JamaConnectService _jamaConnectService;
         private readonly IRequirementService _requirementService;
         private readonly IJamaTestCaseConversionService _jamaTestCaseConversionService;
+        private readonly IUserSettingsService _userSettingsService;
+        private readonly ISettingsDialogService _settingsDialogService;
         private readonly ILogger<SideMenuViewModel> _logger;
         
         // AnythingLLM status tracking - use ObservableProperty for automatic command updates  
@@ -142,7 +147,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty]
         private bool autoExportForChatGpt = false;
 
-        public SideMenuViewModel(INewProjectMediator newProjectMediator, IOpenProjectMediator openProjectMediator, INavigationMediator navigationMediator, ITestCaseGenerationMediator testCaseGenerationMediator, IRequirementsMediator requirementsMediator, TestCaseAnythingLLMService testCaseAnythingLLMService, JamaConnectService jamaConnectService, IRequirementService requirementService, IJamaTestCaseConversionService jamaTestCaseConversionService, ILogger<SideMenuViewModel> logger)
+        public SideMenuViewModel(INewProjectMediator newProjectMediator, IOpenProjectMediator openProjectMediator, INavigationMediator navigationMediator, ITestCaseGenerationMediator testCaseGenerationMediator, IRequirementsMediator requirementsMediator, TestCaseAnythingLLMService testCaseAnythingLLMService, JamaConnectService jamaConnectService, IRequirementService requirementService, IJamaTestCaseConversionService jamaTestCaseConversionService, IUserSettingsService userSettingsService, ISettingsDialogService settingsDialogService, ILogger<SideMenuViewModel> logger)
         {
             //// ("*** SideMenuViewModel constructor called! ***");
             //// ("*** SideMenuViewModel constructor called! ***");
@@ -156,6 +161,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
             _requirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
             _jamaTestCaseConversionService = jamaTestCaseConversionService ?? throw new ArgumentNullException(nameof(jamaTestCaseConversionService));
+            _userSettingsService = userSettingsService ?? throw new ArgumentNullException(nameof(userSettingsService));
+            _settingsDialogService = settingsDialogService ?? throw new ArgumentNullException(nameof(settingsDialogService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             
             //// ("*** SideMenuViewModel constructor: Dependencies resolved successfully ***");
@@ -198,7 +205,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             SaveProjectCommand = new AsyncRelayCommand(SaveProjectAsync, CanExecuteProjectActions);
             ProjectNavigationCommand = new RelayCommand(NavigateToProject);
             RequirementsNavigationCommand = new RelayCommand(NavigateToRequirements, CanAccessRequirements);
-            TestCaseGeneratorNavigationCommand = new RelayCommand(NavigateToTestCaseGenerator);
+            TestCaseGeneratorNavigationCommand = new AsyncRelayCommand(NavigateToTestCaseGeneratorAsync);
             NewProjectNavigationCommand = new RelayCommand(NavigateToNewProject, CanExecuteProjectCommands);
             DummyNavigationCommand = new RelayCommand(NavigateToDummy);
             LLMLearningNavigationCommand = new RelayCommand(NavigateToLLMLearning);
@@ -216,9 +223,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             AnalyzeUnanalyzedCommand = new RelayCommand(NavigateToRequirements); // Navigate to requirements for analysis
             ReAnalyzeModifiedCommand = new RelayCommand(NavigateToRequirements); // Navigate to requirements for re-analysis
             GenerateAnalysisCommandCommand = new RelayCommand(NavigateToRequirements); // Navigate to requirements for analysis commands
-            GenerateTestCaseCommandCommand = new RelayCommand(NavigateToTestCaseGenerator); // Navigate to test case generator
+            GenerateTestCaseCommandCommand = new AsyncRelayCommand(NavigateToTestCaseGeneratorAsync); // Navigate to test case generator
             ToggleAutoExportCommand = new RelayCommand(() => AutoExportForChatGpt = !AutoExportForChatGpt);
-            ExportForChatGptCommand = new RelayCommand(NavigateToTestCaseGenerator); // Navigate to test case generator for export
+            ExportForChatGptCommand = new AsyncRelayCommand(NavigateToTestCaseGeneratorAsync); // Navigate to test case generator for export
             ExportAllToJamaCommand = new AsyncRelayCommand(ExportAllToJamaAsync);
             
             // Demo command for testing state management
@@ -299,12 +306,165 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
         }
         
-        private void NavigateToTestCaseGenerator()
+        private async Task NavigateToTestCaseGeneratorAsync()
         {
+            if (!await ValidateSettingsForTestCaseGenerationAsync())
+            {
+                return;
+            }
+
             // When users click the parent "Test Case Generator" menu item,
             // show them the useful LLM Test Case Generator instead of the placeholder view
             SelectedSection = "LLMTestCaseGenerator";
             _navigationMediator?.NavigateToSection("LLMTestCaseGenerator");
+        }
+
+        private async Task<bool> ValidateSettingsForTestCaseGenerationAsync()
+        {
+            while (true)
+            {
+                try
+                {
+                    var settings = _userSettingsService.LoadSettings();
+                    var issues = new List<string>();
+
+                    if (_userSettingsService.HasMissingRequiredSettings())
+                    {
+                        issues.Add("One or more required settings are missing.");
+                    }
+
+                    var (jamaSuccess, jamaMessage) = await _jamaConnectService.TestConnectionAsync();
+                    if (!jamaSuccess)
+                    {
+                        issues.Add($"Jama: {jamaMessage}");
+                    }
+
+                    var (anythingSuccess, anythingMessage) = await TestAnythingLlmConfigurationAsync(settings);
+                    if (!anythingSuccess)
+                    {
+                        issues.Add($"AnythingLLM: {anythingMessage}");
+                    }
+
+                    var (ollamaSuccess, ollamaMessage) = await TestOllamaConfigurationAsync(settings);
+                    if (!ollamaSuccess)
+                    {
+                        issues.Add($"Ollama: {ollamaMessage}");
+                    }
+
+                    if (issues.Count == 0)
+                    {
+                        return true;
+                    }
+
+                    var details = string.Join("\n• ", issues);
+                    var decision = MessageBox.Show(
+                        $"Settings validation found issues:\n\n• {details}\n\nYes = Open Settings\nNo = Continue Anyway\nCancel = Stay on current screen",
+                        "Settings Validation Warning",
+                        MessageBoxButton.YesNoCancel,
+                        MessageBoxImage.Warning);
+
+                    if (decision == MessageBoxResult.Yes)
+                    {
+                        _settingsDialogService.ShowSettingsDialog(Application.Current?.MainWindow, isRequired: false);
+                        continue;
+                    }
+
+                    if (decision == MessageBoxResult.No)
+                    {
+                        _logger.LogWarning("[SideMenuVM] User chose to continue to Test Case Generation despite settings validation issues.");
+                        return true;
+                    }
+
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[SideMenuVM] Failed to validate settings before test case generation navigation");
+
+                    var decision = MessageBox.Show(
+                        "Unable to validate settings before opening Test Case Generation.\n\nYes = Open Settings\nNo = Continue Anyway\nCancel = Stay on current screen",
+                        "Settings Validation Error",
+                        MessageBoxButton.YesNoCancel,
+                        MessageBoxImage.Warning);
+
+                    if (decision == MessageBoxResult.Yes)
+                    {
+                        _settingsDialogService.ShowSettingsDialog(Application.Current?.MainWindow, isRequired: false);
+                        continue;
+                    }
+
+                    if (decision == MessageBoxResult.No)
+                    {
+                        _logger.LogWarning("[SideMenuVM] User chose to continue to Test Case Generation after validation error.");
+                        return true;
+                    }
+
+                    return false;
+                }
+            }
+        }
+
+        private static async Task<(bool Success, string Message)> TestAnythingLlmConfigurationAsync(AppUserSettings settings)
+        {
+            try
+            {
+                var service = new AnythingLLMService(baseUrl: NormalizeUrl(settings.AnythingLlmBaseUrl), apiKey: (settings.AnythingLlmApiKey ?? string.Empty).Trim());
+                var (success, message) = await service.TestConnectivityAsync();
+                return (success, message);
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
+        }
+
+        private static async Task<(bool Success, string Message)> TestOllamaConfigurationAsync(AppUserSettings settings)
+        {
+            try
+            {
+                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+                using var response = await client.GetAsync("http://localhost:11434/api/tags");
+                if (!response.IsSuccessStatusCode)
+                {
+                    return (false, $"Ollama returned HTTP {(int)response.StatusCode}.");
+                }
+
+                var body = await response.Content.ReadAsStringAsync();
+                if (string.IsNullOrWhiteSpace(settings.OllamaChatModel))
+                {
+                    return (true, "Ollama reachable.");
+                }
+
+                using var doc = JsonDocument.Parse(body);
+                if (doc.RootElement.TryGetProperty("models", out var models) && models.ValueKind == JsonValueKind.Array)
+                {
+                    var chatModel = settings.OllamaChatModel.Trim();
+                    foreach (var model in models.EnumerateArray())
+                    {
+                        if (model.TryGetProperty("name", out var nameElement))
+                        {
+                            var modelName = nameElement.GetString();
+                            if (!string.IsNullOrWhiteSpace(modelName) && string.Equals(modelName, chatModel, StringComparison.OrdinalIgnoreCase))
+                            {
+                                return (true, "Ollama reachable and selected model found.");
+                            }
+                        }
+                    }
+
+                    return (false, $"Selected chat model '{chatModel}' is not installed in Ollama.");
+                }
+
+                return (false, "Ollama model list response is invalid.");
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
+        }
+
+        private static string NormalizeUrl(string? value)
+        {
+            return (string.IsNullOrWhiteSpace(value) ? "http://localhost:3001" : value.Trim()).TrimEnd('/');
         }
         
         private void NavigateToRequirements()

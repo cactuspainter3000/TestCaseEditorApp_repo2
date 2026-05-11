@@ -474,10 +474,12 @@ namespace TestCaseEditorApp
                         var jamaConnectService = provider.GetRequiredService<JamaConnectService>();
                         var requirementService = provider.GetRequiredService<IRequirementService>();
                         var jamaTestCaseConversionService = provider.GetRequiredService<IJamaTestCaseConversionService>();
+                        var userSettingsService = provider.GetRequiredService<IUserSettingsService>();
+                        var settingsDialogService = provider.GetRequiredService<ISettingsDialogService>();
                         var logger = provider.GetRequiredService<ILogger<SideMenuViewModel>>();
                         
                         return new SideMenuViewModel(newProjectMediator, openProjectMediator, navigationMediator, 
-                            testCaseGenerationMediator, requirementsMediator, testCaseAnythingLLMService, jamaConnectService, requirementService, jamaTestCaseConversionService, logger);
+                            testCaseGenerationMediator, requirementsMediator, testCaseAnythingLLMService, jamaConnectService, requirementService, jamaTestCaseConversionService, userSettingsService, settingsDialogService, logger);
                     });
 
                     // Domain coordination
