@@ -734,10 +734,11 @@ namespace TestCaseEditorApp
                         var jamaConnectService = provider.GetRequiredService<JamaConnectService>();
                         var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
                         var eventReplay = provider.GetService<EventReplayService>();
+                            var userSettingsService = provider.GetService<IUserSettingsService>();
                         
                         return new NewProjectMediator(logger, uiCoordinator, persistenceService, 
                             fileDialogService, anythingLLMService, notificationService, requirementService,
-                            smartImporter, testCaseGenerationMediator, workspaceValidationService, jamaConnectService, performanceMonitor, eventReplay);
+                                smartImporter, testCaseGenerationMediator, workspaceValidationService, jamaConnectService, userSettingsService, performanceMonitor, eventReplay);
                     });
 
                     // === OPEN PROJECT DOMAIN ===

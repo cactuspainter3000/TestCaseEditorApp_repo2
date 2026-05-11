@@ -36,6 +36,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
         private readonly IWorkspaceValidationService _workspaceValidationService;
         private readonly JamaConnectService _jamaConnectService;
+            private readonly IUserSettingsService? _userSettingsService;
         private WorkspaceInfo? _currentWorkspaceInfo;
         
         // Form persistence state for architectural compliance
@@ -55,6 +56,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             ITestCaseGenerationMediator testCaseGenerationMediator,
             IWorkspaceValidationService workspaceValidationService,
             JamaConnectService jamaConnectService,
+                IUserSettingsService? userSettingsService = null,
             PerformanceMonitoringService? performanceMonitor = null,
             EventReplayService? eventReplay = null)
             : base(logger, uiCoordinator, "Workspace Management", performanceMonitor, eventReplay)
@@ -68,6 +70,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
             _workspaceValidationService = workspaceValidationService ?? throw new ArgumentNullException(nameof(workspaceValidationService));
             _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
+                _userSettingsService = userSettingsService;
         }
 
         /// <summary>
@@ -519,8 +522,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 if (!string.IsNullOrEmpty(selectedFile))
                 {
                     _logger.LogInformation("File selected for additional requirements import: {FilePath}", selectedFile);
-                    ShowProgress("Broadcasting import request...", 50);
-                    
                     // Broadcast to TestCaseGeneration domain for processing
                     BroadcastToAllDomains(new ImportRequirementsRequest 
                     { 
@@ -874,6 +875,30 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     importSource = "Document";
                     _logger.LogInformation("🎯 Setting ImportSource to 'Document' - user chose document import method");
                 }
+                        // Check if Jama is configured and available (even if no file was imported)
+                        var jamaSettings = _userSettingsService?.LoadSettings();
+                        bool jamaConfigured = !string.IsNullOrWhiteSpace(jamaSettings?.JamaBaseUrl) && 
+                                             !string.IsNullOrWhiteSpace(jamaSettings?.JamaClientId) && 
+                                             !string.IsNullOrWhiteSpace(jamaSettings?.JamaClientSecret);
+                    
+                        if (jamaConfigured && string.IsNullOrEmpty(documentPath))
+                        {
+                            // Jama is configured and no document was selected - default to Jama
+                            importSource = "Jama";
+                            _logger.LogInformation("🎯 Setting ImportSource to 'Jama' - Jama is configured and no document selected");
+                        }
+                        else if (jamaConfigured && !string.IsNullOrEmpty(documentPath))
+                        {
+                            // Jama is configured but user selected a document - respect their choice
+                            importSource = "Document";
+                            _logger.LogInformation("🎯 Setting ImportSource to 'Document' - user explicitly selected document over Jama");
+                        }
+                        else
+                        {
+                            // Jama not configured or user chose document - use document import
+                            importSource = "Document";
+                            _logger.LogInformation("🎯 Setting ImportSource to 'Document' - Jama not configured or document import chosen");
+                        }
                 
                 var workspace = new Workspace
                 {
