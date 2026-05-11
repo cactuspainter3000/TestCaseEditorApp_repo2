@@ -1022,7 +1022,8 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                    {
                        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
                        var appLogPath = Path.Combine(userProfile, "TestCaseEditorApp", "logs", "app.log");
-                       var repoLogPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "logs", "last-anythingllm.log");
+                       var repoRoot = ResolveRepositoryRootPath();
+                       var repoLogPath = Path.Combine(repoRoot, "logs", "last-anythingllm.log");
                        var patterns = new[] { "[NewProject]", "[AnythingLLM]", "[RAG Sync]", "[RAG]", "CompleteProjectCreationAsync", "RAG setup", "optimization guide", "training document", "verification" };
                        if (File.Exists(appLogPath))
                        {
@@ -1032,6 +1033,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                                .ToList();
                            Directory.CreateDirectory(Path.GetDirectoryName(repoLogPath)!);
                            File.WriteAllLines(repoLogPath, lines);
+                           _logger.LogInformation("[NewProjectMediator] Wrote filtered AnythingLLM log snapshot to {RepoLogPath}", repoLogPath);
                        }
                    }
                    catch (Exception logEx)
@@ -1117,6 +1119,34 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 _logger.LogWarning(ex, "⚠️ Failed to verify standard RAG documents for workspace '{WorkspaceSlug}'", workspaceSlug);
                 return false;
             }
+        }
+
+        private static string ResolveRepositoryRootPath()
+        {
+            var candidates = new[]
+            {
+                Directory.GetCurrentDirectory(),
+                AppContext.BaseDirectory
+            }
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var startPath in candidates)
+            {
+                var current = new DirectoryInfo(startPath);
+                while (current != null)
+                {
+                    var projectFile = Path.Combine(current.FullName, "TestCaseEditorApp.csproj");
+                    if (File.Exists(projectFile))
+                    {
+                        return current.FullName;
+                    }
+
+                    current = current.Parent;
+                }
+            }
+
+            return Directory.GetCurrentDirectory();
         }
         
         /// <summary>
