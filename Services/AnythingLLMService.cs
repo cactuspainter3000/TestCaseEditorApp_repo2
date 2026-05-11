@@ -519,6 +519,70 @@ namespace TestCaseEditorApp.Services
             }
         }
 
+        private static string NormalizeWorkspaceIdentifier(string workspaceIdentifier)
+        {
+            if (string.IsNullOrWhiteSpace(workspaceIdentifier))
+            {
+                return string.Empty;
+            }
+
+            // Compare human-friendly names and slugs with the same key.
+            var normalized = workspaceIdentifier.Trim().ToLowerInvariant();
+            var chars = normalized
+                .Where(char.IsLetterOrDigit)
+                .ToArray();
+            return new string(chars);
+        }
+
+        private async Task<string> ResolveWorkspaceSlugAsync(string workspaceIdentifier, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(workspaceIdentifier))
+            {
+                return workspaceIdentifier;
+            }
+
+            var candidate = workspaceIdentifier.Trim();
+            try
+            {
+                var workspaces = await GetWorkspacesAsync(cancellationToken);
+                if (workspaces.Count == 0)
+                {
+                    return candidate;
+                }
+
+                var exactSlugMatch = workspaces.FirstOrDefault(w =>
+                    string.Equals(w.Slug, candidate, StringComparison.OrdinalIgnoreCase));
+                if (exactSlugMatch != null)
+                {
+                    return exactSlugMatch.Slug;
+                }
+
+                var exactNameMatch = workspaces.FirstOrDefault(w =>
+                    string.Equals(w.Name, candidate, StringComparison.OrdinalIgnoreCase));
+                if (exactNameMatch != null)
+                {
+                    return exactNameMatch.Slug;
+                }
+
+                var normalizedCandidate = NormalizeWorkspaceIdentifier(candidate);
+                var normalizedMatch = workspaces.FirstOrDefault(w =>
+                    string.Equals(NormalizeWorkspaceIdentifier(w.Slug), normalizedCandidate, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(NormalizeWorkspaceIdentifier(w.Name), normalizedCandidate, StringComparison.OrdinalIgnoreCase));
+                if (normalizedMatch != null)
+                {
+                    return normalizedMatch.Slug;
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Could not resolve workspace identifier '{workspaceIdentifier}' to a known slug; using it as-is");
+                return candidate;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Workspace slug resolution failed for '{workspaceIdentifier}': {ex.Message}. Using provided identifier.");
+                return candidate;
+            }
+        }
+
         /// <summary>
         /// Creates a new workspace in AnythingLLM
         /// </summary>
@@ -1294,7 +1358,13 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
         {
             try
             {
-                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Uploading document '{documentName}' to workspace '{slug}' using proper protocol");
+                var workspaceSlug = await ResolveWorkspaceSlugAsync(slug, cancellationToken);
+                if (!string.Equals(workspaceSlug, slug, StringComparison.OrdinalIgnoreCase))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Resolved workspace identifier '{slug}' to slug '{workspaceSlug}' for document upload");
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Uploading document '{documentName}' to workspace '{workspaceSlug}' using proper protocol");
 
                 // Prefer explicit two-step attach flow because some AnythingLLM API variants
                 // report direct addToWorkspaces success while documents remain unassigned in UI.
@@ -1309,14 +1379,14 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                 }
                 
                 // Step 2: Add document to workspace embeddings
-                var addResult = await AddDocumentToWorkspaceAsync(slug, uploadResult.documentLocation, cancellationToken);
+                var addResult = await AddDocumentToWorkspaceAsync(workspaceSlug, uploadResult.documentLocation, cancellationToken);
                 if (!addResult)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Document uploaded but failed to add to workspace '{slug}' - likely context length issue");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Document uploaded but failed to add to workspace '{workspaceSlug}' - likely context length issue");
                     TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 🧩 Attempting chunked upload fallback for document that's too large for embedding...");
                     
                     // Try chunked approach as fallback when embedding fails
-                    var chunkResult = await TryChunkedUploadAsync(slug, documentName, content, cancellationToken);
+                    var chunkResult = await TryChunkedUploadAsync(workspaceSlug, documentName, content, cancellationToken);
                     
                     if (chunkResult.success)
                     {
@@ -1331,7 +1401,7 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                     }
                 }
                 
-                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Successfully uploaded document '{documentName}' to workspace '{slug}'");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Successfully uploaded document '{documentName}' to workspace '{workspaceSlug}'");
                 return true;
             }
             catch (Exception ex)
@@ -1572,6 +1642,12 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
         {
             try
             {
+                var resolvedWorkspaceSlug = await ResolveWorkspaceSlugAsync(workspaceSlug, cancellationToken);
+                if (!string.Equals(resolvedWorkspaceSlug, workspaceSlug, StringComparison.OrdinalIgnoreCase))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Resolved workspace identifier '{workspaceSlug}' to slug '{resolvedWorkspaceSlug}' for embedding update");
+                }
+
                 var payload = new
                 {
                     adds = new[] { documentLocation },
@@ -1596,21 +1672,21 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                 embeddingHttpClient.DefaultRequestHeaders.Add("Accept", "application/json");
                 
                 // Start embedding operation and progress monitoring concurrently
-                var embeddingTask = embeddingHttpClient.PostAsync($"{_baseUrl}/api/v1/workspace/{workspaceSlug}/update-embeddings", httpContent, cancellationToken);
-                var progressTask = MonitorEmbeddingProgressAsync(workspaceSlug, cancellationToken);
+                var embeddingTask = embeddingHttpClient.PostAsync($"{_baseUrl}/api/v1/workspace/{resolvedWorkspaceSlug}/update-embeddings", httpContent, cancellationToken);
+                var progressTask = MonitorEmbeddingProgressAsync(resolvedWorkspaceSlug, cancellationToken);
                 
                 // Wait for embedding to complete
                 var response = await embeddingTask;
                 
                 if (response.IsSuccessStatusCode)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Document embedding completed successfully for workspace: {workspaceSlug}");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ✅ Document embedding completed successfully for workspace: {resolvedWorkspaceSlug}");
                     StatusUpdated?.Invoke("✅ Document embedding completed successfully!");
                     return true;
                 }
                 
                 var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Failed to add document to workspace embeddings: {response.StatusCode} - {errorContent}");
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Failed to add document to workspace embeddings ({resolvedWorkspaceSlug}): {response.StatusCode} - {errorContent}");
                 
                 // Detect context length limitations for better error messaging
                 if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
@@ -2412,20 +2488,26 @@ Your task: Extract technical requirements from the provided document content wit
         {
             try
             {
+                var resolvedWorkspaceSlug = await ResolveWorkspaceSlugAsync(workspaceSlug, cancellationToken);
+                if (!string.Equals(resolvedWorkspaceSlug, workspaceSlug, StringComparison.OrdinalIgnoreCase))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Resolved workspace identifier '{workspaceSlug}' to slug '{resolvedWorkspaceSlug}' for document lookup");
+                }
+
                 bool usedWorkspaceFallback = false;
 
                 // Try the documents-specific endpoint first
-                var response = await _httpClient.GetAsync($"{_baseUrl}/api/v1/workspace/{workspaceSlug}/documents", cancellationToken);
+                var response = await _httpClient.GetAsync($"{_baseUrl}/api/v1/workspace/{resolvedWorkspaceSlug}/documents", cancellationToken);
                 if (!response.IsSuccessStatusCode)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Documents endpoint failed for '{workspaceSlug}': {response.StatusCode}, trying workspace endpoint");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Documents endpoint failed for '{resolvedWorkspaceSlug}': {response.StatusCode}, trying workspace endpoint");
                     usedWorkspaceFallback = true;
                     
                     // Fallback to original workspace endpoint
-                    response = await _httpClient.GetAsync($"{_baseUrl}/api/v1/workspace/{workspaceSlug}", cancellationToken);
+                    response = await _httpClient.GetAsync($"{_baseUrl}/api/v1/workspace/{resolvedWorkspaceSlug}", cancellationToken);
                     if (!response.IsSuccessStatusCode)
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Could not get workspace documents for '{workspaceSlug}': {response.StatusCode}");
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Could not get workspace documents for '{resolvedWorkspaceSlug}': {response.StatusCode}");
                         return null;
                     }
                 }
@@ -2471,7 +2553,7 @@ Your task: Extract technical requirements from the provided document content wit
                 if (documentsElement.HasValue && documentsElement.Value.ValueKind == JsonValueKind.Array)
                 {
                     _workspaceDocumentsListingSupported = true;
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Found {documentsElement.Value.GetArrayLength()} documents in workspace '{workspaceSlug}'");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Found {documentsElement.Value.GetArrayLength()} documents in workspace '{resolvedWorkspaceSlug}'");
                     return documentsElement;
                 }
 
@@ -2481,7 +2563,7 @@ Your task: Extract technical requirements from the provided document content wit
                     TestCaseEditorApp.Services.Logging.Log.Warn("[AnythingLLM] Workspace document listing appears unsupported on this API variant; using soft-success behavior");
                 }
                 
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] No documents array found in workspace '{workspaceSlug}' response");
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] No documents array found in workspace '{resolvedWorkspaceSlug}' response");
                 return null;
             }
             catch (Exception ex)
