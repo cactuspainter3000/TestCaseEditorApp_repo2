@@ -16,6 +16,7 @@ namespace TestCaseEditorApp.Services
     /// </summary>
     public sealed class OllamaEmbeddingService : IOllamaEmbeddingService
     {
+        private const string OllamaBaseUrl = "http://localhost:11434/";
         private readonly HttpClient _http;
         private readonly string _embeddingModel;
         private readonly int _embeddingDimensions;
@@ -24,9 +25,13 @@ namespace TestCaseEditorApp.Services
 
         public OllamaEmbeddingService(string embeddingModel = "mxbai-embed-large", HttpClient? http = null)
         {
-            _http = http ?? new HttpClient { BaseAddress = new Uri("http://localhost:11434/") };
+            var ownsHttpClient = http == null;
+            _http = http ?? new HttpClient { BaseAddress = new Uri(OllamaBaseUrl) };
             _embeddingModel = embeddingModel;
-            _http.Timeout = TimeSpan.FromMinutes(2);
+            if (ownsHttpClient)
+            {
+                _http.Timeout = TimeSpan.FromMinutes(2);
+            }
 
             // Set embedding dimensions based on known models
             _embeddingDimensions = embeddingModel switch
@@ -70,7 +75,7 @@ namespace TestCaseEditorApp.Services
 
             try
             {
-                using var response = await _http.PostAsync("api/embed",
+                using var response = await _http.PostAsync($"{OllamaBaseUrl}api/embed",
                     new StringContent(json, Encoding.UTF8, "application/json"), cancellationToken);
 
                 if (!response.IsSuccessStatusCode)

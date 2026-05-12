@@ -9,14 +9,19 @@ using TestCaseEditorApp.Services.Prompts;
 
 public sealed class OllamaTextGenerationService : ITextGenerationService
 {
+    private const string OllamaBaseUrl = "http://localhost:11434/";
     private readonly HttpClient _http;
     private readonly string _model;
 
     public OllamaTextGenerationService(string model = "llama3.1", HttpClient? http = null)
     {
-        _http = http ?? new HttpClient { BaseAddress = new System.Uri("http://localhost:11434/") };
+        var ownsHttpClient = http == null;
+        _http = http ?? new HttpClient { BaseAddress = new System.Uri(OllamaBaseUrl) };
         _model = model;
-        _http.Timeout = System.TimeSpan.FromMinutes(15); // Increased timeout for large document processing
+        if (ownsHttpClient)
+        {
+            _http.Timeout = System.TimeSpan.FromMinutes(15); // Increased timeout for large document processing
+        }
         
         // Log which model is configured
         TestCaseEditorApp.Services.Logging.Log.Info($"[OllamaTextGen] Initialized with model: {_model}");
@@ -34,7 +39,7 @@ public sealed class OllamaTextGenerationService : ITextGenerationService
         };
 
         var json = JsonSerializer.Serialize(payload);
-        using var resp = await _http.PostAsync("api/chat",
+        using var resp = await _http.PostAsync($"{OllamaBaseUrl}api/chat",
             new StringContent(json, Encoding.UTF8, "application/json"), ct);
         
         TestCaseEditorApp.Services.Logging.Log.Info($"[OllamaTextGen] Received response: HTTP {(int)resp.StatusCode}");
@@ -90,7 +95,7 @@ public sealed class OllamaTextGenerationService : ITextGenerationService
         };
 
         var json = JsonSerializer.Serialize(payload);
-        using var resp = await _http.PostAsync("api/chat",
+        using var resp = await _http.PostAsync($"{OllamaBaseUrl}api/chat",
             new StringContent(json, Encoding.UTF8, "application/json"), ct);
         
         // Capture error details from Ollama before throwing

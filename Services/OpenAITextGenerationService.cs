@@ -16,13 +16,16 @@ public sealed class OpenAITextGenerationService : ITextGenerationService
 
     public OpenAITextGenerationService(HttpClient? http = null, string? model = null)
     {
+        var ownsHttpClient = http == null;
         _http = http ?? new HttpClient();
         _model = string.IsNullOrWhiteSpace(model) ? "gpt-4o-mini" : model; // pick your default
         var key = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
         if (string.IsNullOrWhiteSpace(key)) throw new InvalidOperationException("OPENAI_API_KEY not set.");
         _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", key);
-        _http.Timeout = TimeSpan.FromSeconds(45);
-        _http.BaseAddress = new Uri("https://api.openai.com/"); // change if using Azure/OpenRouter/etc.
+        if (ownsHttpClient)
+        {
+            _http.Timeout = TimeSpan.FromSeconds(45);
+        }
     }
 
     public async Task<string> GenerateAsync(string prompt, CancellationToken ct = default)
@@ -34,7 +37,7 @@ public sealed class OpenAITextGenerationService : ITextGenerationService
             temperature = 0.2
         };
         var json = JsonSerializer.Serialize(payload);
-        using var resp = await _http.PostAsync("v1/chat/completions",
+        using var resp = await _http.PostAsync("https://api.openai.com/v1/chat/completions",
             new StringContent(json, Encoding.UTF8, "application/json"), ct);
         resp.EnsureSuccessStatusCode();
         using var s = await resp.Content.ReadAsStreamAsync(ct);
@@ -57,7 +60,7 @@ public sealed class OpenAITextGenerationService : ITextGenerationService
             temperature = 0.2
         };
         var json = JsonSerializer.Serialize(payload);
-        using var resp = await _http.PostAsync("v1/chat/completions",
+        using var resp = await _http.PostAsync("https://api.openai.com/v1/chat/completions",
             new StringContent(json, Encoding.UTF8, "application/json"), ct);
         resp.EnsureSuccessStatusCode();
         using var s = await resp.Content.ReadAsStreamAsync(ct);

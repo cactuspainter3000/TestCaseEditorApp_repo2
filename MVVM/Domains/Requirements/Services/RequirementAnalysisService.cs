@@ -319,11 +319,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
             }
             catch (JsonException ex)
             {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[RequirementAnalysisService] STREAMING JSON PARSE ERROR for requirement {requirement.Item}");
                 onProgressUpdate?.Invoke("Error parsing analysis results");
                 return CreateErrorAnalysis($"Failed to parse LLM response as JSON: {ex.Message}");
             }
             catch (Exception ex)
             {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[RequirementAnalysisService] STREAMING GENERAL ERROR for requirement {requirement.Item}");
                 onProgressUpdate?.Invoke($"Analysis failed: {ex.Message}");
                 return CreateErrorAnalysis($"Analysis failed: {ex.Message}");
             }
