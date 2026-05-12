@@ -1,6 +1,4 @@
 using System;
-using System.IO;
-using System.Linq;
 using Microsoft.Extensions.Logging;
 
 // =====================================================================
@@ -172,71 +170,24 @@ namespace TestCaseEditorApp.Services.Logging
         /// </summary>
         public static void WriteRequirementsAnalysisLogSnapshot()
         {
+            WriteRequirementsAnalysisLogSnapshot(maxTraceWindows: 1, snapshotFileName: "app-logs.txt");
+        }
+
+        /// <summary>
+        /// Writes a filtered requirements analysis snapshot with configurable run window depth and output file name.
+        /// </summary>
+        public static void WriteRequirementsAnalysisLogSnapshot(int maxTraceWindows, string snapshotFileName = "app-logs.txt")
+        {
             try
             {
-                var logDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "TestCaseEditorApp", "logs");
-                var snapshotPath = Path.Combine(logDir, "app-logs.txt");
+                var writer = new RequirementsAnalysisSnapshotWriter(
+                    new RequirementsAnalysisSnapshotOptions
+                    {
+                        MaxTraceWindows = maxTraceWindows,
+                        SnapshotFileName = snapshotFileName
+                    });
 
-                if (!Directory.Exists(logDir))
-                    return;
-
-                var logFile = new DirectoryInfo(logDir)
-                    .GetFiles("*.log", SearchOption.TopDirectoryOnly)
-                    .OrderByDescending(f => f.LastWriteTimeUtc)
-                    .FirstOrDefault();
-
-                if (logFile == null || !logFile.Exists)
-                    return;
-
-                var analysisTags = new[]
-                {
-                    "[ANALYSIS_TRACE]",
-                    "[RequirementAnalysisVM]",
-                    "[RequirementsMediator]",
-                    "[ParserManager]",
-                    "[JsonParser]",
-                    "[DelimitedParser]",
-                    "[RequirementAnalysisService]",
-                    "[AnalysisEngine]",
-                    "[RAG RESPONSE DEBUG]",
-                    "[RAG]",
-                    "[PARSER_CANPARSE_CHECK]",
-                    "[PARSER_RESPONSE_PREVIEW]",
-                    "[RequirementAnalysis]"
-                };
-
-                var allLines = File.ReadLines(logFile.FullName).ToList();
-
-                // Focus on the latest trace window when available.
-                var lastTraceStartIndex = allLines.FindLastIndex(line => line.Contains("[ANALYSIS_TRACE] START"));
-                var candidateLines = lastTraceStartIndex >= 0
-                    ? allLines.Skip(lastTraceStartIndex)
-                    : allLines.TakeLast(2000);
-
-                var filteredLines = candidateLines
-                    .Where(line => analysisTags.Any(tag => line.Contains(tag)))
-                    .ToList();
-
-                var outputLines = new List<string>
-                {
-                    $"# SnapshotGeneratedUtc={DateTime.UtcNow:O}",
-                    $"# SourceLog={logFile.FullName}",
-                    $"# SourceLastWriteUtc={logFile.LastWriteTimeUtc:O}",
-                    $"# TotalSourceLines={allLines.Count}",
-                    $"# FilteredLines={filteredLines.Count}"
-                };
-
-                if (lastTraceStartIndex >= 0)
-                {
-                    outputLines.Add($"# TraceWindowStartLine={lastTraceStartIndex + 1}");
-                }
-                else
-                {
-                    outputLines.Add("# TraceWindowStartLine=NOT_FOUND ([ANALYSIS_TRACE] START not found)");
-                }
-
-                outputLines.AddRange(filteredLines);
-                File.WriteAllLines(snapshotPath, outputLines);
+                writer.WriteSnapshot();
             }
             catch (Exception ex)
             {
