@@ -167,19 +167,28 @@ namespace TestCaseEditorApp.Services.Logging
 
         /// <summary>
         /// Writes a filtered log snapshot containing only requirements analysis events to app-logs.txt for diagnostics sharing.
+        /// Only executes if EnableRequirementsAnalysisSnapshot setting is true.
         /// </summary>
-        public static void WriteRequirementsAnalysisLogSnapshot()
+        public static void WriteRequirementsAnalysisLogSnapshot(AnalysisSnapshotContext? context = null)
         {
-            WriteRequirementsAnalysisLogSnapshot(maxTraceWindows: 1, snapshotFileName: "app-logs.txt");
+            WriteRequirementsAnalysisLogSnapshot(maxTraceWindows: 1, snapshotFileName: "app-logs.txt", context: context);
         }
 
         /// <summary>
         /// Writes a filtered requirements analysis snapshot with configurable run window depth and output file name.
+        /// Only executes if EnableRequirementsAnalysisSnapshot setting is true.
         /// </summary>
-        public static void WriteRequirementsAnalysisLogSnapshot(int maxTraceWindows, string snapshotFileName = "app-logs.txt")
+        public static void WriteRequirementsAnalysisLogSnapshot(int maxTraceWindows, string snapshotFileName = "app-logs.txt", AnalysisSnapshotContext? context = null)
         {
             try
             {
+                // Check if snapshot logging is enabled
+                var settings = TryGetUserSettings();
+                if (settings?.EnableRequirementsAnalysisSnapshot != true)
+                {
+                    return; // Silently skip if disabled
+                }
+
                 var writer = new RequirementsAnalysisSnapshotWriter(
                     new RequirementsAnalysisSnapshotOptions
                     {
@@ -187,11 +196,29 @@ namespace TestCaseEditorApp.Services.Logging
                         SnapshotFileName = snapshotFileName
                     });
 
-                writer.WriteSnapshot();
+                writer.WriteSnapshot(context);
             }
             catch (Exception ex)
             {
                 try { System.Diagnostics.Debug.WriteLine($"[Log] Failed to write requirements analysis log snapshot: {ex.Message}"); } catch { }
+            }
+        }
+
+        /// <summary>
+        /// Attempts to retrieve the current user settings from the service provider.
+        /// </summary>
+        private static AppUserSettings? TryGetUserSettings()
+        {
+            try
+            {
+                var sp = TestCaseEditorApp.App.ServiceProvider;
+                if (sp == null) return null;
+                var service = sp.GetService(typeof(IUserSettingsService)) as IUserSettingsService;
+                return service?.LoadSettings();
+            }
+            catch
+            {
+                return null;
             }
         }
     }

@@ -14,6 +14,13 @@ namespace TestCaseEditorApp.Services
         public string OllamaChatModel { get; set; } = "phi4-mini";
         public string OllamaEmbeddingModel { get; set; } = "nomic-embed-text";
 
+        /// <summary>
+        /// Enable requirements analysis snapshot logging for diagnostics.
+        /// When true, all snapshot capture calls will execute; when false, they are skipped.
+        /// Default is false for production; set to true during development/debugging.
+        /// </summary>
+        public bool EnableRequirementsAnalysisSnapshot { get; set; } = false;
+
         public bool HasRequiredConfiguration()
         {
             return !string.IsNullOrWhiteSpace(JamaBaseUrl)

@@ -38,7 +38,7 @@ namespace TestCaseEditorApp.Services.Logging
             _options = options ?? new RequirementsAnalysisSnapshotOptions();
         }
 
-        public void WriteSnapshot()
+        public void WriteSnapshot(AnalysisSnapshotContext? context = null)
         {
             var logDir = _options.LogDirectoryPath;
             if (!Directory.Exists(logDir))
@@ -73,6 +73,24 @@ namespace TestCaseEditorApp.Services.Logging
                 $"# FilteredLines={filteredLines.Count}",
                 $"# MaxTraceWindows={Math.Max(1, _options.MaxTraceWindows)}"
             };
+
+            // Add context information if provided
+            if (context != null)
+            {
+                outputLines.Add($"# Context.CreatedUtc={context.CreatedUtc:O}");
+                if (!string.IsNullOrEmpty(context.MethodName))
+                    outputLines.Add($"# Context.MethodName={context.MethodName}");
+                if (!string.IsNullOrEmpty(context.TriggeredBy))
+                    outputLines.Add($"# Context.TriggeredBy={context.TriggeredBy}");
+                if (context.RetryAttempt.HasValue)
+                    outputLines.Add($"# Context.RetryAttempt={context.RetryAttempt}");
+                if (context.ElapsedMilliseconds.HasValue)
+                    outputLines.Add($"# Context.ElapsedMilliseconds={context.ElapsedMilliseconds}");
+                if (!string.IsNullOrEmpty(context.RequirementId))
+                    outputLines.Add($"# Context.RequirementId={context.RequirementId}");
+                if (!string.IsNullOrEmpty(context.Comments))
+                    outputLines.Add($"# Context.Comments={context.Comments}");
+            }
 
             if (windowStartIndex >= 0)
             {

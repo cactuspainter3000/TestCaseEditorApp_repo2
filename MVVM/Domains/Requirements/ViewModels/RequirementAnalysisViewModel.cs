@@ -795,7 +795,21 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             try
             {
-                TestCaseEditorApp.Services.Logging.Log.WriteRequirementsAnalysisLogSnapshot();
+                // Build context with timing and requirement information
+                var elapsedMs = _analysisStartTime != default
+                    ? (long)(DateTime.Now - _analysisStartTime).TotalMilliseconds
+                    : (long?)null;
+
+                var context = new TestCaseEditorApp.Services.Logging.AnalysisSnapshotContext
+                {
+                    MethodName = nameof(AnalyzeRequirementAsync),
+                    TriggeredBy = "UserButton",
+                    ElapsedMilliseconds = elapsedMs,
+                    RequirementId = CurrentRequirement?.GlobalId,
+                    Comments = $"Score={QualityScore}, Issues={Issues?.Count ?? 0}, Recommendations={Recommendations?.Count ?? 0}"
+                };
+
+                TestCaseEditorApp.Services.Logging.Log.WriteRequirementsAnalysisLogSnapshot(context: context);
                 var snapshotPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "TestCaseEditorApp", "logs", "app-logs.txt");
                 _logger.LogInformation("[RequirementAnalysisVM] Wrote requirements analysis log snapshot to {Path}", snapshotPath);
             }
