@@ -198,6 +198,9 @@ namespace TestCaseEditorApp.Services.Logging
                     "[RequirementAnalysisService]",
                     "[AnalysisEngine]",
                     "[RAG RESPONSE DEBUG]",
+                    "[RAG]",
+                    "[PARSER_CANPARSE_CHECK]",
+                    "[PARSER_RESPONSE_PREVIEW]",
                     "[RequirementAnalysis]"
                 };
 

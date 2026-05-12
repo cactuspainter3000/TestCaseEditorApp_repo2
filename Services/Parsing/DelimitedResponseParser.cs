@@ -23,7 +23,10 @@ namespace TestCaseEditorApp.Services.Parsing
             bool isDelimited = trimmed.StartsWith("---") && 
                               (trimmed.Contains("ID:") || trimmed.Contains("Text:"));
             
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[{ParserName}Parser] CanParse result: {isDelimited}, starts with '---': {trimmed.StartsWith("---")}, contains fields: {trimmed.Contains("ID:") || trimmed.Contains("Text:")}");
+            // Log with distinctive tag for snapshot filtering
+            var preview = trimmed.Substring(0, Math.Min(150, trimmed.Length)).Replace("\n", " ").Replace("\r", " ");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[PARSER_CANPARSE_CHECK] DelimitedParser checking response, length={response.Length}, starts_with_---={trimmed.StartsWith("---")}, has_fields={trimmed.Contains("ID:") || trimmed.Contains("Text:")}, result={isDelimited}");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[PARSER_RESPONSE_PREVIEW] First 150 chars: {preview}");
             
             return isDelimited;
         }
