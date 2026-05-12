@@ -175,10 +175,17 @@ namespace TestCaseEditorApp.Services.Logging
             try
             {
                 var logDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "TestCaseEditorApp", "logs");
-                var mainLogPath = Path.Combine(logDir, "app.log");
                 var snapshotPath = Path.Combine(Directory.GetCurrentDirectory(), "app-logs.txt");
 
-                if (!File.Exists(mainLogPath))
+                if (!Directory.Exists(logDir))
+                    return;
+
+                var logFile = new DirectoryInfo(logDir)
+                    .GetFiles("*.log", SearchOption.TopDirectoryOnly)
+                    .OrderByDescending(f => f.LastWriteTimeUtc)
+                    .FirstOrDefault();
+
+                if (logFile == null || !logFile.Exists)
                     return;
 
                 var analysisTags = new[]
@@ -194,7 +201,7 @@ namespace TestCaseEditorApp.Services.Logging
                     "[RequirementAnalysis]"
                 };
 
-                var allLines = File.ReadLines(mainLogPath).ToList();
+                var allLines = File.ReadLines(logFile.FullName).ToList();
 
                 // Focus on the latest trace window when available.
                 var lastTraceStartIndex = allLines.FindLastIndex(line => line.Contains("[ANALYSIS_TRACE] START"));
@@ -206,7 +213,26 @@ namespace TestCaseEditorApp.Services.Logging
                     .Where(line => analysisTags.Any(tag => line.Contains(tag)))
                     .ToList();
 
-                File.WriteAllLines(snapshotPath, filteredLines);
+                var outputLines = new List<string>
+                {
+                    $"# SnapshotGeneratedUtc={DateTime.UtcNow:O}",
+                    $"# SourceLog={logFile.FullName}",
+                    $"# SourceLastWriteUtc={logFile.LastWriteTimeUtc:O}",
+                    $"# TotalSourceLines={allLines.Count}",
+                    $"# FilteredLines={filteredLines.Count}"
+                };
+
+                if (lastTraceStartIndex >= 0)
+                {
+                    outputLines.Add($"# TraceWindowStartLine={lastTraceStartIndex + 1}");
+                }
+                else
+                {
+                    outputLines.Add("# TraceWindowStartLine=NOT_FOUND ([ANALYSIS_TRACE] START not found)");
+                }
+
+                outputLines.AddRange(filteredLines);
+                File.WriteAllLines(snapshotPath, outputLines);
             }
             catch (Exception ex)
             {
