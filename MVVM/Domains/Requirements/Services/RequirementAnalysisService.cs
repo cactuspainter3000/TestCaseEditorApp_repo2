@@ -276,6 +276,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                     return CreateErrorAnalysis("Failed to parse LLM response");
                 }
 
+                // Treat any successfully parsed analysis as analyzed.
+                // Some parser paths may omit this flag, which causes UI state to reset.
+                analysis.IsAnalyzed = true;
+
                 // Set timestamp and cache if enabled
                 analysis.Timestamp = DateTime.Now;
                 // analysis.AnalysisDuration = DateTime.UtcNow - analysisStartTime; // Property doesn't exist yet
@@ -375,6 +379,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                     
                     if (ragAnalysis != null)
                     {
+                        ragAnalysis.IsAnalyzed = true;
                         ragAnalysis.Timestamp = DateTime.Now;
                         
                         // Validate that recommendations have required fields  
@@ -462,6 +467,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                 {
                     return CreateErrorAnalysis("Failed to parse LLM response");
                 }
+
+                // Treat any successfully parsed analysis as analyzed.
+                // Some parser paths may omit this flag, which causes UI state to reset.
+                analysis.IsAnalyzed = true;
 
                 // Check for self-reported fabrication
                 if (!string.IsNullOrEmpty(analysis.HallucinationCheck) && 

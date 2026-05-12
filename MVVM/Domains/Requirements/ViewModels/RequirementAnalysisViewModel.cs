@@ -433,12 +433,20 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private void RefreshAnalysisDisplay()
         {
             var analysis = CurrentRequirement?.Analysis;
+            var hasDisplayableAnalysis = analysis != null &&
+                                         (analysis.IsAnalyzed ||
+                                          analysis.OriginalQualityScore > 0 ||
+                                          (analysis.Issues?.Count ?? 0) > 0 ||
+                                          (analysis.Recommendations?.Count ?? 0) > 0 ||
+                                          !string.IsNullOrWhiteSpace(analysis.FreeformFeedback) ||
+                                          !string.IsNullOrWhiteSpace(analysis.ImprovedRequirement));
 
-            _logger.LogDebug("[RequirementAnalysisVM] RefreshAnalysisDisplay for {RequirementId}: IsAnalyzed={IsAnalyzed}", 
+            _logger.LogDebug("[RequirementAnalysisVM] RefreshAnalysisDisplay for {RequirementId}: IsAnalyzed={IsAnalyzed}, HasDisplayableAnalysis={HasDisplayableAnalysis}", 
                 CurrentRequirement?.Item ?? "null", 
-                analysis?.IsAnalyzed ?? false);
+                analysis?.IsAnalyzed ?? false,
+                hasDisplayableAnalysis);
 
-            if (analysis?.IsAnalyzed == true)
+            if (hasDisplayableAnalysis)
             {
                 UpdateUIFromAnalysis(analysis);
             }
