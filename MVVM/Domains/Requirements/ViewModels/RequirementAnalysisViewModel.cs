@@ -303,10 +303,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private async Task AnalyzeRequirementAsync()
         {
             _logger.LogInformation("[RequirementAnalysisVM] AnalyzeRequirementAsync called. CurrentRequirement={HasRequirement}", CurrentRequirement != null);
+            var analysisAttemptId = Guid.NewGuid().ToString("N")[..8];
             
             if (CurrentRequirement == null) 
             {
                 SafeLogWarning("[RequirementAnalysisVM] Cannot analyze: no requirement selected");
+                _logger.LogWarning("[ANALYSIS_TRACE] ABORT Attempt={AttemptId} Reason=NoCurrentRequirement", analysisAttemptId);
                 AnalysisStatusMessage = "Please select a requirement from the list to analyze";
                 return;
             }
@@ -314,6 +316,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             if (_mediator == null)
             {
                 SafeLogError("[RequirementAnalysisVM] Cannot analyze: mediator is null");
+                _logger.LogError("[ANALYSIS_TRACE] ABORT Attempt={AttemptId} Requirement={RequirementId} Reason=MediatorNull",
+                    analysisAttemptId, CurrentRequirement.GlobalId ?? "null");
                 AnalysisStatusMessage = "Analysis service unavailable";
                 return;
             }
@@ -326,6 +330,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 // Set analysis status message for UI feedback
                 AnalysisStatusMessage = "Starting analysis...";
+                _logger.LogInformation("[ANALYSIS_TRACE] START Attempt={AttemptId} Requirement={RequirementId} Item={Item}",
+                    analysisAttemptId,
+                    CurrentRequirement.GlobalId ?? "null",
+                    CurrentRequirement.Item ?? "null");
                 
                 // Track which requirement is being analyzed
                 _analyzingRequirementId = CurrentRequirement.GlobalId;
@@ -340,18 +348,32 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     // Ensure the UI updates even if event sequencing is delayed/missed.
                     RefreshAnalysisDisplay();
                     AnalysisStatusMessage = string.Empty;
+                    _logger.LogInformation("[ANALYSIS_TRACE] SUCCESS Attempt={AttemptId} Requirement={RequirementId} HasAnalysis={HasAnalysis} Score={Score} Issues={IssueCount} Recs={RecCount}",
+                        analysisAttemptId,
+                        CurrentRequirement.GlobalId ?? "null",
+                        HasAnalysis,
+                        QualityScore,
+                        Issues?.Count ?? 0,
+                        Recommendations?.Count ?? 0);
                 }
                 else
                 {
                     // Mediator can return false without throwing, so surface failure explicitly.
                     AnalysisStatusMessage = CurrentRequirement?.Analysis?.ErrorMessage ?? "Analysis failed";
                     HasAnalysis = false;
+                    _logger.LogWarning("[ANALYSIS_TRACE] FAIL Attempt={AttemptId} Requirement={RequirementId} Error={Error}",
+                        analysisAttemptId,
+                        CurrentRequirement?.GlobalId ?? "null",
+                        AnalysisStatusMessage);
                 }
             }
             catch (Exception ex)
             {
                 SafeLogError(ex, "[RequirementAnalysisVM] Error during mediator analysis");
                 AnalysisStatusMessage = "Analysis failed due to unexpected error";
+                _logger.LogError(ex, "[ANALYSIS_TRACE] EXCEPTION Attempt={AttemptId} Requirement={RequirementId}",
+                    analysisAttemptId,
+                    CurrentRequirement?.GlobalId ?? "null");
             }
             finally
             {
@@ -365,6 +387,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
                 if (analysisWasStarted)
                 {
+                    _logger.LogInformation("[ANALYSIS_TRACE] END Attempt={AttemptId} Requirement={RequirementId} HasAnalysis={HasAnalysis} StatusMessage={StatusMessage}",
+                        analysisAttemptId,
+                        CurrentRequirement?.GlobalId ?? "null",
+                        HasAnalysis,
+                        AnalysisStatusMessage ?? string.Empty);
                     WriteAnalysisLogSnapshot();
                 }
             }

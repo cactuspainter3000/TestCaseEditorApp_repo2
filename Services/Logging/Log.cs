@@ -183,13 +183,26 @@ namespace TestCaseEditorApp.Services.Logging
 
                 var analysisTags = new[]
                 {
+                    "[ANALYSIS_TRACE]",
+                    "[RequirementAnalysisVM]",
+                    "[RequirementsMediator]",
+                    "[ParserManager]",
+                    "[DelimitedParser]",
                     "[RequirementAnalysisService]",
                     "[AnalysisEngine]",
                     "[RAG RESPONSE DEBUG]",
                     "[RequirementAnalysis]"
                 };
 
-                var filteredLines = File.ReadLines(mainLogPath)
+                var allLines = File.ReadLines(mainLogPath).ToList();
+
+                // Focus on the latest trace window when available.
+                var lastTraceStartIndex = allLines.FindLastIndex(line => line.Contains("[ANALYSIS_TRACE] START"));
+                var candidateLines = lastTraceStartIndex >= 0
+                    ? allLines.Skip(lastTraceStartIndex)
+                    : allLines.TakeLast(2000);
+
+                var filteredLines = candidateLines
                     .Where(line => analysisTags.Any(tag => line.Contains(tag)))
                     .ToList();
 

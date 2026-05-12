@@ -520,6 +520,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         public async Task<bool> AnalyzeRequirementAsync(Requirement requirement)
         {
             if (requirement == null) throw new ArgumentNullException(nameof(requirement));
+            var analysisAttemptId = Guid.NewGuid().ToString("N")[..8];
+
+            _logger.LogInformation("[ANALYSIS_TRACE] MEDIATOR_START Attempt={AttemptId} Requirement={RequirementId} Item={Item}",
+                analysisAttemptId,
+                requirement.GlobalId ?? "null",
+                requirement.Item ?? "null");
 
             IsAnalyzing = true;
             ShowProgress($"Analyzing requirement {requirement.GlobalId}...", 0);
@@ -556,6 +562,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 analysis.AnalysisDurationSeconds = duration.TotalSeconds;
 
                 requirement.Analysis = analysis;
+                _logger.LogInformation("[ANALYSIS_TRACE] MEDIATOR_ANALYSIS_READY Attempt={AttemptId} Requirement={RequirementId} IsAnalyzed={IsAnalyzed} Score={Score} Issues={IssueCount} Recs={RecCount}",
+                    analysisAttemptId,
+                    requirement.GlobalId ?? "null",
+                    analysis?.IsAnalyzed ?? false,
+                    analysis?.OriginalQualityScore ?? 0,
+                    analysis?.Issues?.Count ?? 0,
+                    analysis?.Recommendations?.Count ?? 0);
 
                 PublishEvent(new RequirementsEvents.RequirementAnalyzed
                 {
@@ -581,6 +594,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 PublishRequirementsProgressNotification();
 
                 _logger.LogInformation("Requirement analysis completed for {RequirementId}", requirement.GlobalId);
+                _logger.LogInformation("[ANALYSIS_TRACE] MEDIATOR_SUCCESS Attempt={AttemptId} Requirement={RequirementId}",
+                    analysisAttemptId,
+                    requirement.GlobalId ?? "null");
                 
                 // Auto-save after successful analysis
                 try
@@ -600,6 +616,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             {
                 HideProgress();
                 ShowNotification($"Analysis failed: {ex.Message}", DomainNotificationType.Error);
+                _logger.LogError(ex, "[ANALYSIS_TRACE] MEDIATOR_FAIL Attempt={AttemptId} Requirement={RequirementId}",
+                    analysisAttemptId,
+                    requirement.GlobalId ?? "null");
 
                 PublishEvent(new RequirementsEvents.RequirementAnalyzed
                 {
@@ -616,6 +635,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             finally
             {
                 IsAnalyzing = false;
+                _logger.LogInformation("[ANALYSIS_TRACE] MEDIATOR_END Attempt={AttemptId} Requirement={RequirementId} IsAnalyzing={IsAnalyzing}",
+                    analysisAttemptId,
+                    requirement.GlobalId ?? "null",
+                    IsAnalyzing);
             }
         }
 
