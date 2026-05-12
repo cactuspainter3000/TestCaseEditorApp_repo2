@@ -239,6 +239,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         // Commands
         public ICommand AnalyzeRequirementCommand { get; }
+        public ICommand AnalyzeNowCommand { get; }
         public ICommand CancelAnalysisCommand { get; }
         public ICommand RefreshEngineStatusCommand { get; }
         public ICommand EditRequirementCommand { get; }
@@ -260,6 +261,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
             // Initialize commands
             AnalyzeRequirementCommand = new AsyncRelayCommand(AnalyzeRequirementAsync, CanAnalyzeRequirement);
+            AnalyzeNowCommand = AnalyzeRequirementCommand;
             CancelAnalysisCommand = new RelayCommand(CancelAnalysis, () => IsAnalyzing);
             RefreshEngineStatusCommand = new RelayCommand(RefreshEngineStatus);
             EditRequirementCommand = new RelayCommand(StartEditingRequirement, CanEditRequirement);
@@ -317,6 +319,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
 
             _logger.LogDebug("[RequirementAnalysisVM] Starting analysis for {RequirementId} via mediator", CurrentRequirement.Item);
+            var analysisWasStarted = false;
 
             try
             {
@@ -325,6 +328,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 
                 // Track which requirement is being analyzed
                 _analyzingRequirementId = CurrentRequirement.GlobalId;
+                analysisWasStarted = true;
                 _logger.LogInformation("[RequirementAnalysisVM] Set analyzing requirement ID to: {AnalyzingReqId}", _analyzingRequirementId);
 
                 // Use the mediator pattern - this will trigger the analysis and manage IsAnalyzing state
@@ -347,6 +351,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 // Refresh UI to reflect final analysis state
                 OnPropertyChanged(nameof(IsAnalyzing));
                 OnPropertyChanged(nameof(HasNoAnalysis));
+
+                if (analysisWasStarted)
+                {
+                    WriteAnalysisLogSnapshot();
+                }
             }
         }
 
@@ -739,6 +748,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             catch (Exception ex)
             {
                 SafeLogError(ex, "[RequirementAnalysisVM] Failed to copy to clipboard");
+            }
+        }
+
+        private void WriteAnalysisLogSnapshot()
+        {
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.WriteRequirementsAnalysisLogSnapshot();
+                _logger.LogInformation("[RequirementAnalysisVM] Wrote requirements analysis log snapshot to app-logs.txt");
+            }
+            catch (Exception ex)
+            {
+                SafeLogError(ex, "[RequirementAnalysisVM] Failed to write requirements analysis log snapshot");
             }
         }
 

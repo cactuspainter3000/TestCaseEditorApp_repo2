@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Linq;
 using Microsoft.Extensions.Logging;
 
 // =====================================================================
@@ -163,6 +165,40 @@ namespace TestCaseEditorApp.Services.Logging
         public static void ValidationFailure(string context, string details)
         {
             Error($"🚨 VALIDATION FAILURE - {context}: {details}");
+        }
+
+        /// <summary>
+        /// Writes a filtered log snapshot containing only requirements analysis events to app-logs.txt for diagnostics sharing.
+        /// </summary>
+        public static void WriteRequirementsAnalysisLogSnapshot()
+        {
+            try
+            {
+                var logDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "TestCaseEditorApp", "logs");
+                var mainLogPath = Path.Combine(logDir, "app.log");
+                var snapshotPath = Path.Combine(Directory.GetCurrentDirectory(), "app-logs.txt");
+
+                if (!File.Exists(mainLogPath))
+                    return;
+
+                var analysisTags = new[]
+                {
+                    "[RequirementAnalysisService]",
+                    "[AnalysisEngine]",
+                    "[RAG RESPONSE DEBUG]",
+                    "[RequirementAnalysis]"
+                };
+
+                var filteredLines = File.ReadLines(mainLogPath)
+                    .Where(line => analysisTags.Any(tag => line.Contains(tag)))
+                    .ToList();
+
+                File.WriteAllLines(snapshotPath, filteredLines);
+            }
+            catch (Exception ex)
+            {
+                try { System.Diagnostics.Debug.WriteLine($"[Log] Failed to write requirements analysis log snapshot: {ex.Message}"); } catch { }
+            }
         }
     }
 }

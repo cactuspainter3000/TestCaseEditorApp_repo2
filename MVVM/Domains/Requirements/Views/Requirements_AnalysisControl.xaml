@@ -35,12 +35,12 @@
                 
                 <!-- Analyze Now Button -->
                 <Button Command="{Binding AnalyzeNowCommand}"
-                        Content="Analyze Now"
-                        HorizontalAlignment="Center"
-                        Padding="24,12"
-                        FontSize="14"
-                        FontWeight="SemiBold"
-                        Style="{StaticResource PillActionButtonStyle}"/>
+                    Content="Analyze Now"
+                    HorizontalAlignment="Center"
+                    Padding="24,12"
+                    FontSize="14"
+                    FontWeight="SemiBold"
+                    Style="{StaticResource PillActionButtonStyle}"/>
             </StackPanel>
         </Grid>
         
