@@ -2514,21 +2514,10 @@ Your task: Extract technical requirements from the provided document content wit
         /// </summary>
         public async Task<string?> SendChatMessageAsync(string workspaceSlug, string message, TimeSpan timeout, CancellationToken cancellationToken = default)
         {
-            var originalTimeout = _httpClient.Timeout;
-            try
-            {
-                // Temporarily set the custom timeout
-                _httpClient.Timeout = timeout;
-                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Using custom timeout: {timeout.TotalMinutes:F1} minutes for recovery operation");
-                
-                // Use the existing method with the custom timeout
-                return await SendChatMessageAsync(workspaceSlug, message, cancellationToken);
-            }
-            finally
-            {
-                // Always restore the original timeout
-                _httpClient.Timeout = originalTimeout;
-            }
+            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Using custom timeout: {timeout.TotalMinutes:F1} minutes for recovery operation");
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(timeout);
+            return await SendChatMessageAsync(workspaceSlug, message, cts.Token);
         }
 
         /// <summary>
