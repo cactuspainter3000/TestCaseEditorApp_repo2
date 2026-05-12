@@ -562,6 +562,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 analysis.AnalysisDurationSeconds = duration.TotalSeconds;
 
                 requirement.Analysis = analysis;
+                var analysisSucceeded = analysis?.IsAnalyzed == true;
+                var analysisErrorMessage = analysis?.ErrorMessage ?? "Analysis did not return a valid result.";
                 _logger.LogInformation("[ANALYSIS_TRACE] MEDIATOR_ANALYSIS_READY Attempt={AttemptId} Requirement={RequirementId} IsAnalyzed={IsAnalyzed} Score={Score} Issues={IssueCount} Recs={RecCount}",
                     analysisAttemptId,
                     requirement.GlobalId ?? "null",
@@ -574,8 +576,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 {
                     Requirement = requirement,
                     Analysis = analysis,
-                    Success = true,
-                    AnalysisTime = duration
+                    Success = analysisSucceeded,
+                    AnalysisTime = duration,
+                    ErrorMessage = analysisSucceeded ? null : analysisErrorMessage
                 });
 
                 // Publish RequirementUpdated to mark workspace dirty
@@ -588,15 +591,32 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
 
                 IsDirty = true;
                 HideProgress();
-                ShowNotification($"Analysis completed for {requirement.GlobalId}", DomainNotificationType.Success);
+                if (analysisSucceeded)
+                {
+                    ShowNotification($"Analysis completed for {requirement.GlobalId}", DomainNotificationType.Success);
+                }
+                else
+                {
+                    ShowNotification($"Analysis failed: {analysisErrorMessage}", DomainNotificationType.Error);
+                }
 
                 // Update requirements progress notification for header
                 PublishRequirementsProgressNotification();
 
                 _logger.LogInformation("Requirement analysis completed for {RequirementId}", requirement.GlobalId);
-                _logger.LogInformation("[ANALYSIS_TRACE] MEDIATOR_SUCCESS Attempt={AttemptId} Requirement={RequirementId}",
-                    analysisAttemptId,
-                    requirement.GlobalId ?? "null");
+                if (analysisSucceeded)
+                {
+                    _logger.LogInformation("[ANALYSIS_TRACE] MEDIATOR_SUCCESS Attempt={AttemptId} Requirement={RequirementId}",
+                        analysisAttemptId,
+                        requirement.GlobalId ?? "null");
+                }
+                else
+                {
+                    _logger.LogWarning("[ANALYSIS_TRACE] MEDIATOR_FAIL_RESULT Attempt={AttemptId} Requirement={RequirementId} Error={Error}",
+                        analysisAttemptId,
+                        requirement.GlobalId ?? "null",
+                        analysisErrorMessage);
+                }
                 
                 // Auto-save after successful analysis
                 try
@@ -610,7 +630,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     // Don't fail the analysis operation if save fails
                 }
                 
-                return true;
+                return analysisSucceeded;
             }
             catch (Exception ex)
             {
