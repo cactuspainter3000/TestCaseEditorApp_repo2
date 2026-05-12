@@ -1,0 +1,165 @@
+2026-05-12T16:58:32.4117071Z	Information	TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel	[LLMTestCaseGenerator] ?? SAVED TEST CASES DEBUG: Checking requirement COL02-REQ_RC-10696409: has 0 generated test cases
+2026-05-12T16:58:32.4138226Z	Information	TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel	[LLMTestCaseGenerator] ?? SAVED TEST CASES DEBUG: Requirement COL02-REQ_RC-10696409 has no generated test cases
+2026-05-12T16:58:32.4159100Z	Information	TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel	[LLMTestCaseGenerator] ?? SAVED TEST CASES DEBUG: Checking requirement COL02-REQ_RC-10696783: has 0 generated test cases
+2026-05-12T16:58:32.4185963Z	Information	TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel	[LLMTestCaseGenerator] ?? SAVED TEST CASES DEBUG: Requirement COL02-REQ_RC-10696783 has no generated test cases
+2026-05-12T16:58:32.4207179Z	Information	TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel	[LLMTestCaseGenerator] ?? SAVED TEST CASES DEBUG: Checking requirement COL02-REQ_RC-10696788: has 0 generated test cases
+2026-05-12T16:58:32.4227739Z	Information	TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel	[LLMTestCaseGenerator] ?? SAVED TEST CASES DEBUG: Requirement COL02-REQ_RC-10696788 has no generated test cases
+2026-05-12T16:58:32.4247111Z	Information	TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel	[LLMTestCaseGenerator] ?? SAVED TEST CASES DEBUG: Checking requirement COL02-REQ_RC-10699801: has 0 generated test cases
+2026-05-12T16:58:32.4264959Z	Information	TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel	[LLMTestCaseGenerator] ?? SAVED TEST CASES DEBUG: Requirement COL02-REQ_RC-10699801 has no generated test cases
+2026-05-12T16:58:32.4284119Z	Information	TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel	[LLMTestCaseGenerator] ?? SAVED TEST CASES DEBUG: Checking requirement COL02-REQ_RC-10700519: has 0 generated test cases
+2026-05-12T16:58:32.4505305Z	Information	TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel	[LLMTestCaseGenerator] ?? SAVED TEST CASES DEBUG: Requirement COL02-REQ_RC-10700519 has no generated test cases
+2026-05-12T16:58:32.4739317Z	Information	TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel	[LLMTestCaseGenerator] Loaded 0 unique test cases from 243 requirements, 0 total associations
+2026-05-12T16:58:32.4808502Z	Information	TestCaseEditorApp.MVVM.Domains.Notification.Mediators.NotificationMediator	Updated requirements progress from RequirementsProgressChanged: 243 total, 1 analyzed, 0 with test cases
+2026-05-12T16:58:32.4832893Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator	Loaded 243 requirements from project
+2026-05-12T16:58:32.4869880Z	Information	TestCaseEditorApp.MVVM.Domains.Notification.Mediators.NotificationMediator	Updated requirements progress from OpenProjectEvents.ProjectOpened: 243 total, 1 analyzed, 0 with test cases
+2026-05-12T16:58:32.4984742Z	Information	TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel	? Updated workspace JamaProject: '636' -> '636' (detected project ID)
+2026-05-12T16:58:32.5022471Z	Information	TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel	?? Workspace saved with detected Jama project ID: 636
+2026-05-12T16:58:32.5045509Z	Information	TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel	Triggering background attachment scan for Jama project 636
+2026-05-12T16:58:32.5071024Z	Information	TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel	Project opened - attachment scanning available on user request in Requirements scraper tab
+2026-05-12T16:58:33.0765461Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] Commands initialized in InitializeCommands method
+2026-05-12T16:58:33.0793055Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] Refreshing project state
+2026-05-12T16:58:33.0815047Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] Project state - ID: -1, Name: Unknown
+2026-05-12T16:58:33.0831809Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] Constructor completed
+2026-05-12T16:58:33.0866587Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] ViewModel constructor completed.
+2026-05-12T16:58:33.0892729Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] Commands initialized: TestConnectionCommand is initialized
+2026-05-12T16:58:33.0919467Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] Initializing empty state with placeholder
+2026-05-12T16:58:33.0962903Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] Filter updated - showing 0 attachments
+2026-05-12T16:58:33.1337303Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] Initialized empty state with placeholder
+2026-05-12T16:58:33.1362769Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] *************** DEBUG: CONSTRUCTOR COMPLETED ***************
+2026-05-12T16:58:33.1410761Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Subscribing to Requirements domain events
+2026-05-12T16:58:33.1431757Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Subscribed to RequirementSelected events
+2026-05-12T16:58:33.1454937Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Subscribed to NavigateToAttachmentSearch events
+2026-05-12T16:58:33.1482282Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Initialized to Details view mode
+2026-05-12T16:58:33.1507389Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Found existing current requirement: *Safety Checklist Completion*
+2026-05-12T16:58:33.1538668Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Processing RequirementSelected event - Requirement: *Safety Checklist Completion*
+2026-05-12T16:58:33.1637734Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Content populated - Tables: 0
+2026-05-12T16:58:33.1697090Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Content populated - Tables: 0, Paragraphs: 0, Chips: 2
+2026-05-12T16:58:33.1725392Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Event subscriptions completed
+2026-05-12T16:58:33.1776900Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] Subscribed to RequirementSelected, RequirementAnalyzed, RequirementUpdated, and WorkflowStateChanged events from Requirements mediator
+2026-05-12T16:58:33.1794362Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] Initializing from mediator's current requirement: C1XMA2405-REQ_RC-14
+2026-05-12T16:58:33.1815372Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] CurrentRequirement setter called. Old=null, New=C1XMA2405-REQ_RC-14
+2026-05-12T16:58:33.1867476Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Constructor completed - Instance ID: 48140083
+2026-05-12T16:58:33.1933116Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel	[HeaderVM] === CONSTRUCTOR: Mediator cast to RequirementsMediator SUCCEEDED, subscribing to events
+2026-05-12T16:58:33.1958278Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel	[HeaderVM] === CONSTRUCTOR: All subscriptions complete
+2026-05-12T16:58:33.3492593Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] Refreshing project state
+2026-05-12T16:58:33.3532282Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] Project state - ID: 636, Name: CMP-6000
+2026-05-12T16:58:33.3703997Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] IsAnalyzing getter: mediatorAnalyzing=False, isCurrentReqBeingAnalyzed=False, result=False, CurrentReq=COL02-REQ_RC-10685790, AnalyzingReq=null
+2026-05-12T16:58:33.3734059Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] IsAnalyzing getter: mediatorAnalyzing=False, isCurrentReqBeingAnalyzed=False, result=False, CurrentReq=COL02-REQ_RC-10685790, AnalyzingReq=null
+2026-05-12T16:58:33.3774216Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] IsAnalyzing getter: mediatorAnalyzing=False, isCurrentReqBeingAnalyzed=False, result=False, CurrentReq=COL02-REQ_RC-10685790, AnalyzingReq=null
+2026-05-12T16:58:37.1126131Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] IsAnalyzing getter: mediatorAnalyzing=False, isCurrentReqBeingAnalyzed=False, result=False, CurrentReq=COL02-REQ_RC-10685790, AnalyzingReq=null
+2026-05-12T16:58:37.1170412Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] AnalyzeRequirementAsync called. CurrentRequirement=True
+2026-05-12T16:58:37.1191324Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[ANALYSIS_TRACE] START Attempt=c2f5c6bb Requirement=COL02-REQ_RC-10685790 Item=C1XMA2405-REQ_RC-14
+2026-05-12T16:58:37.1209247Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] Set analyzing requirement ID to: COL02-REQ_RC-10685790
+2026-05-12T16:58:37.1241160Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator	[ANALYSIS_TRACE] MEDIATOR_START Attempt=43861084 Requirement=COL02-REQ_RC-10685790 Item=C1XMA2405-REQ_RC-14
+2026-05-12T16:58:37.1271883Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] OnWorkflowStateChanged called: IsAnalyzing = True (was False)
+2026-05-12T16:58:37.1292064Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] Mediator IsAnalyzing changed to: True, current requirement: COL02-REQ_RC-10685790, analyzing requirement: COL02-REQ_RC-10685790, calling RefreshAnalyzingState
+2026-05-12T16:58:37.1321806Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] IsAnalyzing getter: mediatorAnalyzing=True, isCurrentReqBeingAnalyzed=True, result=True, CurrentReq=COL02-REQ_RC-10685790, AnalyzingReq=COL02-REQ_RC-10685790
+2026-05-12T16:58:37.1345116Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] RefreshAnalyzingState called - wasAnalyzing: False, isNowAnalyzing: True, currentReq: COL02-REQ_RC-10685790
+2026-05-12T16:58:37.1368321Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] IsAnalyzing getter: mediatorAnalyzing=True, isCurrentReqBeingAnalyzed=True, result=True, CurrentReq=COL02-REQ_RC-10685790, AnalyzingReq=COL02-REQ_RC-10685790
+2026-05-12T16:58:37.1389688Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] IsAnalyzing getter: mediatorAnalyzing=True, isCurrentReqBeingAnalyzed=True, result=True, CurrentReq=COL02-REQ_RC-10685790, AnalyzingReq=COL02-REQ_RC-10685790
+2026-05-12T16:58:37.1411885Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] IsAnalyzing getter: mediatorAnalyzing=True, isCurrentReqBeingAnalyzed=True, result=True, CurrentReq=COL02-REQ_RC-10685790, AnalyzingReq=COL02-REQ_RC-10685790
+2026-05-12T16:58:37.1430774Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] IsAnalyzing getter: mediatorAnalyzing=True, isCurrentReqBeingAnalyzed=True, result=True, CurrentReq=COL02-REQ_RC-10685790, AnalyzingReq=COL02-REQ_RC-10685790
+2026-05-12T16:58:37.1447058Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] IsAnalyzing getter: mediatorAnalyzing=True, isCurrentReqBeingAnalyzed=True, result=True, CurrentReq=COL02-REQ_RC-10685790, AnalyzingReq=COL02-REQ_RC-10685790
+2026-05-12T16:58:37.1464661Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] Starting analysis timer
+2026-05-12T16:58:37.1483905Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to show progress but Open Project is already active
+2026-05-12T16:58:37.1507625Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T16:58:37.1528866Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator	[RequirementsMediator] Using ENHANCED Requirements domain analysis engine (no fallback enabled)
+2026-05-12T16:58:37.1559658Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T16:58:37.1577190Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T16:58:37.1657072Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T16:58:37.1693383Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T16:58:37.1801117Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T16:58:37.1856270Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T16:58:37.1920196Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T16:58:37.2074504Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T16:58:37.2096231Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Configuration check: EmbeddingService=True, Configured=True
+2026-05-12T16:58:37.2116706Z	Information	App	[RAG-ENHANCED] Using DirectRag for supplemental document indexing (preferred method)
+2026-05-12T16:58:37.2146182Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Starting indexing for document 999999 in project 0
+2026-05-12T16:58:37.2232064Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] IsAnalyzing getter: mediatorAnalyzing=True, isCurrentReqBeingAnalyzed=True, result=True, CurrentReq=COL02-REQ_RC-10685790, AnalyzingReq=COL02-REQ_RC-10685790
+2026-05-12T16:58:37.2380200Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] ?? Calibrating chunking parameters using real document samples...
+2026-05-12T16:58:37.2420169Z	Information	App	[OllamaEmbedding] ?? Calibrating with real document samples for mxbai-embed-large:335m-v1-fp16...
+2026-05-12T16:58:37.2452193Z	Information	App	[OllamaEmbedding] Testing 1 document samples for calibration
+2026-05-12T16:58:41.3736491Z	Information	App	[OllamaStatusMonitor] Status changed: NotLoaded ? Loaded | Model: mxbai-embed-large:335m-v1-fp16 (672.0 MB)
+2026-05-12T16:58:41.3813205Z	Information	App	[NotificationWorkspaceVM] Ollama status display updated: Ollama: mxbai-embed-large:335m-v1-fp16 Loaded
+2026-05-12T16:58:43.3614270Z	Information	App	[Calibration] Sample 1 result: 501 chars maximum
+2026-05-12T16:58:43.3641710Z	Information	App	[OllamaEmbedding] ? Sample-based calibration complete for mxbai-embed-large:335m-v1-fp16: 250 chars safe limit (safest sample: 501 chars, 1 samples, 9 total attempts)
+2026-05-12T16:58:43.3671337Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] ? Calibration complete - Chunk size: 250 chars, Overlap: 62 chars (character-based chunking)
+2026-05-12T16:58:43.3707489Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Split document into 4 chunks (chunk size: 250 chars, overlap: 62 chars)
+2026-05-12T16:58:44.1108571Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Successfully indexed 4 chunks for document 999999
+2026-05-12T16:58:44.1133797Z	Information	App	[RAG-ENHANCED] Successfully indexed supplemental document via DirectRag for C1XMA2405-REQ_RC-14 (501 characters)
+2026-05-12T16:58:44.1178520Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T16:58:44.1225504Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T16:58:44.2643211Z	Information	App	[AnythingLLM] Created new thread 'b31e7a22-7a80-42e3-8ed4-48899f397f19' in workspace 'cmp-6000'
+2026-05-12T16:58:44.2721456Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T16:58:44.2768967Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T17:00:07.3281093Z	Error	App	[AnythingLLM] Error in streaming chat to workspace 'cmp-6000'
+System.Threading.Tasks.TaskCanceledException: The operation was canceled.
+ ---> System.Threading.Tasks.TaskCanceledException: The operation was canceled.
+ ---> System.IO.IOException: Unable to read data from the transport connection: The I/O operation has been aborted because of either a thread exit or an application request..
+ ---> System.Net.Sockets.SocketException (995): The I/O operation has been aborted because of either a thread exit or an application request.
+   --- End of inner exception stack trace ---
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource<System.Int32>.GetResult(Int16 token)
+   at System.Net.Http.HttpConnection.FillAsync(Boolean async)
+   at System.Net.Http.HttpConnection.ChunkedEncodingReadStream.CopyToAsyncCore(Stream destination, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnection.ChunkedEncodingReadStream.CopyToAsyncCore(Stream destination, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionResponseContent.<SerializeToStreamAsync>g__Impl|6_0(Stream stream, CancellationToken cancellationToken)
+   at System.Net.Http.HttpContent.LoadIntoBufferAsyncCore(Task serializeToStreamTask, MemoryStream tempBuffer)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpClient.HandleFailure(Exception e, Boolean telemetryStarted, HttpResponseMessage response, CancellationTokenSource cts, CancellationToken cancellationToken, CancellationTokenSource pendingRequestsCts)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at TestCaseEditorApp.Services.AnythingLLMService.SendChatMessageStreamingAsync(String workspaceSlug, String message, Action`1 onChunkReceived, Action`1 onProgressUpdate, String threadSlug, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\AnythingLLMService.cs:line 2101
+2026-05-12T17:00:07.3342632Z	Warning	App	[RAG] LLM returned empty response for requirement C1XMA2405-REQ_RC-14
+2026-05-12T17:00:07.3406179Z	Warning	App	[RAG] RAG analysis failed for requirement C1XMA2405-REQ_RC-14: LLM returned empty response
+2026-05-12T17:00:07.3431478Z	Warning	App	[RAG] Failure details: LLM returned an empty response. The model may not be loaded or responsive.
+2026-05-12T17:00:07.3480979Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T17:00:07.3505109Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T17:00:08.3567603Z	Information	App	[AnythingLLM] Successfully deleted thread 'b31e7a22-7a80-42e3-8ed4-48899f397f19' from workspace 'cmp-6000'
+2026-05-12T17:00:28.2086693Z	Information	App	[OllamaTextGen] Initialized with model: phi4-mini:3.8b-q4_K_M
+2026-05-12T17:00:43.7198551Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T17:00:43.7347472Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T17:00:43.7372104Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Configuration check: EmbeddingService=True, Configured=True
+2026-05-12T17:00:43.7393048Z	Information	App	[RAG-ENHANCED] Using DirectRag for supplemental document indexing (preferred method)
+2026-05-12T17:00:43.7416621Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Starting indexing for document 999999 in project 0
+2026-05-12T17:00:43.7437843Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Split document into 4 chunks (chunk size: 250 chars, overlap: 62 chars)
+2026-05-12T17:00:44.5227741Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Successfully indexed 4 chunks for document 999999
+2026-05-12T17:00:44.5251340Z	Information	App	[RAG-ENHANCED] Successfully indexed supplemental document via DirectRag for C1XMA2405-REQ_RC-14 (501 characters)
+2026-05-12T17:00:44.5297584Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T17:00:44.5335105Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T17:00:44.5613797Z	Information	App	[AnythingLLM] Created new thread '2f78d059-8053-4645-9dcf-9a634b3bf87c' in workspace 'cmp-6000'
+2026-05-12T17:00:44.5659016Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T17:00:44.5680661Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T17:02:13.7446039Z	Error	App	[AnythingLLM] Error in streaming chat to workspace 'cmp-6000'
+System.Threading.Tasks.TaskCanceledException: The operation was canceled.
+ ---> System.Threading.Tasks.TaskCanceledException: The operation was canceled.
+ ---> System.IO.IOException: Unable to read data from the transport connection: The I/O operation has been aborted because of either a thread exit or an application request..
+ ---> System.Net.Sockets.SocketException (995): The I/O operation has been aborted because of either a thread exit or an application request.
+   --- End of inner exception stack trace ---
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource<System.Int32>.GetResult(Int16 token)
+   at System.Net.Http.HttpConnection.FillAsync(Boolean async)
+   at System.Net.Http.HttpConnection.ChunkedEncodingReadStream.CopyToAsyncCore(Stream destination, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnection.ChunkedEncodingReadStream.CopyToAsyncCore(Stream destination, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionResponseContent.<SerializeToStreamAsync>g__Impl|6_0(Stream stream, CancellationToken cancellationToken)
+   at System.Net.Http.HttpContent.LoadIntoBufferAsyncCore(Task serializeToStreamTask, MemoryStream tempBuffer)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpClient.HandleFailure(Exception e, Boolean telemetryStarted, HttpResponseMessage response, CancellationTokenSource cts, CancellationToken cancellationToken, CancellationTokenSource pendingRequestsCts)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at TestCaseEditorApp.Services.AnythingLLMService.SendChatMessageStreamingAsync(String workspaceSlug, String message, Action`1 onChunkReceived, Action`1 onProgressUpdate, String threadSlug, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\AnythingLLMService.cs:line 2101
+2026-05-12T17:02:13.7493163Z	Warning	App	[RAG] LLM returned empty response for requirement C1XMA2405-REQ_RC-14
+2026-05-12T17:02:13.7535942Z	Warning	App	[RAG] RAG analysis failed for requirement C1XMA2405-REQ_RC-14: LLM returned empty response
+2026-05-12T17:02:13.7559821Z	Warning	App	[RAG] Failure details: LLM returned an empty response. The model may not be loaded or responsive.
+2026-05-12T17:02:13.7600083Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T17:02:13.7628008Z	Warning	TestCaseEditorApp.Services.DomainUICoordinator	Domain Requirements tried to update progress but Open Project owns it
+2026-05-12T17:02:14.7714567Z	Information	App	[AnythingLLM] Successfully deleted thread '2f78d059-8053-4645-9dcf-9a634b3bf87c' from workspace 'cmp-6000'
+2026-05-12T17:05:35.5348143Z	Information	Microsoft.Hosting.Lifetime	Application is shutting down...
+2026-05-12T17:05:35.5417136Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Disposing instance - ID: 48140083
+2026-05-12T17:05:35.5442201Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Disposal completed
+2026-05-12T17:05:35.5883125Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-05-12T17:05:35.5903217Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-05-12T17:05:35.5922418Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-05-12T17:05:35.5972813Z	Information	TestCaseEditorApp.Services.RequirementAnalysisCache	[AnalysisCache] Disposed cache with 0 hits, 1 misses, 0ms saved
