@@ -796,7 +796,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             try
             {
                 TestCaseEditorApp.Services.Logging.Log.WriteRequirementsAnalysisLogSnapshot();
-                _logger.LogInformation("[RequirementAnalysisVM] Wrote requirements analysis log snapshot to app-logs.txt");
+                var snapshotPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "TestCaseEditorApp", "logs", "app-logs.txt");
+                _logger.LogInformation("[RequirementAnalysisVM] Wrote requirements analysis log snapshot to {Path}", snapshotPath);
             }
             catch (Exception ex)
             {

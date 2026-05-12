@@ -175,7 +175,7 @@ namespace TestCaseEditorApp.Services.Logging
             try
             {
                 var logDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "TestCaseEditorApp", "logs");
-                var snapshotPath = Path.Combine(Directory.GetCurrentDirectory(), "app-logs.txt");
+                var snapshotPath = Path.Combine(logDir, "app-logs.txt");
 
                 if (!Directory.Exists(logDir))
                     return;
