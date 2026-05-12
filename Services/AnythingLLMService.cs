@@ -2097,9 +2097,16 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                 var endpoint = string.IsNullOrEmpty(threadSlug) 
                     ? $"{_baseUrl}/api/v1/workspace/{workspaceSlug}/stream-chat"
                     : $"{_baseUrl}/api/v1/workspace/{workspaceSlug}/thread/{threadSlug}/stream-chat";
-                
-                using var response = await _httpClient.PostAsync(endpoint, content, cancellationToken);
-                
+
+                using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
+                {
+                    Content = content
+                };
+                using var response = await _httpClient.SendAsync(
+                    request,
+                    HttpCompletionOption.ResponseHeadersRead,
+                    cancellationToken);
+
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -2113,7 +2120,7 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                 
                 var responseBuilder = new StringBuilder();
                 
-                using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
                 using var reader = new StreamReader(stream);
                 
                 string? line;
@@ -2153,10 +2160,15 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                 onProgressUpdate?.Invoke("Stream complete");
                 return responseBuilder.ToString();
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Streaming chat cancelled for workspace '{workspaceSlug}'");
+                throw;
+            }
             catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Timeout in streaming chat to workspace '{workspaceSlug}' - model may be overloaded");
-                return null; // Let caller handle fallback
+                throw;
             }
             catch (Exception ex)
             {
