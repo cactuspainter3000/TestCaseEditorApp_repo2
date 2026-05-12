@@ -1536,10 +1536,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 e.Requirement?.GlobalId ?? "null", e.Success);
             
             // If this is the currently selected requirement, refresh the display
-            if (e.Requirement == CurrentRequirement && e.Success && e.Analysis != null)
+            // Use GlobalId comparison instead of object reference to handle different object instances
+            if (e.Requirement?.GlobalId == CurrentRequirement?.GlobalId && e.Success && e.Analysis != null)
             {
-                _logger.LogInformation("[RequirementAnalysisVM] Refreshing display after analysis completion");
+                _logger.LogInformation("[RequirementAnalysisVM] Refreshing display after analysis completion for {RequirementId}", e.Requirement.GlobalId);
                 RefreshAnalysisDisplay();
+            }
+            else if (e.Requirement?.GlobalId != CurrentRequirement?.GlobalId)
+            {
+                _logger.LogInformation("[RequirementAnalysisVM] Analysis event is for different requirement - skipping display refresh. Event={EventReqId}, Current={CurrentReqId}",
+                    e.Requirement?.GlobalId ?? "null", CurrentRequirement?.GlobalId ?? "null");
             }
         }
 
