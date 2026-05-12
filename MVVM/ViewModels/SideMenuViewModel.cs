@@ -388,15 +388,21 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 var settings = _userSettingsService.LoadSettings();
                 var issues = new List<string>();
 
-                if (_userSettingsService.HasMissingRequiredSettings())
+                // For Test Case Generator navigation, Jama is optional.
+                // Validate only the services this flow requires (AnythingLLM + Ollama).
+                if (string.IsNullOrWhiteSpace(settings.AnythingLlmBaseUrl))
                 {
-                    issues.Add("One or more required settings are missing.");
+                    issues.Add("AnythingLLM base URL is missing.");
                 }
 
-                var (jamaSuccess, jamaMessage) = await _jamaConnectService.TestConnectionAsync();
-                if (!jamaSuccess)
+                if (string.IsNullOrWhiteSpace(settings.AnythingLlmApiKey))
                 {
-                    issues.Add($"Jama: {jamaMessage}");
+                    issues.Add("AnythingLLM API key is missing.");
+                }
+
+                if (string.IsNullOrWhiteSpace(settings.OllamaChatModel))
+                {
+                    issues.Add("Ollama chat model is missing.");
                 }
 
                 var (anythingSuccess, anythingMessage) = await TestAnythingLlmConfigurationAsync(settings);
