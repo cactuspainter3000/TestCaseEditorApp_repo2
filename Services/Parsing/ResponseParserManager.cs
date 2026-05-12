@@ -17,7 +17,9 @@ namespace TestCaseEditorApp.Services.Parsing
         {
             _parsers = new List<IResponseParser>
             {
-                // AnythingLLM returns delimited format due to its system prompt configuration
+                // Current RAG responses are JSON (sometimes wrapped in markdown fences).
+                new JsonResponseParser(),
+                // Keep legacy delimited support for older prompt flows.
                 new DelimitedResponseParser()
             };
         }
