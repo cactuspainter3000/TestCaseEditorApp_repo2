@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using System.Text.Json;
 using TestCaseEditorApp.MVVM.Models;
 
@@ -27,17 +28,24 @@ namespace TestCaseEditorApp.Services.Parsing
                 using var doc = JsonDocument.Parse(cleaned);
                 var root = doc.RootElement;
                 if (root.ValueKind != JsonValueKind.Object)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info("[JsonParser] CanParse=false (root is not object)");
                     return false;
+                }
 
                 // Accept the known schema variants currently produced by prompts.
-                return HasProperty(root, "QualityScore") ||
-                       HasProperty(root, "OriginalQualityScore") ||
-                       HasProperty(root, "Recommendations") ||
-                       HasProperty(root, "Analysis") ||
-                       HasProperty(root, "FreeformFeedback");
+                var canParse = HasProperty(root, "QualityScore") ||
+                               HasProperty(root, "OriginalQualityScore") ||
+                               HasProperty(root, "Recommendations") ||
+                               HasProperty(root, "Analysis") ||
+                               HasProperty(root, "FreeformFeedback");
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JsonParser] CanParse={canParse}, payloadLength={cleaned.Length}");
+                return canParse;
             }
-            catch (JsonException)
+            catch (JsonException ex)
             {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JsonParser] CanParse JSON parse failed: {ex.Message}");
                 return false;
             }
         }
@@ -110,7 +118,14 @@ namespace TestCaseEditorApp.Services.Parsing
                 cleaned = cleaned.Substring(firstBrace, lastBrace - firstBrace + 1);
             }
 
-            return cleaned.Trim();
+            cleaned = cleaned.Trim();
+
+            // Best-effort cleanup for common LLM JSON defects.
+            cleaned = cleaned.Replace("\u201c", "\"").Replace("\u201d", "\"");
+            cleaned = cleaned.Replace("\u2018", "'").Replace("\u2019", "'");
+            cleaned = Regex.Replace(cleaned, @",\s*([}\]])", "$1");
+
+            return cleaned;
         }
 
         private static bool HasProperty(JsonElement root, string propertyName)

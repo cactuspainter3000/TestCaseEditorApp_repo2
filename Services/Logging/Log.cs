@@ -194,6 +194,7 @@ namespace TestCaseEditorApp.Services.Logging
                     "[RequirementAnalysisVM]",
                     "[RequirementsMediator]",
                     "[ParserManager]",
+                    "[JsonParser]",
                     "[DelimitedParser]",
                     "[RequirementAnalysisService]",
                     "[AnalysisEngine]",
