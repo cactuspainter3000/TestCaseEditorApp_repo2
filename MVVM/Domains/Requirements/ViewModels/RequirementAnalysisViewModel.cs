@@ -320,6 +320,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
             _logger.LogDebug("[RequirementAnalysisVM] Starting analysis for {RequirementId} via mediator", CurrentRequirement.Item);
             var analysisWasStarted = false;
+            var analysisSucceeded = false;
 
             try
             {
@@ -332,10 +333,20 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 _logger.LogInformation("[RequirementAnalysisVM] Set analyzing requirement ID to: {AnalyzingReqId}", _analyzingRequirementId);
 
                 // Use the mediator pattern - this will trigger the analysis and manage IsAnalyzing state
-                await _mediator.AnalyzeRequirementAsync(CurrentRequirement);
+                analysisSucceeded = await _mediator.AnalyzeRequirementAsync(CurrentRequirement);
 
-                // Clear status message on success
-                AnalysisStatusMessage = string.Empty;
+                if (analysisSucceeded)
+                {
+                    // Ensure the UI updates even if event sequencing is delayed/missed.
+                    RefreshAnalysisDisplay();
+                    AnalysisStatusMessage = string.Empty;
+                }
+                else
+                {
+                    // Mediator can return false without throwing, so surface failure explicitly.
+                    AnalysisStatusMessage = CurrentRequirement?.Analysis?.ErrorMessage ?? "Analysis failed";
+                    HasAnalysis = false;
+                }
             }
             catch (Exception ex)
             {
@@ -1548,6 +1559,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 _logger.LogInformation("[RequirementAnalysisVM] Analysis event is for different requirement - skipping display refresh. Event={EventReqId}, Current={CurrentReqId}",
                     e.Requirement?.GlobalId ?? "null", CurrentRequirement?.GlobalId ?? "null");
+            }
+            else if (!e.Success)
+            {
+                HasAnalysis = false;
+                AnalysisStatusMessage = e.ErrorMessage ?? "Analysis failed";
+                _logger.LogWarning("[RequirementAnalysisVM] Analysis failed for current requirement: {ErrorMessage}", AnalysisStatusMessage);
             }
         }
 
