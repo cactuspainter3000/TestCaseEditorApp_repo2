@@ -66,9 +66,9 @@
             <sharedviews:SharedAnalysisView />
         </DataTemplate>
 
-        <!-- Requirement Analysis ViewModel - maps to SharedAnalysisView -->
+        <!-- Requirement Analysis ViewModel - maps to Requirements analysis view -->
         <DataTemplate DataType="{x:Type reqvm:RequirementAnalysisViewModel}">
-            <sharedviews:SharedAnalysisView />
+            <reqviews:Requirements_AnalysisControl />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:WorkspaceHeaderViewModel}">

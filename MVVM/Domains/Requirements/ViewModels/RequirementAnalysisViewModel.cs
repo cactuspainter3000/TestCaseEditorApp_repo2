@@ -463,13 +463,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 ImprovedRequirement = null;
                 HasImprovedRequirement = false;
                 AnalysisTimestamp = string.Empty;
-                AnalysisStatusMessage = string.Empty; // Critical: Clear any stale error messages
-                
-                // Clear any stale analysis data from the requirement to prevent UI inconsistencies
-                if (CurrentRequirement?.Analysis != null && !CurrentRequirement.Analysis.IsAnalyzed)
-                {
-                    CurrentRequirement.Analysis.ErrorMessage = null; // Clear persisted error state
-                }
+                AnalysisStatusMessage = analysis?.ErrorMessage ?? string.Empty;
                 
                 _logger.LogDebug("[RequirementAnalysisVM] Cleared display state for {RequirementId}", CurrentRequirement?.Item);
             }

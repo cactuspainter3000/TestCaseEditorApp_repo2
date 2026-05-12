@@ -6,6 +6,7 @@
              xmlns:converters="clr-namespace:TestCaseEditorApp.Converters"
              xmlns:mvvmConverters="clr-namespace:TestCaseEditorApp.MVVM.Converters"
              xmlns:requirements="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.Enums"
+             xmlns:reqViews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.Views"
              xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
              xmlns:edc="clr-namespace:EditableDataControl.Controls"
              mc:Ignorable="d" 
@@ -465,7 +466,7 @@
                         <Border Background="Transparent" BorderBrush="#5A5A5C" BorderThickness="1" 
                                 CornerRadius="4" Padding="0" Margin="0"
                                 Visibility="{Binding RequirementAnalysisVM, Converter={StaticResource NullToVisibilityConverter}}">
-                            <ContentPresenter Content="{Binding RequirementAnalysisVM}"/>
+                            <reqViews:Requirements_AnalysisControl DataContext="{Binding RequirementAnalysisVM}"/>
                         </Border>
                     </StackPanel>
                 </ScrollViewer>
