@@ -40,6 +40,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private string _selectedEmbeddingModel = "nomic-embed-text";
 
         [ObservableProperty]
+        private bool _enableRequirementsAnalysisSnapshot;
+
+        [ObservableProperty]
         private bool _isBusy;
 
         [ObservableProperty]
@@ -199,7 +202,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 AnythingLlmBaseUrl = NormalizeUrl(AnythingLlmBaseUrl),
                 AnythingLlmApiKey = (AnythingLlmApiKey ?? string.Empty).Trim(),
                 OllamaChatModel = (SelectedChatModel ?? string.Empty).Trim(),
-                OllamaEmbeddingModel = (SelectedEmbeddingModel ?? string.Empty).Trim()
+                OllamaEmbeddingModel = (SelectedEmbeddingModel ?? string.Empty).Trim(),
+                EnableRequirementsAnalysisSnapshot = EnableRequirementsAnalysisSnapshot
             };
 
             _userSettingsService.SaveSettings(settings);
@@ -272,6 +276,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             AnythingLlmApiKey = settings.AnythingLlmApiKey;
             SelectedChatModel = settings.OllamaChatModel;
             SelectedEmbeddingModel = settings.OllamaEmbeddingModel;
+            EnableRequirementsAnalysisSnapshot = settings.EnableRequirementsAnalysisSnapshot;
 
             if (string.IsNullOrWhiteSpace(StatusMessage))
             {

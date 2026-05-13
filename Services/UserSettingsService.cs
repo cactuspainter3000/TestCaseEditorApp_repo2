@@ -27,6 +27,7 @@ namespace TestCaseEditorApp.Services
                     settings.AnythingLlmApiKey = DecryptString(ReadString(key, "AnythingLlmApiKeyEnc"));
                     settings.OllamaChatModel = ReadString(key, "OllamaChatModel", "phi4-mini");
                     settings.OllamaEmbeddingModel = ReadString(key, "OllamaEmbeddingModel", "nomic-embed-text");
+                    settings.EnableRequirementsAnalysisSnapshot = ReadBool(key, "EnableRequirementsAnalysisSnapshot", false);
                 }
 
                 if (string.IsNullOrWhiteSpace(settings.AnythingLlmApiKey))
@@ -75,6 +76,7 @@ namespace TestCaseEditorApp.Services
             key.SetValue("AnythingLlmApiKeyEnc", EncryptString((settings.AnythingLlmApiKey ?? string.Empty).Trim()));
             key.SetValue("OllamaChatModel", FirstNonEmpty(settings.OllamaChatModel, "phi4-mini"));
             key.SetValue("OllamaEmbeddingModel", FirstNonEmpty(settings.OllamaEmbeddingModel, "nomic-embed-text"));
+            key.SetValue("EnableRequirementsAnalysisSnapshot", settings.EnableRequirementsAnalysisSnapshot ? 1 : 0);
 
             using var legacyKey = Registry.CurrentUser.CreateSubKey(LegacyAnythingLlmRegistryPath);
             legacyKey?.SetValue("ApiKey", (settings.AnythingLlmApiKey ?? string.Empty).Trim());
@@ -110,6 +112,17 @@ namespace TestCaseEditorApp.Services
             if (key == null) return fallback;
             var value = key.GetValue(name) as string;
             return string.IsNullOrWhiteSpace(value) ? fallback : value;
+        }
+
+        private static bool ReadBool(RegistryKey? key, string name, bool fallback = false)
+        {
+            if (key == null) return fallback;
+            var value = key.GetValue(name);
+            if (value is int intValue)
+            {
+                return intValue != 0;
+            }
+            return fallback;
         }
 
         private static string FirstNonEmpty(params string?[] values)
