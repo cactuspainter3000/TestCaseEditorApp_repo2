@@ -9,8 +9,8 @@
         Width="860"
         ResizeMode="CanResize"
         WindowStartupLocation="CenterOwner"
-        Background="#1f1f1f"
-        Foreground="White">
+        Background="{StaticResource Brush.Background.Menu}"
+        Foreground="{StaticResource Brush.Text.Primary}">
 
     <Grid Margin="16">
         <Grid.RowDefinitions>
@@ -22,13 +22,18 @@
 
         <TextBlock Grid.Row="0"
                    Text="Configure user-level credentials and model preferences"
+                   Foreground="{StaticResource Brush.Text.Primary}"
                    FontSize="18"
                    FontWeight="SemiBold"
                    Margin="0,0,0,12"/>
 
-        <TabControl Grid.Row="1" Margin="0,0,0,12">
+        <TabControl Grid.Row="1"
+                    Margin="0,0,0,12"
+                    Background="{StaticResource Brush.Background.Menu}"
+                    BorderBrush="{StaticResource Brush.Border.Default}"
+                    SelectedIndex="{Binding SelectedSettingsTabIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
             <TabItem Header="Jama">
-                <Grid Margin="12">
+                <Grid Margin="12" Background="{StaticResource Brush.Background.Menu}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
@@ -58,7 +63,7 @@
             </TabItem>
 
             <TabItem Header="AnythingLLM">
-                <Grid Margin="12">
+                <Grid Margin="12" Background="{StaticResource Brush.Background.Menu}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
@@ -84,7 +89,7 @@
             </TabItem>
 
             <TabItem Header="Ollama Models">
-                <Grid Margin="12">
+                <Grid Margin="12" Background="{StaticResource Brush.Background.Menu}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
@@ -117,8 +122,9 @@
                 </Grid>
             </TabItem>
             <TabItem Header="Diagnostics">
-                <Grid Margin="12">
+                <Grid Margin="12" Background="{StaticResource Brush.Background.Menu}">
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
@@ -126,13 +132,25 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Requirements Analysis Diagnostics" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="0"
+                               Grid.Column="0"
+                               Text="Requirements Analysis Diagnostics"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource Brush.Text.Primary}"
+                               Margin="0,0,0,8"/>
 
                     <CheckBox Grid.Row="1" Grid.Column="0"
                               Content="Enable Requirements Analysis Snapshot Logging"
                               IsChecked="{Binding EnableRequirementsAnalysisSnapshot, UpdateSourceTrigger=PropertyChanged}"
+                              Foreground="{StaticResource Brush.Text.Primary}"
                               VerticalAlignment="Top"
                               Margin="0,0,0,8"/>
+
+                    <TextBlock Grid.Row="2"
+                               Grid.Column="0"
+                               Text="Setting changes are persisted when you click Save."
+                               Foreground="{StaticResource Brush.Text.Secondary}"
+                               Margin="20,0,0,0"/>
                 </Grid>
             </TabItem>
         </TabControl>
@@ -143,13 +161,10 @@
                    TextWrapping="Wrap">
             <TextBlock.Style>
                 <Style TargetType="TextBlock">
-                    <Setter Property="Foreground" Value="LightGray"/>
+                    <Setter Property="Foreground" Value="{StaticResource Brush.Text.Secondary}"/>
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding IsStatusError}" Value="True">
-                            <Setter Property="Foreground" Value="#ff7f7f"/>
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding IsStatusError}" Value="False">
-                            <Setter Property="Foreground" Value="#7fda9d"/>
+                            <Setter Property="Foreground" Value="{StaticResource Brush.State.Error}"/>
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>

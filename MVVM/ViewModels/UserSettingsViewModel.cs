@@ -51,6 +51,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [ObservableProperty]
         private bool _isStatusError;
 
+        [ObservableProperty]
+        private int _selectedSettingsTabIndex;
+
         public ObservableCollection<string> OllamaModels { get; } = new();
         
         public Func<Task<(bool Success, List<string> Issues)>>? ValidationCallback { get; set; }
@@ -308,6 +311,23 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             var normalized = string.IsNullOrWhiteSpace(value) ? "http://localhost:3001" : value.Trim();
             return normalized.TrimEnd('/');
+        }
+
+        partial void OnSelectedSettingsTabIndexChanged(int value)
+        {
+            if (IsBusy || IsStatusError)
+            {
+                return;
+            }
+
+            StatusMessage = value switch
+            {
+                0 => "Configure Jama connection settings.",
+                1 => "Configure AnythingLLM endpoint and API key.",
+                2 => "Select and refresh Ollama model preferences.",
+                3 => "Enable or disable requirements analysis snapshot logging.",
+                _ => "Configure application settings."
+            };
         }
     }
 }
