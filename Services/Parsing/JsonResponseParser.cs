@@ -71,10 +71,20 @@ namespace TestCaseEditorApp.Services.Parsing
                     ErrorMessage = null,
                     HallucinationCheck = GetString(root, "HallucinationCheck") ?? "NO_FABRICATION",
                     FreeformFeedback = GetString(root, "FreeformFeedback") ?? GetString(root, "Analysis"),
-                    ImprovedRequirement = GetString(root, "ImprovedRequirement") ?? GetString(root, "RewrittenRequirement"),
                     Issues = ParseIssues(root),
                     Recommendations = ParseRecommendations(root)
                 };
+
+                analysis.ImprovedRequirement = GetFirstNonEmptyString(root,
+                        "ImprovedRequirement",
+                        "RewrittenRequirement",
+                        "RefinedRequirement",
+                        "RevisedRequirement",
+                        "RequirementRewrite",
+                        "RewriteRequirement",
+                        "RewriteText",
+                        "SuggestedRequirement")
+                    ?? analysis.Recommendations?.FirstOrDefault(r => !string.IsNullOrWhiteSpace(r?.SuggestedEdit))?.SuggestedEdit;
 
                 analysis.OriginalQualityScore = GetInt(root, "OriginalQualityScore")
                     ?? GetInt(root, "QualityScore")
@@ -83,7 +93,7 @@ namespace TestCaseEditorApp.Services.Parsing
                 analysis.ImprovedQualityScore = GetInt(root, "ImprovedQualityScore");
 
                 TestCaseEditorApp.Services.Logging.Log.Info(
-                    $"[{ParserName}Parser] Parsed JSON response for {requirementId}: Score={analysis.OriginalQualityScore}, Issues={analysis.Issues.Count}, Recommendations={analysis.Recommendations.Count}");
+                    $"[{ParserName}Parser] Parsed JSON response for {requirementId}: Score={analysis.OriginalQualityScore}, Issues={analysis.Issues.Count}, Recommendations={analysis.Recommendations.Count}, HasRewrite={!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement)}");
 
                 return analysis;
             }
@@ -173,6 +183,18 @@ namespace TestCaseEditorApp.Services.Parsing
 
             if (value.Value.ValueKind == JsonValueKind.String && int.TryParse(value.Value.GetString(), out var parsed))
                 return parsed;
+
+            return null;
+        }
+
+        private static string? GetFirstNonEmptyString(JsonElement root, params string[] propertyNames)
+        {
+            foreach (var propertyName in propertyNames)
+            {
+                var value = GetString(root, propertyName);
+                if (!string.IsNullOrWhiteSpace(value))
+                    return value.Trim();
+            }
 
             return null;
         }

@@ -381,6 +381,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                     
                     if (ragAnalysis != null)
                     {
+                        EnsureImprovedRequirementPresent(ragAnalysis);
                         ragAnalysis.IsAnalyzed = true;
                         ragAnalysis.Timestamp = DateTime.Now;
                         
@@ -472,6 +473,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
 
                 // Treat any successfully parsed analysis as analyzed.
                 // Some parser paths may omit this flag, which causes UI state to reset.
+                EnsureImprovedRequirementPresent(analysis);
                 analysis.IsAnalyzed = true;
 
                 // Check for self-reported fabrication
@@ -1070,6 +1072,29 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Ensures ImprovedRequirement is populated for UI display and commit flows.
+        /// If top-level rewrite is missing, falls back to the first non-empty SuggestedEdit.
+        /// </summary>
+        private static void EnsureImprovedRequirementPresent(RequirementAnalysis analysis)
+        {
+            if (analysis == null)
+                return;
+
+            if (!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement))
+                return;
+
+            var fallbackRewrite = analysis.Recommendations?
+                .FirstOrDefault(r => !string.IsNullOrWhiteSpace(r?.SuggestedEdit))?
+                .SuggestedEdit;
+
+            if (!string.IsNullOrWhiteSpace(fallbackRewrite))
+            {
+                analysis.ImprovedRequirement = fallbackRewrite.Trim();
+                TestCaseEditorApp.Services.Logging.Log.Info("[RequirementAnalysisService] Populated missing ImprovedRequirement from first recommendation SuggestedEdit");
+            }
         }
 
         /// <summary>

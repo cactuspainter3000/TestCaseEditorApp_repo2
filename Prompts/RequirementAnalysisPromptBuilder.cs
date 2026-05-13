@@ -272,6 +272,8 @@ namespace TestCaseEditorApp.Prompts
             sb.AppendLine("CRITICAL FORMAT REQUIREMENTS:");
             sb.AppendLine("- MUST return valid JSON - no text outside the JSON structure");
             sb.AppendLine("- EVERY recommendation MUST include a SuggestedEdit field with actual requirement text");
+            sb.AppendLine("- ImprovedRequirement MUST be present and non-empty");
+            sb.AppendLine("- ImprovedRequirement should match your best consolidated SuggestedEdit");
             sb.AppendLine("- Do NOT provide example text, placeholder text, or instructional text");
             sb.AppendLine("- SuggestedEdit must be complete, implementable requirement language");
             sb.AppendLine("- If no recommendations needed, return empty Recommendations array");
