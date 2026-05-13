@@ -175,7 +175,21 @@
             <Button Content="Save"
                     Width="110"
                     Margin="0,0,8,0"
-                    Command="{Binding SaveAsyncCommand}"/>
+                    Command="{Binding SaveAsyncCommand}">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Content" Value="Save"/>
+                        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasUnsavedChanges}" Value="True">
+                                <Setter Property="Content" Value="Save *"/>
+                                <Setter Property="Foreground" Value="{StaticResource Brush.State.Warning}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
             <Button Content="Cancel"
                     Width="110"
                     Command="{Binding CancelCommand}"/>

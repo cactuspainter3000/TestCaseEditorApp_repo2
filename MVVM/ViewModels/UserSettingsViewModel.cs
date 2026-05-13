@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net.Http;
+using System.ComponentModel;
 using System.Text.Json;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -14,6 +15,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     public partial class UserSettingsViewModel : ObservableObject
     {
         private readonly IUserSettingsService _userSettingsService;
+        private AppUserSettings _lastSavedSettings = AppUserSettings.Empty();
+        private bool _isLoadingSettings;
+
+        private static readonly HashSet<string> TrackedSettingPropertyNames = new(StringComparer.Ordinal)
+        {
+            nameof(JamaBaseUrl),
+            nameof(JamaClientId),
+            nameof(JamaClientSecret),
+            nameof(AnythingLlmBaseUrl),
+            nameof(AnythingLlmApiKey),
+            nameof(SelectedChatModel),
+            nameof(SelectedEmbeddingModel),
+            nameof(EnableRequirementsAnalysisSnapshot)
+        };
 
         [ObservableProperty]
         private bool _isRequired;
@@ -43,6 +58,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private bool _enableRequirementsAnalysisSnapshot;
 
         [ObservableProperty]
+        private bool _hasUnsavedChanges;
+
+        [ObservableProperty]
         private bool _isBusy;
 
         [ObservableProperty]
@@ -63,6 +81,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public UserSettingsViewModel(IUserSettingsService userSettingsService)
         {
             _userSettingsService = userSettingsService ?? throw new ArgumentNullException(nameof(userSettingsService));
+            PropertyChanged += OnViewModelPropertyChanged;
             LoadFromStoredSettings();
             _ = RefreshOllamaModelsAsync();
         }
@@ -194,23 +213,19 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             if (!Validate())
             {
+                PersistDiagnosticsSettingOnly();
+                StatusMessage = string.IsNullOrWhiteSpace(StatusMessage)
+                    ? "Requirements analysis snapshot setting saved."
+                    : $"Requirements analysis snapshot setting saved. {StatusMessage}";
+                RecalculateUnsavedChanges();
                 return;
             }
 
-            var settings = new AppUserSettings
-            {
-                JamaBaseUrl = (JamaBaseUrl ?? string.Empty).Trim(),
-                JamaClientId = (JamaClientId ?? string.Empty).Trim(),
-                JamaClientSecret = (JamaClientSecret ?? string.Empty).Trim(),
-                AnythingLlmBaseUrl = NormalizeUrl(AnythingLlmBaseUrl),
-                AnythingLlmApiKey = (AnythingLlmApiKey ?? string.Empty).Trim(),
-                OllamaChatModel = (SelectedChatModel ?? string.Empty).Trim(),
-                OllamaEmbeddingModel = (SelectedEmbeddingModel ?? string.Empty).Trim(),
-                EnableRequirementsAnalysisSnapshot = EnableRequirementsAnalysisSnapshot
-            };
+            var settings = BuildCurrentSettingsSnapshot();
 
             _userSettingsService.SaveSettings(settings);
             _userSettingsService.ApplySettingsToEnvironment(settings);
+            SetLastSavedSettings(settings);
 
             // If there's a validation callback (from the validation gate), run it
             if (ValidationCallback != null)
@@ -269,8 +284,26 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             RequestClose?.Invoke(this, false);
         }
 
+        private void PersistDiagnosticsSettingOnly()
+        {
+            try
+            {
+                var existingSettings = _userSettingsService.LoadSettings();
+                existingSettings.EnableRequirementsAnalysisSnapshot = EnableRequirementsAnalysisSnapshot;
+                _userSettingsService.SaveSettings(existingSettings);
+                _userSettingsService.ApplySettingsToEnvironment(existingSettings);
+                _lastSavedSettings.EnableRequirementsAnalysisSnapshot = EnableRequirementsAnalysisSnapshot;
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Failed to persist diagnostics setting: {ex.Message}";
+                IsStatusError = true;
+            }
+        }
+
         private void LoadFromStoredSettings()
         {
+            _isLoadingSettings = true;
             var settings = _userSettingsService.LoadSettings();
             JamaBaseUrl = settings.JamaBaseUrl;
             JamaClientId = settings.JamaClientId;
@@ -280,6 +313,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             SelectedChatModel = settings.OllamaChatModel;
             SelectedEmbeddingModel = settings.OllamaEmbeddingModel;
             EnableRequirementsAnalysisSnapshot = settings.EnableRequirementsAnalysisSnapshot;
+            SetLastSavedSettings(settings);
+            _isLoadingSettings = false;
 
             if (string.IsNullOrWhiteSpace(StatusMessage))
             {
@@ -305,6 +340,70 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
 
             return true;
+        }
+
+        private AppUserSettings BuildCurrentSettingsSnapshot()
+        {
+            return new AppUserSettings
+            {
+                JamaBaseUrl = (JamaBaseUrl ?? string.Empty).Trim(),
+                JamaClientId = (JamaClientId ?? string.Empty).Trim(),
+                JamaClientSecret = (JamaClientSecret ?? string.Empty).Trim(),
+                AnythingLlmBaseUrl = NormalizeUrl(AnythingLlmBaseUrl),
+                AnythingLlmApiKey = (AnythingLlmApiKey ?? string.Empty).Trim(),
+                OllamaChatModel = (SelectedChatModel ?? string.Empty).Trim(),
+                OllamaEmbeddingModel = (SelectedEmbeddingModel ?? string.Empty).Trim(),
+                EnableRequirementsAnalysisSnapshot = EnableRequirementsAnalysisSnapshot
+            };
+        }
+
+        private void SetLastSavedSettings(AppUserSettings settings)
+        {
+            _lastSavedSettings = new AppUserSettings
+            {
+                JamaBaseUrl = (settings.JamaBaseUrl ?? string.Empty).Trim(),
+                JamaClientId = (settings.JamaClientId ?? string.Empty).Trim(),
+                JamaClientSecret = (settings.JamaClientSecret ?? string.Empty).Trim(),
+                AnythingLlmBaseUrl = NormalizeUrl(settings.AnythingLlmBaseUrl),
+                AnythingLlmApiKey = (settings.AnythingLlmApiKey ?? string.Empty).Trim(),
+                OllamaChatModel = (settings.OllamaChatModel ?? string.Empty).Trim(),
+                OllamaEmbeddingModel = (settings.OllamaEmbeddingModel ?? string.Empty).Trim(),
+                EnableRequirementsAnalysisSnapshot = settings.EnableRequirementsAnalysisSnapshot
+            };
+
+            HasUnsavedChanges = false;
+        }
+
+        private void RecalculateUnsavedChanges()
+        {
+            if (_isLoadingSettings)
+            {
+                return;
+            }
+
+            var current = BuildCurrentSettingsSnapshot();
+            HasUnsavedChanges =
+                !string.Equals(current.JamaBaseUrl, _lastSavedSettings.JamaBaseUrl, StringComparison.Ordinal) ||
+                !string.Equals(current.JamaClientId, _lastSavedSettings.JamaClientId, StringComparison.Ordinal) ||
+                !string.Equals(current.JamaClientSecret, _lastSavedSettings.JamaClientSecret, StringComparison.Ordinal) ||
+                !string.Equals(current.AnythingLlmBaseUrl, _lastSavedSettings.AnythingLlmBaseUrl, StringComparison.Ordinal) ||
+                !string.Equals(current.AnythingLlmApiKey, _lastSavedSettings.AnythingLlmApiKey, StringComparison.Ordinal) ||
+                !string.Equals(current.OllamaChatModel, _lastSavedSettings.OllamaChatModel, StringComparison.Ordinal) ||
+                !string.Equals(current.OllamaEmbeddingModel, _lastSavedSettings.OllamaEmbeddingModel, StringComparison.Ordinal) ||
+                current.EnableRequirementsAnalysisSnapshot != _lastSavedSettings.EnableRequirementsAnalysisSnapshot;
+        }
+
+        private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (_isLoadingSettings || string.IsNullOrWhiteSpace(e.PropertyName))
+            {
+                return;
+            }
+
+            if (TrackedSettingPropertyNames.Contains(e.PropertyName))
+            {
+                RecalculateUnsavedChanges();
+            }
         }
 
         private static string NormalizeUrl(string? value)

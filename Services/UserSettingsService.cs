@@ -122,6 +122,22 @@ namespace TestCaseEditorApp.Services
             {
                 return intValue != 0;
             }
+            if (value is long longValue)
+            {
+                return longValue != 0;
+            }
+            if (value is string stringValue)
+            {
+                if (bool.TryParse(stringValue, out var boolValue))
+                {
+                    return boolValue;
+                }
+
+                if (int.TryParse(stringValue, out var parsedInt))
+                {
+                    return parsedInt != 0;
+                }
+            }
             return fallback;
         }
 
