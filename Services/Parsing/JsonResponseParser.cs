@@ -90,8 +90,6 @@ namespace TestCaseEditorApp.Services.Parsing
                     ?? GetInt(root, "QualityScore")
                     ?? 0;
 
-                analysis.ImprovedQualityScore = GetInt(root, "ImprovedQualityScore");
-
                 TestCaseEditorApp.Services.Logging.Log.Info(
                     $"[{ParserName}Parser] Parsed JSON response for {requirementId}: Score={analysis.OriginalQualityScore}, Issues={analysis.Issues.Count}, Recommendations={analysis.Recommendations.Count}, HasRewrite={!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement)}");
 
