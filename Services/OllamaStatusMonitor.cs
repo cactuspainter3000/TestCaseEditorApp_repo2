@@ -65,19 +65,29 @@ namespace TestCaseEditorApp.Services
         public OllamaModelStatus Status { get; set; }
         public string? ModelName { get; set; }
         public long ModelSize { get; set; }
+        public string? OllamaVersion { get; set; }
+        public string? CompatibilityWarning { get; set; }
     }
 
     public class OllamaStatusMonitor : IOllamaStatusMonitor
     {
         private const int DefaultStatusTimeoutSeconds = 8;
+        private const string DefaultMaxSupportedVersion = "0.5.13";
         private readonly HttpClient _httpClient;
         private readonly ILogger<OllamaStatusMonitor>? _logger;
         private readonly Timer _pollingTimer;
         private readonly SemaphoreSlim _checkLock = new SemaphoreSlim(1, 1);
+        private readonly bool _diagnosticsEnabled;
+        private readonly Version _maxSupportedVersion;
 
         private OllamaModelStatus _currentStatus = OllamaModelStatus.Unknown;
         private string? _loadedModelName;
         private long _loadedModelSize;
+        private string? _detectedOllamaVersion;
+        private string? _compatibilityWarning;
+        private bool _versionChecked;
+        private string? _lastPublishedVersion;
+        private string? _lastPublishedCompatibilityWarning;
         private DateTime? _lastStatusChange;
         private bool _disposed;
 
@@ -90,6 +100,8 @@ namespace TestCaseEditorApp.Services
         public OllamaStatusMonitor(ILogger<OllamaStatusMonitor>? logger = null)
         {
             _logger = logger;
+            _diagnosticsEnabled = IsDiagnosticsEnabled();
+            _maxSupportedVersion = GetMaxSupportedVersion();
             var timeoutSeconds = GetStatusTimeoutSeconds();
             var handler = new HttpClientHandler
             {
@@ -107,6 +119,11 @@ namespace TestCaseEditorApp.Services
             _pollingTimer.AutoReset = true;
 
             Log.Info($"[OllamaStatusMonitor] HTTP timeout configured: {timeoutSeconds}s");
+            Log.Info($"[OllamaStatusMonitor] Max supported Ollama version: {_maxSupportedVersion}");
+            if (_diagnosticsEnabled)
+            {
+                Log.Info("[OllamaStatusMonitor] Extended diagnostics enabled (OLLAMA_STATUS_DIAGNOSTICS=true)");
+            }
         }
 
         public void StartMonitoring()
@@ -144,21 +161,23 @@ namespace TestCaseEditorApp.Services
 
             try
             {
+                await EnsureVersionCompatibilityCheckedAsync();
+
                 var psEndpoints = GetOllamaPsEndpoints();
-                Log.Info($"[OllamaStatusMonitor][DIAG] Probing /api/ps endpoints: {string.Join(", ", psEndpoints)}");
+                LogDiag($"[OllamaStatusMonitor][DIAG] Probing /api/ps endpoints: {string.Join(", ", psEndpoints)}");
                 var response = await TryGetResponseAsync(psEndpoints, "/api/ps");
                 if (response == null)
                 {
                     var tagsEndpoints = GetOllamaTagsEndpoints();
-                    Log.Info($"[OllamaStatusMonitor][DIAG] Probing /api/tags endpoints: {string.Join(", ", tagsEndpoints)}");
+                    LogDiag($"[OllamaStatusMonitor][DIAG] Probing /api/tags endpoints: {string.Join(", ", tagsEndpoints)}");
                     if (await IsOllamaReachableViaTagsAsync())
                     {
-                        Log.Info("[OllamaStatusMonitor][DIAG] /api/tags reachable, but no model loaded.");
+                        LogDiag("[OllamaStatusMonitor][DIAG] /api/tags reachable, but no model loaded.");
                         UpdateStatus(OllamaModelStatus.NotLoaded, null, 0);
                         return;
                     }
 
-                    Log.Info("[OllamaStatusMonitor][DIAG] Ollama unreachable on all endpoints. Status: Unknown");
+                    LogDiag("[OllamaStatusMonitor][DIAG] Ollama unreachable on all endpoints. Status: Unknown");
                     UpdateStatus(OllamaModelStatus.Unknown, null, 0);
                     return;
                 }
@@ -171,7 +190,7 @@ namespace TestCaseEditorApp.Services
                     if (!doc.RootElement.TryGetProperty("models", out var modelsArray) ||
                         modelsArray.ValueKind != JsonValueKind.Array)
                     {
-                        Log.Info("[OllamaStatusMonitor][DIAG] /api/ps response missing 'models' array. Status: Unknown");
+                        LogDiag("[OllamaStatusMonitor][DIAG] /api/ps response missing 'models' array. Status: Unknown");
                         UpdateStatus(OllamaModelStatus.Unknown, null, 0);
                         return;
                     }
@@ -184,7 +203,7 @@ namespace TestCaseEditorApp.Services
 
                     if (modelCount == 0)
                     {
-                        Log.Info("[OllamaStatusMonitor][DIAG] /api/ps returned 0 models. Status: NotLoaded");
+                        LogDiag("[OllamaStatusMonitor][DIAG] /api/ps returned 0 models. Status: NotLoaded");
                         UpdateStatus(OllamaModelStatus.NotLoaded, null, 0);
                         return;
                     }
@@ -209,24 +228,24 @@ namespace TestCaseEditorApp.Services
                             modelSize = parsedSize;
                         }
 
-                        Log.Info($"[OllamaStatusMonitor][DIAG] /api/ps returned loaded model: {modelName} ({FormatBytes(modelSize)})");
+                        LogDiag($"[OllamaStatusMonitor][DIAG] /api/ps returned loaded model: {modelName} ({FormatBytes(modelSize)})");
                         UpdateStatus(OllamaModelStatus.Loaded, modelName, modelSize);
                     }
                 }
             }
             catch (HttpRequestException ex)
             {
-                Log.Info($"[OllamaStatusMonitor][DIAG] HttpRequestException: {ex.Message}");
+                LogDiag($"[OllamaStatusMonitor][DIAG] HttpRequestException: {ex.Message}");
                 UpdateStatus(OllamaModelStatus.Unknown, null, 0);
             }
             catch (TaskCanceledException ex)
             {
-                Log.Info($"[OllamaStatusMonitor][DIAG] TaskCanceledException: {ex.Message}");
+                LogDiag($"[OllamaStatusMonitor][DIAG] TaskCanceledException: {ex.Message}");
                 UpdateStatus(OllamaModelStatus.Unknown, null, 0);
             }
             catch (Exception ex)
             {
-                Log.Info($"[OllamaStatusMonitor][DIAG] Exception: {ex.Message}");
+                LogDiag($"[OllamaStatusMonitor][DIAG] Exception: {ex.Message}");
                 _logger?.LogWarning(ex, "Error checking Ollama status");
                 UpdateStatus(OllamaModelStatus.Unknown, null, 0);
             }
@@ -242,23 +261,66 @@ namespace TestCaseEditorApp.Services
             {
                 try
                 {
-                    Log.Info($"[OllamaStatusMonitor][DIAG] Attempting {apiType} endpoint: {endpoint}");
+                    LogDiag($"[OllamaStatusMonitor][DIAG] Attempting {apiType} endpoint: {endpoint}");
                     var response = await _httpClient.GetAsync(endpoint);
                     if (response.IsSuccessStatusCode)
                     {
-                        Log.Info($"[OllamaStatusMonitor][DIAG] Success: {endpoint}");
+                        LogDiag($"[OllamaStatusMonitor][DIAG] Success: {endpoint}");
                         return response;
                     }
-                    Log.Info($"[OllamaStatusMonitor][DIAG] HTTP {(int)response.StatusCode} from {endpoint}");
+                    LogDiag($"[OllamaStatusMonitor][DIAG] HTTP {(int)response.StatusCode} from {endpoint}");
                     response.Dispose();
                 }
                 catch (Exception ex)
                 {
-                    Log.Info($"[OllamaStatusMonitor][DIAG] Exception on {endpoint}: {ex.Message}");
+                    LogDiag($"[OllamaStatusMonitor][DIAG] Exception on {endpoint}: {ex.Message}");
                 }
             }
-            Log.Info($"[OllamaStatusMonitor][DIAG] All {apiType} endpoints failed.");
+            LogDiag($"[OllamaStatusMonitor][DIAG] All {apiType} endpoints failed.");
             return null;
+        }
+
+        private async Task EnsureVersionCompatibilityCheckedAsync()
+        {
+            if (_versionChecked)
+            {
+                return;
+            }
+
+            var response = await TryGetResponseAsync(GetOllamaVersionEndpoints(), "/api/version");
+            if (response == null)
+            {
+                _versionChecked = true;
+                return;
+            }
+
+            using (response)
+            {
+                try
+                {
+                    var body = await response.Content.ReadAsStringAsync();
+                    using var doc = JsonDocument.Parse(body);
+
+                    if (doc.RootElement.TryGetProperty("version", out var versionEl))
+                    {
+                        var rawVersion = versionEl.GetString();
+                        _detectedOllamaVersion = NormalizeVersion(rawVersion);
+                        if (TryParseVersion(_detectedOllamaVersion, out var parsedVersion) && parsedVersion > _maxSupportedVersion)
+                        {
+                            _compatibilityWarning = $"Unsupported Ollama version {_detectedOllamaVersion}; recommended <= {_maxSupportedVersion}.";
+                            Log.Warn($"[OllamaStatusMonitor] {_compatibilityWarning}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogDiag($"[OllamaStatusMonitor][DIAG] Failed to parse /api/version response: {ex.Message}");
+                }
+                finally
+                {
+                    _versionChecked = true;
+                }
+            }
         }
 
         private async Task<bool> IsOllamaReachableViaTagsAsync()
@@ -280,6 +342,11 @@ namespace TestCaseEditorApp.Services
         private static IEnumerable<string> GetOllamaTagsEndpoints()
         {
             return BuildOllamaEndpoints("/api/tags");
+        }
+
+        private static IEnumerable<string> GetOllamaVersionEndpoints()
+        {
+            return BuildOllamaEndpoints("/api/version");
         }
 
         private static IEnumerable<string> BuildOllamaEndpoints(string apiPath)
@@ -307,6 +374,54 @@ namespace TestCaseEditorApp.Services
             }
 
             return DefaultStatusTimeoutSeconds;
+        }
+
+        private static bool IsDiagnosticsEnabled()
+        {
+            var value = Environment.GetEnvironmentVariable("OLLAMA_STATUS_DIAGNOSTICS");
+            return string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(value, "1", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static Version GetMaxSupportedVersion()
+        {
+            var value = Environment.GetEnvironmentVariable("OLLAMA_MAX_SUPPORTED_VERSION");
+            if (TryParseVersion(NormalizeVersion(value), out var parsed))
+            {
+                return parsed;
+            }
+
+            return Version.Parse(DefaultMaxSupportedVersion);
+        }
+
+        private static string? NormalizeVersion(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            var trimmed = value.Trim();
+            if (trimmed.StartsWith("v", StringComparison.OrdinalIgnoreCase))
+            {
+                trimmed = trimmed.Substring(1);
+            }
+
+            return trimmed;
+        }
+
+        private static bool TryParseVersion(string? value, out Version version)
+        {
+            version = new Version(0, 0);
+            return !string.IsNullOrWhiteSpace(value) && Version.TryParse(value, out version);
+        }
+
+        private void LogDiag(string message)
+        {
+            if (_diagnosticsEnabled)
+            {
+                Log.Info(message);
+            }
         }
 
         private static void AddEndpoint(List<string> endpoints, string baseOrFullValue, string apiPath)
@@ -348,8 +463,10 @@ namespace TestCaseEditorApp.Services
         {
             var statusChanged = _currentStatus != newStatus;
             var modelChanged = _loadedModelName != modelName;
+            var versionChanged = !string.Equals(_lastPublishedVersion, _detectedOllamaVersion, StringComparison.Ordinal);
+            var compatibilityChanged = !string.Equals(_lastPublishedCompatibilityWarning, _compatibilityWarning, StringComparison.Ordinal);
 
-            if (!statusChanged && !modelChanged)
+            if (!statusChanged && !modelChanged && !versionChanged && !compatibilityChanged)
             {
                 return;
             }
@@ -358,6 +475,8 @@ namespace TestCaseEditorApp.Services
             _currentStatus = newStatus;
             _loadedModelName = modelName;
             _loadedModelSize = modelSize;
+            _lastPublishedVersion = _detectedOllamaVersion;
+            _lastPublishedCompatibilityWarning = _compatibilityWarning;
             _lastStatusChange = DateTime.Now;
 
             Log.Info($"[OllamaStatusMonitor] Status changed: {oldStatus} -> {newStatus}" +
@@ -371,7 +490,9 @@ namespace TestCaseEditorApp.Services
                     {
                         Status = newStatus,
                         ModelName = modelName,
-                        ModelSize = modelSize
+                        ModelSize = modelSize,
+                        OllamaVersion = _detectedOllamaVersion,
+                        CompatibilityWarning = _compatibilityWarning
                     });
                 }
                 catch (Exception ex)

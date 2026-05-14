@@ -222,29 +222,43 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.ViewModels
             System.Console.WriteLine($"[NotificationWorkspaceVM] ===== OLLAMA STATUS EVENT RECEIVED: {e.Status} =====");
             
             OllamaLoadedModel = e.ModelName;
+            string baseStatusText;
             
             switch (e.Status)
             {
                 case OllamaModelStatus.Loaded:
-                    OllamaStatusText = $"Ollama: {e.ModelName ?? "Model"} Loaded";
+                    baseStatusText = $"Ollama: {e.ModelName ?? "Model"} Loaded";
                     OllamaStatusColor = "#51CF66"; // Green
                     break;
                     
                 case OllamaModelStatus.Loading:
-                    OllamaStatusText = "Ollama: Loading...";
+                    baseStatusText = "Ollama: Loading...";
                     OllamaStatusColor = "#FFA500"; // Orange
                     break;
                     
                 case OllamaModelStatus.NotLoaded:
-                    OllamaStatusText = "Ollama: Running (No Model Loaded)";
+                    baseStatusText = "Ollama: Running (No Model Loaded)";
                     OllamaStatusColor = "#999999"; // Gray
                     break;
                     
                 case OllamaModelStatus.Unknown:
                 default:
-                    OllamaStatusText = "Ollama: Unknown";
+                    baseStatusText = "Ollama: Unknown";
                     OllamaStatusColor = "#FF6B6B"; // Red
                     break;
+            }
+
+            if (!string.IsNullOrWhiteSpace(e.CompatibilityWarning))
+            {
+                OllamaStatusText = $"{baseStatusText} [{e.CompatibilityWarning}]";
+                if (e.Status != OllamaModelStatus.Unknown)
+                {
+                    OllamaStatusColor = "#FFA500"; // Orange warning
+                }
+            }
+            else
+            {
+                OllamaStatusText = baseStatusText;
             }
             
             System.Diagnostics.Debug.WriteLine($"[NotificationWorkspaceVM] Status display set to: {OllamaStatusText}");

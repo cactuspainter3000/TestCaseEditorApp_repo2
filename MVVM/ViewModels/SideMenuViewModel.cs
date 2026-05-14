@@ -34,6 +34,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     /// </summary>
     public partial class SideMenuViewModel : ObservableObject
     {
+        private static readonly Version MaxSupportedOllamaVersion = ResolveMaxSupportedOllamaVersion();
         private readonly INewProjectMediator _newProjectMediator;
         private readonly IOpenProjectMediator _openProjectMediator;
         private readonly INavigationMediator _navigationMediator;
@@ -476,6 +477,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 using (response)
                 {
                     var body = await response.Content.ReadAsStringAsync();
+
+                    var (versionSupported, versionMessage) = await ValidateOllamaVersionAsync(client, endpointUsed);
+                    if (!versionSupported)
+                    {
+                        return (false, versionMessage);
+                    }
+
                     if (string.IsNullOrWhiteSpace(settings.OllamaChatModel))
                     {
                         return (true, $"Ollama reachable at {endpointUsed}.");
@@ -513,6 +521,72 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 return (false, ex.Message);
             }
+        }
+
+        private static async Task<(bool Success, string Message)> ValidateOllamaVersionAsync(HttpClient client, string tagsEndpoint)
+        {
+            try
+            {
+                var versionEndpoint = tagsEndpoint.Replace("/api/tags", "/api/version", StringComparison.OrdinalIgnoreCase);
+                using var response = await client.GetAsync(versionEndpoint);
+                if (!response.IsSuccessStatusCode)
+                {
+                    return (true, "Ollama version endpoint unavailable; skipping version compatibility check.");
+                }
+
+                var body = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(body);
+                if (!doc.RootElement.TryGetProperty("version", out var versionEl))
+                {
+                    return (true, "Ollama version not reported; skipping version compatibility check.");
+                }
+
+                var rawVersion = versionEl.GetString();
+                var normalizedVersion = NormalizeOllamaVersion(rawVersion);
+                if (!Version.TryParse(normalizedVersion, out var parsedVersion))
+                {
+                    return (true, $"Ollama version '{rawVersion}' is not parseable; skipping version compatibility check.");
+                }
+
+                if (parsedVersion > MaxSupportedOllamaVersion)
+                {
+                    return (false, $"Unsupported Ollama version {parsedVersion}. Recommended maximum is {MaxSupportedOllamaVersion}. Please downgrade Ollama before continuing.");
+                }
+
+                return (true, $"Ollama version {parsedVersion} is compatible.");
+            }
+            catch (Exception ex)
+            {
+                return (true, $"Ollama version check skipped: {ex.Message}");
+            }
+        }
+
+        private static Version ResolveMaxSupportedOllamaVersion()
+        {
+            var envValue = Environment.GetEnvironmentVariable("OLLAMA_MAX_SUPPORTED_VERSION");
+            var normalized = NormalizeOllamaVersion(envValue);
+            if (Version.TryParse(normalized, out var parsedVersion))
+            {
+                return parsedVersion;
+            }
+
+            return new Version(0, 5, 13);
+        }
+
+        private static string? NormalizeOllamaVersion(string? version)
+        {
+            if (string.IsNullOrWhiteSpace(version))
+            {
+                return null;
+            }
+
+            var trimmed = version.Trim();
+            if (trimmed.StartsWith("v", StringComparison.OrdinalIgnoreCase))
+            {
+                trimmed = trimmed.Substring(1);
+            }
+
+            return trimmed;
         }
 
         private static IEnumerable<string> GetOllamaTagsEndpoints()
