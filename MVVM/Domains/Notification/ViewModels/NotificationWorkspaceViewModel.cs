@@ -154,6 +154,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.ViewModels
             _ollamaStatusMonitor = ollamaStatusMonitor;
             _logger?.LogInformation("NotificationWorkspaceViewModel initialized");
             TestCaseEditorApp.Services.Logging.Log.Info($"[NotificationWorkspaceVM] MEDIATOR DEBUG: NotificationWorkspaceViewModel created and subscribing to events");
+
+            // Initialize with default state first; subsequent monitor events should override this.
+            ResetToDefaults();
             
             // Subscribe to all notification events
             SubscribeToEvents();
@@ -186,9 +189,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.ViewModels
                 System.Console.WriteLine("[NotificationWorkspaceVM] ===== WARNING: IOllamaStatusMonitor is NULL =====");
                 TestCaseEditorApp.Services.Logging.Log.Warn("[NotificationWorkspaceVM] IOllamaStatusMonitor not available - Ollama status will not be displayed");
             }
-            
-            // Initialize with default state
-            ResetToDefaults();
             
             // Request current LLM status to initialize LED correctly
             TestCaseEditorApp.Services.Logging.Log.Info($"[NotificationWorkspaceVM] MEDIATOR DEBUG: Requesting current LLM status");
@@ -236,7 +236,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.ViewModels
                     break;
                     
                 case OllamaModelStatus.NotLoaded:
-                    OllamaStatusText = "Ollama: Not Loaded";
+                    OllamaStatusText = "Ollama: Running (No Model Loaded)";
                     OllamaStatusColor = "#999999"; // Gray
                     break;
                     
@@ -371,7 +371,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.ViewModels
             LlmProvider = null;
             LlmModel = null;
             
-            OllamaStatusText = "Ollama: Not Loaded";
+            OllamaStatusText = "Ollama: Running (No Model Loaded)";
             OllamaStatusColor = "#999999";
             OllamaLoadedModel = null;
             

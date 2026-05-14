@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -90,7 +91,6 @@ namespace TestCaseEditorApp.Services
             _logger = logger;
             _httpClient = new HttpClient
             {
-                BaseAddress = new Uri("http://localhost:11434/"),
                 Timeout = TimeSpan.FromSeconds(2) // Quick timeout for polling
             };
 
@@ -133,15 +133,22 @@ namespace TestCaseEditorApp.Services
 
             try
             {
-                var response = await _httpClient.GetAsync("api/ps");
+                var response = await TryGetPsResponseAsync();
+                if (response == null)
+                {
+                    UpdateStatus(OllamaModelStatus.Unknown, null, 0);
+                    return;
+                }
                 
                 if (!response.IsSuccessStatusCode)
                 {
+                    response.Dispose();
                     UpdateStatus(OllamaModelStatus.Unknown, null, 0);
                     return;
                 }
 
                 var json = await response.Content.ReadAsStringAsync();
+                response.Dispose();
                 using var doc = JsonDocument.Parse(json);
                 
                 if (!doc.RootElement.TryGetProperty("models", out var modelsArray) ||
@@ -193,6 +200,80 @@ namespace TestCaseEditorApp.Services
             {
                 _checkLock.Release();
             }
+        }
+
+        private async Task<HttpResponseMessage?> TryGetPsResponseAsync()
+        {
+            foreach (var endpoint in GetOllamaPsEndpoints())
+            {
+                try
+                {
+                    var response = await _httpClient.GetAsync(endpoint);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        return response;
+                    }
+
+                    response.Dispose();
+                }
+                catch
+                {
+                    // Try next endpoint
+                }
+            }
+
+            return null;
+        }
+
+        private static IEnumerable<string> GetOllamaPsEndpoints()
+        {
+            var endpoints = new List<string>();
+
+            AddEndpoint(endpoints, "http://127.0.0.1:11434");
+            AddEndpoint(endpoints, "http://localhost:11434");
+
+            var envHost = Environment.GetEnvironmentVariable("OLLAMA_HOST");
+            if (!string.IsNullOrWhiteSpace(envHost))
+            {
+                AddEndpoint(endpoints, envHost.Trim());
+            }
+
+            return endpoints;
+        }
+
+        private static void AddEndpoint(List<string> endpoints, string baseOrFullValue)
+        {
+            if (string.IsNullOrWhiteSpace(baseOrFullValue))
+            {
+                return;
+            }
+
+            var value = baseOrFullValue.Trim();
+            if (!value.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+                !value.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                value = "http://" + value;
+            }
+
+            string endpoint;
+            if (value.EndsWith("/api/ps", StringComparison.OrdinalIgnoreCase))
+            {
+                endpoint = value;
+            }
+            else
+            {
+                endpoint = value.TrimEnd('/') + "/api/ps";
+            }
+
+            foreach (var existing in endpoints)
+            {
+                if (string.Equals(existing, endpoint, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+            }
+
+            endpoints.Add(endpoint);
         }
 
         private void UpdateStatus(OllamaModelStatus newStatus, string? modelName, long modelSize)
