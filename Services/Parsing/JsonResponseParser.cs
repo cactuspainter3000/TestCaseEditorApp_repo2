@@ -45,6 +45,15 @@ namespace TestCaseEditorApp.Services.Parsing
             }
             catch (JsonException ex)
             {
+                // If the payload looks like our expected schema but is slightly malformed/truncated,
+                // allow ParseResponse to run a repair attempt.
+                var likelyJsonSchema = LooksLikeExpectedSchema(cleaned);
+                if (likelyJsonSchema)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JsonParser] CanParse JSON parse failed, but schema hints detected. Will attempt repair in ParseResponse. Error: {ex.Message}");
+                    return true;
+                }
+
                 TestCaseEditorApp.Services.Logging.Log.Warn($"[JsonParser] CanParse JSON parse failed: {ex.Message}");
                 return false;
             }
@@ -61,39 +70,69 @@ namespace TestCaseEditorApp.Services.Parsing
                     return null;
                 }
 
-                using var doc = JsonDocument.Parse(cleaned);
-                var root = doc.RootElement;
+                JsonElement root;
+                JsonDocument? parsedDoc = null;
 
-                var analysis = new RequirementAnalysis
+                try
                 {
-                    Timestamp = DateTime.Now,
-                    IsAnalyzed = true,
-                    ErrorMessage = null,
-                    HallucinationCheck = GetString(root, "HallucinationCheck") ?? "NO_FABRICATION",
-                    FreeformFeedback = GetString(root, "FreeformFeedback") ?? GetString(root, "Analysis"),
-                    Issues = ParseIssues(root),
-                    Recommendations = ParseRecommendations(root)
-                };
+                    parsedDoc = JsonDocument.Parse(cleaned);
+                    root = parsedDoc.RootElement;
+                }
+                catch (JsonException firstEx)
+                {
+                    var repaired = TryRepairMalformedJson(cleaned);
+                    if (string.IsNullOrWhiteSpace(repaired))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[{ParserName}Parser] Failed initial parse and no repair candidate available for {requirementId}: {firstEx.Message}");
+                        return null;
+                    }
 
-                analysis.ImprovedRequirement = GetFirstNonEmptyString(root,
-                        "ImprovedRequirement",
-                        "RewrittenRequirement",
-                        "RefinedRequirement",
-                        "RevisedRequirement",
-                        "RequirementRewrite",
-                        "RewriteRequirement",
-                        "RewriteText",
-                        "SuggestedRequirement")
-                    ?? analysis.Recommendations?.FirstOrDefault(r => !string.IsNullOrWhiteSpace(r?.SuggestedEdit))?.SuggestedEdit;
+                    try
+                    {
+                        parsedDoc = JsonDocument.Parse(repaired);
+                        root = parsedDoc.RootElement;
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[{ParserName}Parser] Parsed repaired JSON payload for {requirementId} (originalLength={cleaned.Length}, repairedLength={repaired.Length})");
+                    }
+                    catch (JsonException secondEx)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[{ParserName}Parser] Repair parse failed for {requirementId}: {secondEx.Message}");
+                        return null;
+                    }
+                }
 
-                analysis.OriginalQualityScore = GetInt(root, "OriginalQualityScore")
-                    ?? GetInt(root, "QualityScore")
-                    ?? 0;
+                using (parsedDoc)
+                {
+                    var analysis = new RequirementAnalysis
+                    {
+                        Timestamp = DateTime.Now,
+                        IsAnalyzed = true,
+                        ErrorMessage = null,
+                        HallucinationCheck = GetString(root, "HallucinationCheck") ?? "NO_FABRICATION",
+                        FreeformFeedback = GetString(root, "FreeformFeedback") ?? GetString(root, "Analysis"),
+                        Issues = ParseIssues(root),
+                        Recommendations = ParseRecommendations(root)
+                    };
 
-                TestCaseEditorApp.Services.Logging.Log.Info(
-                    $"[{ParserName}Parser] Parsed JSON response for {requirementId}: Score={analysis.OriginalQualityScore}, Issues={analysis.Issues.Count}, Recommendations={analysis.Recommendations.Count}, HasRewrite={!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement)}");
+                    analysis.ImprovedRequirement = GetFirstNonEmptyString(root,
+                            "ImprovedRequirement",
+                            "RewrittenRequirement",
+                            "RefinedRequirement",
+                            "RevisedRequirement",
+                            "RequirementRewrite",
+                            "RewriteRequirement",
+                            "RewriteText",
+                            "SuggestedRequirement")
+                        ?? analysis.Recommendations?.FirstOrDefault(r => !string.IsNullOrWhiteSpace(r?.SuggestedEdit))?.SuggestedEdit;
 
-                return analysis;
+                    analysis.OriginalQualityScore = GetInt(root, "OriginalQualityScore")
+                        ?? GetInt(root, "QualityScore")
+                        ?? 0;
+
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        $"[{ParserName}Parser] Parsed JSON response for {requirementId}: Score={analysis.OriginalQualityScore}, Issues={analysis.Issues.Count}, Recommendations={analysis.Recommendations.Count}, HasRewrite={!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement)}");
+
+                    return analysis;
+                }
             }
             catch (Exception ex)
             {
@@ -134,6 +173,93 @@ namespace TestCaseEditorApp.Services.Parsing
             cleaned = Regex.Replace(cleaned, @",\s*([}\]])", "$1");
 
             return cleaned;
+        }
+
+        private static bool LooksLikeExpectedSchema(string cleaned)
+        {
+            if (string.IsNullOrWhiteSpace(cleaned))
+                return false;
+
+            return cleaned.Contains("QualityScore", StringComparison.OrdinalIgnoreCase)
+                || cleaned.Contains("OriginalQualityScore", StringComparison.OrdinalIgnoreCase)
+                || cleaned.Contains("Recommendations", StringComparison.OrdinalIgnoreCase)
+                || cleaned.Contains("Analysis", StringComparison.OrdinalIgnoreCase)
+                || cleaned.Contains("FreeformFeedback", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string TryRepairMalformedJson(string cleaned)
+        {
+            if (string.IsNullOrWhiteSpace(cleaned))
+                return string.Empty;
+
+            var repaired = cleaned;
+
+            // Close an unterminated string if quote count is odd.
+            int quoteCount = 0;
+            bool escaped = false;
+            foreach (var ch in repaired)
+            {
+                if (ch == '\\' && !escaped)
+                {
+                    escaped = true;
+                    continue;
+                }
+
+                if (ch == '"' && !escaped)
+                {
+                    quoteCount++;
+                }
+
+                escaped = false;
+            }
+
+            if (quoteCount % 2 != 0)
+            {
+                repaired += "\"";
+            }
+
+            // Close missing braces/brackets while respecting quoted text.
+            int openBraces = 0;
+            int openBrackets = 0;
+            bool inString = false;
+            escaped = false;
+
+            foreach (var ch in repaired)
+            {
+                if (ch == '\\' && !escaped)
+                {
+                    escaped = true;
+                    continue;
+                }
+
+                if (ch == '"' && !escaped)
+                {
+                    inString = !inString;
+                }
+                else if (!inString)
+                {
+                    if (ch == '{') openBraces++;
+                    else if (ch == '}') openBraces--;
+                    else if (ch == '[') openBrackets++;
+                    else if (ch == ']') openBrackets--;
+                }
+
+                escaped = false;
+            }
+
+            if (openBrackets > 0)
+            {
+                repaired += new string(']', openBrackets);
+            }
+
+            if (openBraces > 0)
+            {
+                repaired += new string('}', openBraces);
+            }
+
+            // Remove trailing commas before closing tokens one final time.
+            repaired = Regex.Replace(repaired, @",\s*([}\]])", "$1");
+            return repaired;
         }
 
         private static bool HasProperty(JsonElement root, string propertyName)
