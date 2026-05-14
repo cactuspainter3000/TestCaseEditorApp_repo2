@@ -134,15 +134,21 @@ namespace TestCaseEditorApp.Services
 
             try
             {
-                var response = await TryGetResponseAsync(GetOllamaPsEndpoints());
+                var psEndpoints = GetOllamaPsEndpoints();
+                Log.Info($"[OllamaStatusMonitor][DIAG] Probing /api/ps endpoints: {string.Join(", ", psEndpoints)}");
+                var response = await TryGetResponseAsync(psEndpoints, "/api/ps");
                 if (response == null)
                 {
+                    var tagsEndpoints = GetOllamaTagsEndpoints();
+                    Log.Info($"[OllamaStatusMonitor][DIAG] Probing /api/tags endpoints: {string.Join(", ", tagsEndpoints)}");
                     if (await IsOllamaReachableViaTagsAsync())
                     {
+                        Log.Info("[OllamaStatusMonitor][DIAG] /api/tags reachable, but no model loaded.");
                         UpdateStatus(OllamaModelStatus.NotLoaded, null, 0);
                         return;
                     }
 
+                    Log.Info("[OllamaStatusMonitor][DIAG] Ollama unreachable on all endpoints. Status: Unknown");
                     UpdateStatus(OllamaModelStatus.Unknown, null, 0);
                     return;
                 }
@@ -155,6 +161,7 @@ namespace TestCaseEditorApp.Services
                     if (!doc.RootElement.TryGetProperty("models", out var modelsArray) ||
                         modelsArray.ValueKind != JsonValueKind.Array)
                     {
+                        Log.Info("[OllamaStatusMonitor][DIAG] /api/ps response missing 'models' array. Status: Unknown");
                         UpdateStatus(OllamaModelStatus.Unknown, null, 0);
                         return;
                     }
@@ -167,6 +174,7 @@ namespace TestCaseEditorApp.Services
 
                     if (modelCount == 0)
                     {
+                        Log.Info("[OllamaStatusMonitor][DIAG] /api/ps returned 0 models. Status: NotLoaded");
                         UpdateStatus(OllamaModelStatus.NotLoaded, null, 0);
                         return;
                     }
@@ -191,20 +199,24 @@ namespace TestCaseEditorApp.Services
                             modelSize = parsedSize;
                         }
 
+                        Log.Info($"[OllamaStatusMonitor][DIAG] /api/ps returned loaded model: {modelName} ({FormatBytes(modelSize)})");
                         UpdateStatus(OllamaModelStatus.Loaded, modelName, modelSize);
                     }
                 }
             }
-            catch (HttpRequestException)
+            catch (HttpRequestException ex)
             {
+                Log.Info($"[OllamaStatusMonitor][DIAG] HttpRequestException: {ex.Message}");
                 UpdateStatus(OllamaModelStatus.Unknown, null, 0);
             }
-            catch (TaskCanceledException)
+            catch (TaskCanceledException ex)
             {
+                Log.Info($"[OllamaStatusMonitor][DIAG] TaskCanceledException: {ex.Message}");
                 UpdateStatus(OllamaModelStatus.Unknown, null, 0);
             }
             catch (Exception ex)
             {
+                Log.Info($"[OllamaStatusMonitor][DIAG] Exception: {ex.Message}");
                 _logger?.LogWarning(ex, "Error checking Ollama status");
                 UpdateStatus(OllamaModelStatus.Unknown, null, 0);
             }
@@ -214,37 +226,38 @@ namespace TestCaseEditorApp.Services
             }
         }
 
-        private async Task<HttpResponseMessage?> TryGetResponseAsync(IEnumerable<string> endpoints)
+        private async Task<HttpResponseMessage?> TryGetResponseAsync(IEnumerable<string> endpoints, string apiType)
         {
             foreach (var endpoint in endpoints)
             {
                 try
                 {
+                    Log.Info($"[OllamaStatusMonitor][DIAG] Attempting {apiType} endpoint: {endpoint}");
                     var response = await _httpClient.GetAsync(endpoint);
                     if (response.IsSuccessStatusCode)
                     {
+                        Log.Info($"[OllamaStatusMonitor][DIAG] Success: {endpoint}");
                         return response;
                     }
-
+                    Log.Info($"[OllamaStatusMonitor][DIAG] HTTP {(int)response.StatusCode} from {endpoint}");
                     response.Dispose();
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Try next endpoint
+                    Log.Info($"[OllamaStatusMonitor][DIAG] Exception on {endpoint}: {ex.Message}");
                 }
             }
-
+            Log.Info($"[OllamaStatusMonitor][DIAG] All {apiType} endpoints failed.");
             return null;
         }
 
         private async Task<bool> IsOllamaReachableViaTagsAsync()
         {
-            var response = await TryGetResponseAsync(GetOllamaTagsEndpoints());
+            var response = await TryGetResponseAsync(GetOllamaTagsEndpoints(), "/api/tags");
             if (response == null)
             {
                 return false;
             }
-
             response.Dispose();
             return true;
         }
