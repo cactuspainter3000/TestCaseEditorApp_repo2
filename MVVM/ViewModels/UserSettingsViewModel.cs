@@ -416,13 +416,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private bool Validate()
         {
-            if (string.IsNullOrWhiteSpace(JamaBaseUrl)
+            var hasMissingRequiredField = string.IsNullOrWhiteSpace(JamaBaseUrl)
                 || string.IsNullOrWhiteSpace(JamaClientId)
                 || string.IsNullOrWhiteSpace(JamaClientSecret)
                 || string.IsNullOrWhiteSpace(AnythingLlmBaseUrl)
                 || string.IsNullOrWhiteSpace(AnythingLlmApiKey)
                 || string.IsNullOrWhiteSpace(SelectedChatModel)
-                || string.IsNullOrWhiteSpace(SelectedEmbeddingModel))
+                || string.IsNullOrWhiteSpace(SelectedEmbeddingModel);
+
+            if (hasMissingRequiredField && IsRequired)
             {
                 StatusMessage = "All fields are required.";
                 IsStatusError = true;
@@ -432,24 +434,32 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             // Allow any model in the OllamaModels list, but warn if not recommended
             var recommendedChatModels = new[] { "phi4-mini:latest", "phi4-mini" };
             var recommendedEmbedModels = new[] { "nomic-embed-text:latest", "nomic-embed-text" };
+            var warnings = new List<string>();
 
             if (!OllamaModels.Contains(SelectedChatModel))
             {
-                StatusMessage = $"Warning: The selected chat model '{SelectedChatModel}' is not currently installed in Ollama. Please refresh models or install it.";
-                IsStatusError = true;
-                return false;
+                warnings.Add($"Chat model '{SelectedChatModel}' is not currently installed in Ollama.");
             }
+
             if (!OllamaModels.Contains(SelectedEmbeddingModel))
             {
-                StatusMessage = $"Warning: The selected embedding model '{SelectedEmbeddingModel}' is not currently installed in Ollama. Please refresh models or install it.";
-                IsStatusError = true;
-                return false;
+                warnings.Add($"Embedding model '{SelectedEmbeddingModel}' is not currently installed in Ollama.");
             }
 
             // Show a non-blocking warning if not using recommended models
             if (!recommendedChatModels.Contains(SelectedChatModel) || !recommendedEmbedModels.Contains(SelectedEmbeddingModel))
             {
-                StatusMessage = "Note: You are not using the recommended models. Some features may not work as expected. For best results, use 'phi4-mini:latest' for chat and 'nomic-embed-text:latest' for embedding.";
+                warnings.Add("You are not using the recommended model pair ('phi4-mini:latest' and 'nomic-embed-text:latest').");
+            }
+
+            if (hasMissingRequiredField)
+            {
+                warnings.Add("Some settings fields are still empty.");
+            }
+
+            if (warnings.Count > 0)
+            {
+                StatusMessage = "Saved with warnings: " + string.Join(" ", warnings);
                 IsStatusError = false;
             }
 
