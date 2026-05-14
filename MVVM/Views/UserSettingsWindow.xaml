@@ -18,6 +18,7 @@
                 <ResourceDictionary Source="/Resources/DesignSystem.xaml"/>
                 <ResourceDictionary Source="/Resources/ButtonStyles.xaml"/>
                 <ResourceDictionary Source="/Resources/ComboBoxStyles.xaml"/>
+                <ResourceDictionary Source="/Resources/InputStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             <!-- Shared style for labelled input rows -->
             <Style x:Key="FieldLabel" TargetType="TextBlock">
@@ -26,16 +27,6 @@
                 <Setter Property="FontWeight" Value="SemiBold"/>
                 <Setter Property="VerticalAlignment" Value="Center"/>
                 <Setter Property="Margin" Value="0,0,0,4"/>
-            </Style>
-            <!-- Shared input box style: dark bg + white text, no native border -->
-            <Style x:Key="DarkTextBox" TargetType="TextBox">
-                <Setter Property="Background" Value="Transparent"/>
-                <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
-                <Setter Property="BorderThickness" Value="0"/>
-                <Setter Property="Padding" Value="10,7"/>
-                <Setter Property="FontSize" Value="13"/>
-                <Setter Property="VerticalAlignment" Value="Center"/>
-                <Setter Property="CaretBrush" Value="{StaticResource Brush.Accent.Primary}"/>
             </Style>
         </ResourceDictionary>
     </Window.Resources>
@@ -112,33 +103,24 @@
 
                     <!-- Base URL -->
                     <TextBlock Text="Base URL" Style="{StaticResource FieldLabel}"/>
-                    <Border Background="#2D2D30"
-                            BorderBrush="{StaticResource Brush.Border.Default}"
-                            BorderThickness="1"
-                            Margin="0,0,0,14">
-                        <TextBox Text="{Binding JamaBaseUrl, UpdateSourceTrigger=PropertyChanged}"
-                                 Style="{StaticResource DarkTextBox}"/>
-                    </Border>
+                    <TextBox Text="{Binding JamaBaseUrl, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource MenuPopupTextBoxStyle}"
+                             Margin="0,0,0,14"
+                             FontSize="13"/>
 
                     <!-- Client ID -->
                     <TextBlock Text="Client ID" Style="{StaticResource FieldLabel}"/>
-                    <Border Background="#2D2D30"
-                            BorderBrush="{StaticResource Brush.Border.Default}"
-                            BorderThickness="1"
-                            Margin="0,0,0,14">
-                        <TextBox Text="{Binding JamaClientId, UpdateSourceTrigger=PropertyChanged}"
-                                 Style="{StaticResource DarkTextBox}"/>
-                    </Border>
+                    <TextBox Text="{Binding JamaClientId, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource MenuPopupTextBoxStyle}"
+                             Margin="0,0,0,14"
+                             FontSize="13"/>
 
                     <!-- Client Secret -->
                     <TextBlock Text="Client Secret" Style="{StaticResource FieldLabel}"/>
-                    <Border Background="#2D2D30"
-                            BorderBrush="{StaticResource Brush.Border.Default}"
-                            BorderThickness="1"
-                            Margin="0,0,0,20">
-                        <TextBox Text="{Binding JamaClientSecret, UpdateSourceTrigger=PropertyChanged}"
-                                 Style="{StaticResource DarkTextBox}"/>
-                    </Border>
+                    <TextBox Text="{Binding JamaClientSecret, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource MenuPopupTextBoxStyle}"
+                             Margin="0,0,0,20"
+                             FontSize="13"/>
 
                     <Button Content="Test Jama Connection"
                             HorizontalAlignment="Left"
@@ -154,23 +136,17 @@
 
                     <!-- Base URL -->
                     <TextBlock Text="Base URL" Style="{StaticResource FieldLabel}"/>
-                    <Border Background="#2D2D30"
-                            BorderBrush="{StaticResource Brush.Border.Default}"
-                            BorderThickness="1"
-                            Margin="0,0,0,14">
-                        <TextBox Text="{Binding AnythingLlmBaseUrl, UpdateSourceTrigger=PropertyChanged}"
-                                 Style="{StaticResource DarkTextBox}"/>
-                    </Border>
+                    <TextBox Text="{Binding AnythingLlmBaseUrl, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource MenuPopupTextBoxStyle}"
+                             Margin="0,0,0,14"
+                             FontSize="13"/>
 
                     <!-- API Key -->
                     <TextBlock Text="API Key" Style="{StaticResource FieldLabel}"/>
-                    <Border Background="#2D2D30"
-                            BorderBrush="{StaticResource Brush.Border.Default}"
-                            BorderThickness="1"
-                            Margin="0,0,0,20">
-                        <TextBox Text="{Binding AnythingLlmApiKey, UpdateSourceTrigger=PropertyChanged}"
-                                 Style="{StaticResource DarkTextBox}"/>
-                    </Border>
+                    <TextBox Text="{Binding AnythingLlmApiKey, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource MenuPopupTextBoxStyle}"
+                             Margin="0,0,0,20"
+                             FontSize="13"/>
 
                     <Button Content="Test AnythingLLM Connection"
                             HorizontalAlignment="Left"
@@ -201,29 +177,21 @@
 
                     <!-- Chat Model -->
                     <TextBlock Text="Chat Model" Style="{StaticResource FieldLabel}"/>
-                    <Border Background="#2D2D30"
-                            BorderBrush="{StaticResource Brush.Border.Default}"
-                            BorderThickness="1"
-                            Margin="0,0,0,14">
-                        <ComboBox ItemsSource="{Binding OllamaModels}"
-                                  Text="{Binding SelectedChatModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                  IsEditable="True"
-                                  Style="{StaticResource CardComboBoxStyle}"
-                                  FontSize="13"/>
-                    </Border>
+                    <ComboBox ItemsSource="{Binding OllamaModels}"
+                              Text="{Binding SelectedChatModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              IsEditable="True"
+                              Style="{StaticResource CardComboBoxStyle}"
+                              Margin="0,0,0,14"
+                              FontSize="13"/>
 
                     <!-- Embedding Model -->
                     <TextBlock Text="Embedding Model" Style="{StaticResource FieldLabel}"/>
-                    <Border Background="#2D2D30"
-                            BorderBrush="{StaticResource Brush.Border.Default}"
-                            BorderThickness="1"
-                            Margin="0,0,0,20">
-                        <ComboBox ItemsSource="{Binding OllamaModels}"
-                                  Text="{Binding SelectedEmbeddingModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                  IsEditable="True"
-                                  Style="{StaticResource CardComboBoxStyle}"
-                                  FontSize="13"/>
-                    </Border>
+                    <ComboBox ItemsSource="{Binding OllamaModels}"
+                              Text="{Binding SelectedEmbeddingModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              IsEditable="True"
+                              Style="{StaticResource CardComboBoxStyle}"
+                              Margin="0,0,0,20"
+                              FontSize="13"/>
 
                     <Button Content="Refresh available models"
                             HorizontalAlignment="Left"
