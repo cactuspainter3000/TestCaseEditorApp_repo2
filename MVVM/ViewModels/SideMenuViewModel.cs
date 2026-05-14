@@ -443,17 +443,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             try
             {
-                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
 
                 HttpResponseMessage? response = null;
                 string endpointUsed = string.Empty;
-                string[] endpoints =
-                {
-                    "http://127.0.0.1:11434/api/tags",
-                    "http://localhost:11434/api/tags"
-                };
 
-                foreach (var endpoint in endpoints)
+                foreach (var endpoint in GetOllamaTagsEndpoints())
                 {
                     try
                     {
@@ -475,42 +470,94 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 if (response == null)
                 {
-                    return (false, "Could not connect to Ollama at localhost/127.0.0.1:11434.");
+                    return (false, "Could not connect to Ollama at configured/local endpoints (OLLAMA_HOST, 127.0.0.1, localhost). If 'ollama list' works in another shell, restart this app so it inherits updated environment.");
                 }
 
                 using (response)
                 {
-                var body = await response.Content.ReadAsStringAsync();
-                if (string.IsNullOrWhiteSpace(settings.OllamaChatModel))
-                {
-                    return (true, $"Ollama reachable at {endpointUsed}.");
-                }
-
-                using var doc = JsonDocument.Parse(body);
-                if (doc.RootElement.TryGetProperty("models", out var models) && models.ValueKind == JsonValueKind.Array)
-                {
-                    var chatModel = settings.OllamaChatModel.Trim();
-                    foreach (var model in models.EnumerateArray())
+                    var body = await response.Content.ReadAsStringAsync();
+                    if (string.IsNullOrWhiteSpace(settings.OllamaChatModel))
                     {
-                        if (model.TryGetProperty("name", out var nameElement))
+                        return (true, $"Ollama reachable at {endpointUsed}.");
+                    }
+
+                    using var doc = JsonDocument.Parse(body);
+                    if (doc.RootElement.TryGetProperty("models", out var models) && models.ValueKind == JsonValueKind.Array)
+                    {
+                        var chatModel = settings.OllamaChatModel.Trim();
+                        foreach (var model in models.EnumerateArray())
                         {
-                            var modelName = nameElement.GetString();
+                            string? modelName = null;
+                            if (model.TryGetProperty("name", out var nameElement))
+                            {
+                                modelName = nameElement.GetString();
+                            }
+                            else if (model.TryGetProperty("model", out var modelElement))
+                            {
+                                modelName = modelElement.GetString();
+                            }
+
                             if (!string.IsNullOrWhiteSpace(modelName) && string.Equals(modelName, chatModel, StringComparison.OrdinalIgnoreCase))
                             {
                                 return (true, $"Ollama reachable at {endpointUsed} and selected model found.");
                             }
                         }
+
+                        return (false, $"Selected chat model '{chatModel}' is not installed in Ollama.");
                     }
 
-                    return (false, $"Selected chat model '{chatModel}' is not installed in Ollama.");
-                }
-
-                return (false, "Ollama model list response is invalid.");
+                    return (false, "Ollama model list response is invalid.");
                 }
             }
             catch (Exception ex)
             {
                 return (false, ex.Message);
+            }
+        }
+
+        private static IEnumerable<string> GetOllamaTagsEndpoints()
+        {
+            var endpoints = new List<string>();
+
+            AddEndpoint(endpoints, "http://127.0.0.1:11434");
+            AddEndpoint(endpoints, "http://localhost:11434");
+
+            var envHost = Environment.GetEnvironmentVariable("OLLAMA_HOST");
+            if (!string.IsNullOrWhiteSpace(envHost))
+            {
+                AddEndpoint(endpoints, envHost.Trim());
+            }
+
+            return endpoints;
+        }
+
+        private static void AddEndpoint(List<string> endpoints, string baseOrFullValue)
+        {
+            if (string.IsNullOrWhiteSpace(baseOrFullValue))
+            {
+                return;
+            }
+
+            var value = baseOrFullValue.Trim();
+            if (!value.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+                !value.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                value = "http://" + value;
+            }
+
+            string endpoint;
+            if (value.EndsWith("/api/tags", StringComparison.OrdinalIgnoreCase))
+            {
+                endpoint = value;
+            }
+            else
+            {
+                endpoint = value.TrimEnd('/') + "/api/tags";
+            }
+
+            if (!endpoints.Contains(endpoint, StringComparer.OrdinalIgnoreCase))
+            {
+                endpoints.Add(endpoint);
             }
         }
 

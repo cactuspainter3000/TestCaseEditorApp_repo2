@@ -12,52 +12,52 @@ using Timer = System.Timers.Timer;
 namespace TestCaseEditorApp.Services
 {
     /// <summary>
-    /// Monitors Ollama model loading status via /api/ps endpoint
+    /// Monitors Ollama model loading status via /api/ps endpoint.
     /// </summary>
     public interface IOllamaStatusMonitor : IDisposable
     {
         /// <summary>
-        /// Event fired when Ollama status changes
+        /// Event fired when Ollama status changes.
         /// </summary>
         event EventHandler<OllamaStatusChangedEventArgs>? StatusChanged;
 
         /// <summary>
-        /// Current status of Ollama model
+        /// Current status of Ollama model.
         /// </summary>
         OllamaModelStatus CurrentStatus { get; }
 
         /// <summary>
-        /// Name of currently loaded model (null if no model loaded)
+        /// Name of currently loaded model (null if no model loaded).
         /// </summary>
         string? LoadedModelName { get; }
 
         /// <summary>
-        /// Size of loaded model in bytes (0 if no model loaded)
+        /// Size of loaded model in bytes (0 if no model loaded).
         /// </summary>
         long LoadedModelSize { get; }
 
         /// <summary>
-        /// Start monitoring Ollama status
+        /// Start monitoring Ollama status.
         /// </summary>
         void StartMonitoring();
 
         /// <summary>
-        /// Stop monitoring Ollama status
+        /// Stop monitoring Ollama status.
         /// </summary>
         void StopMonitoring();
 
         /// <summary>
-        /// Check Ollama status immediately (bypasses polling interval)
+        /// Check Ollama status immediately (bypasses polling interval).
         /// </summary>
         Task CheckStatusNowAsync();
     }
 
     public enum OllamaModelStatus
     {
-        Unknown,        // Initial state or error checking status
-        NotLoaded,      // Ollama running but no model in memory
-        Loading,        // Model is currently loading (detected by transition)
-        Loaded          // Model is loaded and ready
+        Unknown,
+        NotLoaded,
+        Loading,
+        Loaded
     }
 
     public class OllamaStatusChangedEventArgs : EventArgs
@@ -91,10 +91,10 @@ namespace TestCaseEditorApp.Services
             _logger = logger;
             _httpClient = new HttpClient
             {
-                Timeout = TimeSpan.FromSeconds(2) // Quick timeout for polling
+                Timeout = TimeSpan.FromSeconds(2)
             };
 
-            _pollingTimer = new Timer(3000); // Poll every 3 seconds
+            _pollingTimer = new Timer(3000);
             _pollingTimer.Elapsed += OnPollingTimerElapsed;
             _pollingTimer.AutoReset = true;
         }
@@ -102,13 +102,10 @@ namespace TestCaseEditorApp.Services
         public void StartMonitoring()
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OllamaStatusMonitor));
-            
-            System.Diagnostics.Debug.WriteLine("[OllamaStatusMonitor] ===== STARTING OLLAMA MONITORING =====");
-            System.Console.WriteLine("[OllamaStatusMonitor] ===== STARTING OLLAMA MONITORING =====");
+
             Log.Info("[OllamaStatusMonitor] Starting Ollama status monitoring (polling every 3 seconds)");
             _pollingTimer.Start();
-            
-            // Check immediately
+
             _ = Task.Run(async () => await CheckStatusNowAsync());
         }
 
@@ -125,57 +122,74 @@ namespace TestCaseEditorApp.Services
 
         public async Task CheckStatusNowAsync()
         {
-            if (_disposed) return;
-            
-            // Prevent concurrent checks
-            if (!await _checkLock.WaitAsync(0))
+            if (_disposed)
+            {
                 return;
+            }
+
+            if (!await _checkLock.WaitAsync(0))
+            {
+                return;
+            }
 
             try
             {
-                var response = await TryGetPsResponseAsync();
+                var response = await TryGetResponseAsync(GetOllamaPsEndpoints());
                 if (response == null)
                 {
-                    UpdateStatus(OllamaModelStatus.Unknown, null, 0);
-                    return;
-                }
-                
-                if (!response.IsSuccessStatusCode)
-                {
-                    response.Dispose();
-                    UpdateStatus(OllamaModelStatus.Unknown, null, 0);
-                    return;
-                }
+                    if (await IsOllamaReachableViaTagsAsync())
+                    {
+                        UpdateStatus(OllamaModelStatus.NotLoaded, null, 0);
+                        return;
+                    }
 
-                var json = await response.Content.ReadAsStringAsync();
-                response.Dispose();
-                using var doc = JsonDocument.Parse(json);
-                
-                if (!doc.RootElement.TryGetProperty("models", out var modelsArray) ||
-                    modelsArray.ValueKind != JsonValueKind.Array)
-                {
                     UpdateStatus(OllamaModelStatus.Unknown, null, 0);
                     return;
                 }
 
-                var modelCount = 0;
-                foreach (var _ in modelsArray.EnumerateArray())
-                    modelCount++;
+                using (response)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    using var doc = JsonDocument.Parse(json);
 
-                if (modelCount == 0)
-                {
-                    // No models loaded
-                    UpdateStatus(OllamaModelStatus.NotLoaded, null, 0);
-                }
-                else
-                {
-                    // Get first model (usually only one loaded at a time)
+                    if (!doc.RootElement.TryGetProperty("models", out var modelsArray) ||
+                        modelsArray.ValueKind != JsonValueKind.Array)
+                    {
+                        UpdateStatus(OllamaModelStatus.Unknown, null, 0);
+                        return;
+                    }
+
+                    int modelCount = 0;
+                    foreach (var _ in modelsArray.EnumerateArray())
+                    {
+                        modelCount++;
+                    }
+
+                    if (modelCount == 0)
+                    {
+                        UpdateStatus(OllamaModelStatus.NotLoaded, null, 0);
+                        return;
+                    }
+
                     var firstModel = modelsArray.EnumerateArray().GetEnumerator();
                     if (firstModel.MoveNext())
                     {
                         var model = firstModel.Current;
-                        var modelName = model.TryGetProperty("name", out var nameEl) ? nameEl.GetString() : null;
-                        var modelSize = model.TryGetProperty("size", out var sizeEl) ? sizeEl.GetInt64() : 0L;
+                        string? modelName = null;
+                        if (model.TryGetProperty("name", out var nameEl))
+                        {
+                            modelName = nameEl.GetString();
+                        }
+                        else if (model.TryGetProperty("model", out var modelEl))
+                        {
+                            modelName = modelEl.GetString();
+                        }
+
+                        long modelSize = 0;
+                        if (model.TryGetProperty("size", out var sizeEl) && sizeEl.TryGetInt64(out var parsedSize))
+                        {
+                            modelSize = parsedSize;
+                        }
 
                         UpdateStatus(OllamaModelStatus.Loaded, modelName, modelSize);
                     }
@@ -183,12 +197,10 @@ namespace TestCaseEditorApp.Services
             }
             catch (HttpRequestException)
             {
-                // Ollama not responding - probably not running
                 UpdateStatus(OllamaModelStatus.Unknown, null, 0);
             }
             catch (TaskCanceledException)
             {
-                // Timeout - Ollama might be stuck or not responding
                 UpdateStatus(OllamaModelStatus.Unknown, null, 0);
             }
             catch (Exception ex)
@@ -202,9 +214,9 @@ namespace TestCaseEditorApp.Services
             }
         }
 
-        private async Task<HttpResponseMessage?> TryGetPsResponseAsync()
+        private async Task<HttpResponseMessage?> TryGetResponseAsync(IEnumerable<string> endpoints)
         {
-            foreach (var endpoint in GetOllamaPsEndpoints())
+            foreach (var endpoint in endpoints)
             {
                 try
                 {
@@ -225,23 +237,45 @@ namespace TestCaseEditorApp.Services
             return null;
         }
 
+        private async Task<bool> IsOllamaReachableViaTagsAsync()
+        {
+            var response = await TryGetResponseAsync(GetOllamaTagsEndpoints());
+            if (response == null)
+            {
+                return false;
+            }
+
+            response.Dispose();
+            return true;
+        }
+
         private static IEnumerable<string> GetOllamaPsEndpoints()
+        {
+            return BuildOllamaEndpoints("/api/ps");
+        }
+
+        private static IEnumerable<string> GetOllamaTagsEndpoints()
+        {
+            return BuildOllamaEndpoints("/api/tags");
+        }
+
+        private static IEnumerable<string> BuildOllamaEndpoints(string apiPath)
         {
             var endpoints = new List<string>();
 
-            AddEndpoint(endpoints, "http://127.0.0.1:11434");
-            AddEndpoint(endpoints, "http://localhost:11434");
+            AddEndpoint(endpoints, "http://127.0.0.1:11434", apiPath);
+            AddEndpoint(endpoints, "http://localhost:11434", apiPath);
 
             var envHost = Environment.GetEnvironmentVariable("OLLAMA_HOST");
             if (!string.IsNullOrWhiteSpace(envHost))
             {
-                AddEndpoint(endpoints, envHost.Trim());
+                AddEndpoint(endpoints, envHost.Trim(), apiPath);
             }
 
             return endpoints;
         }
 
-        private static void AddEndpoint(List<string> endpoints, string baseOrFullValue)
+        private static void AddEndpoint(List<string> endpoints, string baseOrFullValue, string apiPath)
         {
             if (string.IsNullOrWhiteSpace(baseOrFullValue))
             {
@@ -256,13 +290,13 @@ namespace TestCaseEditorApp.Services
             }
 
             string endpoint;
-            if (value.EndsWith("/api/ps", StringComparison.OrdinalIgnoreCase))
+            if (value.EndsWith(apiPath, StringComparison.OrdinalIgnoreCase))
             {
                 endpoint = value;
             }
             else
             {
-                endpoint = value.TrimEnd('/') + "/api/ps";
+                endpoint = value.TrimEnd('/') + apiPath;
             }
 
             foreach (var existing in endpoints)
@@ -281,10 +315,10 @@ namespace TestCaseEditorApp.Services
             var statusChanged = _currentStatus != newStatus;
             var modelChanged = _loadedModelName != modelName;
 
-            System.Diagnostics.Debug.WriteLine($"[OllamaStatusMonitor] Status: {_currentStatus} → {newStatus}, Model: {modelName ?? "none"}");
-            
             if (!statusChanged && !modelChanged)
-                return; // No change
+            {
+                return;
+            }
 
             var oldStatus = _currentStatus;
             _currentStatus = newStatus;
@@ -292,12 +326,9 @@ namespace TestCaseEditorApp.Services
             _loadedModelSize = modelSize;
             _lastStatusChange = DateTime.Now;
 
-            System.Diagnostics.Debug.WriteLine($"[OllamaStatusMonitor] *** STATUS CHANGE DETECTED *** {oldStatus} → {newStatus}");
-            System.Console.WriteLine($"[OllamaStatusMonitor] *** STATUS CHANGE DETECTED *** {oldStatus} → {newStatus}");
-            Log.Info($"[OllamaStatusMonitor] Status changed: {oldStatus} → {newStatus}" + 
+            Log.Info($"[OllamaStatusMonitor] Status changed: {oldStatus} -> {newStatus}" +
                      (modelName != null ? $" | Model: {modelName} ({FormatBytes(modelSize)})" : ""));
 
-            // Raise event on thread pool to avoid blocking timer
             ThreadPool.QueueUserWorkItem(_ =>
             {
                 try
@@ -327,8 +358,11 @@ namespace TestCaseEditorApp.Services
 
         public void Dispose()
         {
-            if (_disposed) return;
-            
+            if (_disposed)
+            {
+                return;
+            }
+
             _disposed = true;
             _pollingTimer?.Stop();
             _pollingTimer?.Dispose();
