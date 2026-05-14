@@ -17,6 +17,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/Resources/DesignSystem.xaml"/>
                 <ResourceDictionary Source="/Resources/ButtonStyles.xaml"/>
+                <ResourceDictionary Source="/Resources/ComboBoxStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             <!-- Shared style for labelled input rows -->
             <Style x:Key="FieldLabel" TargetType="TextBlock">
@@ -207,10 +208,7 @@
                         <ComboBox ItemsSource="{Binding OllamaModels}"
                                   Text="{Binding SelectedChatModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                   IsEditable="True"
-                                  Background="Transparent"
-                                  Foreground="{StaticResource Brush.Text.Primary}"
-                                  BorderThickness="0"
-                                  Padding="8,6"
+                                  Style="{StaticResource CardComboBoxStyle}"
                                   FontSize="13"/>
                     </Border>
 
@@ -223,10 +221,7 @@
                         <ComboBox ItemsSource="{Binding OllamaModels}"
                                   Text="{Binding SelectedEmbeddingModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                   IsEditable="True"
-                                  Background="Transparent"
-                                  Foreground="{StaticResource Brush.Text.Primary}"
-                                  BorderThickness="0"
-                                  Padding="8,6"
+                                  Style="{StaticResource CardComboBoxStyle}"
                                   FontSize="13"/>
                     </Border>
 
