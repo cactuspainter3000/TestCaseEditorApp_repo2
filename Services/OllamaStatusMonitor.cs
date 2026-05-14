@@ -69,6 +69,7 @@ namespace TestCaseEditorApp.Services
 
     public class OllamaStatusMonitor : IOllamaStatusMonitor
     {
+        private const int DefaultStatusTimeoutSeconds = 8;
         private readonly HttpClient _httpClient;
         private readonly ILogger<OllamaStatusMonitor>? _logger;
         private readonly Timer _pollingTimer;
@@ -89,14 +90,23 @@ namespace TestCaseEditorApp.Services
         public OllamaStatusMonitor(ILogger<OllamaStatusMonitor>? logger = null)
         {
             _logger = logger;
-            _httpClient = new HttpClient
+            var timeoutSeconds = GetStatusTimeoutSeconds();
+            var handler = new HttpClientHandler
             {
-                Timeout = TimeSpan.FromSeconds(2)
+                // Work PCs may enforce system proxy settings that can delay loopback calls.
+                UseProxy = false
+            };
+
+            _httpClient = new HttpClient(handler)
+            {
+                Timeout = TimeSpan.FromSeconds(timeoutSeconds)
             };
 
             _pollingTimer = new Timer(3000);
             _pollingTimer.Elapsed += OnPollingTimerElapsed;
             _pollingTimer.AutoReset = true;
+
+            Log.Info($"[OllamaStatusMonitor] HTTP timeout configured: {timeoutSeconds}s");
         }
 
         public void StartMonitoring()
@@ -286,6 +296,17 @@ namespace TestCaseEditorApp.Services
             }
 
             return endpoints;
+        }
+
+        private static int GetStatusTimeoutSeconds()
+        {
+            var envTimeout = Environment.GetEnvironmentVariable("OLLAMA_STATUS_TIMEOUT_SECONDS");
+            if (int.TryParse(envTimeout, out var parsedTimeout))
+            {
+                return Math.Clamp(parsedTimeout, 2, 30);
+            }
+
+            return DefaultStatusTimeoutSeconds;
         }
 
         private static void AddEndpoint(List<string> endpoints, string baseOrFullValue, string apiPath)
