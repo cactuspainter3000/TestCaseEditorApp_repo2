@@ -138,20 +138,27 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 EnsureFallbackOllamaModels();
 
-                if (!OllamaModels.Contains(SelectedChatModel))
+                var warnings = new List<string>();
+                if (!string.IsNullOrWhiteSpace(SelectedChatModel) && !OllamaModels.Contains(SelectedChatModel))
                 {
-                    SelectedChatModel = OllamaModels.FirstOrDefault(m => m.Contains("phi", StringComparison.OrdinalIgnoreCase))
-                        ?? OllamaModels.First();
+                    warnings.Add($"Saved chat model '{SelectedChatModel}' is not currently installed.");
                 }
 
-                if (!OllamaModels.Contains(SelectedEmbeddingModel))
+                if (!string.IsNullOrWhiteSpace(SelectedEmbeddingModel) && !OllamaModels.Contains(SelectedEmbeddingModel))
                 {
-                    SelectedEmbeddingModel = OllamaModels.FirstOrDefault(m => m.Contains("embed", StringComparison.OrdinalIgnoreCase))
-                        ?? "nomic-embed-text";
+                    warnings.Add($"Saved embedding model '{SelectedEmbeddingModel}' is not currently installed.");
                 }
 
-                StatusMessage = $"Ollama models refreshed from {endpoint}.";
-                IsStatusError = false;
+                if (warnings.Count > 0)
+                {
+                    StatusMessage = $"Ollama models refreshed from {endpoint}. " + string.Join(" ", warnings);
+                    IsStatusError = false;
+                }
+                else
+                {
+                    StatusMessage = $"Ollama models refreshed from {endpoint}.";
+                    IsStatusError = false;
+                }
             }
             catch (Exception ex)
             {
@@ -169,8 +176,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             if (!OllamaModels.Any())
             {
-                OllamaModels.Add("phi4-mini");
-                OllamaModels.Add("nomic-embed-text");
+                OllamaModels.Add("phi4-mini:latest");
+                OllamaModels.Add("nomic-embed-text:latest");
             }
         }
 
