@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.Services;
+using System.Diagnostics.CodeAnalysis;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -159,6 +160,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     StatusMessage = $"Ollama models refreshed from {endpoint}.";
                     IsStatusError = false;
                 }
+
+                Logging.Log.Info($"[UserSettingsViewModel] SelectedChatModel after refresh: {SelectedChatModel}");
+                Logging.Log.Info($"[UserSettingsViewModel] SelectedEmbeddingModel after refresh: {SelectedEmbeddingModel}");
             }
             catch (Exception ex)
             {
