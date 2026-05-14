@@ -100,7 +100,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    StatusMessage = "Could not read Ollama models. Make sure Ollama is running.";
+                    EnsureFallbackOllamaModels();
+                    StatusMessage = "Could not read Ollama models from Ollama API. Using fallback model list.";
                     IsStatusError = true;
                     return;
                 }
@@ -121,14 +122,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                                 OllamaModels.Add(name);
                             }
                         }
+                        else if (model.TryGetProperty("model", out var modelElement))
+                        {
+                            var name = modelElement.GetString();
+                            if (!string.IsNullOrWhiteSpace(name))
+                            {
+                                OllamaModels.Add(name);
+                            }
+                        }
                     }
                 }
 
-                if (!OllamaModels.Any())
-                {
-                    OllamaModels.Add("phi4-mini");
-                    OllamaModels.Add("nomic-embed-text");
-                }
+                EnsureFallbackOllamaModels();
 
                 if (!OllamaModels.Contains(SelectedChatModel))
                 {
@@ -147,12 +152,22 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             catch (Exception ex)
             {
+                EnsureFallbackOllamaModels();
                 StatusMessage = $"Failed to refresh models: {ex.Message}";
                 IsStatusError = true;
             }
             finally
             {
                 IsBusy = false;
+            }
+        }
+
+        private void EnsureFallbackOllamaModels()
+        {
+            if (!OllamaModels.Any())
+            {
+                OllamaModels.Add("phi4-mini");
+                OllamaModels.Add("nomic-embed-text");
             }
         }
 
