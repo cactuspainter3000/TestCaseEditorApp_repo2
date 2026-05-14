@@ -50,7 +50,7 @@ namespace TestCaseEditorApp.Services
                     case "ollama":
                     default:
                         var ollamaClient = new HttpClient { BaseAddress = new Uri("http://localhost:11434/") };
-                        var model = Environment.GetEnvironmentVariable("OLLAMA_MODEL") ?? "phi4-mini:3.8b-q4_K_M";
+                        var model = Environment.GetEnvironmentVariable("OLLAMA_MODEL") ?? "phi4-mini:latest";
                         
                         // DEVELOPMENT MODE: Check for dev override to skip validation
                         var skipValidation = Environment.GetEnvironmentVariable("SKIP_LLM_VALIDATION");

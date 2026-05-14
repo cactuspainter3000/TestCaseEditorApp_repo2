@@ -31,7 +31,7 @@ namespace TestCaseEditorApp.Services
         private int _calibratedChunkOverlap = 188; // Default fallback: 25% overlap (188 chars)
         private int _calibratedMaxChars = 750; // Default fallback: 750 chars
         
-        private const string EmbeddingModel = "mxbai-embed-large:335m-v1-fp16";
+        private const string EmbeddingModel = "nomic-embed-text:latest";
 
         public bool IsConfigured 
         { 

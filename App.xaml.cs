@@ -281,7 +281,7 @@ namespace TestCaseEditorApp
                     
                     // Ollama Embedding Service - Direct embedding generation
                     services.AddSingleton<IOllamaEmbeddingService, OllamaEmbeddingService>(provider =>
-                        new OllamaEmbeddingService("mxbai-embed-large:335m-v1-fp16")); // Use correct model tag
+                        new OllamaEmbeddingService("nomic-embed-text:latest"));
                     
                     // Direct RAG Service - Document indexing and search without AnythingLLM
                     services.AddSingleton<IDirectRagService, DirectRagService>();

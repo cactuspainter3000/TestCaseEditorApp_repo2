@@ -23,7 +23,7 @@ namespace TestCaseEditorApp.Services
         private static readonly ConcurrentDictionary<string, int> _modelMaxChars = new();
         private int _calibratedMaxChars = 0;
 
-        public OllamaEmbeddingService(string embeddingModel = "mxbai-embed-large", HttpClient? http = null)
+        public OllamaEmbeddingService(string embeddingModel = "nomic-embed-text:latest", HttpClient? http = null)
         {
             var ownsHttpClient = http == null;
             _http = http ?? new HttpClient { BaseAddress = new Uri(OllamaBaseUrl) };
@@ -39,6 +39,7 @@ namespace TestCaseEditorApp.Services
                 "mxbai-embed-large" => 1024,
                 "mxbai-embed-large:335m-v1-fp16" => 1024,
                 "nomic-embed-text" => 768,
+                "nomic-embed-text:latest" => 768,
                 "all-minilm" => 384,
                 _ => 1024 // Default assumption
             };

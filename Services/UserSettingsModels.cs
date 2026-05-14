@@ -11,8 +11,8 @@ namespace TestCaseEditorApp.Services
         public string AnythingLlmBaseUrl { get; set; } = "http://localhost:3001";
         public string AnythingLlmApiKey { get; set; } = string.Empty;
 
-        public string OllamaChatModel { get; set; } = "phi4-mini";
-        public string OllamaEmbeddingModel { get; set; } = "nomic-embed-text";
+        public string OllamaChatModel { get; set; } = "phi4-mini:latest";
+        public string OllamaEmbeddingModel { get; set; } = "nomic-embed-text:latest";
 
         /// <summary>
         /// Enable requirements analysis snapshot logging for diagnostics.

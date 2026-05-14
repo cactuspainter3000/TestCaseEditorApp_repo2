@@ -25,8 +25,8 @@ namespace TestCaseEditorApp.Services
                     settings.JamaClientSecret = DecryptString(ReadString(key, "JamaClientSecretEnc"));
                     settings.AnythingLlmBaseUrl = ReadString(key, "AnythingLlmBaseUrl", "http://localhost:3001");
                     settings.AnythingLlmApiKey = DecryptString(ReadString(key, "AnythingLlmApiKeyEnc"));
-                    settings.OllamaChatModel = ReadString(key, "OllamaChatModel", "phi4-mini");
-                    settings.OllamaEmbeddingModel = ReadString(key, "OllamaEmbeddingModel", "nomic-embed-text");
+                    settings.OllamaChatModel = ReadString(key, "OllamaChatModel", "phi4-mini:latest");
+                    settings.OllamaEmbeddingModel = ReadString(key, "OllamaEmbeddingModel", "nomic-embed-text:latest");
                     settings.EnableRequirementsAnalysisSnapshot = ReadBool(key, "EnableRequirementsAnalysisSnapshot", false);
                 }
 
@@ -48,8 +48,8 @@ namespace TestCaseEditorApp.Services
                 settings.JamaClientId = FirstNonEmpty(settings.JamaClientId, Environment.GetEnvironmentVariable("JAMA_CLIENT_ID"));
                 settings.JamaClientSecret = FirstNonEmpty(settings.JamaClientSecret, Environment.GetEnvironmentVariable("JAMA_CLIENT_SECRET"));
                 settings.AnythingLlmBaseUrl = FirstNonEmpty(settings.AnythingLlmBaseUrl, Environment.GetEnvironmentVariable("ANYTHINGLLM_ENDPOINT"), "http://localhost:3001");
-                settings.OllamaChatModel = FirstNonEmpty(settings.OllamaChatModel, Environment.GetEnvironmentVariable("OLLAMA_MODEL"), "phi4-mini");
-                settings.OllamaEmbeddingModel = FirstNonEmpty(settings.OllamaEmbeddingModel, Environment.GetEnvironmentVariable("OLLAMA_EMBEDDING_MODEL"), "nomic-embed-text");
+                settings.OllamaChatModel = FirstNonEmpty(settings.OllamaChatModel, Environment.GetEnvironmentVariable("OLLAMA_MODEL"), "phi4-mini:latest");
+                settings.OllamaEmbeddingModel = FirstNonEmpty(settings.OllamaEmbeddingModel, Environment.GetEnvironmentVariable("OLLAMA_EMBEDDING_MODEL"), "nomic-embed-text:latest");
             }
             catch (Exception ex)
             {
@@ -74,8 +74,8 @@ namespace TestCaseEditorApp.Services
             key.SetValue("JamaClientSecretEnc", EncryptString((settings.JamaClientSecret ?? string.Empty).Trim()));
             key.SetValue("AnythingLlmBaseUrl", NormalizeUrl(settings.AnythingLlmBaseUrl, "http://localhost:3001"));
             key.SetValue("AnythingLlmApiKeyEnc", EncryptString((settings.AnythingLlmApiKey ?? string.Empty).Trim()));
-            key.SetValue("OllamaChatModel", FirstNonEmpty(settings.OllamaChatModel, "phi4-mini"));
-            key.SetValue("OllamaEmbeddingModel", FirstNonEmpty(settings.OllamaEmbeddingModel, "nomic-embed-text"));
+            key.SetValue("OllamaChatModel", FirstNonEmpty(settings.OllamaChatModel, "phi4-mini:latest"));
+            key.SetValue("OllamaEmbeddingModel", FirstNonEmpty(settings.OllamaEmbeddingModel, "nomic-embed-text:latest"));
             key.SetValue("EnableRequirementsAnalysisSnapshot", settings.EnableRequirementsAnalysisSnapshot ? 1 : 0);
 
             using var legacyKey = Registry.CurrentUser.CreateSubKey(LegacyAnythingLlmRegistryPath);
@@ -91,8 +91,8 @@ namespace TestCaseEditorApp.Services
             Environment.SetEnvironmentVariable("JAMA_CLIENT_SECRET", (settings.JamaClientSecret ?? string.Empty).Trim(), EnvironmentVariableTarget.Process);
             Environment.SetEnvironmentVariable("ANYTHINGLM_API_KEY", (settings.AnythingLlmApiKey ?? string.Empty).Trim(), EnvironmentVariableTarget.Process);
             Environment.SetEnvironmentVariable("ANYTHINGLLM_ENDPOINT", NormalizeUrl(settings.AnythingLlmBaseUrl, "http://localhost:3001"), EnvironmentVariableTarget.Process);
-            Environment.SetEnvironmentVariable("OLLAMA_MODEL", FirstNonEmpty(settings.OllamaChatModel, "phi4-mini"), EnvironmentVariableTarget.Process);
-            Environment.SetEnvironmentVariable("OLLAMA_EMBEDDING_MODEL", FirstNonEmpty(settings.OllamaEmbeddingModel, "nomic-embed-text"), EnvironmentVariableTarget.Process);
+            Environment.SetEnvironmentVariable("OLLAMA_MODEL", FirstNonEmpty(settings.OllamaChatModel, "phi4-mini:latest"), EnvironmentVariableTarget.Process);
+            Environment.SetEnvironmentVariable("OLLAMA_EMBEDDING_MODEL", FirstNonEmpty(settings.OllamaEmbeddingModel, "nomic-embed-text:latest"), EnvironmentVariableTarget.Process);
         }
 
         public bool HasMissingRequiredSettings()

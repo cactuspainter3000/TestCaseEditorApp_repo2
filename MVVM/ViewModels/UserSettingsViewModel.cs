@@ -50,10 +50,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private string _anythingLlmApiKey = string.Empty;
 
         [ObservableProperty]
-        private string _selectedChatModel = "phi4-mini";
+        private string _selectedChatModel = "phi4-mini:latest";
 
         [ObservableProperty]
-        private string _selectedEmbeddingModel = "nomic-embed-text";
+        private string _selectedEmbeddingModel = "nomic-embed-text:latest";
 
         [ObservableProperty]
         private bool _enableRequirementsAnalysisSnapshot;
