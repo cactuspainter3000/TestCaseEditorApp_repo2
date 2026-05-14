@@ -100,14 +100,14 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Chat model" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Chat Model Applied" VerticalAlignment="Center" Margin="0,0,8,8"/>
                     <ComboBox Grid.Row="0" Grid.Column="1"
                               ItemsSource="{Binding OllamaModels}"
                               SelectedItem="{Binding SelectedChatModel, UpdateSourceTrigger=PropertyChanged}"
                               IsEditable="True"
                               Margin="0,0,0,8"/>
 
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Embedding model" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Embedding Model Applied" VerticalAlignment="Center" Margin="0,0,8,8"/>
                     <ComboBox Grid.Row="1" Grid.Column="1"
                               ItemsSource="{Binding OllamaModels}"
                               SelectedItem="{Binding SelectedEmbeddingModel, UpdateSourceTrigger=PropertyChanged}"
@@ -115,8 +115,8 @@
                               Margin="0,0,0,8"/>
 
                     <Button Grid.Row="2" Grid.Column="1"
-                            Content="Refresh Ollama Models"
-                            Width="190"
+                            Content="Refresh list of available Ollama models"
+                            Width="290"
                             HorizontalAlignment="Left"
                             Command="{Binding RefreshOllamaModelsCommand}"/>
                 </Grid>
