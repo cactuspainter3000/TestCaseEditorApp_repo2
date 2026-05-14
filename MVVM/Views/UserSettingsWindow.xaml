@@ -103,14 +103,14 @@
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Chat Model Applied" VerticalAlignment="Center" Margin="0,0,8,8"/>
                     <ComboBox Grid.Row="0" Grid.Column="1"
                               ItemsSource="{Binding OllamaModels}"
-                              SelectedItem="{Binding SelectedChatModel, UpdateSourceTrigger=PropertyChanged}"
+                              Text="{Binding SelectedChatModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                               IsEditable="True"
                               Margin="0,0,0,8"/>
 
                     <TextBlock Grid.Row="1" Grid.Column="0" Text="Embedding Model Applied" VerticalAlignment="Center" Margin="0,0,8,8"/>
                     <ComboBox Grid.Row="1" Grid.Column="1"
                               ItemsSource="{Binding OllamaModels}"
-                              SelectedItem="{Binding SelectedEmbeddingModel, UpdateSourceTrigger=PropertyChanged}"
+                              Text="{Binding SelectedEmbeddingModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                               IsEditable="True"
                               Margin="0,0,0,8"/>
 
