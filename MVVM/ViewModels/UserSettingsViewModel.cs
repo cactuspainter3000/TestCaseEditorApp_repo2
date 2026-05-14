@@ -161,8 +161,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     IsStatusError = false;
                 }
 
-                Logging.Log.Info($"[UserSettingsViewModel] SelectedChatModel after refresh: {SelectedChatModel}");
-                Logging.Log.Info($"[UserSettingsViewModel] SelectedEmbeddingModel after refresh: {SelectedEmbeddingModel}");
+                System.Diagnostics.Trace.WriteLine($"[UserSettingsViewModel] SelectedChatModel after refresh: {SelectedChatModel}");
+                System.Diagnostics.Trace.WriteLine($"[UserSettingsViewModel] SelectedEmbeddingModel after refresh: {SelectedEmbeddingModel}");
             }
             catch (Exception ex)
             {
