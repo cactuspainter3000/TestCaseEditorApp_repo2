@@ -113,6 +113,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 var json = await response.Content.ReadAsStringAsync();
                 using var document = JsonDocument.Parse(json);
 
+                // Snapshot selections BEFORE clearing — WPF two-way binding will null them when OllamaModels.Clear() fires
+                var savedChat = SelectedChatModel;
+                var savedEmbed = SelectedEmbeddingModel;
+
                 OllamaModels.Clear();
                 if (document.RootElement.TryGetProperty("models", out var models) && models.ValueKind == JsonValueKind.Array)
                 {
@@ -138,6 +142,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 }
 
                 EnsureFallbackOllamaModels();
+
+                // Restore selections that were wiped by the two-way binding when OllamaModels.Clear() fired
+                if (!string.IsNullOrWhiteSpace(savedChat))
+                    SelectedChatModel = savedChat;
+                if (!string.IsNullOrWhiteSpace(savedEmbed))
+                    SelectedEmbeddingModel = savedEmbed;
 
                 var warnings = new List<string>();
                 if (!string.IsNullOrWhiteSpace(SelectedChatModel) && !OllamaModels.Contains(SelectedChatModel))
