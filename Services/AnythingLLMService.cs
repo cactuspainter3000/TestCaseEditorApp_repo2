@@ -1949,12 +1949,12 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                     return (null, false);
                 }
 
-                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Created workspace '{workspaceName}' - applying automated configuration...");
-                onProgress?.Invoke("Applying optimal settings...");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Created workspace '{workspaceName}' - applying essential settings...");
+                onProgress?.Invoke("Applying essential settings...");
 
                 bool configurationSuccessful = true;
 
-                // Step 2: Configure optimal settings (temperature, system prompt, context limits)
+                // Step 2: Configure ONLY essential settings (temperature, system prompt) — skip doc uploads
                 var settingsResult = await ConfigureWorkspaceSettingsAsync(workspace.Slug, cancellationToken);
                 if (!settingsResult)
                 {
@@ -1962,42 +1962,38 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                     configurationSuccessful = false;
                 }
 
-                onProgress?.Invoke("Uploading optimization guide...");
-
-                // Step 3: Upload optimization guide as training document
-                var uploadResult = await UploadOptimizationGuideAsync(workspace.Slug, cancellationToken);
-                if (!uploadResult)
+                onProgress?.Invoke("✅ Workspace created and ready!");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Successfully created workspace '{workspaceName}' with essential configuration");
+                
+                // Note: RAG document uploads (optimization guide, training docs) are scheduled as background tasks
+                // to avoid blocking project creation. This is intentional for UX responsiveness.
+                _ = Task.Run(async () => 
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Failed to upload optimization guide for workspace '{workspaceName}', but continuing...");
-                    configurationSuccessful = false;
-                }
+                    try
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] [BACKGROUND] Starting deferred RAG document uploads for '{workspaceName}'");
+                        
+                        var uploadGuideResult = await UploadOptimizationGuideAsync(workspace.Slug, cancellationToken);
+                        if (!uploadGuideResult)
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] [BACKGROUND] Failed to upload optimization guide");
 
-                onProgress?.Invoke("Uploading RAG training documents...");
-
-                // Step 4: Upload RAG training documents with scoring instructions
-                var ragUploadResult = await UploadRagTrainingDocumentsAsync(workspace.Slug, cancellationToken);
-                if (!ragUploadResult)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Failed to upload RAG training documents for workspace '{workspaceName}', but continuing...");
-                    configurationSuccessful = false;
-                }
-
-                if (configurationSuccessful)
-                {
-                    onProgress?.Invoke("✅ Workspace ready with optimized settings!");
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Successfully created and configured workspace '{workspaceName}' with all optimizations");
-                }
-                else
-                {
-                    onProgress?.Invoke("⚠️ Workspace created but some optimizations failed");
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] Workspace '{workspaceName}' created but some configuration steps failed");
-                }
+                        var ragUploadResult = await UploadRagTrainingDocumentsAsync(workspace.Slug, cancellationToken);
+                        if (!ragUploadResult)
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[AnythingLLM] [BACKGROUND] Failed to upload RAG training documents");
+                            
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] [BACKGROUND] RAG document uploads completed for '{workspaceName}'");
+                    }
+                    catch (Exception ex)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Error(ex, "[AnythingLLM] [BACKGROUND] Error uploading RAG documents (non-blocking)");
+                    }
+                }, cancellationToken).ConfigureAwait(false);
 
                 return (workspace, configurationSuccessful);
             }
             catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error during automated workspace creation and configuration");
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error during workspace creation and configuration");
                 onProgress?.Invoke($"❌ Error: {ex.Message}");
                 return (null, false);
             }

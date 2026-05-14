@@ -783,17 +783,15 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                     
                     try
                     {
-                        // Use full configuration method to apply optimal settings during project creation
-                        // Add timeout to prevent indefinite hangs on document uploads
-                        using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(60));
+                        // Use configuration method to apply essential settings during project creation
+                        // Document uploads now happen in background after workspace is created
                         var (createdWorkspace, configurationSuccessful) = await _anythingLLMService.CreateAndConfigureWorkspaceAsync(
                             WorkspaceName,
                             preserveOriginalName: true, // Preserve user's chosen name
                             onProgress: (message) => {
                                 // Could add progress updates to UI here if needed
                                 TestCaseEditorApp.Services.Logging.Log.Info($"[NewProject] {message}");
-                            },
-                            cancellationToken: cts.Token);
+                            });
                             
                         if (createdWorkspace != null)
                         {
@@ -820,13 +818,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                             WorkspaceValidationSuccess = false;
                             HasValidationMessage = true;
                         }
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        IsValidatingWorkspace = false;
-                        WorkspaceValidationMessage = $"Workspace creation timed out after 60 seconds. Please check AnythingLLM service and try again.";
-                        WorkspaceValidationSuccess = false;
-                        HasValidationMessage = true;
                     }
                     catch (Exception ex)
                     {
