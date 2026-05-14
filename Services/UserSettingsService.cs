@@ -17,6 +17,7 @@ namespace TestCaseEditorApp.Services
 
             try
             {
+                Logging.Log.Info("[UserSettings] Loading settings from registry.");
                 using var key = Registry.CurrentUser.OpenSubKey(RegistryPath);
                 if (key != null)
                 {
@@ -28,6 +29,8 @@ namespace TestCaseEditorApp.Services
                     settings.OllamaChatModel = ReadString(key, "OllamaChatModel", "phi4-mini:latest");
                     settings.OllamaEmbeddingModel = ReadString(key, "OllamaEmbeddingModel", "nomic-embed-text:latest");
                     settings.EnableRequirementsAnalysisSnapshot = ReadBool(key, "EnableRequirementsAnalysisSnapshot", false);
+
+                    Logging.Log.Info($"[UserSettings] Loaded OllamaChatModel: {settings.OllamaChatModel}, OllamaEmbeddingModel: {settings.OllamaEmbeddingModel}");
                 }
 
                 if (string.IsNullOrWhiteSpace(settings.AnythingLlmApiKey))
@@ -62,6 +65,9 @@ namespace TestCaseEditorApp.Services
         public void SaveSettings(AppUserSettings settings)
         {
             if (settings == null) throw new ArgumentNullException(nameof(settings));
+
+            Logging.Log.Info("[UserSettings] Saving settings to registry.");
+            Logging.Log.Info($"[UserSettings] Saving OllamaChatModel: {settings.OllamaChatModel}, OllamaEmbeddingModel: {settings.OllamaEmbeddingModel}");
 
             using var key = Registry.CurrentUser.CreateSubKey(RegistryPath);
             if (key == null)
