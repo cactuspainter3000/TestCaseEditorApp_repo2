@@ -429,6 +429,30 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 return false;
             }
 
+            // Allow any model in the OllamaModels list, but warn if not recommended
+            var recommendedChatModels = new[] { "phi4-mini:latest", "phi4-mini" };
+            var recommendedEmbedModels = new[] { "nomic-embed-text:latest", "nomic-embed-text" };
+
+            if (!OllamaModels.Contains(SelectedChatModel))
+            {
+                StatusMessage = $"Warning: The selected chat model '{SelectedChatModel}' is not currently installed in Ollama. Please refresh models or install it.";
+                IsStatusError = true;
+                return false;
+            }
+            if (!OllamaModels.Contains(SelectedEmbeddingModel))
+            {
+                StatusMessage = $"Warning: The selected embedding model '{SelectedEmbeddingModel}' is not currently installed in Ollama. Please refresh models or install it.";
+                IsStatusError = true;
+                return false;
+            }
+
+            // Show a non-blocking warning if not using recommended models
+            if (!recommendedChatModels.Contains(SelectedChatModel) || !recommendedEmbedModels.Contains(SelectedEmbeddingModel))
+            {
+                StatusMessage = "Note: You are not using the recommended models. Some features may not work as expected. For best results, use 'phi4-mini:latest' for chat and 'nomic-embed-text:latest' for embedding.";
+                IsStatusError = false;
+            }
+
             return true;
         }
 

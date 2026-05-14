@@ -11,6 +11,15 @@
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource Brush.Background.Menu}"
         Foreground="{StaticResource Brush.Text.Primary}">
+    
+    <!-- Import resource dictionary for button styles -->
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Resources/ButtonStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
 
     <Grid Margin="16">
         <Grid.RowDefinitions>
@@ -22,17 +31,19 @@
 
         <TextBlock Grid.Row="0"
                    Text="Configure user-level credentials and model preferences"
-                   Foreground="{StaticResource Brush.Text.Primary}"
+                   Foreground="{StaticResource Brush.Accent.Primary}"
                    FontSize="18"
                    FontWeight="SemiBold"
-                   Margin="0,0,0,12"/>
+                   Margin="0,0,0,16"/>
 
         <TabControl Grid.Row="1"
-                    Margin="0,0,0,12"
+                    Margin="0,0,0,16"
                     Background="{StaticResource Brush.Background.Menu}"
                     BorderBrush="{StaticResource Brush.Border.Default}"
-                    SelectedIndex="{Binding SelectedSettingsTabIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-            <TabItem Header="Jama">
+                    SelectedIndex="{Binding SelectedSettingsTabIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    Foreground="{StaticResource Brush.Text.Primary}">
+            <TabItem Header="Jama"
+                      Foreground="{StaticResource Brush.Text.Primary}">
                 <Grid Margin="12" Background="{StaticResource Brush.Background.Menu}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -45,24 +56,27 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Base URL" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding JamaBaseUrl, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Base URL" VerticalAlignment="Center" Margin="0,0,8,12" Foreground="{StaticResource Brush.Text.Primary}" FontWeight="SemiBold"/>
+                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding JamaBaseUrl, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" Padding="8,6" Foreground="{StaticResource Brush.Text.Primary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Default}"/>
 
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Client ID" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding JamaClientId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Client ID" VerticalAlignment="Center" Margin="0,0,8,12" Foreground="{StaticResource Brush.Text.Primary}" FontWeight="SemiBold"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding JamaClientId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" Padding="8,6" Foreground="{StaticResource Brush.Text.Primary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Default}"/>
 
-                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Client Secret" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding JamaClientSecret, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Client Secret" VerticalAlignment="Center" Margin="0,0,8,12" Foreground="{StaticResource Brush.Text.Primary}" FontWeight="SemiBold"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding JamaClientSecret, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" Padding="8,6" Foreground="{StaticResource Brush.Text.Primary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Default}"/>
 
                     <Button Grid.Row="3" Grid.Column="1"
                             Content="Set and Test Jama Connection"
                             Width="230"
                             HorizontalAlignment="Left"
-                            Command="{Binding TestJamaConnectionCommand}"/>
+                            Padding="12,8"
+                            Command="{Binding TestJamaConnectionCommand}"
+                            Style="{StaticResource ActionButton}"/>
                 </Grid>
             </TabItem>
 
-            <TabItem Header="AnythingLLM">
+            <TabItem Header="AnythingLLM"
+                      Foreground="{StaticResource Brush.Text.Primary}">
                 <Grid Margin="12" Background="{StaticResource Brush.Background.Menu}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -74,21 +88,24 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Base URL" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding AnythingLlmBaseUrl, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Base URL" VerticalAlignment="Center" Margin="0,0,8,12" Foreground="{StaticResource Brush.Text.Primary}" FontWeight="SemiBold"/>
+                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding AnythingLlmBaseUrl, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" Padding="8,6" Foreground="{StaticResource Brush.Text.Primary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Default}"/>
 
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="API Key" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding AnythingLlmApiKey, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="API Key" VerticalAlignment="Center" Margin="0,0,8,12" Foreground="{StaticResource Brush.Text.Primary}" FontWeight="SemiBold"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding AnythingLlmApiKey, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" Padding="8,6" Foreground="{StaticResource Brush.Text.Primary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Default}"/>
 
                     <Button Grid.Row="2" Grid.Column="1"
                             Content="Set and Test AnythingLLM"
                             Width="220"
                             HorizontalAlignment="Left"
-                            Command="{Binding TestAnythingLlmConnectionCommand}"/>
+                            Padding="12,8"
+                            Command="{Binding TestAnythingLlmConnectionCommand}"
+                            Style="{StaticResource ActionButton}"/>
                 </Grid>
             </TabItem>
 
-            <TabItem Header="Ollama Models">
+            <TabItem Header="Ollama Models"
+                      Foreground="{StaticResource Brush.Text.Primary}">
                 <Grid Margin="12" Background="{StaticResource Brush.Background.Menu}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -100,28 +117,39 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Chat Model Applied" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Chat Model" VerticalAlignment="Center" Margin="0,0,8,12" Foreground="{StaticResource Brush.Text.Primary}" FontWeight="SemiBold"/>
                     <ComboBox Grid.Row="0" Grid.Column="1"
                               ItemsSource="{Binding OllamaModels}"
                               Text="{Binding SelectedChatModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                               IsEditable="True"
-                              Margin="0,0,0,8"/>
+                              Margin="0,0,0,12"
+                              Padding="8,6"
+                              Foreground="{StaticResource Brush.Text.Primary}"
+                              Background="{StaticResource Brush.Background.Menu}"
+                              BorderBrush="{StaticResource Brush.Border.Default}"/>
 
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Embedding Model Applied" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Embedding Model" VerticalAlignment="Center" Margin="0,0,8,12" Foreground="{StaticResource Brush.Text.Primary}" FontWeight="SemiBold"/>
                     <ComboBox Grid.Row="1" Grid.Column="1"
                               ItemsSource="{Binding OllamaModels}"
                               Text="{Binding SelectedEmbeddingModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                               IsEditable="True"
-                              Margin="0,0,0,8"/>
+                              Margin="0,0,0,12"
+                              Padding="8,6"
+                              Foreground="{StaticResource Brush.Text.Primary}"
+                              Background="{StaticResource Brush.Background.Menu}"
+                              BorderBrush="{StaticResource Brush.Border.Default}"/>
 
                     <Button Grid.Row="2" Grid.Column="1"
-                            Content="Refresh list of available Ollama models"
-                            Width="290"
+                            Content="Refresh available models"
+                            Width="220"
                             HorizontalAlignment="Left"
-                            Command="{Binding RefreshOllamaModelsCommand}"/>
+                            Padding="12,8"
+                            Command="{Binding RefreshOllamaModelsCommand}"
+                            Style="{StaticResource ActionButton}"/>
                 </Grid>
             </TabItem>
-            <TabItem Header="Diagnostics">
+            <TabItem Header="Diagnostics"
+                      Foreground="{StaticResource Brush.Text.Primary}">
                 <Grid Margin="12" Background="{StaticResource Brush.Background.Menu}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -136,32 +164,37 @@
                                Grid.Column="0"
                                Text="Requirements Analysis Diagnostics"
                                FontWeight="SemiBold"
-                               Foreground="{StaticResource Brush.Text.Primary}"
-                               Margin="0,0,0,8"/>
+                               Foreground="{StaticResource Brush.Accent.Primary}"
+                               Margin="0,0,0,12"/>
 
                     <CheckBox Grid.Row="1" Grid.Column="0"
                               Content="Enable Requirements Analysis Snapshot Logging"
                               IsChecked="{Binding EnableRequirementsAnalysisSnapshot, UpdateSourceTrigger=PropertyChanged}"
                               Foreground="{StaticResource Brush.Text.Primary}"
                               VerticalAlignment="Top"
-                              Margin="0,0,0,8"/>
+                              Margin="0,0,0,12"
+                              FontSize="14"/>
 
                     <TextBlock Grid.Row="2"
                                Grid.Column="0"
                                Text="Setting changes are persisted when you click Save."
                                Foreground="{StaticResource Brush.Text.Secondary}"
-                               Margin="20,0,0,0"/>
+                               Margin="0,0,0,0"
+                               FontSize="12"/>
                 </Grid>
             </TabItem>
         </TabControl>
 
         <TextBlock Grid.Row="2"
                    Text="{Binding StatusMessage}"
-                   Margin="0,0,0,12"
-                   TextWrapping="Wrap">
+                   Margin="0,0,0,16"
+                   TextWrapping="Wrap"
+                   MinHeight="20"
+                   VerticalAlignment="Top">
             <TextBlock.Style>
                 <Style TargetType="TextBlock">
                     <Setter Property="Foreground" Value="{StaticResource Brush.Text.Secondary}"/>
+                    <Setter Property="FontSize" Value="12"/>
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding IsStatusError}" Value="True">
                             <Setter Property="Foreground" Value="{StaticResource Brush.State.Error}"/>
@@ -174,12 +207,13 @@
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="Save"
                     Width="110"
+                    Padding="12,8"
                     Margin="0,0,8,0"
                     Command="{Binding SaveAsyncCommand}">
                 <Button.Style>
-                    <Style TargetType="Button">
+                    <Style TargetType="Button" BasedOn="{StaticResource ActionButton}">
                         <Setter Property="Content" Value="Save"/>
-                        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+                        <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding HasUnsavedChanges}" Value="True">
                                 <Setter Property="Content" Value="Save *"/>
@@ -190,9 +224,11 @@
                     </Style>
                 </Button.Style>
             </Button>
-            <Button Content="Cancel"
+            <Button Content="Close"
                     Width="110"
-                    Command="{Binding CancelCommand}"/>
+                    Padding="12,8"
+                    Command="{Binding CancelCommand}"
+                    Style="{StaticResource ActionButton.Secondary}"/>
         </StackPanel>
     </Grid>
 </Window>
