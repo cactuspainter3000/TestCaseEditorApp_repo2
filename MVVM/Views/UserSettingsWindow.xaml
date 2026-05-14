@@ -59,6 +59,31 @@
                     SelectedIndex="{Binding SelectedSettingsTabIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                     Foreground="{StaticResource Brush.Text.Primary}">
 
+            <TabControl.Template>
+                <ControlTemplate TargetType="TabControl">
+                    <Grid KeyboardNavigation.TabNavigation="Local" SnapsToDevicePixels="True">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <TabPanel Grid.Row="0"
+                                  IsItemsHost="True"
+                                  Background="Transparent"
+                                  Margin="10,0,10,0"/>
+
+                        <Border Grid.Row="1"
+                                BorderBrush="#666666"
+                                BorderThickness="0,2,0,0"
+                                Margin="10,0,10,0"
+                                Background="Transparent">
+                            <ContentPresenter x:Name="PART_SelectedContentHost"
+                                              ContentSource="SelectedContent"/>
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </TabControl.Template>
+
             <TabControl.Resources>
                 <Style TargetType="{x:Type TabItem}">
                     <Setter Property="Background" Value="Transparent"/>
@@ -102,8 +127,7 @@
 
             <!-- ── Jama tab ── -->
             <TabItem Header="Jama" Foreground="{StaticResource Brush.Text.Primary}">
-                <Border BorderBrush="#666666" BorderThickness="0,2,0,0" Margin="0,0,0,0">
-                    <StackPanel Margin="20,20,20,0">
+                <StackPanel Margin="20,20,20,0">
 
                     <!-- Base URL -->
                     <TextBlock Text="Base URL" Style="{StaticResource FieldLabel}"/>
@@ -131,14 +155,12 @@
                             Padding="16,8"
                             Command="{Binding TestJamaConnectionCommand}"
                             Style="{StaticResource ActionButton}"/>
-                    </StackPanel>
-                </Border>
+                </StackPanel>
             </TabItem>
 
             <!-- ── AnythingLLM tab ── -->
             <TabItem Header="AnythingLLM" Foreground="{StaticResource Brush.Text.Primary}">
-                <Border BorderBrush="#666666" BorderThickness="0,2,0,0" Margin="0,0,0,0">
-                    <StackPanel Margin="20,20,20,0">
+                <StackPanel Margin="20,20,20,0">
 
                     <!-- Base URL -->
                     <TextBlock Text="Base URL" Style="{StaticResource FieldLabel}"/>
@@ -159,14 +181,12 @@
                             Padding="16,8"
                             Command="{Binding TestAnythingLlmConnectionCommand}"
                             Style="{StaticResource ActionButton}"/>
-                    </StackPanel>
-                </Border>
+                </StackPanel>
             </TabItem>
 
             <!-- ── Ollama Models tab ── -->
             <TabItem Header="Ollama Models" Foreground="{StaticResource Brush.Text.Primary}">
-                <Border BorderBrush="#666666" BorderThickness="0,2,0,0" Margin="0,0,0,0">
-                    <StackPanel Margin="20,20,20,0">
+                <StackPanel Margin="20,20,20,0">
 
                     <!-- Info banner -->
                     <Border Background="#3C3C3C"
@@ -206,14 +226,12 @@
                             Padding="16,8"
                             Command="{Binding RefreshOllamaModelsCommand}"
                             Style="{StaticResource ActionButton}"/>
-                    </StackPanel>
-                </Border>
+                </StackPanel>
             </TabItem>
 
             <!-- ── Diagnostics tab ── -->
             <TabItem Header="Diagnostics" Foreground="{StaticResource Brush.Text.Primary}">
-                <Border BorderBrush="#666666" BorderThickness="0,2,0,0" Margin="0,0,0,0">
-                    <StackPanel Margin="20,20,20,0">
+                <StackPanel Margin="20,20,20,0">
 
                     <Border Background="{StaticResource Brush.Background.Menu}"
                             BorderBrush="{StaticResource Brush.Accent.Primary}"
@@ -235,8 +253,7 @@
                     <TextBlock Text="Setting changes are persisted when you click Save."
                                Foreground="{StaticResource Brush.Text.Secondary}"
                                FontSize="12"/>
-                    </StackPanel>
-                </Border>
+                </StackPanel>
             </TabItem>
         </TabControl>
 
