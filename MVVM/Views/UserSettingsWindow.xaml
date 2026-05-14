@@ -63,10 +63,10 @@
                 <Style TargetType="{x:Type TabItem}">
                     <Setter Property="Background" Value="{StaticResource Brush.Background.Header}"/>
                     <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
-                    <Setter Property="BorderBrush" Value="Transparent"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border.Default}"/>
                     <Setter Property="BorderThickness" Value="1"/>
                     <Setter Property="Padding" Value="12,8"/>
-                    <Setter Property="Margin" Value="0,0,2,0"/>
+                    <Setter Property="Margin" Value="0,0,4,0"/>
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="TabItem">
@@ -178,8 +178,8 @@
                     <!-- Chat Model -->
                     <TextBlock Text="Chat Model" Style="{StaticResource FieldLabel}"/>
                     <ComboBox ItemsSource="{Binding OllamaModels}"
-                              Text="{Binding SelectedChatModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                              IsEditable="True"
+                              SelectedItem="{Binding SelectedChatModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              IsEditable="False"
                               Style="{StaticResource CardComboBoxStyle}"
                               Margin="0,0,0,14"
                               FontSize="13"/>
@@ -187,8 +187,8 @@
                     <!-- Embedding Model -->
                     <TextBlock Text="Embedding Model" Style="{StaticResource FieldLabel}"/>
                     <ComboBox ItemsSource="{Binding OllamaModels}"
-                              Text="{Binding SelectedEmbeddingModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                              IsEditable="True"
+                              SelectedItem="{Binding SelectedEmbeddingModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              IsEditable="False"
                               Style="{StaticResource CardComboBoxStyle}"
                               Margin="0,0,0,20"
                               FontSize="13"/>
