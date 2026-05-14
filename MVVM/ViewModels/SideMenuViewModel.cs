@@ -444,16 +444,46 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             try
             {
                 using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-                using var response = await client.GetAsync("http://localhost:11434/api/tags");
-                if (!response.IsSuccessStatusCode)
+
+                HttpResponseMessage? response = null;
+                string endpointUsed = string.Empty;
+                string[] endpoints =
                 {
-                    return (false, $"Ollama returned HTTP {(int)response.StatusCode}.");
+                    "http://127.0.0.1:11434/api/tags",
+                    "http://localhost:11434/api/tags"
+                };
+
+                foreach (var endpoint in endpoints)
+                {
+                    try
+                    {
+                        var candidate = await client.GetAsync(endpoint);
+                        if (candidate.IsSuccessStatusCode)
+                        {
+                            response = candidate;
+                            endpointUsed = endpoint;
+                            break;
+                        }
+
+                        candidate.Dispose();
+                    }
+                    catch
+                    {
+                        // Try next endpoint
+                    }
                 }
 
+                if (response == null)
+                {
+                    return (false, "Could not connect to Ollama at localhost/127.0.0.1:11434.");
+                }
+
+                using (response)
+                {
                 var body = await response.Content.ReadAsStringAsync();
                 if (string.IsNullOrWhiteSpace(settings.OllamaChatModel))
                 {
-                    return (true, "Ollama reachable.");
+                    return (true, $"Ollama reachable at {endpointUsed}.");
                 }
 
                 using var doc = JsonDocument.Parse(body);
@@ -467,7 +497,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                             var modelName = nameElement.GetString();
                             if (!string.IsNullOrWhiteSpace(modelName) && string.Equals(modelName, chatModel, StringComparison.OrdinalIgnoreCase))
                             {
-                                return (true, "Ollama reachable and selected model found.");
+                                return (true, $"Ollama reachable at {endpointUsed} and selected model found.");
                             }
                         }
                     }
@@ -476,6 +506,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 }
 
                 return (false, "Ollama model list response is invalid.");
+                }
             }
             catch (Exception ex)
             {

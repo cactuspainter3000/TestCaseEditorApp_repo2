@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net.Http;
 using System.ComponentModel;
+using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -96,12 +97,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 StatusMessage = "Refreshing Ollama models...";
 
                 using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
-                var response = await httpClient.GetAsync("http://localhost:11434/api/tags");
+                var (success, response, endpoint, error) = await TryGetOllamaTagsResponseAsync(httpClient);
 
-                if (!response.IsSuccessStatusCode)
+                if (!success || response == null)
                 {
                     EnsureFallbackOllamaModels();
-                    StatusMessage = "Could not read Ollama models from Ollama API. Using fallback model list.";
+                    StatusMessage = string.IsNullOrWhiteSpace(error)
+                        ? "Could not read Ollama models from Ollama API. Using fallback model list."
+                        : $"Could not connect to Ollama ({error}). Using fallback model list.";
                     IsStatusError = true;
                     return;
                 }
@@ -147,7 +150,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         ?? "nomic-embed-text";
                 }
 
-                StatusMessage = "Ollama models refreshed.";
+                StatusMessage = $"Ollama models refreshed from {endpoint}.";
                 IsStatusError = false;
             }
             catch (Exception ex)
@@ -168,6 +171,78 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 OllamaModels.Add("phi4-mini");
                 OllamaModels.Add("nomic-embed-text");
+            }
+        }
+
+        private static async Task<(bool Success, HttpResponseMessage? Response, string Endpoint, string Error)> TryGetOllamaTagsResponseAsync(HttpClient httpClient)
+        {
+            string lastError = string.Empty;
+
+            foreach (var endpoint in GetOllamaTagEndpoints())
+            {
+                try
+                {
+                    var response = await httpClient.GetAsync(endpoint);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        return (true, response, endpoint, string.Empty);
+                    }
+
+                    lastError = $"HTTP {(int)response.StatusCode} at {endpoint}";
+                    response.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    lastError = ex.Message;
+                }
+            }
+
+            return (false, null, string.Empty, lastError);
+        }
+
+        private static IEnumerable<string> GetOllamaTagEndpoints()
+        {
+            var endpoints = new List<string>();
+
+            AddEndpoint(endpoints, "http://127.0.0.1:11434");
+            AddEndpoint(endpoints, "http://localhost:11434");
+
+            var envHost = Environment.GetEnvironmentVariable("OLLAMA_HOST");
+            if (!string.IsNullOrWhiteSpace(envHost))
+            {
+                AddEndpoint(endpoints, envHost.Trim());
+            }
+
+            return endpoints;
+        }
+
+        private static void AddEndpoint(List<string> endpoints, string baseOrFullValue)
+        {
+            if (string.IsNullOrWhiteSpace(baseOrFullValue))
+            {
+                return;
+            }
+
+            var value = baseOrFullValue.Trim();
+            if (!value.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+                !value.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                value = "http://" + value;
+            }
+
+            string endpoint;
+            if (value.EndsWith("/api/tags", StringComparison.OrdinalIgnoreCase))
+            {
+                endpoint = value;
+            }
+            else
+            {
+                endpoint = value.TrimEnd('/') + "/api/tags";
+            }
+
+            if (!endpoints.Contains(endpoint, StringComparer.OrdinalIgnoreCase))
+            {
+                endpoints.Add(endpoint);
             }
         }
 
