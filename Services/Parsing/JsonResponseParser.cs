@@ -110,7 +110,9 @@ namespace TestCaseEditorApp.Services.Parsing
                         HallucinationCheck = GetString(root, "HallucinationCheck") ?? "NO_FABRICATION",
                         FreeformFeedback = GetStringValue(root, "FreeformFeedback")
                             ?? GetStringValue(root, "AnalysisSummary")
-                            ?? GetStringValue(root, "Summary"),
+                            ?? GetStringValue(root, "Summary")
+                            ?? GetStringValue(root, "AdditionalFeedback")
+                            ?? GetStringValue(root, "Analysis"),
                         Issues = ParseIssues(root),
                         Recommendations = ParseRecommendations(root)
                     };
@@ -359,6 +361,12 @@ namespace TestCaseEditorApp.Services.Parsing
                 }
             }
 
+            // Some model variants emit legacy issue buckets at the top level.
+            AddLegacyIssueArray(issues, root, "ClarityIssues", "Clarity");
+            AddLegacyIssueArray(issues, root, "CompletenessIssues", "Completeness");
+            AddLegacyIssueArray(issues, root, "TestabilityIssues", "Testability");
+            AddLegacyIssueArray(issues, root, "AmbiguityIssues", "Ambiguity");
+
             // Legacy schema often appears as AdditionalFeedback/Analysis object with arrays:
             // ClarityIssues, CompletenessIssues, etc.
             JsonElement feedbackRoot;
@@ -395,42 +403,54 @@ namespace TestCaseEditorApp.Services.Parsing
                 }
             }
 
+            // Some model variants emit actionable improvements at the top level.
+            AddLegacyActionableImprovements(recommendations, root);
+
             // Legacy schema: ActionableImprovements array in AdditionalFeedback/Analysis object
             JsonElement feedbackRoot;
-            if (TryGetLegacyFeedbackRoot(root, out feedbackRoot) &&
-                feedbackRoot.TryGetProperty("ActionableImprovements", out var improvements) &&
-                improvements.ValueKind == JsonValueKind.Array)
+            if (TryGetLegacyFeedbackRoot(root, out feedbackRoot))
             {
-                foreach (var item in improvements.EnumerateArray())
-                {
-                    if (item.ValueKind == JsonValueKind.Object)
-                    {
-                        var suggestedEdit = GetString(item, "SuggestedEdit") ?? string.Empty;
-                        var description = GetString(item, "Description") ?? suggestedEdit;
-                        recommendations.Add(new AnalysisRecommendation
-                        {
-                            Category = GetString(item, "Category") ?? "Actionable Improvement",
-                            Description = description,
-                            SuggestedEdit = string.IsNullOrWhiteSpace(suggestedEdit) ? null : suggestedEdit
-                        });
-                    }
-                    else if (item.ValueKind == JsonValueKind.String)
-                    {
-                        var text = item.GetString() ?? string.Empty;
-                        if (!string.IsNullOrWhiteSpace(text))
-                        {
-                            recommendations.Add(new AnalysisRecommendation
-                            {
-                                Category = "Actionable Improvement",
-                                Description = text,
-                                SuggestedEdit = text
-                            });
-                        }
-                    }
-                }
+                AddLegacyActionableImprovements(recommendations, feedbackRoot);
             }
 
             return recommendations;
+        }
+
+        private static void AddLegacyActionableImprovements(List<AnalysisRecommendation> target, JsonElement root)
+        {
+            if (!root.TryGetProperty("ActionableImprovements", out var improvements) ||
+                improvements.ValueKind != JsonValueKind.Array)
+            {
+                return;
+            }
+
+            foreach (var item in improvements.EnumerateArray())
+            {
+                if (item.ValueKind == JsonValueKind.Object)
+                {
+                    var suggestedEdit = GetString(item, "SuggestedEdit") ?? string.Empty;
+                    var description = GetString(item, "Description") ?? suggestedEdit;
+                    target.Add(new AnalysisRecommendation
+                    {
+                        Category = GetString(item, "Category") ?? "Actionable Improvement",
+                        Description = description,
+                        SuggestedEdit = string.IsNullOrWhiteSpace(suggestedEdit) ? null : suggestedEdit
+                    });
+                }
+                else if (item.ValueKind == JsonValueKind.String)
+                {
+                    var text = item.GetString() ?? string.Empty;
+                    if (!string.IsNullOrWhiteSpace(text))
+                    {
+                        target.Add(new AnalysisRecommendation
+                        {
+                            Category = "Actionable Improvement",
+                            Description = text,
+                            SuggestedEdit = text
+                        });
+                    }
+                }
+            }
         }
 
         private static bool TryGetLegacyFeedbackRoot(JsonElement root, out JsonElement feedbackRoot)
