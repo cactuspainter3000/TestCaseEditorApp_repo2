@@ -108,7 +108,9 @@ namespace TestCaseEditorApp.Services.Parsing
                         IsAnalyzed = true,
                         ErrorMessage = null,
                         HallucinationCheck = GetString(root, "HallucinationCheck") ?? "NO_FABRICATION",
-                        FreeformFeedback = GetString(root, "FreeformFeedback") ?? GetString(root, "Analysis"),
+                        FreeformFeedback = GetStringValue(root, "FreeformFeedback")
+                            ?? GetStringValue(root, "AnalysisSummary")
+                            ?? GetStringValue(root, "Summary"),
                         Issues = ParseIssues(root),
                         Recommendations = ParseRecommendations(root)
                     };
@@ -296,6 +298,17 @@ namespace TestCaseEditorApp.Services.Parsing
             return value.Value.ToString();
         }
 
+        private static string? GetStringValue(JsonElement root, string propertyName)
+        {
+            var value = GetProperty(root, propertyName);
+            if (value == null)
+                return null;
+
+            return value.Value.ValueKind == JsonValueKind.String
+                ? value.Value.GetString()
+                : null;
+        }
+
         private static int? GetInt(JsonElement root, string propertyName)
         {
             var value = GetProperty(root, propertyName);
@@ -326,22 +339,35 @@ namespace TestCaseEditorApp.Services.Parsing
         private static List<AnalysisIssue> ParseIssues(JsonElement root)
         {
             var issues = new List<AnalysisIssue>();
+
+            // Standard schema: Issues: [{ Category, Severity, Description, Fix }]
             var issuesElement = GetProperty(root, "Issues");
-            if (issuesElement == null || issuesElement.Value.ValueKind != JsonValueKind.Array)
-                return issues;
-
-            foreach (var issueEl in issuesElement.Value.EnumerateArray())
+            if (issuesElement != null && issuesElement.Value.ValueKind == JsonValueKind.Array)
             {
-                if (issueEl.ValueKind != JsonValueKind.Object)
-                    continue;
-
-                issues.Add(new AnalysisIssue
+                foreach (var issueEl in issuesElement.Value.EnumerateArray())
                 {
-                    Category = GetString(issueEl, "Category") ?? "Unknown",
-                    Severity = GetString(issueEl, "Severity") ?? "Medium",
-                    Description = GetString(issueEl, "Description") ?? string.Empty,
-                    Fix = GetString(issueEl, "Fix") ?? string.Empty
-                });
+                    if (issueEl.ValueKind != JsonValueKind.Object)
+                        continue;
+
+                    issues.Add(new AnalysisIssue
+                    {
+                        Category = GetString(issueEl, "Category") ?? "Unknown",
+                        Severity = GetString(issueEl, "Severity") ?? "Medium",
+                        Description = GetString(issueEl, "Description") ?? string.Empty,
+                        Fix = GetString(issueEl, "Fix") ?? string.Empty
+                    });
+                }
+            }
+
+            // Legacy schema often appears as AdditionalFeedback/Analysis object with arrays:
+            // ClarityIssues, CompletenessIssues, etc.
+            JsonElement feedbackRoot;
+            if (TryGetLegacyFeedbackRoot(root, out feedbackRoot))
+            {
+                AddLegacyIssueArray(issues, feedbackRoot, "ClarityIssues", "Clarity");
+                AddLegacyIssueArray(issues, feedbackRoot, "CompletenessIssues", "Completeness");
+                AddLegacyIssueArray(issues, feedbackRoot, "TestabilityIssues", "Testability");
+                AddLegacyIssueArray(issues, feedbackRoot, "AmbiguityIssues", "Ambiguity");
             }
 
             return issues;
@@ -350,24 +376,121 @@ namespace TestCaseEditorApp.Services.Parsing
         private static List<AnalysisRecommendation> ParseRecommendations(JsonElement root)
         {
             var recommendations = new List<AnalysisRecommendation>();
+
+            // Standard schema: Recommendations: [{ Category, Description, SuggestedEdit }]
             var recsElement = GetProperty(root, "Recommendations");
-            if (recsElement == null || recsElement.Value.ValueKind != JsonValueKind.Array)
-                return recommendations;
-
-            foreach (var recEl in recsElement.Value.EnumerateArray())
+            if (recsElement != null && recsElement.Value.ValueKind == JsonValueKind.Array)
             {
-                if (recEl.ValueKind != JsonValueKind.Object)
-                    continue;
-
-                recommendations.Add(new AnalysisRecommendation
+                foreach (var recEl in recsElement.Value.EnumerateArray())
                 {
-                    Category = GetString(recEl, "Category") ?? "General",
-                    Description = GetString(recEl, "Description") ?? string.Empty,
-                    SuggestedEdit = GetString(recEl, "SuggestedEdit")
-                });
+                    if (recEl.ValueKind != JsonValueKind.Object)
+                        continue;
+
+                    recommendations.Add(new AnalysisRecommendation
+                    {
+                        Category = GetString(recEl, "Category") ?? "General",
+                        Description = GetString(recEl, "Description") ?? string.Empty,
+                        SuggestedEdit = GetString(recEl, "SuggestedEdit")
+                    });
+                }
+            }
+
+            // Legacy schema: ActionableImprovements array in AdditionalFeedback/Analysis object
+            JsonElement feedbackRoot;
+            if (TryGetLegacyFeedbackRoot(root, out feedbackRoot) &&
+                feedbackRoot.TryGetProperty("ActionableImprovements", out var improvements) &&
+                improvements.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in improvements.EnumerateArray())
+                {
+                    if (item.ValueKind == JsonValueKind.Object)
+                    {
+                        var suggestedEdit = GetString(item, "SuggestedEdit") ?? string.Empty;
+                        var description = GetString(item, "Description") ?? suggestedEdit;
+                        recommendations.Add(new AnalysisRecommendation
+                        {
+                            Category = GetString(item, "Category") ?? "Actionable Improvement",
+                            Description = description,
+                            SuggestedEdit = string.IsNullOrWhiteSpace(suggestedEdit) ? null : suggestedEdit
+                        });
+                    }
+                    else if (item.ValueKind == JsonValueKind.String)
+                    {
+                        var text = item.GetString() ?? string.Empty;
+                        if (!string.IsNullOrWhiteSpace(text))
+                        {
+                            recommendations.Add(new AnalysisRecommendation
+                            {
+                                Category = "Actionable Improvement",
+                                Description = text,
+                                SuggestedEdit = text
+                            });
+                        }
+                    }
+                }
             }
 
             return recommendations;
+        }
+
+        private static bool TryGetLegacyFeedbackRoot(JsonElement root, out JsonElement feedbackRoot)
+        {
+            var additional = GetProperty(root, "AdditionalFeedback");
+            if (additional != null && additional.Value.ValueKind == JsonValueKind.Object)
+            {
+                feedbackRoot = additional.Value;
+                return true;
+            }
+
+            var analysis = GetProperty(root, "Analysis");
+            if (analysis != null && analysis.Value.ValueKind == JsonValueKind.Object)
+            {
+                feedbackRoot = analysis.Value;
+                return true;
+            }
+
+            feedbackRoot = default;
+            return false;
+        }
+
+        private static void AddLegacyIssueArray(List<AnalysisIssue> target, JsonElement root, string propertyName, string category)
+        {
+            if (!root.TryGetProperty(propertyName, out var issuesArray) || issuesArray.ValueKind != JsonValueKind.Array)
+            {
+                return;
+            }
+
+            foreach (var item in issuesArray.EnumerateArray())
+            {
+                if (item.ValueKind == JsonValueKind.String)
+                {
+                    var text = item.GetString() ?? string.Empty;
+                    if (!string.IsNullOrWhiteSpace(text))
+                    {
+                        target.Add(new AnalysisIssue
+                        {
+                            Category = category,
+                            Severity = "Medium",
+                            Description = text,
+                            Fix = string.Empty
+                        });
+                    }
+                }
+                else if (item.ValueKind == JsonValueKind.Object)
+                {
+                    var description = GetString(item, "Description") ?? GetString(item, "Issue") ?? string.Empty;
+                    if (!string.IsNullOrWhiteSpace(description))
+                    {
+                        target.Add(new AnalysisIssue
+                        {
+                            Category = GetString(item, "Category") ?? category,
+                            Severity = GetString(item, "Severity") ?? "Medium",
+                            Description = description,
+                            Fix = GetString(item, "Fix") ?? string.Empty
+                        });
+                    }
+                }
+            }
         }
     }
 }
