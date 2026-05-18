@@ -79,6 +79,14 @@
                                    Text="Requirement Quality Analysis" 
                                    Style="{StaticResource Text.H2}"
                                    Margin="0,0,0,4"/>
+
+                        <Button Grid.Column="1"
+                            Content="Re-run Analysis"
+                            Command="{Binding AnalyzeNowCommand}"
+                            Style="{StaticResource ActionButton}"
+                            Padding="12,6"
+                            Margin="8,0,0,0"
+                            VerticalAlignment="Center"/>
                     </Grid>
                     
                     <Grid Grid.Row="1">
