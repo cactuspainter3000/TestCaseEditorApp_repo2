@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Json;
 using System.ComponentModel;
 using System.Net;
 using System.Text.Json;
+using System.Text;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -73,6 +75,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         [ObservableProperty]
         private int _selectedSettingsTabIndex;
+
+        [ObservableProperty]
+        private string _ollamaDebugInfo = "No Ollama diagnostics yet. Click 'Test selected models'.";
 
         public ObservableCollection<string> OllamaModels { get; } = new();
         
@@ -184,6 +189,222 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 IsBusy = false;
             }
+        }
+
+        [RelayCommand]
+        private async Task TestSelectedOllamaModelsAsync()
+        {
+            var diagnostics = new StringBuilder();
+
+            void AddDiag(string line)
+            {
+                var stamped = $"[{DateTime.Now:HH:mm:ss}] {line}";
+                diagnostics.AppendLine(stamped);
+                System.Diagnostics.Trace.WriteLine($"[UserSettingsViewModel] {stamped}");
+            }
+
+            try
+            {
+                IsBusy = true;
+                IsStatusError = false;
+                StatusMessage = "Testing selected Ollama models...";
+
+                var selectedChat = (SelectedChatModel ?? string.Empty).Trim();
+                var selectedEmbedding = (SelectedEmbeddingModel ?? string.Empty).Trim();
+
+                AddDiag($"Starting Ollama viability test. Chat='{selectedChat}', Embedding='{selectedEmbedding}'");
+
+                if (string.IsNullOrWhiteSpace(selectedChat) || string.IsNullOrWhiteSpace(selectedEmbedding))
+                {
+                    AddDiag("Validation failed: one or both selected models are empty.");
+                    OllamaDebugInfo = diagnostics.ToString().Trim();
+                    StatusMessage = "Ollama test failed: select both chat and embedding models first.";
+                    IsStatusError = true;
+                    return;
+                }
+
+                using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(45) };
+
+                var (tagsSuccess, tagsResponse, tagsEndpoint, tagsError) = await TryGetOllamaTagsResponseAsync(httpClient);
+                if (!tagsSuccess || tagsResponse == null)
+                {
+                    AddDiag($"Model list check failed. Endpoint='{tagsEndpoint}', Error='{tagsError}'");
+                    OllamaDebugInfo = diagnostics.ToString().Trim();
+                    StatusMessage = $"Ollama test failed: cannot connect to Ollama tags API ({tagsError}).";
+                    IsStatusError = true;
+                    return;
+                }
+
+                var tagsJson = await tagsResponse.Content.ReadAsStringAsync();
+                AddDiag($"Model list endpoint reachable: {tagsEndpoint}");
+
+                var installedModels = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                using (var tagsDoc = JsonDocument.Parse(tagsJson))
+                {
+                    if (tagsDoc.RootElement.TryGetProperty("models", out var modelsElement) && modelsElement.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var model in modelsElement.EnumerateArray())
+                        {
+                            if (model.TryGetProperty("name", out var nameElement))
+                            {
+                                var modelName = nameElement.GetString();
+                                if (!string.IsNullOrWhiteSpace(modelName))
+                                {
+                                    installedModels.Add(modelName);
+                                }
+                            }
+                            else if (model.TryGetProperty("model", out var modelElement))
+                            {
+                                var modelName = modelElement.GetString();
+                                if (!string.IsNullOrWhiteSpace(modelName))
+                                {
+                                    installedModels.Add(modelName);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                AddDiag($"Installed model count: {installedModels.Count}");
+
+                if (!installedModels.Contains(selectedChat))
+                {
+                    AddDiag($"Selected chat model not installed: {selectedChat}");
+                    OllamaDebugInfo = diagnostics.ToString().Trim();
+                    StatusMessage = $"Ollama test failed: chat model '{selectedChat}' is not installed.";
+                    IsStatusError = true;
+                    return;
+                }
+
+                if (!installedModels.Contains(selectedEmbedding))
+                {
+                    AddDiag($"Selected embedding model not installed: {selectedEmbedding}");
+                    OllamaDebugInfo = diagnostics.ToString().Trim();
+                    StatusMessage = $"Ollama test failed: embedding model '{selectedEmbedding}' is not installed.";
+                    IsStatusError = true;
+                    return;
+                }
+
+                var baseEndpoint = tagsEndpoint.EndsWith("/api/tags", StringComparison.OrdinalIgnoreCase)
+                    ? tagsEndpoint[..^"/api/tags".Length]
+                    : tagsEndpoint.TrimEnd('/');
+
+                var chatCheck = await TestOllamaChatModelAsync(httpClient, baseEndpoint, selectedChat, AddDiag);
+                var embeddingCheck = await TestOllamaEmbeddingModelAsync(httpClient, baseEndpoint, selectedEmbedding, AddDiag);
+
+                AddDiag($"Chat check success: {chatCheck}");
+                AddDiag($"Embedding check success: {embeddingCheck}");
+
+                var overallSuccess = chatCheck && embeddingCheck;
+                StatusMessage = overallSuccess
+                    ? "Ollama model test passed: chat and embedding models are viable."
+                    : "Ollama model test failed: see diagnostics for endpoint/status details.";
+                IsStatusError = !overallSuccess;
+
+                OllamaDebugInfo = diagnostics.ToString().Trim();
+            }
+            catch (Exception ex)
+            {
+                diagnostics.AppendLine($"[{DateTime.Now:HH:mm:ss}] Unexpected exception: {ex}");
+                OllamaDebugInfo = diagnostics.ToString().Trim();
+                StatusMessage = $"Ollama test failed: {ex.Message}";
+                IsStatusError = true;
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        private static async Task<bool> TestOllamaChatModelAsync(HttpClient httpClient, string baseEndpoint, string model, Action<string> addDiag)
+        {
+            var url = baseEndpoint.TrimEnd('/') + "/api/generate";
+            var payload = new
+            {
+                model,
+                prompt = "Respond with exactly: OK",
+                stream = false
+            };
+
+            addDiag($"POST {url} (chat viability)");
+
+            using var response = await httpClient.PostAsJsonAsync(url, payload);
+            var body = await response.Content.ReadAsStringAsync();
+            var snippet = body.Length > 300 ? body[..300] + "..." : body;
+
+            addDiag($"Chat viability response: {(int)response.StatusCode} {response.StatusCode}");
+            addDiag($"Chat viability body: {snippet}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return false;
+            }
+
+            try
+            {
+                using var doc = JsonDocument.Parse(body);
+                if (doc.RootElement.TryGetProperty("response", out var responseElement))
+                {
+                    var content = responseElement.GetString() ?? string.Empty;
+                    if (!string.IsNullOrWhiteSpace(content))
+                    {
+                        addDiag($"Chat output preview: {content.Trim()}");
+                    }
+                }
+            }
+            catch
+            {
+                // Keep test tolerant even if response shape changes.
+            }
+
+            return true;
+        }
+
+        private static async Task<bool> TestOllamaEmbeddingModelAsync(HttpClient httpClient, string baseEndpoint, string model, Action<string> addDiag)
+        {
+            var embedUrl = baseEndpoint.TrimEnd('/') + "/api/embed";
+            var embedPayload = new
+            {
+                model,
+                input = "embedding viability probe"
+            };
+
+            addDiag($"POST {embedUrl} (embedding viability)");
+
+            using var embedResponse = await httpClient.PostAsJsonAsync(embedUrl, embedPayload);
+            var embedBody = await embedResponse.Content.ReadAsStringAsync();
+            var embedSnippet = embedBody.Length > 300 ? embedBody[..300] + "..." : embedBody;
+
+            addDiag($"Embedding response (/api/embed): {(int)embedResponse.StatusCode} {embedResponse.StatusCode}");
+            addDiag($"Embedding body (/api/embed): {embedSnippet}");
+
+            if (embedResponse.IsSuccessStatusCode)
+            {
+                return true;
+            }
+
+            if (embedResponse.StatusCode != HttpStatusCode.NotFound)
+            {
+                return false;
+            }
+
+            var legacyUrl = baseEndpoint.TrimEnd('/') + "/api/embeddings";
+            var legacyPayload = new
+            {
+                model,
+                prompt = "embedding viability probe"
+            };
+
+            addDiag($"POST {legacyUrl} (legacy embedding fallback)");
+
+            using var legacyResponse = await httpClient.PostAsJsonAsync(legacyUrl, legacyPayload);
+            var legacyBody = await legacyResponse.Content.ReadAsStringAsync();
+            var legacySnippet = legacyBody.Length > 300 ? legacyBody[..300] + "..." : legacyBody;
+
+            addDiag($"Embedding response (/api/embeddings): {(int)legacyResponse.StatusCode} {legacyResponse.StatusCode}");
+            addDiag($"Embedding body (/api/embeddings): {legacySnippet}");
+
+            return legacyResponse.IsSuccessStatusCode;
         }
 
         private void EnsureFallbackOllamaModels()

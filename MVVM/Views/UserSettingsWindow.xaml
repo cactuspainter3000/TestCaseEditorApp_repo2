@@ -226,6 +226,26 @@
                             Padding="16,8"
                             Command="{Binding RefreshOllamaModelsCommand}"
                             Style="{StaticResource ActionButton}"/>
+
+                        <Button Content="Test selected models"
+                            HorizontalAlignment="Left"
+                            Padding="16,8"
+                            Margin="0,10,0,0"
+                            Command="{Binding TestSelectedOllamaModelsCommand}"
+                            Style="{StaticResource ActionButton}"/>
+
+                        <TextBlock Text="Debug diagnostics"
+                               Style="{StaticResource FieldLabel}"
+                               Margin="0,16,0,6"/>
+
+                        <TextBox Text="{Binding OllamaDebugInfo}"
+                             IsReadOnly="True"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             Height="170"
+                             Style="{StaticResource MenuPopupTextBoxStyle}"
+                             FontSize="12"/>
                 </StackPanel>
             </TabItem>
 
