@@ -60,7 +60,7 @@ namespace TestCaseEditorApp.Converters
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => throw new NotImplementedException();
+            => Binding.DoNothing;
     }
 
     /// <summary>Inverted bool to visibility converter - true=hidden, false=visible</summary>
@@ -73,7 +73,7 @@ namespace TestCaseEditorApp.Converters
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => throw new NotImplementedException();
+            => Binding.DoNothing;
     }
 
     /// <summary>Converts zero/non-zero values to visibility - zero=collapsed, non-zero=visible</summary>
@@ -105,7 +105,7 @@ namespace TestCaseEditorApp.Converters
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => throw new NotImplementedException();
+            => Binding.DoNothing;
     }
 
     public class NullOrEmptyToVisibilityConverter : IValueConverter
@@ -128,7 +128,7 @@ namespace TestCaseEditorApp.Converters
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => throw new NotImplementedException();
+            => Binding.DoNothing;
     }
 
     public class NullToVisibilityConverter : IValueConverter
@@ -144,7 +144,7 @@ namespace TestCaseEditorApp.Converters
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => throw new NotImplementedException();
+            => Binding.DoNothing;
     }
 
     /// <summary>String not empty to visibility converter - shows when string has content</summary>
@@ -157,7 +157,7 @@ namespace TestCaseEditorApp.Converters
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => throw new NotImplementedException();
+            => Binding.DoNothing;
     }
 
     /// <summary>String empty to visibility converter - shows when string is null/empty</summary>
@@ -170,7 +170,7 @@ namespace TestCaseEditorApp.Converters
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => throw new NotImplementedException();
+            => Binding.DoNothing;
     }
 
     /// <summary>
@@ -193,7 +193,7 @@ namespace TestCaseEditorApp.Converters
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => throw new NotImplementedException();
+            => Binding.DoNothing;
     }
 
     /// <summary>
@@ -235,7 +235,7 @@ namespace TestCaseEditorApp.Converters
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => throw new NotImplementedException();
+            => Binding.DoNothing;
     }
 
     /// <summary>
@@ -261,7 +261,7 @@ namespace TestCaseEditorApp.Converters
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => throw new NotImplementedException();
+            => Binding.DoNothing;
     }
 
     /// <summary>
@@ -281,7 +281,7 @@ namespace TestCaseEditorApp.Converters
         }
 
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
-            => throw new NotImplementedException();
+            => Array.Empty<object>();
     }
 
     /// <summary>
@@ -299,7 +299,7 @@ namespace TestCaseEditorApp.Converters
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => throw new NotImplementedException();
+            => Binding.DoNothing;
     }
 
     /// <summary>
@@ -317,7 +317,7 @@ namespace TestCaseEditorApp.Converters
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => throw new NotImplementedException();
+            => Binding.DoNothing;
     }
 
     /// <summary>
@@ -331,7 +331,7 @@ namespace TestCaseEditorApp.Converters
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => throw new NotImplementedException();
+            => Binding.DoNothing;
     }
 
     /// <summary>Converts boolean to text based on parameter options.</summary>
@@ -352,7 +352,7 @@ namespace TestCaseEditorApp.Converters
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            throw new NotImplementedException();
+            return Binding.DoNothing;
         }
     }
 

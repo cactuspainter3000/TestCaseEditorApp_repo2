@@ -26,7 +26,7 @@ namespace TestCaseEditorApp.Converters
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            throw new NotImplementedException("ConvertBack is not supported for EnumToVisibilityConverter");
+            return Binding.DoNothing;
         }
     }
 }
