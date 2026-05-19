@@ -1,0 +1,24 @@
+﻿
+2026-05-19T12:06:24.8161217Z	Warning	App	[JsonParser] CanParse JSON parse failed, but schema hints detected. Will attempt repair in ParseResponse. Error: Expected end of string, but instead reached end of data. LineNumber: 9 | BytePositionInLine: 134.
+2026-05-19T12:06:24.8448426Z	Warning	App	[JSONParser] Parsed repaired JSON payload for C1XMA2405-REQ_RC-15 (originalLength=661, repairedLength=665)
+2026-05-19T12:06:24.8500533Z	Information	App	[JSONParser] Parsed JSON response for C1XMA2405-REQ_RC-15: Score=4, Issues=4, Recommendations=0, HasRewrite=False
+2026-05-19T12:06:24.8686044Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator	[ANALYSIS_TRACE] MEDIATOR_ANALYSIS_READY Attempt=5427200f Requirement=COL02-REQ_RC-10685791 IsAnalyzed=True Score=4 Issues=4 Recs=0
+2026-05-19T12:08:32.7164672Z	Warning	App	[JsonParser] CanParse JSON parse failed, but schema hints detected. Will attempt repair in ParseResponse. Error: Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. LineNumber: 18 | BytePositionInLine: 7.
+2026-05-19T12:08:32.7481163Z	Warning	App	[JSONParser] Parsed repaired JSON payload for C1XMA2405-REQ_RC-16 (originalLength=1131, repairedLength=1134)
+2026-05-19T12:08:32.7501377Z	Information	App	[JSONParser] Parsed JSON response for C1XMA2405-REQ_RC-16: Score=6, Issues=0, Recommendations=0, HasRewrite=False
+2026-05-19T12:08:32.7687629Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator	[ANALYSIS_TRACE] MEDIATOR_ANALYSIS_READY Attempt=4e3b419f Requirement=COL02-REQ_RC-10685792 IsAnalyzed=True Score=6 Issues=0 Recs=0
+2026-05-19T12:10:26.6677966Z	Warning	App	[JsonParser] CanParse JSON parse failed, but schema hints detected. Will attempt repair in ParseResponse. Error: Expected start of a property name or value, but instead reached end of data. LineNumber: 1 | BytePositionInLine: 19.
+2026-05-19T12:10:26.6941099Z	Warning	App	[JSONParser] Parsed repaired JSON payload for C1XMA2405-REQ_RC-16 (originalLength=22, repairedLength=22)
+2026-05-19T12:10:26.6965466Z	Information	App	[JSONParser] Parsed JSON response for C1XMA2405-REQ_RC-16: Score=7, Issues=0, Recommendations=0, HasRewrite=False
+2026-05-19T12:10:26.7155107Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator	[ANALYSIS_TRACE] MEDIATOR_ANALYSIS_READY Attempt=c3f72ef7 Requirement=COL02-REQ_RC-10685792 IsAnalyzed=True Score=7 Issues=0 Recs=0
+2026-05-19T12:26:53.2375105Z	Warning	App	[JsonParser] CanParse JSON parse failed, but schema hints detected. Will attempt repair in ParseResponse. Error: Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. LineNumber: 6 | BytePositionInLine: 3.
+2026-05-19T12:26:53.2605979Z	Warning	App	[JSONParser] Parsed repaired JSON payload for C1XMA2405-REQ_RC-16 (originalLength=1037, repairedLength=1038)
+2026-05-19T12:26:53.2653714Z	Information	App	[JSONParser] Parsed JSON response for C1XMA2405-REQ_RC-16: Score=6, Issues=0, Recommendations=0, HasRewrite=False
+2026-05-19T12:26:53.2800535Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator	[ANALYSIS_TRACE] MEDIATOR_ANALYSIS_READY Attempt=2be54122 Requirement=COL02-REQ_RC-10685792 IsAnalyzed=True Score=6 Issues=0 Recs=0
+2026-05-19T12:35:55.2946275Z	Warning	App	[JsonParser] CanParse JSON parse failed, but schema hints detected. Will attempt repair in ParseResponse. Error: Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. LineNumber: 6 | BytePositionInLine: 3.
+2026-05-19T12:35:55.3302668Z	Warning	App	[JSONParser] Parsed repaired JSON payload for C1XMA2405-REQ_RC-16 (originalLength=1037, repairedLength=1038)
+2026-05-19T12:35:55.3390342Z	Information	App	[JSONParser] Root properties: QualityScore, Analysis
+2026-05-19T12:35:55.3421660Z	Information	App	[JSONParser] Parsed JSON response for C1XMA2405-REQ_RC-16: Score=6, Issues=0, Recommendations=0, HasRewrite=False
+2026-05-19T12:35:55.3588863Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator	[ANALYSIS_TRACE] MEDIATOR_ANALYSIS_READY Attempt=0728ccb8 Requirement=COL02-REQ_RC-10685792 IsAnalyzed=True Score=6 Issues=0 Recs=0
+
+
