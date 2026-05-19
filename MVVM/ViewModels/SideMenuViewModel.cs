@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
+using System.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -232,7 +233,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             ToggleAutoExportCommand = new RelayCommand(() => AutoExportForChatGpt = !AutoExportForChatGpt);
             ExportForChatGptCommand = new AsyncRelayCommand(NavigateToTestCaseGeneratorAsync); // Navigate to test case generator for export
             ExportAllToJamaCommand = new AsyncRelayCommand(ExportAllToJamaAsync);
-            ExportAnalysisLogsCommand = new RelayCommand(ExportAnalysisLogs);
+            ExportAnalysisLogsCommand = new AsyncRelayCommand(ExportAnalysisLogsAsync);
             
             // Demo command for testing state management
             DemoStateManagementCommand = new RelayCommand(DemoStateManagement);
@@ -1213,79 +1214,46 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         public event System.Action<string?>? SectionChanged;
 
-        private void ExportAnalysisLogs()
+        private async Task ExportAnalysisLogsAsync()
         {
             try
             {
-                var projectRoot = FindProjectRoot();
-                var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
-                var stagingDir = Path.Combine(Path.GetTempPath(), $"TestCaseEditorApp-logs-{timestamp}");
-                Directory.CreateDirectory(stagingDir);
+                var result = await Task.Run(ExportAndPushLogs);
 
-                var copiedAny = false;
-                var rootCandidates = new[]
-                {
-                    "app-logs.txt",
-                    "build-check.txt",
-                    "build-output.txt",
-                    "targeted_error.txt"
-                };
+                var summaryBuilder = new StringBuilder();
+                summaryBuilder.AppendLine("Logs exported successfully.");
+                summaryBuilder.AppendLine();
+                summaryBuilder.AppendLine($"Desktop zip: {result.ZipPath}");
+                summaryBuilder.AppendLine($"Repo folder: {result.RepositoryExportPath}");
+                summaryBuilder.AppendLine();
 
-                foreach (var fileName in rootCandidates)
+                if (result.GitPushSucceeded)
                 {
-                    var source = Path.Combine(projectRoot, fileName);
-                    if (!File.Exists(source))
+                    summaryBuilder.AppendLine("Git: add/commit/push completed.");
+                    if (!string.IsNullOrWhiteSpace(result.CommitHash))
                     {
-                        continue;
+                        summaryBuilder.AppendLine($"Commit: {result.CommitHash}");
                     }
-
-                    var destination = Path.Combine(stagingDir, fileName);
-                    File.Copy(source, destination, overwrite: true);
-                    copiedAny = true;
                 }
-
-                var appLogDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "TestCaseEditorApp", "logs");
-                if (Directory.Exists(appLogDir))
+                else
                 {
-                    foreach (var source in Directory.GetFiles(appLogDir, "*.log"))
+                    summaryBuilder.AppendLine("Git: add/commit/push did not fully complete.");
+                    if (!string.IsNullOrWhiteSpace(result.GitFailureMessage))
                     {
-                        var fileName = Path.GetFileName(source);
-                        var destination = Path.Combine(stagingDir, fileName);
-                        File.Copy(source, destination, overwrite: true);
-                        copiedAny = true;
+                        summaryBuilder.AppendLine(result.GitFailureMessage);
                     }
                 }
 
-                if (!copiedAny)
-                {
-                    MessageBox.Show(
-                        "No known log files were found to export.",
-                        "Export Analysis Logs",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information);
-                    return;
-                }
-
-                var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-                var zipPath = Path.Combine(desktop, $"TestCaseEditorApp-AnalysisLogs-{timestamp}.zip");
-                if (File.Exists(zipPath))
-                {
-                    File.Delete(zipPath);
-                }
-
-                ZipFile.CreateFromDirectory(stagingDir, zipPath, CompressionLevel.Optimal, includeBaseDirectory: false);
-
-                _logger.LogInformation("[SideMenuVM] Exported analysis logs to {ZipPath}", zipPath);
                 MessageBox.Show(
-                    $"Logs exported successfully.\n\n{zipPath}",
+                    summaryBuilder.ToString(),
                     "Export Analysis Logs",
                     MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                    result.GitPushSucceeded ? MessageBoxImage.Information : MessageBoxImage.Warning);
 
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = "explorer.exe",
-                    Arguments = $"/select,\"{zipPath}\"",
+                    Arguments = $"/select,\"{result.ZipPath}\"",
                     UseShellExecute = true
                 });
             }
@@ -1298,6 +1266,155 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
+        }
+
+        private LogExportResult ExportAndPushLogs()
+        {
+            var projectRoot = FindProjectRoot();
+            var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+            var stagingDir = Path.Combine(Path.GetTempPath(), $"TestCaseEditorApp-logs-{timestamp}");
+            Directory.CreateDirectory(stagingDir);
+
+            var copiedAny = CollectKnownLogs(projectRoot, stagingDir);
+            if (!copiedAny)
+            {
+                throw new InvalidOperationException("No known log files were found to export.");
+            }
+
+            var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            var zipPath = Path.Combine(desktop, $"TestCaseEditorApp-AnalysisLogs-{timestamp}.zip");
+            if (File.Exists(zipPath))
+            {
+                File.Delete(zipPath);
+            }
+
+            ZipFile.CreateFromDirectory(stagingDir, zipPath, CompressionLevel.Optimal, includeBaseDirectory: false);
+
+            var repoExportRoot = Path.Combine(projectRoot, "exports", "analysis-logs");
+            var repoExportPath = Path.Combine(repoExportRoot, timestamp);
+            Directory.CreateDirectory(repoExportPath);
+
+            foreach (var file in Directory.GetFiles(stagingDir))
+            {
+                var destination = Path.Combine(repoExportPath, Path.GetFileName(file));
+                File.Copy(file, destination, overwrite: true);
+            }
+
+            var summaryPath = Path.Combine(repoExportPath, "export-summary.txt");
+            File.WriteAllText(
+                summaryPath,
+                $"Created: {DateTime.Now:O}{Environment.NewLine}" +
+                $"Source machine: {Environment.MachineName}{Environment.NewLine}" +
+                $"Zip: {zipPath}{Environment.NewLine}");
+
+            var gitResult = TryCommitAndPushExport(projectRoot, repoExportPath);
+
+            _logger.LogInformation("[SideMenuVM] Exported analysis logs zip={ZipPath}, repoFolder={RepoFolder}", zipPath, repoExportPath);
+            return new LogExportResult(zipPath, repoExportPath, gitResult.Succeeded, gitResult.CommitHash, gitResult.FailureMessage);
+        }
+
+        private static bool CollectKnownLogs(string projectRoot, string stagingDir)
+        {
+            var copiedAny = false;
+            var rootCandidates = new[]
+            {
+                "app-logs.txt",
+                "build-check.txt",
+                "build-output.txt",
+                "targeted_error.txt"
+            };
+
+            foreach (var fileName in rootCandidates)
+            {
+                var source = Path.Combine(projectRoot, fileName);
+                if (!File.Exists(source))
+                {
+                    continue;
+                }
+
+                var destination = Path.Combine(stagingDir, fileName);
+                File.Copy(source, destination, overwrite: true);
+                copiedAny = true;
+            }
+
+            var appLogDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "TestCaseEditorApp", "logs");
+            if (Directory.Exists(appLogDir))
+            {
+                foreach (var source in Directory.GetFiles(appLogDir, "*.log"))
+                {
+                    var fileName = Path.GetFileName(source);
+                    var destination = Path.Combine(stagingDir, fileName);
+                    File.Copy(source, destination, overwrite: true);
+                    copiedAny = true;
+                }
+            }
+
+            return copiedAny;
+        }
+
+        private GitAutomationResult TryCommitAndPushExport(string projectRoot, string repoExportPath)
+        {
+            try
+            {
+                if (!Directory.Exists(Path.Combine(projectRoot, ".git")))
+                {
+                    return new GitAutomationResult(false, null, "Not a git repository. Logs were exported locally only.");
+                }
+
+                var relativeExportPath = Path.GetRelativePath(projectRoot, repoExportPath).Replace('\\', '/');
+                RunGitCommand(projectRoot, $"add \"{relativeExportPath}\"");
+
+                var commitOutput = RunGitCommand(
+                    projectRoot,
+                    $"commit -m \"Add exported analysis logs {Path.GetFileName(repoExportPath)}\"");
+
+                if (commitOutput.Contains("nothing to commit", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new GitAutomationResult(false, null, "No repo changes to commit. Logs were exported locally.");
+                }
+
+                var commitHash = RunGitCommand(projectRoot, "rev-parse --short HEAD").Trim();
+                RunGitCommand(projectRoot, "push");
+
+                return new GitAutomationResult(true, commitHash, null);
+            }
+            catch (Exception ex)
+            {
+                return new GitAutomationResult(false, null, $"Git automation error: {ex.Message}");
+            }
+        }
+
+        private static string RunGitCommand(string workingDirectory, string arguments)
+        {
+            using var process = new Process();
+            process.StartInfo = new ProcessStartInfo
+            {
+                FileName = "git",
+                Arguments = arguments,
+                WorkingDirectory = workingDirectory,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            process.Start();
+
+            var stdOut = process.StandardOutput.ReadToEnd();
+            var stdErr = process.StandardError.ReadToEnd();
+
+            if (!process.WaitForExit(60000))
+            {
+                try { process.Kill(); } catch { }
+                throw new TimeoutException($"git {arguments} timed out");
+            }
+
+            if (process.ExitCode != 0)
+            {
+                throw new InvalidOperationException($"git {arguments} failed: {stdErr}".Trim());
+            }
+
+            return string.IsNullOrWhiteSpace(stdOut) ? stdErr : stdOut;
         }
 
         private static string FindProjectRoot()
@@ -1316,6 +1433,18 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
             return Environment.CurrentDirectory;
         }
+
+        private sealed record LogExportResult(
+            string ZipPath,
+            string RepositoryExportPath,
+            bool GitPushSucceeded,
+            string? CommitHash,
+            string? GitFailureMessage);
+
+        private sealed record GitAutomationResult(
+            bool Succeeded,
+            string? CommitHash,
+            string? FailureMessage);
 
         /// <summary>
         /// Export FIRST test case only to Jama Connect (for debugging)
