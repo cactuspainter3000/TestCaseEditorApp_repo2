@@ -12,6 +12,7 @@ using TestCaseEditorApp.Prompts;
 using TestCaseEditorApp.Services.Prompts;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Parsing;
+using TestCaseEditorApp.Services.Templates;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Services; // For Requirements domain interface
 
 namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
@@ -46,6 +47,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
         private readonly AnythingLLMService? _anythingLLMService;
         private readonly IDirectRagService? _directRagService; // RAG service for enhanced processing
         private readonly ResponseParserManager _parserManager;
+        private readonly IServiceComplianceWrapper? _complianceWrapper;
+        private readonly EnvelopeSchema _requirementAnalysisEnvelopeSchema;
         
         // TASK 4.4: Enhanced derivation analysis services
         private readonly ISystemCapabilityDerivationService? _derivationService;
@@ -152,7 +155,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
             AnythingLLMService? anythingLLMService = null,
             IDirectRagService? directRagService = null, // RAG-enhanced processing
             ISystemCapabilityDerivationService? derivationService = null,
-            IRequirementGapAnalyzer? gapAnalyzer = null)
+            IRequirementGapAnalyzer? gapAnalyzer = null,
+            IServiceComplianceWrapper? complianceWrapper = null)
         {
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
             _promptBuilder = promptBuilder ?? throw new ArgumentNullException(nameof(promptBuilder));
@@ -163,6 +167,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
             _directRagService = directRagService; // RAG service for enhanced processing
             _derivationService = derivationService;
             _gapAnalyzer = gapAnalyzer;
+            _complianceWrapper = complianceWrapper;
+            _requirementAnalysisEnvelopeSchema = BuildRequirementAnalysisEnvelopeSchema();
         }
 
         /// <summary>
@@ -268,7 +274,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                 }
                 
                 // Parse response using parser manager
-                var analysis = _parserManager.ParseResponse(reflectedResponse, requirement.Item ?? "UNKNOWN");
+                var compliantResponse = await ValidateResponseComplianceAsync(
+                    reflectedResponse,
+                    requirement.Item ?? "UNKNOWN",
+                    cancellationToken);
+
+                var analysis = _parserManager.ParseResponse(compliantResponse, requirement.Item ?? "UNKNOWN");
                 
                 // Check if parsing was successful
                 if (analysis == null)
@@ -384,7 +395,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                     TestCaseEditorApp.Services.Logging.Log.Info($"[RAG RESPONSE DEBUG] Raw response for {requirement.Item}:\n--- START RAG RESPONSE ---\n{ragResult.response}\n--- END RAG RESPONSE ---");
                     
                     // Parse response using appropriate parser (JSON or Natural Language)
-                    var ragAnalysis = _parserManager.ParseResponse(ragResult.response ?? string.Empty, requirement.Item ?? "UNKNOWN");
+                    var validatedRagResponse = await ValidateResponseComplianceAsync(
+                        ragResult.response ?? string.Empty,
+                        requirement.Item ?? "UNKNOWN",
+                        cancellationToken);
+
+                    var ragAnalysis = _parserManager.ParseResponse(validatedRagResponse, requirement.Item ?? "UNKNOWN");
                     
                     if (ragAnalysis != null)
                     {
@@ -462,7 +478,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                 }
                 
                 // Parse response using parser manager
-                var analysis = _parserManager.ParseResponse(reflectedResponse ?? string.Empty, requirement.Item ?? "UNKNOWN");
+                var compliantResponse = await ValidateResponseComplianceAsync(
+                    reflectedResponse ?? string.Empty,
+                    requirement.Item ?? "UNKNOWN",
+                    cancellationToken);
+
+                var analysis = _parserManager.ParseResponse(compliantResponse, requirement.Item ?? "UNKNOWN");
                 
                 // Check if parsing was successful
                 if (analysis == null)
@@ -1925,7 +1946,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
 
                 if (!string.IsNullOrEmpty(retryResponse))
                 {
-                    var retryAnalysis = _parserManager.ParseResponse(retryResponse, requirement.Item ?? "RETRY");
+                    var validatedRetryResponse = await ValidateResponseComplianceAsync(
+                        retryResponse,
+                        requirement.Item ?? "RETRY",
+                        cancellationToken);
+
+                    var retryAnalysis = _parserManager.ParseResponse(validatedRetryResponse, requirement.Item ?? "RETRY");
                     if (retryAnalysis?.IsAnalyzed == true)
                     {
                         TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Corrective retry successful for {requirement.Item}");
@@ -2020,6 +2046,93 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[RequirementAnalysisService] JSON repair failed for {requirementId}");
                 return (false, string.Empty);
             }
+        }
+
+        /// <summary>
+        /// Validates raw LLM output against the requirement analysis envelope schema using the compliance wrapper.
+        /// Fails closed on compliance validation failure so invalid payloads cannot flow into legacy parsing.
+        /// </summary>
+        private async Task<string> ValidateResponseComplianceAsync(
+            string rawResponse,
+            string requirementItem,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(rawResponse) || _complianceWrapper == null)
+            {
+                return rawResponse;
+            }
+
+            try
+            {
+                var complianceConfig = new ComplianceConfig
+                {
+                    OperationName = $"RequirementAnalysis.{requirementItem}",
+                    OutputSchema = _requirementAnalysisEnvelopeSchema,
+                    MinimumComplianceScore = 0.85,
+                    FallbackStrategy = ComplianceFallbackStrategy.ReturnError,
+                    TrackQualityMetrics = true,
+                    EnableTelemetry = true
+                };
+
+                var complianceResult = await _complianceWrapper.ExecuteWithComplianceAsync(
+                    () => Task.FromResult(rawResponse),
+                    complianceConfig);
+
+                if (!complianceResult.Success)
+                {
+                    var violationCount = complianceResult.Validation?.Violations?.Count ?? 0;
+                    TestCaseEditorApp.Services.Logging.Log.Error(
+                        $"[RequirementAnalysisService] Compliance validation did not pass for {requirementItem}. " +
+                        $"Violations={violationCount}, Score={complianceResult.Validation?.OverallScore:F2}. Rejecting response.");
+
+                    throw new InvalidOperationException(
+                        $"Compliance validation failed for requirement {requirementItem}. " +
+                        $"Score={complianceResult.Validation?.OverallScore:F2}, Violations={violationCount}");
+                }
+
+                if (string.IsNullOrWhiteSpace(complianceResult.Data))
+                {
+                    throw new InvalidOperationException(
+                        $"Compliance validation returned empty response payload for requirement {requirementItem}");
+                }
+
+                return complianceResult.Data;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(
+                    $"[RequirementAnalysisService] Compliance validation failed for {requirementItem}: {ex.Message}");
+                throw;
+            }
+        }
+
+        private static EnvelopeSchema BuildRequirementAnalysisEnvelopeSchema()
+        {
+            return new EnvelopeSchema
+            {
+                SchemaName = "RequirementAnalysisResponse",
+                Description = "Schema for requirement quality analysis output",
+                Version = "1.0",
+                TargetEnvelopeType = EnvelopeType.AnalysisResponse,
+                DefaultRepairStrategy = EnvelopeRepairStrategy.GracefulDegradation,
+                AllowCustomFields = true,
+                RequiredFields = new List<EnvelopeField>
+                {
+                    new EnvelopeField { FieldName = "OriginalQualityScore", DisplayName = "Original Quality Score", DataType = "number", IsRequired = true },
+                    new EnvelopeField { FieldName = "Issues", DisplayName = "Issues", DataType = "array", IsRequired = true },
+                    new EnvelopeField { FieldName = "Recommendations", DisplayName = "Recommendations", DataType = "array", IsRequired = true }
+                },
+                OptionalFields = new List<EnvelopeField>
+                {
+                    new EnvelopeField { FieldName = "ImprovedRequirement", DisplayName = "Improved Requirement", DataType = "string", IsRequired = false },
+                    new EnvelopeField { FieldName = "FreeformFeedback", DisplayName = "Freeform Feedback", DataType = "string", IsRequired = false },
+                    new EnvelopeField { FieldName = "HallucinationCheck", DisplayName = "Hallucination Check", DataType = "string", IsRequired = false }
+                }
+            };
         }
 
         /// <summary>

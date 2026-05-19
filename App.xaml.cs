@@ -196,6 +196,7 @@ namespace TestCaseEditorApp
                         var promptBuilder = provider.GetRequiredService<RequirementAnalysisPromptBuilder>();
                         var parserManager = provider.GetRequiredService<ResponseParserManager>();
                         var cache = provider.GetService<RequirementAnalysisCache>(); // Optional
+                        var complianceWrapper = provider.GetService<IServiceComplianceWrapper>();
                         
                         // Task 4.4: Optional derivation analysis services
                         var derivationService = provider.GetService<ISystemCapabilityDerivationService>();
@@ -210,7 +211,8 @@ namespace TestCaseEditorApp
                             anythingLLMService: anythingLLMService,
                             directRagService: directRagService, // RAG-enhanced processing
                             derivationService: derivationService,
-                            gapAnalyzer: gapAnalyzer);
+                            gapAnalyzer: gapAnalyzer,
+                            complianceWrapper: complianceWrapper);
                     });
 
                     // ===== SYSTEM CAPABILITY DERIVATION SERVICES =====
