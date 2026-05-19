@@ -263,7 +263,10 @@ namespace TestCaseEditorApp.Prompts
             sb.AppendLine("- If you see terms like 'Tier 1', 'standard protocols', 'appropriate methods', etc.");
             sb.AppendLine("  and the supplemental content defines these terms specifically, incorporate the definitions");
             sb.AppendLine("- If the requirement is excellent, say so (high score, minimal issues)");
-            sb.AppendLine("- Empty arrays are valid if there are no issues or recommendations");
+            sb.AppendLine("- ⚠️  CRITICAL: Empty arrays are only valid IF you've exhaustively checked all 6 quality categories");
+            sb.AppendLine("- ⚠️  CRITICAL: Most requirements have at least one issue or improvement - do not return empty Issues/Recommendations without justification");
+            sb.AppendLine("- ⚠️  CRITICAL: If you return Issues=[] and Recommendations=[], you MUST provide detailed explanation in FreeformFeedback");
+            sb.AppendLine("- ⚠️  CRITICAL: ImprovedRequirement MUST ALWAYS be present with a complete rewritten version of the requirement");
             sb.AppendLine("- CRITICAL: Do NOT provide 3+ recommendations - consolidate into 1-2 maximum");
             sb.AppendLine("- CRITICAL: Each recommendation gets exactly ONE SuggestedEdit, not multiple versions");
             sb.AppendLine("- REMEMBER: Every recommendation MUST include a SuggestedEdit with a complete requirement rewrite");
@@ -271,12 +274,17 @@ namespace TestCaseEditorApp.Prompts
             sb.AppendLine();
             sb.AppendLine("CRITICAL FORMAT REQUIREMENTS:");
             sb.AppendLine("- MUST return valid JSON - no text outside the JSON structure");
+            sb.AppendLine("- EVERY field in the output MUST be present (all fields are required, not optional)");
+            sb.AppendLine("- OriginalQualityScore MUST be an integer from 1-10");
+            sb.AppendLine("- HallucinationCheck MUST be present with one of: NO_FABRICATION, HELPFUL_ELABORATION, FABRICATED_DETAILS");
+            sb.AppendLine("- Issues MUST be present (can be empty [] only if truly no issues found, with FreeformFeedback explaining)");
+            sb.AppendLine("- Recommendations MUST be present (can be empty [] only if score is 9-10 AND no improvements possible)");
+            sb.AppendLine("- ImprovedRequirement MUST be a complete, non-empty requirement rewrite incorporating your best suggestions");
+            sb.AppendLine("- FreeformFeedback MUST be present (can be empty string if no additional insights)");
             sb.AppendLine("- EVERY recommendation MUST include a SuggestedEdit field with actual requirement text");
-            sb.AppendLine("- ImprovedRequirement MUST be present and non-empty");
-            sb.AppendLine("- ImprovedRequirement should match your best consolidated SuggestedEdit");
             sb.AppendLine("- Do NOT provide example text, placeholder text, or instructional text");
             sb.AppendLine("- SuggestedEdit must be complete, implementable requirement language");
-            sb.AppendLine("- If no recommendations needed, return empty Recommendations array");
+            sb.AppendLine("- If no recommendations needed, return empty Recommendations array with justification in FreeformFeedback");
             sb.AppendLine();
             sb.AppendLine("Return ONLY the JSON object. No preamble, no markdown formatting, no code fences.");
 

@@ -136,8 +136,34 @@ namespace TestCaseEditorApp.Services.Parsing
                     var rootProps = string.Join(", ", root.EnumerateObject().Select(p => p.Name));
                     TestCaseEditorApp.Services.Logging.Log.Info(
                         $"[{ParserName}Parser] Root properties: {rootProps}");
+
+                    // STRICT VALIDATION: Reject incomplete analyses
+                    // An analysis is only valid if it contains substantive feedback beyond just a score
+                    var hasIssues = analysis.Issues.Count > 0;
+                    var hasRecommendations = analysis.Recommendations.Count > 0;
+                    var hasImprovement = !string.IsNullOrWhiteSpace(analysis.ImprovedRequirement);
+                    var isCompleteAnalysis = hasIssues || hasRecommendations || hasImprovement;
+                    
+                    if (!isCompleteAnalysis && analysis.OriginalQualityScore > 0)
+                    {
+                        var payloadLength = cleaned.Length;
+                        var payloadSnippetLength = Math.Min(220, payloadLength);
+                        var payloadSnippet = cleaned
+                            .Substring(0, payloadSnippetLength)
+                            .Replace("\r", "\\r")
+                            .Replace("\n", "\\n");
+
+                        // REJECT incomplete payloads - they don't provide value to the user
+                        TestCaseEditorApp.Services.Logging.Log.Error(
+                            $"[{ParserName}Parser] REJECTED INCOMPLETE ANALYSIS for {requirementId}: Score={analysis.OriginalQualityScore} but Issues={hasIssues}, Recommendations={hasRecommendations}, ImprovedRequirement={hasImprovement}. " +
+                            $"LLM must provide at least one of: Issues array with items, Recommendations array with items, or ImprovedRequirement text. " +
+                            $"Payload with only a score is not actionable and is rejected as parse failure. " +
+                            $"PayloadLength={payloadLength}, PayloadSnippet={payloadSnippet}");
+                        return null;
+                    }
+
                     TestCaseEditorApp.Services.Logging.Log.Info(
-                        $"[{ParserName}Parser] Parsed JSON response for {requirementId}: Score={analysis.OriginalQualityScore}, Issues={analysis.Issues.Count}, Recommendations={analysis.Recommendations.Count}, HasRewrite={!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement)}");
+                        $"[{ParserName}Parser] Successfully parsed complete analysis for {requirementId}: Score={analysis.OriginalQualityScore}, Issues={analysis.Issues.Count}, Recommendations={analysis.Recommendations.Count}, HasRewrite={hasImprovement}");
 
                     return analysis;
                 }

@@ -2081,9 +2081,12 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                 if (!complianceResult.Success)
                 {
                     var violationCount = complianceResult.Validation?.Violations?.Count ?? 0;
+                    var detailedViolations = BuildComplianceFailureDiagnostics(complianceResult);
+                    var responseDiagnostics = BuildRawResponseDiagnostics(rawResponse);
                     TestCaseEditorApp.Services.Logging.Log.Error(
                         $"[RequirementAnalysisService] Compliance validation did not pass for {requirementItem}. " +
-                        $"Violations={violationCount}, Score={complianceResult.Validation?.OverallScore:F2}. Rejecting response.");
+                        $"Violations={violationCount}, Score={complianceResult.Validation?.OverallScore:F2}. " +
+                        $"Diagnostics={detailedViolations}. ResponseDiagnostics={responseDiagnostics}. Rejecting response.");
 
                     throw new InvalidOperationException(
                         $"Compliance validation failed for requirement {requirementItem}. " +
@@ -2131,8 +2134,149 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                     new EnvelopeField { FieldName = "ImprovedRequirement", DisplayName = "Improved Requirement", DataType = "string", IsRequired = false },
                     new EnvelopeField { FieldName = "FreeformFeedback", DisplayName = "Freeform Feedback", DataType = "string", IsRequired = false },
                     new EnvelopeField { FieldName = "HallucinationCheck", DisplayName = "Hallucination Check", DataType = "string", IsRequired = false }
+                },
+                ValidationRules = new List<EnvelopeValidation>
+                {
+                    new EnvelopeValidation
+                    {
+                        RuleName = "SubstantiveContentRequired",
+                        Description = "Response must contain at least one actionable field: Issues item(s), Recommendations item(s), or ImprovedRequirement text.",
+                        Severity = EnvelopeValidationSeverity.Critical,
+                        ErrorMessage = "Response contains score-only or non-actionable output. At least one of Issues, Recommendations, or ImprovedRequirement must contain content.",
+                        SuggestedFix = "Return non-empty Issues or Recommendations, or provide ImprovedRequirement text.",
+                        ValidationFunction = envelope => ValidateSubstantiveAnalysisContent(envelope)
+                    }
                 }
             };
+        }
+
+        private static TestCaseEditorApp.Services.Templates.ValidationResult ValidateSubstantiveAnalysisContent(OutputEnvelope envelope)
+        {
+            if (envelope.StructuredData == null)
+            {
+                return new TestCaseEditorApp.Services.Templates.ValidationResult
+                {
+                    IsValid = false,
+                    ErrorMessage = "StructuredData is missing; cannot validate actionable content.",
+                    Severity = TestCaseEditorApp.Services.Templates.ValidationSeverity.Error
+                };
+            }
+
+            var root = envelope.StructuredData.RootElement;
+            var issuesCount = TryGetArrayCount(root, "Issues");
+            var recommendationsCount = TryGetArrayCount(root, "Recommendations");
+            var hasImprovedRequirement = HasNonEmptyString(root, "ImprovedRequirement");
+
+            var hasSubstantiveContent = issuesCount > 0 || recommendationsCount > 0 || hasImprovedRequirement;
+            if (hasSubstantiveContent)
+            {
+                return new TestCaseEditorApp.Services.Templates.ValidationResult
+                {
+                    IsValid = true,
+                    Severity = TestCaseEditorApp.Services.Templates.ValidationSeverity.Info
+                };
+            }
+
+            return new TestCaseEditorApp.Services.Templates.ValidationResult
+            {
+                IsValid = false,
+                ErrorMessage = $"No substantive content detected (Issues={issuesCount}, Recommendations={recommendationsCount}, ImprovedRequirement={hasImprovedRequirement})",
+                Severity = TestCaseEditorApp.Services.Templates.ValidationSeverity.Error,
+                Metadata = new Dictionary<string, object>
+                {
+                    ["IssuesCount"] = issuesCount,
+                    ["RecommendationsCount"] = recommendationsCount,
+                    ["HasImprovedRequirement"] = hasImprovedRequirement
+                }
+            };
+        }
+
+        private static int TryGetArrayCount(JsonElement root, string propertyName)
+        {
+            foreach (var prop in root.EnumerateObject())
+            {
+                if (!string.Equals(prop.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                return prop.Value.ValueKind == JsonValueKind.Array
+                    ? prop.Value.GetArrayLength()
+                    : 0;
+            }
+
+            return 0;
+        }
+
+        private static bool HasNonEmptyString(JsonElement root, string propertyName)
+        {
+            foreach (var prop in root.EnumerateObject())
+            {
+                if (!string.Equals(prop.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                return prop.Value.ValueKind == JsonValueKind.String &&
+                       !string.IsNullOrWhiteSpace(prop.Value.GetString());
+            }
+
+            return false;
+        }
+
+        private static string BuildComplianceFailureDiagnostics(ComplianceResult<string> complianceResult)
+        {
+            var parts = new List<string>();
+
+            if (complianceResult.Validation?.Violations?.Any() == true)
+            {
+                parts.AddRange(complianceResult.Validation.Violations
+                    .Select(v => $"Violation[{v.ViolationType}] Severity={v.Severity} Desc={v.Description}"));
+            }
+
+            var envelopeErrors = complianceResult.Validation?.EnvelopeValidation?.Errors;
+            if (envelopeErrors?.Any() == true)
+            {
+                parts.AddRange(envelopeErrors.Select(e =>
+                    $"EnvelopeError Field={e.Field} Code={e.ErrorCode} Severity={e.Severity} Message={e.Message}"));
+            }
+
+            var wrapperErrors = complianceResult.Errors;
+            if (wrapperErrors?.Any() == true)
+            {
+                parts.AddRange(wrapperErrors.Select(e =>
+                    $"WrapperError Type={e.ErrorType} Message={e.Message}"));
+            }
+
+            return parts.Any() ? string.Join(" | ", parts) : "No detailed violations returned by compliance wrapper";
+        }
+
+        private static string BuildRawResponseDiagnostics(string rawResponse)
+        {
+            var length = rawResponse?.Length ?? 0;
+            var snippetLength = Math.Min(220, length);
+            var snippet = (rawResponse ?? string.Empty)
+                .Substring(0, snippetLength)
+                .Replace("\r", "\\r")
+                .Replace("\n", "\\n");
+
+            try
+            {
+                using var doc = JsonDocument.Parse(rawResponse);
+                var root = doc.RootElement;
+                var propNames = root.ValueKind == JsonValueKind.Object
+                    ? string.Join(",", root.EnumerateObject().Select(p => p.Name))
+                    : root.ValueKind.ToString();
+                var issuesCount = TryGetArrayCount(root, "Issues");
+                var recommendationsCount = TryGetArrayCount(root, "Recommendations");
+                var hasImprovedRequirement = HasNonEmptyString(root, "ImprovedRequirement");
+
+                return $"Length={length}, RootProps={propNames}, IssuesCount={issuesCount}, RecommendationsCount={recommendationsCount}, HasImprovedRequirement={hasImprovedRequirement}, Snippet={snippet}";
+            }
+            catch (Exception ex)
+            {
+                return $"Length={length}, ParseState=InvalidJson({ex.GetType().Name}), Snippet={snippet}";
+            }
         }
 
         /// <summary>

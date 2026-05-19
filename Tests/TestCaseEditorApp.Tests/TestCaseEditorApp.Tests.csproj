@@ -7,10 +7,6 @@
     <IsTestProject>true</IsTestProject>
     <UseWPF>true</UseWPF>
     <NoWarn>$(NoWarn);CS8618;CS8625;CS8601;CS8603;CS8604;CS0219;CS0618</NoWarn>
-    <!-- Completely disable dependency file handling -->
-    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
-    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
-    <GenerateDependencyFile>false</GenerateDependencyFile>
     <TestProjectType>UnitTest</TestProjectType>
   </PropertyGroup>
 
@@ -28,36 +24,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\TestCaseEditorApp.csproj">
-      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-      <IncludeAssets>compile;build</IncludeAssets>
-      <ExcludeAssets>runtime;contentFiles</ExcludeAssets>
-    </ProjectReference>
+    <ProjectReference Include="..\..\TestCaseEditorApp.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
   </ItemGroup>
-
-  <!-- Override copy behavior to handle missing deps.json gracefully -->
-  <Target Name="HandleMissingDepsJson" BeforeTargets="CopyFilesToOutputDirectory">
-    <!-- Create a dummy deps.json file in the referenced project's output directory if it doesn't exist -->
-    <PropertyGroup>
-      <ReferencedDepsJsonPath>$(MSBuildThisFileDirectory)..\..\bin\Debug\net8.0-windows\TestCaseEditorApp.deps.json</ReferencedDepsJsonPath>
-    </PropertyGroup>
-    <WriteLinesToFile 
-      File="$(ReferencedDepsJsonPath)" 
-      Lines='{ "runtimeTarget": { "name": ".NETCoreApp,Version=v8.0" }, "compilationOptions": {}, "targets": { ".NETCoreApp,Version=v8.0": {} }, "libraries": {} }' 
-      Overwrite="false" 
-      Condition="!Exists('$(ReferencedDepsJsonPath)')" 
-      ContinueOnError="true" />
-  </Target>
-
-  <!-- Fallback: completely exclude deps.json files from copy operations -->
-  <Target Name="PreventDepsJsonCopy" BeforeTargets="PrepareForBuild;ResolveReferences">
-    <ItemGroup>
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Extension)' == '.deps.json'" />
-    </ItemGroup>
-  </Target>
 
 </Project>
