@@ -365,9 +365,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
 
             try
             {
+                // Initialize system message early so we can use it for both RAG and direct LLM paths
+                if (_cachedSystemMessage == null)
+                {
+                    _cachedSystemMessage = _promptBuilder.GetSystemPrompt();
+                    TestCaseEditorApp.Services.Logging.Log.Debug("[RequirementAnalysisService] Cached system message for session reuse");
+                }
+
                 // Try RAG-based analysis first (faster and more context-aware)
                 TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Attempting RAG analysis for requirement {requirement.Item}");
-                var ragResult = await TryRagAnalysisAsync(requirement, null, null, cancellationToken);
+                var ragResult = await TryRagAnalysisAsync(requirement, null, null, _cachedSystemMessage, cancellationToken);
                 
                 if (ragResult.success)
                 {
@@ -414,14 +421,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
 
                 // Build the prompt using optimized system+context approach for better performance
                 string response;
-                
-                // Use optimized system+context approach for full analysis
-                // Cache system message for reuse across multiple requirements
-                if (_cachedSystemMessage == null)
-                {
-                    _cachedSystemMessage = _promptBuilder.GetSystemPrompt();
-                    TestCaseEditorApp.Services.Logging.Log.Debug("[RequirementAnalysis] Cached system message for session reuse");
-                }
 
                 var contextPrompt = _promptBuilder.BuildContextPrompt(
                     requirement.Item ?? "UNKNOWN",
@@ -1105,6 +1104,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
             Requirement requirement, 
             Action<string>? onPartialResult,
             Action<string>? onProgressUpdate,
+            string? systemMessage,
             CancellationToken cancellationToken)
         {
             var ragStart = DateTime.UtcNow;
@@ -1174,6 +1174,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                     onChunkReceived: onPartialResult,
                     onProgressUpdate: onProgressUpdate,
                     threadSlug: threadSlug,
+                    systemMessage: systemMessage,
                     cancellationToken: cancellationToken) ?? string.Empty;
                 var ragRequestTime = DateTime.UtcNow - ragRequestStart;
                 System.Diagnostics.Debug.WriteLine($"[RAG DEBUG] RAG request completed in {ragRequestTime.TotalMilliseconds}ms, response length: {response?.Length ?? 0}");
@@ -2004,7 +2005,7 @@ Common issues to fix:
 
 Return ONLY the corrected JSON, no explanations or markdown formatting.";
 
-                var repairedResponse = await _anythingLLMService.SendChatMessageStreamingAsync(_currentWorkspaceSlug, repairPrompt, null, null, threadSlug: null, cancellationToken);
+                var repairedResponse = await _anythingLLMService.SendChatMessageStreamingAsync(_currentWorkspaceSlug, repairPrompt, null, null, threadSlug: null, cancellationToken: cancellationToken);
 
                 if (!string.IsNullOrWhiteSpace(repairedResponse))
                 {
@@ -2055,7 +2056,7 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                     // Try RAG-based analysis first (faster and more context-aware)
                     var ragAttemptStart = DateTime.UtcNow;
                     System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Attempting RAG analysis at {ragAttemptStart:HH:mm:ss.fff}");
-                    var ragResult = await TryRagAnalysisAsync(requirement, onPartialResult, onProgressUpdate, timeoutToken);
+                    var ragResult = await TryRagAnalysisAsync(requirement, onPartialResult, onProgressUpdate, _cachedSystemMessage, timeoutToken);
                     var ragAttemptTime = DateTime.UtcNow - ragAttemptStart;
                     System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] RAG attempt completed in {ragAttemptTime.TotalMilliseconds}ms, success: {ragResult.success}");
                     

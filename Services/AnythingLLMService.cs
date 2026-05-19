@@ -2071,7 +2071,8 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
             Action<string>? onChunkReceived = null, 
             Action<string>? onProgressUpdate = null,
             string? threadSlug = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            string? systemMessage = null)
         {
             try
             {
@@ -2081,7 +2082,8 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                 {
                     message = message,
                     mode = "chat",
-                    stream = true
+                    stream = true,
+                    systemPrompt = systemMessage
                 };
 
                 var json = JsonSerializer.Serialize(payload);
