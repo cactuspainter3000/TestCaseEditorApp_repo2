@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
@@ -124,6 +127,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand OpenChatGptExportCommand { get; private set; } = null!;
         public ICommand ExportAllToJamaCommand { get; private set; } = null!;
         public ICommand ExportForChatGptCommand { get; private set; } = null!;
+        public ICommand ExportAnalysisLogsCommand { get; private set; } = null!;
         public ICommand DemoStateManagementCommand { get; private set; } = null!;
 
         // Availability properties
@@ -228,6 +232,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             ToggleAutoExportCommand = new RelayCommand(() => AutoExportForChatGpt = !AutoExportForChatGpt);
             ExportForChatGptCommand = new AsyncRelayCommand(NavigateToTestCaseGeneratorAsync); // Navigate to test case generator for export
             ExportAllToJamaCommand = new AsyncRelayCommand(ExportAllToJamaAsync);
+            ExportAnalysisLogsCommand = new RelayCommand(ExportAnalysisLogs);
             
             // Demo command for testing state management
             DemoStateManagementCommand = new RelayCommand(DemoStateManagement);
@@ -902,7 +907,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                                     new MenuAction { Id = "project.dummy", Text = "Dummy Domain", Icon = "🔧", Command = DummyNavigationCommand },
                                     new MenuAction { Id = "project.open", Text = "Open Project", Icon = "📂", Command = OpenProjectCommand },
                                     new MenuAction { Id = "project.save", Text = "Save Project", Icon = "💾", Command = SaveProjectCommand },
-                                    new MenuAction { Id = "project.unload", Text = "Unload Project", Icon = "📤", Command = UnloadProjectCommand }
+                                    new MenuAction { Id = "project.unload", Text = "Unload Project", Icon = "📤", Command = UnloadProjectCommand },
+                                    new MenuAction { Id = "project.export-logs", Text = "Export Analysis Logs (Zip)", Icon = "🧰", Command = ExportAnalysisLogsCommand }
                                 }
                             },
                             new MenuAction
@@ -1206,6 +1212,110 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         public event System.Action<string?>? SectionChanged;
+
+        private void ExportAnalysisLogs()
+        {
+            try
+            {
+                var projectRoot = FindProjectRoot();
+                var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+                var stagingDir = Path.Combine(Path.GetTempPath(), $"TestCaseEditorApp-logs-{timestamp}");
+                Directory.CreateDirectory(stagingDir);
+
+                var copiedAny = false;
+                var rootCandidates = new[]
+                {
+                    "app-logs.txt",
+                    "build-check.txt",
+                    "build-output.txt",
+                    "targeted_error.txt"
+                };
+
+                foreach (var fileName in rootCandidates)
+                {
+                    var source = Path.Combine(projectRoot, fileName);
+                    if (!File.Exists(source))
+                    {
+                        continue;
+                    }
+
+                    var destination = Path.Combine(stagingDir, fileName);
+                    File.Copy(source, destination, overwrite: true);
+                    copiedAny = true;
+                }
+
+                var appLogDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "TestCaseEditorApp", "logs");
+                if (Directory.Exists(appLogDir))
+                {
+                    foreach (var source in Directory.GetFiles(appLogDir, "*.log"))
+                    {
+                        var fileName = Path.GetFileName(source);
+                        var destination = Path.Combine(stagingDir, fileName);
+                        File.Copy(source, destination, overwrite: true);
+                        copiedAny = true;
+                    }
+                }
+
+                if (!copiedAny)
+                {
+                    MessageBox.Show(
+                        "No known log files were found to export.",
+                        "Export Analysis Logs",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
+                var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+                var zipPath = Path.Combine(desktop, $"TestCaseEditorApp-AnalysisLogs-{timestamp}.zip");
+                if (File.Exists(zipPath))
+                {
+                    File.Delete(zipPath);
+                }
+
+                ZipFile.CreateFromDirectory(stagingDir, zipPath, CompressionLevel.Optimal, includeBaseDirectory: false);
+
+                _logger.LogInformation("[SideMenuVM] Exported analysis logs to {ZipPath}", zipPath);
+                MessageBox.Show(
+                    $"Logs exported successfully.\n\n{zipPath}",
+                    "Export Analysis Logs",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = $"/select,\"{zipPath}\"",
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[SideMenuVM] Failed to export analysis logs");
+                MessageBox.Show(
+                    $"Failed to export logs: {ex.Message}",
+                    "Export Analysis Logs",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+        private static string FindProjectRoot()
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory != null)
+            {
+                var csproj = Path.Combine(directory.FullName, "TestCaseEditorApp.csproj");
+                if (File.Exists(csproj))
+                {
+                    return directory.FullName;
+                }
+
+                directory = directory.Parent;
+            }
+
+            return Environment.CurrentDirectory;
+        }
 
         /// <summary>
         /// Export FIRST test case only to Jama Connect (for debugging)
