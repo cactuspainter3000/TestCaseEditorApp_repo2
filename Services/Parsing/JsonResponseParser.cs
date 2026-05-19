@@ -132,6 +132,10 @@ namespace TestCaseEditorApp.Services.Parsing
                         ?? GetInt(root, "QualityScore")
                         ?? 0;
 
+                    // Diagnostic: log every root-level property name to diagnose schema variations
+                    var rootProps = string.Join(", ", root.EnumerateObject().Select(p => p.Name));
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        $"[{ParserName}Parser] Root properties: {rootProps}");
                     TestCaseEditorApp.Services.Logging.Log.Info(
                         $"[{ParserName}Parser] Parsed JSON response for {requirementId}: Score={analysis.OriginalQualityScore}, Issues={analysis.Issues.Count}, Recommendations={analysis.Recommendations.Count}, HasRewrite={!string.IsNullOrWhiteSpace(analysis.ImprovedRequirement)}");
 
@@ -418,11 +422,13 @@ namespace TestCaseEditorApp.Services.Parsing
 
         private static void AddLegacyActionableImprovements(List<AnalysisRecommendation> target, JsonElement root)
         {
-            if (!root.TryGetProperty("ActionableImprovements", out var improvements) ||
-                improvements.ValueKind != JsonValueKind.Array)
+            // Use case-insensitive GetProperty — TryGetProperty is case-sensitive
+            var improvementsEl = GetProperty(root, "ActionableImprovements");
+            if (improvementsEl == null || improvementsEl.Value.ValueKind != JsonValueKind.Array)
             {
                 return;
             }
+            var improvements = improvementsEl.Value;
 
             foreach (var item in improvements.EnumerateArray())
             {
@@ -475,10 +481,13 @@ namespace TestCaseEditorApp.Services.Parsing
 
         private static void AddLegacyIssueArray(List<AnalysisIssue> target, JsonElement root, string propertyName, string category)
         {
-            if (!root.TryGetProperty(propertyName, out var issuesArray) || issuesArray.ValueKind != JsonValueKind.Array)
+            // Use case-insensitive GetProperty — TryGetProperty is case-sensitive
+            var issuesEl = GetProperty(root, propertyName);
+            if (issuesEl == null || issuesEl.Value.ValueKind != JsonValueKind.Array)
             {
                 return;
             }
+            var issuesArray = issuesEl.Value;
 
             foreach (var item in issuesArray.EnumerateArray())
             {
