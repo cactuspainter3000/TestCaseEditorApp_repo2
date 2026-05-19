@@ -28,3 +28,7 @@ project.nuget.cache
 # Patch files
 *.patch
 # Ignore locally downloaded GitHub Actions logs\nactions_logs_*/\nactions_run_*.zip\n
+
+# Local export artifacts
+exports/analysis-logs/**/*.log
+Copilot-TesetCaseEditorApp/
