@@ -1225,6 +1225,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 summaryBuilder.AppendLine();
                 summaryBuilder.AppendLine($"Desktop zip: {result.ZipPath}");
                 summaryBuilder.AppendLine($"Repo folder: {result.RepositoryExportPath}");
+                summaryBuilder.AppendLine($"Detected root: {result.ProjectRoot}");
+                summaryBuilder.AppendLine($"Root resolution: {result.RootResolutionInfo}");
+                summaryBuilder.AppendLine($"App base directory: {result.AppBaseDirectory}");
+                summaryBuilder.AppendLine($"Current directory: {result.CurrentDirectory}");
                 summaryBuilder.AppendLine();
 
                 if (result.GitPushSucceeded)
@@ -1270,7 +1274,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private LogExportResult ExportAndPushLogs()
         {
-            var projectRoot = FindProjectRoot();
+            var rootResolution = ResolveProjectRoot();
+            var projectRoot = rootResolution.RootPath;
             var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
             var stagingDir = Path.Combine(Path.GetTempPath(), $"TestCaseEditorApp-logs-{timestamp}");
             Directory.CreateDirectory(stagingDir);
@@ -1305,12 +1310,25 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 summaryPath,
                 $"Created: {DateTime.Now:O}{Environment.NewLine}" +
                 $"Source machine: {Environment.MachineName}{Environment.NewLine}" +
-                $"Zip: {zipPath}{Environment.NewLine}");
+                $"Zip: {zipPath}{Environment.NewLine}" +
+                $"DetectedRoot: {projectRoot}{Environment.NewLine}" +
+                $"RootResolution: {rootResolution.ResolutionInfo}{Environment.NewLine}" +
+                $"AppBaseDirectory: {AppContext.BaseDirectory}{Environment.NewLine}" +
+                $"CurrentDirectory: {Environment.CurrentDirectory}{Environment.NewLine}");
 
             var gitResult = TryCommitAndPushExport(projectRoot, repoExportPath);
 
             _logger.LogInformation("[SideMenuVM] Exported analysis logs zip={ZipPath}, repoFolder={RepoFolder}", zipPath, repoExportPath);
-            return new LogExportResult(zipPath, repoExportPath, gitResult.Succeeded, gitResult.CommitHash, gitResult.FailureMessage);
+            return new LogExportResult(
+                zipPath,
+                repoExportPath,
+                gitResult.Succeeded,
+                gitResult.CommitHash,
+                gitResult.FailureMessage,
+                projectRoot,
+                rootResolution.ResolutionInfo,
+                AppContext.BaseDirectory,
+                Environment.CurrentDirectory);
         }
 
         private static bool CollectKnownLogs(string projectRoot, string stagingDir)
@@ -1417,13 +1435,56 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             return string.IsNullOrWhiteSpace(stdOut) ? stdErr : stdOut;
         }
 
-        private static string FindProjectRoot()
+        private static ProjectRootResolution ResolveProjectRoot()
         {
-            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            var candidates = new List<string>
+            {
+                AppContext.BaseDirectory,
+                Environment.CurrentDirectory
+            };
+
+            try
+            {
+                var processPath = Process.GetCurrentProcess().MainModule?.FileName;
+                if (!string.IsNullOrWhiteSpace(processPath))
+                {
+                    var processDir = Path.GetDirectoryName(processPath);
+                    if (!string.IsNullOrWhiteSpace(processDir))
+                    {
+                        candidates.Add(processDir);
+                    }
+                }
+            }
+            catch
+            {
+                // Best effort only.
+            }
+
+            foreach (var candidate in candidates.Where(p => !string.IsNullOrWhiteSpace(p)).Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                var root = TryFindAncestorContaining(candidate, ".git");
+                if (root != null)
+                {
+                    return new ProjectRootResolution(root, $"Found .git from candidate '{candidate}'");
+                }
+
+                root = TryFindAncestorContaining(candidate, "TestCaseEditorApp.csproj");
+                if (root != null)
+                {
+                    return new ProjectRootResolution(root, $"Found TestCaseEditorApp.csproj from candidate '{candidate}'");
+                }
+            }
+
+            return new ProjectRootResolution(Environment.CurrentDirectory, "Fallback to Environment.CurrentDirectory");
+        }
+
+        private static string? TryFindAncestorContaining(string startPath, string fileOrDirectoryName)
+        {
+            var directory = new DirectoryInfo(startPath);
             while (directory != null)
             {
-                var csproj = Path.Combine(directory.FullName, "TestCaseEditorApp.csproj");
-                if (File.Exists(csproj))
+                var targetPath = Path.Combine(directory.FullName, fileOrDirectoryName);
+                if (File.Exists(targetPath) || Directory.Exists(targetPath))
                 {
                     return directory.FullName;
                 }
@@ -1431,7 +1492,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 directory = directory.Parent;
             }
 
-            return Environment.CurrentDirectory;
+            return null;
         }
 
         private sealed record LogExportResult(
@@ -1439,12 +1500,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             string RepositoryExportPath,
             bool GitPushSucceeded,
             string? CommitHash,
-            string? GitFailureMessage);
+            string? GitFailureMessage,
+            string ProjectRoot,
+            string RootResolutionInfo,
+            string AppBaseDirectory,
+            string CurrentDirectory);
 
         private sealed record GitAutomationResult(
             bool Succeeded,
             string? CommitHash,
             string? FailureMessage);
+
+        private sealed record ProjectRootResolution(
+            string RootPath,
+            string ResolutionInfo);
 
         /// <summary>
         /// Export FIRST test case only to Jama Connect (for debugging)
