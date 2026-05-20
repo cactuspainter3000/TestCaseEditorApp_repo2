@@ -84,29 +84,4 @@
 	  </None>
 	</ItemGroup>
 	
-	<!-- Force creation of deps.json file to prevent test project build errors -->
-	<Target Name="CreateDepsJson" AfterTargets="GenerateBuildDependencyFile;_CopyDepsJsonToPublishOutput">
-		<PropertyGroup>
-			<DepsJsonPath>$(OutputPath)$(AssemblyName).deps.json</DepsJsonPath>
-		</PropertyGroup>
-		<WriteLinesToFile 
-			File="$(DepsJsonPath)" 
-			Lines='{ "runtimeTarget": { "name": ".NETCoreApp,Version=v8.0" }, "compilationOptions": {}, "targets": { ".NETCoreApp,Version=v8.0": {} }, "libraries": {} }' 
-			Overwrite="true" 
-			Condition="!Exists('$(DepsJsonPath)')" />
-		<Message Text="Created deps.json for test compatibility at $(DepsJsonPath)" Importance="high" />
-	</Target>
-
-	<!-- Alternative approach: always create after all outputs -->
-	<Target Name="EnsureDepsJson" AfterTargets="PostBuildEvent;AfterBuild">
-		<PropertyGroup>
-			<DepsJsonPath>$(OutputPath)$(AssemblyName).deps.json</DepsJsonPath>
-		</PropertyGroup>
-		<WriteLinesToFile 
-			File="$(DepsJsonPath)" 
-			Lines='{ "runtimeTarget": { "name": ".NETCoreApp,Version=v8.0" }, "compilationOptions": {}, "targets": { ".NETCoreApp,Version=v8.0": {} }, "libraries": {} }' 
-			Overwrite="true" />
-		<Message Text="Ensured deps.json exists at $(DepsJsonPath)" Importance="high" />
-	</Target>
-
 </Project>
