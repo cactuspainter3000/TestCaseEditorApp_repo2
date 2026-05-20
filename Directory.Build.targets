@@ -13,10 +13,5 @@
     </ItemGroup>
     <Message Importance="Normal" Text="Checking for stray .deps.json files to remove: @(DepsToDelete)" />
     <Delete Files="@(DepsToDelete)" ContinueOnError="true" />
-    <WriteLinesToFile
-      File="$(OutputPath)\$(AssemblyName).deps.json"
-      Lines='{ "runtimeTarget": { "name": ".NETCoreApp,Version=v8.0" }, "compilationOptions": {}, "targets": { ".NETCoreApp,Version=v8.0": {} }, "libraries": {} }'
-      Overwrite="false"
-      Condition="!Exists('$(OutputPath)\$(AssemblyName).deps.json')" />
   </Target>
 </Project>
