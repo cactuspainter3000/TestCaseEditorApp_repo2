@@ -1,0 +1,27 @@
+flowchart TB
+    subgraph D1[Domain A]
+      AViewModel[ViewModels]
+      AMediator[Domain Mediator]
+    end
+
+    subgraph D2[Domain B]
+      BViewModel[ViewModels]
+      BMediator[Domain Mediator]
+    end
+
+    subgraph D3[Domain C]
+      CViewModel[ViewModels]
+      CMediator[Domain Mediator]
+    end
+
+    Broker[DomainCoordinator\nRequest/Response + Broadcast]
+
+    AViewModel <--> AMediator
+    BViewModel <--> BMediator
+    CViewModel <--> CMediator
+
+    AMediator <--> Broker
+    BMediator <--> Broker
+    CMediator <--> Broker
+
+    Broker --> CrossDomainEvents[Cross-domain typed events\nwith filtered subscriptions]

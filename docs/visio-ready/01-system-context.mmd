@@ -1,0 +1,17 @@
+flowchart LR
+    User[Engineer / Analyst]
+    App[WPF MVVM Application\nTestCaseEditorApp]
+
+    Jama[Jama Connect API\nProjects, Requirements, Attachments]
+    LLM[AnythingLLM / Text Generation\nRAG + Prompt Pipelines]
+    OCR[OCR Service\nTesseract]
+
+    Workspace[Workspace Files\nJSON project persistence]
+    Logs[Logging + Diagnostics\nFile/Console/Debug]
+
+    User --> App
+    App <--> Jama
+    App <--> LLM
+    App <--> OCR
+    App <--> Workspace
+    App --> Logs

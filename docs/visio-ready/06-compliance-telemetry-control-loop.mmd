@@ -1,0 +1,19 @@
+flowchart TB
+    ServiceCall[Domain service operation]
+    Wrapper[ServiceComplianceWrapper]
+    Validate[Schema/template validation]
+    Decide{Meets compliance?}
+
+    Fallback[Fallback / degradation\nretry or partial acceptance]
+    Success[Accepted result]
+
+    Metrics[Field-level metrics\nretry rates, confidence, failures]
+    AB[A/B framework\nTemplate forms vs legacy parsing]
+    Dashboard[Telemetry dashboard\nenterprise observability]
+
+    ServiceCall --> Wrapper --> Validate --> Decide
+    Decide -- Yes --> Success
+    Decide -- No --> Fallback --> Metrics
+    Success --> Metrics
+
+    Metrics --> AB --> Dashboard

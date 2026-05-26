@@ -1,0 +1,27 @@
+flowchart LR
+    SectionSelect[User selects section\nfrom Side Menu]
+    Nav[NavigationMediator.NavigateToSection]
+    Route[ViewConfigurationService.GetConfigurationForSection]
+
+    subgraph Regions[MainWindow Regions]
+      Title[Title Region]
+      Header[Header Region]
+      Main[Main Content Region]
+      Navigation[Navigation Region]
+      Notification[Notification Region]
+    end
+
+    DataTemplates[DataTemplate Mapping\nViewModel -> View]
+
+    SectionSelect --> Nav --> Route
+    Route --> Title
+    Route --> Header
+    Route --> Main
+    Route --> Navigation
+    Route --> Notification
+
+    Title --> DataTemplates
+    Header --> DataTemplates
+    Main --> DataTemplates
+    Navigation --> DataTemplates
+    Notification --> DataTemplates

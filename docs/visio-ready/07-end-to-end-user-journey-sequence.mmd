@@ -1,0 +1,25 @@
+sequenceDiagram
+    actor U as User
+    participant SM as SideMenuViewModel
+    participant NM as NavigationMediator
+    participant VCS as ViewConfigurationService
+    participant RD as Requirements Domain
+    participant RAS as RequirementAnalysisService
+    participant SCD as SystemCapabilityDerivationService
+    participant TFA as Template Architecture
+    participant TLM as Telemetry/Compliance
+
+    U->>SM: Select Requirements or Analysis workflow
+    SM->>NM: NavigateToSection(section)
+    NM->>VCS: Resolve workspace configuration
+    VCS-->>SM: Region view models for MainWindow
+
+    U->>RD: Trigger import/analyze/derive
+    RD->>RAS: Analyze requirement context
+    RAS->>SCD: Request capability derivation
+    SCD->>TFA: Generate + validate structured output
+    TFA-->>SCD: Audited, constrained, quality-scored result
+    SCD-->>RD: Derived capabilities + gap analysis
+
+    RD->>TLM: Emit metrics/observations
+    TLM-->>U: Observable quality/compliance outcomes

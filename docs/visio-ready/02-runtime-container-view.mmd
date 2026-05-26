@@ -1,0 +1,54 @@
+flowchart TB
+    subgraph UI[Presentation Layer]
+        MainWindow[MainWindow\n5 Workspace Regions]
+        SideMenu[SideMenuViewModel\nData-driven navigation]
+        NavMediator[NavigationMediator]
+        ViewConfig[ViewConfigurationService]
+    end
+
+    subgraph Domains[Domain Layer (MVVM + Mediators)]
+        Startup[Startup Domain]
+        Project[NewProject + OpenProject Domains]
+        Requirements[Requirements Domain]
+        TCG[TestCaseGeneration Domain\n(legacy but active)]
+        TCC[TestCaseCreation Domain]
+        TF[TestFlow Domain]
+        TDV[TrainingDataValidation Domain]
+        Notify[Notification Domain]
+    end
+
+    subgraph Services[Application Services]
+        ReqSvc[RequirementService + SmartRequirementImporter]
+        AnalyzeSvc[RequirementAnalysisService]
+        DeriveSvc[SystemCapabilityDerivationService]
+        JamaParser[JamaDocumentParserService]
+        TemplateArch[Template Form Architecture\nConstraints + Envelopes + Self-Audit]
+        Compliance[ServiceComplianceWrapper]
+    end
+
+    subgraph Infra[Infrastructure]
+        DI[DI Host / App.xaml.cs]
+        DomainCoord[DomainCoordinator\nCross-domain broker]
+        Persistence[JsonPersistenceService]
+        Monitoring[TelemetryDashboard + ABTesting + Quality Metrics]
+    end
+
+    MainWindow --> SideMenu
+    SideMenu --> NavMediator
+    NavMediator --> ViewConfig
+    ViewConfig --> Domains
+
+    Domains --> DomainCoord
+    Domains --> Services
+    Services --> Infra
+
+    DI --> UI
+    DI --> Domains
+    DI --> Services
+    DI --> Infra
+
+    JamaParser --> TemplateArch
+    AnalyzeSvc --> DeriveSvc
+    DeriveSvc --> Compliance
+    TemplateArch --> Compliance
+    Compliance --> Monitoring

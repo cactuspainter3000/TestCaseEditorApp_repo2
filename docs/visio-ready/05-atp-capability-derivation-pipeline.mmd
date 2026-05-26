@@ -1,0 +1,22 @@
+flowchart LR
+    Input[ATP Steps + Requirement Sources\nJama attachments, imports, workspace data]
+    Parse[ATPStepParser\nclassify and normalize steps]
+    Prompt[CapabilityDerivationPromptBuilder\nstructured derivation prompts]
+    LLM[LLM Inference\nAnythingLLM / text generation]
+
+    subgraph TFA[Template Form Architecture]
+      Envelope[IOutputEnvelopeService\nDeterministic output envelopes]
+      Constraints[Constraint Engine\nHardReject / SoftRetry / FlagOnly]
+      Audit[SelfAuditingTemplateService\nGenerate + self-audit]
+      FieldQuality[IFieldLevelQualityService\nfield metrics and confidence]
+    end
+
+    Validate[TaxonomyValidator\nA-N capability taxonomy checks]
+    Allocate[CapabilityAllocator\nsubsystem allocation]
+    Score[DerivationQualityScorer\nmulti-dimensional quality]
+    Gap[IRequirementGapAnalyzer\nderived vs existing requirements]
+    Output[Derived capabilities + gaps + confidence + telemetry]
+
+    Input --> Parse --> Prompt --> LLM
+    LLM --> Envelope --> Constraints --> Audit --> FieldQuality
+    FieldQuality --> Validate --> Allocate --> Score --> Gap --> Output
