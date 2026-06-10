@@ -82,7 +82,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
         /// <summary>
         /// Timeout for LLM analysis operations. Default is 90 seconds to allow for RAG processing.
         /// </summary>
-        public TimeSpan AnalysisTimeout { get; set; } = TimeSpan.FromSeconds(90);
+        public TimeSpan AnalysisTimeout { get; set; } = TimeSpan.FromMinutes(2);
 
         /// <summary>
         /// Current health status of the LLM service (null if no health monitor configured)
@@ -2289,7 +2289,7 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
             Action<string>? onPartialResult = null,
             Action<string>? onProgressUpdate = null)
         {
-            var timeoutSeconds = 90; // Initial timeout period
+            var timeoutSeconds = Math.Max(1, (int)Math.Ceiling(AnalysisTimeout.TotalSeconds));
             var attempt = 0;
             
             while (!cancellationToken.IsCancellationRequested)
@@ -2306,8 +2306,8 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                     
                     // Update progress with timeout info
                     var timeoutMsg = attempt == 1 
-                        ? "Analyzing requirement (30s timeout)..."
-                        : $"Continuing analysis (attempt {attempt}, 30s timeout)...";
+                        ? $"Analyzing requirement ({timeoutSeconds}s timeout)..."
+                        : $"Continuing analysis (attempt {attempt}, {timeoutSeconds}s timeout)...";
                     onProgressUpdate?.Invoke(timeoutMsg);
                     
                     // Try RAG-based analysis first (faster and more context-aware)

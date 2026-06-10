@@ -2168,6 +2168,11 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Timeout in streaming chat to workspace '{workspaceSlug}' - model may be overloaded");
                 throw;
             }
+            catch (TaskCanceledException ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Streaming chat task canceled for workspace '{workspaceSlug}'");
+                throw;
+            }
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[AnythingLLM] Error in streaming chat to workspace '{workspaceSlug}'");
