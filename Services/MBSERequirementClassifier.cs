@@ -498,12 +498,18 @@ Respond with JSON:
 
             // Remove trailing commas in arrays and objects
             json = System.Text.RegularExpressions.Regex.Replace(json, @",\s*([}\]])", "$1");
-            
-            // Fix unescaped quotes in strings (basic fix) - replace double quotes inside quoted strings with single quotes
-            json = System.Text.RegularExpressions.Regex.Replace(json, "\"([^\"]*?)\"([^\"]*?)\"([^\":,}\\]]*?)\"", "\"$1'$2'$3\"");
-            
-            // Remove invalid characters after values  
-            json = System.Text.RegularExpressions.Regex.Replace(json, "\"\\s*[^,}\\]:\\s]*?([,}\\]])", "\"$1");
+
+            // Normalize common malformed property key patterns from LLM output, e.g. ,\"confidenceScore": 0.8
+            json = System.Text.RegularExpressions.Regex.Replace(
+                json,
+                @",\s*\\+\""([A-Za-z0-9_]+)\""\s*:",
+                ", \"$1\":");
+
+            // Collapse over-escaped quotes (safe normalization for parser input)
+            json = System.Text.RegularExpressions.Regex.Replace(json, @"\\+\""", "\"");
+
+            // Strip control characters that can invalidate JSON
+            json = new string(json.Where(c => !char.IsControl(c) || c == '\r' || c == '\n' || c == '\t').ToArray());
             
             return json;
         }
@@ -513,8 +519,18 @@ Respond with JSON:
             try
             {
                 var cleanedResponse = CleanJsonResponse(response);
-                
-                var jsonDoc = JsonDocument.Parse(cleanedResponse);
+
+                JsonDocument jsonDoc;
+                try
+                {
+                    jsonDoc = JsonDocument.Parse(cleanedResponse);
+                }
+                catch (JsonException)
+                {
+                    // Retry with additional cleanup for partially malformed LLM output.
+                    var repaired = FixCommonJsonIssues(cleanedResponse);
+                    jsonDoc = JsonDocument.Parse(repaired);
+                }
                 var root = jsonDoc.RootElement;
 
                 var result = new MBSEClassificationResult
@@ -571,6 +587,13 @@ Respond with JSON:
             }
             catch (Exception ex)
             {
+                var fallback = TryParseClassificationFromLooseText(response);
+                if (fallback != null)
+                {
+                    _logger.LogWarning("Recovered MBSE classification with fallback parser for requirement: {RequirementText}", requirementText);
+                    return fallback;
+                }
+
                 _logger.LogError(ex, "Failed to parse enhanced MBSE classification response for: {RequirementText}", requirementText);
                 
                 return new MBSEClassificationResult
@@ -579,6 +602,57 @@ Respond with JSON:
                     BlockingIssues = new() { "Failed to parse classification response" }
                 };
             }
+        }
+
+        private MBSEClassificationResult? TryParseClassificationFromLooseText(string response)
+        {
+            if (string.IsNullOrWhiteSpace(response))
+            {
+                return null;
+            }
+
+            var classificationMatch = System.Text.RegularExpressions.Regex.Match(
+                response,
+                "classificationType\\s*\"?\\s*[:=]\\s*\"?(SystemLevel|DerivedRequirement|ComponentLevel|ImplementationConstraint|Invalid)",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            if (!classificationMatch.Success)
+            {
+                return null;
+            }
+
+            var scoreMatch = System.Text.RegularExpressions.Regex.Match(
+                response,
+                "overallMBSEScore\\s*\"?\\s*[:=]\\s*([0-9]*\\.?[0-9]+)",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            var score = 0.0;
+            if (scoreMatch.Success)
+            {
+                _ = double.TryParse(scoreMatch.Groups[1].Value, out score);
+            }
+
+            var typeString = classificationMatch.Groups[1].Value;
+            var type = typeString switch
+            {
+                "SystemLevel" => RequirementClassificationType.SystemLevel,
+                "DerivedRequirement" => RequirementClassificationType.DerivedRequirement,
+                "ComponentLevel" => RequirementClassificationType.ComponentLevel,
+                "ImplementationConstraint" => RequirementClassificationType.ImplementationConstraint,
+                _ => RequirementClassificationType.Invalid
+            };
+
+            var rationaleMatch = System.Text.RegularExpressions.Regex.Match(
+                response,
+                "rationale\\s*\"?\\s*[:=]\\s*\"([^\"]+)\"",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            return new MBSEClassificationResult
+            {
+                ClassificationType = type,
+                OverallMBSEScore = score,
+                ClassificationRationale = rationaleMatch.Success ? rationaleMatch.Groups[1].Value : "Recovered from partially malformed LLM JSON response"
+            };
         }
 
         private RequirementElevationResult ParseRequirementElevationResponse(string response, string originalRequirement)

@@ -149,7 +149,8 @@ namespace TestCaseEditorApp.Services
                 foreach (var parsedStep in parsedSteps)
                 {
                     stepCounter++;
-                    progressCallback?.Invoke($"🤖 LLM Analysis ({stepCounter}/{parsedSteps.Count}): {shortModelName} analyzing → {parsedStep.StepText.Substring(0, Math.Min(50, parsedStep.StepText.Length))}...");
+                    var currentStepStopwatch = Stopwatch.StartNew();
+                    progressCallback?.Invoke($"🤖 LLM Analysis ({stepCounter}/{parsedSteps.Count}): {shortModelName} analyzing → {parsedStep.StepText.Substring(0, Math.Min(50, parsedStep.StepText.Length))}... | current req: 00:00");
                     
                     // DEBUG: Log ATP step content to understand what we're processing
                     if (stepCounter <= 3) // Log first 3 steps for analysis (reduced from 5 for full processing)
@@ -196,14 +197,14 @@ namespace TestCaseEditorApp.Services
                         result.ProcessingWarnings.AddRange(parsedStep.ParsingWarnings);
                         
                         // Update progress with running totals
-                        progressCallback?.Invoke($"✅ A-N Taxonomy ({stepCounter}/{parsedSteps.Count}): Derived {stepResult.DerivedCapabilities.Count} capabilities → Total: {result.DerivedCapabilities.Count}");
+                        progressCallback?.Invoke($"✅ A-N Taxonomy ({stepCounter}/{parsedSteps.Count}): Derived {stepResult.DerivedCapabilities.Count} capabilities → Total: {result.DerivedCapabilities.Count} | current req: {FormatDuration(currentStepStopwatch.Elapsed)}");
                         
                         // Early exit if no capabilities found after reasonable sample
                         if (stepCounter >= 15 && result.DerivedCapabilities.Count == 0)
                         {
                             _logger.LogWarning("Early exit: Processed {ProcessedSteps} ATP steps with 0 capabilities extracted. Document likely contains no extractable requirements.", stepCounter);
                             result.ProcessingWarnings.Add($"Early exit after {stepCounter} steps: No system capabilities detected in ATP content. Document may not contain extractable requirements or may require different parsing approach.");
-                            progressCallback?.Invoke($"🛑 Early Exit: No capabilities found in first {stepCounter} steps - stopping analysis to avoid wasting time");
+                            progressCallback?.Invoke($"🛑 Early Exit: No capabilities found in first {stepCounter} steps - stopping analysis to avoid wasting time | current req: {FormatDuration(currentStepStopwatch.Elapsed)}");
                             break;
                         }
                     }
@@ -229,7 +230,7 @@ namespace TestCaseEditorApp.Services
                     {
                         _logger.LogWarning(ex, "Failed to process ATP step: {Step}", parsedStep.StepText.Substring(0, Math.Min(100, parsedStep.StepText.Length)));
                         result.ProcessingWarnings.Add($"Failed to process step {parsedStep.StepNumber}: {ex.Message}");
-                        progressCallback?.Invoke($"❌ Step {stepCounter}/{parsedSteps.Count} failed: {ex.Message.Substring(0, Math.Min(50, ex.Message.Length))}");
+                        progressCallback?.Invoke($"❌ Step {stepCounter}/{parsedSteps.Count} failed: {ex.Message.Substring(0, Math.Min(50, ex.Message.Length))} | current req: {FormatDuration(currentStepStopwatch.Elapsed)}");
                     }
                 }
 
@@ -290,6 +291,16 @@ namespace TestCaseEditorApp.Services
                 result.ProcessingTime = stopwatch.Elapsed;
                 return result;
             }
+        }
+
+        private static string FormatDuration(TimeSpan elapsed)
+        {
+            if (elapsed.TotalHours >= 1)
+            {
+                return $"{(int)elapsed.TotalHours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}";
+            }
+
+            return $"{elapsed.Minutes:D2}:{elapsed.Seconds:D2}";
         }
 
         /// <summary>
