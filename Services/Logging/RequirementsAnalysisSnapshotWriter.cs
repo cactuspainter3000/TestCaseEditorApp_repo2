@@ -53,12 +53,15 @@ namespace TestCaseEditorApp.Services.Logging
                 return;
 
             var allLines = File.ReadLines(logFile.FullName).ToList();
-            var traceStartIndexes = FindTraceStartIndexes(allLines);
+            var tailLineCount = Math.Max(1, _options.FallbackTailLineCount);
+            var tailLines = allLines.TakeLast(tailLineCount).ToList();
+
+            var traceStartIndexes = FindTraceStartIndexes(tailLines);
             var windowStartIndex = ResolveWindowStartIndex(traceStartIndexes, _options.MaxTraceWindows);
 
             var candidateLines = windowStartIndex >= 0
-                ? allLines.Skip(windowStartIndex)
-                : allLines.TakeLast(Math.Max(1, _options.FallbackTailLineCount));
+                ? tailLines.Skip(windowStartIndex)
+                : tailLines;
 
             var filteredLines = candidateLines
                 .Where(line => _options.AnalysisTags.Any(tag => line.Contains(tag)))
@@ -71,7 +74,8 @@ namespace TestCaseEditorApp.Services.Logging
                 $"# SourceLastWriteUtc={logFile.LastWriteTimeUtc:O}",
                 $"# TotalSourceLines={allLines.Count}",
                 $"# FilteredLines={filteredLines.Count}",
-                $"# MaxTraceWindows={Math.Max(1, _options.MaxTraceWindows)}"
+                $"# MaxTraceWindows={Math.Max(1, _options.MaxTraceWindows)}",
+                $"# TailLineCount={tailLineCount}"
             };
 
             // Add context information if provided

@@ -1629,11 +1629,59 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 return -1;
             }
+
+            if (workspace.JamaProjectId.HasValue && workspace.JamaProjectId.Value > 0)
+            {
+                return workspace.JamaProjectId.Value;
+            }
             
-            if (!string.IsNullOrEmpty(workspace.JamaProject) && 
-                int.TryParse(workspace.JamaProject, out var projectId))
+            if (!string.IsNullOrWhiteSpace(workspace.JamaProject) && 
+                int.TryParse(workspace.JamaProject, out var projectId) && projectId > 0)
             {
                 return projectId;
+            }
+
+            if (!string.IsNullOrWhiteSpace(workspace.JamaTestPlan) && 
+                int.TryParse(workspace.JamaTestPlan, out var testPlanId) && testPlanId > 0)
+            {
+                return testPlanId;
+            }
+
+            var candidateNames = new[]
+            {
+                workspace.JamaProjectName,
+                workspace.JamaProject,
+                workspace.JamaTestPlan,
+                currentProjectName,
+                _mediator?.CurrentProjectName
+            }
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+            if (candidateNames.Count == 0)
+            {
+                var mediatorProjectId = _mediator?.CurrentProjectId;
+                return mediatorProjectId.HasValue && mediatorProjectId.Value > 0 ? mediatorProjectId.Value : -1;
+            }
+
+            var projectMatch = AvailableProjects?.FirstOrDefault(project =>
+                candidateNames.Any(candidate =>
+                    string.Equals(candidate, project.Name, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(candidate, project.Key, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(candidate, project.Id.ToString(), StringComparison.OrdinalIgnoreCase)));
+
+            if (projectMatch != null)
+            {
+                currentProjectName = projectMatch.Name;
+                return projectMatch.Id;
+            }
+
+            var mediatorProject = _mediator?.CurrentProjectId;
+            if (mediatorProject.HasValue && mediatorProject.Value > 0)
+            {
+                return mediatorProject.Value;
             }
             
             return -1;
