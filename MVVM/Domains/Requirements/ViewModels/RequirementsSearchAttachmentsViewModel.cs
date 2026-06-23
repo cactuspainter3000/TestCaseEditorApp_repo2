@@ -1697,6 +1697,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// </summary>
         private void OnAttachmentScanProgress(TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.AttachmentScanProgress progressEvent)
         {
+            var currentProjectId = GetCurrentJamaProjectId();
+            if (currentProjectId > 0 && progressEvent.ProjectId != currentProjectId)
+            {
+                _logger.LogInformation("[RequirementsSearchAttachments] Ignoring progress event for project {EventProjectId}; active project is {CurrentProjectId}", 
+                    progressEvent.ProjectId, currentProjectId);
+                return;
+            }
+
             Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 BackgroundScanProgressText = progressEvent.ProgressText;
@@ -1726,6 +1734,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// </summary>
         private void OnAttachmentScanStarted(TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.AttachmentScanStarted startedEvent)
         {
+            var currentProjectId = GetCurrentJamaProjectId();
+            if (currentProjectId > 0 && startedEvent.ProjectId != currentProjectId)
+            {
+                _logger.LogInformation("[RequirementsSearchAttachments] Ignoring scan-start event for project {EventProjectId}; active project is {CurrentProjectId}", 
+                    startedEvent.ProjectId, currentProjectId);
+                return;
+            }
+
             Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 IsBackgroundScanningInProgress = true;
@@ -1747,6 +1763,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             try
             {
+                var currentProjectId = GetCurrentJamaProjectId();
+                if (currentProjectId > 0 && completedEvent.ProjectId != currentProjectId)
+                {
+                    _logger.LogInformation("[RequirementsSearchAttachments] Ignoring scan-completed event for project {EventProjectId}; active project is {CurrentProjectId}", 
+                        completedEvent.ProjectId, currentProjectId);
+                    return;
+                }
+
                 _logger.LogInformation("[RequirementsSearchAttachments] Attachment scan completed for project {ProjectId}: {Success}, {Count} attachments", 
                     completedEvent.ProjectId, completedEvent.Success, completedEvent.AttachmentCount);
 
