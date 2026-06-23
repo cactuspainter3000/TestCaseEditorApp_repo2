@@ -409,7 +409,7 @@
                 <RowDefinition Height="*"/>
                 <!-- workspace content -->
                 <RowDefinition Height="4"/>
-                <RowDefinition Height="Auto" MaxHeight="240"/>
+                <RowDefinition Height="240"/>
                 <!-- bottom navigation area -->
             </Grid.RowDefinitions>
 

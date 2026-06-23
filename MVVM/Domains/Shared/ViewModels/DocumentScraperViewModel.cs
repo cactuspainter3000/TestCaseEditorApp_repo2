@@ -59,6 +59,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
         private CancellationTokenSource? _scanCancellationSource;
         private Stopwatch? _scanStopwatch;
         private DispatcherTimer? _elapsedTimer;
+        private int? _resolvedJamaProjectId;
 
         // Properties for UI binding
         [ObservableProperty]
@@ -306,7 +307,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
         /// <summary>
         /// Auto-detect Jama project when workspace changes
         /// </summary>
-        private void OnWorkspaceChanged(object? sender, EventArgs e)
+        private async void OnWorkspaceChanged(object? sender, EventArgs e)
         {
             try
             {
@@ -324,10 +325,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
                 _logger.LogInformation("[DocumentScraper] - ImportSource: '{ImportSource}'", workspace?.ImportSource ?? "NULL");
                 _logger.LogInformation("[DocumentScraper] - SourceDocPath: '{SourceDocPath}'", workspace?.SourceDocPath ?? "NULL");
 
-                // Check for Jama project association - handle both numeric IDs and project names
-                var jamaProjectId = TryGetJamaProjectId(workspace);
+                // Resolve Jama project ID deterministically from workspace values.
+                var jamaProjectId = await TryResolveJamaProjectIdAsync(workspace);
                 if (jamaProjectId.HasValue)
                 {
+                    _resolvedJamaProjectId = jamaProjectId.Value;
                     HasJamaProject = true;
                     // Display project name from JamaTestPlan if available, otherwise use JamaProject
                     CurrentJamaProjectName = workspace?.JamaTestPlan ?? workspace?.JamaProject ?? $"Project {jamaProjectId.Value}";
@@ -341,6 +343,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
                 }
                 else
                 {
+                    _resolvedJamaProjectId = null;
                     HasJamaProject = false;
                     CurrentJamaProjectName = "No Jama project";
                     
@@ -374,14 +377,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
         }
 
         /// <summary>
-        /// Extract Jama project ID from workspace - handles both numeric IDs and project names
+        /// Resolve Jama project ID from workspace.
+        /// Uses explicit numeric IDs first, then exact name/key lookup from Jama projects.
         /// </summary>
-        private int? TryGetJamaProjectId(Workspace? workspace)
+        private async Task<int?> TryResolveJamaProjectIdAsync(Workspace? workspace)
         {
-            if (workspace?.JamaProject == null) return null;
+            if (workspace == null)
+            {
+                return null;
+            }
 
             // Try direct numeric ID first
-            if (int.TryParse(workspace.JamaProject, out var directId))
+            if (!string.IsNullOrWhiteSpace(workspace.JamaProject) && int.TryParse(workspace.JamaProject, out var directId))
             {
                 return directId;
             }
@@ -392,37 +399,41 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
                 return testPlanId;
             }
 
-            // For project names, try to find existing projects by name using the service
+            var lookupCandidates = new[] { workspace.JamaProject, workspace.JamaTestPlan }
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .Select(v => v!.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (lookupCandidates.Count == 0)
+            {
+                return null;
+            }
+
             try
             {
-                // Use the workspace context to get project info 
-                var workspaceContext = App.ServiceProvider?.GetService(typeof(IWorkspaceContext)) as IWorkspaceContext;
-                if (workspaceContext?.CurrentWorkspace != null)
+                var projects = await _jamaService.GetProjectsAsync();
+                var resolved = projects.FirstOrDefault(p =>
+                    lookupCandidates.Any(candidate =>
+                        string.Equals(candidate, p.Name, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(candidate, p.Key, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(candidate, p.Id.ToString(), StringComparison.OrdinalIgnoreCase)));
+
+                if (resolved != null)
                 {
-                    // If we have a workspace loaded, assume we have a valid project
-                    // Use a default project ID (could be enhanced to look up actual ID)
-                    _logger.LogInformation("[DocumentScraper] Using workspace project: {ProjectName}", workspace.JamaProject);
-                    return 1; // Default to project ID 1 if we can't determine the exact ID
+                    _logger.LogInformation("[DocumentScraper] Resolved Jama project '{ProjectName}' (key '{ProjectKey}') to ID {ProjectId}",
+                        resolved.Name, resolved.Key, resolved.Id);
+                    return resolved.Id;
                 }
+
+                _logger.LogWarning("[DocumentScraper] Could not map workspace Jama project identifiers to a Jama project ID. Candidates: {Candidates}",
+                    string.Join(", ", lookupCandidates));
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[DocumentScraper] Error getting workspace context for project ID");
+                _logger.LogWarning(ex, "[DocumentScraper] Failed to resolve Jama project ID from project list");
             }
 
-            // For project names like "DECAGON-REQ_RC-5", we need to look up the actual project ID
-            // This would require calling the Jama API to get all projects and find the matching one
-            // For now, let's check if we can extract any numeric part from the project name
-            var numbers = System.Text.RegularExpressions.Regex.Matches(workspace.JamaProject, @"\d+");
-            if (numbers.Count > 0 && int.TryParse(numbers[0].Value, out var extractedId))
-            {
-                _logger.LogInformation("[DocumentScraper] Extracted potential project ID {ProjectId} from project name {ProjectName}", 
-                    extractedId, workspace.JamaProject);
-                return extractedId;
-            }
-
-            // If we can't extract an ID, we'll need to enhance this to look up the project by name
-            _logger.LogWarning("[DocumentScraper] Could not extract project ID from Jama project: {JamaProject}", workspace.JamaProject);
             return null;
         }
 
@@ -673,10 +684,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
         [RelayCommand]
         private async Task RefreshAttachmentsAsync()
         {
-            var workspace = _workspaceContext.CurrentWorkspace;
-            if (workspace?.JamaProject != null && int.TryParse(workspace.JamaProject, out var projectId))
+            var projectId = _resolvedJamaProjectId;
+            if (!projectId.HasValue)
             {
-                await TriggerAttachmentScanAsync(projectId);
+                projectId = await TryResolveJamaProjectIdAsync(_workspaceContext.CurrentWorkspace);
+                _resolvedJamaProjectId = projectId;
+            }
+
+            if (projectId.HasValue)
+            {
+                await TriggerAttachmentScanAsync(projectId.Value);
             }
             else
             {
