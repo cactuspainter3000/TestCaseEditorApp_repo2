@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
@@ -165,7 +166,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         [ObservableProperty]
         private string timerDisplay = "";
 
-        private System.Timers.Timer? parsingTimer;
+        private DispatcherTimer? parsingTimer;
         private string baseParsingMessage = "";
 
         // ==== PROPERTY CHANGE HANDLERS ====
@@ -1414,20 +1415,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             StopParsingTimer(); // Ensure any existing timer is stopped
             
             _logger.LogInformation("[RequirementsSearchAttachments] Starting parsing timer");
+
+            UpdateStatusWithElapsedTime();
             
-            parsingTimer = new System.Timers.Timer(1000) // Update every second
+            parsingTimer = new DispatcherTimer
             {
-                AutoReset = true,
-                Enabled = true
+                Interval = TimeSpan.FromSeconds(1)
             };
-            parsingTimer.Elapsed += (sender, e) => 
+            parsingTimer.Tick += (sender, e) => 
             {
                 try
                 {
-                    Application.Current?.Dispatcher?.Invoke(() => 
-                    {
-                        UpdateStatusWithElapsedTime();
-                    });
+                    UpdateStatusWithElapsedTime();
                 }
                 catch (Exception ex)
                 {
@@ -1443,7 +1442,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 _logger.LogInformation("[RequirementsSearchAttachments] Stopping parsing timer");
                 parsingTimer.Stop();
-                parsingTimer.Dispose();
                 parsingTimer = null;
             }
         }
