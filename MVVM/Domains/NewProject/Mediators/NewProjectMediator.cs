@@ -935,32 +935,43 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 _persistenceService.Save(projectSavePath, workspace);
                 _logger.LogInformation("💾 Workspace file saved: {ProjectSavePath}", projectSavePath);
 
-                // Embed the standard RAG instruction/setup files in the associated AnythingLLM workspace
-                // so a newly created project starts with the baseline RAG context.
-                bool ragSetupEmbeddedSuccessfully = true;
+                // Embed standard RAG setup files in the background so project creation
+                // is not blocked by long upload/verification operations.
+                bool ragSetupDeferred = false;
                 if (_anythingLLMService != null && !string.IsNullOrWhiteSpace(resolvedAnythingLLMSlug))
                 {
                     UpdateProgress("Embedding standard RAG setup files...", 88);
+                    ragSetupDeferred = true;
 
-                    var optimizationGuideUploaded = await _anythingLLMService.UploadOptimizationGuideAsync(resolvedAnythingLLMSlug);
-                    var ragTrainingDocumentsUploaded = await _anythingLLMService.UploadRagTrainingDocumentsAsync(resolvedAnythingLLMSlug);
-                    var ragSetupVerified = await VerifyStandardRagDocumentsEmbeddedAsync(resolvedAnythingLLMSlug);
-
-                    ragSetupEmbeddedSuccessfully = optimizationGuideUploaded && ragTrainingDocumentsUploaded && ragSetupVerified;
-
-                    if (ragSetupEmbeddedSuccessfully)
+                    _ = Task.Run(async () =>
                     {
-                        _logger.LogInformation("✅ Embedded standard RAG setup files for workspace '{WorkspaceSlug}'", resolvedAnythingLLMSlug);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("⚠️ Standard RAG setup file verification failed for workspace '{WorkspaceSlug}'", resolvedAnythingLLMSlug);
-                    }
+                        try
+                        {
+                            _logger.LogInformation("[NewProjectMediator] [BACKGROUND] Starting standard RAG setup embedding for workspace '{WorkspaceSlug}'", resolvedAnythingLLMSlug);
+
+                            var optimizationGuideUploaded = await _anythingLLMService.UploadOptimizationGuideAsync(resolvedAnythingLLMSlug);
+                            var ragTrainingDocumentsUploaded = await _anythingLLMService.UploadRagTrainingDocumentsAsync(resolvedAnythingLLMSlug);
+                            var ragSetupVerified = await VerifyStandardRagDocumentsEmbeddedAsync(resolvedAnythingLLMSlug);
+
+                            if (optimizationGuideUploaded && ragTrainingDocumentsUploaded && ragSetupVerified)
+                            {
+                                _logger.LogInformation("✅ [BACKGROUND] Embedded standard RAG setup files for workspace '{WorkspaceSlug}'", resolvedAnythingLLMSlug);
+                            }
+                            else
+                            {
+                                _logger.LogWarning("⚠️ [BACKGROUND] Standard RAG setup embedding incomplete for workspace '{WorkspaceSlug}' (Guide={Guide}, Training={Training}, Verified={Verified})",
+                                    resolvedAnythingLLMSlug, optimizationGuideUploaded, ragTrainingDocumentsUploaded, ragSetupVerified);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "[NewProjectMediator] [BACKGROUND] Error embedding standard RAG setup files for workspace '{WorkspaceSlug}'", resolvedAnythingLLMSlug);
+                        }
+                    });
                 }
                 else
                 {
                     _logger.LogWarning("⚠️ Skipping RAG setup embedding because AnythingLLM service or workspace slug is unavailable");
-                    ragSetupEmbeddedSuccessfully = false;
                 }
                 
                 UpdateProgress("Project created successfully!", 100);
@@ -1041,11 +1052,11 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                        _logger.LogWarning(logEx, "[NewProjectMediator] Failed to write filtered AnythingLLM log to repo");
                    }
 
-                if (!ragSetupEmbeddedSuccessfully)
+                if (ragSetupDeferred)
                 {
                     ShowNotification(
-                        $"Project '{displayProjectName}' was created, but the standard RAG setup files did not finish embedding.", 
-                        DomainNotificationType.Warning);
+                    $"Project '{displayProjectName}' was created. Standard RAG setup is continuing in the background.",
+                    DomainNotificationType.Info);
                 }
                     
                 HideProgress();
