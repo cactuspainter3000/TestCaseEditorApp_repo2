@@ -923,6 +923,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 var projectId = GetCurrentJamaProjectId();
                 if (projectId <= 0)
                 {
+                    await LoadAvailableProjectsAsync();
+                    projectId = GetCurrentJamaProjectId();
+                }
+                if (projectId <= 0)
+                {
                     _logger.LogError("[RequirementsSearchAttachments] ❌ No project ID set - this should not happen if a project is loaded");
                     StatusMessage = "❌ No project selected - please open a project first";
                     SetError("No project selected. Please open a project before scanning attachments.");
@@ -1651,9 +1656,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 workspace.JamaProjectName,
                 workspace.JamaProject,
-                workspace.JamaTestPlan,
-                currentProjectName,
-                _mediator?.CurrentProjectName
+                workspace.JamaTestPlan
             }
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .Select(value => value!.Trim())
@@ -1662,8 +1665,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
             if (candidateNames.Count == 0)
             {
-                var mediatorProjectId = _mediator?.CurrentProjectId;
-                return mediatorProjectId.HasValue && mediatorProjectId.Value > 0 ? mediatorProjectId.Value : -1;
+                return -1;
             }
 
             var projectMatch = AvailableProjects?.FirstOrDefault(project =>
@@ -1676,12 +1678,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 currentProjectName = projectMatch.Name;
                 return projectMatch.Id;
-            }
-
-            var mediatorProject = _mediator?.CurrentProjectId;
-            if (mediatorProject.HasValue && mediatorProject.Value > 0)
-            {
-                return mediatorProject.Value;
             }
             
             return -1;

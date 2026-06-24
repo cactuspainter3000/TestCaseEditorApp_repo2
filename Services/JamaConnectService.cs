@@ -2059,37 +2059,61 @@ namespace TestCaseEditorApp.Services
         /// </summary>
         private async Task<List<JamaAttachment>> GetItemAttachmentsAsync(int itemId, CancellationToken cancellationToken = default)
         {
+            var attachments = new List<JamaAttachment>();
+            var startAt = 0;
+            const int maxResults = 50;
+
             try
             {
-                var url = $"{_baseUrl}/rest/v1/items/{itemId}/attachments";
-                var response = await _httpClient.GetAsync(url, cancellationToken);
-                
-                if (response.IsSuccessStatusCode)
+                while (true)
                 {
-                    var json = await response.Content.ReadAsStringAsync(cancellationToken);
-                    var result = JsonSerializer.Deserialize<JamaAttachmentsResponse>(json, new JsonSerializerOptions 
-                    { 
-                        PropertyNameCaseInsensitive = true 
-                    });
-                    
-                    return result?.Data ?? new List<JamaAttachment>();
+                    var url = $"{_baseUrl}/rest/v1/items/{itemId}/attachments?startAt={startAt}&maxResults={maxResults}";
+                    var response = await _httpClient.GetAsync(url, cancellationToken);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                        var result = JsonSerializer.Deserialize<JamaAttachmentsResponse>(json, new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                        var pageData = result?.Data ?? new List<JamaAttachment>();
+                        if (pageData.Count == 0)
+                        {
+                            break;
+                        }
+
+                        attachments.AddRange(pageData);
+
+                        var resultCount = result?.Meta?.PageInfo?.ResultCount ?? pageData.Count;
+                        var totalResults = result?.Meta?.PageInfo?.TotalResults ?? attachments.Count;
+                        startAt += resultCount;
+
+                        if (startAt >= totalResults || resultCount <= 0)
+                        {
+                            break;
+                        }
+                    }
+                    else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        // Item has no attachments or endpoint not supported.
+                        break;
+                    }
+                    else
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to get attachments for item {itemId} (startAt={startAt}): {response.StatusCode} - {errorContent}");
+                        break;
+                    }
                 }
-                else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    // Item has no attachments or endpoint not supported
-                    return new List<JamaAttachment>();
-                }
-                else
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to get attachments for item {itemId}: {response.StatusCode} - {errorContent}");
-                    return new List<JamaAttachment>();
-                }
+
+                return attachments;
             }
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[JamaConnect] Exception getting attachments for item {itemId}: {ex.Message}");
-                return new List<JamaAttachment>();
+                return attachments;
             }
         }
 
@@ -4171,12 +4195,9 @@ namespace TestCaseEditorApp.Services
         /// </summary>
         public async Task<(bool Success, string Message, int? TestCaseId)> ImportTestCaseFromRequirementAsync(int projectId, JamaTestCaseRequest testCase, Requirement sourceRequirement, CancellationToken cancellationToken = default)
         {
-            // 🚨 CRITICAL FIX: RTU4220 project ID correction
-            // Based on API response analysis, RTU4220 uses project ID 636, not 634
-            if (projectId == 634)
+            if (projectId <= 0)
             {
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] 🔧 CORRECTING project ID: {projectId} → 636 (RTU4220 fix)");
-                projectId = 636;
+                return (false, "Invalid Jama project ID.", null);
             }
 
             try

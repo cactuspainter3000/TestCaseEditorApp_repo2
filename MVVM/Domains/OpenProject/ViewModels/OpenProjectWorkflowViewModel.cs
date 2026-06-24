@@ -507,46 +507,51 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
                     return;
                 }
                 
-                // Find the specific Jama project for this workspace  
+                // Resolve target project strictly from workspace metadata.
                 int? targetProjectId = null;
-                
-                // First try to extract project ID from workspace requirements (DECAGON pattern)
-                if (currentWorkspace.Requirements != null && currentWorkspace.Requirements.Count > 0)
+
+                // 1) Canonical numeric field (preferred)
+                if (currentWorkspace.JamaProjectId.HasValue && currentWorkspace.JamaProjectId.Value > 0)
                 {
-                    var requirementWithGlobalId = currentWorkspace.Requirements.FirstOrDefault(r => !string.IsNullOrEmpty(r.GlobalId));
-                    if (requirementWithGlobalId != null)
-                    {
-                        _logger.LogInformation($"Found requirement with GlobalId: {requirementWithGlobalId.GlobalId}");
-                        
-                        var projects = await _jamaConnectService.GetProjectsAsync();
-                        if (projects != null && projects.Count > 0)
-                        {
-                            var candidates = projects.Where(p => 
-                                p.Name.Contains("DECAGON", StringComparison.OrdinalIgnoreCase) ||
-                                p.Key.Contains("DECAGON", StringComparison.OrdinalIgnoreCase) ||
-                                p.Id == 636 // Known project ID for DECAGON
-                            ).ToList();
-                            
-                            if (candidates.Any())
-                            {
-                                targetProjectId = candidates.First().Id;
-                                _logger.LogInformation($"Matched workspace requirements to Jama project: {candidates.First().Name} -> ID: {candidates.First().Id}");
-                            }
-                        }
-                    }
+                    targetProjectId = currentWorkspace.JamaProjectId.Value;
+                    _logger.LogInformation("Using workspace JamaProjectId for background scan: {ProjectId}", targetProjectId.Value);
                 }
-                
-                // Fallback to configured workspace project
-                if (!targetProjectId.HasValue && !string.IsNullOrEmpty(currentWorkspace.JamaProject))
+
+                // 2) Legacy numeric string field
+                if (!targetProjectId.HasValue && !string.IsNullOrWhiteSpace(currentWorkspace.JamaProject) && int.TryParse(currentWorkspace.JamaProject, out var parsedProjectId) && parsedProjectId > 0)
                 {
-                    var projects = await _jamaConnectService.GetProjectsAsync();
-                    var matchingProject = projects?.FirstOrDefault(p => 
-                        string.Equals(p.Name, currentWorkspace.JamaProject, StringComparison.OrdinalIgnoreCase));
-                    
-                    if (matchingProject != null)
+                    targetProjectId = parsedProjectId;
+                    _logger.LogInformation("Using parsed workspace JamaProject for background scan: {ProjectId}", targetProjectId.Value);
+                }
+
+                // 3) Name/key mapping fallback
+                if (!targetProjectId.HasValue)
+                {
+                    var candidateNames = new[]
                     {
-                        targetProjectId = matchingProject.Id;
-                        _logger.LogInformation($"Found matching Jama project for workspace: {currentWorkspace.JamaProject} -> ID: {matchingProject.Id}");
+                        currentWorkspace.JamaProjectName,
+                        currentWorkspace.JamaProject,
+                        currentWorkspace.JamaTestPlan
+                    }
+                    .Where(value => !string.IsNullOrWhiteSpace(value))
+                    .Select(value => value!.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                    if (candidateNames.Count > 0)
+                    {
+                        var projects = await _jamaConnectService.GetProjectsAsync();
+                        var matchingProject = projects?.FirstOrDefault(p =>
+                            candidateNames.Any(candidate =>
+                                string.Equals(p.Name, candidate, StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(p.Key, candidate, StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(p.Id.ToString(), candidate, StringComparison.OrdinalIgnoreCase)));
+
+                        if (matchingProject != null)
+                        {
+                            targetProjectId = matchingProject.Id;
+                            _logger.LogInformation("Mapped workspace Jama metadata to project {ProjectName} ({ProjectId})", matchingProject.Name, matchingProject.Id);
+                        }
                     }
                 }
                 
@@ -554,28 +559,6 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
                 {
                     _logger.LogInformation("Could not determine target Jama project, skipping background attachment scan");
                     return;
-                }
-
-                // 🎯 CRITICAL: Update workspace's JamaProject field with detected project ID
-                // This ensures attachment scanning can find the correct project
-                if (currentWorkspace != null && currentWorkspaceInfo != null)
-                {
-                    var originalJamaProject = currentWorkspace.JamaProject;
-                    currentWorkspace.JamaProject = targetProjectId.Value.ToString();
-                    
-                    try
-                    {
-                        // Save the updated workspace to persist the detected project ID
-                        _persistenceService.Save(currentWorkspaceInfo.Path, currentWorkspace);
-                        _logger.LogInformation($"✅ Updated workspace JamaProject: '{originalJamaProject}' -> '{currentWorkspace.JamaProject}' (detected project ID)");
-                        _logger.LogInformation($"💾 Workspace saved with detected Jama project ID: {targetProjectId.Value}");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "❌ Failed to save workspace with detected project ID");
-                        // Revert the change on save failure
-                        currentWorkspace.JamaProject = originalJamaProject;
-                    }
                 }
 
                 _logger.LogInformation($"Triggering background attachment scan for Jama project {targetProjectId.Value}");
