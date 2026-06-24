@@ -1322,7 +1322,19 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
                 }
                 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Final result: {extractedRequirements.Count} extracted + {derivedRequirements.Count} derived = {allRequirements.Count} total requirements from {attachment.FileName}");
-                progressCallback?.Invoke($"✅ Found {allRequirements.Count} requirements: {extractedRequirements.Count} extracted + {derivedRequirements.Count} derived using AI analysis");
+
+                if (allRequirements.Count == 0 && !string.IsNullOrWhiteSpace(documentContent))
+                {
+                    var deterministic = ExtractDeterministicRequirementCandidates(documentContent, attachment, projectId);
+                    if (deterministic.Count > 0)
+                    {
+                        allRequirements.AddRange(deterministic);
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] AI returned 0 requirements; deterministic fallback recovered {deterministic.Count} candidates");
+                        progressCallback?.Invoke($"⚠️ AI returned no requirements; deterministic fallback recovered {deterministic.Count} candidates");
+                    }
+                }
+
+                progressCallback?.Invoke($"✅ Found {allRequirements.Count} requirements: {extractedRequirements.Count} extracted + {derivedRequirements.Count} derived + deterministic fallback where needed");
                 
                 return allRequirements;
             }
@@ -1358,6 +1370,96 @@ Category: [Functional/Performance/Interface/Environmental]
 ---
 
 Extract all legitimate requirements:";
+        }
+
+        private List<Requirement> ExtractDeterministicRequirementCandidates(string documentContent, JamaAttachment attachment, int projectId)
+        {
+            var results = new List<Requirement>();
+
+            var lines = documentContent
+                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(l => l.Trim())
+                .Where(l => !string.IsNullOrWhiteSpace(l))
+                .ToList();
+
+            if (lines.Count == 0)
+            {
+                return results;
+            }
+
+            var statementRegex = new System.Text.RegularExpressions.Regex(
+                @"\b(?:[A-Za-z][A-Za-z0-9_\-/ ]{1,60}\s+)?shall\b[^.\r\n]{12,350}(?:\.|$)",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            var idRegex = new System.Text.RegularExpressions.Regex(
+                @"\bID\s*:\s*([A-Za-z0-9][A-Za-z0-9_.\-]*)\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var index = 1;
+
+            foreach (var line in lines)
+            {
+                if (line.Length < 20)
+                {
+                    continue;
+                }
+
+                var statements = statementRegex.Matches(line).Cast<System.Text.RegularExpressions.Match>().ToList();
+                if (statements.Count == 0)
+                {
+                    continue;
+                }
+
+                var idMatch = idRegex.Match(line);
+                var parsedId = idMatch.Success ? idMatch.Groups[1].Value.Trim() : string.Empty;
+
+                foreach (var statement in statements)
+                {
+                    var text = statement.Value.Trim();
+                    if (string.IsNullOrWhiteSpace(text) || text.Length < 20)
+                    {
+                        continue;
+                    }
+
+                    if (!text.EndsWith(".", StringComparison.Ordinal))
+                    {
+                        text += ".";
+                    }
+
+                    if (!seen.Add(text))
+                    {
+                        continue;
+                    }
+
+                    var itemId = !string.IsNullOrWhiteSpace(parsedId)
+                        ? parsedId
+                        : $"DOC-{index:D3}";
+
+                    var requirement = new Requirement
+                    {
+                        GlobalId = !string.IsNullOrWhiteSpace(parsedId)
+                            ? parsedId
+                            : $"DOC-{attachment.Id}-{index:D3}",
+                        Item = itemId,
+                        Name = GenerateRequirementNameFromCapability(text, "Deterministic"),
+                        Description = text,
+                        RequirementType = "Deterministic - Shall Statement",
+                        Rationale = $"Recovered via deterministic fallback from {attachment.FileName}",
+                        Heading = "Derived",
+                        ItemType = "System Requirement",
+                        CreatedDate = DateTime.Now,
+                        ModifiedDate = DateTime.Now,
+                        Project = projectId.ToString(),
+                        TagList = new List<string> { "Derived", "DeterministicFallback" }
+                    };
+
+                    results.Add(requirement);
+                    index++;
+                }
+            }
+
+            return results;
         }
 
         /// <summary>
