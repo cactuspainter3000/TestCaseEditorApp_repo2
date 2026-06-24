@@ -768,6 +768,8 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 
                 // 🎯 Variables to preserve Jama project information
                 string? jamaProjectId = null;
+                int? jamaProjectIdCanonical = null;
+                string? jamaProjectName = null;
                 string? jamaTestPlan = null;
                 
                 if (!string.IsNullOrWhiteSpace(documentPath) && File.Exists(documentPath))
@@ -792,7 +794,14 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                                 
                                 // 🎯 Preserve Jama project information from original workspace
                                 jamaProjectId = jamaWorkspace.JamaProject;
+                                jamaProjectIdCanonical = jamaWorkspace.JamaProjectId;
+                                jamaProjectName = jamaWorkspace.JamaProjectName ?? jamaWorkspace.JamaTestPlan;
                                 jamaTestPlan = jamaWorkspace.JamaTestPlan;
+
+                                if (!jamaProjectIdCanonical.HasValue && !string.IsNullOrWhiteSpace(jamaProjectId) && int.TryParse(jamaProjectId, out var parsedProjectId))
+                                {
+                                    jamaProjectIdCanonical = parsedProjectId;
+                                }
                                 
                                 _logger.LogInformation("✅ Successfully loaded {Count} requirements from Jama JSON file", 
                                     importedRequirements.Count);
@@ -913,6 +922,8 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     AnythingLLMWorkspaceSlug = resolvedAnythingLLMSlug,
                     ImportSource = importSource,  // 🎯 Set based on actual content type
                     JamaProject = jamaProjectId,  // 🎯 Preserve Jama project ID for attachment scanning
+                    JamaProjectId = jamaProjectIdCanonical,
+                    JamaProjectName = jamaProjectName,
                     JamaTestPlan = jamaTestPlan,  // 🎯 Preserve Jama test plan name for display
                     Requirements = importedRequirements
                 };
