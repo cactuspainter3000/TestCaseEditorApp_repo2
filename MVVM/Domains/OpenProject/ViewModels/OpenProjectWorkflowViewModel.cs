@@ -554,11 +554,39 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
                         }
                     }
                 }
+
+                // 4) Infer from loaded requirement project values when workspace metadata is incomplete.
+                if (!targetProjectId.HasValue && currentWorkspace.Requirements != null && currentWorkspace.Requirements.Count > 0)
+                {
+                    var inferredProjectIds = currentWorkspace.Requirements
+                        .Select(requirement => requirement.Project)
+                        .Where(value => !string.IsNullOrWhiteSpace(value) && int.TryParse(value, out var parsed) && parsed > 0)
+                        .Select(value => int.Parse(value!))
+                        .Distinct()
+                        .ToList();
+
+                    if (inferredProjectIds.Count == 1)
+                    {
+                        targetProjectId = inferredProjectIds[0];
+                        _logger.LogInformation("Inferred Jama project ID {ProjectId} from requirement.Project values", targetProjectId.Value);
+                    }
+                    else if (inferredProjectIds.Count > 1)
+                    {
+                        _logger.LogWarning("Found multiple requirement.Project values ({ProjectIds}); cannot infer unique Jama project ID", string.Join(",", inferredProjectIds));
+                    }
+                }
                 
                 if (!targetProjectId.HasValue)
                 {
                     _logger.LogInformation("Could not determine target Jama project, skipping background attachment scan");
                     return;
+                }
+
+                // Keep canonical workspace metadata in sync for manual attachment scans after project open.
+                if (!currentWorkspace.JamaProjectId.HasValue || currentWorkspace.JamaProjectId.Value <= 0)
+                {
+                    currentWorkspace.JamaProjectId = targetProjectId.Value;
+                    _logger.LogInformation("Set workspace JamaProjectId in memory to {ProjectId} for attachment scan resolution", targetProjectId.Value);
                 }
 
                 _logger.LogInformation($"Triggering background attachment scan for Jama project {targetProjectId.Value}");

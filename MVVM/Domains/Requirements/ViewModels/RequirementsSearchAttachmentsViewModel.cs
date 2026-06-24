@@ -1652,6 +1652,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 return testPlanId;
             }
 
+            var inferredProjectIds = (workspace.Requirements ?? new List<Requirement>())
+                .Select(requirement => requirement.Project)
+                .Where(value => !string.IsNullOrWhiteSpace(value) && int.TryParse(value, out var parsed) && parsed > 0)
+                .Select(value => int.Parse(value!))
+                .Distinct()
+                .ToList();
+
+            if (inferredProjectIds.Count == 1)
+            {
+                return inferredProjectIds[0];
+            }
+
             var candidateNames = new[]
             {
                 workspace.JamaProjectName,
