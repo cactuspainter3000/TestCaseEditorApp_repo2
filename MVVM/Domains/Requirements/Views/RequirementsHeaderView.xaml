@@ -70,9 +70,14 @@
                     </Grid.ColumnDefinitions>
                     
                     <!-- Operation Status Text -->
-                    <ContentPresenter Grid.Column="0"
-                                    Content="{Binding CurrentOperationStatus, Converter={StaticResource StatusTextWithOrangePipesConverter}}"
-                                    VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding CurrentOperationStatus}"
+                               FontWeight="Medium"
+                               FontSize="14"
+                               Foreground="{StaticResource Brush.Text.Primary}"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap"
+                               TextTrimming="CharacterEllipsis"/>
                     
                     <!-- Processing Counter and Timer -->
                     <StackPanel Grid.Column="1" 

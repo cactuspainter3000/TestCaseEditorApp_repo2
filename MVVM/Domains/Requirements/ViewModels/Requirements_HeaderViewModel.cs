@@ -106,8 +106,26 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         // Computed properties for unified status display
         public bool IsAnyOperationActive => IsDocumentParsing || IsAttachmentScanning;
-        
-        public string CurrentOperationStatus => IsDocumentParsing ? DocumentParsingStatus : AttachmentScanningStatus;
+
+        public string CurrentOperationStatus
+        {
+            get
+            {
+                var baseStatus = IsDocumentParsing ? DocumentParsingStatus : AttachmentScanningStatus;
+                if (!IsDocumentParsing || !_lastParsingProgressUpdate.HasValue)
+                {
+                    return baseStatus;
+                }
+
+                var staleSeconds = (int)(DateTime.Now - _lastParsingProgressUpdate.Value).TotalSeconds;
+                if (staleSeconds <= 45)
+                {
+                    return baseStatus;
+                }
+
+                return $"{baseStatus} | no new parser update for {staleSeconds}s";
+            }
+        }
         
         public int CurrentOperationCount => IsDocumentParsing ? RequirementsFound : AttachmentsFound;
         
@@ -115,6 +133,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                                        (IsAttachmentScanning && AttachmentsFound > 0);
 
         private DateTime? _parsingStartTime;
+        private DateTime? _lastParsingProgressUpdate;
         private System.Windows.Threading.DispatcherTimer? _parsingTimerDispatcher;
 
         public ICommand SaveWorkspaceCommand { get; }
@@ -463,6 +482,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 var minutes = (int)elapsed.TotalMinutes;
                 var seconds = (int)(elapsed.TotalSeconds % 60);
                 ParsingTimerDisplay = $"{minutes:D2}:{seconds:D2}";
+
+                OnPropertyChanged(nameof(CurrentOperationStatus));
             }
         }
 
@@ -473,6 +494,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             ParsingDocumentName = e.DocumentName;
             DocumentParsingStatus = $"Parsing {e.DocumentName}...";
             _parsingStartTime = e.StartTime;
+            _lastParsingProgressUpdate = e.StartTime;
             ParsingTimer = "0:00";
             RequirementsFound = 0;
             
@@ -498,7 +520,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private void OnDocumentParsingProgress(RequirementsEvents.DocumentParsingProgress e)
         {
             _logger.LogDebug("[HeaderVM] Document parsing progress: {StatusMessage}", e.StatusMessage);
-            DocumentParsingStatus = e.StatusMessage;
+            DocumentParsingStatus = ToHeaderSafeStatus(e.StatusMessage);
+            _lastParsingProgressUpdate = e.Timestamp;
             
             OnPropertyChanged(nameof(CurrentOperationStatus));
         }
@@ -510,6 +533,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             
             _parsingTimerDispatcher?.Stop();
             IsDocumentParsing = false;
+            _lastParsingProgressUpdate = null;
             
             // Hide timer
             IsParsingTimerVisible = false;
@@ -644,6 +668,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             
             _parsingTimerDispatcher?.Stop();
             IsDocumentParsing = false;
+            _lastParsingProgressUpdate = null;
             
             // Hide timer
             IsParsingTimerVisible = false;
@@ -659,5 +684,29 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             
             // Notify cancel command state
             ((RelayCommand)CancelParseCommand).NotifyCanExecuteChanged();
-        }    }
+        }
+
+        private static string ToHeaderSafeStatus(string? message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return "Working...";
+            }
+
+            var normalized = message
+                .Replace("\r", " ")
+                .Replace("\n", " ")
+                .Trim();
+
+            normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"\s+", " ");
+
+            const int maxLength = 220;
+            if (normalized.Length > maxLength)
+            {
+                normalized = normalized.Substring(0, maxLength - 1).TrimEnd() + "...";
+            }
+
+            return normalized;
+        }
+    }
 }

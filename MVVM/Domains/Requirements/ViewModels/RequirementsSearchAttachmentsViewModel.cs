@@ -1258,15 +1258,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 // Define progress callback to update status during processing
                 System.Action<string> progressCallback = (message) => {
                     Application.Current?.Dispatcher?.Invoke(() => {
-                        baseParsingMessage = message;
-                        StatusMessage = message; // Update status without timer
+                        var conciseMessage = ToHeaderSafeStatus(message);
+                        baseParsingMessage = conciseMessage;
+                        StatusMessage = conciseMessage;
                         
                         // Publish progress event for header display
                         _mediator.PublishEvent(new RequirementsEvents.DocumentParsingProgress
                         {
                             DocumentName = SelectedAttachment.Name,
                             AttachmentId = SelectedAttachment.Id,
-                            StatusMessage = StatusMessage,
+                            StatusMessage = conciseMessage,
                             Timestamp = DateTime.Now
                         });
                     });
@@ -1290,7 +1291,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                         {
                             DocumentName = SelectedAttachment.Name,
                             AttachmentId = SelectedAttachment.Id,
-                            StatusMessage = $"🚀 Discovered requirement: {requirement.Description}",
+                            StatusMessage = $"🚀 Requirement discovered ({ExtractedRequirements.Count})",
                             Timestamp = DateTime.Now
                         });
                     });
@@ -1501,6 +1502,29 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 ElapsedTime = "";
                 TimerDisplay = "";
             }
+        }
+
+        private static string ToHeaderSafeStatus(string? message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return "Working...";
+            }
+
+            var normalized = message
+                .Replace("\r", " ")
+                .Replace("\n", " ")
+                .Trim();
+
+            normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"\s+", " ");
+
+            const int maxLength = 180;
+            if (normalized.Length > maxLength)
+            {
+                normalized = normalized.Substring(0, maxLength - 1).TrimEnd() + "...";
+            }
+
+            return normalized;
         }
 
         private async Task ImportExtractedRequirementsAsync()
