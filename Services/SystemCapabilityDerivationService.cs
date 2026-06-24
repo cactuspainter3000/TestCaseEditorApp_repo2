@@ -138,31 +138,47 @@ namespace TestCaseEditorApp.Services
                 _logger.LogDebug("Extracted {StepCount} ATP steps from content", parsedSteps.Count);
                 progressCallback?.Invoke($"📊 ATP Parser: Extracted {parsedSteps.Count} test procedure steps from document structure");
 
-                // Process all ATP steps - debug limit removed for full analysis
-                _logger.LogInformation("🚀 FULL PROCESSING MODE: Analyzing all {StepCount} ATP steps", parsedSteps.Count);
-                progressCallback?.Invoke($"🚀 Full Analysis Mode: Processing all {parsedSteps.Count} ATP steps for comprehensive requirement extraction");
+                // Process all ATP steps for full analysis
+                progressCallback?.Invoke($"Processing {parsedSteps.Count} ATP steps for requirement derivation...");
 
                 // Process each step for capability derivation with progress tracking
                 int stepCounter = 0;
-                var modelName = Environment.GetEnvironmentVariable("OLLAMA_MODEL") ?? "phi3.5";
-                var shortModelName = modelName.Split(':')[0]; // Extract just "phi3.5" from "phi4-mini:3.8b-q4_K_M"
+                var configuredChatModel = GetConfiguredChatModel();
+                var configuredEmbeddingModel = GetConfiguredEmbeddingModel();
+                var shortChatModelName = ToShortModelName(configuredChatModel);
+                var shortEmbeddingModelName = ToShortModelName(configuredEmbeddingModel);
                 foreach (var parsedStep in parsedSteps)
                 {
+                    if (stopwatch.Elapsed >= derivationOptions.MaxProcessingTime)
+                    {
+                        var budgetMessage = $"Stopped step processing after reaching total time budget ({FormatDuration(derivationOptions.MaxProcessingTime)}). Processed {stepCounter}/{parsedSteps.Count} steps.";
+                        _logger.LogWarning("{Message}", budgetMessage);
+                        result.ProcessingWarnings.Add(budgetMessage);
+                        progressCallback?.Invoke($"⏱️ Time budget reached after {stepCounter}/{parsedSteps.Count} steps; finalizing partial results");
+                        break;
+                    }
+
                     stepCounter++;
                     var currentStepStopwatch = Stopwatch.StartNew();
-                    progressCallback?.Invoke($"🤖 LLM Analysis ({stepCounter}/{parsedSteps.Count}): {shortModelName} analyzing → {parsedStep.StepText.Substring(0, Math.Min(50, parsedStep.StepText.Length))}... | current req: 00:00");
+                    var parsingProgressBar = BuildProgressBar(stepCounter, parsedSteps.Count);
+                    progressCallback?.Invoke($"📄 Parsing document {parsingProgressBar}: chat={shortChatModelName} | embed={shortEmbeddingModelName} (embed may fallback) → {parsedStep.StepText.Substring(0, Math.Min(50, parsedStep.StepText.Length))}... | current req: 00:00");
                     
-                    // DEBUG: Log ATP step content to understand what we're processing
-                    if (stepCounter <= 3) // Log first 3 steps for analysis (reduced from 5 for full processing)
-                    {
-                        _logger.LogInformation("DEBUG ATP Step {Counter}: Keywords=[{Keywords}] Confidence={Confidence:F2} Text='{StepText}'", 
-                            stepCounter, 
-                            string.Join(", ", parsedStep.SystemReferences.Concat(parsedStep.ActionVerbs).Concat(parsedStep.MeasurementKeywords)), 
-                            parsedStep.ParsingConfidence,
-                            parsedStep.StepText.Length > 150 ? parsedStep.StepText.Substring(0, 150) + "..." : parsedStep.StepText);
-                    }
                     // Apply per-step timeout to prevent hanging
-                    using var stepCts = new CancellationTokenSource(derivationOptions.PerStepTimeout);
+                    var remainingBudget = derivationOptions.MaxProcessingTime - stopwatch.Elapsed;
+                    if (remainingBudget <= TimeSpan.Zero)
+                    {
+                        var budgetMessage = $"Stopped step processing because no total time budget remained after {stepCounter - 1} steps.";
+                        _logger.LogWarning("{Message}", budgetMessage);
+                        result.ProcessingWarnings.Add(budgetMessage);
+                        progressCallback?.Invoke("⏱️ No remaining processing budget; finalizing partial results");
+                        break;
+                    }
+
+                    var effectiveStepTimeout = derivationOptions.PerStepTimeout < remainingBudget
+                        ? derivationOptions.PerStepTimeout
+                        : remainingBudget;
+
+                    using var stepCts = new CancellationTokenSource(effectiveStepTimeout);
                     
                     try
                     {
@@ -199,18 +215,10 @@ namespace TestCaseEditorApp.Services
                         // Update progress with running totals
                         progressCallback?.Invoke($"✅ A-N Taxonomy ({stepCounter}/{parsedSteps.Count}): Derived {stepResult.DerivedCapabilities.Count} capabilities → Total: {result.DerivedCapabilities.Count} | current req: {FormatDuration(currentStepStopwatch.Elapsed)}");
                         
-                        // Early exit if no capabilities found after reasonable sample
-                        if (stepCounter >= 15 && result.DerivedCapabilities.Count == 0)
-                        {
-                            _logger.LogWarning("Early exit: Processed {ProcessedSteps} ATP steps with 0 capabilities extracted. Document likely contains no extractable requirements.", stepCounter);
-                            result.ProcessingWarnings.Add($"Early exit after {stepCounter} steps: No system capabilities detected in ATP content. Document may not contain extractable requirements or may require different parsing approach.");
-                            progressCallback?.Invoke($"🛑 Early Exit: No capabilities found in first {stepCounter} steps - stopping analysis to avoid wasting time | current req: {FormatDuration(currentStepStopwatch.Elapsed)}");
-                            break;
-                        }
                     }
                     catch (OperationCanceledException) when (stepCts.IsCancellationRequested)
                     {
-                        _logger.LogWarning("ATP step {StepNumber} timed out after {TimeoutSeconds} seconds", stepCounter, derivationOptions.PerStepTimeout.TotalSeconds);
+                        _logger.LogWarning("ATP step {StepNumber} timed out after {TimeoutSeconds} seconds", stepCounter, effectiveStepTimeout.TotalSeconds);
                         
                         // Collect skipped step for potential retry
                         var skippedStep = new SkippedAtpStep
@@ -218,12 +226,12 @@ namespace TestCaseEditorApp.Services
                             StepText = parsedStep.StepText,
                             StepNumber = stepCounter,
                             StepId = parsedStep.StepId,
-                            TimeoutDuration = derivationOptions.PerStepTimeout,
-                            SkipReason = $"Timed out after {derivationOptions.PerStepTimeout.TotalSeconds}s"
+                            TimeoutDuration = effectiveStepTimeout,
+                            SkipReason = $"Timed out after {effectiveStepTimeout.TotalSeconds}s"
                         };
                         result.SkippedAtpSteps.Add(skippedStep);
                         
-                        result.ProcessingWarnings.Add($"Step {stepCounter} timed out after {derivationOptions.PerStepTimeout.TotalSeconds}s - added to retry queue");
+                        result.ProcessingWarnings.Add($"Step {stepCounter} timed out after {effectiveStepTimeout.TotalSeconds}s - added to retry queue");
                         progressCallback?.Invoke($"⏰ Step {stepCounter}/{parsedSteps.Count} timed out (can retry later)");
                     }
                     catch (Exception ex)
@@ -268,7 +276,7 @@ namespace TestCaseEditorApp.Services
                 }
 
                 // Apply MBSE system-level requirement filtering
-                await ApplyMBSEFilteringAsync(result, progressCallback);
+                await ApplyMBSEFilteringAsync(result, derivationOptions, progressCallback);
 
                 // Calculate advanced multi-dimensional quality score
                 result.QualityScore = await CalculateAdvancedQualityAsync(result, atpContent);
@@ -301,6 +309,43 @@ namespace TestCaseEditorApp.Services
             }
 
             return $"{elapsed.Minutes:D2}:{elapsed.Seconds:D2}";
+        }
+
+        private static string BuildProgressBar(int current, int total, int width = 12)
+        {
+            if (total <= 0)
+            {
+                return "[------------]";
+            }
+
+            var clampedCurrent = Math.Max(0, Math.Min(current, total));
+            var filled = (int)Math.Round((double)clampedCurrent / total * width);
+            filled = Math.Max(0, Math.Min(filled, width));
+
+            return $"[{new string('#', filled)}{new string('-', width - filled)}]";
+        }
+
+        private static string GetConfiguredChatModel()
+        {
+            var model = Environment.GetEnvironmentVariable("OLLAMA_MODEL");
+            return string.IsNullOrWhiteSpace(model) ? "phi4-mini:latest" : model.Trim();
+        }
+
+        private static string GetConfiguredEmbeddingModel()
+        {
+            var model = Environment.GetEnvironmentVariable("OLLAMA_EMBEDDING_MODEL");
+            return string.IsNullOrWhiteSpace(model) ? "nomic-embed-text:latest" : model.Trim();
+        }
+
+        private static string ToShortModelName(string model)
+        {
+            if (string.IsNullOrWhiteSpace(model))
+            {
+                return "unknown";
+            }
+
+            var separatorIndex = model.IndexOf(':');
+            return separatorIndex > 0 ? model.Substring(0, separatorIndex) : model;
         }
 
         /// <summary>
@@ -1046,14 +1091,34 @@ namespace TestCaseEditorApp.Services
         {
             var capabilities = new List<DerivedCapability>();
             
-            // Look for "shall" statements as system requirements
-            var shallMatches = Regex.Matches(llmResponse, @"[Tt]he\s+system\s+shall\s+[^.]{10,200}\.", RegexOptions.IgnoreCase);
-            
-            foreach (Match match in shallMatches)
+            // Look for "shall" statements as requirements.
+            // Accept both "The system shall ..." and subject-specific forms like "The MFD shall ...".
+            var seenRequirements = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            var shallPatterns = new[]
             {
-                var reqText = match.Value.Trim();
-                if (reqText.Length > 20) // Minimum reasonable requirement length
+                @"\b[Tt]he\s+system\s+shall\s+[^.\r\n]{10,300}\.",
+                @"\b[A-Za-z][A-Za-z0-9_\-/ ]{1,50}\s+shall\s+[^.\r\n]{10,300}\.",
+                @"\b[A-Za-z][A-Za-z0-9_\-/ ]{1,50}\s+shall\s+[^\r\n]{10,300}"
+            };
+
+            foreach (var pattern in shallPatterns)
+            {
+                var shallMatches = Regex.Matches(llmResponse, pattern, RegexOptions.IgnoreCase);
+                foreach (Match match in shallMatches)
                 {
+                    var reqText = match.Value.Trim();
+                    if (reqText.Length <= 20)
+                    {
+                        continue;
+                    }
+
+                    if (seenRequirements.Contains(reqText))
+                    {
+                        continue;
+                    }
+
+                    seenRequirements.Add(reqText);
                     capabilities.Add(new DerivedCapability
                     {
                         Id = Guid.NewGuid().ToString(),
@@ -1418,7 +1483,7 @@ namespace TestCaseEditorApp.Services
         /// elevating derived requirements, and filtering out implementation noise. 
         /// Transforms the system from generic "requirement extraction" to intelligent "MBSE requirement elevation".
         /// </summary>
-        private async Task ApplyMBSEFilteringAsync(DerivationResult result, Action<string>? progressCallback = null)
+        private async Task ApplyMBSEFilteringAsync(DerivationResult result, DerivationOptions derivationOptions, Action<string>? progressCallback = null)
         {
             if (result.DerivedCapabilities.Count == 0)
             {
@@ -1441,12 +1506,16 @@ namespace TestCaseEditorApp.Services
 
             try
             {
-                // Apply enhanced MBSE analysis with requirement elevation (45-minute timeout)
+                // Keep MBSE phase bounded by the same user-facing derivation budget.
+                // Reserve a fraction for MBSE so total runtime remains predictable.
+                var mbseBudgetMinutes = Math.Max(1, Math.Min(10, (int)Math.Ceiling(derivationOptions.MaxProcessingTime.TotalMinutes * 0.6)));
+
+                // Apply enhanced MBSE analysis with adaptive timeout budget.
                 var enhancedResult = await _mbseClassifier.AnalyzeAndElevateRequirementsAsync(
                     result.DerivedCapabilities, 
                     minimumMBSEScore: 0.7,
                     enableRequirementElevation: true,
-                    maxProcessingTimeMinutes: 45);
+                    maxProcessingTimeMinutes: mbseBudgetMinutes);
 
                 // Replace capabilities with enhanced results (native + elevated system requirements)
                 result.DerivedCapabilities = enhancedResult.GetAllSystemRequirements();

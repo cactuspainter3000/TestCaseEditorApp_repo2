@@ -74,9 +74,10 @@ namespace TestCaseEditorApp.Services
         public TimeSpan MaxProcessingTime { get; set; } = TimeSpan.FromMinutes(5);
 
         /// <summary>
-        /// Timeout for individual LLM calls (per ATP step) - increased for RAG-enhanced prompts
+        /// Timeout for individual LLM calls (per ATP step). Keep this short so over-segmented
+        /// documents do not turn into multi-hour runs.
         /// </summary>
-        public TimeSpan PerStepTimeout { get; set; } = TimeSpan.FromMinutes(8);
+        public TimeSpan PerStepTimeout { get; set; } = TimeSpan.FromSeconds(20);
 
         /// <summary>
         /// Source document metadata for traceability

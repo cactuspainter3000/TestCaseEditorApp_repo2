@@ -123,6 +123,11 @@ namespace TestCaseEditorApp.Services
         /// Skip steps that appear to be boilerplate or non-functional
         /// </summary>
         public bool SkipBoilerplate { get; set; } = true;
+
+        /// <summary>
+        /// Hard cap to prevent runaway segmentation from creating excessive per-step LLM calls.
+        /// </summary>
+        public int MaxStepsToAnalyze { get; set; } = 120;
     }
 
     /// <summary>
@@ -234,7 +239,7 @@ namespace TestCaseEditorApp.Services
                     if (parsedStep != null)
                     {
                         // Look ahead for continuation lines
-                        var fullStepText = await ParseMultiLineStepAsync(lines, i, parseOptions);
+                        var (fullStepText, lastConsumedIndex) = await ParseMultiLineStepAsync(lines, i, parseOptions);
                         if (!string.IsNullOrEmpty(fullStepText) && fullStepText != line)
                         {
                             parsedStep.StepText = fullStepText;
@@ -246,6 +251,12 @@ namespace TestCaseEditorApp.Services
                         }
                         
                         steps.Add(parsedStep);
+
+                        // Skip continuation lines that were consumed into this step to avoid overlap amplification.
+                        if (lastConsumedIndex > i)
+                        {
+                            i = lastConsumedIndex;
+                        }
                     }
                 }
 
@@ -253,6 +264,11 @@ namespace TestCaseEditorApp.Services
                 if (parseOptions.SkipBoilerplate)
                 {
                     steps = FilterBoilerplateSteps(steps);
+                }
+
+                if (parseOptions.MaxStepsToAnalyze > 0 && steps.Count > parseOptions.MaxStepsToAnalyze)
+                {
+                    steps = ReduceExcessSteps(steps, parseOptions.MaxStepsToAnalyze);
                 }
 
                 _logger.LogInformation("Parsed {StepCount} ATP steps from document", steps.Count);
@@ -362,9 +378,10 @@ namespace TestCaseEditorApp.Services
             return null;
         }
 
-        private async Task<string> ParseMultiLineStepAsync(string[] lines, int startIndex, ATPParsingOptions options)
+        private async Task<(string StepText, int LastConsumedIndex)> ParseMultiLineStepAsync(string[] lines, int startIndex, ATPParsingOptions options)
         {
             var combinedText = lines[startIndex];
+            var lastConsumedIndex = startIndex;
             
             // Look for continuation lines (indented or unnumbered lines that follow)
             for (int i = startIndex + 1; i < lines.Length && i < startIndex + 5; i++) // Limit lookahead
@@ -383,6 +400,7 @@ namespace TestCaseEditorApp.Services
                 if (IsLikeContinuation(nextLine))
                 {
                     combinedText += " " + nextLine;
+                    lastConsumedIndex = i;
                 }
                 else
                 {
@@ -390,7 +408,7 @@ namespace TestCaseEditorApp.Services
                 }
             }
             
-            return combinedText;
+            return (combinedText, lastConsumedIndex);
         }
 
         private void ParseStepMetadata(ParsedATPStep step, string fullText, ATPParsingOptions options)
@@ -432,20 +450,44 @@ namespace TestCaseEditorApp.Services
             // Filter out obvious non-steps first
             if (IsDocumentHeader(line)) return false;
             if (line.Length < options.MinimumStepLength) return false;
+            if (GetWordCount(line) < 6) return false;
+
+            // Recognize structured requirement records like:
+            // ID: C4B_ATR-143 The MFD shall ... Test_type: BIT Test_Venue: HASS Functional
+            var hasStructuredId = Regex.IsMatch(line, @"\bID\s*:\s*[A-Za-z0-9][A-Za-z0-9_.\-]*\b", RegexOptions.IgnoreCase);
+            var hasFieldMarkers = Regex.IsMatch(line, @"\b(Test[_ ]?type|Test[_ ]?venue)\s*:", RegexOptions.IgnoreCase);
+            var hasShallStatement = Regex.IsMatch(line, @"\b[A-Za-z][A-Za-z0-9_\-/ ]{1,60}\s+shall\b", RegexOptions.IgnoreCase);
+            if (hasStructuredId && (hasShallStatement || hasFieldMarkers)) return true;
             
-            // Look for action verbs that suggest this is a step
-            if (ActionVerbs.Any(verb => lowerLine.Contains(verb)))
+            // Strong indicator: explicit requirement language
+            if (hasShallStatement)
                 return true;
-                
-            // Look for "shall" statements
-            if (lowerLine.Contains("shall") && line.Length > options.MinimumStepLength)
-                return true;
-                
-            // Look for measurement/verification language
-            if (MeasurementKeywords.Any(keyword => lowerLine.Contains(keyword)))
+
+            // For unnumbered lines, require at least two semantic indicators to avoid line explosion.
+            var hasActionVerb = ActionVerbs.Any(verb => lowerLine.Contains(verb));
+            var hasMeasurementKeyword = MeasurementKeywords.Any(keyword => lowerLine.Contains(keyword));
+            var hasSystemKeyword = SystemKeywords.Any(keyword => lowerLine.Contains(keyword));
+            var hasSafetyKeyword = SafetyKeywords.Any(keyword => lowerLine.Contains(keyword));
+            var indicatorCount = 0;
+            if (hasActionVerb) indicatorCount++;
+            if (hasMeasurementKeyword) indicatorCount++;
+            if (hasSystemKeyword) indicatorCount++;
+            if (hasSafetyKeyword) indicatorCount++;
+
+            if (indicatorCount >= 2)
                 return true;
             
             return false;
+        }
+
+        private static int GetWordCount(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return 0;
+            }
+
+            return Regex.Matches(text, @"\b\w+\b").Count;
         }
         
         private bool IsDocumentHeader(string line)
@@ -560,6 +602,64 @@ namespace TestCaseEditorApp.Services
                 originalCount, filtered.Count, originalCount - filtered.Count);
             
             return filtered;
+        }
+
+        private List<ParsedATPStep> ReduceExcessSteps(List<ParsedATPStep> steps, int maxSteps)
+        {
+            var numbered = steps
+                .Where(step => !string.IsNullOrWhiteSpace(step.StepNumber))
+                .OrderBy(step => step.LineNumber)
+                .ToList();
+
+            var selected = new List<ParsedATPStep>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var step in numbered)
+            {
+                if (selected.Count >= maxSteps) break;
+                var key = NormalizeStepKey(step.StepText);
+                if (seen.Add(key))
+                {
+                    selected.Add(step);
+                }
+            }
+
+            if (selected.Count < maxSteps)
+            {
+                var unnumbered = steps
+                    .Where(step => string.IsNullOrWhiteSpace(step.StepNumber))
+                    .OrderByDescending(step => step.ParsingConfidence)
+                    .ThenByDescending(step => step.StepText?.Length ?? 0)
+                    .ToList();
+
+                foreach (var step in unnumbered)
+                {
+                    if (selected.Count >= maxSteps) break;
+                    var key = NormalizeStepKey(step.StepText);
+                    if (seen.Add(key))
+                    {
+                        selected.Add(step);
+                    }
+                }
+            }
+
+            var reduced = selected
+                .OrderBy(step => step.LineNumber)
+                .ToList();
+
+            _logger.LogWarning("Step reduction applied: {OriginalCount} -> {ReducedCount} (max {MaxSteps})", steps.Count, reduced.Count, maxSteps);
+            return reduced;
+        }
+
+        private static string NormalizeStepKey(string? stepText)
+        {
+            if (string.IsNullOrWhiteSpace(stepText))
+            {
+                return string.Empty;
+            }
+
+            var normalized = Regex.Replace(stepText, @"\s+", " ").Trim();
+            return normalized.Length <= 220 ? normalized : normalized.Substring(0, 220);
         }
     }
 }

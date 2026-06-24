@@ -2295,7 +2295,6 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
             while (!cancellationToken.IsCancellationRequested)
             {
                 attempt++;
-                System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] LLM analysis attempt {attempt}, timeout: {timeoutSeconds}s");
                 
                 try
                 {
@@ -2311,15 +2310,10 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                     onProgressUpdate?.Invoke(timeoutMsg);
                     
                     // Try RAG-based analysis first (faster and more context-aware)
-                    var ragAttemptStart = DateTime.UtcNow;
-                    System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Attempting RAG analysis at {ragAttemptStart:HH:mm:ss.fff}");
                     var ragResult = await TryRagAnalysisAsync(requirement, onPartialResult, onProgressUpdate, _cachedSystemMessage, timeoutToken);
-                    var ragAttemptTime = DateTime.UtcNow - ragAttemptStart;
-                    System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] RAG attempt completed in {ragAttemptTime.TotalMilliseconds}ms, success: {ragResult.success}");
                     
                     if (ragResult.success)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Using RAG response, length: {ragResult.response?.Length ?? 0}");
                         return ragResult.response ?? throw new InvalidOperationException("RAG analysis succeeded but returned null response");
                     }
                     else
@@ -2328,8 +2322,6 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                         var failureMessage = GetRAGFailureMessage(ragResult.failureReason, ragResult.failureDetails);
                         TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] RAG analysis failed for requirement {requirement.Item}: {failureMessage}");
                         TestCaseEditorApp.Services.Logging.Log.Warn($"[RAG] Failure details: {ragResult.failureDetails}");
-                        System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] RAG FAILED - Reason: {ragResult.failureReason}, Details: {ragResult.failureDetails}");
-                        
                         // Notify user about RAG failure via progress callback
                         onProgressUpdate?.Invoke($"⚠️ RAG unavailable: {failureMessage}");
                         onProgressUpdate?.Invoke("Using fallback LLM analysis...");
@@ -2337,9 +2329,6 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                         // Use AnythingLLM with workspace-configured system prompt
                         if (_llmService is AnythingLLMService anythingLlmService)
                         {
-                            var streamingStart = DateTime.UtcNow;
-                            System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Starting AnythingLLM streaming at {streamingStart:HH:mm:ss.fff}");
-                            
                             // Use RAG-optimized prompt with supplemental information for workspace optimization
                             var ragPromptForWorkspace = BuildRagOptimizedPrompt(requirement);
                             
@@ -2353,20 +2342,14 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                                 onChunkReceived: onPartialResult,
                                 onProgressUpdate: onProgressUpdate,
                                 cancellationToken: timeoutToken) ?? string.Empty;
-                            var streamingTime = DateTime.UtcNow - streamingStart;
-                            System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] AnythingLLM streaming completed in {streamingTime.TotalMilliseconds}ms, response length: {response?.Length ?? 0}");
                             
                             return response;
                         }
                         else
                         {
-                            var traditionalStart = DateTime.UtcNow;
-                            System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Starting traditional LLM at {traditionalStart:HH:mm:ss.fff}");
                             // Traditional LLM method
                             var systemMessage = _cachedSystemMessage ?? string.Empty;
                             var response = await _llmService.GenerateWithSystemAsync(systemMessage, contextPrompt, timeoutToken);
-                            var traditionalTime = DateTime.UtcNow - traditionalStart;
-                            System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Traditional LLM completed in {traditionalTime.TotalMilliseconds}ms, response length: {response?.Length ?? 0}");
                             
                             return response;
                         }
@@ -2375,25 +2358,20 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                 catch (TaskCanceledException ex) when (ex.CancellationToken == cancellationToken)
                 {
                     // User cancellation - rethrow
-                    System.Diagnostics.Debug.WriteLine("[ANALYSIS DEBUG] Analysis cancelled by user");
                     throw;
                 }
                 catch (TaskCanceledException)
                 {
                     // Timeout occurred - prompt user
-                    System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Analysis timed out after {timeoutSeconds}s (attempt {attempt})");
-                    
                     // Show timeout dialog on UI thread
                     var userChoice = await ShowAnalysisTimeoutDialogAsync(attempt, timeoutSeconds, requirement, contextPrompt);
                     
                     if (userChoice == AnalysisTimeoutChoice.Cancel)
                     {
-                        System.Diagnostics.Debug.WriteLine("[ANALYSIS DEBUG] User chose to cancel after timeout");
                         throw new OperationCanceledException("User cancelled analysis after timeout");
                     }
                     
                     // User chose to continue - loop will retry with same timeout
-                    System.Diagnostics.Debug.WriteLine("[ANALYSIS DEBUG] User chose to continue waiting, retrying...");
                     continue;
                 }
             }

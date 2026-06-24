@@ -116,13 +116,6 @@ namespace TestCaseEditorApp.Services
                     return new List<Requirement>();
                 }
 
-                // Primary: Try DirectRagService first but only for text-based documents
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 🔍 ROUTING ANALYSIS:");
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser]   - DirectRagService available: {_directRagService != null}");
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser]   - DirectRagService configured: {_directRagService?.IsConfigured == true}");
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser]   - TextGenerationService available: {_textGenerationService != null}");
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser]   - Document type: {attachment.MimeType}");
-                
                 if (_directRagService?.IsConfigured == true && _textGenerationService != null)
                 {
                     // Check if it's a document type that DirectRag can handle effectively
@@ -137,15 +130,10 @@ namespace TestCaseEditorApp.Services
                         TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] ❌ Unsupported document type for DirectRag: {attachment.MimeType}");
                     }
                 }
-                else
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ❌ DirectRagService not ready - DirectRag: {_directRagService?.IsConfigured}, TextGen: {_textGenerationService != null}");
-                }
-                
-                // ENHANCED SYSTEM: Require DirectRag service (no AnythingLLM fallback)
-                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ENHANCED SYSTEM: DirectRagService required for document type: {attachment.MimeType}. Fallback to AnythingLLM disabled.");
-                progressCallback?.Invoke($"❌ Enhanced system requires proper RAG service - no fallback available");
-                throw new InvalidOperationException($"Enhanced document processing requires DirectRagService but it's not available for {attachment.MimeType}. Legacy AnythingLLM fallback disabled.");
+
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] DirectRagService unavailable or not suitable for {attachment.MimeType}; using AnythingLLM fallback");
+                progressCallback?.Invoke($"🔁 Using fallback requirement extraction...");
+                return await ExtractRequirementsWithAnythingLLMAsync(attachment, projectId, progressCallback, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -582,9 +570,6 @@ namespace TestCaseEditorApp.Services
                 progressCallback?.Invoke($"🔍 Validating {requirements.Count} requirements against document content...");
                 
                 // Add timeout for validation to prevent getting stuck
-                var validationTimeout = TimeSpan.FromMinutes(2);
-                using var validationCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                validationCts.CancelAfter(validationTimeout);
                 var contentValidatedRequirements = await ValidateExtractedRequirements(workspaceSlug, requirements, cancellationToken);
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Content validation: {contentValidatedRequirements.Count} of {requirements.Count} requirements verified as legitimate");
 
@@ -1727,26 +1712,42 @@ Extract all legitimate requirements:";
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 🚀 Using ATP derivation system to derive requirements from {attachment.FileName} ({documentContent.Length} characters)");
                 progressCallback?.Invoke($"🚀 Analyzing document with AI capability derivation system...");
 
+                // Fast deterministic pre-scan to estimate complexity and set realistic runtime budgets.
+                var preScan = BuildDerivationPreScanEstimate(documentContent, attachment);
+                progressCallback?.Invoke(
+                    $"⚡ Quick pre-scan: ~{preScan.EstimatedRequirementCandidates} candidate requirements from {preScan.FileSizeKb:N0} KB " +
+                    $"({preScan.NonEmptyLineCount:N0} non-empty lines). Estimated AI derivation: {FormatDurationRange(preScan.EstimatedDuration)}");
+
                 // Configure derivation options for general document processing (not just ATP)
                 var derivationOptions = new DerivationOptions
                 {
                     SystemType = "General", // Not specific to any system type
                     EnableQualityScoring = true,
                     IncludeRejectionAnalysis = true,
+                    MaxProcessingTime = preScan.RecommendedMaxProcessingTime,
+                    PerStepTimeout = preScan.RecommendedPerStepTimeout,
                     SourceMetadata = new Dictionary<string, string>
                     {
                         ["SourceDocument"] = attachment.FileName,
                         ["DocumentType"] = GetDocumentTypeDescription(attachment),
                         ["AttachmentId"] = attachment.Id.ToString(),
-                        ["ProjectId"] = projectId.ToString()
+                        ["ProjectId"] = projectId.ToString(),
+                        ["PreScanEstimatedCandidates"] = preScan.EstimatedRequirementCandidates.ToString(),
+                        ["PreScanNonEmptyLines"] = preScan.NonEmptyLineCount.ToString(),
+                        ["PreScanFileSizeKb"] = preScan.FileSizeKb.ToString("F0"),
+                        ["AdaptiveBudgetSeconds"] = ((int)preScan.RecommendedMaxProcessingTime.TotalSeconds).ToString(),
+                        ["AdaptivePerStepTimeoutSeconds"] = ((int)preScan.RecommendedPerStepTimeout.TotalSeconds).ToString()
                     }
                 };
 
                 // Use the 5-phase ATP derivation system to analyze the document content
-                progressCallback?.Invoke($"🧠 Running AI-powered requirement derivation analysis on {documentContent.Length} characters...");
+                progressCallback?.Invoke(
+                    $"🧠 Running AI-powered requirement derivation on {documentContent.Length:N0} characters " +
+                    $"with adaptive budget {FormatDurationCompact(preScan.RecommendedMaxProcessingTime)} " +
+                    $"(per-step timeout {FormatDurationCompact(preScan.RecommendedPerStepTimeout)})...");
                 
-                // Add timeout for ATP derivation to prevent indefinite hanging
-                var derivationTimeout = TimeSpan.FromMinutes(10); // Maximum 10 minutes for large documents
+                // Add timeout for ATP derivation and enforce it at await call-site.
+                var derivationTimeout = preScan.RecommendedMaxProcessingTime;
                 var derivationCts = new CancellationTokenSource();
                 derivationCts.CancelAfter(derivationTimeout);
                 
@@ -1772,6 +1773,11 @@ Extract all legitimate requirements:";
                             System.Windows.MessageBoxButton.YesNo,
                             System.Windows.MessageBoxImage.Question);
                         
+                        if (!preScan.AllowRetry)
+                        {
+                            return new TimeoutRetryDecision { ShouldRetry = false, ExtendedTimeout = TimeSpan.Zero };
+                        }
+
                         if (result == System.Windows.MessageBoxResult.Yes)
                         {
                             // Let user choose timeout extension
@@ -1797,7 +1803,8 @@ Extract all legitimate requirements:";
                         return new TimeoutRetryDecision { ShouldRetry = false, ExtendedTimeout = TimeSpan.Zero };
                     };
                     
-                    var derivationResult = await _derivationService.DeriveCapabilitiesAsync(documentContent, derivationOptions, progressCallback, retryCallback, onRequirementDiscovered);
+                    var derivationTask = _derivationService.DeriveCapabilitiesAsync(documentContent, derivationOptions, progressCallback, retryCallback, onRequirementDiscovered);
+                    var derivationResult = await derivationTask.WaitAsync(combinedCts.Token);
                     derivationCts.Cancel(); // Stop progress updates
                     
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Derivation completed: {derivationResult.DerivedCapabilities.Count} capabilities derived, {derivationResult.RejectedItems.Count} items filtered out");
@@ -1816,6 +1823,10 @@ Extract all legitimate requirements:";
                     progressCallback?.Invoke($"✅ ATP Derivation Complete: Generated {derivedRequirements.Count} requirements via phi4-mini → A-N taxonomy → capability synthesis");
 
                     return derivedRequirements;
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
                 }
                 catch (OperationCanceledException) when (derivationCts.Token.IsCancellationRequested)
                 {
@@ -1838,6 +1849,89 @@ Extract all legitimate requirements:";
             }
         }
 
+        private sealed class DerivationPreScanEstimate
+        {
+            public int EstimatedRequirementCandidates { get; init; }
+            public int NonEmptyLineCount { get; init; }
+            public double FileSizeKb { get; init; }
+            public TimeSpan EstimatedDuration { get; init; }
+            public TimeSpan RecommendedMaxProcessingTime { get; init; }
+            public TimeSpan RecommendedPerStepTimeout { get; init; }
+            public bool AllowRetry { get; init; }
+        }
+
+        private static DerivationPreScanEstimate BuildDerivationPreScanEstimate(string documentContent, JamaAttachment attachment)
+        {
+            var nonEmptyLines = documentContent
+                .Split('\n', StringSplitOptions.None)
+                .Select(line => line.Trim())
+                .Count(line => !string.IsNullOrWhiteSpace(line));
+
+            var shallMatches = System.Text.RegularExpressions.Regex.Matches(
+                documentContent,
+                @"\bshall\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase).Count;
+
+            var numberedStepMatches = System.Text.RegularExpressions.Regex.Matches(
+                documentContent,
+                @"^\s*(?:Step\s+)?\d+(?:\.\d+)*(?:\.[A-Za-z])?\s*[:.]?\s+",
+                System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.IgnoreCase).Count;
+
+            var structuredIdMatches = System.Text.RegularExpressions.Regex.Matches(
+                documentContent,
+                @"\bID\s*:\s*[A-Za-z0-9][A-Za-z0-9_.\-]*\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase).Count;
+
+            var fileSizeKb = Math.Max(1d, attachment.FileSize / 1024d);
+
+            // Deterministic rough count: prefer explicit requirement/step markers, then blend structured IDs.
+            var roughCandidates = Math.Max(shallMatches, numberedStepMatches) + (int)Math.Round(structuredIdMatches * 0.5);
+            roughCandidates = Math.Max(8, Math.Min(roughCandidates, 350));
+
+            // Predict total derivation time using candidate count + file size as coarse complexity features.
+            var predictedSeconds = 35d + (roughCandidates * 2.2) + (fileSizeKb / 512d * 10d);
+            predictedSeconds = Math.Max(45d, Math.Min(predictedSeconds, 15 * 60d));
+            var estimatedDuration = TimeSpan.FromSeconds(predictedSeconds);
+
+            // Keep user-facing flow near target SLA while allowing mild scaling for larger/denser docs.
+            var budgetSeconds = Math.Max(120d, Math.Min(predictedSeconds * 1.35d, 6 * 60d));
+            var maxProcessing = TimeSpan.FromSeconds(budgetSeconds);
+
+            var perStepTimeoutSeconds = roughCandidates > 120
+                ? 12
+                : roughCandidates > 70
+                    ? 15
+                    : 20;
+
+            return new DerivationPreScanEstimate
+            {
+                EstimatedRequirementCandidates = roughCandidates,
+                NonEmptyLineCount = nonEmptyLines,
+                FileSizeKb = fileSizeKb,
+                EstimatedDuration = estimatedDuration,
+                RecommendedMaxProcessingTime = maxProcessing,
+                RecommendedPerStepTimeout = TimeSpan.FromSeconds(perStepTimeoutSeconds),
+                AllowRetry = roughCandidates <= 60 && fileSizeKb <= 4096
+            };
+        }
+
+        private static string FormatDurationCompact(TimeSpan value)
+        {
+            if (value.TotalMinutes >= 1)
+            {
+                return $"{Math.Round(value.TotalMinutes)}m";
+            }
+
+            return $"{Math.Round(value.TotalSeconds)}s";
+        }
+
+        private static string FormatDurationRange(TimeSpan estimate)
+        {
+            var lowSeconds = Math.Max(30, estimate.TotalSeconds * 0.7);
+            var highSeconds = Math.Min(15 * 60, estimate.TotalSeconds * 1.4);
+            return $"{FormatDurationCompact(TimeSpan.FromSeconds(lowSeconds))}-{FormatDurationCompact(TimeSpan.FromSeconds(highSeconds))}";
+        }
+
         /// <summary>
         /// Convert derived capabilities to Requirement objects (adapted from SmartRequirementImporter)
         /// </summary>
@@ -1849,12 +1943,24 @@ Extract all legitimate requirements:";
             for (int i = 0; i < capabilities.Count; i++)
             {
                 var capability = capabilities[i];
+                var structuredMetadata = TryExtractStructuredRequirementMetadata(capability.RequirementText);
+
+                var normalizedDescription = !string.IsNullOrWhiteSpace(structuredMetadata.RequirementStatement)
+                    ? structuredMetadata.RequirementStatement
+                    : capability.RequirementText;
+
+                var generatedItem = !string.IsNullOrWhiteSpace(structuredMetadata.RequirementId)
+                    ? structuredMetadata.RequirementId
+                    : $"DOC-{i + 1:D3}";
+
                 var requirement = new Requirement
                 {
-                    GlobalId = $"DOC-{attachment.Id}-{i + 1:D3}", // DOC-12345-001, DOC-12345-002, etc.
-                    Item = $"DOC-{i + 1:D3}",
-                    Name = GenerateRequirementNameFromCapability(capability.RequirementText, capability.TaxonomyCategory),
-                    Description = capability.RequirementText,
+                    GlobalId = !string.IsNullOrWhiteSpace(structuredMetadata.RequirementId)
+                        ? structuredMetadata.RequirementId
+                        : $"DOC-{attachment.Id}-{i + 1:D3}", // DOC-12345-001, DOC-12345-002, etc.
+                    Item = generatedItem,
+                    Name = GenerateRequirementNameFromCapability(normalizedDescription, capability.TaxonomyCategory),
+                    Description = normalizedDescription,
                     RequirementType = $"{capability.TaxonomyCategory} - {capability.TaxonomySubcategory}",
                     
                     // Add derivation-specific fields
@@ -1880,6 +1986,48 @@ Extract all legitimate requirements:";
                         DerivedAt = DateTime.Now
                     }
                 };
+
+                if (!string.IsNullOrWhiteSpace(structuredMetadata.TestType))
+                {
+                    requirement.VerificationMethodText = structuredMetadata.TestType;
+                }
+
+                var robustTags = new List<string> { "Derived" };
+                if (!string.IsNullOrWhiteSpace(capability.TaxonomyCategory))
+                {
+                    robustTags.Add($"Taxonomy:{capability.TaxonomyCategory}");
+                }
+                if (!string.IsNullOrWhiteSpace(structuredMetadata.TestType))
+                {
+                    robustTags.Add($"TestType:{structuredMetadata.TestType}");
+                }
+                if (!string.IsNullOrWhiteSpace(structuredMetadata.TestVenue))
+                {
+                    robustTags.Add($"TestVenue:{structuredMetadata.TestVenue}");
+                }
+                requirement.TagList = robustTags.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+                if (structuredMetadata.HasStructuredMetadata)
+                {
+                    var metadataNotes = new List<string>();
+                    if (!string.IsNullOrWhiteSpace(structuredMetadata.RequirementId))
+                    {
+                        metadataNotes.Add($"**Parsed ID:** {structuredMetadata.RequirementId}");
+                    }
+                    if (!string.IsNullOrWhiteSpace(structuredMetadata.TestType))
+                    {
+                        metadataNotes.Add($"**Parsed Test Type:** {structuredMetadata.TestType}");
+                    }
+                    if (!string.IsNullOrWhiteSpace(structuredMetadata.TestVenue))
+                    {
+                        metadataNotes.Add($"**Parsed Test Venue:** {structuredMetadata.TestVenue}");
+                    }
+
+                    if (metadataNotes.Count > 0)
+                    {
+                        requirement.Rationale = string.Concat(requirement.Rationale, "\n\n", string.Join("\n\n", metadataNotes));
+                    }
+                }
 
                 requirements.Add(requirement);
             }
@@ -1939,6 +2087,99 @@ Extract all legitimate requirements:";
             notes.Add($"**Quality Score:** Based on A-N taxonomy validation and content analysis");
 
             return string.Join("\n\n", notes);
+        }
+
+        private sealed class StructuredRequirementMetadata
+        {
+            public string? RequirementId { get; set; }
+            public string? RequirementStatement { get; set; }
+            public string? TestType { get; set; }
+            public string? TestVenue { get; set; }
+
+            public bool HasStructuredMetadata =>
+                !string.IsNullOrWhiteSpace(RequirementId) ||
+                !string.IsNullOrWhiteSpace(TestType) ||
+                !string.IsNullOrWhiteSpace(TestVenue);
+        }
+
+        private StructuredRequirementMetadata TryExtractStructuredRequirementMetadata(string rawText)
+        {
+            var result = new StructuredRequirementMetadata();
+            if (string.IsNullOrWhiteSpace(rawText))
+            {
+                return result;
+            }
+
+            var normalizedText = rawText.Replace("\r", " ").Replace("\n", " ");
+            normalizedText = System.Text.RegularExpressions.Regex.Replace(normalizedText, @"\s+", " ").Trim();
+
+            var keyPattern = new System.Text.RegularExpressions.Regex(@"\b(ID|Test[_ ]?type|Test[_ ]?venue)\s*:\s*", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var keyMatches = keyPattern.Matches(normalizedText);
+
+            if (keyMatches.Count == 0)
+            {
+                return result;
+            }
+
+            var buckets = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < keyMatches.Count; i++)
+            {
+                var match = keyMatches[i];
+                var key = match.Groups[1].Value.Trim();
+                var valueStart = match.Index + match.Length;
+                var valueEnd = i + 1 < keyMatches.Count ? keyMatches[i + 1].Index : normalizedText.Length;
+                if (valueEnd <= valueStart)
+                {
+                    continue;
+                }
+
+                var value = normalizedText.Substring(valueStart, valueEnd - valueStart).Trim();
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    buckets[key] = value;
+                }
+            }
+
+            if (buckets.TryGetValue("ID", out var idValue) && !string.IsNullOrWhiteSpace(idValue))
+            {
+                var idMatch = System.Text.RegularExpressions.Regex.Match(idValue, @"^[A-Za-z0-9][A-Za-z0-9_.\-]*");
+                if (idMatch.Success)
+                {
+                    result.RequirementId = idMatch.Value;
+                    var remainder = idValue.Substring(idMatch.Length).Trim();
+                    if (!string.IsNullOrWhiteSpace(remainder))
+                    {
+                        result.RequirementStatement = remainder;
+                    }
+                }
+                else
+                {
+                    result.RequirementStatement = idValue;
+                }
+            }
+
+            if (buckets.TryGetValue("Test_type", out var testTypeValue) ||
+                buckets.TryGetValue("Test type", out testTypeValue))
+            {
+                result.TestType = testTypeValue?.Trim();
+            }
+
+            if (buckets.TryGetValue("Test_Venue", out var testVenueValue) ||
+                buckets.TryGetValue("Test Venue", out testVenueValue))
+            {
+                result.TestVenue = testVenueValue?.Trim();
+            }
+
+            if (string.IsNullOrWhiteSpace(result.RequirementStatement))
+            {
+                var shallMatch = System.Text.RegularExpressions.Regex.Match(normalizedText, @"\b[A-Za-z][A-Za-z0-9_\-/ ]{1,60}\s+shall\s+[^.\r\n]{10,300}(?:\.|$)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (shallMatch.Success)
+                {
+                    result.RequirementStatement = shallMatch.Value.Trim();
+                }
+            }
+
+            return result;
         }
 
         /// <summary>
