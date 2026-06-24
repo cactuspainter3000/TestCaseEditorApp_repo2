@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
+using System.Net;
 
 namespace TestCaseEditorApp.Services
 {
@@ -64,61 +65,51 @@ namespace TestCaseEditorApp.Services
                 text = text.Substring(0, maxChars);
             }
 
-            var payload = new
-            {
-                model = _embeddingModel,
-                input = text
-            };
-
-            var json = JsonSerializer.Serialize(payload);
-            
             TestCaseEditorApp.Services.Logging.Log.Debug($"[OllamaEmbedding] Generating embedding for text length: {text.Length}");
 
             try
             {
-                using var response = await _http.PostAsync($"{OllamaBaseUrl}api/embed",
-                    new StringContent(json, Encoding.UTF8, "application/json"), cancellationToken);
-
-                if (!response.IsSuccessStatusCode)
+                foreach (var model in GetCandidateModels())
                 {
-                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[OllamaEmbedding] HTTP {(int)response.StatusCode} error. Response: {errorContent}");
-                }
-
-                response.EnsureSuccessStatusCode();
-
-                using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-                using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-
-                // Parse Ollama embedding response format
-                if (doc.RootElement.TryGetProperty("embeddings", out var embeddingsElement) &&
-                    embeddingsElement.ValueKind == JsonValueKind.Array)
-                {
-                    var embeddings = embeddingsElement.EnumerateArray().FirstOrDefault();
-                    if (embeddings.ValueKind == JsonValueKind.Array)
+                    foreach (var request in CreateRequestVariants(model, text))
                     {
-                        var embedding = embeddings.EnumerateArray()
-                            .Select(e => (float)e.GetDouble())
-                            .ToArray();
-                        
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[OllamaEmbedding] Generated embedding with {embedding.Length} dimensions");
-                        return embedding;
+                        using var response = await _http.PostAsync(request.Endpoint,
+                            new StringContent(request.PayloadJson, Encoding.UTF8, "application/json"), cancellationToken);
+
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                            TestCaseEditorApp.Services.Logging.Log.Warn(
+                                $"[OllamaEmbedding] HTTP {(int)response.StatusCode} {response.StatusCode} from {request.Endpoint} using model '{model}'. Response: {TruncateForLog(errorContent)}");
+
+                            if (response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.BadRequest)
+                            {
+                                continue;
+                            }
+
+                            response.EnsureSuccessStatusCode();
+                        }
+
+                        using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+                        var embedding = TryParseEmbedding(doc);
+                        if (embedding != null)
+                        {
+                            if (!string.Equals(model, _embeddingModel, StringComparison.Ordinal))
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Warn($"[OllamaEmbedding] Recovered embedding generation by falling back from '{_embeddingModel}' to '{model}'");
+                            }
+
+                            TestCaseEditorApp.Services.Logging.Log.Debug($"[OllamaEmbedding] Generated embedding with {embedding.Length} dimensions via {request.Endpoint}");
+                            return embedding;
+                        }
+
+                        TestCaseEditorApp.Services.Logging.Log.Warn(
+                            $"[OllamaEmbedding] Successful response from {request.Endpoint} using model '{model}', but format was not recognized");
                     }
                 }
 
-                // Alternative format - single embedding array
-                if (doc.RootElement.TryGetProperty("embedding", out var embeddingElement) &&
-                    embeddingElement.ValueKind == JsonValueKind.Array)
-                {
-                    var embedding = embeddingElement.EnumerateArray()
-                        .Select(e => (float)e.GetDouble())
-                        .ToArray();
-                    
-                    TestCaseEditorApp.Services.Logging.Log.Debug($"[OllamaEmbedding] Generated embedding with {embedding.Length} dimensions");
-                    return embedding;
-                }
-
-                TestCaseEditorApp.Services.Logging.Log.Error("[OllamaEmbedding] Unexpected response format from Ollama embedding API");
+                TestCaseEditorApp.Services.Logging.Log.Error($"[OllamaEmbedding] All embedding request variants failed for model '{_embeddingModel}'");
                 return new float[_embeddingDimensions];
             }
             catch (HttpRequestException ex)
@@ -136,6 +127,72 @@ namespace TestCaseEditorApp.Services
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, "[OllamaEmbedding] Unexpected error during embedding generation");
                 return new float[_embeddingDimensions];
             }
+        }
+
+        private IEnumerable<string> GetCandidateModels()
+        {
+            yield return _embeddingModel;
+
+            if (_embeddingModel.EndsWith(":latest", StringComparison.OrdinalIgnoreCase))
+            {
+                yield return _embeddingModel[.._embeddingModel.LastIndexOf(':')];
+            }
+
+            if (_embeddingModel.Contains("nomic-embed-text", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(_embeddingModel, "nomic-embed-text", StringComparison.OrdinalIgnoreCase))
+            {
+                yield return "nomic-embed-text";
+            }
+        }
+
+        private IEnumerable<(string Endpoint, string PayloadJson)> CreateRequestVariants(string model, string text)
+        {
+            yield return ("api/embed", JsonSerializer.Serialize(new
+            {
+                model,
+                input = text
+            }));
+
+            yield return ("api/embeddings", JsonSerializer.Serialize(new
+            {
+                model,
+                prompt = text
+            }));
+        }
+
+        private static float[]? TryParseEmbedding(JsonDocument doc)
+        {
+            if (doc.RootElement.TryGetProperty("embeddings", out var embeddingsElement) &&
+                embeddingsElement.ValueKind == JsonValueKind.Array)
+            {
+                var embeddings = embeddingsElement.EnumerateArray().FirstOrDefault();
+                if (embeddings.ValueKind == JsonValueKind.Array)
+                {
+                    return embeddings.EnumerateArray()
+                        .Select(e => (float)e.GetDouble())
+                        .ToArray();
+                }
+            }
+
+            if (doc.RootElement.TryGetProperty("embedding", out var embeddingElement) &&
+                embeddingElement.ValueKind == JsonValueKind.Array)
+            {
+                return embeddingElement.EnumerateArray()
+                    .Select(e => (float)e.GetDouble())
+                    .ToArray();
+            }
+
+            return null;
+        }
+
+        private static string TruncateForLog(string value, int maxLength = 400)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return "<empty>";
+            }
+
+            return value.Length <= maxLength ? value : value.Substring(0, maxLength);
         }
 
         public async Task<IReadOnlyList<float[]>> GenerateEmbeddingsAsync(IReadOnlyList<string> texts, CancellationToken cancellationToken = default)

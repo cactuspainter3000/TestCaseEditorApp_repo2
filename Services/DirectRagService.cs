@@ -340,6 +340,12 @@ namespace TestCaseEditorApp.Services
 
                 // Use Ollama embedding service
                 var embedding = await _embeddingService.GenerateEmbeddingAsync(text, cancellationToken);
+                if (!IsUsableEmbedding(embedding))
+                {
+                    _logger.LogWarning("[DirectRAG] Embedding generation returned an unusable vector for text length {TextLength}", text.Length);
+                    return null;
+                }
+
                 return embedding;
             }
             catch (Exception ex)
@@ -347,6 +353,17 @@ namespace TestCaseEditorApp.Services
                 _logger.LogError(ex, "[DirectRAG] Failed to generate embedding for text: {Error}", ex.Message);
                 return null;
             }
+        }
+
+        private static bool IsUsableEmbedding(float[]? embedding)
+        {
+            if (embedding == null || embedding.Length == 0)
+            {
+                return false;
+            }
+
+            const float epsilon = 0.000001f;
+            return embedding.Any(value => Math.Abs(value) > epsilon);
         }
 
         private async Task CalibrateChunkingParametersAsync(string documentContent, CancellationToken cancellationToken = default)
