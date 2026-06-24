@@ -1432,20 +1432,36 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 {
                     progressCallback?.Invoke($"💾 Saving {extractedRequirements.Count} extracted requirements to Jama...");
                     var (savedCount, failedCount) = await _jamaConnectService.ImportRequirementsToJamaAsync(projectId, extractedRequirements, cancellationToken);
+
+                    // Fail-closed posture: if any records failed, retry only unsaved requirements once more.
+                    if (failedCount > 0)
+                    {
+                        var unsavedRequirements = extractedRequirements
+                            .Where(r => string.IsNullOrWhiteSpace(r.ApiId))
+                            .ToList();
+
+                        if (unsavedRequirements.Count > 0)
+                        {
+                            progressCallback?.Invoke($"🔁 Retrying Jama save for {unsavedRequirements.Count} unsaved requirements...");
+                            var (retrySavedCount, retryFailedCount) = await _jamaConnectService.ImportRequirementsToJamaAsync(projectId, unsavedRequirements, cancellationToken);
+                            savedCount += retrySavedCount;
+                            failedCount = retryFailedCount;
+                        }
+                    }
+
                     _logger.LogInformation("[RequirementsMediator] Persisted {SavedCount}/{TotalCount} extracted requirements to Jama (failed: {FailedCount})",
                         savedCount, extractedRequirements.Count, failedCount);
 
-                    if (savedCount > 0)
+                    if (savedCount > 0 && failedCount == 0)
                     {
-                        var status = failedCount > 0
-                            ? $"⚠️ Saved {savedCount}/{extractedRequirements.Count} extracted requirements to Jama ({failedCount} failed)"
-                            : $"✅ Saved {savedCount} extracted requirements to Jama";
-                        progressCallback?.Invoke(status);
+                        progressCallback?.Invoke($"✅ Saved {savedCount} extracted requirements to Jama");
                     }
-                    if (savedCount == 0 && failedCount > 0)
+
+                    // Capture in Jama is a primary requirement. Any remaining failures should halt the workflow.
+                    if (failedCount > 0)
                     {
-                        progressCallback?.Invoke("❌ Extracted requirements could not be saved to Jama. Import halted to prevent false success state.");
-                        throw new InvalidOperationException("Failed to persist extracted requirements to Jama. No requirements were saved.");
+                        progressCallback?.Invoke($"❌ Jama save incomplete: {savedCount}/{extractedRequirements.Count} saved. Import halted to avoid data loss.");
+                        throw new InvalidOperationException($"Failed to persist all extracted requirements to Jama. Saved {savedCount}/{extractedRequirements.Count}.");
                     }
                 }
 
