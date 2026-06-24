@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Timers;
 using System.Windows;
 using System.Windows.Input;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -182,6 +183,21 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         [ObservableProperty]
         private string editingRequirementText = string.Empty;
 
+        [ObservableProperty]
+        private string selectedRequirementItemType = string.Empty;
+
+        public ObservableCollection<string> AvailableRequirementItemTypes { get; } = new()
+        {
+            "System",
+            "Software",
+            "Hardware",
+            "ASIC/FPGA"
+        };
+
+        public bool CanEditItemTypeDuringReview => HasAnalysis && !IsAnalyzing && CurrentRequirement != null;
+
+        private bool _suppressItemTypeChange;
+
         // Smart clipboard button text
         [ObservableProperty]
         private string copyAnalysisButtonText = "LLM Analysis Request → Clipboard";
@@ -197,6 +213,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         partial void OnHasAnalysisChanged(bool value)
         {
             OnPropertyChanged(nameof(HasNoAnalysis));
+            OnPropertyChanged(nameof(CanEditItemTypeDuringReview));
         }
         
         partial void OnIsEditingRequirementChanged(bool value)
@@ -230,11 +247,36 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     OnPropertyChanged(nameof(HasNoAnalysis));
                     OnPropertyChanged(nameof(IsAnalyzing)); // Update analyzing state for new requirement
                     ((AsyncRelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
+                    OnPropertyChanged(nameof(CanEditItemTypeDuringReview));
                     
                     // Update UI state based on current requirement's analysis
                     RefreshAnalysisDisplay();
                 }
             }
+        }
+
+        partial void OnSelectedRequirementItemTypeChanged(string value)
+        {
+            if (_suppressItemTypeChange || CurrentRequirement == null || !CanEditItemTypeDuringReview)
+            {
+                return;
+            }
+
+            var trimmed = value?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(trimmed) || string.Equals(CurrentRequirement.ItemType, trimmed, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            CurrentRequirement.ItemType = trimmed;
+            if (!AvailableRequirementItemTypes.Any(t => string.Equals(t, trimmed, StringComparison.OrdinalIgnoreCase)))
+            {
+                AvailableRequirementItemTypes.Add(trimmed);
+            }
+
+            _mediator?.UpdateRequirement(CurrentRequirement, new[] { "ItemType" });
+            _logger.LogInformation("[RequirementAnalysisVM] Updated requirement item type during analysis review: {RequirementId} -> {ItemType}",
+                CurrentRequirement.GlobalId ?? CurrentRequirement.Item ?? "unknown", trimmed);
         }
 
         // Commands
@@ -487,6 +529,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             if (hasDisplayableAnalysis)
             {
                 UpdateUIFromAnalysis(analysis);
+                SyncSelectedRequirementItemTypeFromCurrentRequirement();
             }
             else
             {
@@ -502,8 +545,28 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 HasImprovedRequirement = false;
                 AnalysisTimestamp = string.Empty;
                 AnalysisStatusMessage = analysis?.ErrorMessage ?? string.Empty;
+                SyncSelectedRequirementItemTypeFromCurrentRequirement();
                 
                 _logger.LogDebug("[RequirementAnalysisVM] Cleared display state for {RequirementId}", CurrentRequirement?.Item);
+            }
+        }
+
+        private void SyncSelectedRequirementItemTypeFromCurrentRequirement()
+        {
+            _suppressItemTypeChange = true;
+            try
+            {
+                var itemType = CurrentRequirement?.ItemType?.Trim() ?? string.Empty;
+                if (!string.IsNullOrWhiteSpace(itemType) && !AvailableRequirementItemTypes.Any(t => string.Equals(t, itemType, StringComparison.OrdinalIgnoreCase)))
+                {
+                    AvailableRequirementItemTypes.Add(itemType);
+                }
+
+                SelectedRequirementItemType = itemType;
+            }
+            finally
+            {
+                _suppressItemTypeChange = false;
             }
         }
 
@@ -1517,10 +1580,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 ((AsyncRelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
                 ((RelayCommand)EditRequirementCommand).NotifyCanExecuteChanged();
                 OnPropertyChanged(nameof(HasNoAnalysis)); // Computed property depends on IsAnalyzing
+                OnPropertyChanged(nameof(CanEditItemTypeDuringReview));
             }
             else if (e.PropertyName == nameof(HasAnalysis))
             {
                 OnPropertyChanged(nameof(HasNoAnalysis)); // Computed property depends on HasAnalysis
+                OnPropertyChanged(nameof(CanEditItemTypeDuringReview));
             }
             else if (e.PropertyName == nameof(HasImprovedRequirement))
             {

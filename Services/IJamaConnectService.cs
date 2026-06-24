@@ -76,5 +76,20 @@ namespace TestCaseEditorApp.Services
         /// Get test case item type ID for a project
         /// </summary>
         Task<(bool Success, int? TestCaseItemType)> GetTestCaseItemTypeAsync(int projectId, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Get requirement item type ID for a project
+        /// </summary>
+        Task<(bool Success, int? RequirementItemType)> GetRequirementItemTypeAsync(int projectId, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Create a requirement item in Jama Connect
+        /// </summary>
+        Task<(bool Success, string Message, int? JamaItemId)> CreateRequirementAsync(int projectId, Requirement requirement, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Persist extracted requirements directly into Jama Connect
+        /// </summary>
+        Task<(int CreatedCount, int FailedCount)> ImportRequirementsToJamaAsync(int projectId, IReadOnlyList<Requirement> requirements, CancellationToken cancellationToken = default);
     }
 }

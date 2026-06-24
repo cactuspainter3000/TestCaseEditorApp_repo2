@@ -1428,6 +1428,27 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 // Use real document parsing service with attachment metadata to avoid re-scanning
                 var extractedRequirements = await _jamaDocumentParserService.ParseAttachmentAsync(attachment, projectId, progressCallback, onRequirementDiscovered, cancellationToken);
 
+                if (extractedRequirements.Count > 0)
+                {
+                    progressCallback?.Invoke($"💾 Saving {extractedRequirements.Count} extracted requirements to Jama...");
+                    var (savedCount, failedCount) = await _jamaConnectService.ImportRequirementsToJamaAsync(projectId, extractedRequirements, cancellationToken);
+                    _logger.LogInformation("[RequirementsMediator] Persisted {SavedCount}/{TotalCount} extracted requirements to Jama (failed: {FailedCount})",
+                        savedCount, extractedRequirements.Count, failedCount);
+
+                    if (savedCount > 0)
+                    {
+                        var status = failedCount > 0
+                            ? $"⚠️ Saved {savedCount}/{extractedRequirements.Count} extracted requirements to Jama ({failedCount} failed)"
+                            : $"✅ Saved {savedCount} extracted requirements to Jama";
+                        progressCallback?.Invoke(status);
+                    }
+                    if (savedCount == 0 && failedCount > 0)
+                    {
+                        progressCallback?.Invoke("❌ Extracted requirements could not be saved to Jama. Import halted to prevent false success state.");
+                        throw new InvalidOperationException("Failed to persist extracted requirements to Jama. No requirements were saved.");
+                    }
+                }
+
                 _logger.LogInformation("[RequirementsMediator] Parsed {Count} requirements from attachment {AttachmentId} ({FileName})", 
                     extractedRequirements.Count, attachment.Id, attachment.FileName);
 

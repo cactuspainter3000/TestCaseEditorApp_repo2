@@ -1324,7 +1324,24 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 if (HasExtractedRequirements)
                 {
                     var categoryBreakdown = string.Join(", ", CategoryCounts.Select(kvp => $"{kvp.Value} {kvp.Key}"));
-                    StatusMessage = $"✅ Extracted {ExtractedRequirements.Count} requirements from {SelectedAttachment.Name} ({categoryBreakdown})";
+                    var capturedCount = ExtractedRequirements.Count(r => !string.IsNullOrWhiteSpace(r.ApiId));
+                    var capturedIdPreview = string.Join(", ", ExtractedRequirements
+                        .Where(r => !string.IsNullOrWhiteSpace(r.ApiId))
+                        .Select(r => r.ApiId)
+                        .Distinct()
+                        .Take(5));
+
+                    if (capturedCount > 0)
+                    {
+                        var previewSuffix = string.IsNullOrWhiteSpace(capturedIdPreview)
+                            ? string.Empty
+                            : $" | Jama IDs: {capturedIdPreview}";
+                        StatusMessage = $"✅ Extracted {ExtractedRequirements.Count} requirements from {SelectedAttachment.Name} ({categoryBreakdown}) | Captured in Jama: {capturedCount}/{ExtractedRequirements.Count}{previewSuffix}";
+                    }
+                    else
+                    {
+                        StatusMessage = $"⚠️ Extracted {ExtractedRequirements.Count} requirements from {SelectedAttachment.Name} ({categoryBreakdown}) but none have Jama IDs yet.";
+                    }
                 }
                 else
                 {

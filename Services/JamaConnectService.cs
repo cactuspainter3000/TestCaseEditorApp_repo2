@@ -3246,6 +3246,95 @@ namespace TestCaseEditorApp.Services
         }
 
         /// <summary>
+        /// Get requirement item type ID for a project
+        /// </summary>
+        public async Task<(bool Success, int? RequirementItemType)> GetRequirementItemTypeAsync(int projectId, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await EnsureAccessTokenAsync();
+
+                var url = $"{_baseUrl}/rest/v1/projects/{projectId}/itemtypes";
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Fetching requirement item types for project {projectId}: {url}");
+                var response = await _httpClient.GetAsync(url, cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Failed to get requirement item types. Status: {response.StatusCode}");
+                    return (false, null);
+                }
+
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                var result = JsonSerializer.Deserialize<JsonDocument>(json);
+
+                if (result?.RootElement.TryGetProperty("data", out var data) == true && data.ValueKind == JsonValueKind.Array)
+                {
+                    var itemTypes = new List<(int id, string display, string? typeKey)>();
+
+                    foreach (var itemType in data.EnumerateArray())
+                    {
+                        var id = itemType.TryGetProperty("id", out var idProp) ? idProp.GetInt32() : 0;
+                        var display = itemType.TryGetProperty("display", out var displayProp) ? displayProp.GetString() : "";
+                        var typeKey = itemType.TryGetProperty("typeKey", out var keyProp) ? keyProp.GetString() : "";
+                        itemTypes.Add((id, display ?? string.Empty, typeKey));
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Found requirement item type candidate: ID={id}, Display='{display}', Key='{typeKey}'");
+                    }
+
+                    var requirementPatterns = new[]
+                    {
+                        "Requirement",
+                        "Requirements",
+                        "System Requirement",
+                        "System Requirements",
+                        "Software Requirement",
+                        "Hardware Requirement",
+                        "User Requirement",
+                        "Req",
+                        "R"
+                    };
+
+                    foreach (var pattern in requirementPatterns)
+                    {
+                        var matchingType = itemTypes.FirstOrDefault(t =>
+                            t.display.Equals(pattern, StringComparison.OrdinalIgnoreCase) ||
+                            t.typeKey?.Equals(pattern, StringComparison.OrdinalIgnoreCase) == true);
+
+                        if (matchingType.id > 0)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Selected requirement item type: ID={matchingType.id}, Display='{matchingType.display}', Pattern='{pattern}'");
+                            return (true, matchingType.id);
+                        }
+                    }
+
+                    var requirementContainingType = itemTypes.FirstOrDefault(t =>
+                        t.display.Contains("requirement", StringComparison.OrdinalIgnoreCase) ||
+                        t.typeKey?.Contains("requirement", StringComparison.OrdinalIgnoreCase) == true);
+
+                    if (requirementContainingType.id > 0)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Using fallback requirement-containing item type: ID={requirementContainingType.id}, Display='{requirementContainingType.display}'");
+                        return (true, requirementContainingType.id);
+                    }
+
+                    if (itemTypes.Count > 0)
+                    {
+                        var firstType = itemTypes.First();
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] No requirement-specific item type found. Using first available: ID={firstType.id}, Display='{firstType.display}'");
+                        return (true, firstType.id);
+                    }
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] No item types found for requirements in project {projectId}");
+                return (false, null);
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Error getting requirement item type: {ex.Message}");
+                return (false, null);
+            }
+        }
+
+        /// <summary>
         /// Parse the component (Systems, Hardware, Software) from a requirement's location information
         /// Enhanced to handle hierarchical path structures like "C1XMB2437-1N RTU-4220/Systems/Requirements/General Systems"
         /// </summary>
@@ -4218,6 +4307,154 @@ namespace TestCaseEditorApp.Services
             {
                 TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Error importing test case from requirement: {ex.Message}");
                 return (false, $"Error importing test case: {ex.Message}", null);
+            }
+        }
+
+        /// <summary>
+        /// Persist extracted requirements directly into Jama so the extraction work is not lost if later analysis fails.
+        /// </summary>
+        public async Task<(int CreatedCount, int FailedCount)> ImportRequirementsToJamaAsync(int projectId, IReadOnlyList<Requirement> requirements, CancellationToken cancellationToken = default)
+        {
+            if (projectId <= 0 || requirements == null || requirements.Count == 0)
+            {
+                return (0, 0);
+            }
+
+            var createdCount = 0;
+            var failedCount = 0;
+            const int maxAttemptsPerRequirement = 3;
+
+            foreach (var requirement in requirements)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                var created = false;
+                string? lastFailureMessage = null;
+                int? createdId = null;
+
+                for (var attempt = 1; attempt <= maxAttemptsPerRequirement; attempt++)
+                {
+                    var (success, message, jamaItemId) = await CreateRequirementAsync(projectId, requirement, cancellationToken);
+                    if (success && jamaItemId.HasValue)
+                    {
+                        created = true;
+                        createdId = jamaItemId;
+                        break;
+                    }
+
+                    lastFailureMessage = message;
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Attempt {attempt}/{maxAttemptsPerRequirement} failed for extracted requirement '{requirement.Item ?? requirement.Name}': {message}");
+
+                    if (attempt < maxAttemptsPerRequirement)
+                    {
+                        await Task.Delay(250 * attempt, cancellationToken);
+                    }
+                }
+
+                if (created && createdId.HasValue)
+                {
+                    createdCount++;
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Persisted extracted requirement '{requirement.Item ?? requirement.Name}' to Jama item ID {createdId.Value}");
+                }
+                else
+                {
+                    failedCount++;
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Failed to persist extracted requirement '{requirement.Item ?? requirement.Name}' after {maxAttemptsPerRequirement} attempts. Last error: {lastFailureMessage}");
+                }
+
+                if (createdCount + failedCount < requirements.Count)
+                {
+                    await Task.Delay(150, cancellationToken);
+                }
+            }
+
+            return (createdCount, failedCount);
+        }
+
+        /// <summary>
+        /// Create a requirement item in Jama Connect.
+        /// </summary>
+        public async Task<(bool Success, string Message, int? JamaItemId)> CreateRequirementAsync(int projectId, Requirement requirement, CancellationToken cancellationToken = default)
+        {
+            if (projectId <= 0)
+            {
+                return (false, "Invalid Jama project ID.", null);
+            }
+
+            try
+            {
+                await EnsureAccessTokenAsync();
+
+                var (typeSuccess, itemTypeId) = await GetRequirementItemTypeAsync(projectId, cancellationToken);
+                if (!typeSuccess || !itemTypeId.HasValue)
+                {
+                    return (false, "Could not determine requirement item type for project", null);
+                }
+
+                var requirementName = !string.IsNullOrWhiteSpace(requirement.Name)
+                    ? requirement.Name
+                    : !string.IsNullOrWhiteSpace(requirement.Item)
+                        ? requirement.Item
+                        : "Extracted Requirement";
+
+                var description = !string.IsNullOrWhiteSpace(requirement.Description)
+                    ? requirement.Description
+                    : requirementName;
+
+                var requestBody = new
+                {
+                    project = projectId,
+                    itemType = itemTypeId.Value,
+                    fields = new
+                    {
+                        name = requirementName,
+                        description = description
+                    }
+                };
+
+                var json = JsonSerializer.Serialize(requestBody);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var url = $"{_baseUrl}/rest/v1/items";
+                var response = await _httpClient.PostAsync(url, content, cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                    return (false, $"Failed to create requirement item: {response.StatusCode} - {errorContent}", null);
+                }
+
+                var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                var result = JsonSerializer.Deserialize<JamaCreateItemResponse>(responseContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (result?.Id > 0)
+                {
+                    requirement.ApiId = result.Id.ToString();
+                    if (!string.IsNullOrWhiteSpace(result.DocumentKey))
+                    {
+                        requirement.Item = result.DocumentKey;
+                        requirement.GlobalId = result.DocumentKey;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(result.GlobalId))
+                    {
+                        requirement.Item = result.GlobalId;
+                        requirement.GlobalId = result.GlobalId;
+                    }
+
+                    return (true, "Requirement created successfully", result.Id);
+                }
+
+                return (false, "Failed to parse response from requirement creation", null);
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Error creating requirement item: {ex.Message}");
+                return (false, $"Error creating requirement item: {ex.Message}", null);
             }
         }
 
