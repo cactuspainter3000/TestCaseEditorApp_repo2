@@ -436,7 +436,11 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 Requirements = Requirements.ToList(),
                 // 🔥 CRITICAL: Preserve Jama fields for attachment scanning functionality
                 JamaProject = CurrentWorkspace?.JamaProject,
+                JamaProjectId = CurrentWorkspace?.JamaProjectId,
+                JamaProjectName = CurrentWorkspace?.JamaProjectName,
                 JamaTestPlan = CurrentWorkspace?.JamaTestPlan,
+                AnythingLLMWorkspaceName = CurrentWorkspace?.AnythingLLMWorkspaceName,
+                AnythingLLMWorkspaceSlug = CurrentWorkspace?.AnythingLLMWorkspaceSlug,
                 ImportSource = CurrentWorkspace?.ImportSource,
                 Defaults = CurrentWorkspace?.Defaults,
                 Name = CurrentWorkspace?.Name,
@@ -521,7 +525,11 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                     Requirements = Requirements.ToList(),
                     // 🔥 CRITICAL: Preserve Jama fields for attachment scanning functionality
                     JamaProject = CurrentWorkspace?.JamaProject,
+                    JamaProjectId = CurrentWorkspace?.JamaProjectId,
+                    JamaProjectName = CurrentWorkspace?.JamaProjectName,
                     JamaTestPlan = CurrentWorkspace?.JamaTestPlan,
+                    AnythingLLMWorkspaceName = CurrentWorkspace?.AnythingLLMWorkspaceName,
+                    AnythingLLMWorkspaceSlug = CurrentWorkspace?.AnythingLLMWorkspaceSlug,
                     ImportSource = CurrentWorkspace?.ImportSource,
                     Defaults = CurrentWorkspace?.Defaults,
                     Name = CurrentWorkspace?.Name,
