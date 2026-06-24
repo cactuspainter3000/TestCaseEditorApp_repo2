@@ -2010,7 +2010,25 @@ namespace TestCaseEditorApp.Services
                         
                         if (result?.Data != null && result.Data.Count > 0)
                         {
-                            items.AddRange(result.Data);
+                            var matchingItems = result.Data
+                                .Where(item => item.Project == projectId)
+                                .ToList();
+
+                            var mismatchedItems = result.Data
+                                .Where(item => item.Project != projectId)
+                                .ToList();
+
+                            if (mismatchedItems.Count > 0)
+                            {
+                                var sampleMismatches = string.Join(", ", mismatchedItems
+                                    .Take(5)
+                                    .Select(item => $"{item.DocumentKey} (item {item.Id}, project {item.Project})"));
+
+                                TestCaseEditorApp.Services.Logging.Log.Warn(
+                                    $"[JamaConnect] Abstract items endpoint returned {mismatchedItems.Count} item(s) outside requested project {projectId}; ignoring them. Sample: {sampleMismatches}");
+                            }
+
+                            items.AddRange(matchingItems);
                             startAt += result.Data.Count;
                             hasMore = result.Meta?.PageInfo?.TotalResults > startAt;
                         }
