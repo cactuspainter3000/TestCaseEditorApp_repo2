@@ -1398,7 +1398,24 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[RequirementsSearchAttachments] Error parsing attachment");
-                StatusMessage = "❌ Error parsing attachment for requirements";
+                var extractedCount = ExtractedRequirements.Count;
+                var capturedCount = ExtractedRequirements.Count(r => !string.IsNullOrWhiteSpace(r.ApiId));
+
+                // Preserve discovered requirements in UI even if final Jama persistence fails.
+                HasExtractedRequirements = extractedCount > 0;
+                HasScannedForRequirements = true;
+                OnPropertyChanged(nameof(GroupedExtractedRequirements));
+                OnPropertyChanged(nameof(CategoryCounts));
+
+                if (extractedCount > 0)
+                {
+                    StatusMessage = $"⚠️ Parsed {extractedCount} requirements, but capture in Jama failed ({capturedCount}/{extractedCount} saved).";
+                }
+                else
+                {
+                    StatusMessage = "❌ Error parsing attachment for requirements";
+                }
+
                 SetError($"Failed to parse attachment: {ex.Message}");
                 
                 // Publish parsing failed event
@@ -1406,12 +1423,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 {
                     DocumentName = SelectedAttachment?.Name ?? "Unknown",
                     AttachmentId = SelectedAttachment?.Id ?? 0,
-                    RequirementsFound = 0,
+                    RequirementsFound = extractedCount,
                     Success = false,
                     ErrorMessage = ex.Message,
                     Duration = DateTime.Now - parsingStartTime,
                     CompletedTime = DateTime.Now,
-                    ExtractedRequirements = new List<Requirement>()
+                    ExtractedRequirements = ExtractedRequirements.ToList()
                 });
             }
             finally
