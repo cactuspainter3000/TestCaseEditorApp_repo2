@@ -1,0 +1,70 @@
+============================================================
+Utc: 2026-06-25T17:32:42.2164223Z
+ProjectId: 686
+AttachmentId: 19807206
+FileName: ATR_Export.docx
+ErrorType: System.InvalidOperationException
+Message: Failed to persist all extracted requirements to Jama. Saved 0/93.
+StackTrace:
+   at TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator.ParseAttachmentRequirementsAsync(JamaAttachment attachment, Int32 projectId, Action`1 progressCallback, Action`1 onRequirementDiscovered, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\Requirements\Mediators\RequirementsMediator.cs:line 1523
+
+============================================================
+Utc: 2026-06-25T18:08:48.7715027Z
+ProjectId: 686
+AttachmentId: 19807206
+FileName: ATR_Export.docx
+ErrorType: System.InvalidOperationException
+Message: Failed to persist all extracted requirements to Jama. Saved 0/93.
+StackTrace:
+   at TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator.ParseAttachmentRequirementsAsync(JamaAttachment attachment, Int32 projectId, Action`1 progressCallback, Action`1 onRequirementDiscovered, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\Requirements\Mediators\RequirementsMediator.cs:line 1523
+
+============================================================
+Utc: 2026-06-25T18:33:46.9200464Z
+ProjectId: 686
+AttachmentId: 19807206
+FileName: ATR_Export.docx
+ErrorType: System.InvalidOperationException
+Message: Failed to persist all extracted requirements to Jama. Saved 0/93.
+StackTrace:
+   at TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator.ParseAttachmentRequirementsAsync(JamaAttachment attachment, Int32 projectId, Action`1 progressCallback, Action`1 onRequirementDiscovered, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\Requirements\Mediators\RequirementsMediator.cs:line 1523
+
+============================================================
+Utc: 2026-06-25T19:03:23.3812510Z
+ProjectId: 686
+AttachmentId: 19807206
+FileName: ATR_Export.docx
+ErrorType: System.InvalidOperationException
+Message: Failed to persist all extracted requirements to Jama. Saved 0/93.
+StackTrace:
+   at TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator.ParseAttachmentRequirementsAsync(JamaAttachment attachment, Int32 projectId, Action`1 progressCallback, Action`1 onRequirementDiscovered, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\Requirements\Mediators\RequirementsMediator.cs:line 1523
+
+============================================================
+Utc: 2026-06-25T21:10:43.6375647Z
+ProjectId: 686
+AttachmentId: 19807206
+FileName: ATR_Export.docx
+ErrorType: System.InvalidOperationException
+Message: Failed to persist all extracted requirements to Jama. Saved 0/93.
+StackTrace:
+   at TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator.ParseAttachmentRequirementsAsync(JamaAttachment attachment, Int32 projectId, Action`1 progressCallback, Action`1 onRequirementDiscovered, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\Requirements\Mediators\RequirementsMediator.cs:line 1523
+
+============================================================
+Utc: 2026-06-25T22:09:46.4228918Z
+ProjectId: 686
+AttachmentId: 19820650
+FileName: EDGE_CASE_ATTACHMENT_REQUIREMENTS.txt
+ErrorType: System.InvalidOperationException
+Message: Failed to persist all extracted requirements to Jama. Saved 0/8.
+StackTrace:
+   at TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator.ParseAttachmentRequirementsAsync(JamaAttachment attachment, Int32 projectId, Action`1 progressCallback, Action`1 onRequirementDiscovered, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\Requirements\Mediators\RequirementsMediator.cs:line 1523
+
+============================================================
+Utc: 2026-06-25T22:26:31.7346965Z
+ProjectId: 686
+AttachmentId: 19820650
+FileName: EDGE_CASE_ATTACHMENT_REQUIREMENTS.txt
+ErrorType: System.InvalidOperationException
+Message: Failed to persist all extracted requirements to Jama. Saved 0/9.
+StackTrace:
+   at TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator.ParseAttachmentRequirementsAsync(JamaAttachment attachment, Int32 projectId, Action`1 progressCallback, Action`1 onRequirementDiscovered, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\Requirements\Mediators\RequirementsMediator.cs:line 1523
+
