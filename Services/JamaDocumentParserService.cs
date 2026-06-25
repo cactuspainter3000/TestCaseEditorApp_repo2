@@ -1376,20 +1376,20 @@ Extract all legitimate requirements:";
         {
             var results = new List<Requirement>();
 
-            var lines = documentContent
-                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(l => l.Trim())
-                .Where(l => !string.IsNullOrWhiteSpace(l))
-                .ToList();
+            if (string.IsNullOrWhiteSpace(documentContent))
+            {
+                return results;
+            }
 
-            if (lines.Count == 0)
+            var normalizedContent = System.Text.RegularExpressions.Regex.Replace(documentContent, @"\s+", " ").Trim();
+            if (normalizedContent.Length == 0)
             {
                 return results;
             }
 
             var statementRegex = new System.Text.RegularExpressions.Regex(
-                @"\b(?:[A-Za-z][A-Za-z0-9_\-/ ]{1,60}\s+)?shall\b[^.\r\n]{12,350}(?:\.|$)",
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                @"\b(?:[A-Za-z][A-Za-z0-9_\-/ ]{1,80}\s+)?(?:shall|must|will|should)\b[\s\S]{12,260}?(?:\.|;|(?=\bTest_type\s*:)|(?=\bTest_Venue\s*:)|(?=\bID\s*:)|$)",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Singleline);
 
             var idRegex = new System.Text.RegularExpressions.Regex(
                 @"\bID\s*:\s*([A-Za-z0-9][A-Za-z0-9_.\-]*)\b",
@@ -1398,65 +1398,57 @@ Extract all legitimate requirements:";
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var index = 1;
 
-            foreach (var line in lines)
+            var statements = statementRegex.Matches(normalizedContent).Cast<System.Text.RegularExpressions.Match>().ToList();
+
+            foreach (var statement in statements)
             {
-                if (line.Length < 20)
+                var text = System.Text.RegularExpressions.Regex.Replace(statement.Value, @"\s+", " ").Trim();
+                if (string.IsNullOrWhiteSpace(text) || text.Length < 20)
                 {
                     continue;
                 }
 
-                var statements = statementRegex.Matches(line).Cast<System.Text.RegularExpressions.Match>().ToList();
-                if (statements.Count == 0)
+                if (!text.EndsWith(".", StringComparison.Ordinal))
+                {
+                    text += ".";
+                }
+
+                if (!seen.Add(text))
                 {
                     continue;
                 }
 
-                var idMatch = idRegex.Match(line);
-                var parsedId = idMatch.Success ? idMatch.Groups[1].Value.Trim() : string.Empty;
+                var searchStart = Math.Max(0, statement.Index - 140);
+                var searchLength = Math.Min(220, normalizedContent.Length - searchStart);
+                var nearby = normalizedContent.Substring(searchStart, searchLength);
 
-                foreach (var statement in statements)
+                var idMatches = idRegex.Matches(nearby).Cast<System.Text.RegularExpressions.Match>().ToList();
+                var parsedId = idMatches.Count > 0 ? idMatches.Last().Groups[1].Value.Trim() : string.Empty;
+
+                var itemId = !string.IsNullOrWhiteSpace(parsedId)
+                    ? parsedId
+                    : $"DOC-{index:D3}";
+
+                var requirement = new Requirement
                 {
-                    var text = statement.Value.Trim();
-                    if (string.IsNullOrWhiteSpace(text) || text.Length < 20)
-                    {
-                        continue;
-                    }
-
-                    if (!text.EndsWith(".", StringComparison.Ordinal))
-                    {
-                        text += ".";
-                    }
-
-                    if (!seen.Add(text))
-                    {
-                        continue;
-                    }
-
-                    var itemId = !string.IsNullOrWhiteSpace(parsedId)
+                    GlobalId = !string.IsNullOrWhiteSpace(parsedId)
                         ? parsedId
-                        : $"DOC-{index:D3}";
+                        : $"DOC-{attachment.Id}-{index:D3}",
+                    Item = itemId,
+                    Name = GenerateRequirementNameFromCapability(text, "Deterministic"),
+                    Description = text,
+                    RequirementType = "Deterministic - Modal Statement",
+                    Rationale = $"Recovered via deterministic fallback from {attachment.FileName}",
+                    Heading = "Derived",
+                    ItemType = "System Requirement",
+                    CreatedDate = DateTime.Now,
+                    ModifiedDate = DateTime.Now,
+                    Project = projectId.ToString(),
+                    TagList = new List<string> { "Derived", "DeterministicFallback" }
+                };
 
-                    var requirement = new Requirement
-                    {
-                        GlobalId = !string.IsNullOrWhiteSpace(parsedId)
-                            ? parsedId
-                            : $"DOC-{attachment.Id}-{index:D3}",
-                        Item = itemId,
-                        Name = GenerateRequirementNameFromCapability(text, "Deterministic"),
-                        Description = text,
-                        RequirementType = "Deterministic - Shall Statement",
-                        Rationale = $"Recovered via deterministic fallback from {attachment.FileName}",
-                        Heading = "Derived",
-                        ItemType = "System Requirement",
-                        CreatedDate = DateTime.Now,
-                        ModifiedDate = DateTime.Now,
-                        Project = projectId.ToString(),
-                        TagList = new List<string> { "Derived", "DeterministicFallback" }
-                    };
-
-                    results.Add(requirement);
-                    index++;
-                }
+                results.Add(requirement);
+                index++;
             }
 
             return results;
@@ -1530,6 +1522,129 @@ Extract all legitimate requirements:";
             }
             
             return requirements;
+        }
+
+        private static string BuildRequirementFocusedExcerpt(string documentContent, int maxChars)
+        {
+            if (string.IsNullOrWhiteSpace(documentContent))
+            {
+                return string.Empty;
+            }
+
+            var cleaned = System.Text.RegularExpressions.Regex.Replace(documentContent, @"\s+", " ").Trim();
+            var requirementSegments = new List<string>();
+
+            var segmentRegex = new System.Text.RegularExpressions.Regex(
+                @"(?:\bID\s*:\s*[A-Za-z0-9_.\-]+\b\s*)?.{0,80}\b(?:shall|must|will|should)\b.{0,260}(?:\.|;|(?=\bID\s*:)|(?=\bTest_type\s*:)|(?=\bTest_Venue\s*:)|$)",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Singleline);
+
+            foreach (System.Text.RegularExpressions.Match match in segmentRegex.Matches(cleaned))
+            {
+                var segment = System.Text.RegularExpressions.Regex.Replace(match.Value, @"\s+", " ").Trim();
+                if (!string.IsNullOrWhiteSpace(segment) && segment.Length > 20)
+                {
+                    requirementSegments.Add(segment);
+                }
+            }
+
+            var selected = requirementSegments.Count > 0
+                ? string.Join("\n", requirementSegments.Distinct(StringComparer.OrdinalIgnoreCase))
+                : cleaned;
+
+            if (selected.Length > maxChars)
+            {
+                return selected.Substring(0, maxChars) + "...";
+            }
+
+            return selected;
+        }
+
+        private static RequirementExtractionEnvelope? TryRecoverEnvelopeFromLooseJson(string llmResponse, string documentName)
+        {
+            if (string.IsNullOrWhiteSpace(llmResponse))
+            {
+                return null;
+            }
+
+            var requirements = new List<ExtractedRequirement>();
+            var objectMatches = System.Text.RegularExpressions.Regex.Matches(
+                llmResponse,
+                @"\{[^{}]*\""text\""\s*:\s*\""(?<text>(?:\\.|[^\""\\])*)\""[^{}]*\}",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Singleline);
+
+            foreach (System.Text.RegularExpressions.Match match in objectMatches)
+            {
+                var rawObject = match.Value;
+                var text = ExtractJsonStringValue(rawObject, "text");
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    continue;
+                }
+
+                requirements.Add(new ExtractedRequirement
+                {
+                    Id = ExtractJsonStringValue(rawObject, "id"),
+                    Text = text,
+                    Category = ExtractJsonStringValue(rawObject, "category"),
+                    Page = ExtractJsonStringValue(rawObject, "page"),
+                    Section = ExtractJsonStringValue(rawObject, "section"),
+                    Confidence = ExtractJsonDoubleValue(rawObject, "confidence") ?? 0.7
+                });
+            }
+
+            if (requirements.Count == 0)
+            {
+                return null;
+            }
+
+            return new RequirementExtractionEnvelope
+            {
+                Requirements = requirements,
+                Metadata = new ExtractionMetadata
+                {
+                    TotalRequirements = requirements.Count,
+                    DocumentName = documentName,
+                    ExtractionMethod = "template_form_loose_json_recovery"
+                }
+            };
+        }
+
+        private static string? ExtractJsonStringValue(string source, string field)
+        {
+            var pattern = $@"\""{field}\""\s*:\s*\""(?<value>(?:\\.|[^\""\\])*)\""";
+            var match = System.Text.RegularExpressions.Regex.Match(
+                source,
+                pattern,
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Singleline);
+
+            if (!match.Success)
+            {
+                return null;
+            }
+
+            var raw = match.Groups["value"].Value;
+            return System.Text.RegularExpressions.Regex.Unescape(raw).Trim();
+        }
+
+        private static double? ExtractJsonDoubleValue(string source, string field)
+        {
+            var pattern = $@"\""{field}\""\s*:\s*(?<value>-?\d+(?:\.\d+)?)";
+            var match = System.Text.RegularExpressions.Regex.Match(
+                source,
+                pattern,
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Singleline);
+
+            if (!match.Success)
+            {
+                return null;
+            }
+
+            if (double.TryParse(match.Groups["value"].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var value))
+            {
+                return value;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -2601,12 +2716,13 @@ Extract all legitimate requirements:";
                 var schemaJson = JsonSerializer.Serialize(requirementSchema, new JsonSerializerOptions { WriteIndented = true });
 
                 // Step 2: Build prompt with envelope instructions
+                var focusedContent = BuildRequirementFocusedExcerpt(documentContent, 12000);
                 var prompt = $@"Extract all technical requirements from this document. Requirements typically use words like 'shall', 'must', 'will', or 'should' and define what a system must do or how it must perform.
 
 DOCUMENT: {attachment.FileName}
 
 CONTENT:
-{(documentContent.Length > 3500 ? documentContent.Substring(0, 3500) + "..." : documentContent)}
+{focusedContent}
 
 IMPORTANT: Respond ONLY with valid JSON matching this schema:
 {schemaJson}
@@ -2634,7 +2750,7 @@ Extract requirements now (JSON only):";
 
                 // Step 3: Generate LLM response with retry logic for model loading timeouts
                 progressCallback?.Invoke("🧠 AI analyzing document with structured output...");
-                string llmResponse = string.Empty;
+                string? llmResponse = null;
                 int maxRetries = 2;
                 int retryDelayMs = 5000; // 5 seconds between retries
                 bool shouldRestartOllama = false;
@@ -2669,7 +2785,7 @@ Extract requirements now (JSON only):";
                 }
 
                 // If all retries failed with model loading timeout, try restarting Ollama
-                if (llmResponse == null && shouldRestartOllama && _ollamaProcessManager != null)
+                if (string.IsNullOrWhiteSpace(llmResponse) && shouldRestartOllama && _ollamaProcessManager != null)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[TemplateForm] All retries failed with model timeout - restarting Ollama...");
                     progressCallback?.Invoke("🔄 Restarting Ollama service to recover from stuck state...");
@@ -2690,16 +2806,18 @@ Extract requirements now (JSON only):";
                     }
                 }
 
+                var safeLlmResponse = llmResponse ?? string.Empty;
+
                 // Step 4: Try to parse the JSON response directly (simplified approach)
                 RequirementExtractionEnvelope? envelope = null;
                 try
                 {
                     // Extract JSON from response (handle markdown code blocks)
-                    var jsonStart = llmResponse.IndexOf('{');
-                    var jsonEnd = llmResponse.LastIndexOf('}');
+                    var jsonStart = safeLlmResponse.IndexOf('{');
+                    var jsonEnd = safeLlmResponse.LastIndexOf('}');
                     if (jsonStart >= 0 && jsonEnd > jsonStart)
                     {
-                        var jsonContent = llmResponse.Substring(jsonStart, jsonEnd - jsonStart + 1);
+                        var jsonContent = safeLlmResponse.Substring(jsonStart, jsonEnd - jsonStart + 1);
                         envelope = JsonSerializer.Deserialize<RequirementExtractionEnvelope>(jsonContent, new JsonSerializerOptions 
                         { 
                             PropertyNameCaseInsensitive = true 
@@ -2709,6 +2827,11 @@ Extract requirements now (JSON only):";
                 catch (Exception parseEx)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[TemplateForm] JSON parsing failed: {parseEx.Message}");
+                }
+
+                if (envelope == null || envelope.Requirements == null || envelope.Requirements.Count == 0)
+                {
+                    envelope = TryRecoverEnvelopeFromLooseJson(safeLlmResponse, attachment.FileName);
                 }
 
                 if (envelope == null || envelope.Requirements == null || envelope.Requirements.Count == 0)
@@ -2723,7 +2846,7 @@ Extract requirements now (JSON only):";
                         {
                             Timestamp = DateTime.UtcNow,
                             OperationName = "template_form_extraction",
-                            ResponseLength = llmResponse.Length,
+                            ResponseLength = safeLlmResponse.Length,
                             PassedValidation = false,
                             ResponseTimeMs = (long)(DateTime.UtcNow - extractionStartTime).TotalMilliseconds,
                             TemplateId = "requirement_extraction",
@@ -2787,7 +2910,7 @@ Extract requirements now (JSON only):";
                     {
                         Timestamp = DateTime.UtcNow,
                         OperationName = "template_form_extraction",
-                        ResponseLength = llmResponse.Length,
+                        ResponseLength = safeLlmResponse.Length,
                         ParsedFieldCount = extractedRequirements.Count,
                         ExpectedFieldCount = envelope.Metadata.TotalRequirements,
                         PassedValidation = true,
