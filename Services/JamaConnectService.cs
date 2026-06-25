@@ -4495,6 +4495,34 @@ namespace TestCaseEditorApp.Services
                 {
                     var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
+                    if (IsRequirementProjectRootLocationError(errorContent))
+                    {
+                        var locationRetry = await TryCreateRequirementInDiscoveredContainerAsync(
+                            projectId,
+                            itemTypeId.Value,
+                            requirementName,
+                            description,
+                            fields,
+                            cancellationToken);
+
+                        if (locationRetry.Success && locationRetry.JamaItemId.HasValue)
+                        {
+                            requirement.ApiId = locationRetry.JamaItemId.Value.ToString();
+                            if (!string.IsNullOrWhiteSpace(locationRetry.DocumentKey))
+                            {
+                                requirement.Item = locationRetry.DocumentKey;
+                                requirement.GlobalId = locationRetry.DocumentKey;
+                            }
+                            else if (!string.IsNullOrWhiteSpace(locationRetry.GlobalId))
+                            {
+                                requirement.Item = locationRetry.GlobalId;
+                                requirement.GlobalId = locationRetry.GlobalId;
+                            }
+
+                            return (true, "Requirement created successfully after location fallback", locationRetry.JamaItemId.Value);
+                        }
+                    }
+
                     var repairedAndRetried = await TryRepairLookupFieldsAndRetryRequirementCreateAsync(
                         projectId,
                         itemTypeId.Value,
@@ -4643,6 +4671,22 @@ namespace TestCaseEditorApp.Services
             if (!retryResponse.IsSuccessStatusCode)
             {
                 var retryError = await retryResponse.Content.ReadAsStringAsync(cancellationToken);
+                if (IsRequirementProjectRootLocationError(retryError))
+                {
+                    var locationRetry = await TryCreateRequirementInDiscoveredContainerAsync(
+                        projectId,
+                        itemTypeId,
+                        requirementName,
+                        description,
+                        fields,
+                        cancellationToken);
+
+                    if (locationRetry.Success)
+                    {
+                        return locationRetry;
+                    }
+                }
+
                 TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Lookup-repair retry failed for '{requirementName}': {retryResponse.StatusCode} - {retryError}");
                 return (false, null, null, null);
             }
@@ -4660,6 +4704,151 @@ namespace TestCaseEditorApp.Services
             }
 
             return (false, null, null, null);
+        }
+
+        private static bool IsRequirementProjectRootLocationError(string? errorContent)
+        {
+            if (string.IsNullOrWhiteSpace(errorContent))
+            {
+                return false;
+            }
+
+            return errorContent.Contains("Invalid document location", StringComparison.OrdinalIgnoreCase) &&
+                   errorContent.Contains("Requirement cannot be under project", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private async Task<(bool Success, int? JamaItemId, string? DocumentKey, string? GlobalId)> TryCreateRequirementInDiscoveredContainerAsync(
+            int projectId,
+            int itemTypeId,
+            string requirementName,
+            string description,
+            Dictionary<string, object?> fields,
+            CancellationToken cancellationToken)
+        {
+            var candidates = await GetRequirementContainerCandidatesAsync(projectId, cancellationToken);
+            if (candidates.Count == 0)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] No requirement containers discovered for project {projectId}; cannot retry location fallback.");
+                return (false, null, null, null);
+            }
+
+            var url = $"{_baseUrl}/rest/v1/items";
+            foreach (var candidate in candidates)
+            {
+                var retryBody = new
+                {
+                    project = projectId,
+                    itemType = itemTypeId,
+                    location = new
+                    {
+                        parent = candidate.Id
+                    },
+                    fields
+                };
+
+                var retryJson = JsonSerializer.Serialize(retryBody);
+                var retryContent = new StringContent(retryJson, Encoding.UTF8, "application/json");
+                var retryResponse = await _httpClient.PostAsync(url, retryContent, cancellationToken);
+
+                if (!retryResponse.IsSuccessStatusCode)
+                {
+                    var retryError = await retryResponse.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Location fallback failed for '{requirementName}' in container {candidate.Id} ('{candidate.Name}'): {retryResponse.StatusCode} - {retryError}");
+                    continue;
+                }
+
+                var retryResponseContent = await retryResponse.Content.ReadAsStringAsync(cancellationToken);
+                var retryResult = JsonSerializer.Deserialize<JamaCreateItemResponse>(retryResponseContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (retryResult?.Id > 0)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Requirement '{requirementName}' created in discovered container {candidate.Id} ('{candidate.Name}').");
+                    return (true, retryResult.Id, retryResult.DocumentKey, retryResult.GlobalId);
+                }
+            }
+
+            return (false, null, null, null);
+        }
+
+        private async Task<List<(int Id, string Name, int Score)>> GetRequirementContainerCandidatesAsync(int projectId, CancellationToken cancellationToken)
+        {
+            var candidates = new List<(int Id, string Name, int Score)>();
+
+            try
+            {
+                var url = $"{_baseUrl}/rest/v1/items?project={projectId}&maxResults=200";
+                var response = await _httpClient.GetAsync(url, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Could not discover requirement containers for project {projectId}: {response.StatusCode}");
+                    return candidates;
+                }
+
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                using var doc = JsonDocument.Parse(json);
+                if (!doc.RootElement.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
+                {
+                    return candidates;
+                }
+
+                foreach (var item in data.EnumerateArray())
+                {
+                    if (!item.TryGetProperty("id", out var idProp) || !idProp.TryGetInt32(out var id))
+                    {
+                        continue;
+                    }
+
+                    if (!item.TryGetProperty("itemType", out var itemTypeProp) || !itemTypeProp.TryGetInt32(out var itemType))
+                    {
+                        continue;
+                    }
+
+                    // Folder (55) and Set (54) are typical Jama containers.
+                    if (itemType != 55 && itemType != 54)
+                    {
+                        continue;
+                    }
+
+                    var name = string.Empty;
+                    if (item.TryGetProperty("fields", out var fieldsObj) &&
+                        fieldsObj.ValueKind == JsonValueKind.Object &&
+                        fieldsObj.TryGetProperty("name", out var nameProp))
+                    {
+                        name = nameProp.GetString() ?? string.Empty;
+                    }
+
+                    var lower = name.ToLowerInvariant();
+                    var score = 0;
+                    if (lower.Contains("requirement")) score += 120;
+                    if (lower.Contains("system")) score += 20;
+                    if (lower.Contains("spec")) score += 20;
+                    if (lower.Contains("test") || lower.Contains("verification") || lower.Contains("procedure") || lower.Contains("case")) score -= 100;
+                    if (lower.Contains("artifact") || lower.Contains("drawing") || lower.Contains("document")) score -= 60;
+
+                    // Keep broad candidates but rank requirement-like containers first.
+                    candidates.Add((id, string.IsNullOrWhiteSpace(name) ? $"Container {id}" : name, score));
+                }
+
+                candidates = candidates
+                    .OrderByDescending(c => c.Score)
+                    .ThenBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+                    .Take(20)
+                    .ToList();
+
+                if (candidates.Count > 0)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Discovered {candidates.Count} requirement container candidates in project {projectId}. Top candidate: {candidates[0].Id} '{candidates[0].Name}' (score {candidates[0].Score}).");
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Error discovering requirement containers for project {projectId}: {ex.Message}");
+            }
+
+            return candidates;
         }
 
         private async Task<int?> GetFirstPicklistOptionIdAsync(int projectId, int itemTypeId, string fieldName, CancellationToken cancellationToken)
