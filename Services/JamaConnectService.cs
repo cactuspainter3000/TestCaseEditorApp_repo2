@@ -4313,7 +4313,11 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Persist extracted requirements directly into Jama so the extraction work is not lost if later analysis fails.
         /// </summary>
-        public async Task<(int CreatedCount, int FailedCount)> ImportRequirementsToJamaAsync(int projectId, IReadOnlyList<Requirement> requirements, CancellationToken cancellationToken = default)
+        public async Task<(int CreatedCount, int FailedCount)> ImportRequirementsToJamaAsync(
+            int projectId,
+            IReadOnlyList<Requirement> requirements,
+            CancellationToken cancellationToken = default,
+            Action<int, int, int, string?>? progressCallback = null)
         {
             if (projectId <= 0 || requirements == null || requirements.Count == 0)
             {
@@ -4337,6 +4341,15 @@ namespace TestCaseEditorApp.Services
 
                 for (var attempt = 1; attempt <= maxAttemptsPerRequirement; attempt++)
                 {
+                    if (attempt > 1)
+                    {
+                        progressCallback?.Invoke(
+                            createdCount + failedCount,
+                            requirements.Count,
+                            failedCount,
+                            $"Retrying '{requirement.Item ?? requirement.Name}' (attempt {attempt}/{maxAttemptsPerRequirement})");
+                    }
+
                     var (success, message, jamaItemId) = await CreateRequirementAsync(projectId, requirement, cancellationToken);
                     if (success && jamaItemId.HasValue)
                     {
@@ -4364,6 +4377,12 @@ namespace TestCaseEditorApp.Services
                     failedCount++;
                     TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Failed to persist extracted requirement '{requirement.Item ?? requirement.Name}' after {maxAttemptsPerRequirement} attempts. Last error: {lastFailureMessage}");
                 }
+
+                progressCallback?.Invoke(
+                    createdCount + failedCount,
+                    requirements.Count,
+                    failedCount,
+                    $"Last item: {(requirement.Item ?? requirement.Name)}");
 
                 if (createdCount + failedCount < requirements.Count)
                 {

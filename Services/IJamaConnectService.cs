@@ -90,6 +90,10 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Persist extracted requirements directly into Jama Connect
         /// </summary>
-        Task<(int CreatedCount, int FailedCount)> ImportRequirementsToJamaAsync(int projectId, IReadOnlyList<Requirement> requirements, CancellationToken cancellationToken = default);
+        Task<(int CreatedCount, int FailedCount)> ImportRequirementsToJamaAsync(
+            int projectId,
+            IReadOnlyList<Requirement> requirements,
+            CancellationToken cancellationToken = default,
+            Action<int, int, int, string?>? progressCallback = null);
     }
 }

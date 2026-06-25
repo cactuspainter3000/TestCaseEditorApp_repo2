@@ -1431,7 +1431,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 if (extractedRequirements.Count > 0)
                 {
                     progressCallback?.Invoke($"💾 Saving {extractedRequirements.Count} extracted requirements to Jama...");
-                    var (savedCount, failedCount) = await _jamaConnectService.ImportRequirementsToJamaAsync(projectId, extractedRequirements, cancellationToken);
+                    var (savedCount, failedCount) = await _jamaConnectService.ImportRequirementsToJamaAsync(
+                        projectId,
+                        extractedRequirements,
+                        cancellationToken,
+                        (processed, total, failures, detail) =>
+                        {
+                            var suffix = string.IsNullOrWhiteSpace(detail) ? string.Empty : $" | {detail}";
+                            progressCallback?.Invoke($"💾 Jama save progress: {processed}/{total} processed, {failures} failed{suffix}");
+                        });
 
                     // Fail-closed posture: if any records failed, retry only unsaved requirements once more.
                     if (failedCount > 0)
@@ -1443,7 +1451,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                         if (unsavedRequirements.Count > 0)
                         {
                             progressCallback?.Invoke($"🔁 Retrying Jama save for {unsavedRequirements.Count} unsaved requirements...");
-                            var (retrySavedCount, retryFailedCount) = await _jamaConnectService.ImportRequirementsToJamaAsync(projectId, unsavedRequirements, cancellationToken);
+                            var (retrySavedCount, retryFailedCount) = await _jamaConnectService.ImportRequirementsToJamaAsync(
+                                projectId,
+                                unsavedRequirements,
+                                cancellationToken,
+                                (processed, total, failures, detail) =>
+                                {
+                                    var suffix = string.IsNullOrWhiteSpace(detail) ? string.Empty : $" | {detail}";
+                                    progressCallback?.Invoke($"🔁 Retry save progress: {processed}/{total} processed, {failures} failed{suffix}");
+                                });
                             savedCount += retrySavedCount;
                             failedCount = retryFailedCount;
                         }
