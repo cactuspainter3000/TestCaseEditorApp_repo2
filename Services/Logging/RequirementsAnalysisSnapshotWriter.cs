@@ -94,6 +94,14 @@ namespace TestCaseEditorApp.Services.Logging
                     outputLines.Add($"# Context.RequirementId={context.RequirementId}");
                 if (!string.IsNullOrEmpty(context.Comments))
                     outputLines.Add($"# Context.Comments={context.Comments}");
+
+                if (context.CustomData != null && context.CustomData.Count > 0)
+                {
+                    foreach (var kvp in context.CustomData)
+                    {
+                        outputLines.Add($"# Context.CustomData.{kvp.Key}={kvp.Value}");
+                    }
+                }
             }
 
             if (windowStartIndex >= 0)

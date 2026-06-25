@@ -1528,7 +1528,37 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             {
                 _logger.LogError(ex, "[RequirementsMediator] Error parsing attachment {AttachmentId} ({FileName})", 
                     attachment.Id, attachment.FileName);
+
+                WriteAttachmentParseFailureSnapshot(attachment, projectId, ex);
                 throw;
+            }
+        }
+
+        private static void WriteAttachmentParseFailureSnapshot(JamaAttachment attachment, int projectId, Exception exception)
+        {
+            try
+            {
+                var context = new TestCaseEditorApp.Services.Logging.AnalysisSnapshotContext
+                {
+                    MethodName = nameof(ParseAttachmentRequirementsAsync),
+                    TriggeredBy = "AttachmentParsing",
+                    RequirementId = attachment.Id.ToString(),
+                    Comments = $"ProjectId={projectId}; FileName={attachment.FileName}; Error={exception.Message}",
+                    CustomData = new Dictionary<string, object>
+                    {
+                        ["ProjectId"] = projectId,
+                        ["AttachmentId"] = attachment.Id,
+                        ["FileName"] = attachment.FileName ?? string.Empty,
+                        ["ErrorType"] = exception.GetType().FullName ?? exception.GetType().Name,
+                        ["StackTrace"] = exception.StackTrace ?? string.Empty
+                    }
+                };
+
+                TestCaseEditorApp.Services.Logging.Log.WriteRequirementsAnalysisLogSnapshot(maxTraceWindows: 2, snapshotFileName: "attachment-parse-failure.txt", context: context);
+            }
+            catch (Exception snapshotEx)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementsMediator] Failed to write attachment parse failure snapshot: {snapshotEx.Message}");
             }
         }
 
