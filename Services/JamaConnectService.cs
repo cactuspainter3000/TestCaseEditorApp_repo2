@@ -4660,7 +4660,8 @@ namespace TestCaseEditorApp.Services
             {
                 try
                 {
-                    var url = $"{_baseUrl}/rest/v1/projects/{projectId}/picklistoptions?filteredField={candidateField}";
+                    var encodedField = Uri.EscapeDataString(candidateField);
+                    var url = $"{_baseUrl}/rest/v1/projects/{projectId}/picklistoptions?filteredField={encodedField}";
                     var response = await _httpClient.GetAsync(url, cancellationToken);
                     if (!response.IsSuccessStatusCode)
                     {
@@ -4709,14 +4710,34 @@ namespace TestCaseEditorApp.Services
         {
             var candidates = new List<string>();
 
+            static bool IsLookupAlias(string value)
+            {
+                if (!value.StartsWith("lookup", StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+
+                var suffix = value.Substring("lookup".Length);
+                return int.TryParse(suffix, out _);
+            }
+
             if (!string.IsNullOrWhiteSpace(fieldName))
             {
-                candidates.Add(fieldName);
+                fieldName = fieldName.Trim();
 
                 if (itemTypeId > 0 && !fieldName.Contains("$", StringComparison.Ordinal))
                 {
+                    // Prefer item-type-scoped custom field names first, then the raw alias.
                     candidates.Add($"{fieldName}${itemTypeId}");
+
+                    if (IsLookupAlias(fieldName))
+                    {
+                        // Some Jama instances expose lookup fields with explicit item-type suffix only.
+                        candidates.Add($"lookup{fieldName.Substring("lookup".Length)}${itemTypeId}");
+                    }
                 }
+
+                candidates.Add(fieldName);
             }
 
             return candidates.Distinct(StringComparer.OrdinalIgnoreCase);
