@@ -1336,7 +1336,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             var copiedAny = false;
             var rootCandidates = new[]
             {
-                "app-logs.txt",
                 "build-check.txt",
                 "build-output.txt",
                 "targeted_error.txt"
@@ -1355,13 +1354,33 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 copiedAny = true;
             }
 
-            var appLogDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "TestCaseEditorApp", "logs");
-            if (Directory.Exists(appLogDir))
+            // Runtime logs are written under user profile and may also exist under repo/logs in some environments.
+            // Prefer exporting these to capture the latest failing session instead of stale repo root snapshots.
+            var runtimeLogDirectories = new[]
             {
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "TestCaseEditorApp", "logs"),
+                Path.Combine(projectRoot, "logs")
+            };
+
+            foreach (var appLogDir in runtimeLogDirectories.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                if (!Directory.Exists(appLogDir))
+                {
+                    continue;
+                }
+
+                var runtimeSnapshotPath = Path.Combine(appLogDir, "app-logs.txt");
+                if (File.Exists(runtimeSnapshotPath))
+                {
+                    var runtimeSnapshotDestination = Path.Combine(stagingDir, $"{new DirectoryInfo(appLogDir).Name}-app-logs.txt");
+                    File.Copy(runtimeSnapshotPath, runtimeSnapshotDestination, overwrite: true);
+                    copiedAny = true;
+                }
+
                 foreach (var source in Directory.GetFiles(appLogDir, "*.log"))
                 {
                     var fileName = Path.GetFileName(source);
-                    var destination = Path.Combine(stagingDir, fileName);
+                    var destination = Path.Combine(stagingDir, $"{new DirectoryInfo(appLogDir).Name}-{fileName}");
                     File.Copy(source, destination, overwrite: true);
                     copiedAny = true;
                 }
