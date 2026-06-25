@@ -4477,6 +4477,8 @@ namespace TestCaseEditorApp.Services
                     }
                 }
 
+                await SanitizeLookupDefaultsForCreateAsync(fields, itemTypeId.Value, cancellationToken);
+
                 var requestBody = new
                 {
                     project = projectId,
@@ -5236,6 +5238,57 @@ namespace TestCaseEditorApp.Services
             }
 
             return null;
+        }
+
+        private async Task SanitizeLookupDefaultsForCreateAsync(
+            Dictionary<string, object?> fields,
+            int itemTypeId,
+            CancellationToken cancellationToken)
+        {
+            var fieldPicklistMappings = await GetLookupFieldPicklistMappingsAsync(itemTypeId, cancellationToken);
+            if (fieldPicklistMappings.Count == 0)
+            {
+                return;
+            }
+
+            var picklistOptionsCache = new Dictionary<int, (bool EndpointAvailable, int OptionCount, int? FirstOptionId, string? FirstOptionName, HashSet<int> OptionIds, string? Error)>();
+
+            foreach (var fieldName in fields.Keys.Where(k => k.StartsWith("lookup", StringComparison.OrdinalIgnoreCase)).ToList())
+            {
+                if (!fieldPicklistMappings.TryGetValue(fieldName, out var picklistId) || picklistId <= 0)
+                {
+                    continue;
+                }
+
+                var currentLookupId = TryExtractLookupId(fields[fieldName]);
+                if (!currentLookupId.HasValue)
+                {
+                    continue;
+                }
+
+                if (!picklistOptionsCache.TryGetValue(picklistId, out var options))
+                {
+                    options = await GetPicklistOptionsByPicklistIdAsync(picklistId, cancellationToken);
+                    picklistOptionsCache[picklistId] = options;
+                }
+
+                if (!options.EndpointAvailable || options.OptionIds.Count == 0)
+                {
+                    continue;
+                }
+
+                if (options.OptionIds.Contains(currentLookupId.Value))
+                {
+                    continue;
+                }
+
+                if (options.FirstOptionId.HasValue)
+                {
+                    fields[fieldName] = options.FirstOptionId.Value;
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        $"[JamaConnect] Replaced invalid default lookup value for '{fieldName}' (picklist {picklistId}): {currentLookupId.Value} -> {options.FirstOptionId.Value}");
+                }
+            }
         }
 
         private static bool IsNonRetryableRequirementCreateFailure(string? message)
