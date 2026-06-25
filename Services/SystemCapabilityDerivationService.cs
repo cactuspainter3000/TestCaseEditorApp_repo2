@@ -830,8 +830,20 @@ namespace TestCaseEditorApp.Services
                     using var doc = JsonDocument.Parse(jsonPart);
                     var root = doc.RootElement;
                     
-                    // ONLY accept the exact format: "derivedCapabilities" array
-                    if (root.TryGetProperty("derivedCapabilities", out var capsArray) && capsArray.ValueKind == JsonValueKind.Array)
+                    // Prefer the strict format first, but tolerate known variants produced by template-form retries.
+                    JsonElement capsArray;
+                    var hasCapabilitiesArray =
+                        (root.TryGetProperty("derivedCapabilities", out capsArray) && capsArray.ValueKind == JsonValueKind.Array) ||
+                        (root.TryGetProperty("capabilities", out capsArray) && capsArray.ValueKind == JsonValueKind.Array) ||
+                        (root.TryGetProperty("derived_capabilities", out capsArray) && capsArray.ValueKind == JsonValueKind.Array);
+
+                    if (!hasCapabilitiesArray && root.ValueKind == JsonValueKind.Array)
+                    {
+                        capsArray = root;
+                        hasCapabilitiesArray = true;
+                    }
+
+                    if (hasCapabilitiesArray)
                     {
                         foreach (var capElement in capsArray.EnumerateArray())
                         {
@@ -842,11 +854,8 @@ namespace TestCaseEditorApp.Services
                         _logger.LogInformation("✅ Successfully parsed {Count} capabilities from correct JSON format", capabilities.Count);
                         return true;
                     }
-                    else
-                    {
-                        _logger.LogWarning("❌ JSON response missing required 'derivedCapabilities' array. Format rejected.");
-                        return false;
-                    }
+                    _logger.LogWarning("❌ JSON response missing required capabilities array. Format rejected.");
+                    return false;
                 }
                 else
                 {
@@ -1116,14 +1125,83 @@ namespace TestCaseEditorApp.Services
         {
             try
             {
+                string? GetString(params string[] keys)
+                {
+                    foreach (var key in keys)
+                    {
+                        if (element.TryGetProperty(key, out var value))
+                        {
+                            if (value.ValueKind == JsonValueKind.String)
+                            {
+                                var text = value.GetString();
+                                if (!string.IsNullOrWhiteSpace(text))
+                                {
+                                    return text.Trim();
+                                }
+                            }
+                            else if (value.ValueKind != JsonValueKind.Null && value.ValueKind != JsonValueKind.Undefined)
+                            {
+                                var text = value.ToString();
+                                if (!string.IsNullOrWhiteSpace(text))
+                                {
+                                    return text.Trim();
+                                }
+                            }
+                        }
+                    }
+
+                    return null;
+                }
+
+                double GetConfidence()
+                {
+                    if (element.TryGetProperty("confidence", out var confidenceValue))
+                    {
+                        if (confidenceValue.ValueKind == JsonValueKind.Number && confidenceValue.TryGetDouble(out var confidenceNumber))
+                        {
+                            return Math.Clamp(confidenceNumber, 0.0, 1.0);
+                        }
+
+                        if (confidenceValue.ValueKind == JsonValueKind.String)
+                        {
+                            var confidenceText = confidenceValue.GetString() ?? string.Empty;
+                            if (double.TryParse(confidenceText, out var parsedNumeric))
+                            {
+                                return Math.Clamp(parsedNumeric, 0.0, 1.0);
+                            }
+
+                            if (confidenceText.Contains("high", StringComparison.OrdinalIgnoreCase)) return 0.9;
+                            if (confidenceText.Contains("medium", StringComparison.OrdinalIgnoreCase)) return 0.7;
+                            if (confidenceText.Contains("low", StringComparison.OrdinalIgnoreCase)) return 0.4;
+                        }
+                    }
+
+                    if (element.TryGetProperty("confidenceLevel", out var confidenceLevelValue) && confidenceLevelValue.ValueKind == JsonValueKind.String)
+                    {
+                        var confidenceLevel = confidenceLevelValue.GetString() ?? string.Empty;
+                        if (confidenceLevel.Contains("high", StringComparison.OrdinalIgnoreCase)) return 0.9;
+                        if (confidenceLevel.Contains("medium", StringComparison.OrdinalIgnoreCase)) return 0.7;
+                        if (confidenceLevel.Contains("low", StringComparison.OrdinalIgnoreCase)) return 0.4;
+                    }
+
+                    return 0.7;
+                }
+
+                var requirementText = GetString("requirement", "requirementText", "systemCapability", "capability", "text", "derivedRequirement");
+                if (string.IsNullOrWhiteSpace(requirementText))
+                {
+                    return null;
+                }
+
                 return new DerivedCapability
                 {
                     Id = Guid.NewGuid().ToString(),
-                    RequirementText = element.GetProperty("requirement").GetString() ?? "",
-                    DerivationRationale = element.TryGetProperty("rationale", out var r) ? r.GetString() ?? "" : "",
-                    TaxonomyCategory = element.TryGetProperty("category", out var c) ? c.GetString() ?? "Unknown" : "Unknown",
-                    ConfidenceScore = element.TryGetProperty("confidence", out var conf) ? conf.GetDouble() : 0.7,
-                    SourceATPStep = element.TryGetProperty("source", out var src) ? src.GetString() ?? "" : ""
+                    RequirementText = requirementText,
+                    DerivationRationale = GetString("rationale", "derivationRationale", "reason", "justification") ?? "",
+                    TaxonomyCategory = GetString("category", "taxonomyCategory", "taxonomy", "taxon") ?? "Unknown",
+                    TaxonomySubcategory = GetString("subcategory", "taxonomySubcategory", "taxonomyCode") ?? "",
+                    ConfidenceScore = GetConfidence(),
+                    SourceATPStep = GetString("source", "sourceATPStep", "sourceStep", "atpStep") ?? ""
                 };
             }
             catch (Exception ex)
