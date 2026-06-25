@@ -85,7 +85,7 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Create a requirement item in Jama Connect
         /// </summary>
-        Task<(bool Success, string Message, int? JamaItemId)> CreateRequirementAsync(int projectId, Requirement requirement, CancellationToken cancellationToken = default);
+        Task<(bool Success, string Message, int? JamaItemId)> CreateRequirementAsync(int projectId, Requirement requirement, int? preferredParentContainerId = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Persist extracted requirements directly into Jama Connect
@@ -93,6 +93,7 @@ namespace TestCaseEditorApp.Services
         Task<(int CreatedCount, int FailedCount)> ImportRequirementsToJamaAsync(
             int projectId,
             IReadOnlyList<Requirement> requirements,
+            int? preferredParentContainerId = null,
             CancellationToken cancellationToken = default,
             Action<int, int, int, string?>? progressCallback = null);
 

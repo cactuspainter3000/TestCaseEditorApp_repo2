@@ -4341,6 +4341,7 @@ namespace TestCaseEditorApp.Services
         public async Task<(int CreatedCount, int FailedCount)> ImportRequirementsToJamaAsync(
             int projectId,
             IReadOnlyList<Requirement> requirements,
+            int? preferredParentContainerId = null,
             CancellationToken cancellationToken = default,
             Action<int, int, int, string?>? progressCallback = null)
         {
@@ -4376,7 +4377,7 @@ namespace TestCaseEditorApp.Services
                             $"Retrying '{requirement.Item ?? requirement.Name}' (attempt {attempt}/{maxAttemptsPerRequirement})");
                     }
 
-                    var (success, message, jamaItemId) = await CreateRequirementAsync(projectId, requirement, cancellationToken);
+                    var (success, message, jamaItemId) = await CreateRequirementAsync(projectId, requirement, preferredParentContainerId, cancellationToken);
                     if (success && jamaItemId.HasValue)
                     {
                         created = true;
@@ -4435,7 +4436,7 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Create a requirement item in Jama Connect.
         /// </summary>
-        public async Task<(bool Success, string Message, int? JamaItemId)> CreateRequirementAsync(int projectId, Requirement requirement, CancellationToken cancellationToken = default)
+        public async Task<(bool Success, string Message, int? JamaItemId)> CreateRequirementAsync(int projectId, Requirement requirement, int? preferredParentContainerId = null, CancellationToken cancellationToken = default)
         {
             if (projectId <= 0)
             {
@@ -4479,12 +4480,29 @@ namespace TestCaseEditorApp.Services
 
                 await SanitizeLookupDefaultsForCreateAsync(fields, itemTypeId.Value, cancellationToken);
 
-                var requestBody = new
+                object requestBody;
+                if (preferredParentContainerId.HasValue && preferredParentContainerId.Value > 0)
                 {
-                    project = projectId,
-                    itemType = itemTypeId.Value,
-                    fields
-                };
+                    requestBody = new
+                    {
+                        project = projectId,
+                        itemType = itemTypeId.Value,
+                        location = new
+                        {
+                            parent = preferredParentContainerId.Value
+                        },
+                        fields
+                    };
+                }
+                else
+                {
+                    requestBody = new
+                    {
+                        project = projectId,
+                        itemType = itemTypeId.Value,
+                        fields
+                    };
+                }
 
                 var json = JsonSerializer.Serialize(requestBody);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -4529,6 +4547,7 @@ namespace TestCaseEditorApp.Services
                         requirementName,
                         description,
                         fields,
+                        preferredParentContainerId,
                         errorContent,
                         cancellationToken);
 
@@ -4591,6 +4610,7 @@ namespace TestCaseEditorApp.Services
             string requirementName,
             string description,
             Dictionary<string, object?> fields,
+            int? preferredParentContainerId,
             string errorContent,
             CancellationToken cancellationToken)
         {
@@ -4657,12 +4677,29 @@ namespace TestCaseEditorApp.Services
                 return (false, null, null, null);
             }
 
-            var retryBody = new
+            object retryBody;
+            if (preferredParentContainerId.HasValue && preferredParentContainerId.Value > 0)
             {
-                project = projectId,
-                itemType = itemTypeId,
-                fields
-            };
+                retryBody = new
+                {
+                    project = projectId,
+                    itemType = itemTypeId,
+                    location = new
+                    {
+                        parent = preferredParentContainerId.Value
+                    },
+                    fields
+                };
+            }
+            else
+            {
+                retryBody = new
+                {
+                    project = projectId,
+                    itemType = itemTypeId,
+                    fields
+                };
+            }
 
             var retryJson = JsonSerializer.Serialize(retryBody);
             var retryContent = new StringContent(retryJson, Encoding.UTF8, "application/json");

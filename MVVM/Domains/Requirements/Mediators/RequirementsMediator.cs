@@ -1472,9 +1472,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 if (extractedRequirements.Count > 0)
                 {
                     progressCallback?.Invoke($"💾 Saving {extractedRequirements.Count} extracted requirements to Jama...");
+                    var preferredParentContainerId = attachment.Item > 0 ? attachment.Item : (int?)null;
                     var (savedCount, failedCount) = await _jamaConnectService.ImportRequirementsToJamaAsync(
                         projectId,
                         extractedRequirements,
+                        preferredParentContainerId,
                         cancellationToken,
                         (processed, total, failures, detail) =>
                         {
@@ -1495,6 +1497,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                             var (retrySavedCount, retryFailedCount) = await _jamaConnectService.ImportRequirementsToJamaAsync(
                                 projectId,
                                 unsavedRequirements,
+                                preferredParentContainerId,
                                 cancellationToken,
                                 (processed, total, failures, detail) =>
                                 {
