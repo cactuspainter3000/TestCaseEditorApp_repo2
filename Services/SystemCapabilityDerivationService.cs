@@ -161,7 +161,8 @@ namespace TestCaseEditorApp.Services
                     stepCounter++;
                     var currentStepStopwatch = Stopwatch.StartNew();
                     var parsingProgressBar = BuildProgressBar(stepCounter, parsedSteps.Count);
-                    progressCallback?.Invoke($"📄 Parsing document {parsingProgressBar}: chat={shortChatModelName} | embed={shortEmbeddingModelName} (embed may fallback) → {parsedStep.StepText.Substring(0, Math.Min(50, parsedStep.StepText.Length))}... | current req: 00:00");
+                    var progressPercent = (int)Math.Round((double)stepCounter / parsedSteps.Count * 100);
+                    progressCallback?.Invoke($"📄 Parsing document {parsingProgressBar} ({stepCounter}/{parsedSteps.Count}, {progressPercent}%): chat={shortChatModelName} | embed={shortEmbeddingModelName} (embed may fallback) → {parsedStep.StepText.Substring(0, Math.Min(50, parsedStep.StepText.Length))}... | current req: 00:00");
                     
                     // Apply per-step timeout to prevent hanging
                     var remainingBudget = derivationOptions.MaxProcessingTime - stopwatch.Elapsed;
