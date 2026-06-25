@@ -352,7 +352,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.ViewModels
         {
             // This can be used for domain-specific status indicators in the future
             LastUpdatedByDomain = eventData.DomainName;
-            
+
+
             _logger?.LogDebug("Domain status updated: {DomainName} - {StatusType}: {StatusMessage}", 
                 eventData.DomainName, eventData.StatusType, eventData.StatusMessage);
         }

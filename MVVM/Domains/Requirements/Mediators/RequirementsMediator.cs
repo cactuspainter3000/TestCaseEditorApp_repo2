@@ -867,12 +867,24 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 return false;
             }
 
+            // Drop known synthetic health-check requirement if it was accidentally persisted.
+            var filteredRequirements = workspace.Requirements
+                .Where(requirement => requirement != null && !IsSyntheticHealthCheckRequirement(requirement))
+                .ToList();
+
+            var droppedSyntheticCount = workspace.Requirements.Count - filteredRequirements.Count;
+            if (droppedSyntheticCount > 0)
+            {
+                _logger.LogWarning("⚠️ RequirementsMediator filtered {Count} synthetic health-check requirement(s) from project load", droppedSyntheticCount);
+                workspace.Requirements = filteredRequirements;
+            }
+
             try
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     // Check if data is already loaded and current - avoid unnecessary reload!
-                    var sortedRequirements = workspace.Requirements.OrderBy(r => r, new RequirementNaturalComparer()).ToList();
+                    var sortedRequirements = filteredRequirements.OrderBy(r => r, new RequirementNaturalComparer()).ToList();
                     
                     // If we already have the same requirements loaded, preserve current navigation state
                     if (_requirements.Count == sortedRequirements.Count && 
@@ -976,6 +988,20 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 _logger.LogError(ex, "Failed to load requirements from project");
                 return false;
             }
+        }
+
+        private static bool IsSyntheticHealthCheckRequirement(Requirement requirement)
+        {
+            if (requirement == null)
+            {
+                return false;
+            }
+
+            var isTestItem = string.Equals(requirement.Item?.Trim(), "TEST", StringComparison.OrdinalIgnoreCase);
+            var isHealthCheckName = string.Equals(requirement.Name?.Trim(), "Health Check", StringComparison.OrdinalIgnoreCase);
+            var hasHealthCheckDescription = requirement.Description?.IndexOf("health validation", StringComparison.OrdinalIgnoreCase) >= 0;
+
+            return isTestItem && isHealthCheckName && hasHealthCheckDescription;
         }
 
         public async Task<bool> SaveToProjectAsync()
@@ -1202,16 +1228,28 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 return false;
             }
             
-            // Check ImportSource flag - this is the authoritative source for view routing
+            // Treat any workspace with a Jama project association as Jama-capable,
+            // regardless of how the project was originally created.
+            bool hasJamaAssociation = currentWorkspace.JamaProjectId.HasValue ||
+                                      (!string.IsNullOrWhiteSpace(currentWorkspace.JamaProject) &&
+                                       int.TryParse(currentWorkspace.JamaProject, out _));
+
+            if (hasJamaAssociation)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug("[RequirementsMediator] IsJamaDataSource() returning true (Jama project association present)");
+                return true;
+            }
+
+            // Fallback for legacy workspaces that rely on ImportSource only.
             if (!string.IsNullOrEmpty(currentWorkspace.ImportSource))
             {
                 var isJama = string.Equals(currentWorkspace.ImportSource, "Jama", StringComparison.OrdinalIgnoreCase);
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementsMediator] IsJamaDataSource() returning {isJama} (ImportSource comparison)");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementsMediator] IsJamaDataSource() returning {isJama} (ImportSource fallback)");
                 return isJama;
             }
-            
-            // Default to document view if ImportSource is missing/empty
-            TestCaseEditorApp.Services.Logging.Log.Debug("[RequirementsMediator] IsJamaDataSource() returning false (empty ImportSource)");
+
+            // Default to document view if no Jama association and no import marker.
+            TestCaseEditorApp.Services.Logging.Log.Debug("[RequirementsMediator] IsJamaDataSource() returning false (no Jama association)");
             return false;
         }
 

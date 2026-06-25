@@ -69,9 +69,9 @@
                     </CheckBox.ToolTip>
                 </CheckBox>
             </StackPanel>
-            
+
             <!-- Current Requirement Verification Method -->
-            <StackPanel Grid.Column="3" Orientation="Horizontal" 
+                <StackPanel Grid.Column="3" Orientation="Horizontal" 
                        HorizontalAlignment="Right"
                        Margin="0,0,8,0"
                        Visibility="{Binding CurrentRequirementVerificationMethod, Converter={StaticResource EmptyStringToCollapsedConverter}}">

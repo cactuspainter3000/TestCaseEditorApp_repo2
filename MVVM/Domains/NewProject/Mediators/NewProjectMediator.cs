@@ -736,7 +736,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         /// <summary>
         /// Complete project creation with workspace details, requirements import, and workspace setup
         /// </summary>
-        public async Task<bool> CompleteProjectCreationAsync(string workspaceName, string projectName, string projectSavePath, string documentPath, string? anythingLLMWorkspaceSlug = null)
+        public async Task<bool> CompleteProjectCreationAsync(string workspaceName, string projectName, string projectSavePath, string documentPath, string? anythingLLMWorkspaceSlug = null, int? jamaProjectId = null, string? jamaProjectName = null)
         {
             bool requirementsImportedSuccessfully = true;
             
@@ -767,10 +767,19 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 List<Requirement> importedRequirements = new();
                 
                 // 🎯 Variables to preserve Jama project information
-                string? jamaProjectId = null;
+                string? jamaProjectIdString = null;
                 int? jamaProjectIdCanonical = null;
-                string? jamaProjectName = null;
+                string? jamaProjectNameResolved = null;
                 string? jamaTestPlan = null;
+
+                if (jamaProjectId.HasValue)
+                {
+                    jamaProjectIdCanonical = jamaProjectId.Value;
+                    jamaProjectIdString = jamaProjectId.Value.ToString();
+                    jamaProjectNameResolved = jamaProjectName;
+                    jamaTestPlan = jamaProjectName;
+                    _logger.LogInformation("🔍 Using explicit Jama association for project creation - ProjectId: {ProjectId}, ProjectName: {ProjectName}", jamaProjectIdCanonical, jamaProjectNameResolved);
+                }
                 
                 if (!string.IsNullOrWhiteSpace(documentPath) && File.Exists(documentPath))
                 {
@@ -793,12 +802,12 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                                 importedRequirements = jamaWorkspace.Requirements;
                                 
                                 // 🎯 Preserve Jama project information from original workspace
-                                jamaProjectId = jamaWorkspace.JamaProject;
+                                jamaProjectIdString = jamaWorkspace.JamaProject;
                                 jamaProjectIdCanonical = jamaWorkspace.JamaProjectId;
-                                jamaProjectName = jamaWorkspace.JamaProjectName ?? jamaWorkspace.JamaTestPlan;
+                                jamaProjectNameResolved = jamaWorkspace.JamaProjectName ?? jamaWorkspace.JamaTestPlan;
                                 jamaTestPlan = jamaWorkspace.JamaTestPlan;
 
-                                if (!jamaProjectIdCanonical.HasValue && !string.IsNullOrWhiteSpace(jamaProjectId) && int.TryParse(jamaProjectId, out var parsedProjectId))
+                                if (!jamaProjectIdCanonical.HasValue && !string.IsNullOrWhiteSpace(jamaProjectIdString) && int.TryParse(jamaProjectIdString, out var parsedProjectId))
                                 {
                                     jamaProjectIdCanonical = parsedProjectId;
                                 }
@@ -806,7 +815,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                                 _logger.LogInformation("✅ Successfully loaded {Count} requirements from Jama JSON file", 
                                     importedRequirements.Count);
                                 _logger.LogInformation("🔍 DEBUG: Extracted Jama info - ProjectId: {ProjectId}, TestPlan: {TestPlan}", 
-                                    jamaProjectId, jamaTestPlan);
+                                    jamaProjectIdString, jamaTestPlan);
                                 
                                 // Broadcast imported requirements to TestCaseGenerationMediator for UI sync
                                 BroadcastToAllDomains(new TestCaseGenerationEvents.RequirementsImported
@@ -909,6 +918,11 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                             _logger.LogInformation("🎯 Setting ImportSource to 'Document' - Jama not configured or document import chosen");
                         }
                 
+                if (!jamaProjectIdCanonical.HasValue && !string.IsNullOrWhiteSpace(jamaProjectIdString) && int.TryParse(jamaProjectIdString, out var parsedJamaId))
+                {
+                    jamaProjectIdCanonical = parsedJamaId;
+                }
+
                 var workspace = new Workspace
                 {
                     Name = projectName,
@@ -921,13 +935,13 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     AnythingLLMWorkspaceName = workspaceName,
                     AnythingLLMWorkspaceSlug = resolvedAnythingLLMSlug,
                     ImportSource = importSource,  // 🎯 Set based on actual content type
-                    JamaProject = jamaProjectId,  // 🎯 Preserve Jama project ID for attachment scanning
+                    JamaProject = jamaProjectIdString,  // 🎯 Preserve Jama project ID for attachment scanning
                     JamaProjectId = jamaProjectIdCanonical,
-                    JamaProjectName = jamaProjectName,
+                    JamaProjectName = jamaProjectNameResolved,
                     JamaTestPlan = jamaTestPlan,  // 🎯 Preserve Jama test plan name for display
                     Requirements = importedRequirements
                 };
-                
+
                 // 🔍 Debug: Verify ImportSource before saving
                 _logger.LogInformation($"🔍 DEBUG: About to save workspace with ImportSource = '{workspace.ImportSource}'");
                 Console.WriteLine($"🔍 DEBUG: About to save workspace with ImportSource = '{workspace.ImportSource}'");
@@ -1174,7 +1188,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         /// <summary>
         /// Create a new project with proper warning if another project is currently open
         /// </summary>
-        public async Task<bool> CreateNewProjectWithWarningAsync(string workspaceName, string projectName, string projectSavePath, string documentPath, string? anythingLLMWorkspaceSlug = null)
+        public async Task<bool> CreateNewProjectWithWarningAsync(string workspaceName, string projectName, string projectSavePath, string documentPath, string? anythingLLMWorkspaceSlug = null, int? jamaProjectId = null, string? jamaProjectName = null)
         {
             try
             {
@@ -1205,7 +1219,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 }
                 
                 // Proceed with project creation
-                return await CompleteProjectCreationAsync(workspaceName, projectName, projectSavePath, documentPath, anythingLLMWorkspaceSlug);
+                return await CompleteProjectCreationAsync(workspaceName, projectName, projectSavePath, documentPath, anythingLLMWorkspaceSlug, jamaProjectId, jamaProjectName);
             }
             catch (Exception ex)
             {

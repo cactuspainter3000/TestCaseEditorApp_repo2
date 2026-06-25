@@ -615,7 +615,9 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                     ProjectName,
                     ProjectSavePath,
                     documentPathToUse,
-                    _resolvedAnythingLLMWorkspaceSlug);
+                    _resolvedAnythingLLMWorkspaceSlug,
+                    SelectedProject?.Id,
+                    SelectedProject?.Name);
                 
                 // Always mark project as created if method completed without exception
                 // Even if requirements import failed, the project file was still created successfully

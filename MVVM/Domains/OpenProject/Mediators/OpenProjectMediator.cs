@@ -30,6 +30,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
         private readonly NotificationService _notificationService;
         private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
         private readonly IWorkspaceValidationService _workspaceValidationService;
+        private readonly IJamaConnectService _jamaConnectService;
         private readonly TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator _newProjectMediator;
 
         public OpenProjectMediator(
@@ -41,6 +42,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
             NotificationService notificationService,
             ITestCaseGenerationMediator testCaseGenerationMediator,
             IWorkspaceValidationService workspaceValidationService,
+            IJamaConnectService jamaConnectService,
             TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator newProjectMediator,
             PerformanceMonitoringService? performanceMonitor = null,
             EventReplayService? eventReplay = null)
@@ -52,6 +54,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
             _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
             _workspaceValidationService = workspaceValidationService ?? throw new ArgumentNullException(nameof(workspaceValidationService));
+            _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
             _newProjectMediator = newProjectMediator ?? throw new ArgumentNullException(nameof(newProjectMediator));
         }
 
@@ -149,6 +152,61 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
                     });
                     ShowNotification("Failed to load project file. The file may be corrupted or invalid.", DomainNotificationType.Error);
                     return false;
+                }
+
+                // If this workspace is associated with Jama, Jama is the source of truth.
+                // Pull requirements on open and persist them to the workspace before broadcasting.
+                var resolvedJamaProjectId = await ResolveJamaProjectIdAsync(workspace);
+                if (resolvedJamaProjectId.HasValue)
+                {
+                    if (!_jamaConnectService.IsConfigured)
+                    {
+                        var error = "This project is associated with Jama, but Jama Connect is not configured. Open is blocked to prevent stale requirement data.";
+                        _logger.LogError("❌ {Error}", error);
+                        PublishEvent(new OpenProjectEvents.ProjectOpenFailed
+                        {
+                            FilePath = filePath,
+                            ErrorMessage = error
+                        });
+                        ShowNotification(error, DomainNotificationType.Error);
+                        return false;
+                    }
+
+                    ShowProgress("Syncing requirements from Jama...", 65);
+
+                    List<Requirement> jamaRequirements;
+                    try
+                    {
+                        jamaRequirements = await _newProjectMediator.GetJamaRequirementsAsync(resolvedJamaProjectId.Value);
+                    }
+                    catch (Exception ex)
+                    {
+                        var error = $"Failed to refresh requirements from Jama project {resolvedJamaProjectId.Value}: {ex.Message}";
+                        _logger.LogError(ex, "❌ {Error}", error);
+                        PublishEvent(new OpenProjectEvents.ProjectOpenFailed
+                        {
+                            FilePath = filePath,
+                            ErrorMessage = error,
+                            Exception = ex
+                        });
+                        ShowNotification(error, DomainNotificationType.Error);
+                        return false;
+                    }
+
+                    workspace.Requirements = jamaRequirements ?? new List<Requirement>();
+                    workspace.JamaProjectId = resolvedJamaProjectId.Value;
+                    workspace.JamaProject = resolvedJamaProjectId.Value.ToString();
+                    workspace.ImportSource = "Jama";
+
+                    WorkspaceFileManager.Save(filePath, workspace);
+
+                    _logger.LogInformation("✅ Jama sync on open complete for project {ProjectId}. Requirements refreshed: {Count}",
+                        resolvedJamaProjectId.Value,
+                        workspace.Requirements.Count);
+
+                    ShowNotification(
+                        $"Refreshed {workspace.Requirements.Count} requirements from Jama project {resolvedJamaProjectId.Value}.",
+                        DomainNotificationType.Success);
                 }
 
                 ShowProgress("Setting up workspace...", 75);
@@ -262,6 +320,44 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
         {
             // For open project, we don't maintain state - delegate to persistence service
             return null; // This would need to be implemented if needed
+        }
+
+        private async Task<int?> ResolveJamaProjectIdAsync(Workspace workspace)
+        {
+            if (workspace.JamaProjectId.HasValue && workspace.JamaProjectId.Value > 0)
+            {
+                return workspace.JamaProjectId.Value;
+            }
+
+            if (!string.IsNullOrWhiteSpace(workspace.JamaProject) && int.TryParse(workspace.JamaProject, out var parsedProjectId) && parsedProjectId > 0)
+            {
+                return parsedProjectId;
+            }
+
+            var candidateNames = new[]
+            {
+                workspace.JamaProjectName,
+                workspace.JamaTestPlan,
+                workspace.JamaProject
+            }
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+            if (candidateNames.Count == 0 || !_jamaConnectService.IsConfigured)
+            {
+                return null;
+            }
+
+            var projects = await _jamaConnectService.GetProjectsAsync();
+            var matchingProject = projects.FirstOrDefault(project =>
+                candidateNames.Any(candidate =>
+                    string.Equals(project.Name, candidate, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(project.Key, candidate, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(project.Id.ToString(), candidate, StringComparison.OrdinalIgnoreCase)));
+
+            return matchingProject?.Id;
         }
     }
 }

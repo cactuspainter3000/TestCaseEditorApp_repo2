@@ -181,12 +181,12 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         /// <summary>
         /// Complete project creation with workspace details and document import
         /// </summary>
-        Task<bool> CompleteProjectCreationAsync(string workspaceName, string projectName, string projectSavePath, string documentPath, string? anythingLLMWorkspaceSlug = null);
+        Task<bool> CompleteProjectCreationAsync(string workspaceName, string projectName, string projectSavePath, string documentPath, string? anythingLLMWorkspaceSlug = null, int? jamaProjectId = null, string? jamaProjectName = null);
         
         /// <summary>
         /// Create a new project with proper warning dialog if another project is currently open
         /// </summary>
-        Task<bool> CreateNewProjectWithWarningAsync(string workspaceName, string projectName, string projectSavePath, string documentPath, string? anythingLLMWorkspaceSlug = null);
+        Task<bool> CreateNewProjectWithWarningAsync(string workspaceName, string projectName, string projectSavePath, string documentPath, string? anythingLLMWorkspaceSlug = null, int? jamaProjectId = null, string? jamaProjectName = null);
         
         /// <summary>
         /// Show save file dialog with protection against overwriting currently open project

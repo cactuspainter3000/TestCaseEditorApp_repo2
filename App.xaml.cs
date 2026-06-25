@@ -761,12 +761,13 @@ namespace TestCaseEditorApp
                         var notificationService = provider.GetRequiredService<NotificationService>();
                         var testCaseGenerationMediator = provider.GetRequiredService<ITestCaseGenerationMediator>();
                         var workspaceValidationService = provider.GetRequiredService<IWorkspaceValidationService>();
+                        var jamaConnectService = provider.GetRequiredService<IJamaConnectService>();
                         var newProjectMediator = provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator>();
                         var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
                         var eventReplay = provider.GetService<EventReplayService>();
                         
                         return new TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.OpenProjectMediator(logger, uiCoordinator, persistenceService, 
-                            fileDialogService, anythingLLMService, notificationService, testCaseGenerationMediator, workspaceValidationService, newProjectMediator, performanceMonitor, eventReplay);
+                            fileDialogService, anythingLLMService, notificationService, testCaseGenerationMediator, workspaceValidationService, jamaConnectService, newProjectMediator, performanceMonitor, eventReplay);
                     });
 
                     // OpenProject ViewModels
