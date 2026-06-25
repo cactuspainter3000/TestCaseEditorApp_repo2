@@ -4457,6 +4457,33 @@ namespace TestCaseEditorApp.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                    var repairedAndRetried = await TryRepairLookupFieldsAndRetryRequirementCreateAsync(
+                        projectId,
+                        itemTypeId.Value,
+                        requirementName,
+                        description,
+                        fields,
+                        errorContent,
+                        cancellationToken);
+
+                    if (repairedAndRetried.Success && repairedAndRetried.JamaItemId.HasValue)
+                    {
+                        requirement.ApiId = repairedAndRetried.JamaItemId.Value.ToString();
+                        if (!string.IsNullOrWhiteSpace(repairedAndRetried.DocumentKey))
+                        {
+                            requirement.Item = repairedAndRetried.DocumentKey;
+                            requirement.GlobalId = repairedAndRetried.DocumentKey;
+                        }
+                        else if (!string.IsNullOrWhiteSpace(repairedAndRetried.GlobalId))
+                        {
+                            requirement.Item = repairedAndRetried.GlobalId;
+                            requirement.GlobalId = repairedAndRetried.GlobalId;
+                        }
+
+                        return (true, "Requirement created successfully after lookup field repair", repairedAndRetried.JamaItemId.Value);
+                    }
+
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Requirement create failed for project {projectId}, itemType {itemTypeId.Value}: {response.StatusCode} - {errorContent}");
                     return (false, $"Failed to create requirement item: {response.StatusCode} - {errorContent}", null);
                 }
@@ -4491,6 +4518,160 @@ namespace TestCaseEditorApp.Services
                 TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Error creating requirement item: {ex.Message}");
                 return (false, $"Error creating requirement item: {ex.Message}", null);
             }
+        }
+
+        private async Task<(bool Success, int? JamaItemId, string? DocumentKey, string? GlobalId)> TryRepairLookupFieldsAndRetryRequirementCreateAsync(
+            int projectId,
+            int itemTypeId,
+            string requirementName,
+            string description,
+            Dictionary<string, object?> fields,
+            string errorContent,
+            CancellationToken cancellationToken)
+        {
+            // Example error: "Lookup id 556 does not belong to lookup type 1670"
+            var mismatchMatch = Regex.Match(errorContent, @"Lookup id\s+(\d+)\s+does not belong to lookup type\s+(\d+)", RegexOptions.IgnoreCase);
+            if (!mismatchMatch.Success || !int.TryParse(mismatchMatch.Groups[1].Value, out var invalidLookupId))
+            {
+                return (false, null, null, null);
+            }
+
+            var candidateFields = fields
+                .Where(kvp => kvp.Key.StartsWith("lookup", StringComparison.OrdinalIgnoreCase) && ContainsLookupId(kvp.Value, invalidLookupId))
+                .Select(kvp => kvp.Key)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (candidateFields.Count == 0 && fields.ContainsKey("lookup1"))
+            {
+                candidateFields.Add("lookup1");
+            }
+
+            var repairedAny = false;
+            foreach (var fieldName in candidateFields)
+            {
+                var replacementId = await GetFirstPicklistOptionIdAsync(projectId, fieldName, cancellationToken);
+                if (!replacementId.HasValue)
+                {
+                    continue;
+                }
+
+                fields[fieldName] = replacementId.Value;
+                repairedAny = true;
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Repaired lookup field '{fieldName}' with picklist option ID {replacementId.Value} after lookup mismatch.");
+            }
+
+            if (!repairedAny)
+            {
+                return (false, null, null, null);
+            }
+
+            var retryBody = new
+            {
+                project = projectId,
+                itemType = itemTypeId,
+                fields
+            };
+
+            var retryJson = JsonSerializer.Serialize(retryBody);
+            var retryContent = new StringContent(retryJson, Encoding.UTF8, "application/json");
+            var retryUrl = $"{_baseUrl}/rest/v1/items";
+            var retryResponse = await _httpClient.PostAsync(retryUrl, retryContent, cancellationToken);
+            if (!retryResponse.IsSuccessStatusCode)
+            {
+                var retryError = await retryResponse.Content.ReadAsStringAsync(cancellationToken);
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Lookup-repair retry failed for '{requirementName}': {retryResponse.StatusCode} - {retryError}");
+                return (false, null, null, null);
+            }
+
+            var retryResponseContent = await retryResponse.Content.ReadAsStringAsync(cancellationToken);
+            var retryResult = JsonSerializer.Deserialize<JamaCreateItemResponse>(retryResponseContent, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (retryResult?.Id > 0)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Requirement '{requirementName}' created after lookup field repair.");
+                return (true, retryResult.Id, retryResult.DocumentKey, retryResult.GlobalId);
+            }
+
+            return (false, null, null, null);
+        }
+
+        private async Task<int?> GetFirstPicklistOptionIdAsync(int projectId, string fieldName, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var url = $"{_baseUrl}/rest/v1/projects/{projectId}/picklistoptions?filteredField={fieldName}";
+                var response = await _httpClient.GetAsync(url, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    return null;
+                }
+
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                using var doc = JsonDocument.Parse(json);
+                if (!doc.RootElement.TryGetProperty("data", out var dataArray) || dataArray.ValueKind != JsonValueKind.Array)
+                {
+                    return null;
+                }
+
+                foreach (var option in dataArray.EnumerateArray())
+                {
+                    if (option.TryGetProperty("id", out var idProp) && idProp.TryGetInt32(out var optionId))
+                    {
+                        return optionId;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to load picklist options for field '{fieldName}': {ex.Message}");
+            }
+
+            return null;
+        }
+
+        private static bool ContainsLookupId(object? value, int lookupId)
+        {
+            if (value == null)
+            {
+                return false;
+            }
+
+            if (value is int i)
+            {
+                return i == lookupId;
+            }
+
+            if (value is long l)
+            {
+                return l == lookupId;
+            }
+
+            if (value is double d)
+            {
+                return Math.Abs(d - lookupId) < 0.0001;
+            }
+
+            if (value is string s && int.TryParse(s, out var parsed))
+            {
+                return parsed == lookupId;
+            }
+
+            if (value is System.Collections.IEnumerable enumerable && value is not string)
+            {
+                foreach (var item in enumerable)
+                {
+                    if (ContainsLookupId(item, lookupId))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private async Task<Dictionary<string, object?>> GetRequirementFieldDefaultsAsync(int projectId, int itemTypeId, CancellationToken cancellationToken)
