@@ -4508,7 +4508,8 @@ namespace TestCaseEditorApp.Services
 
             try
             {
-                var url = $"{_baseUrl}/rest/v1/items?project={projectId}&itemType={itemTypeId}&maxResults=1";
+                // Scan multiple existing items to find stable non-null values for required custom fields.
+                var url = $"{_baseUrl}/rest/v1/items?project={projectId}&itemType={itemTypeId}&maxResults=25";
                 var response = await _httpClient.GetAsync(url, cancellationToken);
                 if (!response.IsSuccessStatusCode)
                 {
@@ -4531,24 +4532,29 @@ namespace TestCaseEditorApp.Services
                     return defaults;
                 }
 
-                var firstItem = data.EnumerateArray().FirstOrDefault();
-                if (firstItem.ValueKind != JsonValueKind.Object ||
-                    !firstItem.TryGetProperty("fields", out var fieldsElement) ||
-                    fieldsElement.ValueKind != JsonValueKind.Object)
+                foreach (var item in data.EnumerateArray())
                 {
-                    lock (_requirementFieldDefaultsCache)
+                    if (item.ValueKind != JsonValueKind.Object ||
+                        !item.TryGetProperty("fields", out var fieldsElement) ||
+                        fieldsElement.ValueKind != JsonValueKind.Object)
                     {
-                        _requirementFieldDefaultsCache[cacheKey] = defaults;
+                        continue;
                     }
-                    return defaults;
-                }
 
-                foreach (var property in fieldsElement.EnumerateObject())
-                {
-                    // Jama custom required fields can be named lookup* or field* depending on project schema.
-                    if (property.Name.StartsWith("lookup", StringComparison.OrdinalIgnoreCase) ||
-                        property.Name.StartsWith("field", StringComparison.OrdinalIgnoreCase))
+                    foreach (var property in fieldsElement.EnumerateObject())
                     {
+                        // Jama custom required fields can be named lookup* or field* depending on project schema.
+                        if (!property.Name.StartsWith("lookup", StringComparison.OrdinalIgnoreCase) &&
+                            !property.Name.StartsWith("field", StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        if (defaults.ContainsKey(property.Name))
+                        {
+                            continue;
+                        }
+
                         var converted = ConvertJsonElementToSerializableObject(property.Value);
                         if (converted != null)
                         {
@@ -4561,6 +4567,11 @@ namespace TestCaseEditorApp.Services
                 {
                     TestCaseEditorApp.Services.Logging.Log.Info(
                         $"[JamaConnect] Loaded default requirement fields for project {projectId}, itemType {itemTypeId}: {string.Join(", ", defaults.Keys)}");
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        $"[JamaConnect] No non-null custom default fields discovered for project {projectId}, itemType {itemTypeId}. Required lookup fields may need explicit mapping.");
                 }
             }
             catch (Exception ex)
