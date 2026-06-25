@@ -5289,6 +5289,36 @@ namespace TestCaseEditorApp.Services
                         $"[JamaConnect] Replaced invalid default lookup value for '{fieldName}' (picklist {picklistId}): {currentLookupId.Value} -> {options.FirstOptionId.Value}");
                 }
             }
+
+            foreach (var mapping in fieldPicklistMappings)
+            {
+                var fieldName = mapping.Key;
+                var picklistId = mapping.Value;
+                if (picklistId <= 0)
+                {
+                    continue;
+                }
+
+                if (fields.TryGetValue(fieldName, out var existing) && TryExtractLookupId(existing).HasValue)
+                {
+                    continue;
+                }
+
+                if (!picklistOptionsCache.TryGetValue(picklistId, out var options))
+                {
+                    options = await GetPicklistOptionsByPicklistIdAsync(picklistId, cancellationToken);
+                    picklistOptionsCache[picklistId] = options;
+                }
+
+                if (!options.EndpointAvailable || !options.FirstOptionId.HasValue)
+                {
+                    continue;
+                }
+
+                fields[fieldName] = options.FirstOptionId.Value;
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    $"[JamaConnect] Applied fallback lookup value for missing field '{fieldName}' from picklist {picklistId}: {options.FirstOptionId.Value}");
+            }
         }
 
         private static bool IsNonRetryableRequirementCreateFailure(string? message)
@@ -5325,10 +5355,6 @@ namespace TestCaseEditorApp.Services
                 var response = await _httpClient.GetAsync(url, cancellationToken);
                 if (!response.IsSuccessStatusCode)
                 {
-                    lock (_requirementFieldDefaultsCache)
-                    {
-                        _requirementFieldDefaultsCache[cacheKey] = defaults;
-                    }
                     return defaults;
                 }
 
@@ -5337,10 +5363,6 @@ namespace TestCaseEditorApp.Services
 
                 if (!result.RootElement.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
                 {
-                    lock (_requirementFieldDefaultsCache)
-                    {
-                        _requirementFieldDefaultsCache[cacheKey] = defaults;
-                    }
                     return defaults;
                 }
 
@@ -5400,9 +5422,12 @@ namespace TestCaseEditorApp.Services
                 TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Could not load requirement field defaults: {ex.Message}");
             }
 
-            lock (_requirementFieldDefaultsCache)
+            if (defaults.Count > 0)
             {
-                _requirementFieldDefaultsCache[cacheKey] = defaults;
+                lock (_requirementFieldDefaultsCache)
+                {
+                    _requirementFieldDefaultsCache[cacheKey] = defaults;
+                }
             }
 
             return new Dictionary<string, object?>(defaults, StringComparer.OrdinalIgnoreCase);
