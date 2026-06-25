@@ -3677,15 +3677,10 @@ namespace TestCaseEditorApp.Services
                 }
                 
                 var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                var result = JsonSerializer.Deserialize<JamaCreateItemResponse>(responseContent, new JsonSerializerOptions 
-                { 
-                    PropertyNameCaseInsensitive = true 
-                });
-                
-                if (result?.Id > 0)
+                if (TryExtractCreatedItemInfo(responseContent, out var createdId, out _, out _))
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Successfully created verification cases set '{setName}' with ID {result.Id}");
-                    return (true, result.Id, $"Created verification cases set '{setName}' in {component} component");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Successfully created verification cases set '{setName}' with ID {createdId}");
+                    return (true, createdId, $"Created verification cases set '{setName}' in {component} component");
                 }
                 
                 return (false, null, "Failed to parse response from verification cases set creation");
@@ -4576,26 +4571,21 @@ namespace TestCaseEditorApp.Services
                 }
 
                 var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                var result = JsonSerializer.Deserialize<JamaCreateItemResponse>(responseContent, new JsonSerializerOptions
+                if (TryExtractCreatedItemInfo(responseContent, out var createdId, out var documentKey, out var globalId))
                 {
-                    PropertyNameCaseInsensitive = true
-                });
-
-                if (result?.Id > 0)
-                {
-                    requirement.ApiId = result.Id.ToString();
-                    if (!string.IsNullOrWhiteSpace(result.DocumentKey))
+                    requirement.ApiId = createdId.ToString();
+                    if (!string.IsNullOrWhiteSpace(documentKey))
                     {
-                        requirement.Item = result.DocumentKey;
-                        requirement.GlobalId = result.DocumentKey;
+                        requirement.Item = documentKey;
+                        requirement.GlobalId = documentKey;
                     }
-                    else if (!string.IsNullOrWhiteSpace(result.GlobalId))
+                    else if (!string.IsNullOrWhiteSpace(globalId))
                     {
-                        requirement.Item = result.GlobalId;
-                        requirement.GlobalId = result.GlobalId;
+                        requirement.Item = globalId;
+                        requirement.GlobalId = globalId;
                     }
 
-                    return (true, "Requirement created successfully", result.Id);
+                    return (true, "Requirement created successfully", createdId);
                 }
 
                 return (false, "Failed to parse response from requirement creation", null);
@@ -4732,15 +4722,10 @@ namespace TestCaseEditorApp.Services
             }
 
             var retryResponseContent = await retryResponse.Content.ReadAsStringAsync(cancellationToken);
-            var retryResult = JsonSerializer.Deserialize<JamaCreateItemResponse>(retryResponseContent, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-
-            if (retryResult?.Id > 0)
+            if (TryExtractCreatedItemInfo(retryResponseContent, out var retryCreatedId, out var retryDocumentKey, out var retryGlobalId))
             {
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Requirement '{requirementName}' created after lookup field repair.");
-                return (true, retryResult.Id, retryResult.DocumentKey, retryResult.GlobalId);
+                return (true, retryCreatedId, retryDocumentKey, retryGlobalId);
             }
 
             return (false, null, null, null);
@@ -4798,15 +4783,10 @@ namespace TestCaseEditorApp.Services
                 }
 
                 var retryResponseContent = await retryResponse.Content.ReadAsStringAsync(cancellationToken);
-                var retryResult = JsonSerializer.Deserialize<JamaCreateItemResponse>(retryResponseContent, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-
-                if (retryResult?.Id > 0)
+                if (TryExtractCreatedItemInfo(retryResponseContent, out var retryCreatedId, out var retryDocumentKey, out var retryGlobalId))
                 {
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Requirement '{requirementName}' created in discovered container {candidate.Id} ('{candidate.Name}').");
-                    return (true, retryResult.Id, retryResult.DocumentKey, retryResult.GlobalId);
+                    return (true, retryCreatedId, retryDocumentKey, retryGlobalId);
                 }
             }
 
@@ -4939,12 +4919,100 @@ namespace TestCaseEditorApp.Services
             }
 
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            var created = JsonSerializer.Deserialize<JamaCreateItemResponse>(responseContent, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            return TryExtractCreatedItemInfo(responseContent, out var createdId, out _, out _) ? createdId : null;
+        }
 
-            return created?.Id > 0 ? created.Id : null;
+        private static bool TryExtractCreatedItemInfo(string responseContent, out int id, out string? documentKey, out string? globalId)
+        {
+            id = 0;
+            documentKey = null;
+            globalId = null;
+
+            if (string.IsNullOrWhiteSpace(responseContent))
+            {
+                return false;
+            }
+
+            try
+            {
+                using var doc = JsonDocument.Parse(responseContent);
+                var root = doc.RootElement;
+
+                static bool TryGetId(JsonElement element, out int parsedId)
+                {
+                    parsedId = 0;
+                    if (element.ValueKind != JsonValueKind.Object)
+                    {
+                        return false;
+                    }
+
+                    if (element.TryGetProperty("id", out var idProp) && idProp.TryGetInt32(out parsedId))
+                    {
+                        return parsedId > 0;
+                    }
+
+                    return false;
+                }
+
+                static void ReadKeys(JsonElement element, out string? parsedDocumentKey, out string? parsedGlobalId)
+                {
+                    parsedDocumentKey = null;
+                    parsedGlobalId = null;
+                    if (element.ValueKind != JsonValueKind.Object)
+                    {
+                        return;
+                    }
+
+                    if (element.TryGetProperty("documentKey", out var docKeyProp))
+                    {
+                        parsedDocumentKey = docKeyProp.GetString();
+                    }
+
+                    if (element.TryGetProperty("globalId", out var globalIdProp))
+                    {
+                        parsedGlobalId = globalIdProp.GetString();
+                    }
+                }
+
+                if (TryGetId(root, out id))
+                {
+                    ReadKeys(root, out documentKey, out globalId);
+                    return id > 0;
+                }
+
+                if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("data", out var data))
+                {
+                    if (TryGetId(data, out id))
+                    {
+                        ReadKeys(data, out documentKey, out globalId);
+                        return id > 0;
+                    }
+
+                    if (data.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var item in data.EnumerateArray())
+                        {
+                            if (TryGetId(item, out id))
+                            {
+                                ReadKeys(item, out documentKey, out globalId);
+                                return id > 0;
+                            }
+                        }
+                    }
+                }
+
+                if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("meta", out var meta) && TryGetId(meta, out id))
+                {
+                    ReadKeys(root, out documentKey, out globalId);
+                    return id > 0;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+
+            return false;
         }
 
         private async Task<Dictionary<int, (int Id, string Name, int ItemType, int? ParentId)>> LoadProjectItemNodesAsync(int projectId, CancellationToken cancellationToken)
