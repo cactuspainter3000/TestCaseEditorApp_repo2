@@ -1460,6 +1460,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         {
             try
             {
+                _logger.LogInformation("[ATTACHMENT_DIAG] START ParseAttachmentRequirementsAsync AttachmentId={AttachmentId} FileName={FileName} ProjectId={ProjectId}",
+                    attachment.Id, attachment.FileName, projectId);
+
                 _logger.LogInformation("[RequirementsMediator] Parsing requirements from attachment {AttachmentId} ({FileName}) in project {ProjectId}", 
                     attachment.Id, attachment.FileName, projectId);
 
@@ -1514,6 +1517,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     // Capture in Jama is a primary requirement. Any remaining failures should halt the workflow.
                     if (failedCount > 0)
                     {
+                        _logger.LogError("[ATTACHMENT_DIAG] Jama save incomplete after retry. Saved={SavedCount} Total={TotalCount} Failed={FailedCount} AttachmentId={AttachmentId} ProjectId={ProjectId}",
+                            savedCount, extractedRequirements.Count, failedCount, attachment.Id, projectId);
                         progressCallback?.Invoke($"❌ Jama save incomplete: {savedCount}/{extractedRequirements.Count} saved. Import halted to avoid data loss.");
                         throw new InvalidOperationException($"Failed to persist all extracted requirements to Jama. Saved {savedCount}/{extractedRequirements.Count}.");
                     }
@@ -1528,6 +1533,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             {
                 _logger.LogError(ex, "[RequirementsMediator] Error parsing attachment {AttachmentId} ({FileName})", 
                     attachment.Id, attachment.FileName);
+                _logger.LogError(ex, "[ATTACHMENT_DIAG] EXCEPTION ParseAttachmentRequirementsAsync AttachmentId={AttachmentId} FileName={FileName} ProjectId={ProjectId}",
+                    attachment.Id, attachment.FileName, projectId);
 
                 WriteAttachmentParseFailureSnapshot(attachment, projectId, ex);
                 throw;
@@ -1538,6 +1545,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         {
             try
             {
+                WriteAttachmentParseFailureFile(attachment, projectId, exception);
+
                 var context = new TestCaseEditorApp.Services.Logging.AnalysisSnapshotContext
                 {
                     MethodName = nameof(ParseAttachmentRequirementsAsync),
@@ -1559,6 +1568,36 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             catch (Exception snapshotEx)
             {
                 TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementsMediator] Failed to write attachment parse failure snapshot: {snapshotEx.Message}");
+            }
+        }
+
+        private static void WriteAttachmentParseFailureFile(JamaAttachment attachment, int projectId, Exception exception)
+        {
+            try
+            {
+                var logDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "TestCaseEditorApp", "logs");
+                Directory.CreateDirectory(logDirectory);
+
+                var failureFilePath = Path.Combine(logDirectory, "attachment-parse-failure.txt");
+                var lines = new List<string>
+                {
+                    "============================================================",
+                    $"Utc: {DateTime.UtcNow:O}",
+                    $"ProjectId: {projectId}",
+                    $"AttachmentId: {attachment.Id}",
+                    $"FileName: {attachment.FileName}",
+                    $"ErrorType: {exception.GetType().FullName}",
+                    $"Message: {exception.Message}",
+                    "StackTrace:",
+                    exception.StackTrace ?? string.Empty,
+                    string.Empty
+                };
+
+                File.AppendAllLines(failureFilePath, lines);
+            }
+            catch (Exception writeEx)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementsMediator] Failed to write direct attachment failure file: {writeEx.Message}");
             }
         }
 
