@@ -44,6 +44,7 @@ namespace TestCaseEditorApp.Services
         private readonly HttpClient _sessionClient;
         private bool _sessionAuthenticated = false;
         private readonly CookieContainer _cookieContainer;
+        private readonly Dictionary<string, Dictionary<string, object?>> _requirementFieldDefaultsCache = new(StringComparer.OrdinalIgnoreCase);
         
         public bool IsConfigured => !string.IsNullOrEmpty(_baseUrl) && 
             (!string.IsNullOrEmpty(_apiToken) || 
@@ -4426,15 +4427,26 @@ namespace TestCaseEditorApp.Services
                     ? requirement.Description
                     : requirementName;
 
+                var fields = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["name"] = requirementName,
+                    ["description"] = description
+                };
+
+                var defaultFields = await GetRequirementFieldDefaultsAsync(projectId, itemTypeId.Value, cancellationToken);
+                foreach (var kvp in defaultFields)
+                {
+                    if (!fields.ContainsKey(kvp.Key))
+                    {
+                        fields[kvp.Key] = kvp.Value;
+                    }
+                }
+
                 var requestBody = new
                 {
                     project = projectId,
                     itemType = itemTypeId.Value,
-                    fields = new
-                    {
-                        name = requirementName,
-                        description = description
-                    }
+                    fields
                 };
 
                 var json = JsonSerializer.Serialize(requestBody);
@@ -4478,6 +4490,103 @@ namespace TestCaseEditorApp.Services
                 TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Error creating requirement item: {ex.Message}");
                 return (false, $"Error creating requirement item: {ex.Message}", null);
             }
+        }
+
+        private async Task<Dictionary<string, object?>> GetRequirementFieldDefaultsAsync(int projectId, int itemTypeId, CancellationToken cancellationToken)
+        {
+            var cacheKey = $"{projectId}:{itemTypeId}";
+            lock (_requirementFieldDefaultsCache)
+            {
+                if (_requirementFieldDefaultsCache.TryGetValue(cacheKey, out var cached))
+                {
+                    return new Dictionary<string, object?>(cached, StringComparer.OrdinalIgnoreCase);
+                }
+            }
+
+            var defaults = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+
+            try
+            {
+                var url = $"{_baseUrl}/rest/v1/items?project={projectId}&itemType={itemTypeId}&maxResults=1";
+                var response = await _httpClient.GetAsync(url, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    lock (_requirementFieldDefaultsCache)
+                    {
+                        _requirementFieldDefaultsCache[cacheKey] = defaults;
+                    }
+                    return defaults;
+                }
+
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                using var result = JsonDocument.Parse(json);
+
+                if (!result.RootElement.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
+                {
+                    lock (_requirementFieldDefaultsCache)
+                    {
+                        _requirementFieldDefaultsCache[cacheKey] = defaults;
+                    }
+                    return defaults;
+                }
+
+                var firstItem = data.EnumerateArray().FirstOrDefault();
+                if (firstItem.ValueKind != JsonValueKind.Object ||
+                    !firstItem.TryGetProperty("fields", out var fieldsElement) ||
+                    fieldsElement.ValueKind != JsonValueKind.Object)
+                {
+                    lock (_requirementFieldDefaultsCache)
+                    {
+                        _requirementFieldDefaultsCache[cacheKey] = defaults;
+                    }
+                    return defaults;
+                }
+
+                foreach (var property in fieldsElement.EnumerateObject())
+                {
+                    if (property.Name.StartsWith("lookup", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var converted = ConvertJsonElementToSerializableObject(property.Value);
+                        if (converted != null)
+                        {
+                            defaults[property.Name] = converted;
+                        }
+                    }
+                }
+
+                if (defaults.Count > 0)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        $"[JamaConnect] Loaded default requirement fields for project {projectId}, itemType {itemTypeId}: {string.Join(", ", defaults.Keys)}");
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Could not load requirement field defaults: {ex.Message}");
+            }
+
+            lock (_requirementFieldDefaultsCache)
+            {
+                _requirementFieldDefaultsCache[cacheKey] = defaults;
+            }
+
+            return new Dictionary<string, object?>(defaults, StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static object? ConvertJsonElementToSerializableObject(JsonElement element)
+        {
+            return element.ValueKind switch
+            {
+                JsonValueKind.String => element.GetString(),
+                JsonValueKind.Number => element.TryGetInt64(out var i) ? i : element.GetDouble(),
+                JsonValueKind.True => true,
+                JsonValueKind.False => false,
+                JsonValueKind.Object => element.EnumerateObject()
+                    .ToDictionary(prop => prop.Name, prop => ConvertJsonElementToSerializableObject(prop.Value)),
+                JsonValueKind.Array => element.EnumerateArray().Select(ConvertJsonElementToSerializableObject).ToList(),
+                JsonValueKind.Null => null,
+                _ => element.ToString()
+            };
         }
 
         public void Dispose()
