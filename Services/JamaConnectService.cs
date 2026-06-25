@@ -4555,8 +4555,17 @@ namespace TestCaseEditorApp.Services
                             continue;
                         }
 
-                        var converted = ConvertJsonElementToSerializableObject(property.Value);
-                        if (converted != null)
+                        object? converted;
+                        if (property.Name.StartsWith("lookup", StringComparison.OrdinalIgnoreCase))
+                        {
+                            converted = NormalizeLookupFieldValue(property.Value);
+                        }
+                        else
+                        {
+                            converted = ConvertJsonElementToSerializableObject(property.Value);
+                        }
+
+                        if (IsMeaningfulFieldValue(converted))
                         {
                             defaults[property.Name] = converted;
                         }
@@ -4601,6 +4610,86 @@ namespace TestCaseEditorApp.Services
                 JsonValueKind.Null => null,
                 _ => element.ToString()
             };
+        }
+
+        private static object? NormalizeLookupFieldValue(JsonElement element)
+        {
+            return element.ValueKind switch
+            {
+                JsonValueKind.Null => null,
+                JsonValueKind.Undefined => null,
+                JsonValueKind.String => string.IsNullOrWhiteSpace(element.GetString()) ? null : element.GetString(),
+                JsonValueKind.Number => element.TryGetInt64(out var i) ? i : element.GetDouble(),
+                JsonValueKind.Object => NormalizeLookupObject(element),
+                JsonValueKind.Array => NormalizeLookupArray(element),
+                JsonValueKind.True => true,
+                JsonValueKind.False => false,
+                _ => null
+            };
+        }
+
+        private static object? NormalizeLookupObject(JsonElement element)
+        {
+            if (element.TryGetProperty("id", out var idProp))
+            {
+                var normalizedId = NormalizeLookupFieldValue(idProp);
+                if (normalizedId != null)
+                {
+                    return normalizedId;
+                }
+            }
+
+            if (element.TryGetProperty("value", out var valueProp))
+            {
+                var normalizedValue = NormalizeLookupFieldValue(valueProp);
+                if (normalizedValue != null)
+                {
+                    return normalizedValue;
+                }
+            }
+
+            return null;
+        }
+
+        private static object? NormalizeLookupArray(JsonElement element)
+        {
+            var normalizedValues = element
+                .EnumerateArray()
+                .Select(NormalizeLookupFieldValue)
+                .Where(IsMeaningfulFieldValue)
+                .ToList();
+
+            if (normalizedValues.Count == 0)
+            {
+                return null;
+            }
+
+            return normalizedValues;
+        }
+
+        private static bool IsMeaningfulFieldValue(object? value)
+        {
+            if (value == null)
+            {
+                return false;
+            }
+
+            if (value is string s)
+            {
+                return !string.IsNullOrWhiteSpace(s);
+            }
+
+            if (value is System.Collections.IEnumerable enumerable && value is not string)
+            {
+                foreach (var _ in enumerable)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            return true;
         }
 
         public void Dispose()
