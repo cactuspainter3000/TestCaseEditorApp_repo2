@@ -5176,6 +5176,24 @@ namespace TestCaseEditorApp.Services
                 return false;
             }
 
+            if (value is JsonElement json)
+            {
+                if (json.ValueKind == JsonValueKind.Number && json.TryGetInt32(out var n))
+                {
+                    return n == lookupId;
+                }
+
+                if (json.ValueKind == JsonValueKind.String && int.TryParse(json.GetString(), out var sParsed))
+                {
+                    return sParsed == lookupId;
+                }
+
+                if (json.ValueKind == JsonValueKind.Object && json.TryGetProperty("id", out var idProp) && idProp.TryGetInt32(out var idVal))
+                {
+                    return idVal == lookupId;
+                }
+            }
+
             if (value is int i)
             {
                 return i == lookupId;
@@ -5194,6 +5212,25 @@ namespace TestCaseEditorApp.Services
             if (value is string s && int.TryParse(s, out var parsed))
             {
                 return parsed == lookupId;
+            }
+
+            if (value is System.Collections.IDictionary dict)
+            {
+                foreach (System.Collections.DictionaryEntry entry in dict)
+                {
+                    if (entry.Key is string key && (key.Equals("id", StringComparison.OrdinalIgnoreCase) || key.Equals("lookup", StringComparison.OrdinalIgnoreCase) || key.Equals("value", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        if (ContainsLookupId(entry.Value, lookupId))
+                        {
+                            return true;
+                        }
+                    }
+
+                    if (ContainsLookupId(entry.Value, lookupId))
+                    {
+                        return true;
+                    }
+                }
             }
 
             if (value is System.Collections.IEnumerable enumerable && value is not string)
@@ -5217,6 +5254,24 @@ namespace TestCaseEditorApp.Services
                 return null;
             }
 
+            if (value is JsonElement json)
+            {
+                if (json.ValueKind == JsonValueKind.Number && json.TryGetInt32(out var n))
+                {
+                    return n;
+                }
+
+                if (json.ValueKind == JsonValueKind.String && int.TryParse(json.GetString(), out var sParsed))
+                {
+                    return sParsed;
+                }
+
+                if (json.ValueKind == JsonValueKind.Object && json.TryGetProperty("id", out var idProp) && idProp.TryGetInt32(out var idVal))
+                {
+                    return idVal;
+                }
+            }
+
             if (value is int i)
             {
                 return i;
@@ -5235,6 +5290,27 @@ namespace TestCaseEditorApp.Services
             if (value is string s && int.TryParse(s, out var parsed))
             {
                 return parsed;
+            }
+
+            if (value is System.Collections.IDictionary dict)
+            {
+                foreach (System.Collections.DictionaryEntry entry in dict)
+                {
+                    if (entry.Key is string key && (key.Equals("id", StringComparison.OrdinalIgnoreCase) || key.Equals("lookup", StringComparison.OrdinalIgnoreCase) || key.Equals("value", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        var prioritized = TryExtractLookupId(entry.Value);
+                        if (prioritized.HasValue)
+                        {
+                            return prioritized;
+                        }
+                    }
+
+                    var nestedDict = TryExtractLookupId(entry.Value);
+                    if (nestedDict.HasValue)
+                    {
+                        return nestedDict;
+                    }
+                }
             }
 
             if (value is System.Collections.IEnumerable enumerable && value is not string)
