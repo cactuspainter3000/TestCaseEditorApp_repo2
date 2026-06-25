@@ -1329,8 +1329,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 foreach (var field in report.Fields)
                 {
                     _logger?.LogInformation(
-                        "[JamaLookupProbe] Field={Field} Endpoint={Endpoint} Options={Options} Default={DefaultLookupId} DefaultValid={DefaultValid} Error={Error}",
+                        "[JamaLookupProbe] Field={Field} ResolvedField={ResolvedField} Endpoint={Endpoint} Options={Options} Default={DefaultLookupId} DefaultValid={DefaultValid} Error={Error}",
                         field.FieldName,
+                        field.ResolvedFieldName ?? field.FieldName,
                         field.EndpointAvailable,
                         field.OptionCount,
                         field.CurrentDefaultLookupId,
@@ -1338,39 +1339,53 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         field.Error ?? "");
                 }
 
-                var message = new StringBuilder();
-                message.AppendLine($"Project: {selectedProject.ProjectKey} (ID {selectedProject.Id})");
-                message.AppendLine($"Requirement Item Type: {report.RequirementItemTypeId?.ToString() ?? "unknown"}");
-                message.AppendLine($"Fields checked: {report.Fields.Count}");
-                message.AppendLine($"Fields with options: {fieldsWithOptions.Count}");
-                message.AppendLine($"Invalid defaults: {invalidDefaults.Count}");
-                message.AppendLine($"Endpoint failures: {failedFields.Count}");
+                var reportText = new StringBuilder();
+                reportText.AppendLine("Jama Lookup Probe");
+                reportText.AppendLine($"Generated UTC: {DateTime.UtcNow:O}");
+                reportText.AppendLine($"Project: {selectedProject.ProjectKey} (ID {selectedProject.Id})");
+                reportText.AppendLine($"Requirement Item Type: {report.RequirementItemTypeId?.ToString() ?? "unknown"}");
+                reportText.AppendLine($"Fields checked: {report.Fields.Count}");
+                reportText.AppendLine($"Fields with options: {fieldsWithOptions.Count}");
+                reportText.AppendLine($"Invalid defaults: {invalidDefaults.Count}");
+                reportText.AppendLine($"Endpoint failures: {failedFields.Count}");
 
                 if (invalidDefaults.Count > 0)
                 {
-                    message.AppendLine();
-                    message.AppendLine("Invalid default mappings:");
-                    foreach (var invalid in invalidDefaults.Take(5))
+                    reportText.AppendLine();
+                    reportText.AppendLine("Invalid default mappings:");
+                    foreach (var invalid in invalidDefaults)
                     {
-                        message.AppendLine($"- {invalid.FieldName}: default {invalid.CurrentDefaultLookupId}");
+                        reportText.AppendLine($"- {invalid.FieldName} (resolved {invalid.ResolvedFieldName ?? invalid.FieldName}): default {invalid.CurrentDefaultLookupId}");
                     }
                 }
 
                 if (failedFields.Count > 0)
                 {
-                    message.AppendLine();
-                    message.AppendLine("Failed lookup endpoints:");
-                    foreach (var failed in failedFields.Take(5))
+                    reportText.AppendLine();
+                    reportText.AppendLine("Failed lookup endpoints:");
+                    foreach (var failed in failedFields)
                     {
-                        message.AppendLine($"- {failed.FieldName}: {failed.Error ?? "request failed"}");
+                        reportText.AppendLine($"- {failed.FieldName} (resolved {failed.ResolvedFieldName ?? failed.FieldName}): {failed.Error ?? "request failed"}");
                     }
                 }
 
-                MessageBox.Show(
-                    message.ToString(),
-                    "Jama Lookup Probe",
-                    MessageBoxButton.OK,
-                    invalidDefaults.Count == 0 && failedFields.Count == 0 ? MessageBoxImage.Information : MessageBoxImage.Warning);
+                reportText.AppendLine();
+                reportText.AppendLine("Field details:");
+                foreach (var field in report.Fields.OrderBy(f => f.FieldName, StringComparer.OrdinalIgnoreCase))
+                {
+                    var samples = field.SampleOptionIds.Count > 0
+                        ? string.Join(",", field.SampleOptionIds)
+                        : "none";
+
+                    reportText.AppendLine(
+                        $"- field={field.FieldName}, resolved={field.ResolvedFieldName ?? field.FieldName}, endpoint={field.EndpointAvailable}, options={field.OptionCount}, firstOption={field.FirstOptionId}, default={field.CurrentDefaultLookupId}, defaultValid={field.IsCurrentDefaultValid}, samples=[{samples}], error={field.Error ?? ""}");
+                }
+
+                var reportDialog = new JamaLookupProbeResultDialog(reportText.ToString())
+                {
+                    Owner = Application.Current?.MainWindow
+                };
+                reportDialog.ShowDialog();
             }
             catch (Exception ex)
             {
