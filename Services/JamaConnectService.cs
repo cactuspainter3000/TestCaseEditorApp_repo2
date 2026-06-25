@@ -4847,6 +4847,186 @@ namespace TestCaseEditorApp.Services
             return null;
         }
 
+        private async Task<(bool EndpointAvailable, int OptionCount, int? FirstOptionId, string? FirstOptionName, HashSet<int> OptionIds, string? Error)> GetPicklistOptionsByPicklistIdAsync(
+            int picklistId,
+            CancellationToken cancellationToken)
+        {
+            var optionIds = new HashSet<int>();
+            int? firstOptionId = null;
+            string? firstOptionName = null;
+
+            if (picklistId <= 0)
+            {
+                return (false, 0, null, null, optionIds, "Invalid picklist ID.");
+            }
+
+            try
+            {
+                var url = $"{_baseUrl}/rest/v1/picklists/{picklistId}/options";
+                var response = await _httpClient.GetAsync(url, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    return (false, 0, null, null, optionIds, response.StatusCode.ToString());
+                }
+
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                using var doc = JsonDocument.Parse(json);
+                var dataArray = TryGetPicklistDataArray(doc.RootElement);
+                if (!dataArray.HasValue || dataArray.Value.ValueKind != JsonValueKind.Array)
+                {
+                    return (false, 0, null, null, optionIds, "No data array returned.");
+                }
+
+                foreach (var option in dataArray.Value.EnumerateArray())
+                {
+                    if (!option.TryGetProperty("id", out var idProp) || !idProp.TryGetInt32(out var optionId))
+                    {
+                        continue;
+                    }
+
+                    optionIds.Add(optionId);
+                    if (!firstOptionId.HasValue)
+                    {
+                        firstOptionId = optionId;
+                        if (option.TryGetProperty("name", out var nameProp))
+                        {
+                            firstOptionName = nameProp.GetString();
+                        }
+                    }
+                }
+
+                if (optionIds.Count == 0)
+                {
+                    return (false, 0, null, null, optionIds, "No picklist option entries returned.");
+                }
+
+                return (true, optionIds.Count, firstOptionId, firstOptionName, optionIds, null);
+            }
+            catch (Exception ex)
+            {
+                return (false, 0, null, null, optionIds, ex.Message);
+            }
+        }
+
+        private async Task<Dictionary<string, int>> GetLookupFieldPicklistMappingsAsync(int itemTypeId, CancellationToken cancellationToken)
+        {
+            var mappings = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var endpoints = new[]
+            {
+                $"{_baseUrl}/rest/v1/itemtypes/{itemTypeId}",
+                $"{_baseUrl}/rest/v1/itemtypes/{itemTypeId}/fields"
+            };
+
+            foreach (var endpoint in endpoints)
+            {
+                try
+                {
+                    var response = await _httpClient.GetAsync(endpoint, cancellationToken);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        continue;
+                    }
+
+                    var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                    using var doc = JsonDocument.Parse(json);
+                    ExtractLookupFieldPicklistMappings(doc.RootElement, mappings, itemTypeId);
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Could not load lookup field mapping from '{endpoint}': {ex.Message}");
+                }
+            }
+
+            return mappings;
+        }
+
+        private static void ExtractLookupFieldPicklistMappings(JsonElement root, Dictionary<string, int> mappings, int itemTypeId)
+        {
+            if (root.ValueKind == JsonValueKind.Object)
+            {
+                if (root.TryGetProperty("data", out var dataProp))
+                {
+                    ExtractLookupFieldPicklistMappings(dataProp, mappings, itemTypeId);
+                }
+
+                if (root.TryGetProperty("fields", out var fieldsProp))
+                {
+                    ExtractLookupFieldPicklistMappings(fieldsProp, mappings, itemTypeId);
+                }
+
+                var fieldName = GetStringProperty(root, "fieldName")
+                    ?? GetStringProperty(root, "name")
+                    ?? GetStringProperty(root, "apiName")
+                    ?? GetStringProperty(root, "key");
+
+                var picklistId = GetIntProperty(root, "pickList")
+                    ?? GetIntProperty(root, "picklist")
+                    ?? GetIntProperty(root, "pickListId")
+                    ?? GetIntProperty(root, "picklistId")
+                    ?? GetIntProperty(root, "lookupType")
+                    ?? GetIntProperty(root, "lookupTypeId");
+
+                if (!string.IsNullOrWhiteSpace(fieldName) &&
+                    fieldName.StartsWith("lookup", StringComparison.OrdinalIgnoreCase) &&
+                    picklistId.HasValue &&
+                    picklistId.Value > 0)
+                {
+                    mappings[fieldName] = picklistId.Value;
+
+                    if (fieldName.EndsWith($"${itemTypeId}", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var bare = fieldName.Substring(0, fieldName.Length - (itemTypeId.ToString().Length + 1));
+                        if (!string.IsNullOrWhiteSpace(bare))
+                        {
+                            mappings[bare] = picklistId.Value;
+                        }
+                    }
+                }
+
+                foreach (var prop in root.EnumerateObject())
+                {
+                    ExtractLookupFieldPicklistMappings(prop.Value, mappings, itemTypeId);
+                }
+            }
+            else if (root.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var element in root.EnumerateArray())
+                {
+                    ExtractLookupFieldPicklistMappings(element, mappings, itemTypeId);
+                }
+            }
+        }
+
+        private static string? GetStringProperty(JsonElement element, string propertyName)
+        {
+            if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty(propertyName, out var prop))
+            {
+                return null;
+            }
+
+            return prop.ValueKind == JsonValueKind.String ? prop.GetString() : prop.ToString();
+        }
+
+        private static int? GetIntProperty(JsonElement element, string propertyName)
+        {
+            if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty(propertyName, out var prop))
+            {
+                return null;
+            }
+
+            if (prop.ValueKind == JsonValueKind.Number && prop.TryGetInt32(out var value))
+            {
+                return value;
+            }
+
+            if (prop.ValueKind == JsonValueKind.String && int.TryParse(prop.GetString(), out var parsed))
+            {
+                return parsed;
+            }
+
+            return null;
+        }
+
         public async Task<JamaLookupFieldProbeReport> ProbeRequirementLookupFieldsAsync(
             int projectId,
             int maxLookupFields = 20,
@@ -4885,6 +5065,7 @@ namespace TestCaseEditorApp.Services
                 report.RequirementItemTypeId = requirementItemTypeId.Value;
 
                 var defaultFields = await GetRequirementFieldDefaultsAsync(projectId, requirementItemTypeId.Value, cancellationToken);
+                var fieldPicklistMappings = await GetLookupFieldPicklistMappingsAsync(requirementItemTypeId.Value, cancellationToken);
                 var candidateFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
                 foreach (var field in defaultFields.Keys)
@@ -4895,9 +5076,17 @@ namespace TestCaseEditorApp.Services
                     }
                 }
 
-                for (var i = 1; i <= maxLookupFields; i++)
+                foreach (var field in fieldPicklistMappings.Keys)
                 {
-                    candidateFields.Add($"lookup{i}");
+                    candidateFields.Add(field);
+                }
+
+                if (candidateFields.Count == 0)
+                {
+                    for (var i = 1; i <= maxLookupFields; i++)
+                    {
+                        candidateFields.Add($"lookup{i}");
+                    }
                 }
 
                 foreach (var fieldName in candidateFields.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
@@ -4912,22 +5101,39 @@ namespace TestCaseEditorApp.Services
                         result.CurrentDefaultLookupId = TryExtractLookupId(defaultValue);
                     }
 
-                    var picklistResult = await GetPicklistOptionsForFieldAsync(projectId, requirementItemTypeId.Value, fieldName, cancellationToken);
-                    result.EndpointAvailable = picklistResult.EndpointAvailable;
-                    result.OptionCount = picklistResult.OptionCount;
-                    result.FirstOptionId = picklistResult.FirstOptionId;
-                    result.FirstOptionName = picklistResult.FirstOptionName;
-                    result.Error = picklistResult.Error;
-                    result.ResolvedFieldName = picklistResult.ResolvedFieldName;
+                    HashSet<int> optionIds;
 
-                    foreach (var optionId in picklistResult.OptionIds.Take(5))
+                    if (fieldPicklistMappings.TryGetValue(fieldName, out var picklistId) && picklistId > 0)
+                    {
+                        var picklistByIdResult = await GetPicklistOptionsByPicklistIdAsync(picklistId, cancellationToken);
+                        result.EndpointAvailable = picklistByIdResult.EndpointAvailable;
+                        result.OptionCount = picklistByIdResult.OptionCount;
+                        result.FirstOptionId = picklistByIdResult.FirstOptionId;
+                        result.FirstOptionName = picklistByIdResult.FirstOptionName;
+                        result.Error = picklistByIdResult.Error;
+                        result.ResolvedFieldName = $"{fieldName} -> picklist:{picklistId}";
+                        optionIds = picklistByIdResult.OptionIds;
+                    }
+                    else
+                    {
+                        var picklistResult = await GetPicklistOptionsForFieldAsync(projectId, requirementItemTypeId.Value, fieldName, cancellationToken);
+                        result.EndpointAvailable = picklistResult.EndpointAvailable;
+                        result.OptionCount = picklistResult.OptionCount;
+                        result.FirstOptionId = picklistResult.FirstOptionId;
+                        result.FirstOptionName = picklistResult.FirstOptionName;
+                        result.Error = picklistResult.Error;
+                        result.ResolvedFieldName = picklistResult.ResolvedFieldName;
+                        optionIds = picklistResult.OptionIds;
+                    }
+
+                    foreach (var optionId in optionIds.Take(5))
                     {
                         result.SampleOptionIds.Add(optionId);
                     }
 
                     if (result.CurrentDefaultLookupId.HasValue)
                     {
-                        result.IsCurrentDefaultValid = picklistResult.OptionIds.Contains(result.CurrentDefaultLookupId.Value);
+                        result.IsCurrentDefaultValid = optionIds.Contains(result.CurrentDefaultLookupId.Value);
                     }
 
                     report.Fields.Add(result);
