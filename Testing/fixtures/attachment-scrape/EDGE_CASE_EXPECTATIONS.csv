@@ -1,0 +1,25 @@
+CaseId,ExpectedExtract,ExpectedPersist,RiskCategory,Notes
+REQ-EDGE-001,Yes,Yes,baseline,Simple shall statement
+REQ-EDGE-002,Yes,Yes,baseline,Simple shall statement with numeric value
+REQ-EDGE-003,Yes,Yes,baseline,Simple audit statement
+REQ-EDGE-004,Yes,Yes,negation,Contains shall not
+REQ-EDGE-005,Yes,Yes,conditional,If-then condition
+REQ-EDGE-006,Yes,Yes,numeric-bound,Throughput lower bound
+REQ-EDGE-007,Yes,Yes,numeric-range,Explicit byte range
+REQ-EDGE-008,Yes,Yes,long-text,Long compound sentence
+REQ-EDGE-009,Yes,Yes,special-chars,Heavy punctuation and symbols
+REQ-EDGE-010,Yes,Yes,quoted-text,Embedded quoted status string
+REQ-EDGE-011,Yes,Yes,table-format,Pipe-delimited line
+REQ-EDGE-012,Yes,Yes,table-format,Pipe-delimited line
+REQ-EDGE-013,Yes,Yes,table-format,Pipe-delimited line
+REQ-EDGE-014,Yes,Yes,list-format,Enumerated sub-lines
+REQ-EDGE-015,Yes,Yes,list-format,Bulleted sub-lines
+NOTE-001,No,No,noise-filter,Explanatory note
+TODO,No,No,noise-filter,Task-style non-requirement
+QUESTION,No,No,noise-filter,Question-style non-requirement
+REQ-EDGE-016-A,Yes,Yes,duplicate-id,First duplicate ID instance
+REQ-EDGE-016-B,Yes,Yes,duplicate-id,Second duplicate ID instance
+REQ-EDGE-017,Yes,Yes,case-variant,Uppercase SHALL
+REQ-EDGE-018,Yes,Yes,identifier-case,Mixed-case identifier text
+REQ-EDGE-019,Yes,Yes,minimal-valid,Short valid requirement
+REQ-EDGE-020,Maybe,Maybe,partial-statement,Incomplete requirement phrase

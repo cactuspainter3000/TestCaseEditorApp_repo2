@@ -1,0 +1,96 @@
+ATTACHMENT SCRAPE TEST FIXTURE
+Version: 1.0
+Purpose: Exercise parser extraction and Jama requirement persistence with controlled edge cases.
+
+PROJECT CONTEXT
+- Intended use: Upload this file as a Jama attachment and run attachment parsing/import.
+- Expected behavior: Parser extracts requirement-like statements and save path persists each requirement.
+
+SECTION A - BASELINE REQUIREMENTS (SHOULD BE EASY)
+
+REQ-EDGE-001
+The system shall authenticate users with username and password.
+
+REQ-EDGE-002
+The system shall lock an account after 5 consecutive failed login attempts.
+
+REQ-EDGE-003
+The system shall record audit events for user login and logout actions.
+
+SECTION B - NEGATION, CONDITIONALS, AND NUMERIC BOUNDS
+
+REQ-EDGE-004
+The system shall not allow password reuse within the last 12 passwords.
+
+REQ-EDGE-005
+If network latency exceeds 200 ms for 30 seconds, the system shall display a degraded-mode warning.
+
+REQ-EDGE-006
+The system shall process at least 250 transactions per second under normal load.
+
+REQ-EDGE-007
+The system shall support payload sizes from 1 byte to 1048576 bytes inclusive.
+
+SECTION C - LONG FORM AND PUNCTUATION STRESS
+
+REQ-EDGE-008
+The system shall provide a searchable incident timeline that includes event timestamp, actor identifier, action verb, affected object, prior value, new value, and correlation ID for each state transition.
+
+REQ-EDGE-009
+The system shall preserve the following characters in stored requirement text: ! @ # $ % ^ & * ( ) [ ] { } < > / \\ : ; ' " , . ? - _ + = | ~.
+
+REQ-EDGE-010
+The system shall generate the status message "Ready - Awaiting operator input" when startup validation succeeds.
+
+SECTION D - TABLE-LIKE CONTENT (PARSE ROBUSTNESS)
+
+ID | REQUIREMENT
+REQ-EDGE-011 | The system shall encrypt data at rest using AES-256.
+REQ-EDGE-012 | The system shall encrypt data in transit using TLS 1.2 or higher.
+REQ-EDGE-013 | The system shall rotate service credentials every 90 days.
+
+SECTION E - LIST FORMAT VARIANTS
+
+REQ-EDGE-014
+1. The system shall support export to CSV.
+2. The system shall support export to JSON.
+3. The system shall support export to XML.
+
+REQ-EDGE-015
+- The system shall provide pagination for result sets larger than 100 records.
+- The system shall preserve sort order across page navigation.
+
+SECTION F - AMBIGUOUS OR NOISY CONTENT (FILTERING CHECK)
+
+NOTE-001
+This is explanatory text and should not necessarily be treated as a requirement.
+
+TODO
+Investigate whether legacy client integration remains in scope.
+
+QUESTION
+Should we support offline mode for mobile field operators?
+
+SECTION G - DUPLICATE-LIKE AND FORMAT EDGE CASES
+
+REQ-EDGE-016
+The system shall validate email addresses against RFC-compliant format rules.
+
+REQ-EDGE-016
+The system shall validate email addresses using a configurable policy profile.
+
+REQ-EDGE-017
+The system SHALL normalize repeated whitespace in imported text.
+
+REQ-EDGE-018
+The system shall support mixed case identifiers such as Req-Edge-018 and req-edge-018.
+
+SECTION H - MINIMAL CONTENT CASES
+
+REQ-EDGE-019
+The system shall log heartbeat status.
+
+REQ-EDGE-020
+The system shall
+
+END OF FIXTURE
