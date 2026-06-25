@@ -4952,11 +4952,20 @@ namespace TestCaseEditorApp.Services
             var nodes = new Dictionary<int, (int Id, string Name, int ItemType, int? ParentId)>();
             var startAt = 0;
             var hasMore = true;
+            const int pageSize = 50;
 
             while (hasMore)
             {
-                var url = $"{_baseUrl}/rest/v1/items?project={projectId}&maxResults=200&startAt={startAt}";
-                var response = await _httpClient.GetAsync(url, cancellationToken);
+                var includeUrl = $"{_baseUrl}/rest/v1/items?project={projectId}&maxResults={pageSize}&startAt={startAt}&include=createdBy,modifiedBy,createdDate,modifiedDate";
+                var basicUrl = $"{_baseUrl}/rest/v1/items?project={projectId}&maxResults={pageSize}&startAt={startAt}";
+
+                var response = await _httpClient.GetAsync(includeUrl, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    // Some Jama instances reject include/startAt combinations intermittently; retry with basic route.
+                    response = await _httpClient.GetAsync(basicUrl, cancellationToken);
+                }
+
                 if (!response.IsSuccessStatusCode)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Could not enumerate project items for {projectId}: {response.StatusCode}");
@@ -5028,7 +5037,7 @@ namespace TestCaseEditorApp.Services
                 }
                 else
                 {
-                    hasMore = pageCount >= 200;
+                    hasMore = pageCount >= pageSize;
                 }
             }
 
