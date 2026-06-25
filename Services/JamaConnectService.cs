@@ -4457,6 +4457,7 @@ namespace TestCaseEditorApp.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Requirement create failed for project {projectId}, itemType {itemTypeId.Value}: {response.StatusCode} - {errorContent}");
                     return (false, $"Failed to create requirement item: {response.StatusCode} - {errorContent}", null);
                 }
 
@@ -4544,7 +4545,9 @@ namespace TestCaseEditorApp.Services
 
                 foreach (var property in fieldsElement.EnumerateObject())
                 {
-                    if (property.Name.StartsWith("lookup", StringComparison.OrdinalIgnoreCase))
+                    // Jama custom required fields can be named lookup* or field* depending on project schema.
+                    if (property.Name.StartsWith("lookup", StringComparison.OrdinalIgnoreCase) ||
+                        property.Name.StartsWith("field", StringComparison.OrdinalIgnoreCase))
                     {
                         var converted = ConvertJsonElementToSerializableObject(property.Value);
                         if (converted != null)
