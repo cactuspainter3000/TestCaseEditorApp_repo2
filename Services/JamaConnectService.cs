@@ -3289,9 +3289,16 @@ namespace TestCaseEditorApp.Services
                         "Software Requirement",
                         "Hardware Requirement",
                         "User Requirement",
-                        "Req",
-                        "R"
+                        "Req"
                     };
+
+                    // Prefer the known Jama requirement item type ID when present.
+                    var knownRequirementType = itemTypes.FirstOrDefault(t => t.id == 193);
+                    if (knownRequirementType.id > 0)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Selected known requirement item type ID 193: Display='{knownRequirementType.display}', Key='{knownRequirementType.typeKey}'");
+                        return (true, knownRequirementType.id);
+                    }
 
                     foreach (var pattern in requirementPatterns)
                     {
@@ -3316,12 +3323,8 @@ namespace TestCaseEditorApp.Services
                         return (true, requirementContainingType.id);
                     }
 
-                    if (itemTypes.Count > 0)
-                    {
-                        var firstType = itemTypes.First();
-                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] No requirement-specific item type found. Using first available: ID={firstType.id}, Display='{firstType.display}'");
-                        return (true, firstType.id);
-                    }
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] No requirement item type found. Refusing to create requirements with ambiguous type mapping.");
+                    return (false, null);
                 }
 
                 TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] No item types found for requirements in project {projectId}");
