@@ -1383,6 +1383,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     .Concat(Directory.GetFiles(appLogDir, "*.txt")))
                 {
                     var fileName = Path.GetFileName(source);
+
+                    // Skip archived runtime logs and oversized artifacts that cannot be pushed to GitHub.
+                    if (fileName.StartsWith("app.old.", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    var fileInfo = new FileInfo(source);
+                    const long maxExportBytes = 80L * 1024L * 1024L; // keep below GitHub 100MB hard limit
+                    if (fileInfo.Length > maxExportBytes)
+                    {
+                        continue;
+                    }
+
                     var exportedFileName = fileName.EndsWith(".log", StringComparison.OrdinalIgnoreCase)
                         ? $"{fileName}.txt"
                         : fileName;
