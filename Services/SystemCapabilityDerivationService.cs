@@ -180,6 +180,14 @@ namespace TestCaseEditorApp.Services
                         : remainingBudget;
 
                     using var stepCts = new CancellationTokenSource(effectiveStepTimeout);
+                    using var heartbeatCts = new CancellationTokenSource();
+                    var heartbeatTask = EmitStepHeartbeatAsync(
+                        progressCallback,
+                        stepCounter,
+                        parsedSteps.Count,
+                        shortChatModelName,
+                        currentStepStopwatch,
+                        heartbeatCts.Token);
                     
                     try
                     {
@@ -240,6 +248,18 @@ namespace TestCaseEditorApp.Services
                         _logger.LogWarning(ex, "Failed to process ATP step: {Step}", parsedStep.StepText.Substring(0, Math.Min(100, parsedStep.StepText.Length)));
                         result.ProcessingWarnings.Add($"Failed to process step {parsedStep.StepNumber}: {ex.Message}");
                         progressCallback?.Invoke($"❌ Step {stepCounter}/{parsedSteps.Count} failed: {ex.Message.Substring(0, Math.Min(50, ex.Message.Length))} | current req: {FormatDuration(currentStepStopwatch.Elapsed)}");
+                    }
+                    finally
+                    {
+                        heartbeatCts.Cancel();
+                        try
+                        {
+                            await heartbeatTask;
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            // Expected when step completes and heartbeat is cancelled.
+                        }
                     }
                 }
 
@@ -324,6 +344,31 @@ namespace TestCaseEditorApp.Services
             filled = Math.Max(0, Math.Min(filled, width));
 
             return $"[{new string('#', filled)}{new string('-', width - filled)}]";
+        }
+
+        private static async Task EmitStepHeartbeatAsync(
+            Action<string>? progressCallback,
+            int stepCounter,
+            int totalSteps,
+            string shortChatModelName,
+            Stopwatch currentStepStopwatch,
+            CancellationToken cancellationToken)
+        {
+            if (progressCallback == null)
+            {
+                return;
+            }
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(20), cancellationToken);
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                progressCallback($"⏳ Derivation in progress: step {stepCounter}/{totalSteps} (chat={shortChatModelName}) | current req: {FormatDuration(currentStepStopwatch.Elapsed)}");
+            }
         }
 
         private static string GetConfiguredChatModel()
