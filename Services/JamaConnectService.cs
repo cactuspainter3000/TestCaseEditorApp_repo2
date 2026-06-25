@@ -4585,6 +4585,16 @@ namespace TestCaseEditorApp.Services
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
+            if (candidateFields.Count == 0 && lookupTypeId.HasValue)
+            {
+                var lookupMappings = await GetLookupFieldPicklistMappingsAsync(itemTypeId, cancellationToken);
+                candidateFields = lookupMappings
+                    .Where(kvp => kvp.Value == lookupTypeId.Value)
+                    .Select(kvp => kvp.Key)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+
             if (candidateFields.Count == 0 && fields.ContainsKey("lookup1"))
             {
                 candidateFields.Add("lookup1");
@@ -4614,6 +4624,8 @@ namespace TestCaseEditorApp.Services
 
             if (!repairedAny)
             {
+                TestCaseEditorApp.Services.Logging.Log.Warn(
+                    $"[JamaConnect] Could not repair lookup mismatch for '{requirementName}'. Invalid lookup id {invalidLookupId}, lookup type {(lookupTypeId?.ToString() ?? "unknown")}. Candidate fields: {string.Join(", ", candidateFields)}");
                 return (false, null, null, null);
             }
 
@@ -5328,10 +5340,7 @@ namespace TestCaseEditorApp.Services
                 return false;
             }
 
-            return message.Contains("Lookup id", StringComparison.OrdinalIgnoreCase)
-                && message.Contains("does not belong to lookup type", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("You must set the following required fields", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("No requirement item type found", StringComparison.OrdinalIgnoreCase)
+            return message.Contains("No requirement item type found", StringComparison.OrdinalIgnoreCase)
                 || message.Contains("Could not determine requirement item type", StringComparison.OrdinalIgnoreCase);
         }
 
