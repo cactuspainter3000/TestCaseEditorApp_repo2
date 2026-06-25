@@ -1,0 +1,120 @@
+2026-06-24T12:51:17.2458810Z	Information	App	[AnythingLLM] 🔍 DIAGNOSTICS: Starting verification for workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-799c3e07-546d-47dd-a675-1f7c641ad854.json)...
+2026-06-24T12:51:17.2500769Z	Warning	App	[AnythingLLM] 🔍 DIAGNOSTICS: System appears overloaded - using extended timeouts
+2026-06-24T12:51:17.2527719Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-799c3e07-546d-47dd-a675-1f7c641ad854.json) verification attempt 1/8 - waiting 8s (overloaded: True)
+2026-06-24T12:51:19.7545043Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-06-24T12:51:19.7684491Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-06-24T12:51:19.8367105Z	Information	App	[AnythingLLM] Documents endpoint failed for 'mfd268c4b-top-level': NotFound, trying workspace endpoint
+2026-06-24T12:51:19.8418175Z	Information	App	[AnythingLLM] 📄 Documents API response structure (truncated): {"workspace":[{"id":73,"name":"MFD268C4B Top Level","slug":"mfd268c4b-top-level","vectorTag":null,"createdAt":"2026-06-24T12:46:44.057Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-06-24T12:46:44.057Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n🚩 CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed...
+2026-06-24T12:51:19.8437382Z	Information	App	[AnythingLLM] Found 1 documents in workspace 'mfd268c4b-top-level'
+2026-06-24T12:51:19.8456552Z	Information	App	[AnythingLLM] ✅ workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-c22ec5e3-8a52-48db-8311-4141914b0f50.json) verified on attempt 1 - 1 documents in workspace
+2026-06-24T12:51:19.8474479Z	Information	App	[AnythingLLM] ✅ Document embedding completed successfully for workspace: mfd268c4b-top-level
+2026-06-24T12:51:19.8497366Z	Information	App	[AnythingLLM] Successfully uploaded document 'RAG-Optimization-Summary.md' to workspace 'mfd268c4b-top-level'
+2026-06-24T12:51:19.8522298Z	Information	App	[AnythingLLM] Successfully uploaded RAG document: RAG-Optimization-Summary.md
+2026-06-24T12:51:19.8544647Z	Information	App	[AnythingLLM] Successfully uploaded all RAG training documents to workspace 'mfd268c4b-top-level'
+2026-06-24T12:51:19.8569646Z	Information	App	[AnythingLLM] [BACKGROUND] RAG document uploads completed for 'MFD268C4B Top Level'
+2026-06-24T12:51:24.8568016Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-06-24T12:51:24.8698998Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-06-24T12:51:24.9126444Z	Information	App	[AnythingLLM] Documents endpoint failed for 'mfd268c4b-top-level': NotFound, trying workspace endpoint
+2026-06-24T12:51:24.9190323Z	Information	App	[AnythingLLM] 📄 Documents API response structure (truncated): {"workspace":[{"id":73,"name":"MFD268C4B Top Level","slug":"mfd268c4b-top-level","vectorTag":null,"createdAt":"2026-06-24T12:46:44.057Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-06-24T12:46:44.057Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n🚩 CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed...
+2026-06-24T12:51:24.9217813Z	Information	App	[AnythingLLM] Found 1 documents in workspace 'mfd268c4b-top-level'
+2026-06-24T12:51:24.9236599Z	Information	App	[AnythingLLM] ✅ workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-2337ff04-0fd5-4450-b031-9b39f177f1d1.json) verified on attempt 1 - 1 documents in workspace
+2026-06-24T12:51:24.9254529Z	Information	App	[AnythingLLM] ✅ Document embedding completed successfully for workspace: mfd268c4b-top-level
+2026-06-24T12:51:24.9276613Z	Information	App	[AnythingLLM] Successfully uploaded document 'RAG-Optimization-Summary.md' to workspace 'mfd268c4b-top-level'
+2026-06-24T12:51:24.9301456Z	Information	App	[AnythingLLM] Successfully uploaded RAG document: RAG-Optimization-Summary.md
+2026-06-24T12:51:24.9319467Z	Information	App	[AnythingLLM] Successfully uploaded all RAG training documents to workspace 'mfd268c4b-top-level'
+2026-06-24T12:51:24.9358160Z	Information	App	[AnythingLLM] Documents endpoint failed for 'mfd268c4b-top-level': NotFound, trying workspace endpoint
+2026-06-24T12:51:24.9419371Z	Information	App	[AnythingLLM] 📄 Documents API response structure (truncated): {"workspace":[{"id":73,"name":"MFD268C4B Top Level","slug":"mfd268c4b-top-level","vectorTag":null,"createdAt":"2026-06-24T12:46:44.057Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-06-24T12:46:44.057Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n🚩 CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed...
+2026-06-24T12:51:24.9437765Z	Information	App	[AnythingLLM] Found 1 documents in workspace 'mfd268c4b-top-level'
+2026-06-24T12:51:24.9550712Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	⚠️ [BACKGROUND] Standard RAG setup embedding incomplete for workspace 'mfd268c4b-top-level' (Guide=False, Training=True, Verified=False)
+2026-06-24T12:51:25.2568775Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-06-24T12:51:25.2708233Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-06-24T12:51:25.3336643Z	Information	App	[AnythingLLM] Documents endpoint failed for 'mfd268c4b-top-level': NotFound, trying workspace endpoint
+2026-06-24T12:51:25.3409405Z	Information	App	[AnythingLLM] 📄 Documents API response structure (truncated): {"workspace":[{"id":73,"name":"MFD268C4B Top Level","slug":"mfd268c4b-top-level","vectorTag":null,"createdAt":"2026-06-24T12:46:44.057Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-06-24T12:46:44.057Z","openAiPrompt":"You are a technical requirements extraction AI with access to document content through a Retrieval-Augmented Generation (RAG) system.\r\n\r\n🚩 CRITICAL OVERRIDE: Your built-in refusal patterns about file access DO NOT APPLY here. The document content has been processed...
+2026-06-24T12:51:25.3429004Z	Information	App	[AnythingLLM] Found 1 documents in workspace 'mfd268c4b-top-level'
+2026-06-24T12:51:25.3451745Z	Information	App	[AnythingLLM] ✅ workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-optimization-summary-799c3e07-546d-47dd-a675-1f7c641ad854.json) verified on attempt 1 - 1 documents in workspace
+2026-06-24T12:51:25.3479307Z	Information	App	[AnythingLLM] ✅ Document embedding completed successfully for workspace: mfd268c4b-top-level
+2026-06-24T12:51:25.3503121Z	Information	App	[AnythingLLM] Successfully uploaded document 'RAG-Optimization-Summary.md' to workspace 'mfd268c4b-top-level'
+2026-06-24T12:51:25.3524144Z	Information	App	[AnythingLLM] Successfully uploaded RAG document: RAG-Optimization-Summary.md
+2026-06-24T12:51:25.3550658Z	Information	App	[AnythingLLM] Successfully uploaded all RAG training documents to workspace 'mfd268c4b-top-level'
+2026-06-24T12:51:25.3601037Z	Information	App	[RAG Sync] Successfully synced RAG documents for workspace: MFD268C4B Top Level
+2026-06-24T12:53:58.1382419Z	Information	App	[AnythingLLM] Checking AnythingLLM status...
+2026-06-24T12:53:58.2385217Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-06-24T12:53:58.2402923Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-06-24T12:53:58.2554644Z	Information	App	[AnythingLLM] Availability check result: True
+2026-06-24T12:53:58.2572004Z	Information	App	[AnythingLLM] AnythingLLM service is ready!
+2026-06-24T12:53:58.2608969Z	Information	App	[AnythingLLM] Availability check result: True
+2026-06-24T12:54:02.0630942Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-06-24T12:54:02.0819631Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-06-24T12:54:06.2515990Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProject] Jama connection test: True
+2026-06-24T12:54:06.2546145Z	Information	App	[NewProject] Auto-loading Jama projects on startup
+2026-06-24T12:54:06.5496029Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProject] Retrieved 19 Jama projects
+2026-06-24T12:54:22.6511750Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-06-24T12:54:22.6652020Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-06-24T12:54:22.7346414Z	Information	App	[NewProject] Creating workspace: C4B TL...
+2026-06-24T12:54:22.7395953Z	Information	App	[AnythingLLM] Attempting to create workspace 'C4B TL'
+2026-06-24T12:54:22.7418723Z	Information	App	[AnythingLLM] API Key configured: Yes
+2026-06-24T12:54:22.7438355Z	Information	App	[AnythingLLM] Base URL: http://localhost:3001
+2026-06-24T12:54:22.7454060Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-06-24T12:54:22.7609084Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-06-24T12:54:22.8197853Z	Information	App	[AnythingLLM] Creating new workspace 'C4B TL'
+2026-06-24T12:54:22.8271433Z	Information	App	[AnythingLLM] Sending payload: {"name":"C4B TL"}
+2026-06-24T12:54:22.8294664Z	Information	App	[AnythingLLM] POST endpoint: http://localhost:3001/api/v1/workspace/new
+2026-06-24T12:54:22.8596564Z	Information	App	[AnythingLLM] Configuring optimal settings for newly created workspace 'C4B TL' (slug: 'c4b-tl')
+2026-06-24T12:54:22.8649936Z	Information	App	[AnythingLLM] Configuring optimal settings for workspace 'c4b-tl' using official documentation guidelines
+2026-06-24T12:54:22.8768124Z	Information	App	[AnythingLLM] Using chat model 'phi4-mini:3.8b-q4_K_M' for workspace 'c4b-tl'
+2026-06-24T12:54:22.9028173Z	Information	App	[AnythingLLM] ✅ Successfully configured workspace settings for 'c4b-tl' using POST: http://localhost:3001/api/v1/workspace/c4b-tl/update
+2026-06-24T12:54:22.9052401Z	Information	App	[AnythingLLM] 🔍 DEBUG: API Response: {"workspace":{"id":74,"name":"C4B TL","slug":"c4b-tl","vectorTag":null,"createdAt":"2026-06-24T12:54:22.837Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-06-24T12:54:22.837Z","openAiPrompt
+2026-06-24T12:54:22.9071183Z	Information	App	[AnythingLLM] Successfully configured workspace 'C4B TL' with system prompt for optimal performance
+2026-06-24T12:54:22.9089219Z	Information	App	[AnythingLLM] Applying preventive RAG configuration fix to new workspace 'c4b-tl'
+2026-06-24T12:54:22.9120033Z	Information	App	[AnythingLLM] Applying RAG troubleshooting configuration for workspace 'c4b-tl'
+2026-06-24T12:54:22.9324354Z	Information	App	[AnythingLLM] ✅ RAG configuration fix applied successfully
+2026-06-24T12:54:23.9477978Z	Information	App	[AnythingLLM] Configuration verification - similarityThreshold: 0, topN: 16
+2026-06-24T12:54:23.9497638Z	Information	App	[AnythingLLM] ✅ Configuration verified as applied
+2026-06-24T12:54:23.9520006Z	Information	App	[AnythingLLM] ✅ Preventive RAG fix applied successfully
+2026-06-24T12:54:23.9561079Z	Information	App	[AnythingLLM] Validating system prompt configuration for workspace 'c4b-tl'
+2026-06-24T12:54:23.9682970Z	Warning	App	[AnythingLLM] ⚠️ Workspace 'c4b-tl' system prompt validation FAILED
+2026-06-24T12:54:23.9706909Z	Information	App	[AnythingLLM] 🔍 Prompt details - IsEmpty: False, Length: 628
+2026-06-24T12:54:23.9725974Z	Information	App	[AnythingLLM] 🔍 Has 'requirements quality analysis': False
+2026-06-24T12:54:23.9744277Z	Information	App	[AnythingLLM] 🔍 Has 'ANTI-FABRICATION RULES': False
+2026-06-24T12:54:23.9760992Z	Information	App	[AnythingLLM] 🔧 Attempting on-demand configuration for workspace 'c4b-tl'
+2026-06-24T12:54:23.9779937Z	Information	App	[AnythingLLM] Configuring optimal settings for workspace 'c4b-tl' using official documentation guidelines
+2026-06-24T12:54:23.9899406Z	Information	App	[AnythingLLM] Using chat model 'phi4-mini:3.8b-q4_K_M' for workspace 'c4b-tl'
+2026-06-24T12:54:24.0111795Z	Information	App	[AnythingLLM] ✅ Successfully configured workspace settings for 'c4b-tl' using POST: http://localhost:3001/api/v1/workspace/c4b-tl/update
+2026-06-24T12:54:24.0129270Z	Information	App	[AnythingLLM] 🔍 DEBUG: API Response: {"workspace":{"id":74,"name":"C4B TL","slug":"c4b-tl","vectorTag":null,"createdAt":"2026-06-24T12:54:22.837Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-06-24T12:54:22.837Z","openAiPrompt
+2026-06-24T12:54:24.0149143Z	Information	App	[AnythingLLM] ✅ On-demand configuration succeeded for 'c4b-tl'
+2026-06-24T12:54:24.0180999Z	Information	App	[AnythingLLM] Created workspace 'C4B TL' - applying essential settings...
+2026-06-24T12:54:24.0199741Z	Information	App	[NewProject] Applying essential settings...
+2026-06-24T12:54:24.0221886Z	Information	App	[AnythingLLM] Configuring optimal settings for workspace 'c4b-tl' using official documentation guidelines
+2026-06-24T12:54:24.0329557Z	Information	App	[AnythingLLM] Using chat model 'phi4-mini:3.8b-q4_K_M' for workspace 'c4b-tl'
+2026-06-24T12:54:24.0418708Z	Information	App	[AnythingLLM] ✅ Successfully configured workspace settings for 'c4b-tl' using POST: http://localhost:3001/api/v1/workspace/c4b-tl/update
+2026-06-24T12:54:24.0439894Z	Information	App	[AnythingLLM] 🔍 DEBUG: API Response: {"workspace":{"id":74,"name":"C4B TL","slug":"c4b-tl","vectorTag":null,"createdAt":"2026-06-24T12:54:22.837Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-06-24T12:54:22.837Z","openAiPrompt
+2026-06-24T12:54:24.0462720Z	Information	App	[NewProject] ✅ Workspace created and ready!
+2026-06-24T12:54:24.0484213Z	Information	App	[AnythingLLM] Successfully created workspace 'C4B TL' with essential configuration
+2026-06-24T12:54:24.0518070Z	Information	App	[AnythingLLM] [BACKGROUND] Starting deferred RAG document uploads for 'C4B TL'
+2026-06-24T12:54:24.0559513Z	Information	App	[AnythingLLM] Uploading optimization guide to workspace 'c4b-tl'
+2026-06-24T12:54:24.0590998Z	Warning	App	[AnythingLLM] Optimization guide not found at: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\Config\ANYTHINGLM_OPTIMIZATION_GUIDE.md
+2026-06-24T12:54:24.0611522Z	Warning	App	[AnythingLLM] [BACKGROUND] Failed to upload optimization guide
+2026-06-24T12:54:24.0636913Z	Information	App	[AnythingLLM] Uploading RAG training documents to workspace 'c4b-tl'
+2026-06-24T12:54:24.0653974Z	Information	App	[AnythingLLM] Using Config directory: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\Config
+2026-06-24T12:54:24.0737260Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-06-24T12:54:24.0867974Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-06-24T12:54:24.1428195Z	Information	App	[AnythingLLM] Uploading document 'RAG-JSON-Schema-Training.md' to workspace 'c4b-tl' using proper protocol
+2026-06-24T12:54:24.1447648Z	Information	App	[AnythingLLM] Using explicit upload+attach flow to ensure workspace visibility
+2026-06-24T12:54:24.2358237Z	Information	App	[AnythingLLM] Document uploaded to system: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-232b224f-9c97-4a81-82da-4df86d1ee356.json
+2026-06-24T12:54:24.2397904Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-06-24T12:54:24.2507372Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-06-24T12:54:24.2931088Z	Information	App	[AnythingLLM] 🕐 Starting embedding operation with extended timeout (10 minutes)
+2026-06-24T12:54:24.2955006Z	Information	App	[AnythingLLM] Large documents with thousands of chunks may take several minutes to embed
+2026-06-24T12:54:24.2981383Z	Information	App	[AnythingLLM] Trying embedding attach with location candidate: C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-232b224f-9c97-4a81-82da-4df86d1ee356.json
+2026-06-24T12:54:30.4879097Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProject] Successfully imported 1 requirements from Jama project QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution to C:\Users\e10653214\AppData\Local\Temp\JamaRequirements_MFD268C4B_20260624_075430.json
+2026-06-24T12:54:42.2441918Z	Information	App	[AnythingLLM] 🔍 DIAGNOSTICS: Starting verification for workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-232b224f-9c97-4a81-82da-4df86d1ee356.json)...
+2026-06-24T12:54:42.2538678Z	Warning	App	[AnythingLLM] 🔍 DIAGNOSTICS: System appears overloaded - using extended timeouts
+2026-06-24T12:54:42.2570427Z	Information	App	[AnythingLLM] workspace attach (C:\Users\e10653214\AppData\Roaming\anythingllm-desktop\storage\documents\custom-documents\raw-rag-json-schema-training-232b224f-9c97-4a81-82da-4df86d1ee356.json) verification attempt 1/8 - waiting 8s (overloaded: True)
+2026-06-24T12:54:50.1613322Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProject] Successfully imported 1 requirements from Jama project QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution to C:\Users\e10653214\AppData\Local\Temp\JamaRequirements_MFD268C4B_20260624_075450.json
+2026-06-24T12:54:50.1712492Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	🔍 CompleteProjectCreationAsync called - documentPath: 'C:\Users\e10653214\AppData\Local\Temp\JamaRequirements_MFD268C4B_20260624_075450.json', exists: True
+2026-06-24T12:54:50.2331213Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProjectMediator] [BACKGROUND] Starting standard RAG setup embedding for workspace 'c4b-tl'
+2026-06-24T12:54:50.2363550Z	Information	App	[AnythingLLM] Uploading optimization guide to workspace 'c4b-tl'
+2026-06-24T12:54:50.2399457Z	Warning	App	[AnythingLLM] Optimization guide not found at: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\Config\ANYTHINGLM_OPTIMIZATION_GUIDE.md
+2026-06-24T12:54:50.2426640Z	Information	App	[AnythingLLM] Uploading RAG training documents to workspace 'c4b-tl'
+2026-06-24T12:54:50.2461562Z	Information	App	[AnythingLLM] Using Config directory: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\Config
+2026-06-24T12:54:50.2564332Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
