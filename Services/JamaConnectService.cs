@@ -4481,7 +4481,7 @@ namespace TestCaseEditorApp.Services
 
                 await SanitizeLookupDefaultsForCreateAsync(fields, itemTypeId.Value, cancellationToken);
 
-                var effectiveParentContainerId = await ResolvePreferredRequirementPlacementContainerAsync(projectId, preferredParentContainerId, cancellationToken);
+                var effectiveParentContainerId = await ResolvePreferredRequirementPlacementContainerAsync(projectId, itemTypeId.Value, preferredParentContainerId, cancellationToken);
 
                 object requestBody;
                 if (effectiveParentContainerId.HasValue && effectiveParentContainerId.Value > 0)
@@ -4813,7 +4813,7 @@ namespace TestCaseEditorApp.Services
             return (false, null, null, null);
         }
 
-        private async Task<int?> ResolvePreferredRequirementPlacementContainerAsync(int projectId, int? fallbackParentContainerId, CancellationToken cancellationToken)
+        private async Task<int?> ResolvePreferredRequirementPlacementContainerAsync(int projectId, int requirementItemTypeId, int? fallbackParentContainerId, CancellationToken cancellationToken)
         {
             if (_requirementPlacementContainerCache.TryGetValue(projectId, out var cachedContainerId))
             {
@@ -4832,6 +4832,13 @@ namespace TestCaseEditorApp.Services
                 }
             }
 
+            var createdOrFoundContainerId = await EnsurePreferredRequirementContainerExistsAsync(projectId, requirementItemTypeId, cancellationToken);
+            if (createdOrFoundContainerId.HasValue)
+            {
+                _requirementPlacementContainerCache[projectId] = createdOrFoundContainerId.Value;
+                return createdOrFoundContainerId.Value;
+            }
+
             if (fallbackParentContainerId.HasValue && fallbackParentContainerId.Value > 0)
             {
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Falling back to provided requirement container {fallbackParentContainerId.Value} for project {projectId}.");
@@ -4841,95 +4848,203 @@ namespace TestCaseEditorApp.Services
             return null;
         }
 
+        private async Task<int?> EnsurePreferredRequirementContainerExistsAsync(int projectId, int requirementItemTypeId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var nodes = await LoadProjectItemNodesAsync(projectId, cancellationToken);
+                if (nodes.Count == 0)
+                {
+                    return null;
+                }
+
+                var systemsNode = nodes.Values
+                    .Where(n => n.Name.Contains("systems", StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(n => n.ParentId.HasValue ? 1 : 0)
+                    .ThenBy(n => n.Id)
+                    .FirstOrDefault();
+
+                if (systemsNode.Id == 0)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Could not find 'Systems' component in project {projectId}; cannot auto-create preferred requirement path.");
+                    return null;
+                }
+
+                var requirementsNode = nodes.Values
+                    .Where(n => n.ParentId == systemsNode.Id && n.Name.Equals("Requirements", StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(n => n.Id)
+                    .FirstOrDefault();
+
+                int? requirementsParentId = requirementsNode.Id > 0 ? requirementsNode.Id : null;
+                if (!requirementsParentId.HasValue)
+                {
+                    requirementsParentId = await CreateContainerItemAsync(projectId, 55, "Requirements", systemsNode.Id, cancellationToken);
+                    if (!requirementsParentId.HasValue)
+                    {
+                        return null;
+                    }
+
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Auto-created 'Requirements' container under 'Systems' (ID {requirementsParentId.Value}).");
+                }
+
+                var testNode = nodes.Values
+                    .Where(n => n.ParentId == requirementsParentId.Value && n.Name.Equals("test", StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(n => n.Id)
+                    .FirstOrDefault();
+
+                if (testNode.Id > 0)
+                {
+                    return testNode.Id;
+                }
+
+                var createdTestId = await CreateContainerItemAsync(projectId, requirementItemTypeId, "test", requirementsParentId.Value, cancellationToken);
+                if (createdTestId.HasValue)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Auto-created preferred requirement container 'test' (ID {createdTestId.Value}) under 'Systems/Requirements'.");
+                }
+
+                return createdTestId;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed ensuring preferred requirement container path: {ex.Message}");
+                return null;
+            }
+        }
+
+        private async Task<int?> CreateContainerItemAsync(int projectId, int itemTypeId, string name, int parentId, CancellationToken cancellationToken)
+        {
+            var body = new
+            {
+                project = projectId,
+                itemType = itemTypeId,
+                location = new
+                {
+                    parent = parentId
+                },
+                fields = new
+                {
+                    name
+                }
+            };
+
+            var json = JsonSerializer.Serialize(body);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync($"{_baseUrl}/rest/v1/items", content, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync(cancellationToken);
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to create container '{name}' (itemType {itemTypeId}) under parent {parentId}: {response.StatusCode} - {error}");
+                return null;
+            }
+
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            var created = JsonSerializer.Deserialize<JamaCreateItemResponse>(responseContent, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            return created?.Id > 0 ? created.Id : null;
+        }
+
+        private async Task<Dictionary<int, (int Id, string Name, int ItemType, int? ParentId)>> LoadProjectItemNodesAsync(int projectId, CancellationToken cancellationToken)
+        {
+            var nodes = new Dictionary<int, (int Id, string Name, int ItemType, int? ParentId)>();
+            var startAt = 0;
+            var hasMore = true;
+
+            while (hasMore)
+            {
+                var url = $"{_baseUrl}/rest/v1/items?project={projectId}&maxResults=200&startAt={startAt}";
+                var response = await _httpClient.GetAsync(url, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Could not enumerate project items for {projectId}: {response.StatusCode}");
+                    break;
+                }
+
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                using var doc = JsonDocument.Parse(json);
+                if (!doc.RootElement.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
+                {
+                    break;
+                }
+
+                var pageCount = 0;
+                foreach (var item in data.EnumerateArray())
+                {
+                    pageCount++;
+                    if (!item.TryGetProperty("id", out var idProp) || !idProp.TryGetInt32(out var id))
+                    {
+                        continue;
+                    }
+
+                    if (!item.TryGetProperty("itemType", out var itemTypeProp) || !itemTypeProp.TryGetInt32(out var itemType))
+                    {
+                        continue;
+                    }
+
+                    string name = string.Empty;
+                    int? parentId = null;
+
+                    if (item.TryGetProperty("fields", out var fieldsObj) && fieldsObj.ValueKind == JsonValueKind.Object)
+                    {
+                        if (fieldsObj.TryGetProperty("name", out var nameProp))
+                        {
+                            name = nameProp.GetString() ?? string.Empty;
+                        }
+
+                        if (fieldsObj.TryGetProperty("parentId", out var parentIdProp) && parentIdProp.TryGetInt32(out var parsedParentId))
+                        {
+                            parentId = parsedParentId;
+                        }
+                    }
+
+                    if (!parentId.HasValue &&
+                        item.TryGetProperty("location", out var locationObj) && locationObj.ValueKind == JsonValueKind.Object &&
+                        locationObj.TryGetProperty("parent", out var parentObj) && parentObj.ValueKind == JsonValueKind.Object &&
+                        parentObj.TryGetProperty("item", out var parentItemProp) && parentItemProp.TryGetInt32(out var parentItemId))
+                    {
+                        parentId = parentItemId;
+                    }
+
+                    nodes[id] = (id, string.IsNullOrWhiteSpace(name) ? $"Item {id}" : name, itemType, parentId);
+                }
+
+                if (pageCount == 0)
+                {
+                    break;
+                }
+
+                startAt += pageCount;
+                if (doc.RootElement.TryGetProperty("meta", out var metaObj) &&
+                    metaObj.ValueKind == JsonValueKind.Object &&
+                    metaObj.TryGetProperty("pageInfo", out var pageInfo) &&
+                    pageInfo.ValueKind == JsonValueKind.Object &&
+                    pageInfo.TryGetProperty("totalResults", out var totalResultsProp) &&
+                    totalResultsProp.TryGetInt32(out var totalResults))
+                {
+                    hasMore = startAt < totalResults;
+                }
+                else
+                {
+                    hasMore = pageCount >= 200;
+                }
+            }
+
+            return nodes;
+        }
+
         private async Task<List<(int Id, string Name, int Score)>> GetRequirementContainerCandidatesAsync(int projectId, CancellationToken cancellationToken)
         {
             var candidates = new List<(int Id, string Name, int Score)>();
 
             try
             {
-                var nodes = new Dictionary<int, (int Id, string Name, int ItemType, int? ParentId)>();
-                var startAt = 0;
-                var hasMore = true;
-
-                while (hasMore)
+                var nodes = await LoadProjectItemNodesAsync(projectId, cancellationToken);
+                if (nodes.Count == 0)
                 {
-                    var url = $"{_baseUrl}/rest/v1/items?project={projectId}&maxResults=200&startAt={startAt}";
-                    var response = await _httpClient.GetAsync(url, cancellationToken);
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Could not discover requirement containers for project {projectId}: {response.StatusCode}");
-                        return candidates;
-                    }
-
-                    var json = await response.Content.ReadAsStringAsync(cancellationToken);
-                    using var doc = JsonDocument.Parse(json);
-                    if (!doc.RootElement.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
-                    {
-                        break;
-                    }
-
-                    var pageCount = 0;
-                    foreach (var item in data.EnumerateArray())
-                    {
-                        pageCount++;
-
-                        if (!item.TryGetProperty("id", out var idProp) || !idProp.TryGetInt32(out var id))
-                        {
-                            continue;
-                        }
-
-                        if (!item.TryGetProperty("itemType", out var itemTypeProp) || !itemTypeProp.TryGetInt32(out var itemType))
-                        {
-                            continue;
-                        }
-
-                        string name = string.Empty;
-                        int? parentId = null;
-
-                        if (item.TryGetProperty("fields", out var fieldsObj) && fieldsObj.ValueKind == JsonValueKind.Object)
-                        {
-                            if (fieldsObj.TryGetProperty("name", out var nameProp))
-                            {
-                                name = nameProp.GetString() ?? string.Empty;
-                            }
-
-                            if (fieldsObj.TryGetProperty("parentId", out var parentIdProp) && parentIdProp.TryGetInt32(out var parsedParentId))
-                            {
-                                parentId = parsedParentId;
-                            }
-                        }
-
-                        if (!parentId.HasValue &&
-                            item.TryGetProperty("location", out var locationObj) && locationObj.ValueKind == JsonValueKind.Object &&
-                            locationObj.TryGetProperty("parent", out var parentObj) && parentObj.ValueKind == JsonValueKind.Object &&
-                            parentObj.TryGetProperty("item", out var parentItemProp) && parentItemProp.TryGetInt32(out var parentItemId))
-                        {
-                            parentId = parentItemId;
-                        }
-
-                        nodes[id] = (id, string.IsNullOrWhiteSpace(name) ? $"Item {id}" : name, itemType, parentId);
-                    }
-
-                    if (pageCount == 0)
-                    {
-                        break;
-                    }
-
-                    startAt += pageCount;
-
-                    if (doc.RootElement.TryGetProperty("meta", out var metaObj) &&
-                        metaObj.ValueKind == JsonValueKind.Object &&
-                        metaObj.TryGetProperty("pageInfo", out var pageInfo) &&
-                        pageInfo.ValueKind == JsonValueKind.Object &&
-                        pageInfo.TryGetProperty("totalResults", out var totalResultsProp) &&
-                        totalResultsProp.TryGetInt32(out var totalResults))
-                    {
-                        hasMore = startAt < totalResults;
-                    }
-                    else
-                    {
-                        hasMore = pageCount >= 200;
-                    }
+                    return candidates;
                 }
 
                 foreach (var node in nodes.Values)
