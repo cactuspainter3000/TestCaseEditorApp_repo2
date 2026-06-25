@@ -46,6 +46,7 @@ namespace TestCaseEditorApp.Services
         private readonly CookieContainer _cookieContainer;
         private readonly Dictionary<string, Dictionary<string, object?>> _requirementFieldDefaultsCache = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<int, int> _requirementItemTypeCache = new();
+        private readonly Dictionary<int, int> _requirementPlacementContainerCache = new();
         
         public bool IsConfigured => !string.IsNullOrEmpty(_baseUrl) && 
             (!string.IsNullOrEmpty(_apiToken) || 
@@ -4480,8 +4481,10 @@ namespace TestCaseEditorApp.Services
 
                 await SanitizeLookupDefaultsForCreateAsync(fields, itemTypeId.Value, cancellationToken);
 
+                var effectiveParentContainerId = await ResolvePreferredRequirementPlacementContainerAsync(projectId, preferredParentContainerId, cancellationToken);
+
                 object requestBody;
-                if (preferredParentContainerId.HasValue && preferredParentContainerId.Value > 0)
+                if (effectiveParentContainerId.HasValue && effectiveParentContainerId.Value > 0)
                 {
                     requestBody = new
                     {
@@ -4489,7 +4492,7 @@ namespace TestCaseEditorApp.Services
                         itemType = itemTypeId.Value,
                         location = new
                         {
-                            parent = preferredParentContainerId.Value
+                            parent = effectiveParentContainerId.Value
                         },
                         fields
                     };
@@ -4547,7 +4550,7 @@ namespace TestCaseEditorApp.Services
                         requirementName,
                         description,
                         fields,
-                        preferredParentContainerId,
+                        effectiveParentContainerId,
                         errorContent,
                         cancellationToken);
 
@@ -4810,63 +4813,157 @@ namespace TestCaseEditorApp.Services
             return (false, null, null, null);
         }
 
+        private async Task<int?> ResolvePreferredRequirementPlacementContainerAsync(int projectId, int? fallbackParentContainerId, CancellationToken cancellationToken)
+        {
+            if (_requirementPlacementContainerCache.TryGetValue(projectId, out var cachedContainerId))
+            {
+                return cachedContainerId;
+            }
+
+            var candidates = await GetRequirementContainerCandidatesAsync(projectId, cancellationToken);
+            if (candidates.Count > 0)
+            {
+                var topCandidate = candidates[0];
+                if (topCandidate.Score >= 200)
+                {
+                    _requirementPlacementContainerCache[projectId] = topCandidate.Id;
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Using hierarchy-preferred requirement container {topCandidate.Id} ('{topCandidate.Name}') for project {projectId}.");
+                    return topCandidate.Id;
+                }
+            }
+
+            if (fallbackParentContainerId.HasValue && fallbackParentContainerId.Value > 0)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Falling back to provided requirement container {fallbackParentContainerId.Value} for project {projectId}.");
+                return fallbackParentContainerId.Value;
+            }
+
+            return null;
+        }
+
         private async Task<List<(int Id, string Name, int Score)>> GetRequirementContainerCandidatesAsync(int projectId, CancellationToken cancellationToken)
         {
             var candidates = new List<(int Id, string Name, int Score)>();
 
             try
             {
-                var url = $"{_baseUrl}/rest/v1/items?project={projectId}&maxResults=200";
-                var response = await _httpClient.GetAsync(url, cancellationToken);
-                if (!response.IsSuccessStatusCode)
+                var nodes = new Dictionary<int, (int Id, string Name, int ItemType, int? ParentId)>();
+                var startAt = 0;
+                var hasMore = true;
+
+                while (hasMore)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Could not discover requirement containers for project {projectId}: {response.StatusCode}");
-                    return candidates;
+                    var url = $"{_baseUrl}/rest/v1/items?project={projectId}&maxResults=200&startAt={startAt}";
+                    var response = await _httpClient.GetAsync(url, cancellationToken);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Could not discover requirement containers for project {projectId}: {response.StatusCode}");
+                        return candidates;
+                    }
+
+                    var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                    using var doc = JsonDocument.Parse(json);
+                    if (!doc.RootElement.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
+                    {
+                        break;
+                    }
+
+                    var pageCount = 0;
+                    foreach (var item in data.EnumerateArray())
+                    {
+                        pageCount++;
+
+                        if (!item.TryGetProperty("id", out var idProp) || !idProp.TryGetInt32(out var id))
+                        {
+                            continue;
+                        }
+
+                        if (!item.TryGetProperty("itemType", out var itemTypeProp) || !itemTypeProp.TryGetInt32(out var itemType))
+                        {
+                            continue;
+                        }
+
+                        string name = string.Empty;
+                        int? parentId = null;
+
+                        if (item.TryGetProperty("fields", out var fieldsObj) && fieldsObj.ValueKind == JsonValueKind.Object)
+                        {
+                            if (fieldsObj.TryGetProperty("name", out var nameProp))
+                            {
+                                name = nameProp.GetString() ?? string.Empty;
+                            }
+
+                            if (fieldsObj.TryGetProperty("parentId", out var parentIdProp) && parentIdProp.TryGetInt32(out var parsedParentId))
+                            {
+                                parentId = parsedParentId;
+                            }
+                        }
+
+                        if (!parentId.HasValue &&
+                            item.TryGetProperty("location", out var locationObj) && locationObj.ValueKind == JsonValueKind.Object &&
+                            locationObj.TryGetProperty("parent", out var parentObj) && parentObj.ValueKind == JsonValueKind.Object &&
+                            parentObj.TryGetProperty("item", out var parentItemProp) && parentItemProp.TryGetInt32(out var parentItemId))
+                        {
+                            parentId = parentItemId;
+                        }
+
+                        nodes[id] = (id, string.IsNullOrWhiteSpace(name) ? $"Item {id}" : name, itemType, parentId);
+                    }
+
+                    if (pageCount == 0)
+                    {
+                        break;
+                    }
+
+                    startAt += pageCount;
+
+                    if (doc.RootElement.TryGetProperty("meta", out var metaObj) &&
+                        metaObj.ValueKind == JsonValueKind.Object &&
+                        metaObj.TryGetProperty("pageInfo", out var pageInfo) &&
+                        pageInfo.ValueKind == JsonValueKind.Object &&
+                        pageInfo.TryGetProperty("totalResults", out var totalResultsProp) &&
+                        totalResultsProp.TryGetInt32(out var totalResults))
+                    {
+                        hasMore = startAt < totalResults;
+                    }
+                    else
+                    {
+                        hasMore = pageCount >= 200;
+                    }
                 }
 
-                var json = await response.Content.ReadAsStringAsync(cancellationToken);
-                using var doc = JsonDocument.Parse(json);
-                if (!doc.RootElement.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
+                foreach (var node in nodes.Values)
                 {
-                    return candidates;
-                }
-
-                foreach (var item in data.EnumerateArray())
-                {
-                    if (!item.TryGetProperty("id", out var idProp) || !idProp.TryGetInt32(out var id))
+                    // Folder (55), Set (54), and explicit 'test' requirement items are all potential containers.
+                    if (node.ItemType != 55 && node.ItemType != 54 && !node.Name.Equals("test", StringComparison.OrdinalIgnoreCase))
                     {
                         continue;
                     }
 
-                    if (!item.TryGetProperty("itemType", out var itemTypeProp) || !itemTypeProp.TryGetInt32(out var itemType))
-                    {
-                        continue;
-                    }
+                    var lower = node.Name.ToLowerInvariant();
+                    var ancestry = BuildAncestry(nodes, node.Id)
+                        .Select(a => a.ToLowerInvariant())
+                        .ToList();
 
-                    // Folder (55) and Set (54) are typical Jama containers.
-                    if (itemType != 55 && itemType != 54)
-                    {
-                        continue;
-                    }
+                    var hasSystemsInPath = ancestry.Any(a => a.Contains("systems"));
+                    var hasRequirementsInPath = ancestry.Any(a => a.Contains("requirements"));
+                    var hasSoftwareInPath = ancestry.Any(a => a.Contains("software"));
+                    var hasHardwareInPath = ancestry.Any(a => a.Contains("hardware"));
 
-                    var name = string.Empty;
-                    if (item.TryGetProperty("fields", out var fieldsObj) &&
-                        fieldsObj.ValueKind == JsonValueKind.Object &&
-                        fieldsObj.TryGetProperty("name", out var nameProp))
-                    {
-                        name = nameProp.GetString() ?? string.Empty;
-                    }
-
-                    var lower = name.ToLowerInvariant();
                     var score = 0;
+                    if (lower.Equals("test")) score += 350;
+                    if (hasSystemsInPath) score += 180;
+                    if (hasRequirementsInPath) score += 180;
                     if (lower.Contains("requirement")) score += 120;
                     if (lower.Contains("system")) score += 20;
                     if (lower.Contains("spec")) score += 20;
-                    if (lower.Contains("test") || lower.Contains("verification") || lower.Contains("procedure") || lower.Contains("case")) score -= 100;
+                    if (!lower.Equals("test") && (lower.Contains("test") || lower.Contains("verification") || lower.Contains("procedure") || lower.Contains("case"))) score -= 100;
+                    if (hasSoftwareInPath && !hasSystemsInPath) score -= 50;
+                    if (hasHardwareInPath && !hasSystemsInPath) score -= 50;
                     if (lower.Contains("artifact") || lower.Contains("drawing") || lower.Contains("document")) score -= 60;
 
                     // Keep broad candidates but rank requirement-like containers first.
-                    candidates.Add((id, string.IsNullOrWhiteSpace(name) ? $"Container {id}" : name, score));
+                    candidates.Add((node.Id, node.Name, score));
                 }
 
                 candidates = candidates
@@ -4886,6 +4983,26 @@ namespace TestCaseEditorApp.Services
             }
 
             return candidates;
+        }
+
+        private static List<string> BuildAncestry(Dictionary<int, (int Id, string Name, int ItemType, int? ParentId)> nodes, int startId)
+        {
+            var ancestry = new List<string>();
+            var visited = new HashSet<int>();
+            var currentId = startId;
+
+            while (nodes.TryGetValue(currentId, out var current) && visited.Add(currentId))
+            {
+                ancestry.Add(current.Name);
+                if (!current.ParentId.HasValue)
+                {
+                    break;
+                }
+
+                currentId = current.ParentId.Value;
+            }
+
+            return ancestry;
         }
 
         private async Task<int?> GetFirstPicklistOptionIdAsync(int projectId, int itemTypeId, string fieldName, CancellationToken cancellationToken)
