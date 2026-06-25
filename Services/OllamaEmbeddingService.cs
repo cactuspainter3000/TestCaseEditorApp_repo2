@@ -22,6 +22,7 @@ namespace TestCaseEditorApp.Services
         private readonly string _embeddingModel;
         private readonly int _embeddingDimensions;
         private static readonly ConcurrentDictionary<string, int> _modelMaxChars = new();
+        private readonly ConcurrentDictionary<string, DateTime> _knownUnavailableModels = new(StringComparer.OrdinalIgnoreCase);
         private int _calibratedMaxChars = 0;
 
         public OllamaEmbeddingService(string embeddingModel = "nomic-embed-text:latest", HttpClient? http = null)
@@ -71,6 +72,11 @@ namespace TestCaseEditorApp.Services
             {
                 foreach (var model in GetCandidateModels())
                 {
+                    if (IsModelTemporarilyUnavailable(model))
+                    {
+                        continue;
+                    }
+
                     foreach (var request in CreateRequestVariants(model, text))
                     {
                         using var response = await _http.PostAsync(request.Endpoint,
@@ -84,6 +90,11 @@ namespace TestCaseEditorApp.Services
 
                             if (response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.BadRequest)
                             {
+                                if (errorContent.Contains("not found", StringComparison.OrdinalIgnoreCase) ||
+                                    errorContent.Contains("model", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    MarkModelUnavailable(model);
+                                }
                                 continue;
                             }
 
@@ -131,18 +142,101 @@ namespace TestCaseEditorApp.Services
 
         private IEnumerable<string> GetCandidateModels()
         {
-            yield return _embeddingModel;
+            var yielded = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            bool YieldIfNew(string model)
+            {
+                if (string.IsNullOrWhiteSpace(model))
+                {
+                    return false;
+                }
+
+                var normalized = model.Trim();
+                if (yielded.Contains(normalized))
+                {
+                    return false;
+                }
+
+                yielded.Add(normalized);
+                return true;
+            }
+
+            if (YieldIfNew(_embeddingModel))
+            {
+                yield return _embeddingModel.Trim();
+            }
 
             if (_embeddingModel.EndsWith(":latest", StringComparison.OrdinalIgnoreCase))
             {
-                yield return _embeddingModel[.._embeddingModel.LastIndexOf(':')];
+                var nonLatest = _embeddingModel[.._embeddingModel.LastIndexOf(':')];
+                if (YieldIfNew(nonLatest))
+                {
+                    yield return nonLatest;
+                }
             }
 
-            if (_embeddingModel.Contains("nomic-embed-text", StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(_embeddingModel, "nomic-embed-text", StringComparison.OrdinalIgnoreCase))
+            if (_embeddingModel.Contains("nomic-embed-text", StringComparison.OrdinalIgnoreCase))
             {
-                yield return "nomic-embed-text";
+                if (YieldIfNew("nomic-embed-text"))
+                {
+                    yield return "nomic-embed-text";
+                }
+
+                // Commonly available fallback on managed laptops where nomic pull is blocked.
+                if (YieldIfNew("mxbai-embed-large:335m-v1-fp16"))
+                {
+                    yield return "mxbai-embed-large:335m-v1-fp16";
+                }
+
+                if (YieldIfNew("mxbai-embed-large"))
+                {
+                    yield return "mxbai-embed-large";
+                }
             }
+
+            if (_embeddingModel.Contains("mxbai-embed-large", StringComparison.OrdinalIgnoreCase))
+            {
+                if (YieldIfNew("mxbai-embed-large:335m-v1-fp16"))
+                {
+                    yield return "mxbai-embed-large:335m-v1-fp16";
+                }
+
+                if (YieldIfNew("mxbai-embed-large"))
+                {
+                    yield return "mxbai-embed-large";
+                }
+
+                if (YieldIfNew("nomic-embed-text:latest"))
+                {
+                    yield return "nomic-embed-text:latest";
+                }
+
+                if (YieldIfNew("nomic-embed-text"))
+                {
+                    yield return "nomic-embed-text";
+                }
+            }
+        }
+
+        private bool IsModelTemporarilyUnavailable(string model)
+        {
+            if (!_knownUnavailableModels.TryGetValue(model, out var markedAt))
+            {
+                return false;
+            }
+
+            var stillUnavailable = DateTime.UtcNow - markedAt < TimeSpan.FromMinutes(10);
+            if (!stillUnavailable)
+            {
+                _knownUnavailableModels.TryRemove(model, out _);
+            }
+
+            return stillUnavailable;
+        }
+
+        private void MarkModelUnavailable(string model)
+        {
+            _knownUnavailableModels[model] = DateTime.UtcNow;
         }
 
         private IEnumerable<(string Endpoint, string PayloadJson)> CreateRequestVariants(string model, string text)
