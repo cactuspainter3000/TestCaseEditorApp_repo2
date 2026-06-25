@@ -1377,7 +1377,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     copiedAny = true;
                 }
 
-                foreach (var source in Directory.GetFiles(appLogDir, "*.log"))
+                // Collect both .log files AND diagnostic .txt files (e.g., attachment-parse-failure.txt)
+                foreach (var source in Directory.GetFiles(appLogDir, "*.log")
+                    .Concat(Directory.GetFiles(appLogDir, "*.txt")))
                 {
                     var fileName = Path.GetFileName(source);
                     var destination = Path.Combine(stagingDir, $"{new DirectoryInfo(appLogDir).Name}-{fileName}");
