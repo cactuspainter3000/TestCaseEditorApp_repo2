@@ -4867,23 +4867,8 @@ namespace TestCaseEditorApp.Services
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Auto-created 'Requirements' container under 'Systems' (ID {requirementsParentId.Value}).");
                 }
 
-                var testNode = nodes.Values
-                    .Where(n => n.ParentId == requirementsParentId.Value && n.Name.Equals("test", StringComparison.OrdinalIgnoreCase))
-                    .OrderBy(n => n.Id)
-                    .FirstOrDefault();
-
-                if (testNode.Id > 0)
-                {
-                    return testNode.Id;
-                }
-
-                var createdTestId = await CreateContainerItemAsync(projectId, requirementItemTypeId, "test", requirementsParentId.Value, cancellationToken);
-                if (createdTestId.HasValue)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Auto-created preferred requirement container 'test' (ID {createdTestId.Value}) under 'Systems/Requirements'.");
-                }
-
-                return createdTestId;
+                // Requirements should be created directly under Systems/Requirements.
+                return requirementsParentId.Value;
             }
             catch (Exception ex)
             {
@@ -5126,8 +5111,8 @@ namespace TestCaseEditorApp.Services
 
                 foreach (var node in nodes.Values)
                 {
-                    // Folder (55), Set (54), and explicit 'test' requirement items are all potential containers.
-                    if (node.ItemType != 55 && node.ItemType != 54 && !node.Name.Equals("test", StringComparison.OrdinalIgnoreCase))
+                    // Folder (55) and Set (54) are preferred requirement containers.
+                    if (node.ItemType != 55 && node.ItemType != 54)
                     {
                         continue;
                     }
@@ -5143,13 +5128,13 @@ namespace TestCaseEditorApp.Services
                     var hasHardwareInPath = ancestry.Any(a => a.Contains("hardware"));
 
                     var score = 0;
-                    if (lower.Equals("test")) score += 350;
                     if (hasSystemsInPath) score += 180;
                     if (hasRequirementsInPath) score += 180;
                     if (lower.Contains("requirement")) score += 120;
+                    if (lower.Equals("requirements")) score += 160;
                     if (lower.Contains("system")) score += 20;
                     if (lower.Contains("spec")) score += 20;
-                    if (!lower.Equals("test") && (lower.Contains("test") || lower.Contains("verification") || lower.Contains("procedure") || lower.Contains("case"))) score -= 100;
+                    if (lower.Contains("test") || lower.Contains("verification") || lower.Contains("procedure") || lower.Contains("case")) score -= 140;
                     if (hasSoftwareInPath && !hasSystemsInPath) score -= 50;
                     if (hasHardwareInPath && !hasSystemsInPath) score -= 50;
                     if (lower.Contains("artifact") || lower.Contains("drawing") || lower.Contains("document")) score -= 60;
