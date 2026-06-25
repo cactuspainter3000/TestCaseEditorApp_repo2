@@ -4585,7 +4585,7 @@ namespace TestCaseEditorApp.Services
             var repairedAny = false;
             foreach (var fieldName in candidateFields)
             {
-                var replacementId = await GetFirstPicklistOptionIdAsync(projectId, fieldName, cancellationToken);
+                var replacementId = await GetFirstPicklistOptionIdAsync(projectId, itemTypeId, fieldName, cancellationToken);
                 if (!replacementId.HasValue)
                 {
                     continue;
@@ -4634,38 +4634,92 @@ namespace TestCaseEditorApp.Services
             return (false, null, null, null);
         }
 
-        private async Task<int?> GetFirstPicklistOptionIdAsync(int projectId, string fieldName, CancellationToken cancellationToken)
+        private async Task<int?> GetFirstPicklistOptionIdAsync(int projectId, int itemTypeId, string fieldName, CancellationToken cancellationToken)
         {
-            try
+            var picklistResult = await GetPicklistOptionsForFieldAsync(projectId, itemTypeId, fieldName, cancellationToken);
+            if (!picklistResult.EndpointAvailable)
             {
-                var url = $"{_baseUrl}/rest/v1/projects/{projectId}/picklistoptions?filteredField={fieldName}";
-                var response = await _httpClient.GetAsync(url, cancellationToken);
-                if (!response.IsSuccessStatusCode)
-                {
-                    return null;
-                }
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to load picklist options for field '{fieldName}': {picklistResult.Error}");
+            }
 
-                var json = await response.Content.ReadAsStringAsync(cancellationToken);
-                using var doc = JsonDocument.Parse(json);
-                if (!doc.RootElement.TryGetProperty("data", out var dataArray) || dataArray.ValueKind != JsonValueKind.Array)
-                {
-                    return null;
-                }
+            return picklistResult.FirstOptionId;
+        }
 
-                foreach (var option in dataArray.EnumerateArray())
+        private async Task<(bool EndpointAvailable, int OptionCount, int? FirstOptionId, string? FirstOptionName, HashSet<int> OptionIds, string? Error, string ResolvedFieldName)> GetPicklistOptionsForFieldAsync(
+            int projectId,
+            int itemTypeId,
+            string fieldName,
+            CancellationToken cancellationToken)
+        {
+            var optionIds = new HashSet<int>();
+            int? firstOptionId = null;
+            string? firstOptionName = null;
+            string? lastError = null;
+
+            foreach (var candidateField in BuildPicklistFieldCandidates(fieldName, itemTypeId))
+            {
+                try
                 {
-                    if (option.TryGetProperty("id", out var idProp) && idProp.TryGetInt32(out var optionId))
+                    var url = $"{_baseUrl}/rest/v1/projects/{projectId}/picklistoptions?filteredField={candidateField}";
+                    var response = await _httpClient.GetAsync(url, cancellationToken);
+                    if (!response.IsSuccessStatusCode)
                     {
-                        return optionId;
+                        lastError = response.StatusCode.ToString();
+                        continue;
                     }
+
+                    var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                    using var doc = JsonDocument.Parse(json);
+                    if (!doc.RootElement.TryGetProperty("data", out var dataArray) || dataArray.ValueKind != JsonValueKind.Array)
+                    {
+                        lastError = "No data array returned.";
+                        continue;
+                    }
+
+                    foreach (var option in dataArray.EnumerateArray())
+                    {
+                        if (!option.TryGetProperty("id", out var idProp) || !idProp.TryGetInt32(out var optionId))
+                        {
+                            continue;
+                        }
+
+                        optionIds.Add(optionId);
+                        if (!firstOptionId.HasValue)
+                        {
+                            firstOptionId = optionId;
+                            if (option.TryGetProperty("name", out var nameProp))
+                            {
+                                firstOptionName = nameProp.GetString();
+                            }
+                        }
+                    }
+
+                    return (true, optionIds.Count, firstOptionId, firstOptionName, optionIds, null, candidateField);
+                }
+                catch (Exception ex)
+                {
+                    lastError = ex.Message;
                 }
             }
-            catch (Exception ex)
+
+            return (false, 0, null, null, optionIds, lastError ?? "NotFound", fieldName);
+        }
+
+        private static IEnumerable<string> BuildPicklistFieldCandidates(string fieldName, int itemTypeId)
+        {
+            var candidates = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(fieldName))
             {
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to load picklist options for field '{fieldName}': {ex.Message}");
+                candidates.Add(fieldName);
+
+                if (itemTypeId > 0 && !fieldName.Contains("$", StringComparison.Ordinal))
+                {
+                    candidates.Add($"{fieldName}${itemTypeId}");
+                }
             }
 
-            return null;
+            return candidates.Distinct(StringComparer.OrdinalIgnoreCase);
         }
 
         public async Task<JamaLookupFieldProbeReport> ProbeRequirementLookupFieldsAsync(
@@ -4733,63 +4787,22 @@ namespace TestCaseEditorApp.Services
                         result.CurrentDefaultLookupId = TryExtractLookupId(defaultValue);
                     }
 
-                    try
+                    var picklistResult = await GetPicklistOptionsForFieldAsync(projectId, requirementItemTypeId.Value, fieldName, cancellationToken);
+                    result.EndpointAvailable = picklistResult.EndpointAvailable;
+                    result.OptionCount = picklistResult.OptionCount;
+                    result.FirstOptionId = picklistResult.FirstOptionId;
+                    result.FirstOptionName = picklistResult.FirstOptionName;
+                    result.Error = picklistResult.Error;
+                    result.ResolvedFieldName = picklistResult.ResolvedFieldName;
+
+                    foreach (var optionId in picklistResult.OptionIds.Take(5))
                     {
-                        var url = $"{_baseUrl}/rest/v1/projects/{projectId}/picklistoptions?filteredField={fieldName}";
-                        var response = await _httpClient.GetAsync(url, cancellationToken);
-                        if (!response.IsSuccessStatusCode)
-                        {
-                            result.EndpointAvailable = false;
-                            result.Error = $"{response.StatusCode}";
-                            report.Fields.Add(result);
-                            continue;
-                        }
-
-                        result.EndpointAvailable = true;
-
-                        var json = await response.Content.ReadAsStringAsync(cancellationToken);
-                        using var doc = JsonDocument.Parse(json);
-                        if (!doc.RootElement.TryGetProperty("data", out var dataArray) || dataArray.ValueKind != JsonValueKind.Array)
-                        {
-                            result.Error = "No data array returned.";
-                            report.Fields.Add(result);
-                            continue;
-                        }
-
-                        var optionIds = new HashSet<int>();
-                        foreach (var option in dataArray.EnumerateArray())
-                        {
-                            if (!option.TryGetProperty("id", out var idProp) || !idProp.TryGetInt32(out var optionId))
-                            {
-                                continue;
-                            }
-
-                            optionIds.Add(optionId);
-                            if (result.FirstOptionId == null)
-                            {
-                                result.FirstOptionId = optionId;
-                                if (option.TryGetProperty("name", out var nameProp))
-                                {
-                                    result.FirstOptionName = nameProp.GetString();
-                                }
-                            }
-
-                            if (result.SampleOptionIds.Count < 5)
-                            {
-                                result.SampleOptionIds.Add(optionId);
-                            }
-                        }
-
-                        result.OptionCount = optionIds.Count;
-                        if (result.CurrentDefaultLookupId.HasValue)
-                        {
-                            result.IsCurrentDefaultValid = optionIds.Contains(result.CurrentDefaultLookupId.Value);
-                        }
+                        result.SampleOptionIds.Add(optionId);
                     }
-                    catch (Exception fieldEx)
+
+                    if (result.CurrentDefaultLookupId.HasValue)
                     {
-                        result.EndpointAvailable = false;
-                        result.Error = fieldEx.Message;
+                        result.IsCurrentDefaultValid = picklistResult.OptionIds.Contains(result.CurrentDefaultLookupId.Value);
                     }
 
                     report.Fields.Add(result);
@@ -5721,6 +5734,7 @@ namespace TestCaseEditorApp.Services
     public class JamaLookupFieldProbeResult
     {
         public string FieldName { get; set; } = string.Empty;
+        public string? ResolvedFieldName { get; set; }
         public bool EndpointAvailable { get; set; }
         public int OptionCount { get; set; }
         public int? FirstOptionId { get; set; }
