@@ -4571,7 +4571,7 @@ namespace TestCaseEditorApp.Services
                 }
 
                 var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                if (TryExtractCreatedItemInfo(responseContent, out var createdId, out var documentKey, out var globalId))
+                if (TryExtractCreatedItemInfo(response, responseContent, out var createdId, out var documentKey, out var globalId))
                 {
                     requirement.ApiId = createdId.ToString();
                     if (!string.IsNullOrWhiteSpace(documentKey))
@@ -4588,6 +4588,12 @@ namespace TestCaseEditorApp.Services
                     return (true, "Requirement created successfully", createdId);
                 }
 
+                var truncated = string.IsNullOrWhiteSpace(responseContent)
+                    ? "<empty>"
+                    : responseContent.Length <= 400
+                        ? responseContent
+                        : responseContent.Substring(0, 400) + "...";
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Could not extract created requirement ID. Response body sample: {truncated}");
                 return (false, "Failed to parse response from requirement creation", null);
             }
             catch (Exception ex)
@@ -4722,7 +4728,7 @@ namespace TestCaseEditorApp.Services
             }
 
             var retryResponseContent = await retryResponse.Content.ReadAsStringAsync(cancellationToken);
-            if (TryExtractCreatedItemInfo(retryResponseContent, out var retryCreatedId, out var retryDocumentKey, out var retryGlobalId))
+            if (TryExtractCreatedItemInfo(retryResponse, retryResponseContent, out var retryCreatedId, out var retryDocumentKey, out var retryGlobalId))
             {
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Requirement '{requirementName}' created after lookup field repair.");
                 return (true, retryCreatedId, retryDocumentKey, retryGlobalId);
@@ -4783,7 +4789,7 @@ namespace TestCaseEditorApp.Services
                 }
 
                 var retryResponseContent = await retryResponse.Content.ReadAsStringAsync(cancellationToken);
-                if (TryExtractCreatedItemInfo(retryResponseContent, out var retryCreatedId, out var retryDocumentKey, out var retryGlobalId))
+                if (TryExtractCreatedItemInfo(retryResponse, retryResponseContent, out var retryCreatedId, out var retryDocumentKey, out var retryGlobalId))
                 {
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Requirement '{requirementName}' created in discovered container {candidate.Id} ('{candidate.Name}').");
                     return (true, retryCreatedId, retryDocumentKey, retryGlobalId);
@@ -4904,7 +4910,27 @@ namespace TestCaseEditorApp.Services
             }
 
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            return TryExtractCreatedItemInfo(responseContent, out var createdId, out _, out _) ? createdId : null;
+            return TryExtractCreatedItemInfo(response, responseContent, out var createdId, out _, out _) ? createdId : null;
+        }
+
+        private static bool TryExtractCreatedItemInfo(HttpResponseMessage response, string responseContent, out int id, out string? documentKey, out string? globalId)
+        {
+            if (TryExtractCreatedItemInfo(responseContent, out id, out documentKey, out globalId))
+            {
+                return true;
+            }
+
+            if (TryExtractCreatedItemIdFromResponseHeaders(response, out id))
+            {
+                documentKey = null;
+                globalId = null;
+                return true;
+            }
+
+            id = 0;
+            documentKey = null;
+            globalId = null;
+            return false;
         }
 
         private static bool TryExtractCreatedItemInfo(string responseContent, out int id, out string? documentKey, out string? globalId)
@@ -4932,6 +4958,13 @@ namespace TestCaseEditorApp.Services
                     }
 
                     if (element.TryGetProperty("id", out var idProp) && idProp.TryGetInt32(out parsedId))
+                    {
+                        return parsedId > 0;
+                    }
+
+                    if (element.TryGetProperty("id", out idProp) &&
+                        idProp.ValueKind == JsonValueKind.String &&
+                        int.TryParse(idProp.GetString(), out parsedId))
                     {
                         return parsedId > 0;
                     }
@@ -4998,6 +5031,60 @@ namespace TestCaseEditorApp.Services
             }
 
             return false;
+        }
+
+        private static bool TryExtractCreatedItemIdFromResponseHeaders(HttpResponseMessage response, out int createdId)
+        {
+            createdId = 0;
+
+            if (response.Headers.Location != null && TryExtractTrailingNumber(response.Headers.Location.ToString(), out createdId))
+            {
+                return createdId > 0;
+            }
+
+            if (response.Content?.Headers?.ContentLocation != null &&
+                TryExtractTrailingNumber(response.Content.Headers.ContentLocation.ToString(), out createdId))
+            {
+                return createdId > 0;
+            }
+
+            foreach (var headerName in new[] { "X-Resource-Id", "X-Item-Id" })
+            {
+                if (!response.Headers.TryGetValues(headerName, out var values))
+                {
+                    continue;
+                }
+
+                var value = values.FirstOrDefault();
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    continue;
+                }
+
+                if (int.TryParse(value, out createdId) && createdId > 0)
+                {
+                    return true;
+                }
+
+                if (TryExtractTrailingNumber(value, out createdId) && createdId > 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryExtractTrailingNumber(string value, out int number)
+        {
+            number = 0;
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            var match = Regex.Match(value, @"(\d+)(?!.*\d)");
+            return match.Success && int.TryParse(match.Groups[1].Value, out number) && number > 0;
         }
 
         private async Task<Dictionary<int, (int Id, string Name, int ItemType, int? ParentId)>> LoadProjectItemNodesAsync(int projectId, CancellationToken cancellationToken)
