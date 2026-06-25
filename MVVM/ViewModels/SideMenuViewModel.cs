@@ -1377,12 +1377,16 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     copiedAny = true;
                 }
 
-                // Collect both .log files AND diagnostic .txt files (e.g., attachment-parse-failure.txt)
+                // Collect both .log files and diagnostic .txt files.
+                // Persist .log content with a .txt destination so exported repo artifacts are not excluded by .gitignore.
                 foreach (var source in Directory.GetFiles(appLogDir, "*.log")
                     .Concat(Directory.GetFiles(appLogDir, "*.txt")))
                 {
                     var fileName = Path.GetFileName(source);
-                    var destination = Path.Combine(stagingDir, $"{new DirectoryInfo(appLogDir).Name}-{fileName}");
+                    var exportedFileName = fileName.EndsWith(".log", StringComparison.OrdinalIgnoreCase)
+                        ? $"{fileName}.txt"
+                        : fileName;
+                    var destination = Path.Combine(stagingDir, $"{new DirectoryInfo(appLogDir).Name}-{exportedFileName}");
                     File.Copy(source, destination, overwrite: true);
                     copiedAny = true;
                 }
