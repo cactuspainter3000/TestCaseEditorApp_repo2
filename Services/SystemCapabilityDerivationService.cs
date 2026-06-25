@@ -1193,6 +1193,24 @@ namespace TestCaseEditorApp.Services
                     return null;
                 }
 
+                var sourceRequirementText = GetString("sourceRequirementText", "sourceRequirement", "sourceText", "uutRequirementText");
+                var sourceRequirementClassification = GetString("sourceRequirementClassification", "sourceClassification", "sourceType");
+                var derivedRequirementClassification = GetString("derivedRequirementClassification", "classification", "derivedType");
+
+                var sourceMetadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                if (!string.IsNullOrWhiteSpace(sourceRequirementText))
+                {
+                    sourceMetadata["SourceRequirementText"] = sourceRequirementText;
+                }
+                if (!string.IsNullOrWhiteSpace(sourceRequirementClassification))
+                {
+                    sourceMetadata["SourceRequirementClassification"] = sourceRequirementClassification;
+                }
+                if (!string.IsNullOrWhiteSpace(derivedRequirementClassification))
+                {
+                    sourceMetadata["DerivedRequirementClassification"] = derivedRequirementClassification;
+                }
+
                 return new DerivedCapability
                 {
                     Id = Guid.NewGuid().ToString(),
@@ -1201,7 +1219,8 @@ namespace TestCaseEditorApp.Services
                     TaxonomyCategory = GetString("category", "taxonomyCategory", "taxonomy", "taxon") ?? "Unknown",
                     TaxonomySubcategory = GetString("subcategory", "taxonomySubcategory", "taxonomyCode") ?? "",
                     ConfidenceScore = GetConfidence(),
-                    SourceATPStep = GetString("source", "sourceATPStep", "sourceStep", "atpStep") ?? ""
+                    SourceATPStep = GetString("source", "sourceATPStep", "sourceStep", "atpStep") ?? "",
+                    SourceMetadata = sourceMetadata
                 };
             }
             catch (Exception ex)

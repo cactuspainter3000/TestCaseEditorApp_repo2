@@ -89,6 +89,29 @@ namespace TestCaseEditorApp.Prompts
             sb.AppendLine();
 
             sb.AppendLine($"SYSTEM TYPE: {systemType}");
+            var systemBoundary = derivationOptions?.SourceMetadata != null &&
+                                 derivationOptions.SourceMetadata.TryGetValue("SystemBoundary", out var boundary)
+                ? boundary
+                : "System under analysis";
+            var sourceRequirementType = derivationOptions?.SourceMetadata != null &&
+                                        derivationOptions.SourceMetadata.TryGetValue("SourceRequirementType", out var sourceType)
+                ? sourceType
+                : "Source requirement";
+            var derivationMode = derivationOptions?.SourceMetadata != null &&
+                                 derivationOptions.SourceMetadata.TryGetValue("DerivationMode", out var mode)
+                ? mode
+                : "Standard";
+            sb.AppendLine($"SYSTEM BOUNDARY: {systemBoundary}");
+            sb.AppendLine($"SOURCE REQUIREMENT TYPE: {sourceRequirementType}");
+            sb.AppendLine($"DERIVATION MODE: {derivationMode}");
+            sb.AppendLine();
+
+            sb.AppendLine("BOUNDARY-AWARE DERIVATION RULES:");
+            sb.AppendLine("- Treat statements about the UUT (for example, 'The MFD shall...') as SOURCE requirements.");
+            sb.AppendLine("- Derive requirements for the TEST SOLUTION, not for the UUT implementation.");
+            sb.AppendLine("- Derived requirements should start with 'The test solution shall...' when applicable.");
+            sb.AppendLine("- Preserve traceability by including the source statement in each derived capability.");
+            sb.AppendLine("- If a statement is only a test procedure/operator step, classify it as Verification/Procedure.");
             sb.AppendLine();
 
             // CRITICAL: Include RAG context if available
@@ -146,7 +169,10 @@ namespace TestCaseEditorApp.Prompts
             sb.AppendLine("{");
             sb.AppendLine("  \"derivedCapabilities\": [");
             sb.AppendLine("    {");
-            sb.AppendLine("      \"requirementText\": \"The system shall provide [specific capability]\",");
+            sb.AppendLine("      \"sourceRequirementText\": \"Original source/UUT requirement text\",");
+            sb.AppendLine("      \"sourceRequirementClassification\": \"Source/UUT Requirement|Verification/Procedure|Unknown\",");
+            sb.AppendLine("      \"requirementText\": \"The test solution shall [specific capability]\",");
+            sb.AppendLine("      \"derivedRequirementClassification\": \"Test Solution System Requirement|Test Software Requirement|Test Hardware/Station Requirement|Verification Requirement|Unknown\",");
             sb.AppendLine("      \"taxonomyCategory\": \"A1|A2|A3|A4|B1|B2|B3|C1|C2|C3|D1|D2|D3|E1|E2|E3|F1|F2|F3|G1|G2|G3|H1|H2|I1|I2|J1|J2|K1|N1\",");
             sb.AppendLine("      \"derivationRationale\": \"Why this capability is needed for the ATP step\",");
             sb.AppendLine("      \"confidenceScore\": 0.85");
@@ -156,7 +182,8 @@ namespace TestCaseEditorApp.Prompts
             sb.AppendLine();
             sb.AppendLine("CRITICAL INSTRUCTIONS:");
             sb.AppendLine("- Return ONLY this JSON structure");
-            sb.AppendLine("- Each capability MUST start with 'The system shall'");
+            sb.AppendLine("- Each derived test-solution requirement SHOULD start with 'The test solution shall'");
+            sb.AppendLine("- Do not restate UUT behavior as if it were a test-solution implementation requirement");
             sb.AppendLine("- Use ONLY the taxonomy categories listed above");
             sb.AppendLine("- If NO capabilities can be derived, return: {\"derivedCapabilities\": []}");
             sb.AppendLine("- Do NOT return analysis objects, explanations, or alternative formats");

@@ -1953,13 +1953,17 @@ Extract all legitimate requirements:";
                         ["PreScanNonEmptyLines"] = preScan.NonEmptyLineCount.ToString(),
                         ["PreScanFileSizeKb"] = preScan.FileSizeKb.ToString("F0"),
                         ["AdaptiveBudgetSeconds"] = ((int)preScan.RecommendedMaxProcessingTime.TotalSeconds).ToString(),
-                        ["AdaptivePerStepTimeoutSeconds"] = ((int)preScan.RecommendedPerStepTimeout.TotalSeconds).ToString()
+                        ["AdaptivePerStepTimeoutSeconds"] = ((int)preScan.RecommendedPerStepTimeout.TotalSeconds).ToString(),
+                        ["SystemBoundary"] = "Test Solution (station hardware/software)",
+                        ["SourceRequirementType"] = "UUT ATR requirement",
+                        ["DerivationMode"] = "TwoStageBoundaryAware",
+                        ["DerivationIntent"] = "Derive test-solution verification requirements from MFD ATR source requirements"
                     }
                 };
 
                 // Use the 5-phase ATP derivation system to analyze the document content
                 progressCallback?.Invoke(
-                    $"🧠 Running AI-powered requirement derivation on {documentContent.Length:N0} characters " +
+                    $"🧠 Running two-stage AI derivation on {documentContent.Length:N0} characters " +
                     $"with adaptive budget {FormatDurationCompact(preScan.RecommendedMaxProcessingTime)} " +
                     $"(per-step timeout {FormatDurationCompact(preScan.RecommendedPerStepTimeout)})...");
                 
@@ -2204,12 +2208,41 @@ Extract all legitimate requirements:";
                     }
                 };
 
+                var sourceClassification = capability.SourceMetadata != null &&
+                                           capability.SourceMetadata.TryGetValue("SourceRequirementClassification", out var sourceClass)
+                    ? sourceClass
+                    : "Source/UUT Requirement";
+
+                var derivedClassification = capability.SourceMetadata != null &&
+                                            capability.SourceMetadata.TryGetValue("DerivedRequirementClassification", out var derivedClass)
+                    ? derivedClass
+                    : "Test Solution System Requirement";
+
+                if (capability.SourceMetadata != null &&
+                    capability.SourceMetadata.TryGetValue("SourceRequirementText", out var sourceRequirementText) &&
+                    !string.IsNullOrWhiteSpace(sourceRequirementText))
+                {
+                    requirement.Rationale = string.Concat(
+                        requirement.Rationale,
+                        "\n\n**Source Requirement:** ",
+                        sourceRequirementText.Trim());
+                }
+
+                requirement.Rationale = string.Concat(
+                    requirement.Rationale,
+                    "\n\n**Source Classification:** ", sourceClassification,
+                    "\n\n**Derived Classification:** ", derivedClassification);
+
+                requirement.RequirementType = derivedClassification;
+
                 if (!string.IsNullOrWhiteSpace(structuredMetadata.TestType))
                 {
                     requirement.VerificationMethodText = structuredMetadata.TestType;
                 }
 
                 var robustTags = new List<string> { "Derived" };
+                robustTags.Add($"SourceClass:{sourceClassification.Replace(' ', '_')}");
+                robustTags.Add($"DerivedClass:{derivedClassification.Replace(' ', '_')}");
                 if (!string.IsNullOrWhiteSpace(capability.TaxonomyCategory))
                 {
                     robustTags.Add($"Taxonomy:{capability.TaxonomyCategory}");
