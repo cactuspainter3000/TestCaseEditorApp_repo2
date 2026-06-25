@@ -129,6 +129,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         public ICommand ExportAllToJamaCommand { get; private set; } = null!;
         public ICommand ExportForChatGptCommand { get; private set; } = null!;
         public ICommand ExportAnalysisLogsCommand { get; private set; } = null!;
+        public ICommand ProbeJamaLookupFieldsCommand { get; private set; } = null!;
         public ICommand DemoStateManagementCommand { get; private set; } = null!;
 
         // Availability properties
@@ -234,6 +235,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             ExportForChatGptCommand = new AsyncRelayCommand(NavigateToTestCaseGeneratorAsync); // Navigate to test case generator for export
             ExportAllToJamaCommand = new AsyncRelayCommand(ExportAllToJamaAsync);
             ExportAnalysisLogsCommand = new AsyncRelayCommand(ExportAnalysisLogsAsync);
+            ProbeJamaLookupFieldsCommand = new AsyncRelayCommand(ProbeJamaLookupFieldsAsync);
             
             // Demo command for testing state management
             DemoStateManagementCommand = new RelayCommand(DemoStateManagement);
@@ -909,7 +911,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                                     new MenuAction { Id = "project.open", Text = "Open Project", Icon = "📂", Command = OpenProjectCommand },
                                     new MenuAction { Id = "project.save", Text = "Save Project", Icon = "💾", Command = SaveProjectCommand },
                                     new MenuAction { Id = "project.unload", Text = "Unload Project", Icon = "📤", Command = UnloadProjectCommand },
-                                    new MenuAction { Id = "project.export-logs", Text = "Export Analysis Logs (Zip)", Icon = "🧰", Command = ExportAnalysisLogsCommand }
+                                    new MenuAction { Id = "project.export-logs", Text = "Export Analysis Logs (Zip)", Icon = "🧰", Command = ExportAnalysisLogsCommand },
+                                    new MenuAction { Id = "project.probe-jama-lookups", Text = "Probe Jama Lookup Fields", Icon = "🔎", Command = ProbeJamaLookupFieldsCommand }
                                 }
                             },
                             new MenuAction
@@ -1267,6 +1270,114 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 MessageBox.Show(
                     $"Failed to export logs: {ex.Message}",
                     "Export Analysis Logs",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+        private async Task ProbeJamaLookupFieldsAsync()
+        {
+            try
+            {
+                _logger?.LogInformation("[SideMenuVM] Starting Jama lookup field probe");
+
+                var (connectionSuccess, connectionMessage) = await _jamaConnectService.TestConnectionAsync();
+                if (!connectionSuccess)
+                {
+                    MessageBox.Show(
+                        $"Failed to connect to Jama before lookup probe.\n\n{connectionMessage}",
+                        "Jama Lookup Probe",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                    return;
+                }
+
+                var projects = await _jamaConnectService.GetProjectsAsync();
+                if (projects == null || projects.Count == 0)
+                {
+                    MessageBox.Show(
+                        "No Jama projects available for lookup probe.",
+                        "Jama Lookup Probe",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                var projectDialog = new JamaProjectSelectionDialog(projects);
+                if (projectDialog.ShowDialog() != true || projectDialog.SelectedProject == null)
+                {
+                    return;
+                }
+
+                var selectedProject = projectDialog.SelectedProject;
+                var report = await _jamaConnectService.ProbeRequirementLookupFieldsAsync(selectedProject.Id, 30);
+
+                if (!report.Success)
+                {
+                    MessageBox.Show(
+                        report.Message,
+                        "Jama Lookup Probe",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                var fieldsWithOptions = report.Fields.Where(f => f.EndpointAvailable && f.OptionCount > 0).ToList();
+                var invalidDefaults = report.Fields.Where(f => f.IsCurrentDefaultValid == false).ToList();
+                var failedFields = report.Fields.Where(f => !f.EndpointAvailable).ToList();
+
+                foreach (var field in report.Fields)
+                {
+                    _logger?.LogInformation(
+                        "[JamaLookupProbe] Field={Field} Endpoint={Endpoint} Options={Options} Default={DefaultLookupId} DefaultValid={DefaultValid} Error={Error}",
+                        field.FieldName,
+                        field.EndpointAvailable,
+                        field.OptionCount,
+                        field.CurrentDefaultLookupId,
+                        field.IsCurrentDefaultValid,
+                        field.Error ?? "");
+                }
+
+                var message = new StringBuilder();
+                message.AppendLine($"Project: {selectedProject.ProjectKey} (ID {selectedProject.Id})");
+                message.AppendLine($"Requirement Item Type: {report.RequirementItemTypeId?.ToString() ?? "unknown"}");
+                message.AppendLine($"Fields checked: {report.Fields.Count}");
+                message.AppendLine($"Fields with options: {fieldsWithOptions.Count}");
+                message.AppendLine($"Invalid defaults: {invalidDefaults.Count}");
+                message.AppendLine($"Endpoint failures: {failedFields.Count}");
+
+                if (invalidDefaults.Count > 0)
+                {
+                    message.AppendLine();
+                    message.AppendLine("Invalid default mappings:");
+                    foreach (var invalid in invalidDefaults.Take(5))
+                    {
+                        message.AppendLine($"- {invalid.FieldName}: default {invalid.CurrentDefaultLookupId}");
+                    }
+                }
+
+                if (failedFields.Count > 0)
+                {
+                    message.AppendLine();
+                    message.AppendLine("Failed lookup endpoints:");
+                    foreach (var failed in failedFields.Take(5))
+                    {
+                        message.AppendLine($"- {failed.FieldName}: {failed.Error ?? "request failed"}");
+                    }
+                }
+
+                MessageBox.Show(
+                    message.ToString(),
+                    "Jama Lookup Probe",
+                    MessageBoxButton.OK,
+                    invalidDefaults.Count == 0 && failedFields.Count == 0 ? MessageBoxImage.Information : MessageBoxImage.Warning);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "[SideMenuVM] Jama lookup probe failed");
+                MessageBox.Show(
+                    $"Lookup probe failed: {ex.Message}",
+                    "Jama Lookup Probe",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }

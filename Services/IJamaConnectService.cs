@@ -95,5 +95,13 @@ namespace TestCaseEditorApp.Services
             IReadOnlyList<Requirement> requirements,
             CancellationToken cancellationToken = default,
             Action<int, int, int, string?>? progressCallback = null);
+
+        /// <summary>
+        /// Probe Jama requirement lookup fields and picklist mappings for fast schema diagnostics.
+        /// </summary>
+        Task<JamaLookupFieldProbeReport> ProbeRequirementLookupFieldsAsync(
+            int projectId,
+            int maxLookupFields = 20,
+            CancellationToken cancellationToken = default);
     }
 }

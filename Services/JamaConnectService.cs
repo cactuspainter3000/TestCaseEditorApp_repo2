@@ -45,6 +45,7 @@ namespace TestCaseEditorApp.Services
         private bool _sessionAuthenticated = false;
         private readonly CookieContainer _cookieContainer;
         private readonly Dictionary<string, Dictionary<string, object?>> _requirementFieldDefaultsCache = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<int, int> _requirementItemTypeCache = new();
         
         public bool IsConfigured => !string.IsNullOrEmpty(_baseUrl) && 
             (!string.IsNullOrEmpty(_apiToken) || 
@@ -3253,6 +3254,14 @@ namespace TestCaseEditorApp.Services
         {
             try
             {
+                lock (_requirementItemTypeCache)
+                {
+                    if (_requirementItemTypeCache.TryGetValue(projectId, out var cachedTypeId))
+                    {
+                        return (true, cachedTypeId);
+                    }
+                }
+
                 await EnsureAccessTokenAsync();
 
                 var url = $"{_baseUrl}/rest/v1/projects/{projectId}/itemtypes";
@@ -3298,6 +3307,10 @@ namespace TestCaseEditorApp.Services
                     if (knownRequirementType.id > 0)
                     {
                         TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Selected known requirement item type ID 193: Display='{knownRequirementType.display}', Key='{knownRequirementType.typeKey}'");
+                        lock (_requirementItemTypeCache)
+                        {
+                            _requirementItemTypeCache[projectId] = knownRequirementType.id;
+                        }
                         return (true, knownRequirementType.id);
                     }
 
@@ -3310,6 +3323,10 @@ namespace TestCaseEditorApp.Services
                         if (matchingType.id > 0)
                         {
                             TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Selected requirement item type: ID={matchingType.id}, Display='{matchingType.display}', Pattern='{pattern}'");
+                            lock (_requirementItemTypeCache)
+                            {
+                                _requirementItemTypeCache[projectId] = matchingType.id;
+                            }
                             return (true, matchingType.id);
                         }
                     }
@@ -3321,6 +3338,10 @@ namespace TestCaseEditorApp.Services
                     if (requirementContainingType.id > 0)
                     {
                         TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Using fallback requirement-containing item type: ID={requirementContainingType.id}, Display='{requirementContainingType.display}'");
+                        lock (_requirementItemTypeCache)
+                        {
+                            _requirementItemTypeCache[projectId] = requirementContainingType.id;
+                        }
                         return (true, requirementContainingType.id);
                     }
 
@@ -4342,6 +4363,7 @@ namespace TestCaseEditorApp.Services
                 var created = false;
                 string? lastFailureMessage = null;
                 int? createdId = null;
+                var lastFailureWasNonRetryable = false;
 
                 for (var attempt = 1; attempt <= maxAttemptsPerRequirement; attempt++)
                 {
@@ -4365,6 +4387,13 @@ namespace TestCaseEditorApp.Services
                     lastFailureMessage = message;
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Attempt {attempt}/{maxAttemptsPerRequirement} failed for extracted requirement '{requirement.Item ?? requirement.Name}': {message}");
 
+                    lastFailureWasNonRetryable = IsNonRetryableRequirementCreateFailure(message);
+                    if (lastFailureWasNonRetryable)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Non-retryable requirement persistence failure detected for '{requirement.Item ?? requirement.Name}'. Skipping remaining retries for this item.");
+                        break;
+                    }
+
                     if (attempt < maxAttemptsPerRequirement)
                     {
                         await Task.Delay(250 * attempt, cancellationToken);
@@ -4380,6 +4409,12 @@ namespace TestCaseEditorApp.Services
                 {
                     failedCount++;
                     TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Failed to persist extracted requirement '{requirement.Item ?? requirement.Name}' after {maxAttemptsPerRequirement} attempts. Last error: {lastFailureMessage}");
+
+                    if (lastFailureWasNonRetryable)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Error("[JamaConnect] Aborting remaining extracted requirement imports due to non-retryable schema failure.");
+                        break;
+                    }
                 }
 
                 progressCallback?.Invoke(
@@ -4633,6 +4668,149 @@ namespace TestCaseEditorApp.Services
             return null;
         }
 
+        public async Task<JamaLookupFieldProbeReport> ProbeRequirementLookupFieldsAsync(
+            int projectId,
+            int maxLookupFields = 20,
+            CancellationToken cancellationToken = default)
+        {
+            var report = new JamaLookupFieldProbeReport
+            {
+                ProjectId = projectId,
+                GeneratedAtUtc = DateTime.UtcNow
+            };
+
+            if (projectId <= 0)
+            {
+                report.Success = false;
+                report.Message = "Invalid Jama project ID.";
+                return report;
+            }
+
+            if (maxLookupFields < 1)
+            {
+                maxLookupFields = 1;
+            }
+
+            try
+            {
+                await EnsureAccessTokenAsync();
+
+                var (typeSuccess, requirementItemTypeId) = await GetRequirementItemTypeAsync(projectId, cancellationToken);
+                if (!typeSuccess || !requirementItemTypeId.HasValue)
+                {
+                    report.Success = false;
+                    report.Message = "Could not determine requirement item type for lookup probe.";
+                    return report;
+                }
+
+                report.RequirementItemTypeId = requirementItemTypeId.Value;
+
+                var defaultFields = await GetRequirementFieldDefaultsAsync(projectId, requirementItemTypeId.Value, cancellationToken);
+                var candidateFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var field in defaultFields.Keys)
+                {
+                    if (field.StartsWith("lookup", StringComparison.OrdinalIgnoreCase))
+                    {
+                        candidateFields.Add(field);
+                    }
+                }
+
+                for (var i = 1; i <= maxLookupFields; i++)
+                {
+                    candidateFields.Add($"lookup{i}");
+                }
+
+                foreach (var fieldName in candidateFields.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
+                {
+                    var result = new JamaLookupFieldProbeResult
+                    {
+                        FieldName = fieldName
+                    };
+
+                    if (defaultFields.TryGetValue(fieldName, out var defaultValue))
+                    {
+                        result.CurrentDefaultLookupId = TryExtractLookupId(defaultValue);
+                    }
+
+                    try
+                    {
+                        var url = $"{_baseUrl}/rest/v1/projects/{projectId}/picklistoptions?filteredField={fieldName}";
+                        var response = await _httpClient.GetAsync(url, cancellationToken);
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            result.EndpointAvailable = false;
+                            result.Error = $"{response.StatusCode}";
+                            report.Fields.Add(result);
+                            continue;
+                        }
+
+                        result.EndpointAvailable = true;
+
+                        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                        using var doc = JsonDocument.Parse(json);
+                        if (!doc.RootElement.TryGetProperty("data", out var dataArray) || dataArray.ValueKind != JsonValueKind.Array)
+                        {
+                            result.Error = "No data array returned.";
+                            report.Fields.Add(result);
+                            continue;
+                        }
+
+                        var optionIds = new HashSet<int>();
+                        foreach (var option in dataArray.EnumerateArray())
+                        {
+                            if (!option.TryGetProperty("id", out var idProp) || !idProp.TryGetInt32(out var optionId))
+                            {
+                                continue;
+                            }
+
+                            optionIds.Add(optionId);
+                            if (result.FirstOptionId == null)
+                            {
+                                result.FirstOptionId = optionId;
+                                if (option.TryGetProperty("name", out var nameProp))
+                                {
+                                    result.FirstOptionName = nameProp.GetString();
+                                }
+                            }
+
+                            if (result.SampleOptionIds.Count < 5)
+                            {
+                                result.SampleOptionIds.Add(optionId);
+                            }
+                        }
+
+                        result.OptionCount = optionIds.Count;
+                        if (result.CurrentDefaultLookupId.HasValue)
+                        {
+                            result.IsCurrentDefaultValid = optionIds.Contains(result.CurrentDefaultLookupId.Value);
+                        }
+                    }
+                    catch (Exception fieldEx)
+                    {
+                        result.EndpointAvailable = false;
+                        result.Error = fieldEx.Message;
+                    }
+
+                    report.Fields.Add(result);
+                }
+
+                var fieldsWithOptions = report.Fields.Count(f => f.EndpointAvailable && f.OptionCount > 0);
+                var invalidDefaults = report.Fields.Count(f => f.IsCurrentDefaultValid == false);
+
+                report.Success = true;
+                report.Message = $"Lookup probe complete. Fields checked: {report.Fields.Count}, fields with options: {fieldsWithOptions}, invalid defaults: {invalidDefaults}.";
+                return report;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[JamaConnect] Lookup probe failed for project {projectId}: {ex.Message}");
+                report.Success = false;
+                report.Message = $"Lookup probe failed: {ex.Message}";
+                return report;
+            }
+        }
+
         private static bool ContainsLookupId(object? value, int lookupId)
         {
             if (value == null)
@@ -4672,6 +4850,62 @@ namespace TestCaseEditorApp.Services
             }
 
             return false;
+        }
+
+        private static int? TryExtractLookupId(object? value)
+        {
+            if (value == null)
+            {
+                return null;
+            }
+
+            if (value is int i)
+            {
+                return i;
+            }
+
+            if (value is long l)
+            {
+                return (int)l;
+            }
+
+            if (value is double d)
+            {
+                return (int)d;
+            }
+
+            if (value is string s && int.TryParse(s, out var parsed))
+            {
+                return parsed;
+            }
+
+            if (value is System.Collections.IEnumerable enumerable && value is not string)
+            {
+                foreach (var item in enumerable)
+                {
+                    var nested = TryExtractLookupId(item);
+                    if (nested.HasValue)
+                    {
+                        return nested;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static bool IsNonRetryableRequirementCreateFailure(string? message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return false;
+            }
+
+            return message.Contains("Lookup id", StringComparison.OrdinalIgnoreCase)
+                && message.Contains("does not belong to lookup type", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("You must set the following required fields", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("No requirement item type found", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("Could not determine requirement item type", StringComparison.OrdinalIgnoreCase);
         }
 
         private async Task<Dictionary<string, object?>> GetRequirementFieldDefaultsAsync(int projectId, int itemTypeId, CancellationToken cancellationToken)
@@ -5472,6 +5706,29 @@ namespace TestCaseEditorApp.Services
     public class JamaResponseMeta
     {
         public JamaPageInfo? PageInfo { get; set; }
+    }
+
+    public class JamaLookupFieldProbeReport
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public int ProjectId { get; set; }
+        public int? RequirementItemTypeId { get; set; }
+        public DateTime GeneratedAtUtc { get; set; }
+        public List<JamaLookupFieldProbeResult> Fields { get; set; } = new();
+    }
+
+    public class JamaLookupFieldProbeResult
+    {
+        public string FieldName { get; set; } = string.Empty;
+        public bool EndpointAvailable { get; set; }
+        public int OptionCount { get; set; }
+        public int? FirstOptionId { get; set; }
+        public string? FirstOptionName { get; set; }
+        public int? CurrentDefaultLookupId { get; set; }
+        public bool? IsCurrentDefaultValid { get; set; }
+        public string? Error { get; set; }
+        public List<int> SampleOptionIds { get; set; } = new();
     }
 
     // ═══════════════════════════════════════════════════════════════════════════════
