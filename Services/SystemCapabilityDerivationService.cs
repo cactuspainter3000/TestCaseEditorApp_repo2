@@ -651,6 +651,10 @@ namespace TestCaseEditorApp.Services
 
                 return result;
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Single step derivation failed for ATP step: {Step}", atpStep.Substring(0, Math.Min(50, atpStep.Length)));
