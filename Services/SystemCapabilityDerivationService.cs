@@ -173,7 +173,6 @@ namespace TestCaseEditorApp.Services
                     var currentStepStopwatch = Stopwatch.StartNew();
                     var parsingProgressBar = BuildProgressBar(stepCounter, parsedSteps.Count);
                     var progressPercent = (int)Math.Round((double)stepCounter / parsedSteps.Count * 100);
-                    progressCallback?.Invoke($"📄 Parsing document {parsingProgressBar} ({stepCounter}/{parsedSteps.Count}, {progressPercent}%): chat={shortChatModelName} | embed={shortEmbeddingModelName} (embed may fallback) → {parsedStep.StepText.Substring(0, Math.Min(50, parsedStep.StepText.Length))}... | current req: 00:00");
                     
                     // Apply per-step timeout to prevent hanging
                     var remainingBudget = derivationOptions.MaxProcessingTime - stopwatch.Elapsed;
@@ -186,9 +185,20 @@ namespace TestCaseEditorApp.Services
                         break;
                     }
 
-                    var effectiveStepTimeout = derivationOptions.PerStepTimeout < remainingBudget
-                        ? derivationOptions.PerStepTimeout
+                    var adaptiveStepTimeout = ComputeAdaptiveStepTimeout(
+                        parsedStep.StepText,
+                        parsedStep.ActionVerbs?.Count ?? 0,
+                        parsedStep.SystemReferences?.Count ?? 0,
+                        derivationOptions.PerStepTimeout,
+                        stepCounter,
+                        parsedSteps.Count,
+                        timeoutCount);
+
+                    var effectiveStepTimeout = adaptiveStepTimeout < remainingBudget
+                        ? adaptiveStepTimeout
                         : remainingBudget;
+
+                    progressCallback?.Invoke($"📄 Parsing document {parsingProgressBar} ({stepCounter}/{parsedSteps.Count}, {progressPercent}%): chat={shortChatModelName} | embed={shortEmbeddingModelName} (embed may fallback) | timeout={effectiveStepTimeout.TotalSeconds:0}s → {parsedStep.StepText.Substring(0, Math.Min(50, parsedStep.StepText.Length))}... | current req: 00:00");
 
                     using var stepCts = new CancellationTokenSource(effectiveStepTimeout);
                     using var heartbeatCts = new CancellationTokenSource();
@@ -454,6 +464,52 @@ namespace TestCaseEditorApp.Services
             }
 
             return normalized.Substring(0, maxLength) + "...";
+        }
+
+        private static TimeSpan ComputeAdaptiveStepTimeout(
+            string stepText,
+            int actionVerbCount,
+            int systemReferenceCount,
+            TimeSpan baseTimeout,
+            int stepNumber,
+            int totalSteps,
+            int timeoutCount)
+        {
+            var baseSeconds = Math.Max(8d, baseTimeout.TotalSeconds);
+            var normalizedText = stepText ?? string.Empty;
+            var textLength = normalizedText.Length;
+
+            var scale = 1.0;
+
+            // Heavier prompt payloads generally need more generation time.
+            if (textLength > 180) scale += 0.15;
+            if (textLength > 320) scale += 0.20;
+            if (textLength > 520) scale += 0.20;
+
+            // Structural richness usually maps to more tokens and parse cost.
+            if (actionVerbCount >= 3) scale += 0.10;
+            if (actionVerbCount >= 6) scale += 0.10;
+            if (systemReferenceCount >= 2) scale += 0.10;
+            if (systemReferenceCount >= 5) scale += 0.10;
+
+            // Warmup overhead is common in early steps.
+            if (stepNumber <= Math.Max(3, (int)Math.Ceiling(totalSteps * 0.05)))
+            {
+                scale += 0.15;
+            }
+
+            // If timeouts are already occurring, increase headroom dynamically.
+            if (stepNumber > 0)
+            {
+                var timeoutRatio = (double)timeoutCount / stepNumber;
+                if (timeoutRatio >= 0.20) scale += 0.20;
+                if (timeoutRatio >= 0.35) scale += 0.20;
+                if (timeoutRatio >= 0.50) scale += 0.25;
+            }
+
+            var adaptiveSeconds = baseSeconds * scale;
+            adaptiveSeconds = Math.Max(8d, Math.Min(adaptiveSeconds, 60d));
+            return TimeSpan.FromSeconds(adaptiveSeconds);
         }
 
         private static async Task EmitStepHeartbeatAsync(
