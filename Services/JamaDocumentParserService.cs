@@ -2020,48 +2020,30 @@ Extract all legitimate requirements:";
                 
                 try
                 {
-                    // Create retry callback for handling timeout scenarios
+                    // Auto-retry policy: avoid user decisions in runtime flows.
                     Func<List<SkippedAtpStep>, Task<TimeoutRetryDecision>> retryCallback = async (skippedSteps) =>
                     {
-                        // Show user the retry option using MessageBox
-                        var message = $"Analysis completed with some timeouts.\n\n" +
-                                    $"{skippedSteps.Count} ATP steps timed out during analysis.\n\n" +
-                                    $"Would you like to retry the timed-out steps with extended timeout?\n\n" +
-                                    $"(This may help extract additional requirements from complex ATP steps)";
-                        
-                        var result = System.Windows.MessageBox.Show(message,
-                            "ATP Analysis - Retry Timed Out Steps?",
-                            System.Windows.MessageBoxButton.YesNo,
-                            System.Windows.MessageBoxImage.Question);
-                        
-                        if (!preScan.AllowRetry)
+                        if (skippedSteps == null || skippedSteps.Count == 0)
                         {
                             return new TimeoutRetryDecision { ShouldRetry = false, ExtendedTimeout = TimeSpan.Zero };
                         }
 
-                        if (result == System.Windows.MessageBoxResult.Yes)
+                        // For smaller jobs use a longer retry timeout. For larger jobs keep bounded retries.
+                        var extendedTimeout = skippedSteps.Count <= 20
+                            ? TimeSpan.FromSeconds(60)
+                            : TimeSpan.FromSeconds(30);
+
+                        TestCaseEditorApp.Services.Logging.Log.Info(
+                            $"[JamaDocumentParser] Auto-retrying {skippedSteps.Count} timed-out ATP steps with {extendedTimeout.TotalSeconds}s timeout per step (preScanAllowRetry={preScan.AllowRetry}, estimatedCandidates={preScan.EstimatedRequirementCandidates}).");
+
+                        progressCallback?.Invoke(
+                            $"🔄 Auto-retry enabled: retrying {skippedSteps.Count} timed-out steps with {extendedTimeout.TotalSeconds:0}s timeout.");
+
+                        return new TimeoutRetryDecision
                         {
-                            // Let user choose timeout extension
-                            var timeoutMessage = "Select extended timeout for retry:\n\n" +
-                                               "• 15 seconds (Quick retry)\n" +
-                                               "• 30 seconds (Standard retry)\n" +
-                                               "• 60 seconds (Extended retry)\n" +
-                                               "• 120 seconds (Maximum retry)\n\n" +
-                                               "Click OK for 60 seconds, Cancel for 30 seconds";
-                            
-                            var timeoutResult = System.Windows.MessageBox.Show(timeoutMessage,
-                                "Select Retry Timeout",
-                                System.Windows.MessageBoxButton.OKCancel,
-                                System.Windows.MessageBoxImage.Question);
-                            
-                            var extendedTimeout = timeoutResult == System.Windows.MessageBoxResult.OK 
-                                ? TimeSpan.FromSeconds(60) 
-                                : TimeSpan.FromSeconds(30);
-                            
-                            return new TimeoutRetryDecision { ShouldRetry = true, ExtendedTimeout = extendedTimeout };
-                        }
-                        
-                        return new TimeoutRetryDecision { ShouldRetry = false, ExtendedTimeout = TimeSpan.Zero };
+                            ShouldRetry = true,
+                            ExtendedTimeout = extendedTimeout
+                        };
                     };
                     
                     var derivationTask = _derivationService.DeriveCapabilitiesAsync(documentContent, derivationOptions, progressCallback, retryCallback, onRequirementDiscovered);
