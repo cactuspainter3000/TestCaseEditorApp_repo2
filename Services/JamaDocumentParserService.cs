@@ -1249,6 +1249,10 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Could not clear existing project index for {projectId} before indexing attachment {attachment.Id}. Continuing with potential mixed context.");
                 }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Cleared project index for {projectId} before indexing attachment {attachment.Id} ({attachment.FileName}).");
+                }
                 
                 // Step 3: Index document with DirectRagService
                 var indexSuccess = await _directRagService!.IndexDocumentAsync(attachment, documentContent, projectId, cancellationToken);
