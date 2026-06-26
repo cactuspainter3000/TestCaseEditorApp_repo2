@@ -1241,6 +1241,14 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
                 }
 
                 progressCallback?.Invoke($"🔍 Indexing document content for analysis...");
+
+                // Isolate parsing context to the current attachment. Reusing prior project chunks
+                // can bleed IDs/content from previously parsed documents into this run.
+                var cleared = await _directRagService!.ClearProjectIndexAsync(projectId, cancellationToken);
+                if (!cleared)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Could not clear existing project index for {projectId} before indexing attachment {attachment.Id}. Continuing with potential mixed context.");
+                }
                 
                 // Step 3: Index document with DirectRagService
                 var indexSuccess = await _directRagService!.IndexDocumentAsync(attachment, documentContent, projectId, cancellationToken);
