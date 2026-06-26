@@ -1469,6 +1469,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 // Use real document parsing service with attachment metadata to avoid re-scanning
                 var extractedRequirements = await _jamaDocumentParserService.ParseAttachmentAsync(attachment, projectId, progressCallback, onRequirementDiscovered, cancellationToken);
 
+                _logger.LogInformation(
+                    "[ATTACHMENT_TRACE] ParsedRequirements AttachmentId={AttachmentId} FileName={FileName} Count={Count} Sample={Sample}",
+                    attachment.Id,
+                    attachment.FileName,
+                    extractedRequirements.Count,
+                    BuildRequirementTraceSample(extractedRequirements));
+
                 if (extractedRequirements.Count > 0)
                 {
                     progressCallback?.Invoke($"💾 Saving {extractedRequirements.Count} extracted requirements to Jama...");
@@ -1512,6 +1519,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     _logger.LogInformation("[RequirementsMediator] Persisted {SavedCount}/{TotalCount} extracted requirements to Jama (failed: {FailedCount})",
                         savedCount, extractedRequirements.Count, failedCount);
 
+                    _logger.LogInformation(
+                        "[ATTACHMENT_TRACE] PersistResult AttachmentId={AttachmentId} SavedCount={SavedCount} FailedCount={FailedCount} PersistedSample={PersistedSample}",
+                        attachment.Id,
+                        savedCount,
+                        failedCount,
+                        BuildRequirementTraceSample(extractedRequirements.Where(r => !string.IsNullOrWhiteSpace(r.ApiId)).ToList()));
+
                     if (savedCount > 0 && failedCount == 0)
                     {
                         progressCallback?.Invoke($"✅ Saved {savedCount} extracted requirements to Jama");
@@ -1542,6 +1556,30 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 WriteAttachmentParseFailureSnapshot(attachment, projectId, ex);
                 throw;
             }
+        }
+
+        private static string BuildRequirementTraceSample(IReadOnlyList<Requirement> requirements, int maxItems = 5)
+        {
+            if (requirements == null || requirements.Count == 0)
+            {
+                return "<none>";
+            }
+
+            var sample = requirements
+                .Take(maxItems)
+                .Select(r =>
+                {
+                    var id = !string.IsNullOrWhiteSpace(r.GlobalId)
+                        ? r.GlobalId
+                        : !string.IsNullOrWhiteSpace(r.Item)
+                            ? r.Item
+                            : "<no-id>";
+                    var name = !string.IsNullOrWhiteSpace(r.Name) ? r.Name : "<no-name>";
+                    var apiId = !string.IsNullOrWhiteSpace(r.ApiId) ? r.ApiId : "<no-api-id>";
+                    return $"{id}::{name}::{apiId}";
+                });
+
+            return string.Join(" | ", sample);
         }
 
         private static void WriteAttachmentParseFailureSnapshot(JamaAttachment attachment, int projectId, Exception exception)

@@ -123,7 +123,9 @@ namespace TestCaseEditorApp.Services
                     {
                         TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Using DirectRagService for document analysis ({attachment.MimeType})");
                         progressCallback?.Invoke($"🚀 Processing with reliable RAG-enhanced analysis...");
-                        return await ExtractRequirementsWithDirectRagAsync(attachment, projectId, progressCallback, onRequirementDiscovered, cancellationToken);
+                        var directRagRequirements = await ExtractRequirementsWithDirectRagAsync(attachment, projectId, progressCallback, onRequirementDiscovered, cancellationToken);
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[ATTACHMENT_TRACE] ParserReturn AttachmentId={attachment.Id} FileName={attachment.FileName} Source=DirectRag Count={directRagRequirements.Count} Sample={BuildRequirementTraceSample(directRagRequirements)}");
+                        return directRagRequirements;
                     }
                     else
                     {
@@ -133,7 +135,9 @@ namespace TestCaseEditorApp.Services
 
                 TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] DirectRagService unavailable or not suitable for {attachment.MimeType}; using AnythingLLM fallback");
                 progressCallback?.Invoke($"🔁 Using fallback requirement extraction...");
-                return await ExtractRequirementsWithAnythingLLMAsync(attachment, projectId, progressCallback, cancellationToken);
+                var anythingLlmRequirements = await ExtractRequirementsWithAnythingLLMAsync(attachment, projectId, progressCallback, cancellationToken);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[ATTACHMENT_TRACE] ParserReturn AttachmentId={attachment.Id} FileName={attachment.FileName} Source=AnythingLLM Count={anythingLlmRequirements.Count} Sample={BuildRequirementTraceSample(anythingLlmRequirements)}");
+                return anythingLlmRequirements;
             }
             catch (Exception ex)
             {
@@ -1334,6 +1338,7 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
                     }
                 }
 
+                TestCaseEditorApp.Services.Logging.Log.Info($"[ATTACHMENT_TRACE] DirectRagResult AttachmentId={attachment.Id} FileName={attachment.FileName} Count={allRequirements.Count} Sample={BuildRequirementTraceSample(allRequirements)}");
                 progressCallback?.Invoke($"✅ Found {allRequirements.Count} requirements: {extractedRequirements.Count} extracted + {derivedRequirements.Count} derived + deterministic fallback where needed");
                 
                 return allRequirements;
@@ -1344,6 +1349,29 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
                 progressCallback?.Invoke($"❌ Error processing document: {ex.Message}");
                 return new List<Requirement>();
             }
+        }
+
+        private static string BuildRequirementTraceSample(IReadOnlyList<Requirement> requirements, int maxItems = 5)
+        {
+            if (requirements == null || requirements.Count == 0)
+            {
+                return "<none>";
+            }
+
+            var sample = requirements
+                .Take(maxItems)
+                .Select(r =>
+                {
+                    var id = !string.IsNullOrWhiteSpace(r.GlobalId)
+                        ? r.GlobalId
+                        : !string.IsNullOrWhiteSpace(r.Item)
+                            ? r.Item
+                            : "<no-id>";
+                    var name = !string.IsNullOrWhiteSpace(r.Name) ? r.Name : "<no-name>";
+                    return $"{id}::{name}";
+                });
+
+            return string.Join(" | ", sample);
         }
 
         /// <summary>
