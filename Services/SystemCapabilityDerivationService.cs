@@ -143,6 +143,17 @@ namespace TestCaseEditorApp.Services
 
                 // Process each step for capability derivation with progress tracking
                 int stepCounter = 0;
+                var timeoutCount = 0;
+                var failureCount = 0;
+                var zeroYieldStepCount = 0;
+                var nonZeroYieldStepCount = 0;
+
+                string? firstTimeoutStepPreview = null;
+                string? firstFailureStepPreview = null;
+                string? firstFailureReason = null;
+                string? firstZeroYieldStepPreview = null;
+                string? firstZeroYieldReason = null;
+
                 var configuredChatModel = GetConfiguredChatModel();
                 var configuredEmbeddingModel = GetConfiguredEmbeddingModel();
                 var shortChatModelName = ToShortModelName(configuredChatModel);
@@ -192,6 +203,31 @@ namespace TestCaseEditorApp.Services
                     try
                     {
                         var stepResult = await DeriveSingleStepWithTimeoutAsync(parsedStep.StepText, derivationOptions, stepCts.Token);
+                        var stepPreview = BuildStepPreview(parsedStep.StepText);
+                        var stepCapabilityCount = stepResult.DerivedCapabilities.Count;
+
+                        if (stepCapabilityCount > 0)
+                        {
+                            nonZeroYieldStepCount++;
+                        }
+                        else
+                        {
+                            zeroYieldStepCount++;
+
+                            if (firstZeroYieldStepPreview == null)
+                            {
+                                firstZeroYieldStepPreview = stepPreview;
+                                firstZeroYieldReason = stepResult.ProcessingWarnings.FirstOrDefault();
+                                _logger.LogWarning(
+                                    "[DerivationDiag] First zero-yield step observed at {StepNumber}/{TotalSteps}. StepId={StepId}, StepType={StepType}, Warning='{Warning}', StepPreview='{StepPreview}'",
+                                    stepCounter,
+                                    parsedSteps.Count,
+                                    parsedStep.StepId,
+                                    parsedStep.StepType,
+                                    firstZeroYieldReason ?? "<none>",
+                                    firstZeroYieldStepPreview);
+                            }
+                        }
                         
                         // Enhance results with parsing metadata
                         foreach (var capability in stepResult.DerivedCapabilities)
@@ -227,7 +263,20 @@ namespace TestCaseEditorApp.Services
                     }
                     catch (OperationCanceledException) when (stepCts.IsCancellationRequested)
                     {
+                        timeoutCount++;
                         _logger.LogWarning("ATP step {StepNumber} timed out after {TimeoutSeconds} seconds", stepCounter, effectiveStepTimeout.TotalSeconds);
+
+                        if (firstTimeoutStepPreview == null)
+                        {
+                            firstTimeoutStepPreview = BuildStepPreview(parsedStep.StepText);
+                            _logger.LogWarning(
+                                "[DerivationDiag] First timeout at step {StepNumber}/{TotalSteps}. StepId={StepId}, TimeoutSeconds={TimeoutSeconds}, StepPreview='{StepPreview}'",
+                                stepCounter,
+                                parsedSteps.Count,
+                                parsedStep.StepId,
+                                effectiveStepTimeout.TotalSeconds,
+                                firstTimeoutStepPreview);
+                        }
                         
                         // Collect skipped step for potential retry
                         var skippedStep = new SkippedAtpStep
@@ -245,7 +294,22 @@ namespace TestCaseEditorApp.Services
                     }
                     catch (Exception ex)
                     {
+                        failureCount++;
                         _logger.LogWarning(ex, "Failed to process ATP step: {Step}", parsedStep.StepText.Substring(0, Math.Min(100, parsedStep.StepText.Length)));
+
+                        if (firstFailureStepPreview == null)
+                        {
+                            firstFailureStepPreview = BuildStepPreview(parsedStep.StepText);
+                            firstFailureReason = ex.Message;
+                            _logger.LogWarning(
+                                "[DerivationDiag] First failed step at {StepNumber}/{TotalSteps}. StepId={StepId}, Error='{Error}', StepPreview='{StepPreview}'",
+                                stepCounter,
+                                parsedSteps.Count,
+                                parsedStep.StepId,
+                                firstFailureReason,
+                                firstFailureStepPreview);
+                        }
+
                         result.ProcessingWarnings.Add($"Failed to process step {parsedStep.StepNumber}: {ex.Message}");
                         progressCallback?.Invoke($"❌ Step {stepCounter}/{parsedSteps.Count} failed: {ex.Message.Substring(0, Math.Min(50, ex.Message.Length))} | current req: {FormatDuration(currentStepStopwatch.Elapsed)}");
                     }
@@ -308,6 +372,34 @@ namespace TestCaseEditorApp.Services
                 _performanceMetrics["LastDerivationTime"] = stopwatch.ElapsedMilliseconds;
                 _performanceMetrics["LastCapabilityCount"] = result.DerivedCapabilities.Count;
 
+                var processedSteps = stepCounter;
+                var yieldRatio = processedSteps > 0
+                    ? (double)nonZeroYieldStepCount / processedSteps
+                    : 0d;
+
+                _performanceMetrics["LastProcessedStepCount"] = processedSteps;
+                _performanceMetrics["LastTimeoutStepCount"] = timeoutCount;
+                _performanceMetrics["LastFailedStepCount"] = failureCount;
+                _performanceMetrics["LastZeroYieldStepCount"] = zeroYieldStepCount;
+                _performanceMetrics["LastNonZeroYieldStepCount"] = nonZeroYieldStepCount;
+                _performanceMetrics["LastYieldRatio"] = yieldRatio;
+
+                _logger.LogInformation(
+                    "[DerivationDiag] Summary: ProcessedSteps={ProcessedSteps}/{TotalSteps}, DerivedCapabilities={CapabilityCount}, NonZeroYieldSteps={NonZeroYieldSteps}, ZeroYieldSteps={ZeroYieldSteps}, TimeoutSteps={TimeoutSteps}, FailedSteps={FailedSteps}, YieldRatio={YieldRatio:P1}, FirstTimeout='{FirstTimeout}', FirstFailure='{FirstFailure}', FirstFailureReason='{FirstFailureReason}', FirstZeroYield='{FirstZeroYield}', FirstZeroYieldReason='{FirstZeroYieldReason}'",
+                    processedSteps,
+                    parsedSteps.Count,
+                    result.DerivedCapabilities.Count,
+                    nonZeroYieldStepCount,
+                    zeroYieldStepCount,
+                    timeoutCount,
+                    failureCount,
+                    yieldRatio,
+                    firstTimeoutStepPreview ?? "<none>",
+                    firstFailureStepPreview ?? "<none>",
+                    firstFailureReason ?? "<none>",
+                    firstZeroYieldStepPreview ?? "<none>",
+                    firstZeroYieldReason ?? "<none>");
+
                 _logger.LogInformation("Capability derivation completed: {CapabilityCount} capabilities derived, {RejectionCount} items rejected, quality score: {QualityScore:F2}",
                     result.DerivedCapabilities.Count, result.RejectedItems.Count, result.QualityScore);
 
@@ -344,6 +436,24 @@ namespace TestCaseEditorApp.Services
             filled = Math.Max(0, Math.Min(filled, width));
 
             return $"[{new string('#', filled)}{new string('-', width - filled)}]";
+        }
+
+        private static string BuildStepPreview(string stepText, int maxLength = 160)
+        {
+            if (string.IsNullOrWhiteSpace(stepText))
+            {
+                return "<empty>";
+            }
+
+            var normalized = string.Join(" ", stepText
+                .Split(new[] { '\r', '\n', '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries));
+
+            if (normalized.Length <= maxLength)
+            {
+                return normalized;
+            }
+
+            return normalized.Substring(0, maxLength) + "...";
         }
 
         private static async Task EmitStepHeartbeatAsync(
