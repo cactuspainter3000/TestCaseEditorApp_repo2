@@ -1605,22 +1605,35 @@ namespace TestCaseEditorApp.Services
                 return false;
             }
 
+            var normalized = NormalizeRequirementPrefix(requirementText);
+
             // Common UUT-specific subject patterns observed in ATR content.
             return Regex.IsMatch(
-                requirementText,
+                normalized,
                 @"^\s*(?:The\s+)?(?:MFD|UUT|LRU|Aircraft|Display\s+Unit|Avionics\s+Unit)\b.*\bshall\b",
                 RegexOptions.IgnoreCase);
         }
 
         private static string RewriteUutRequirementAsTestSolutionVerification(string requirementText)
         {
-            var cleaned = requirementText.Trim().TrimEnd('.');
+            var cleaned = NormalizeRequirementPrefix(requirementText).Trim().TrimEnd('.');
             if (string.IsNullOrWhiteSpace(cleaned))
             {
                 return "The test solution shall verify required UUT behavior.";
             }
 
             return $"The test solution shall verify that {char.ToLowerInvariant(cleaned[0])}{cleaned.Substring(1)}.";
+        }
+
+        private static string NormalizeRequirementPrefix(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return string.Empty;
+            }
+
+            // Remove diagnostic labels like "[Deterministic]" that can hide the real subject.
+            return Regex.Replace(text, @"^\s*(?:\[[^\]]+\]\s*)+", string.Empty).Trim();
         }
         
         private string ClassifyRequirementCategory(string requirementText)
