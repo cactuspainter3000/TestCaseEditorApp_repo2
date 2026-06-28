@@ -533,7 +533,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             OpenAttachmentCommand = new AsyncRelayCommand(OpenSelectedAttachmentAsync, CanExecuteOpenAttachment);
             ExecuteSmartActionCommand = new AsyncRelayCommand(ExecuteSmartActionAsync, () => SmartButtonEnabled);
             SmartToggleCommand = new AsyncRelayCommand(SmartToggleAsync, () => true);
-            LookupRequirementSourceCommand = new RelayCommand<Requirement>(LookupRequirementSource, CanExecuteLookupRequirementSource);
+            LookupRequirementSourceCommand = new RelayCommand<Requirement>(LookupRequirementSource);
             
             _logger.LogInformation("[RequirementsSearchAttachments] Commands initialized in InitializeCommands method");
             
@@ -616,19 +616,17 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             
             // Notify command to refresh its CanExecute
             ExecuteSmartActionCommand?.NotifyCanExecuteChanged();
-            LookupRequirementSourceCommand?.NotifyCanExecuteChanged();
-        }
-
-        private bool CanExecuteLookupRequirementSource(Requirement? requirement)
-        {
-            return requirement != null &&
-                   !string.IsNullOrWhiteSpace(requirement.TraceReference) &&
-                   !IsBusy;
         }
 
         private void LookupRequirementSource(Requirement? requirement)
         {
-            if (!CanExecuteLookupRequirementSource(requirement) || requirement == null)
+            if (IsBusy)
+            {
+                StatusMessage = "⏳ Please wait for the current operation to finish";
+                return;
+            }
+
+            if (requirement == null || string.IsNullOrWhiteSpace(requirement.TraceReference))
             {
                 StatusMessage = "❌ No trace reference available for source lookup";
                 return;

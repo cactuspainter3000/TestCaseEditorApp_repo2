@@ -1344,7 +1344,8 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
                     var deterministic = ExtractDeterministicRequirementCandidates(documentContent, attachment, projectId);
                     if (deterministic.Count > 0)
                     {
-                        allRequirements.AddRange(deterministic);
+                        allRequirements.AddRange(deterministic.Select(candidate => candidate.Requirement));
+                        await WriteDeterministicTraceabilityReportAsync(attachment, projectId, documentContent, deterministic, cancellationToken);
                         TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] AI returned 0 requirements; deterministic fallback recovered {deterministic.Count} candidates");
                         progressCallback?.Invoke($"⚠️ AI returned no requirements; deterministic fallback recovered {deterministic.Count} candidates");
                     }
@@ -1412,9 +1413,9 @@ Category: [Functional/Performance/Interface/Environmental]
 Extract all legitimate requirements:";
         }
 
-        private List<Requirement> ExtractDeterministicRequirementCandidates(string documentContent, JamaAttachment attachment, int projectId)
+        private List<DeterministicRequirementCandidate> ExtractDeterministicRequirementCandidates(string documentContent, JamaAttachment attachment, int projectId)
         {
-            var results = new List<Requirement>();
+            var results = new List<DeterministicRequirementCandidate>();
 
             if (string.IsNullOrWhiteSpace(documentContent))
             {
@@ -1469,29 +1470,174 @@ Extract all legitimate requirements:";
                     ? parsedId
                     : $"DOC-{index:D3}";
 
+                var sourceClause = text;
+                var normalizedDescription = LooksLikeUutRequirementForFallback(text)
+                    ? RewriteUutRequirementAsTestSolutionVerificationForFallback(text)
+                    : text;
+                var traceReference = BuildRequirementTraceReference(attachment.Id, itemId, index);
+
                 var requirement = new Requirement
                 {
                     GlobalId = !string.IsNullOrWhiteSpace(parsedId)
                         ? parsedId
                         : $"DOC-{attachment.Id}-{index:D3}",
                     Item = itemId,
-                    Name = GenerateRequirementNameFromCapability(text, "Deterministic"),
-                    Description = text,
+                    TraceReference = traceReference,
+                    Name = GenerateRequirementNameFromCapability(normalizedDescription, "Deterministic"),
+                    Description = normalizedDescription,
                     RequirementType = "Deterministic - Modal Statement",
-                    Rationale = $"Recovered via deterministic fallback from {attachment.FileName}",
+                    Rationale = $"Recovered via deterministic fallback from {attachment.FileName}\n\n**Trace Reference:** {traceReference}\n\n**Source Clause:** {sourceClause}",
                     Heading = "Derived",
                     ItemType = "System Requirement",
                     CreatedDate = DateTime.Now,
                     ModifiedDate = DateTime.Now,
                     Project = projectId.ToString(),
-                    TagList = new List<string> { "Derived", "DeterministicFallback" }
+                    TagList = new List<string> { "Derived", "DeterministicFallback", $"TraceRef:{traceReference}" }
                 };
 
-                results.Add(requirement);
+                results.Add(new DeterministicRequirementCandidate
+                {
+                    Requirement = requirement,
+                    SourceClause = sourceClause
+                });
                 index++;
             }
 
             return results;
+        }
+
+        private async Task WriteDeterministicTraceabilityReportAsync(
+            JamaAttachment attachment,
+            int projectId,
+            string documentContent,
+            IReadOnlyList<DeterministicRequirementCandidate> deterministicRequirements,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (deterministicRequirements.Count == 0)
+                {
+                    return;
+                }
+
+                var allClauses = ExtractSourceClauses(documentContent);
+                var normalizedUsed = deterministicRequirements
+                    .Select(candidate => NormalizeForTraceMatch(candidate.SourceClause))
+                    .Where(s => s.Length >= 16)
+                    .Distinct(StringComparer.Ordinal)
+                    .ToList();
+
+                var unusedClauses = allClauses
+                    .Where(clause =>
+                    {
+                        var normalizedClause = NormalizeForTraceMatch(clause);
+                        return normalizedClause.Length >= 16 &&
+                               !normalizedUsed.Any(u => u.Contains(normalizedClause, StringComparison.Ordinal) || normalizedClause.Contains(u, StringComparison.Ordinal));
+                    })
+                    .ToList();
+
+                var report = new StringBuilder();
+                report.AppendLine("DERIVATION TRACEABILITY REPORT");
+                report.AppendLine("============================");
+                report.AppendLine($"GeneratedUtc: {DateTime.UtcNow:O}");
+                report.AppendLine($"ProjectId: {projectId}");
+                report.AppendLine($"AttachmentId: {attachment.Id}");
+                report.AppendLine($"FileName: {attachment.FileName}");
+                report.AppendLine($"DerivedRequirementCount: {deterministicRequirements.Count}");
+                report.AppendLine($"CandidateClauseCount: {allClauses.Count}");
+                report.AppendLine($"UsedClauseCount: {deterministicRequirements.Count}");
+                report.AppendLine($"UnusedClauseCount: {unusedClauses.Count}");
+                report.AppendLine();
+
+                report.AppendLine("REQUIREMENT -> SOURCE MAP");
+                report.AppendLine("------------------------");
+                for (var i = 0; i < deterministicRequirements.Count; i++)
+                {
+                    var candidate = deterministicRequirements[i];
+                    report.AppendLine($"[{i + 1}] RequirementId: {candidate.Requirement.Item}");
+                    report.AppendLine($"    TraceReference: {candidate.Requirement.TraceReference}");
+                    report.AppendLine($"    RequirementText: {TruncateForReport(candidate.Requirement.Description, 220)}");
+                    report.AppendLine($"    SourceRequirementText: {TruncateForReport(candidate.SourceClause, 220)}");
+                    report.AppendLine();
+                }
+
+                report.AppendLine("USED SOURCE CLAUSES");
+                report.AppendLine("-------------------");
+                for (var i = 0; i < deterministicRequirements.Count; i++)
+                {
+                    report.AppendLine($"[{i + 1}] {deterministicRequirements[i].SourceClause}");
+                }
+
+                report.AppendLine();
+                report.AppendLine("UNUSED SOURCE CLAUSES (REVIEW FOR MISSED REQUIREMENTS)");
+                report.AppendLine("------------------------------------------------------");
+                if (unusedClauses.Count == 0)
+                {
+                    report.AppendLine("<none>");
+                }
+                else
+                {
+                    for (var i = 0; i < unusedClauses.Count; i++)
+                    {
+                        report.AppendLine($"[{i + 1}] {unusedClauses[i]}");
+                    }
+                }
+
+                var reportDirectory = Path.Combine(Environment.CurrentDirectory, "exports", "traceability-reports");
+                Directory.CreateDirectory(reportDirectory);
+                var safeFileName = SanitizeFileNameWithoutExtension(attachment.FileName);
+                var reportPath = Path.Combine(
+                    reportDirectory,
+                    $"derivation-trace-{DateTime.UtcNow:yyyyMMdd-HHmmss}-att-{attachment.Id}-{safeFileName}.txt");
+
+                await File.WriteAllTextAsync(reportPath, report.ToString(), cancellationToken);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[DerivationTrace] Wrote deterministic traceability report: {reportPath}");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[DerivationTrace] Failed to write deterministic traceability report for attachment {attachment.Id}: {ex.Message}");
+            }
+        }
+
+        private static bool LooksLikeUutRequirementForFallback(string requirementText)
+        {
+            if (string.IsNullOrWhiteSpace(requirementText))
+            {
+                return false;
+            }
+
+            var normalized = NormalizeRequirementPrefixForFallback(requirementText);
+            return System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"^\s*(?:The\s+)?(?:MFD|UUT|LRU|Aircraft|Display\s+Unit|Avionics\s+Unit)\b.*\bshall\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        }
+
+        private static string RewriteUutRequirementAsTestSolutionVerificationForFallback(string requirementText)
+        {
+            var cleaned = NormalizeRequirementPrefixForFallback(requirementText).Trim().TrimEnd('.');
+            if (string.IsNullOrWhiteSpace(cleaned))
+            {
+                return "The test solution shall verify required UUT behavior.";
+            }
+
+            return $"The test solution shall verify that {char.ToLowerInvariant(cleaned[0])}{cleaned.Substring(1)}.";
+        }
+
+        private static string NormalizeRequirementPrefixForFallback(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return string.Empty;
+            }
+
+            return System.Text.RegularExpressions.Regex.Replace(text, @"^\s*(?:\[[^\]]+\]\s*)+", string.Empty).Trim();
+        }
+
+        private sealed class DeterministicRequirementCandidate
+        {
+            public Requirement Requirement { get; init; } = new Requirement();
+            public string SourceClause { get; init; } = string.Empty;
         }
 
         /// <summary>
