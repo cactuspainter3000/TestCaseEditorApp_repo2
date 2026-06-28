@@ -350,7 +350,7 @@ namespace TestCaseEditorApp.Services
                         {
                             progressCallback?.Invoke($"🔄 Retrying {result.SkippedAtpSteps.Count} skipped steps with {retryDecision.ExtendedTimeout.TotalSeconds}s timeout...");
                             
-                            await RetrySkippedStepsAsync(result, retryDecision.ExtendedTimeout, progressCallback);
+                            await RetrySkippedStepsAsync(result, derivationOptions, retryDecision.ExtendedTimeout, progressCallback);
                             
                             progressCallback?.Invoke($"✅ ATP Retry Complete: Final result: {result.DerivedCapabilities.Count} total capabilities via extended timeout");
                         }
@@ -563,10 +563,12 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Retry processing of skipped ATP steps with extended timeout
         /// </summary>
-        private async Task RetrySkippedStepsAsync(DerivationResult result, TimeSpan extendedTimeout, Action<string>? progressCallback)
+        private async Task RetrySkippedStepsAsync(DerivationResult result, DerivationOptions baseOptions, TimeSpan extendedTimeout, Action<string>? progressCallback)
         {
             var skippedSteps = new List<SkippedAtpStep>(result.SkippedAtpSteps);
             result.SkippedAtpSteps.Clear(); // Clear the list - will be repopulated with any that still timeout
+
+            var retryOptions = CreateRetryDerivationOptions(baseOptions, extendedTimeout);
             
             int retryCounter = 0;
             foreach (var skippedStep in skippedSteps)
@@ -579,7 +581,7 @@ namespace TestCaseEditorApp.Services
                 
                 try
                 {
-                    var retryResult = await DeriveSingleStepWithTimeoutAsync(skippedStep.StepText, new DerivationOptions(), retryCts.Token);
+                    var retryResult = await DeriveSingleStepWithTimeoutAsync(skippedStep.StepText, retryOptions, retryCts.Token);
                     
                     // Add successful retry results
                     result.DerivedCapabilities.AddRange(retryResult.DerivedCapabilities);
@@ -611,6 +613,24 @@ namespace TestCaseEditorApp.Services
             }
         }
 
+        private static DerivationOptions CreateRetryDerivationOptions(DerivationOptions baseOptions, TimeSpan extendedTimeout)
+        {
+            return new DerivationOptions
+            {
+                FocusCategories = new List<string>(baseOptions.FocusCategories ?? new List<string>()),
+                SystemType = baseOptions.SystemType,
+                IncludeRejectionAnalysis = baseOptions.IncludeRejectionAnalysis,
+                EnableQualityScoring = false,
+                MaxProcessingTime = baseOptions.MaxProcessingTime,
+                PerStepTimeout = extendedTimeout,
+                SourceMetadata = new Dictionary<string, string>(baseOptions.SourceMetadata ?? new Dictionary<string, string>()),
+                EnableRagContext = false,
+                SimplifiedPromptMode = true,
+                MaxAtpStepCharacters = 320,
+                MaxRagContextCharacters = 0
+            };
+        }
+
         /// <summary>
         /// Derive capabilities from a single ATP step (focused analysis)
         /// </summary>
@@ -628,6 +648,7 @@ namespace TestCaseEditorApp.Services
         {
             var stopwatch = Stopwatch.StartNew();
             var derivationOptions = options ?? new DerivationOptions();
+            var stepForPrompt = BuildStepPayloadForPrompt(atpStep, derivationOptions);
             var result = new DerivationResult 
             { 
                 SourceATPContent = atpStep,
@@ -640,12 +661,12 @@ namespace TestCaseEditorApp.Services
 
                 // RAG-ENHANCED ANALYSIS: Query RAG for document context if available
                 string ragContext = string.Empty;
-                if (_directRagService?.IsConfigured == true && derivationOptions.SourceMetadata.ContainsKey("ProjectId"))
+                if (derivationOptions.EnableRagContext && _directRagService?.IsConfigured == true && derivationOptions.SourceMetadata.ContainsKey("ProjectId"))
                 {
                     var projectId = int.Parse(derivationOptions.SourceMetadata["ProjectId"]);
                     
                     // Extract keywords from ATP step for targeted RAG query
-                    var stepKeywords = ExtractKeywordsFromAtpStep(atpStep);
+                    var stepKeywords = ExtractKeywordsFromAtpStep(stepForPrompt);
                     var ragQuery = string.Join(" ", stepKeywords.Take(10)); // Use top 10 keywords
                     
                     try
@@ -659,6 +680,11 @@ namespace TestCaseEditorApp.Services
                         
                         if (!string.IsNullOrEmpty(ragContext))
                         {
+                            if (derivationOptions.MaxRagContextCharacters > 0 && ragContext.Length > derivationOptions.MaxRagContextCharacters)
+                            {
+                                ragContext = ragContext.Substring(0, derivationOptions.MaxRagContextCharacters);
+                            }
+
                             _logger.LogDebug("RAG context retrieved: {ContextLength} characters", ragContext.Length);
                             result.SourceMetadata["RAGContextLength"] = ragContext.Length.ToString();
                             result.SourceMetadata["RAGQuery"] = ragQuery;
@@ -673,7 +699,7 @@ namespace TestCaseEditorApp.Services
 
                 // Build derivation prompt using specialized prompt builder with RAG context
                 var prompt = _promptBuilder.BuildDerivationPrompt(
-                    atpStep, 
+                    stepForPrompt,
                     stepMetadata: null!, // Single step analysis - no metadata
                     systemType: derivationOptions.SystemType,
                     derivationOptions: derivationOptions,
@@ -718,6 +744,116 @@ namespace TestCaseEditorApp.Services
                 result.ProcessingTime = stopwatch.Elapsed;
                 return result;
             }
+        }
+
+        private static string BuildStepPayloadForPrompt(string atpStep, DerivationOptions options)
+        {
+            if (string.IsNullOrWhiteSpace(atpStep))
+            {
+                return string.Empty;
+            }
+
+            var normalized = NormalizeWhitespace(RemoveAtpMetadataNoise(atpStep));
+            var actionableClause = ExtractActionableClause(normalized);
+            if (!string.IsNullOrWhiteSpace(actionableClause))
+            {
+                normalized = actionableClause;
+            }
+
+            if (options.SimplifiedPromptMode)
+            {
+                var focused = ExtractMostRelevantSentence(normalized);
+                var maxLength = options.MaxAtpStepCharacters > 0 ? options.MaxAtpStepCharacters : 320;
+                return ClampTextLength(focused, maxLength);
+            }
+
+            if (options.MaxAtpStepCharacters > 0)
+            {
+                return ClampTextLength(normalized, options.MaxAtpStepCharacters);
+            }
+
+            return normalized;
+        }
+
+        private static string NormalizeWhitespace(string input)
+        {
+            return Regex.Replace(input, "\\s+", " ").Trim();
+        }
+
+        private static string RemoveAtpMetadataNoise(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return string.Empty;
+            }
+
+            var cleaned = input;
+
+            // Remove common ATP traceability wrappers that add tokens without semantic value.
+            cleaned = Regex.Replace(cleaned, @"\bReferences?\b", " ", RegexOptions.IgnoreCase);
+            cleaned = Regex.Replace(cleaned, @"\bTest[_\s]?type\s*:\s*[^,;|]+", " ", RegexOptions.IgnoreCase);
+            cleaned = Regex.Replace(cleaned, @"\bTest[_\s]?venue\s*:\s*[^,;|]+", " ", RegexOptions.IgnoreCase);
+            cleaned = Regex.Replace(cleaned, @"\bID\s*:\s*[A-Za-z0-9_.\-]+", " ", RegexOptions.IgnoreCase);
+            cleaned = Regex.Replace(cleaned, @"^\s*(?:Step\s*)?\d+(?:\.\d+)*(?:\.[A-Za-z])?\s*[:\-]?\s*", " ", RegexOptions.IgnoreCase);
+
+            return cleaned;
+        }
+
+        private static string ExtractActionableClause(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return string.Empty;
+            }
+
+            var sentences = Regex.Split(text, @"(?<=[\.\!\?;])\s+")
+                .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .ToList();
+
+            if (sentences.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            var preferred = sentences.FirstOrDefault(s =>
+                s.Length >= 20 &&
+                Regex.IsMatch(s, @"\b(shall|must|will|should|verify|measure|monitor|display|record|provide|compute|calculate|transmit|receive)\b", RegexOptions.IgnoreCase));
+
+            return preferred ?? string.Empty;
+        }
+
+        private static string ExtractMostRelevantSentence(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return text;
+            }
+
+            var sentences = Regex.Split(text, @"(?<=[\.\!\?;])\s+")
+                .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .ToList();
+
+            if (sentences.Count == 0)
+            {
+                return text;
+            }
+
+            var requirementSentence = sentences.FirstOrDefault(s =>
+                Regex.IsMatch(s, @"\b(shall|must|will|should)\b", RegexOptions.IgnoreCase));
+
+            return requirementSentence ?? sentences[0];
+        }
+
+        private static string ClampTextLength(string text, int maxLength)
+        {
+            if (maxLength <= 0 || string.IsNullOrEmpty(text) || text.Length <= maxLength)
+            {
+                return text;
+            }
+
+            return text.Substring(0, maxLength);
         }
 
         /// <summary>
@@ -1381,6 +1517,15 @@ namespace TestCaseEditorApp.Services
                     sourceMetadata["DerivedRequirementClassification"] = derivedRequirementClassification;
                 }
 
+                if (LooksLikeUutRequirement(requirementText))
+                {
+                    sourceMetadata["SourceRequirementClassification"] = sourceRequirementClassification ?? "Source/UUT Requirement";
+                    sourceMetadata["BoundaryRewrite"] = "UUTToTestSolution";
+                    requirementText = RewriteUutRequirementAsTestSolutionVerification(requirementText);
+                    derivedRequirementClassification ??= "Test Solution System Requirement";
+                    sourceMetadata["DerivedRequirementClassification"] = derivedRequirementClassification;
+                }
+
                 return new DerivedCapability
                 {
                     Id = Guid.NewGuid().ToString(),
@@ -1404,15 +1549,16 @@ namespace TestCaseEditorApp.Services
         {
             var capabilities = new List<DerivedCapability>();
             
-            // Look for "shall" statements as requirements.
-            // Accept both "The system shall ..." and subject-specific forms like "The MFD shall ...".
+            // Look for system/test-solution "shall" statements only.
+            // UUT-facing statements are handled by structured parsing with boundary rewrite.
             var seenRequirements = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             var shallPatterns = new[]
             {
                 @"\b[Tt]he\s+system\s+shall\s+[^.\r\n]{10,300}\.",
-                @"\b[A-Za-z][A-Za-z0-9_\-/ ]{1,50}\s+shall\s+[^.\r\n]{10,300}\.",
-                @"\b[A-Za-z][A-Za-z0-9_\-/ ]{1,50}\s+shall\s+[^\r\n]{10,300}"
+                @"\b[Tt]he\s+test\s+solution\s+shall\s+[^.\r\n]{10,300}\.",
+                @"\b[Ss]ystem\s+shall\s+[^\r\n]{10,300}",
+                @"\b[Tt]est\s+solution\s+shall\s+[^\r\n]{10,300}"
             };
 
             foreach (var pattern in shallPatterns)
@@ -1422,6 +1568,11 @@ namespace TestCaseEditorApp.Services
                 {
                     var reqText = match.Value.Trim();
                     if (reqText.Length <= 20)
+                    {
+                        continue;
+                    }
+
+                    if (LooksLikeUutRequirement(reqText))
                     {
                         continue;
                     }
@@ -1445,6 +1596,31 @@ namespace TestCaseEditorApp.Services
             }
             
             return capabilities;
+        }
+
+        private static bool LooksLikeUutRequirement(string requirementText)
+        {
+            if (string.IsNullOrWhiteSpace(requirementText))
+            {
+                return false;
+            }
+
+            // Common UUT-specific subject patterns observed in ATR content.
+            return Regex.IsMatch(
+                requirementText,
+                @"^\s*(?:The\s+)?(?:MFD|UUT|LRU|Aircraft|Display\s+Unit|Avionics\s+Unit)\b.*\bshall\b",
+                RegexOptions.IgnoreCase);
+        }
+
+        private static string RewriteUutRequirementAsTestSolutionVerification(string requirementText)
+        {
+            var cleaned = requirementText.Trim().TrimEnd('.');
+            if (string.IsNullOrWhiteSpace(cleaned))
+            {
+                return "The test solution shall verify required UUT behavior.";
+            }
+
+            return $"The test solution shall verify that {char.ToLowerInvariant(cleaned[0])}{cleaned.Substring(1)}.";
         }
         
         private string ClassifyRequirementCategory(string requirementText)

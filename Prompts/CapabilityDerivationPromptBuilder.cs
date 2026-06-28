@@ -83,6 +83,7 @@ namespace TestCaseEditorApp.Prompts
             string? ragContext = null)
         {
             var sb = new StringBuilder();
+            var simplifiedMode = derivationOptions?.SimplifiedPromptMode == true;
 
             sb.AppendLine("ATP STEP ANALYSIS REQUEST");
             sb.AppendLine("=========================");
@@ -107,11 +108,11 @@ namespace TestCaseEditorApp.Prompts
             sb.AppendLine();
 
             sb.AppendLine("BOUNDARY-AWARE DERIVATION RULES:");
-            sb.AppendLine("- Treat statements about the UUT (for example, 'The MFD shall...') as SOURCE requirements.");
-            sb.AppendLine("- Derive requirements for the TEST SOLUTION, not for the UUT implementation.");
-            sb.AppendLine("- Derived requirements should start with 'The test solution shall...' when applicable.");
-            sb.AppendLine("- Preserve traceability by including the source statement in each derived capability.");
-            sb.AppendLine("- If a statement is only a test procedure/operator step, classify it as Verification/Procedure.");
+            sb.AppendLine("- Treat UUT behavior as source requirements.");
+            sb.AppendLine("- Derive requirements for the TEST SOLUTION, not the UUT implementation.");
+            sb.AppendLine("- Prefer 'The test solution shall...' for derived requirements.");
+            sb.AppendLine("- Preserve traceability via source requirement text.");
+            sb.AppendLine("- If only a procedure/operator action is present, classify as Verification/Procedure.");
             sb.AppendLine();
 
             // CRITICAL: Include RAG context if available
@@ -142,23 +143,26 @@ namespace TestCaseEditorApp.Prompts
                 sb.AppendLine();
             }
 
-            sb.AppendLine("ANALYSIS FOCUS:");
-            if (!string.IsNullOrEmpty(ragContext))
+            if (!simplifiedMode)
             {
-                sb.AppendLine("1. What specific system interfaces are described in the document context?");
-                sb.AppendLine("2. What exact measurement or control functions are defined for this system?");
-                sb.AppendLine("3. What data handling capabilities are explicitly specified?");
-                sb.AppendLine("4. What performance characteristics are documented for this ATP step?");
-                sb.AppendLine("5. How do the document specifications relate to this test step?");
+                sb.AppendLine("ANALYSIS FOCUS:");
+                if (!string.IsNullOrEmpty(ragContext))
+                {
+                    sb.AppendLine("1. What specific system interfaces are described in the document context?");
+                    sb.AppendLine("2. What exact measurement or control functions are defined for this system?");
+                    sb.AppendLine("3. What data handling capabilities are explicitly specified?");
+                    sb.AppendLine("4. What performance characteristics are documented for this ATP step?");
+                    sb.AppendLine("5. How do the document specifications relate to this test step?");
+                }
+                else
+                {
+                    sb.AppendLine("1. What system interfaces must exist?");
+                    sb.AppendLine("2. What measurement or control functions are needed?");
+                    sb.AppendLine("3. What data handling capabilities are required?");
+                    sb.AppendLine("4. What performance characteristics must be provided?");
+                }
+                sb.AppendLine();
             }
-            else
-            {
-                sb.AppendLine("1. What system interfaces must exist?");
-                sb.AppendLine("2. What measurement or control functions are needed?");
-                sb.AppendLine("3. What data handling capabilities are required?");
-                sb.AppendLine("4. What performance characteristics must be provided?");
-            }
-            sb.AppendLine();
 
             sb.AppendLine("OUTPUT FORMAT REQUIREMENTS:");
             sb.AppendLine("============================");

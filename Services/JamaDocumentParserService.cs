@@ -2061,6 +2061,15 @@ Extract all legitimate requirements:";
                     // Convert derived capabilities to requirements
                     progressCallback?.Invoke($"📋 Converting {derivationResult.DerivedCapabilities.Count} derived capabilities to requirements...");
                     var derivedRequirements = ConvertDerivedCapabilitiesToRequirements(derivationResult.DerivedCapabilities, attachment, projectId);
+
+                    // Emit a human-reviewable traceability report showing used and unused source clauses.
+                    await WriteDerivationTraceabilityReportAsync(
+                        attachment,
+                        projectId,
+                        documentContent,
+                        derivationResult.DerivedCapabilities,
+                        derivedRequirements,
+                        cancellationToken);
                     
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Successfully derived {derivedRequirements.Count} requirements from {attachment.FileName} using ATP derivation system");
                     progressCallback?.Invoke($"✅ ATP Derivation Complete: Generated {derivedRequirements.Count} requirements via phi4-mini → A-N taxonomy → capability synthesis");
@@ -2175,6 +2184,253 @@ Extract all legitimate requirements:";
             return $"{FormatDurationCompact(TimeSpan.FromSeconds(lowSeconds))}-{FormatDurationCompact(TimeSpan.FromSeconds(highSeconds))}";
         }
 
+        private async Task WriteDerivationTraceabilityReportAsync(
+            JamaAttachment attachment,
+            int projectId,
+            string documentContent,
+            IReadOnlyList<DerivedCapability> capabilities,
+            IReadOnlyList<Requirement> derivedRequirements,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var clauses = ExtractSourceClauses(documentContent);
+                if (clauses.Count == 0)
+                {
+                    return;
+                }
+
+                var requirementIds = new List<string>();
+                var usedFragments = new List<string>();
+
+                for (var i = 0; i < capabilities.Count; i++)
+                {
+                    var cap = capabilities[i];
+                    var req = i < derivedRequirements.Count ? derivedRequirements[i] : null;
+                    var reqId = req?.Item ?? req?.GlobalId ?? $"DERIVED-{i + 1:D3}";
+                    requirementIds.Add(reqId);
+
+                    if (!string.IsNullOrWhiteSpace(cap.SourceATPStep))
+                    {
+                        usedFragments.Add(cap.SourceATPStep);
+                    }
+
+                    if (cap.SourceMetadata != null &&
+                        cap.SourceMetadata.TryGetValue("SourceRequirementText", out var sourceReqText) &&
+                        !string.IsNullOrWhiteSpace(sourceReqText))
+                    {
+                        usedFragments.Add(sourceReqText);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(req?.Description))
+                    {
+                        usedFragments.Add(req.Description);
+                    }
+                }
+
+                var normalizedUsed = usedFragments
+                    .Select(NormalizeForTraceMatch)
+                    .Where(s => s.Length >= 16)
+                    .Distinct(StringComparer.Ordinal)
+                    .ToList();
+
+                var usedClauses = new List<string>();
+                var unusedClauses = new List<string>();
+
+                foreach (var clause in clauses)
+                {
+                    var normalizedClause = NormalizeForTraceMatch(clause);
+                    if (normalizedClause.Length < 16)
+                    {
+                        continue;
+                    }
+
+                    var isUsed = normalizedUsed.Any(u =>
+                        u.Contains(normalizedClause, StringComparison.Ordinal) ||
+                        normalizedClause.Contains(u, StringComparison.Ordinal));
+
+                    if (isUsed)
+                    {
+                        usedClauses.Add(clause);
+                    }
+                    else
+                    {
+                        unusedClauses.Add(clause);
+                    }
+                }
+
+                var report = new StringBuilder();
+                report.AppendLine("DERIVATION TRACEABILITY REPORT");
+                report.AppendLine("============================");
+                report.AppendLine($"GeneratedUtc: {DateTime.UtcNow:O}");
+                report.AppendLine($"ProjectId: {projectId}");
+                report.AppendLine($"AttachmentId: {attachment.Id}");
+                report.AppendLine($"FileName: {attachment.FileName}");
+                report.AppendLine($"DerivedRequirementCount: {derivedRequirements.Count}");
+                report.AppendLine($"CandidateClauseCount: {clauses.Count}");
+                report.AppendLine($"UsedClauseCount: {usedClauses.Count}");
+                report.AppendLine($"UnusedClauseCount: {unusedClauses.Count}");
+                report.AppendLine();
+
+                report.AppendLine("REQUIREMENT -> SOURCE MAP");
+                report.AppendLine("------------------------");
+                for (var i = 0; i < capabilities.Count; i++)
+                {
+                    var cap = capabilities[i];
+                    var req = i < derivedRequirements.Count ? derivedRequirements[i] : null;
+                    var reqId = req?.Item ?? req?.GlobalId ?? $"DERIVED-{i + 1:D3}";
+                    var traceReference = BuildRequirementTraceReference(attachment.Id, reqId, i + 1);
+                    report.AppendLine($"[{i + 1}] RequirementId: {reqId}");
+                    report.AppendLine($"    TraceReference: {traceReference}");
+                    report.AppendLine($"    RequirementText: {TruncateForReport(req?.Description ?? cap.RequirementText, 220)}");
+                    report.AppendLine($"    SourceAtpStep: {TruncateForReport(cap.SourceATPStep, 220)}");
+
+                    if (cap.SourceMetadata != null &&
+                        cap.SourceMetadata.TryGetValue("SourceRequirementText", out var sourceReqText) &&
+                        !string.IsNullOrWhiteSpace(sourceReqText))
+                    {
+                        report.AppendLine($"    SourceRequirementText: {TruncateForReport(sourceReqText, 220)}");
+                    }
+
+                    report.AppendLine();
+                }
+
+                report.AppendLine("USED SOURCE CLAUSES");
+                report.AppendLine("-------------------");
+                if (usedClauses.Count == 0)
+                {
+                    report.AppendLine("<none>");
+                }
+                else
+                {
+                    for (var i = 0; i < usedClauses.Count; i++)
+                    {
+                        report.AppendLine($"[{i + 1}] {usedClauses[i]}");
+                    }
+                }
+
+                report.AppendLine();
+                report.AppendLine("UNUSED SOURCE CLAUSES (REVIEW FOR MISSED REQUIREMENTS)");
+                report.AppendLine("------------------------------------------------------");
+                if (unusedClauses.Count == 0)
+                {
+                    report.AppendLine("<none>");
+                }
+                else
+                {
+                    for (var i = 0; i < unusedClauses.Count; i++)
+                    {
+                        report.AppendLine($"[{i + 1}] {unusedClauses[i]}");
+                    }
+                }
+
+                var reportDirectory = Path.Combine(Environment.CurrentDirectory, "exports", "traceability-reports");
+                Directory.CreateDirectory(reportDirectory);
+                var safeFileName = SanitizeFileNameWithoutExtension(attachment.FileName);
+                var reportPath = Path.Combine(
+                    reportDirectory,
+                    $"derivation-trace-{DateTime.UtcNow:yyyyMMdd-HHmmss}-att-{attachment.Id}-{safeFileName}.txt");
+
+                await File.WriteAllTextAsync(reportPath, report.ToString(), cancellationToken);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[DerivationTrace] Wrote traceability report: {reportPath}");
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[DerivationTrace] Failed to write traceability report for attachment {attachment.Id}: {ex.Message}");
+            }
+        }
+
+        private static List<string> ExtractSourceClauses(string documentContent)
+        {
+            var clauses = new List<string>();
+            if (string.IsNullOrWhiteSpace(documentContent))
+            {
+                return clauses;
+            }
+
+            var normalized = System.Text.RegularExpressions.Regex.Replace(documentContent, @"\s+", " ").Trim();
+            if (normalized.Length == 0)
+            {
+                return clauses;
+            }
+
+            var statementRegex = new System.Text.RegularExpressions.Regex(
+                @"\b(?:[A-Za-z][A-Za-z0-9_\-/ ]{1,80}\s+)?(?:shall|must|will|should)\b[\s\S]{12,260}?(?:\.|;|(?=\bTest_type\s*:)|(?=\bTest_Venue\s*:)|(?=\bID\s*:)|$)",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Singleline);
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var matches = statementRegex.Matches(normalized).Cast<System.Text.RegularExpressions.Match>();
+            foreach (var match in matches)
+            {
+                var clause = System.Text.RegularExpressions.Regex.Replace(match.Value, @"\s+", " ").Trim();
+                if (clause.Length < 20)
+                {
+                    continue;
+                }
+
+                if (!clause.EndsWith(".", StringComparison.Ordinal) && !clause.EndsWith(";", StringComparison.Ordinal))
+                {
+                    clause += ".";
+                }
+
+                if (seen.Add(clause))
+                {
+                    clauses.Add(clause);
+                }
+            }
+
+            return clauses;
+        }
+
+        private static string NormalizeForTraceMatch(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var lower = value.ToLowerInvariant();
+            lower = System.Text.RegularExpressions.Regex.Replace(lower, @"[^a-z0-9\s]", " ");
+            lower = System.Text.RegularExpressions.Regex.Replace(lower, @"\s+", " ").Trim();
+            return lower;
+        }
+
+        private static string TruncateForReport(string? value, int maxLength)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return "<none>";
+            }
+
+            var text = value.Trim();
+            return text.Length <= maxLength ? text : text.Substring(0, maxLength) + "...";
+        }
+
+        private static string SanitizeFileNameWithoutExtension(string fileName)
+        {
+            var name = Path.GetFileNameWithoutExtension(fileName);
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return "attachment";
+            }
+
+            foreach (var invalid in Path.GetInvalidFileNameChars())
+            {
+                name = name.Replace(invalid, '-');
+            }
+
+            return name;
+        }
+
+        private static string BuildRequirementTraceReference(int attachmentId, string? requirementId, int ordinal)
+        {
+            var normalizedRequirementId = string.IsNullOrWhiteSpace(requirementId)
+                ? $"REQ-{ordinal:D3}"
+                : System.Text.RegularExpressions.Regex.Replace(requirementId.Trim(), @"\s+", "-");
+
+            return $"TRC-ATT{attachmentId}-{normalizedRequirementId.ToUpperInvariant()}";
+        }
+
         /// <summary>
         /// Convert derived capabilities to Requirement objects (adapted from SmartRequirementImporter)
         /// </summary>
@@ -2195,6 +2451,7 @@ Extract all legitimate requirements:";
                 var generatedItem = !string.IsNullOrWhiteSpace(structuredMetadata.RequirementId)
                     ? structuredMetadata.RequirementId
                     : $"DOC-{i + 1:D3}";
+                var traceReference = BuildRequirementTraceReference(attachment.Id, generatedItem, i + 1);
 
                 var requirement = new Requirement
                 {
@@ -2202,6 +2459,7 @@ Extract all legitimate requirements:";
                         ? structuredMetadata.RequirementId
                         : $"DOC-{attachment.Id}-{i + 1:D3}", // DOC-12345-001, DOC-12345-002, etc.
                     Item = generatedItem,
+                    TraceReference = traceReference,
                     Name = GenerateRequirementNameFromCapability(normalizedDescription, capability.TaxonomyCategory),
                     Description = normalizedDescription,
                     RequirementType = $"{capability.TaxonomyCategory} - {capability.TaxonomySubcategory}",
@@ -2252,6 +2510,7 @@ Extract all legitimate requirements:";
 
                 requirement.Rationale = string.Concat(
                     requirement.Rationale,
+                    "\n\n**Trace Reference:** ", traceReference,
                     "\n\n**Source Classification:** ", sourceClassification,
                     "\n\n**Derived Classification:** ", derivedClassification);
 
@@ -2269,6 +2528,7 @@ Extract all legitimate requirements:";
                 {
                     robustTags.Add($"Taxonomy:{capability.TaxonomyCategory}");
                 }
+                robustTags.Add($"TraceRef:{traceReference}");
                 if (!string.IsNullOrWhiteSpace(structuredMetadata.TestType))
                 {
                     robustTags.Add($"TestType:{structuredMetadata.TestType}");

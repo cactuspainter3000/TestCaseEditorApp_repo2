@@ -83,6 +83,29 @@ namespace TestCaseEditorApp.Services
         /// Source document metadata for traceability
         /// </summary>
         public Dictionary<string, string> SourceMetadata { get; set; } = new Dictionary<string, string>();
+
+        /// <summary>
+        /// Enable RAG context enrichment during single-step derivation.
+        /// Disable for lightweight retries when timeout pressure is high.
+        /// </summary>
+        public bool EnableRagContext { get; set; } = true;
+
+        /// <summary>
+        /// Use a reduced-complexity prompt profile intended for timeout recovery.
+        /// </summary>
+        public bool SimplifiedPromptMode { get; set; } = false;
+
+        /// <summary>
+        /// Maximum ATP step text length included in prompt payload.
+        /// Set to 0 to disable truncation.
+        /// </summary>
+        public int MaxAtpStepCharacters { get; set; } = 0;
+
+        /// <summary>
+        /// Maximum RAG context length included in prompt payload.
+        /// Set to 0 to disable truncation.
+        /// </summary>
+        public int MaxRagContextCharacters { get; set; } = 0;
     }
 
     /// <summary>

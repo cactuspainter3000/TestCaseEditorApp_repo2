@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows;
 using System.Windows.Threading;
+using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
@@ -416,6 +417,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public IAsyncRelayCommand OpenAttachmentCommand { get; private set; } = null!;
         public IAsyncRelayCommand ExecuteSmartActionCommand { get; private set; } = null!;
         public IAsyncRelayCommand SmartToggleCommand { get; private set; } = null!;
+        public IRelayCommand<Requirement> LookupRequirementSourceCommand { get; private set; } = null!;
 
         // ==== COMPUTED PROPERTIES FOR BUTTON WORKFLOW ====
         
@@ -531,6 +533,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             OpenAttachmentCommand = new AsyncRelayCommand(OpenSelectedAttachmentAsync, CanExecuteOpenAttachment);
             ExecuteSmartActionCommand = new AsyncRelayCommand(ExecuteSmartActionAsync, () => SmartButtonEnabled);
             SmartToggleCommand = new AsyncRelayCommand(SmartToggleAsync, () => true);
+            LookupRequirementSourceCommand = new RelayCommand<Requirement>(LookupRequirementSource, CanExecuteLookupRequirementSource);
             
             _logger.LogInformation("[RequirementsSearchAttachments] Commands initialized in InitializeCommands method");
             
@@ -613,6 +616,168 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             
             // Notify command to refresh its CanExecute
             ExecuteSmartActionCommand?.NotifyCanExecuteChanged();
+            LookupRequirementSourceCommand?.NotifyCanExecuteChanged();
+        }
+
+        private bool CanExecuteLookupRequirementSource(Requirement? requirement)
+        {
+            return requirement != null &&
+                   !string.IsNullOrWhiteSpace(requirement.TraceReference) &&
+                   !IsBusy;
+        }
+
+        private void LookupRequirementSource(Requirement? requirement)
+        {
+            if (!CanExecuteLookupRequirementSource(requirement) || requirement == null)
+            {
+                StatusMessage = "❌ No trace reference available for source lookup";
+                return;
+            }
+
+            try
+            {
+                var traceReference = requirement.TraceReference.Trim();
+                var reportDirectory = Path.Combine(Environment.CurrentDirectory, "exports", "traceability-reports");
+                if (!Directory.Exists(reportDirectory))
+                {
+                    StatusMessage = "❌ No traceability reports found yet";
+                    return;
+                }
+
+                var reportFile = ResolveBestTraceabilityReportPath(reportDirectory, traceReference);
+                if (string.IsNullOrWhiteSpace(reportFile) || !File.Exists(reportFile))
+                {
+                    StatusMessage = $"❌ Could not locate report for {traceReference}";
+                    return;
+                }
+
+                var lineNumber = FindTraceReferenceLine(reportFile, traceReference);
+                if (lineNumber <= 0)
+                {
+                    lineNumber = 1;
+                }
+
+                if (TryOpenReportInVsCode(reportFile, lineNumber))
+                {
+                    StatusMessage = $"✅ Opened source trace for {traceReference}";
+                    _logger.LogInformation("[RequirementsSearchAttachments] Opened trace report via VS Code at {File}:{Line} for {TraceReference}", reportFile, lineNumber, traceReference);
+                    return;
+                }
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = reportFile,
+                    UseShellExecute = true
+                });
+
+                StatusMessage = $"✅ Opened trace report for {traceReference} (use Ctrl+F to jump)";
+                _logger.LogInformation("[RequirementsSearchAttachments] Opened trace report via shell fallback {File} for {TraceReference}", reportFile, traceReference);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsSearchAttachments] Failed to lookup source for requirement {Item}", requirement.Item);
+                StatusMessage = $"❌ Source lookup failed: {ex.Message}";
+            }
+        }
+
+        private static string? ResolveBestTraceabilityReportPath(string reportDirectory, string traceReference)
+        {
+            var attachmentId = ExtractAttachmentIdFromTraceReference(traceReference);
+            var candidateFiles = attachmentId.HasValue
+                ? Directory.GetFiles(reportDirectory, $"derivation-trace-*-att-{attachmentId.Value}-*.txt")
+                : Array.Empty<string>();
+
+            if (candidateFiles.Length == 0)
+            {
+                candidateFiles = Directory.GetFiles(reportDirectory, "derivation-trace-*.txt");
+            }
+
+            if (candidateFiles.Length == 0)
+            {
+                return null;
+            }
+
+            // Prefer newest report that actually contains the trace reference.
+            foreach (var file in candidateFiles
+                .OrderByDescending(File.GetLastWriteTimeUtc))
+            {
+                try
+                {
+                    var content = File.ReadAllText(file);
+                    if (content.IndexOf(traceReference, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        return file;
+                    }
+                }
+                catch
+                {
+                    // Ignore unreadable files and continue scanning candidates.
+                }
+            }
+
+            return candidateFiles
+                .OrderByDescending(File.GetLastWriteTimeUtc)
+                .FirstOrDefault();
+        }
+
+        private static int? ExtractAttachmentIdFromTraceReference(string traceReference)
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(
+                traceReference,
+                @"TRC-ATT(?<id>\d+)-",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            if (!match.Success)
+            {
+                return null;
+            }
+
+            return int.TryParse(match.Groups["id"].Value, out var id)
+                ? id
+                : null;
+        }
+
+        private static int FindTraceReferenceLine(string filePath, string traceReference)
+        {
+            try
+            {
+                var lineNumber = 0;
+                foreach (var line in File.ReadLines(filePath, Encoding.UTF8))
+                {
+                    lineNumber++;
+                    if (line.IndexOf(traceReference, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        return lineNumber;
+                    }
+                }
+            }
+            catch
+            {
+                // Caller falls back to line 1.
+            }
+
+            return 1;
+        }
+
+        private static bool TryOpenReportInVsCode(string reportFile, int lineNumber)
+        {
+            try
+            {
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = "code",
+                    Arguments = $"--reuse-window --goto \"{reportFile}:{Math.Max(1, lineNumber)}\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                var process = Process.Start(startInfo);
+                return process != null;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         /// <summary>

@@ -210,6 +210,7 @@ namespace TestCaseEditorApp.MVVM.Models
         [ObservableProperty] private string item = string.Empty;        // e.g., C1XMA2405-REQ_RC-108
         [ObservableProperty] private string name = string.Empty;        // short title
         [ObservableProperty] private string description = string.Empty; // main requirement text
+        [ObservableProperty] private string traceReference = string.Empty; // stable lookup key for provenance reports
 
         // ---- Jama/meta fields ----
         [ObservableProperty] private string status = string.Empty;
