@@ -1873,8 +1873,10 @@ namespace TestCaseEditorApp.Services
                     
                     // Step 2: Check limited items for attachments  
                     var itemsWithAttachments = 0;
+                    var scannedItems = 0;
                     foreach (var item in itemsToCheck)
                     {
+                        scannedItems++;
                         try
                         {
                             var itemAttachments = await GetItemAttachmentsAsync(item.Id, cancellationToken);
