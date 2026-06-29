@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -564,91 +563,62 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         private void OnAttachmentScanStarted(RequirementsEvents.AttachmentScanStarted e)
         {
-            ExecuteOnUiThread(() =>
-            {
-                _logger.LogInformation("[HeaderVM] Attachment scan started for project: {ProjectName}", e.ProjectName);
-                IsAttachmentScanning = true;
-                ScanningProjectName = e.ProjectName;
-                AttachmentScanningStatus = $"Scanning {e.ProjectName} for attachments...";
-                _parsingStartTime = e.StartTime;
-                ParsingTimer = "0:00";
-                AttachmentsFound = 0;
-
-                // Reset when starting new operation
-                HasRecentResults = false;
-
-                _parsingTimerDispatcher?.Start();
-
-                // Notify computed properties
-                OnPropertyChanged(nameof(IsAnyOperationActive));
-                OnPropertyChanged(nameof(CurrentOperationStatus));
-                OnPropertyChanged(nameof(CurrentOperationCount));
-                OnPropertyChanged(nameof(ShouldShowCounter));
-
-                // Notify cancel command that it can now execute
-                ((RelayCommand)CancelParseCommand).NotifyCanExecuteChanged();
-            });
+            _logger.LogInformation("[HeaderVM] Attachment scan started for project: {ProjectName}", e.ProjectName);
+            IsAttachmentScanning = true;
+            ScanningProjectName = e.ProjectName;
+            AttachmentScanningStatus = $"Scanning {e.ProjectName} for attachments...";
+            _parsingStartTime = e.StartTime;
+            ParsingTimer = "0:00";
+            AttachmentsFound = 0;
+            
+            // Reset when starting new operation
+            HasRecentResults = false;
+            
+            _parsingTimerDispatcher?.Start();
+            
+            // Notify computed properties
+            OnPropertyChanged(nameof(IsAnyOperationActive));
+            OnPropertyChanged(nameof(CurrentOperationStatus));
+            OnPropertyChanged(nameof(CurrentOperationCount));
+            OnPropertyChanged(nameof(ShouldShowCounter));
+            
+            // Notify cancel command that it can now execute
+            ((RelayCommand)CancelParseCommand).NotifyCanExecuteChanged();
         }
 
         private void OnAttachmentScanProgress(RequirementsEvents.AttachmentScanProgress e)
         {
-            ExecuteOnUiThread(() =>
-            {
-                _logger.LogDebug("[HeaderVM] Attachment scan progress: {ProgressText}", e.ProgressText);
-                AttachmentScanningStatus = e.ProgressText;
-
-                // Keep the counter live by parsing "X attachments found" from progress messages.
-                var attachmentsMatch = Regex.Match(e.ProgressText ?? string.Empty, @"(?<count>\d+)\s+attachments\s+found", RegexOptions.IgnoreCase);
-                if (attachmentsMatch.Success && int.TryParse(attachmentsMatch.Groups["count"].Value, out var count))
-                {
-                    AttachmentsFound = count;
-                }
-
-                OnPropertyChanged(nameof(CurrentOperationStatus));
-            });
+            _logger.LogDebug("[HeaderVM] Attachment scan progress: {ProgressText}", e.ProgressText);
+            AttachmentScanningStatus = e.ProgressText;
+            OnPropertyChanged(nameof(CurrentOperationStatus));
         }
 
         private void OnAttachmentScanCompleted(RequirementsEvents.AttachmentScanCompleted e)
         {
-            ExecuteOnUiThread(() =>
+            _logger.LogInformation("[HeaderVM] Attachment scan completed for project {ProjectId} - Found {AttachmentCount} attachments", 
+                e.ProjectId, e.AttachmentCount);
+            
+            _parsingTimerDispatcher?.Stop();
+            IsAttachmentScanning = false;
+            
+            if (e.Success)
             {
-                _logger.LogInformation("[HeaderVM] Attachment scan completed for project {ProjectId} - Found {AttachmentCount} attachments",
-                    e.ProjectId, e.AttachmentCount);
-
-                _parsingTimerDispatcher?.Stop();
-                IsAttachmentScanning = false;
-
-                if (e.Success)
-                {
-                    AttachmentsFound = e.AttachmentCount;
-                    AttachmentScanningStatus = $"Found {e.AttachmentCount} attachments in {ScanningProjectName}";
-                }
-                else
-                {
-                    AttachmentScanningStatus = $"Failed to scan attachments: {e.ErrorMessage}";
-                }
-
-                // Notify computed properties
-                OnPropertyChanged(nameof(IsAnyOperationActive));
-                OnPropertyChanged(nameof(CurrentOperationStatus));
-                OnPropertyChanged(nameof(CurrentOperationCount));
-                OnPropertyChanged(nameof(ShouldShowCounter));
-
-                // Notify cancel command state
-                ((RelayCommand)CancelParseCommand).NotifyCanExecuteChanged();
-            });
-        }
-
-        private static void ExecuteOnUiThread(System.Action action)
-        {
-            var dispatcher = System.Windows.Application.Current?.Dispatcher;
-            if (dispatcher == null || dispatcher.CheckAccess())
+                AttachmentsFound = e.AttachmentCount;
+                AttachmentScanningStatus = $"Found {e.AttachmentCount} attachments in {ScanningProjectName}";
+            }
+            else
             {
-                action();
-                return;
+                AttachmentScanningStatus = $"Failed to scan attachments: {e.ErrorMessage}";
             }
 
-            dispatcher.Invoke(action);
+            // Notify computed properties
+            OnPropertyChanged(nameof(IsAnyOperationActive));
+            OnPropertyChanged(nameof(CurrentOperationStatus));
+            OnPropertyChanged(nameof(CurrentOperationCount));
+            OnPropertyChanged(nameof(ShouldShowCounter));
+            
+            // Notify cancel command state
+            ((RelayCommand)CancelParseCommand).NotifyCanExecuteChanged();
         }
 
         /// <summary>

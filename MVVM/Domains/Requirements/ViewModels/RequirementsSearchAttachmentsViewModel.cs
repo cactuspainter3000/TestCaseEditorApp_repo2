@@ -1943,11 +1943,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 // Parse progress from the new format: "Searching... | XX% complete | Y attachments found"
                 if (!string.IsNullOrEmpty(progressEvent.ProgressText))
                 {
-                    var percentMatch = System.Text.RegularExpressions.Regex.Match(progressEvent.ProgressText, @"(?<pct>\d+)%");
-                    if (percentMatch.Success && int.TryParse(percentMatch.Groups["pct"].Value, out int percentage))
+                    var parts = progressEvent.ProgressText.Split('|');
+                    if (parts.Length >= 2)
                     {
-                        BackgroundScanProgress = percentage;
-                        BackgroundScanTotal = 100; // Always 100 for percentage-style messages
+                        // Extract percentage from the "XX% complete" part (index 1)
+                        var percentageText = parts[1].Replace("% complete", "").Trim();
+                        if (int.TryParse(percentageText, out int percentage))
+                        {
+                            BackgroundScanProgress = percentage;
+                            BackgroundScanTotal = 100; // Always 100 for percentage
+                        }
                     }
                 }
                 
