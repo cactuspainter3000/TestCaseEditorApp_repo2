@@ -1378,26 +1378,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     ProgressText = $"Searching {projectName} for attachments | quick scan"
                 });
 
-                var attachments = await _jamaConnectService.GetProjectAttachmentsLimitedAsync(
-                    projectId,
-                    maxItems: 20,
-                    cancellationToken: cancellationToken,
-                    progressCallback: (current, total, progressData) =>
-                    {
-                        progress?.Report(new AttachmentScanProgressData
-                        {
-                            Current = current,
-                            Total = total,
-                            ProgressText = progressData
-                        });
-
-                        PublishEvent(new RequirementsEvents.AttachmentScanProgress
-                        {
-                            ProjectId = projectId,
-                            ProgressText = progressData
-                        });
-                    },
-                    projectName: projectName);
+                var attachments = await _jamaConnectService.GetProjectAttachmentsLimitedAsync(projectId, maxItems: 20, cancellationToken);
 
                 if (attachments.Count == 0)
                 {
