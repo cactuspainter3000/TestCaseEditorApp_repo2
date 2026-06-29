@@ -1859,15 +1859,17 @@ namespace TestCaseEditorApp.Services
                 
                 try 
                 {
-                    // Step 1: Get limited items in the project
-                    var items = await GetAbstractItemsForProjectAsync(projectId, cancellationToken);
+                    // Step 1: Get only the first N items in the project (true limited mode)
+                    var items = await GetAbstractItemsForProjectAsync(projectId, cancellationToken, maxItems);
                     var itemsToCheck = items.Take(maxItems).ToList();
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Checking first {itemsToCheck.Count} of {items.Count} items for attachments");
                     
                     // Step 2: Check limited items for attachments  
                     var itemsWithAttachments = 0;
+                    var scannedItems = 0;
                     foreach (var item in itemsToCheck)
                     {
+                        scannedItems++;
                         try
                         {
                             var itemAttachments = await GetItemAttachmentsAsync(item.Id, cancellationToken);
@@ -1890,8 +1892,11 @@ namespace TestCaseEditorApp.Services
                             TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to check attachments for item {item.Id}: {ex.Message}");
                         }
                         
-                        // Small delay to avoid API rate limits
-                        await Task.Delay(25, cancellationToken); // Reduced from 50ms
+                        // Yield occasionally to keep UI responsive without adding linear latency.
+                        if ((scannedItems % 25) == 0)
+                        {
+                            await Task.Yield();
+                        }
                     }
                     
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Limited scan complete: {attachments.Count} attachments found across {itemsWithAttachments} items");
@@ -1992,7 +1997,7 @@ namespace TestCaseEditorApp.Services
         /// Get abstract items for a project using the recommended cookbook approach
         /// Uses /abstractitems endpoint with project filtering
         /// </summary>
-        private async Task<List<JamaAbstractItem>> GetAbstractItemsForProjectAsync(int projectId, CancellationToken cancellationToken = default)
+        private async Task<List<JamaAbstractItem>> GetAbstractItemsForProjectAsync(int projectId, CancellationToken cancellationToken = default, int? maxItems = null)
         {
             var items = new List<JamaAbstractItem>();
             var startAt = 0;
@@ -2036,7 +2041,19 @@ namespace TestCaseEditorApp.Services
 
                             items.AddRange(matchingItems);
                             startAt += result.Data.Count;
-                            hasMore = result.Meta?.PageInfo?.TotalResults > startAt;
+
+                            if (maxItems.HasValue && items.Count >= maxItems.Value)
+                            {
+                                if (items.Count > maxItems.Value)
+                                {
+                                    items = items.Take(maxItems.Value).ToList();
+                                }
+                                hasMore = false;
+                            }
+                            else
+                            {
+                                hasMore = result.Meta?.PageInfo?.TotalResults > startAt;
+                            }
                         }
                         else
                         {
