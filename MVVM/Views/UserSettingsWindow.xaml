@@ -155,6 +155,13 @@
                             Padding="16,8"
                             Command="{Binding TestJamaConnectionCommand}"
                             Style="{StaticResource ActionButton}"/>
+
+                        <Button Content="Export Item Type 193 Field Dictionary"
+                            HorizontalAlignment="Left"
+                            Padding="16,8"
+                            Margin="0,10,0,0"
+                            Command="{Binding ExportJamaRequirementFieldDictionaryCommand}"
+                            Style="{StaticResource ActionButton}"/>
                 </StackPanel>
             </TabItem>
 

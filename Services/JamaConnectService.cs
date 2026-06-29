@@ -47,6 +47,7 @@ namespace TestCaseEditorApp.Services
         private readonly Dictionary<string, Dictionary<string, object?>> _requirementFieldDefaultsCache = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<int, int> _requirementItemTypeCache = new();
         private readonly Dictionary<int, int> _requirementPlacementContainerCache = new();
+        private readonly Dictionary<int, int?> _projectRelationshipTypeCache = new();
         
         public bool IsConfigured => !string.IsNullOrEmpty(_baseUrl) && 
             (!string.IsNullOrEmpty(_apiToken) || 
@@ -387,6 +388,143 @@ namespace TestCaseEditorApp.Services
                 var failMsg = $"Connection failed: {response.StatusCode} - {errorContent}";
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] {failMsg}");
                 return (false, failMsg);
+            }
+        }
+
+        /// <summary>
+        /// Export item type 193 field dictionary with constraints and picklist options to a timestamped text file.
+        /// </summary>
+        public async Task<(bool Success, string Message, string? OutputPath)> ExportRequirementItemType193FieldDictionaryAsync(
+            string outputDirectory,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(outputDirectory))
+            {
+                return (false, "Output directory is required.", null);
+            }
+
+            try
+            {
+                await EnsureAccessTokenAsync();
+
+                Directory.CreateDirectory(outputDirectory);
+                var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+                var outputPath = Path.Combine(outputDirectory, $"jama-itemtype-193-field-dictionary-{timestamp}.txt");
+
+                var itemTypeUrl = $"{_baseUrl}/rest/v1/itemtypes/193";
+                var fieldsUrl = $"{_baseUrl}/rest/v1/itemtypes/193/fields";
+
+                var itemTypeResponse = await _httpClient.GetAsync(itemTypeUrl, cancellationToken);
+                if (!itemTypeResponse.IsSuccessStatusCode)
+                {
+                    var error = await itemTypeResponse.Content.ReadAsStringAsync(cancellationToken);
+                    return (false, $"Failed to fetch item type 193 metadata: {itemTypeResponse.StatusCode} - {error}", null);
+                }
+
+                var fieldsResponse = await _httpClient.GetAsync(fieldsUrl, cancellationToken);
+                if (!fieldsResponse.IsSuccessStatusCode)
+                {
+                    var error = await fieldsResponse.Content.ReadAsStringAsync(cancellationToken);
+                    return (false, $"Failed to fetch item type 193 fields metadata: {fieldsResponse.StatusCode} - {error}", null);
+                }
+
+                var itemTypeJson = await itemTypeResponse.Content.ReadAsStringAsync(cancellationToken);
+                var fieldsJson = await fieldsResponse.Content.ReadAsStringAsync(cancellationToken);
+
+                using var itemTypeDoc = JsonDocument.Parse(itemTypeJson);
+                using var fieldsDoc = JsonDocument.Parse(fieldsJson);
+
+                var picklistIds = new HashSet<int>();
+                CollectPicklistIds(fieldsDoc.RootElement, picklistIds);
+                CollectPicklistIds(itemTypeDoc.RootElement, picklistIds);
+
+                var picklistOptionPayloads = new Dictionary<int, string>();
+                foreach (var picklistId in picklistIds.OrderBy(i => i))
+                {
+                    var picklistUrl = $"{_baseUrl}/rest/v1/picklists/{picklistId}/options";
+                    var picklistResponse = await _httpClient.GetAsync(picklistUrl, cancellationToken);
+                    var picklistBody = await picklistResponse.Content.ReadAsStringAsync(cancellationToken);
+                    if (!picklistResponse.IsSuccessStatusCode)
+                    {
+                        picklistOptionPayloads[picklistId] = $"ERROR {picklistResponse.StatusCode}: {picklistBody}";
+                        continue;
+                    }
+
+                    picklistOptionPayloads[picklistId] = TryPrettyJson(picklistBody);
+                }
+
+                var report = new StringBuilder();
+                report.AppendLine("Jama Requirement Item Type 193 Field Dictionary Export");
+                report.AppendLine($"Generated Local: {DateTime.Now:O}");
+                report.AppendLine($"Generated UTC:   {DateTime.UtcNow:O}");
+                report.AppendLine($"Base URL:        {_baseUrl}");
+                report.AppendLine();
+
+                report.AppendLine("Summary");
+                report.AppendLine($"- ItemType endpoint: {itemTypeUrl}");
+                report.AppendLine($"- Fields endpoint:   {fieldsUrl}");
+                report.AppendLine($"- Picklist IDs discovered: {(picklistIds.Count == 0 ? "none" : string.Join(", ", picklistIds.OrderBy(i => i)))}");
+                report.AppendLine();
+
+                report.AppendLine("Parsed Fields (best-effort)");
+                var fieldsArray = TryGetPicklistDataArray(fieldsDoc.RootElement);
+                if (fieldsArray.HasValue && fieldsArray.Value.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var field in fieldsArray.Value.EnumerateArray())
+                    {
+                        var fieldKey = GetStringProperty(field, "fieldName")
+                            ?? GetStringProperty(field, "name")
+                            ?? GetStringProperty(field, "apiName")
+                            ?? GetStringProperty(field, "key")
+                            ?? "<unknown>";
+
+                        var type = GetStringProperty(field, "fieldType")
+                            ?? GetStringProperty(field, "dataType")
+                            ?? GetStringProperty(field, "type")
+                            ?? "<unknown>";
+
+                        var picklistId = GetIntProperty(field, "pickList")
+                            ?? GetIntProperty(field, "picklist")
+                            ?? GetIntProperty(field, "pickListId")
+                            ?? GetIntProperty(field, "picklistId")
+                            ?? GetIntProperty(field, "lookupType")
+                            ?? GetIntProperty(field, "lookupTypeId");
+
+                        var required = GetBoolProperty(field, "required");
+                        var readOnly = GetBoolProperty(field, "readOnly") ?? GetBoolProperty(field, "readonly");
+                        var multiSelect = GetBoolProperty(field, "multiSelect") ?? GetBoolProperty(field, "allowMultiple");
+                        var minLength = GetIntProperty(field, "minLength");
+                        var maxLength = GetIntProperty(field, "maxLength");
+
+                        report.AppendLine($"- key={fieldKey}, type={type}, required={(required.HasValue ? required.Value.ToString() : "n/a")}, readOnly={(readOnly.HasValue ? readOnly.Value.ToString() : "n/a")}, multiSelect={(multiSelect.HasValue ? multiSelect.Value.ToString() : "n/a")}, minLength={(minLength.HasValue ? minLength.Value.ToString() : "n/a")}, maxLength={(maxLength.HasValue ? maxLength.Value.ToString() : "n/a")}, picklistId={(picklistId.HasValue ? picklistId.Value.ToString() : "n/a")}");
+                    }
+                }
+                else
+                {
+                    report.AppendLine("- No field array found in response.");
+                }
+
+                report.AppendLine();
+                report.AppendLine("Raw JSON: itemtypes/193");
+                report.AppendLine(TryPrettyJson(itemTypeJson));
+                report.AppendLine();
+                report.AppendLine("Raw JSON: itemtypes/193/fields");
+                report.AppendLine(TryPrettyJson(fieldsJson));
+
+                foreach (var kvp in picklistOptionPayloads.OrderBy(k => k.Key))
+                {
+                    report.AppendLine();
+                    report.AppendLine($"Raw JSON: picklists/{kvp.Key}/options");
+                    report.AppendLine(kvp.Value);
+                }
+
+                await File.WriteAllTextAsync(outputPath, report.ToString(), Encoding.UTF8, cancellationToken);
+                return (true, "Requirement item type 193 field dictionary exported successfully.", outputPath);
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[JamaConnect] Failed to export field dictionary for item type 193: {ex.Message}");
+                return (false, $"Export failed: {ex.Message}", null);
             }
         }
 
@@ -4495,6 +4633,55 @@ namespace TestCaseEditorApp.Services
 
                 await SanitizeLookupDefaultsForCreateAsync(fields, itemTypeId.Value, cancellationToken);
 
+                // ═══════════════════════════════════════════════════════════════════════════════
+                // Populate three additional Jama requirement fields for derived requirements
+                // ═══════════════════════════════════════════════════════════════════════════════
+                
+                // 1. Set Derived field: "Yes" for ATP-derived, leave as default otherwise
+                if (requirement.IsDerivedFromATP)
+                {
+                    fields["derived"] = "Yes";
+                }
+
+                // 2. Set Validation Method: For derived requirements, set to "Test" (picklist option)
+                // validation_methods$193 is an array field that accepts an array of picklist option IDs.
+                // Resolve by option name instead of using the first picklist option.
+                // This field should only be set for ATP-derived requirements to indicate that these
+                // are validated through test procedures (where they originated).
+                if (requirement.IsDerivedFromATP)
+                {
+                    var testOptionId = await GetPicklistOptionIdByNameAsync(
+                        projectId,
+                        itemTypeId.Value,
+                        "validation_methods$193",
+                        "Test",
+                        cancellationToken);
+
+                    if (testOptionId.HasValue)
+                    {
+                        // Set to an array containing the Test option ID
+                        fields["validation_methods$193"] = new[] { testOptionId.Value };
+                        TestCaseEditorApp.Services.Logging.Log.Debug(
+                            $"[JamaConnect] Set validation_methods to Test (ID: {testOptionId}) for derived requirement");
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn(
+                            "[JamaConnect] Could not resolve 'Test' option for validation_methods. Skipping validation method assignment.");
+                    }
+                }
+
+                // 3. Upstream Cross Instance Relationships is auto-populated by Jama when traceability links exist.
+                // Do not set this rich-text field directly during create.
+                if (requirement.IsDerivedFromATP && requirement.AtpDerivation != null)
+                {
+                    var sourceDoc = !string.IsNullOrWhiteSpace(requirement.AtpDerivation.SourceDocumentName)
+                        ? requirement.AtpDerivation.SourceDocumentName
+                        : "Derived Requirement";
+                    TestCaseEditorApp.Services.Logging.Log.Debug(
+                        $"[JamaConnect] Skipping direct UpstreamLinks assignment for derived requirement '{requirementName}' from source '{sourceDoc}'.");
+                }
+
                 var effectiveParentContainerId = await ResolvePreferredRequirementPlacementContainerAsync(projectId, itemTypeId.Value, preferredParentContainerId, cancellationToken);
 
                 object requestBody;
@@ -4561,6 +4748,12 @@ namespace TestCaseEditorApp.Services
                                 requirement.GlobalId = locationRetry.GlobalId;
                             }
 
+                            await TryCreateTraceabilityRelationshipForDerivedRequirementAsync(
+                                projectId,
+                                locationRetry.JamaItemId.Value,
+                                requirement,
+                                cancellationToken);
+
                             return (true, "Requirement created successfully after location fallback", locationRetry.JamaItemId.Value);
                         }
                     }
@@ -4589,6 +4782,12 @@ namespace TestCaseEditorApp.Services
                             requirement.GlobalId = repairedAndRetried.GlobalId;
                         }
 
+                        await TryCreateTraceabilityRelationshipForDerivedRequirementAsync(
+                            projectId,
+                            repairedAndRetried.JamaItemId.Value,
+                            requirement,
+                            cancellationToken);
+
                         return (true, "Requirement created successfully after lookup field repair", repairedAndRetried.JamaItemId.Value);
                     }
 
@@ -4610,6 +4809,12 @@ namespace TestCaseEditorApp.Services
                         requirement.Item = globalId;
                         requirement.GlobalId = globalId;
                     }
+
+                    await TryCreateTraceabilityRelationshipForDerivedRequirementAsync(
+                        projectId,
+                        createdId,
+                        requirement,
+                        cancellationToken);
 
                     return (true, "Requirement created successfully", createdId);
                 }
@@ -4823,6 +5028,233 @@ namespace TestCaseEditorApp.Services
             }
 
             return (false, null, null, null);
+        }
+
+        private async Task TryCreateTraceabilityRelationshipForDerivedRequirementAsync(
+            int projectId,
+            int createdRequirementItemId,
+            Requirement requirement,
+            CancellationToken cancellationToken)
+        {
+            if (createdRequirementItemId <= 0 || requirement == null || !requirement.IsDerivedFromATP)
+            {
+                return;
+            }
+
+            if (!TryExtractSourceItemIdForTraceability(requirement, out var sourceItemId))
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug(
+                    $"[JamaConnect] Could not determine source item for derived requirement {createdRequirementItemId}. TraceReference='{requirement.TraceReference}'.");
+                return;
+            }
+
+            if (sourceItemId <= 0 || sourceItemId == createdRequirementItemId)
+            {
+                return;
+            }
+
+            var relationshipTypeId = await GetPreferredRelationshipTypeIdAsync(projectId, cancellationToken);
+            var created = await TryCreateRelationshipAsync(sourceItemId, createdRequirementItemId, relationshipTypeId, cancellationToken);
+            if (created)
+            {
+                return;
+            }
+
+            // Relationship rules are directional in many Jama projects; retry reversed.
+            created = await TryCreateRelationshipAsync(createdRequirementItemId, sourceItemId, relationshipTypeId, cancellationToken);
+            if (!created)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn(
+                    $"[JamaConnect] Could not create traceability relationship between source item {sourceItemId} and derived requirement {createdRequirementItemId}. Check relationship rules/type configuration.");
+            }
+        }
+
+        private static bool TryExtractSourceItemIdForTraceability(Requirement requirement, out int sourceItemId)
+        {
+            sourceItemId = 0;
+            var traceReference = requirement.TraceReference;
+            if (string.IsNullOrWhiteSpace(traceReference))
+            {
+                return false;
+            }
+
+            // Primary deterministic format created by this app: TRC-ATT{attachmentId}-{requirementId}
+            var attachmentMatch = Regex.Match(traceReference, @"TRC-ATT(?<id>\d+)-", RegexOptions.IgnoreCase);
+            if (attachmentMatch.Success && int.TryParse(attachmentMatch.Groups["id"].Value, out sourceItemId) && sourceItemId > 0)
+            {
+                return true;
+            }
+
+            // Secondary format support: explicit Jama item markers in trace text.
+            var jamaIdMatch = Regex.Match(traceReference, @"(?:JAMA|ITEM|ID)[^\d]{0,3}(?<id>\d{2,})", RegexOptions.IgnoreCase);
+            if (jamaIdMatch.Success && int.TryParse(jamaIdMatch.Groups["id"].Value, out sourceItemId) && sourceItemId > 0)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private async Task<int?> GetPreferredRelationshipTypeIdAsync(int projectId, CancellationToken cancellationToken)
+        {
+            if (projectId <= 0)
+            {
+                return null;
+            }
+
+            lock (_projectRelationshipTypeCache)
+            {
+                if (_projectRelationshipTypeCache.TryGetValue(projectId, out var cachedId))
+                {
+                    return cachedId;
+                }
+            }
+
+            var candidates = new List<(int Id, string Name)>();
+            var endpoints = new[]
+            {
+                $"{_baseUrl}/rest/v1/relationshiptypes?project={projectId}",
+                $"{_baseUrl}/rest/v1/projects/{projectId}/relationshiptypes",
+                $"{_baseUrl}/rest/v1/relationshiptypes"
+            };
+
+            foreach (var endpoint in endpoints)
+            {
+                try
+                {
+                    var response = await _httpClient.GetAsync(endpoint, cancellationToken);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        continue;
+                    }
+
+                    var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                    using var doc = JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+
+                    JsonElement data;
+                    if (root.ValueKind == JsonValueKind.Array)
+                    {
+                        data = root;
+                    }
+                    else if (root.TryGetProperty("data", out var dataProp) && dataProp.ValueKind == JsonValueKind.Array)
+                    {
+                        data = dataProp;
+                    }
+                    else
+                    {
+                        continue;
+                    }
+
+                    foreach (var rel in data.EnumerateArray())
+                    {
+                        var id = GetIntProperty(rel, "id");
+                        var name = GetStringProperty(rel, "name") ?? string.Empty;
+                        if (id.HasValue && id.Value > 0)
+                        {
+                            candidates.Add((id.Value, name));
+                        }
+                    }
+
+                    if (candidates.Count > 0)
+                    {
+                        break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug(
+                        $"[JamaConnect] Relationship type discovery failed for endpoint '{endpoint}': {ex.Message}");
+                }
+            }
+
+            int? selected = null;
+            if (candidates.Count > 0)
+            {
+                var priorities = new[]
+                {
+                    "derived from",
+                    "derives",
+                    "traceability",
+                    "traces to",
+                    "satisfies",
+                    "related"
+                };
+
+                foreach (var preferred in priorities)
+                {
+                    var hit = candidates.FirstOrDefault(c => c.Name.Contains(preferred, StringComparison.OrdinalIgnoreCase));
+                    if (hit.Id > 0)
+                    {
+                        selected = hit.Id;
+                        break;
+                    }
+                }
+
+                selected ??= candidates[0].Id;
+            }
+
+            lock (_projectRelationshipTypeCache)
+            {
+                _projectRelationshipTypeCache[projectId] = selected;
+            }
+
+            if (selected.HasValue)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    $"[JamaConnect] Selected relationship type {selected.Value} for project {projectId}.");
+            }
+
+            return selected;
+        }
+
+        private async Task<bool> TryCreateRelationshipAsync(
+            int fromItemId,
+            int toItemId,
+            int? relationshipTypeId,
+            CancellationToken cancellationToken)
+        {
+            if (fromItemId <= 0 || toItemId <= 0 || !relationshipTypeId.HasValue)
+            {
+                return false;
+            }
+
+            try
+            {
+                var requestBody = new
+                {
+                    fromItem = fromItemId,
+                    toItem = toItemId,
+                    relationshipType = relationshipTypeId.Value
+                };
+
+                var json = JsonSerializer.Serialize(requestBody);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync($"{_baseUrl}/rest/v1/relationships", content, cancellationToken);
+                if (response.IsSuccessStatusCode)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        $"[JamaConnect] Created relationship: fromItem={fromItemId}, toItem={toItemId}, relationshipType={relationshipTypeId.Value}");
+                    return true;
+                }
+
+                var error = await response.Content.ReadAsStringAsync(cancellationToken);
+                if (error.Contains("already exists", StringComparison.OrdinalIgnoreCase) ||
+                    error.Contains("duplicate", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Warn(
+                    $"[JamaConnect] Relationship create failed ({response.StatusCode}) fromItem={fromItemId}, toItem={toItemId}, relationshipType={relationshipTypeId.Value}: {error}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn(
+                    $"[JamaConnect] Relationship create exception fromItem={fromItemId}, toItem={toItemId}, relationshipType={relationshipTypeId}: {ex.Message}");
+                return false;
+            }
         }
 
         private async Task<int?> ResolvePreferredRequirementPlacementContainerAsync(int projectId, int requirementItemTypeId, int? fallbackParentContainerId, CancellationToken cancellationToken)
@@ -5306,6 +5738,67 @@ namespace TestCaseEditorApp.Services
             return picklistResult.FirstOptionId;
         }
 
+        private async Task<int?> GetPicklistOptionIdByNameAsync(
+            int projectId,
+            int itemTypeId,
+            string fieldName,
+            string optionName,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(fieldName) || string.IsNullOrWhiteSpace(optionName))
+            {
+                return null;
+            }
+
+            foreach (var candidateField in BuildPicklistFieldCandidates(fieldName, itemTypeId))
+            {
+                try
+                {
+                    var endpointUrls = BuildPicklistEndpointCandidates(projectId, itemTypeId, candidateField);
+                    foreach (var url in endpointUrls)
+                    {
+                        var response = await _httpClient.GetAsync(url, cancellationToken);
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            continue;
+                        }
+
+                        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                        using var doc = JsonDocument.Parse(json);
+                        var dataArray = TryGetPicklistDataArray(doc.RootElement);
+                        if (!dataArray.HasValue || dataArray.Value.ValueKind != JsonValueKind.Array)
+                        {
+                            continue;
+                        }
+
+                        foreach (var option in dataArray.Value.EnumerateArray())
+                        {
+                            if (!option.TryGetProperty("id", out var idProp) || !idProp.TryGetInt32(out var optionId))
+                            {
+                                continue;
+                            }
+
+                            var candidateName = GetStringProperty(option, "name")
+                                ?? GetStringProperty(option, "display")
+                                ?? GetStringProperty(option, "value");
+
+                            if (string.Equals(candidateName, optionName, StringComparison.OrdinalIgnoreCase))
+                            {
+                                return optionId;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug(
+                        $"[JamaConnect] Failed resolving picklist option '{optionName}' for field '{candidateField}': {ex.Message}");
+                }
+            }
+
+            return null;
+        }
+
         private async Task<int?> GetFirstPicklistOptionIdByPicklistIdAsync(int picklistId, CancellationToken cancellationToken)
         {
             if (picklistId <= 0)
@@ -5672,6 +6165,99 @@ namespace TestCaseEditorApp.Services
             }
 
             return null;
+        }
+
+        private static bool? GetBoolProperty(JsonElement element, string propertyName)
+        {
+            if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty(propertyName, out var prop))
+            {
+                return null;
+            }
+
+            if (prop.ValueKind == JsonValueKind.True)
+            {
+                return true;
+            }
+
+            if (prop.ValueKind == JsonValueKind.False)
+            {
+                return false;
+            }
+
+            if (prop.ValueKind == JsonValueKind.String)
+            {
+                var value = prop.GetString();
+                if (bool.TryParse(value, out var parsedBool))
+                {
+                    return parsedBool;
+                }
+
+                if (int.TryParse(value, out var parsedInt))
+                {
+                    return parsedInt != 0;
+                }
+            }
+
+            if (prop.ValueKind == JsonValueKind.Number && prop.TryGetInt32(out var number))
+            {
+                return number != 0;
+            }
+
+            return null;
+        }
+
+        private static void CollectPicklistIds(JsonElement root, HashSet<int> ids)
+        {
+            if (root.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var property in root.EnumerateObject())
+                {
+                    var name = property.Name;
+                    if (name.Equals("pickList", StringComparison.OrdinalIgnoreCase) ||
+                        name.Equals("picklist", StringComparison.OrdinalIgnoreCase) ||
+                        name.Equals("pickListId", StringComparison.OrdinalIgnoreCase) ||
+                        name.Equals("picklistId", StringComparison.OrdinalIgnoreCase) ||
+                        name.Equals("lookupType", StringComparison.OrdinalIgnoreCase) ||
+                        name.Equals("lookupTypeId", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (property.Value.ValueKind == JsonValueKind.Number && property.Value.TryGetInt32(out var id) && id > 0)
+                        {
+                            ids.Add(id);
+                        }
+                        else if (property.Value.ValueKind == JsonValueKind.String && int.TryParse(property.Value.GetString(), out var parsedId) && parsedId > 0)
+                        {
+                            ids.Add(parsedId);
+                        }
+                    }
+
+                    CollectPicklistIds(property.Value, ids);
+                }
+            }
+            else if (root.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var element in root.EnumerateArray())
+                {
+                    CollectPicklistIds(element, ids);
+                }
+            }
+        }
+
+        private static string TryPrettyJson(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return "<empty>";
+            }
+
+            try
+            {
+                using var document = JsonDocument.Parse(json);
+                return JsonSerializer.Serialize(document.RootElement, new JsonSerializerOptions { WriteIndented = true });
+            }
+            catch
+            {
+                return json;
+            }
         }
 
         public async Task<JamaLookupFieldProbeReport> ProbeRequirementLookupFieldsAsync(

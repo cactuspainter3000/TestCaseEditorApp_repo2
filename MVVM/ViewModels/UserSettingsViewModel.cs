@@ -9,6 +9,7 @@ using System.Net;
 using System.Text.Json;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.Services;
@@ -506,6 +507,48 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             catch (Exception ex)
             {
                 StatusMessage = $"Jama test failed: {ex.Message}";
+                IsStatusError = true;
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        [RelayCommand]
+        private async Task ExportJamaRequirementFieldDictionaryAsync()
+        {
+            try
+            {
+                IsBusy = true;
+                IsStatusError = false;
+                StatusMessage = "Exporting Jama item type 193 field dictionary...";
+
+                var outputDirectory = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+                if (string.IsNullOrWhiteSpace(outputDirectory))
+                {
+                    outputDirectory = AppContext.BaseDirectory;
+                }
+
+                var jamaService = new JamaConnectService((JamaBaseUrl ?? string.Empty).Trim(), (JamaClientId ?? string.Empty).Trim(), (JamaClientSecret ?? string.Empty).Trim(), true);
+                var (success, message, outputPath) = await jamaService.ExportRequirementItemType193FieldDictionaryAsync(outputDirectory);
+
+                if (success)
+                {
+                    StatusMessage = string.IsNullOrWhiteSpace(outputPath)
+                        ? $"Jama export complete: {message}"
+                        : $"Jama export complete. Output: {outputPath}";
+                    IsStatusError = false;
+                }
+                else
+                {
+                    StatusMessage = $"Jama export failed: {message}";
+                    IsStatusError = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Jama export failed: {ex.Message}";
                 IsStatusError = true;
             }
             finally
