@@ -1847,13 +1847,19 @@ namespace TestCaseEditorApp.Services
         /// Get attachments from a Jama project with a limit for faster automatic scanning.
         /// Based on: https://dev.jamasoftware.com/cookbook/ - REST Attachments section
         /// </summary>
-        public async Task<List<JamaAttachment>> GetProjectAttachmentsLimitedAsync(int projectId, int maxItems = 20, CancellationToken cancellationToken = default)
+        public async Task<List<JamaAttachment>> GetProjectAttachmentsLimitedAsync(
+            int projectId,
+            int maxItems = 20,
+            CancellationToken cancellationToken = default,
+            Action<int, int, string>? progressCallback = null,
+            string projectName = "")
         {
             return await WithRetryAsync(async () =>
             {
                 await EnsureAccessTokenAsync();
                 
                 var attachments = new List<JamaAttachment>();
+                var displayName = string.IsNullOrWhiteSpace(projectName) ? $"Project {projectId}" : projectName;
                 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Starting limited attachment discovery for project {projectId} (max {maxItems} items)");
                 
@@ -1863,6 +1869,7 @@ namespace TestCaseEditorApp.Services
                     var items = await GetAbstractItemsForProjectAsync(projectId, cancellationToken, maxItems);
                     var itemsToCheck = items.Take(maxItems).ToList();
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Checking first {itemsToCheck.Count} of {items.Count} items for attachments");
+                    progressCallback?.Invoke(0, Math.Max(1, itemsToCheck.Count), $"Searching {displayName} for attachments | quick scan 0% | 0 attachments found");
                     
                     // Step 2: Check limited items for attachments  
                     var itemsWithAttachments = 0;
@@ -1883,6 +1890,8 @@ namespace TestCaseEditorApp.Services
                                 if (attachments.Count >= 10)
                                 {
                                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Found {attachments.Count} attachments, stopping scan early");
+                                    var earlyPercentage = itemsToCheck.Count == 0 ? 100 : (int)Math.Round((double)scannedItems / itemsToCheck.Count * 100);
+                                    progressCallback?.Invoke(scannedItems, Math.Max(1, itemsToCheck.Count), $"Searching {displayName} for attachments | quick scan {earlyPercentage}% | {attachments.Count} attachments found");
                                     break;
                                 }
                             }
@@ -1891,6 +1900,9 @@ namespace TestCaseEditorApp.Services
                         {
                             TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to check attachments for item {item.Id}: {ex.Message}");
                         }
+
+                        var percentage = itemsToCheck.Count == 0 ? 100 : (int)Math.Round((double)scannedItems / itemsToCheck.Count * 100);
+                        progressCallback?.Invoke(scannedItems, Math.Max(1, itemsToCheck.Count), $"Searching {displayName} for attachments | quick scan {percentage}% | {attachments.Count} attachments found");
                         
                         // Yield occasionally to keep UI responsive without adding linear latency.
                         if ((scannedItems % 25) == 0)
@@ -1898,6 +1910,8 @@ namespace TestCaseEditorApp.Services
                             await Task.Yield();
                         }
                     }
+
+                    progressCallback?.Invoke(Math.Max(1, itemsToCheck.Count), Math.Max(1, itemsToCheck.Count), $"Searching {displayName} for attachments | quick scan complete | {attachments.Count} attachments found");
                     
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Limited scan complete: {attachments.Count} attachments found across {itemsWithAttachments} items");
                 }

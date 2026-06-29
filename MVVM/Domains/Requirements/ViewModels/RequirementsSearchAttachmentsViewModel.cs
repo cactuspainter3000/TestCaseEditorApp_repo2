@@ -1149,8 +1149,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 }
                 else
                 {
-                    // No progress reporting for non-background scans
-                    attachments = await _mediator.ScanProjectAttachmentsAsync(projectId, cancellationToken: cancellationToken);
+                    var progress = new Progress<AttachmentScanProgressData>(progressData =>
+                    {
+                        Application.Current.Dispatcher.InvokeAsync(() =>
+                        {
+                            StatusMessage = progressData.ProgressText;
+                        });
+                    });
+
+                    attachments = await _mediator.ScanProjectAttachmentsAsync(projectId, progress, cancellationToken);
                 }
                 
                 _logger.LogInformation("[RequirementsSearchAttachments] *** API CALL COMPLETED ***");
