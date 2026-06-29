@@ -1353,7 +1353,11 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
                     }
                 }
 
-                NormalizeRequirementsToTestSolutionPerspective(allRequirements, attachment);
+                var rewrittenTotal = NormalizeRequirementsToTestSolutionPerspective(allRequirements, attachment);
+                if (rewrittenTotal > 0)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Applied UUT->test-solution perspective rewrite to {rewrittenTotal} requirements");
+                }
 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[ATTACHMENT_TRACE] DirectRagResult AttachmentId={attachment.Id} FileName={attachment.FileName} Count={allRequirements.Count} Sample={BuildRequirementTraceSample(allRequirements)}");
                 progressCallback?.Invoke($"✅ Found {allRequirements.Count} requirements: {extractedRequirements.Count} extracted + {derivedRequirements.Count} derived + deterministic fallback where needed");
@@ -1677,12 +1681,14 @@ Extract all legitimate requirements:";
             return normalized.Trim();
         }
 
-        private void NormalizeRequirementsToTestSolutionPerspective(List<Requirement> requirements, JamaAttachment attachment)
+        private int NormalizeRequirementsToTestSolutionPerspective(List<Requirement> requirements, JamaAttachment attachment)
         {
             if (requirements == null || requirements.Count == 0)
             {
-                return;
+                return 0;
             }
+
+            var rewriteCount = 0;
 
             foreach (var requirement in requirements)
             {
@@ -1704,6 +1710,7 @@ Extract all legitimate requirements:";
 
                 requirement.Description = rewrittenClause + suffix;
                 requirement.Name = GenerateRequirementNameFromCapability(rewrittenClause, "Derived");
+                rewriteCount++;
 
                 if (string.IsNullOrWhiteSpace(requirement.Rationale))
                 {
@@ -1714,6 +1721,8 @@ Extract all legitimate requirements:";
                     requirement.Rationale = string.Concat(requirement.Rationale, "\n\nBoundary rewrite applied from UUT perspective source.");
                 }
             }
+
+            return rewriteCount;
         }
 
         private sealed class DeterministicRequirementCandidate
@@ -2291,6 +2300,11 @@ Extract all legitimate requirements:";
                     // Convert derived capabilities to requirements
                     progressCallback?.Invoke($"📋 Converting {derivationResult.DerivedCapabilities.Count} derived capabilities to requirements...");
                     var derivedRequirements = ConvertDerivedCapabilitiesToRequirements(derivationResult.DerivedCapabilities, attachment, projectId);
+                    var rewrittenDerived = NormalizeRequirementsToTestSolutionPerspective(derivedRequirements, attachment);
+                    if (rewrittenDerived > 0)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Applied UUT->test-solution perspective rewrite to {rewrittenDerived} derived requirements before traceability reporting");
+                    }
 
                     // Emit a human-reviewable traceability report showing used and unused source clauses.
                     await WriteDerivationTraceabilityReportAsync(
