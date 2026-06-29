@@ -2066,7 +2066,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 {
                     await Application.Current.Dispatcher.InvokeAsync(() =>
                     {
-                        StatusMessage = "⚠️ Scan completed: no attachments found";
+                        StatusMessage = "❌ No attachments found";
                         IsBackgroundScanningInProgress = false;
                         BackgroundScanProgressText = "";
                         
