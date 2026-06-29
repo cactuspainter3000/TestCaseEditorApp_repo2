@@ -509,7 +509,8 @@ namespace TestCaseEditorApp.Services
                 report.AppendLine();
 
                 report.AppendLine("Parsed Fields (best-effort)");
-                var fieldsArray = TryGetPicklistDataArray(fieldsDoc.RootElement);
+                var fieldsArray = TryGetFieldsDataArray(fieldsDoc.RootElement)
+                    ?? TryGetPicklistDataArray(fieldsDoc.RootElement);
                 if (fieldsArray.HasValue && fieldsArray.Value.ValueKind == JsonValueKind.Array)
                 {
                     foreach (var field in fieldsArray.Value.EnumerateArray())
@@ -6095,6 +6096,43 @@ namespace TestCaseEditorApp.Services
                 if (root.TryGetProperty("results", out var resultsProp) && resultsProp.ValueKind == JsonValueKind.Array)
                 {
                     return resultsProp;
+                }
+            }
+
+            return null;
+        }
+
+        private static JsonElement? TryGetFieldsDataArray(JsonElement root)
+        {
+            if (root.ValueKind == JsonValueKind.Object)
+            {
+                if (root.TryGetProperty("fields", out var fieldsProp))
+                {
+                    if (fieldsProp.ValueKind == JsonValueKind.Array)
+                    {
+                        return fieldsProp;
+                    }
+
+                    if (fieldsProp.ValueKind == JsonValueKind.Object &&
+                        fieldsProp.TryGetProperty("data", out var fieldsDataProp) &&
+                        fieldsDataProp.ValueKind == JsonValueKind.Array)
+                    {
+                        return fieldsDataProp;
+                    }
+                }
+
+                if (root.TryGetProperty("data", out var dataProp))
+                {
+                    if (dataProp.ValueKind == JsonValueKind.Array)
+                    {
+                        return dataProp;
+                    }
+
+                    var nestedFromData = TryGetFieldsDataArray(dataProp);
+                    if (nestedFromData.HasValue)
+                    {
+                        return nestedFromData;
+                    }
                 }
             }
 
