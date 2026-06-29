@@ -4936,53 +4936,29 @@ namespace TestCaseEditorApp.Services
 
                 await SanitizeLookupDefaultsForCreateAsync(fields, itemTypeId.Value, cancellationToken);
 
-                // ═══════════════════════════════════════════════════════════════════════════════
-                // Populate three additional Jama requirement fields for derived requirements
-                // ═══════════════════════════════════════════════════════════════════════════════
-                
-                // 1. Set Derived field: "Yes" for ATP-derived, leave as default otherwise
+                // Apply decoder-ring mapping validated for Requirement item type 193.
                 if (requirement.IsDerivedFromATP)
                 {
-                    fields["derived"] = "Yes";
-                }
+                    fields["lookup1"] = 1608; // Requirement Type = System
+                    fields["lookup3"] = 1619; // Derived Requirement = Yes
+                    fields["validation_methods$193"] = new[] { 1649 }; // Validation Method/s = Traceability
+                    fields["verification_methods$193"] = new[] { 1612 }; // Verification Method/s = Unassigned
+                    fields["text2"] = "Systems"; // Allocation/s
 
-                // 2. Set Validation Method: For derived requirements, set to "Test" (picklist option)
-                // validation_methods$193 is an array field that accepts an array of picklist option IDs.
-                // Resolve by option name instead of using the first picklist option.
-                // This field should only be set for ATP-derived requirements to indicate that these
-                // are validated through test procedures (where they originated).
-                if (requirement.IsDerivedFromATP)
-                {
-                    var testOptionId = await GetPicklistOptionIdByNameAsync(
-                        projectId,
-                        itemTypeId.Value,
-                        "validation_methods$193",
-                        "Test",
-                        cancellationToken);
-
-                    if (testOptionId.HasValue)
-                    {
-                        // Set to an array containing the Test option ID
-                        fields["validation_methods$193"] = new[] { testOptionId.Value };
-                        TestCaseEditorApp.Services.Logging.Log.Debug(
-                            $"[JamaConnect] Set validation_methods to Test (ID: {testOptionId}) for derived requirement");
-                    }
-                    else
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Warn(
-                            "[JamaConnect] Could not resolve 'Test' option for validation_methods. Skipping validation method assignment.");
-                    }
-                }
-
-                // 3. Upstream Cross Instance Relationships is auto-populated by Jama when traceability links exist.
-                // Do not set this rich-text field directly during create.
-                if (requirement.IsDerivedFromATP && requirement.AtpDerivation != null)
-                {
-                    var sourceDoc = !string.IsNullOrWhiteSpace(requirement.AtpDerivation.SourceDocumentName)
+                    var sourceDoc = !string.IsNullOrWhiteSpace(requirement.AtpDerivation?.SourceDocumentName)
                         ? requirement.AtpDerivation.SourceDocumentName
-                        : "Derived Requirement";
-                    TestCaseEditorApp.Services.Logging.Log.Debug(
-                        $"[JamaConnect] Skipping direct UpstreamLinks assignment for derived requirement '{requirementName}' from source '{sourceDoc}'.");
+                        : "ATP Source";
+                    var sourceRef = !string.IsNullOrWhiteSpace(requirement.TraceReference)
+                        ? requirement.TraceReference
+                        : requirement.Item;
+
+                    fields["upstream_cross_instance_relationships$193"] =
+                        !string.IsNullOrWhiteSpace(sourceRef)
+                            ? $"Source document: {sourceDoc}; Source reference: {sourceRef}"
+                            : $"Source document: {sourceDoc}";
+
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        $"[JamaConnect] Applied derived requirement mapping for item type 193: lookup1=1608, lookup3=1619, validation_methods$193=[1649], verification_methods$193=[1612], text2='Systems'.");
                 }
 
                 var effectiveParentContainerId = await ResolvePreferredRequirementPlacementContainerAsync(projectId, itemTypeId.Value, preferredParentContainerId, cancellationToken);
