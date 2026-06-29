@@ -1959,11 +1959,8 @@ namespace TestCaseEditorApp.Services
                             TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to check attachments for item {item.Id}: {ex.Message}");
                         }
                         
-                        // Yield occasionally to keep UI responsive without introducing O(N) latency.
-                        if (currentItemIndex % 50 == 0)
-                        {
-                            await Task.Yield();
-                        }
+                        // Add small delay to avoid overwhelming the API
+                        await Task.Delay(50, cancellationToken);
                     }
                     
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Attachment discovery complete: {attachments.Count} attachments found across {itemsWithAttachments} items");

@@ -1364,45 +1364,24 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
 
                 var startTime = DateTime.Now;
 
-                // Fast path: limited scan for responsive UI. Fall back to full scan if nothing is found.
-                progress?.Report(new AttachmentScanProgressData
+                // Use the injected Jama service to get attachments with project name for better progress messages
+                var attachments = await _jamaConnectService.GetProjectAttachmentsAsync(projectId, cancellationToken, (current, total, progressData) =>
                 {
-                    Current = 0,
-                    Total = 1,
-                    ProgressText = $"Searching {projectName} for attachments | quick scan"
-                });
-
-                PublishEvent(new RequirementsEvents.AttachmentScanProgress
-                {
-                    ProjectId = projectId,
-                    ProgressText = $"Searching {projectName} for attachments | quick scan"
-                });
-
-                var attachments = await _jamaConnectService.GetProjectAttachmentsLimitedAsync(projectId, maxItems: 80, cancellationToken);
-
-                if (attachments.Count == 0)
-                {
-                    _logger.LogInformation("[RequirementsMediator] Quick scan found no attachments for project {ProjectId}; falling back to full scan", projectId);
-
-                    // Fallback to full scan when quick scan yields no results
-                    attachments = await _jamaConnectService.GetProjectAttachmentsAsync(projectId, cancellationToken, (current, total, progressData) =>
+                    // Report progress to caller
+                    progress?.Report(new AttachmentScanProgressData
                     {
-                        // Report progress to caller
-                        progress?.Report(new AttachmentScanProgressData
-                        {
-                            Current = current,
-                            Total = total,
-                            ProgressText = progressData
-                        });
+                        Current = current,
+                        Total = total,
+                        ProgressText = progressData
+                    });
 
-                        // Also publish progress event for other subscribers
-                        PublishEvent(new RequirementsEvents.AttachmentScanProgress
-                        {
-                            ProjectId = projectId,
-                            ProgressText = progressData
-                        });
-                    }, projectName);
-                }
+                    // Also publish progress event for other subscribers
+                    PublishEvent(new RequirementsEvents.AttachmentScanProgress
+                    {
+                        ProjectId = projectId,
+                        ProgressText = progressData
+                    });
+                }, projectName);
 
                 var duration = DateTime.Now - startTime;
 
