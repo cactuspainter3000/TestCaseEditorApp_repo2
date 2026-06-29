@@ -1678,6 +1678,14 @@ Extract all legitimate requirements:";
             // Remove leading requirement IDs like "DECAGON-REQ_RC-12:".
             normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"^\s*[A-Za-z0-9][A-Za-z0-9_.\-]{1,60}\s*:\s*", string.Empty);
 
+            // Remove leading requirement IDs without colon when followed by a known UUT subject,
+            // e.g. "C4B_ATR-121 The MFD shall ...".
+            normalized = System.Text.RegularExpressions.Regex.Replace(
+                normalized,
+                @"^\s*[A-Za-z0-9][A-Za-z0-9_.\-]{2,80}\s+(?=(?:The\s+)?(?:MFD|UUT|Unit\s+Under\s+Test|LRU|Aircraft|Display\s+Unit|Avionics\s+Unit)\b)",
+                string.Empty,
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
             return normalized.Trim();
         }
 
