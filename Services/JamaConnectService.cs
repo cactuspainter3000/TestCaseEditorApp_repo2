@@ -4408,7 +4408,11 @@ namespace TestCaseEditorApp.Services
 
                     if (attempt < maxAttemptsPerRequirement)
                     {
-                        await Task.Delay(250 * attempt, cancellationToken);
+                        // Use a much longer delay when Jama is undergoing an upgrade.
+                        var delayMs = message?.StartsWith("JAMA_UPGRADING", StringComparison.OrdinalIgnoreCase) == true
+                            ? 5000 * attempt
+                            : 250 * attempt;
+                        await Task.Delay(delayMs, cancellationToken);
                     }
                 }
 
@@ -4525,6 +4529,13 @@ namespace TestCaseEditorApp.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                    // Detect transient Jama maintenance/upgrade page before other error handling.
+                    if (IsJamaUpgradeBanner(errorContent))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Jama is being upgraded. Will retry after back-off.");
+                        return (false, "JAMA_UPGRADING: Instance is being upgraded, retry after delay", null);
+                    }
 
                     if (IsRequirementProjectRootLocationError(errorContent))
                     {
@@ -6038,8 +6049,21 @@ namespace TestCaseEditorApp.Services
                 return false;
             }
 
+            // Upgrade/maintenance banner is transient — must NOT be treated as non-retryable.
+            if (message.StartsWith("JAMA_UPGRADING", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
             return message.Contains("No requirement item type found", StringComparison.OrdinalIgnoreCase)
                 || message.Contains("Could not determine requirement item type", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsJamaUpgradeBanner(string? content)
+        {
+            if (string.IsNullOrWhiteSpace(content)) return false;
+            return content.Contains("being upgraded", StringComparison.OrdinalIgnoreCase)
+                || content.Contains("Jama Cloud is being upgraded", StringComparison.OrdinalIgnoreCase);
         }
 
         private async Task<Dictionary<string, object?>> GetRequirementFieldDefaultsAsync(int projectId, int itemTypeId, CancellationToken cancellationToken)

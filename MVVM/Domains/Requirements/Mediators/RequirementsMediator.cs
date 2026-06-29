@@ -1562,6 +1562,71 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
 
                 if (extractedRequirements.Count > 0)
                 {
+                    // ── Duplicate guard ──────────────────────────────────────────────────────
+                    // Each derived requirement carries a stable TraceReference of the form
+                    // "TRC-ATT{attachmentId}-..." which is embedded in its Rationale/description.
+                    // Query Jama for any items that already contain this attachment's trace prefix
+                    // so that re-scraping the same document does not create duplicates.
+                    var tracePrefix = $"TRC-ATT{attachment.Id}-";
+                    try
+                    {
+                        progressCallback?.Invoke($"🔎 Checking Jama for previously saved requirements from this document...");
+                        var existingItems = await _jamaConnectService.SearchAbstractItemsAsync(
+                            projectId,
+                            contains: tracePrefix,
+                            maxResults: 500);
+
+                        if (existingItems.Count > 0)
+                        {
+                            _logger.LogInformation(
+                                "[RequirementsMediator] Found {ExistingCount} items already in Jama with trace prefix '{Prefix}'. Filtering duplicates.",
+                                existingItems.Count, tracePrefix);
+
+                            // Build a set of trace references already present in Jama (from item name or description)
+                            var existingTraceRefs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                            foreach (var item in existingItems)
+                            {
+                                foreach (var field in new[] { item.Fields?.Name ?? string.Empty, item.Fields?.Description ?? string.Empty })
+                                {
+                                    var idx = field.IndexOf(tracePrefix, StringComparison.OrdinalIgnoreCase);
+                                    if (idx >= 0)
+                                    {
+                                        var end = field.IndexOfAny(new[] { ' ', '\n', '\r', '<', '"' }, idx);
+                                        var token = end >= 0 ? field.Substring(idx, end - idx) : field.Substring(idx);
+                                        existingTraceRefs.Add(token.Trim());
+                                    }
+                                }
+                            }
+
+                            var before = extractedRequirements.Count;
+                            extractedRequirements = extractedRequirements
+                                .Where(r => string.IsNullOrWhiteSpace(r.TraceReference) || !existingTraceRefs.Contains(r.TraceReference))
+                                .ToList();
+                            var skipped = before - extractedRequirements.Count;
+
+                            if (skipped > 0)
+                            {
+                                _logger.LogInformation(
+                                    "[RequirementsMediator] Skipped {Skipped} duplicate requirements (already in Jama) for attachment {AttachmentId}.",
+                                    skipped, attachment.Id);
+                                progressCallback?.Invoke($"⏭️ Skipped {skipped} already-saved requirements (duplicates)");
+                            }
+                        }
+                    }
+                    catch (Exception dedupEx)
+                    {
+                        // Dedup check is best-effort; proceed with full save if the query fails
+                        _logger.LogWarning(dedupEx, "[RequirementsMediator] Duplicate check failed for attachment {AttachmentId}. Proceeding without dedup.", attachment.Id);
+                    }
+                    // ────────────────────────────────────────────────────────────────────────
+
+                    if (extractedRequirements.Count == 0)
+                    {
+                        progressCallback?.Invoke("✅ All requirements from this document are already saved in Jama — nothing to do.");
+                        _logger.LogInformation("[RequirementsMediator] All requirements already exist in Jama for attachment {AttachmentId}.", attachment.Id);
+                        return extractedRequirements;
+                    }
+
                     progressCallback?.Invoke($"💾 Saving {extractedRequirements.Count} extracted requirements to Jama...");
                     var preferredParentContainerId = attachment.Item > 0 ? attachment.Item : (int?)null;
                     var (savedCount, failedCount) = await _jamaConnectService.ImportRequirementsToJamaAsync(

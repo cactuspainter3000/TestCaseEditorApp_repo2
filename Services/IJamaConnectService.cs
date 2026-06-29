@@ -93,6 +93,15 @@ namespace TestCaseEditorApp.Services
         Task<(bool Success, string Message, int? JamaItemId)> CreateRequirementAsync(int projectId, Requirement requirement, int? preferredParentContainerId = null, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Search Jama items using the abstract items endpoint with a text contains filter.
+        /// </summary>
+        Task<List<JamaItem>> SearchAbstractItemsAsync(
+            int projectId,
+            string? contains = null,
+            int maxResults = 20,
+            List<string>? includeParams = null);
+
+        /// <summary>
         /// Persist extracted requirements directly into Jama Connect
         /// </summary>
         Task<(int CreatedCount, int FailedCount)> ImportRequirementsToJamaAsync(

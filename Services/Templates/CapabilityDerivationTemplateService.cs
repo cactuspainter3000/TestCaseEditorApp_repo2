@@ -186,11 +186,25 @@ Follow the specific instructions for each field.",
 
         private string ExtractFieldValue(string response, string fieldDisplayName)
         {
-            // Look for pattern: "DisplayName:" followed by "Your Response: value"
-            var fieldStart = response.IndexOf(fieldDisplayName + ":");
+            // Look for pattern: "DisplayName:" followed by "Your Response: value".
+            // The LLM may drop the [REQUIRED]/[OPTIONAL]/[ENHANCEMENT] bracket prefix, so
+            // try the exact name first, then a version with the bracket tag stripped.
+            var searchNames = new List<string> { fieldDisplayName };
+            var stripped = System.Text.RegularExpressions.Regex.Replace(fieldDisplayName, @"^\[[^\]]+\]\s*", string.Empty).Trim();
+            if (!string.Equals(stripped, fieldDisplayName, StringComparison.Ordinal))
+            {
+                searchNames.Add(stripped);
+            }
+
+            int fieldStart = -1;
+            foreach (var name in searchNames)
+            {
+                fieldStart = response.IndexOf(name + ":", StringComparison.OrdinalIgnoreCase);
+                if (fieldStart != -1) break;
+            }
             if (fieldStart == -1) return string.Empty;
 
-            var responseStart = response.IndexOf("Your Response:", fieldStart);
+            var responseStart = response.IndexOf("Your Response:", fieldStart, StringComparison.OrdinalIgnoreCase);
             if (responseStart == -1) return string.Empty;
 
             responseStart += "Your Response:".Length;
