@@ -14,6 +14,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.Services;
 using System.Diagnostics.CodeAnalysis;
+using System.Windows;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -79,6 +80,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         [ObservableProperty]
         private string _ollamaDebugInfo = "No Ollama diagnostics yet. Click 'Test selected models'.";
+
+        [ObservableProperty]
+        private string _lastJamaExportReport = "No Jama export report yet. Run the export button to generate one.";
 
         public ObservableCollection<string> OllamaModels { get; } = new();
         
@@ -523,6 +527,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 IsBusy = true;
                 IsStatusError = false;
                 StatusMessage = "Exporting Jama item type 193 field dictionary...";
+                LastJamaExportReport = "Jama export in progress...";
 
                 var outputDirectory = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
                 if (string.IsNullOrWhiteSpace(outputDirectory))
@@ -538,22 +543,50 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     StatusMessage = string.IsNullOrWhiteSpace(outputPath)
                         ? $"Jama export complete: {message}"
                         : $"Jama export complete. Output: {outputPath}";
+                    LastJamaExportReport = string.IsNullOrWhiteSpace(outputPath)
+                        ? $"[JAMA EXPORT SUCCESS]\nTimestamp: {DateTime.Now:O}\nMessage: {message}"
+                        : $"[JAMA EXPORT SUCCESS]\nTimestamp: {DateTime.Now:O}\nOutput: {outputPath}\nMessage: {message}";
                     IsStatusError = false;
                 }
                 else
                 {
+                    LastJamaExportReport = $"[JAMA EXPORT ERROR]\nTimestamp: {DateTime.Now:O}\nBase URL: {(JamaBaseUrl ?? string.Empty).Trim()}\nMessage: {message}";
                     StatusMessage = $"Jama export failed: {message}";
                     IsStatusError = true;
                 }
             }
             catch (Exception ex)
             {
+                LastJamaExportReport = $"[JAMA EXPORT EXCEPTION]\nTimestamp: {DateTime.Now:O}\nBase URL: {(JamaBaseUrl ?? string.Empty).Trim()}\nException: {ex.Message}\n\nStack Trace:\n{ex}";
                 StatusMessage = $"Jama export failed: {ex.Message}";
                 IsStatusError = true;
             }
             finally
             {
                 IsBusy = false;
+            }
+        }
+
+        [RelayCommand]
+        private void CopyJamaExportReport()
+        {
+            if (string.IsNullOrWhiteSpace(LastJamaExportReport))
+            {
+                StatusMessage = "No Jama export report available to copy yet.";
+                IsStatusError = true;
+                return;
+            }
+
+            try
+            {
+                Clipboard.SetText(LastJamaExportReport);
+                StatusMessage = "Jama export report copied to clipboard.";
+                IsStatusError = false;
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Could not copy Jama export report: {ex.Message}";
+                IsStatusError = true;
             }
         }
 
