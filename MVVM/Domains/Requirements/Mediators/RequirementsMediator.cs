@@ -1403,24 +1403,63 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 {
                     _logger.LogInformation("[RequirementsMediator] Quick scan found no attachments for project {ProjectId}; falling back to full scan", projectId);
 
-                    // Fallback to full scan when quick scan yields no results
-                    attachments = await _jamaConnectService.GetProjectAttachmentsAsync(projectId, cancellationToken, (current, total, progressData) =>
+                    progress?.Report(new AttachmentScanProgressData
                     {
-                        // Report progress to caller
+                        Current = 0,
+                        Total = 1,
+                        ProgressText = $"Searching {projectName} for attachments | full scan"
+                    });
+
+                    PublishEvent(new RequirementsEvents.AttachmentScanProgress
+                    {
+                        ProjectId = projectId,
+                        ProgressText = $"Searching {projectName} for attachments | full scan"
+                    });
+
+                    using var fullScanTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    fullScanTimeoutCts.CancelAfter(TimeSpan.FromMinutes(2));
+
+                    // Fallback to full scan when quick scan yields no results
+                    try
+                    {
+                        attachments = await _jamaConnectService.GetProjectAttachmentsAsync(projectId, fullScanTimeoutCts.Token, (current, total, progressData) =>
+                        {
+                            // Report progress to caller
+                            progress?.Report(new AttachmentScanProgressData
+                            {
+                                Current = current,
+                                Total = total,
+                                ProgressText = progressData
+                            });
+
+                            // Also publish progress event for other subscribers
+                            PublishEvent(new RequirementsEvents.AttachmentScanProgress
+                            {
+                                ProjectId = projectId,
+                                ProgressText = progressData
+                            });
+                        }, projectName);
+                    }
+                    catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && fullScanTimeoutCts.IsCancellationRequested)
+                    {
+                        _logger.LogWarning("[RequirementsMediator] Full scan timed out for project {ProjectId} after {TimeoutMinutes} minutes", projectId, 2);
+
+                        var timeoutMessage = $"Searching {projectName} for attachments | full scan timed out after 2 minutes";
                         progress?.Report(new AttachmentScanProgressData
                         {
-                            Current = current,
-                            Total = total,
-                            ProgressText = progressData
+                            Current = 1,
+                            Total = 1,
+                            ProgressText = timeoutMessage
                         });
 
-                        // Also publish progress event for other subscribers
                         PublishEvent(new RequirementsEvents.AttachmentScanProgress
                         {
                             ProjectId = projectId,
-                            ProgressText = progressData
+                            ProgressText = timeoutMessage
                         });
-                    }, projectName);
+
+                        attachments = new List<JamaAttachment>();
+                    }
                 }
 
                 var duration = DateTime.Now - startTime;

@@ -1954,6 +1954,7 @@ namespace TestCaseEditorApp.Services
                     
                     foreach (var item in items)
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         currentItemIndex++;
                         var percentage = (int)((double)currentItemIndex / items.Count * 100);
                         
@@ -1973,6 +1974,10 @@ namespace TestCaseEditorApp.Services
                                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {item.Id} ({item.DocumentKey}) has {itemAttachments.Count} attachment(s) - Total: {attachments.Count}");
                             }
                         }
+                        catch (OperationCanceledException)
+                        {
+                            throw;
+                        }
                         catch (Exception ex)
                         {
                             TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to check attachments for item {item.Id}: {ex.Message}");
@@ -1987,20 +1992,14 @@ namespace TestCaseEditorApp.Services
                     
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Attachment discovery complete: {attachments.Count} attachments found across {itemsWithAttachments} items");
                 }
+                catch (OperationCanceledException)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Attachment discovery cancelled for project {projectId}");
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[JamaConnect] Error during attachment discovery for project {projectId}: {ex.Message}");
-                    
-                    // Fallback: Create informative mock data to show the process is working
-                    TestCaseEditorApp.Services.Logging.Log.Info("[JamaConnect] Creating sample attachment data for demonstration");
-                    attachments.Add(new JamaAttachment
-                    {
-                        Id = projectId,
-                        FileName = $"sample_document_project_{projectId}.pdf",
-                        MimeType = "application/pdf",
-                        FileSize = 2048,
-                        CreatedDate = DateTime.UtcNow.ToString("o")
-                    });
                 }
                 
                 return attachments;
