@@ -2531,10 +2531,23 @@ Extract all legitimate requirements:";
                     var cap = capabilities[i];
                     var req = i < derivedRequirements.Count ? derivedRequirements[i] : null;
                     var reqId = req?.Item ?? req?.GlobalId ?? $"DERIVED-{i + 1:D3}";
+                    var reportRequirementText = req?.Description ?? cap.RequirementText;
+                    if (!string.IsNullOrWhiteSpace(reportRequirementText))
+                    {
+                        var newlineIndex = reportRequirementText.IndexOf('\n');
+                        var leadClause = newlineIndex >= 0
+                            ? reportRequirementText.Substring(0, newlineIndex).Trim()
+                            : reportRequirementText.Trim();
+                        if (LooksLikeUutRequirementForFallback(leadClause))
+                        {
+                            var suffix = newlineIndex >= 0 ? reportRequirementText.Substring(newlineIndex) : string.Empty;
+                            reportRequirementText = RewriteUutRequirementAsTestSolutionVerificationForFallback(leadClause) + suffix;
+                        }
+                    }
                     var traceReference = BuildRequirementTraceReference(attachment.Id, reqId, i + 1);
                     report.AppendLine($"[{i + 1}] RequirementId: {reqId}");
                     report.AppendLine($"    TraceReference: {traceReference}");
-                    report.AppendLine($"    RequirementText: {TruncateForReport(req?.Description ?? cap.RequirementText, 220)}");
+                    report.AppendLine($"    RequirementText: {TruncateForReport(reportRequirementText, 220)}");
                     report.AppendLine($"    SourceAtpStep: {TruncateForReport(cap.SourceATPStep, 220)}");
 
                     if (cap.SourceMetadata != null &&
@@ -2703,6 +2716,23 @@ Extract all legitimate requirements:";
                 var generatedItem = !string.IsNullOrWhiteSpace(structuredMetadata.RequirementId)
                     ? structuredMetadata.RequirementId
                     : $"DOC-{i + 1:D3}";
+
+                // Remove echoed requirement ID prefix from generated description text,
+                // e.g. "C4B_ATR-121 The MFD shall ...".
+                if (!string.IsNullOrWhiteSpace(normalizedDescription) && !string.IsNullOrWhiteSpace(generatedItem))
+                {
+                    normalizedDescription = System.Text.RegularExpressions.Regex.Replace(
+                        normalizedDescription,
+                        $@"^\s*{System.Text.RegularExpressions.Regex.Escape(generatedItem)}\s*[:\-]?\s+",
+                        string.Empty,
+                        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                }
+
+                if (LooksLikeUutRequirementForFallback(normalizedDescription))
+                {
+                    normalizedDescription = RewriteUutRequirementAsTestSolutionVerificationForFallback(normalizedDescription);
+                }
+
                 var traceReference = BuildRequirementTraceReference(attachment.Id, generatedItem, i + 1);
 
                 var requirement = new Requirement
