@@ -760,6 +760,8 @@ IMPORTANT: Only extract requirements if you have actual document access. Do not 
 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] DEBUG - Final result: Parsed {requirements.Count} requirements from LLM response");
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Parsed {requirements.Count} requirements from LLM response");
+
+                NormalizeRequirementsToTestSolutionPerspective(requirements, attachment);
             }
             catch (Exception ex)
             {
@@ -1351,6 +1353,8 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
                     }
                 }
 
+                NormalizeRequirementsToTestSolutionPerspective(allRequirements, attachment);
+
                 TestCaseEditorApp.Services.Logging.Log.Info($"[ATTACHMENT_TRACE] DirectRagResult AttachmentId={attachment.Id} FileName={attachment.FileName} Count={allRequirements.Count} Sample={BuildRequirementTraceSample(allRequirements)}");
                 progressCallback?.Invoke($"✅ Found {allRequirements.Count} requirements: {extractedRequirements.Count} extracted + {derivedRequirements.Count} derived + deterministic fallback where needed");
                 
@@ -1634,6 +1638,45 @@ Extract all legitimate requirements:";
             return System.Text.RegularExpressions.Regex.Replace(text, @"^\s*(?:\[[^\]]+\]\s*)+", string.Empty).Trim();
         }
 
+        private void NormalizeRequirementsToTestSolutionPerspective(List<Requirement> requirements, JamaAttachment attachment)
+        {
+            if (requirements == null || requirements.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var requirement in requirements)
+            {
+                if (requirement == null || string.IsNullOrWhiteSpace(requirement.Description))
+                {
+                    continue;
+                }
+
+                var description = requirement.Description;
+                var newlineIndex = description.IndexOf('\n');
+                var leadClause = newlineIndex >= 0 ? description.Substring(0, newlineIndex).Trim() : description.Trim();
+                if (!LooksLikeUutRequirementForFallback(leadClause))
+                {
+                    continue;
+                }
+
+                var suffix = newlineIndex >= 0 ? description.Substring(newlineIndex) : string.Empty;
+                var rewrittenClause = RewriteUutRequirementAsTestSolutionVerificationForFallback(leadClause);
+
+                requirement.Description = rewrittenClause + suffix;
+                requirement.Name = GenerateRequirementNameFromCapability(rewrittenClause, "Derived");
+
+                if (string.IsNullOrWhiteSpace(requirement.Rationale))
+                {
+                    requirement.Rationale = $"Boundary rewrite applied from UUT perspective source in {attachment.FileName}.";
+                }
+                else if (!requirement.Rationale.Contains("Boundary rewrite", StringComparison.OrdinalIgnoreCase))
+                {
+                    requirement.Rationale = string.Concat(requirement.Rationale, "\n\nBoundary rewrite applied from UUT perspective source.");
+                }
+            }
+        }
+
         private sealed class DeterministicRequirementCandidate
         {
             public Requirement Requirement { get; init; } = new Requirement();
@@ -1706,6 +1749,8 @@ Extract all legitimate requirements:";
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, "[DirectRag] Error parsing requirements from LLM response");
             }
+
+            NormalizeRequirementsToTestSolutionPerspective(requirements, attachment);
             
             return requirements;
         }
