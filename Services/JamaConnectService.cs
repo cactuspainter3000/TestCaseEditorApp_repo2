@@ -411,25 +411,66 @@ namespace TestCaseEditorApp.Services
                 var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
                 var outputPath = Path.Combine(outputDirectory, $"jama-itemtype-193-field-dictionary-{timestamp}.txt");
 
-                var itemTypeUrl = $"{_baseUrl}/rest/v1/itemtypes/193";
-                var fieldsUrl = $"{_baseUrl}/rest/v1/itemtypes/193/fields";
+                var endpointAttempts = new List<string>();
 
-                var itemTypeResponse = await _httpClient.GetAsync(itemTypeUrl, cancellationToken);
-                if (!itemTypeResponse.IsSuccessStatusCode)
+                async Task<(bool Success, string Url, string Body, string? Error)> TryGetFirstSuccessfulJsonAsync(IEnumerable<string> urls, string label)
                 {
-                    var error = await itemTypeResponse.Content.ReadAsStringAsync(cancellationToken);
-                    return (false, $"Failed to fetch item type 193 metadata: {itemTypeResponse.StatusCode} - {error}", null);
+                    foreach (var url in urls)
+                    {
+                        var response = await _httpClient.GetAsync(url, cancellationToken);
+                        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                        endpointAttempts.Add($"[{label}] {url} -> {(int)response.StatusCode} {response.StatusCode}");
+
+                        if (response.IsSuccessStatusCode)
+                        {
+                            return (true, url, body, null);
+                        }
+                    }
+
+                    return (false, string.Empty, string.Empty, $"No successful {label} endpoint. Attempts: {string.Join(" | ", endpointAttempts.Where(a => a.StartsWith($"[{label}]", StringComparison.OrdinalIgnoreCase)))}");
                 }
 
-                var fieldsResponse = await _httpClient.GetAsync(fieldsUrl, cancellationToken);
-                if (!fieldsResponse.IsSuccessStatusCode)
+                var itemTypeCandidates = new[]
                 {
-                    var error = await fieldsResponse.Content.ReadAsStringAsync(cancellationToken);
-                    return (false, $"Failed to fetch item type 193 fields metadata: {fieldsResponse.StatusCode} - {error}", null);
+                    $"{_baseUrl}/rest/v1/itemtypes/193",
+                    $"{_baseUrl}/rest/latest/itemtypes/193"
+                };
+
+                var fieldsCandidates = new[]
+                {
+                    $"{_baseUrl}/rest/v1/itemtypes/193/fields",
+                    $"{_baseUrl}/rest/latest/itemtypes/193/fields",
+                    $"{_baseUrl}/rest/v1/itemtypes/193?include=fields",
+                    $"{_baseUrl}/rest/latest/itemtypes/193?include=fields"
+                };
+
+                var itemTypeFetch = await TryGetFirstSuccessfulJsonAsync(itemTypeCandidates, "itemType");
+                if (!itemTypeFetch.Success)
+                {
+                    return (false, $"Failed to fetch item type 193 metadata. {itemTypeFetch.Error}", null);
                 }
 
-                var itemTypeJson = await itemTypeResponse.Content.ReadAsStringAsync(cancellationToken);
-                var fieldsJson = await fieldsResponse.Content.ReadAsStringAsync(cancellationToken);
+                var fieldsFetch = await TryGetFirstSuccessfulJsonAsync(fieldsCandidates, "fields");
+
+                var itemTypeUrl = itemTypeFetch.Url;
+                var fieldsUrl = fieldsFetch.Url;
+                var itemTypeJson = itemTypeFetch.Body;
+                var fieldsJson = fieldsFetch.Body;
+
+                if (!fieldsFetch.Success)
+                {
+                    using var fallbackItemTypeDoc = JsonDocument.Parse(itemTypeJson);
+                    if (TryExtractFieldsPayloadFromItemType(fallbackItemTypeDoc.RootElement, out var extractedFieldsJson))
+                    {
+                        fieldsJson = extractedFieldsJson;
+                        fieldsUrl = "embedded:itemtypes/193(fields)";
+                        endpointAttempts.Add("[fields] Using embedded fields payload from item type metadata after endpoint fallback.");
+                    }
+                    else
+                    {
+                        return (false, $"Failed to fetch item type 193 fields metadata. {fieldsFetch.Error}", null);
+                    }
+                }
 
                 using var itemTypeDoc = JsonDocument.Parse(itemTypeJson);
                 using var fieldsDoc = JsonDocument.Parse(fieldsJson);
@@ -464,6 +505,7 @@ namespace TestCaseEditorApp.Services
                 report.AppendLine($"- ItemType endpoint: {itemTypeUrl}");
                 report.AppendLine($"- Fields endpoint:   {fieldsUrl}");
                 report.AppendLine($"- Picklist IDs discovered: {(picklistIds.Count == 0 ? "none" : string.Join(", ", picklistIds.OrderBy(i => i)))}");
+                report.AppendLine($"- Endpoint attempts: {(endpointAttempts.Count == 0 ? "none" : string.Join(" | ", endpointAttempts))}");
                 report.AppendLine();
 
                 report.AppendLine("Parsed Fields (best-effort)");
@@ -5962,6 +6004,78 @@ namespace TestCaseEditorApp.Services
                 $"{_baseUrl}/rest/v1/itemtypes/{itemTypeId}/picklistoptions?filteredField={encodedField}",
                 $"{_baseUrl}/rest/v1/itemtypes/{itemTypeId}/picklistoptions?fieldName={encodedField}"
             };
+        }
+
+        private static bool TryExtractFieldsPayloadFromItemType(JsonElement root, out string fieldsJson)
+        {
+            fieldsJson = string.Empty;
+
+            JsonElement? FindFieldsArray(JsonElement node)
+            {
+                if (node.ValueKind == JsonValueKind.Object)
+                {
+                    if (node.TryGetProperty("fields", out var fieldsProp))
+                    {
+                        if (fieldsProp.ValueKind == JsonValueKind.Array)
+                        {
+                            return fieldsProp;
+                        }
+
+                        if (fieldsProp.ValueKind == JsonValueKind.Object &&
+                            fieldsProp.TryGetProperty("data", out var nestedData) &&
+                            nestedData.ValueKind == JsonValueKind.Array)
+                        {
+                            return nestedData;
+                        }
+                    }
+
+                    if (node.TryGetProperty("fieldDefinitions", out var defsProp) && defsProp.ValueKind == JsonValueKind.Array)
+                    {
+                        return defsProp;
+                    }
+
+                    if (node.TryGetProperty("data", out var dataProp))
+                    {
+                        var fromData = FindFieldsArray(dataProp);
+                        if (fromData.HasValue)
+                        {
+                            return fromData;
+                        }
+                    }
+
+                    foreach (var property in node.EnumerateObject())
+                    {
+                        var fromProperty = FindFieldsArray(property.Value);
+                        if (fromProperty.HasValue)
+                        {
+                            return fromProperty;
+                        }
+                    }
+                }
+                else if (node.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var element in node.EnumerateArray())
+                    {
+                        var fromElement = FindFieldsArray(element);
+                        if (fromElement.HasValue)
+                        {
+                            return fromElement;
+                        }
+                    }
+                }
+
+                return null;
+            }
+
+            var fieldsArray = FindFieldsArray(root);
+            if (!fieldsArray.HasValue)
+            {
+                return false;
+            }
+
+            var wrappedPayload = JsonSerializer.Serialize(new { data = fieldsArray.Value });
+            fieldsJson = wrappedPayload;
+            return true;
         }
 
         private static JsonElement? TryGetPicklistDataArray(JsonElement root)
