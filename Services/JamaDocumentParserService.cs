@@ -1611,9 +1611,19 @@ Extract all legitimate requirements:";
             }
 
             var normalized = NormalizeRequirementPrefixForFallback(requirementText);
+
+            // Already in the target perspective.
+            if (System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"^\s*(?:The\s+)?(?:test\s+solution|test\s+system)\s+shall\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            {
+                return false;
+            }
+
             return System.Text.RegularExpressions.Regex.IsMatch(
                 normalized,
-                @"^\s*(?:The\s+)?(?:MFD|UUT|LRU|Aircraft|Display\s+Unit|Avionics\s+Unit)\b.*\bshall\b",
+                @"^\s*(?:The\s+)?(?:MFD|UUT|Unit\s+Under\s+Test|LRU|Aircraft|Display\s+Unit|Avionics\s+Unit)(?:\s+[A-Za-z0-9_\-/()]+){0,4}\s+shall\b",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         }
 
@@ -1623,6 +1633,24 @@ Extract all legitimate requirements:";
             if (string.IsNullOrWhiteSpace(cleaned))
             {
                 return "The test solution shall verify required UUT behavior.";
+            }
+
+            var rewriteMatch = System.Text.RegularExpressions.Regex.Match(
+                cleaned,
+                @"^(?:The\s+)?(?<subject>MFD|UUT|Unit\s+Under\s+Test|LRU|Aircraft|Display\s+Unit|Avionics\s+Unit(?:\s+[A-Za-z0-9_\-/()]+){0,4})\s+shall\s+(?<predicate>.+)$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            if (rewriteMatch.Success)
+            {
+                var subject = rewriteMatch.Groups["subject"].Value.Trim();
+                var predicate = rewriteMatch.Groups["predicate"].Value.Trim().TrimEnd('.');
+                var normalizedSubject = subject.Equals("UUT", StringComparison.OrdinalIgnoreCase)
+                    ? "the unit under test (UUT)"
+                    : subject.StartsWith("the ", StringComparison.OrdinalIgnoreCase)
+                        ? subject
+                        : $"the {subject}";
+
+                return $"The test solution shall verify that {normalizedSubject} {predicate}.";
             }
 
             return $"The test solution shall verify that {char.ToLowerInvariant(cleaned[0])}{cleaned.Substring(1)}.";
@@ -1635,7 +1663,18 @@ Extract all legitimate requirements:";
                 return string.Empty;
             }
 
-            return System.Text.RegularExpressions.Regex.Replace(text, @"^\s*(?:\[[^\]]+\]\s*)+", string.Empty).Trim();
+            var normalized = text;
+
+            // Remove leading bracketed tags like [REQ] [UUT].
+            normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"^\s*(?:\[[^\]]+\]\s*)+", string.Empty);
+
+            // Remove list numbering like "1.", "1.2)", etc.
+            normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"^\s*(?:\d+(?:\.\d+)*[\).:-]\s+)+", string.Empty);
+
+            // Remove leading requirement IDs like "DECAGON-REQ_RC-12:".
+            normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"^\s*[A-Za-z0-9][A-Za-z0-9_.\-]{1,60}\s*:\s*", string.Empty);
+
+            return normalized.Trim();
         }
 
         private void NormalizeRequirementsToTestSolutionPerspective(List<Requirement> requirements, JamaAttachment attachment)
