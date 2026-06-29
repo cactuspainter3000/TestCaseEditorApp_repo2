@@ -1378,7 +1378,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     ProgressText = $"Searching {projectName} for attachments | quick scan"
                 });
 
-                var attachments = await _jamaConnectService.GetProjectAttachmentsLimitedAsync(projectId, maxItems: 20, cancellationToken);
+                var attachments = await _jamaConnectService.GetProjectAttachmentsLimitedAsync(projectId, maxItems: 80, cancellationToken);
 
                 if (attachments.Count == 0)
                 {
