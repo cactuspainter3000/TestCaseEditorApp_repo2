@@ -480,6 +480,7 @@ namespace TestCaseEditorApp.Services
                 CollectPicklistIds(itemTypeDoc.RootElement, picklistIds);
 
                 var picklistOptionPayloads = new Dictionary<int, string>();
+                var picklistOptionSummaries = new Dictionary<int, List<(int Id, string Name, bool IsDefault)>>();
                 foreach (var picklistId in picklistIds.OrderBy(i => i))
                 {
                     var picklistUrl = $"{_baseUrl}/rest/v1/picklists/{picklistId}/options";
@@ -491,7 +492,99 @@ namespace TestCaseEditorApp.Services
                         continue;
                     }
 
+                    try
+                    {
+                        using var picklistDoc = JsonDocument.Parse(picklistBody);
+                        var picklistArray = TryGetPicklistDataArray(picklistDoc.RootElement);
+                        if (picklistArray.HasValue && picklistArray.Value.ValueKind == JsonValueKind.Array)
+                        {
+                            var options = new List<(int Id, string Name, bool IsDefault)>();
+                            foreach (var option in picklistArray.Value.EnumerateArray())
+                            {
+                                var id = GetIntProperty(option, "id");
+                                if (!id.HasValue)
+                                {
+                                    continue;
+                                }
+
+                                var name = GetStringProperty(option, "name")
+                                    ?? GetStringProperty(option, "display")
+                                    ?? GetStringProperty(option, "value")
+                                    ?? "<unnamed>";
+                                var isDefault = GetBoolProperty(option, "default") ?? false;
+                                options.Add((id.Value, name, isDefault));
+                            }
+
+                            picklistOptionSummaries[picklistId] = options;
+                        }
+                    }
+                    catch
+                    {
+                        // Keep report generation resilient if option payload parsing changes.
+                    }
+
                     picklistOptionPayloads[picklistId] = TryPrettyJson(picklistBody);
+                }
+
+                var (projectId, projectName, projectProbeMessage) = await TryGetFirstAccessibleProjectAsync(cancellationToken);
+                var requirementDefaults = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                List<(int Id, string Name, int Score)> requirementContainerCandidates = new();
+                List<(int Id, string Name)> relationshipTypeCandidates = new();
+                int? preferredRelationshipTypeId = null;
+                var releaseEndpointAttempts = new List<string>();
+                string? releaseSample = null;
+
+                if (projectId.HasValue)
+                {
+                    requirementDefaults = await GetRequirementFieldDefaultsAsync(projectId.Value, 193, cancellationToken);
+                    requirementContainerCandidates = await GetRequirementContainerCandidatesAsync(projectId.Value, cancellationToken);
+                    relationshipTypeCandidates = await GetRelationshipTypeCandidatesAsync(projectId.Value, cancellationToken);
+                    preferredRelationshipTypeId = await GetPreferredRelationshipTypeIdAsync(projectId.Value, cancellationToken);
+
+                    var releaseEndpoints = new[]
+                    {
+                        $"{_baseUrl}/rest/v1/projects/{projectId.Value}/releases",
+                        $"{_baseUrl}/rest/latest/projects/{projectId.Value}/releases",
+                        $"{_baseUrl}/rest/v1/releases?project={projectId.Value}",
+                        $"{_baseUrl}/rest/latest/releases?project={projectId.Value}"
+                    };
+
+                    foreach (var endpoint in releaseEndpoints)
+                    {
+                        var releaseResponse = await _httpClient.GetAsync(endpoint, cancellationToken);
+                        var releaseBody = await releaseResponse.Content.ReadAsStringAsync(cancellationToken);
+                        releaseEndpointAttempts.Add($"{endpoint} -> {(int)releaseResponse.StatusCode} {releaseResponse.StatusCode}");
+
+                        if (!releaseResponse.IsSuccessStatusCode)
+                        {
+                            continue;
+                        }
+
+                        try
+                        {
+                            using var releaseDoc = JsonDocument.Parse(releaseBody);
+                            var releaseData = TryGetPicklistDataArray(releaseDoc.RootElement);
+                            if (releaseData.HasValue && releaseData.Value.ValueKind == JsonValueKind.Array)
+                            {
+                                var sampleNames = releaseData.Value.EnumerateArray()
+                                    .Take(5)
+                                    .Select(r => GetStringProperty(r, "name") ?? GetStringProperty(r, "releaseDate") ?? "<unknown>")
+                                    .ToList();
+                                releaseSample = sampleNames.Count > 0
+                                    ? string.Join(", ", sampleNames)
+                                    : "Release endpoint reachable but no entries returned.";
+                            }
+                        }
+                        catch
+                        {
+                            releaseSample = "Release endpoint reachable, response shape not parsed.";
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(releaseSample))
+                        {
+                            break;
+                        }
+                    }
                 }
 
                 var report = new StringBuilder();
@@ -506,6 +599,7 @@ namespace TestCaseEditorApp.Services
                 report.AppendLine($"- Fields endpoint:   {fieldsUrl}");
                 report.AppendLine($"- Picklist IDs discovered: {(picklistIds.Count == 0 ? "none" : string.Join(", ", picklistIds.OrderBy(i => i)))}");
                 report.AppendLine($"- Endpoint attempts: {(endpointAttempts.Count == 0 ? "none" : string.Join(" | ", endpointAttempts))}");
+                report.AppendLine($"- Probe project: {(projectId.HasValue ? $"{projectId.Value} ({projectName ?? "<unnamed>"})" : projectProbeMessage ?? "none")}");
                 report.AppendLine();
 
                 report.AppendLine("Parsed Fields (best-effort)");
@@ -545,6 +639,172 @@ namespace TestCaseEditorApp.Services
                 else
                 {
                     report.AppendLine("- No field array found in response.");
+                }
+
+                report.AppendLine();
+                report.AppendLine("Extended Mapping Diagnostics");
+
+                report.AppendLine("- Requirement create contract map (item type 193):");
+                if (fieldsArray.HasValue && fieldsArray.Value.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var field in fieldsArray.Value.EnumerateArray())
+                    {
+                        var fieldKey = GetStringProperty(field, "fieldName")
+                            ?? GetStringProperty(field, "name")
+                            ?? GetStringProperty(field, "apiName")
+                            ?? GetStringProperty(field, "key")
+                            ?? "<unknown>";
+
+                        var type = GetStringProperty(field, "fieldType")
+                            ?? GetStringProperty(field, "dataType")
+                            ?? GetStringProperty(field, "type")
+                            ?? "<unknown>";
+
+                        var required = GetBoolProperty(field, "required") ?? false;
+                        var readOnly = GetBoolProperty(field, "readOnly") ?? GetBoolProperty(field, "readonly") ?? false;
+                        var picklistId = GetIntProperty(field, "pickList")
+                            ?? GetIntProperty(field, "picklist")
+                            ?? GetIntProperty(field, "pickListId")
+                            ?? GetIntProperty(field, "picklistId")
+                            ?? GetIntProperty(field, "lookupType")
+                            ?? GetIntProperty(field, "lookupTypeId");
+
+                        var createContract = readOnly
+                            ? "Server-managed/read-only"
+                            : required
+                                ? "Required at create (or default must exist)"
+                                : "Optional at create";
+
+                        var defaultText = "n/a";
+                        if (requirementDefaults.TryGetValue(fieldKey, out var defaultValue) && defaultValue != null)
+                        {
+                            defaultText = defaultValue is JsonElement jsonDefault
+                                ? jsonDefault.ToString()
+                                : defaultValue.ToString() ?? "n/a";
+                        }
+
+                        report.AppendLine($"  * {fieldKey}: {createContract}; type={type}; picklistId={(picklistId.HasValue ? picklistId.Value.ToString() : "n/a")}; default={defaultText}");
+                    }
+                }
+                else
+                {
+                    report.AppendLine("  * Not available (field array not parsed).");
+                }
+
+                report.AppendLine("- Multi-lookup payload shape map:");
+                if (fieldsArray.HasValue && fieldsArray.Value.ValueKind == JsonValueKind.Array)
+                {
+                    var anyMultiLookup = false;
+                    foreach (var field in fieldsArray.Value.EnumerateArray())
+                    {
+                        var type = GetStringProperty(field, "fieldType")
+                            ?? GetStringProperty(field, "dataType")
+                            ?? GetStringProperty(field, "type")
+                            ?? string.Empty;
+                        if (!type.Contains("MULTI_LOOKUP", StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        anyMultiLookup = true;
+                        var fieldKey = GetStringProperty(field, "fieldName")
+                            ?? GetStringProperty(field, "name")
+                            ?? GetStringProperty(field, "apiName")
+                            ?? GetStringProperty(field, "key")
+                            ?? "<unknown>";
+                        var picklistId = GetIntProperty(field, "pickList")
+                            ?? GetIntProperty(field, "picklist")
+                            ?? GetIntProperty(field, "pickListId")
+                            ?? GetIntProperty(field, "picklistId");
+
+                        var sample = picklistId.HasValue && picklistOptionSummaries.TryGetValue(picklistId.Value, out var options) && options.Count > 0
+                            ? $"e.g. [{options[0].Id}]"
+                            : "e.g. [<option-id>]";
+
+                        report.AppendLine($"  * {fieldKey}: send integer array of option IDs, {sample}");
+                    }
+
+                    if (!anyMultiLookup)
+                    {
+                        report.AppendLine("  * No MULTI_LOOKUP fields discovered.");
+                    }
+                }
+                else
+                {
+                    report.AppendLine("  * Not available (field array not parsed).");
+                }
+
+                report.AppendLine("- Status/workflow map:");
+                var statusFieldPicklistId = fieldsArray.HasValue && fieldsArray.Value.ValueKind == JsonValueKind.Array
+                    ? fieldsArray.Value.EnumerateArray()
+                        .Where(f => string.Equals(GetStringProperty(f, "name") ?? GetStringProperty(f, "fieldName"), "status", StringComparison.OrdinalIgnoreCase))
+                        .Select(f => GetIntProperty(f, "pickList")
+                            ?? GetIntProperty(f, "picklist")
+                            ?? GetIntProperty(f, "pickListId")
+                            ?? GetIntProperty(f, "picklistId"))
+                        .FirstOrDefault()
+                    : null;
+
+                if (statusFieldPicklistId.HasValue && picklistOptionSummaries.TryGetValue(statusFieldPicklistId.Value, out var statusOptions) && statusOptions.Count > 0)
+                {
+                    report.AppendLine($"  * Status picklist ({statusFieldPicklistId.Value}) options: {string.Join(", ", statusOptions.Select(o => o.IsDefault ? $"{o.Name} [default]" : o.Name))}");
+                    report.AppendLine("  * Transition rules endpoint not standardized across all Jama instances; transitions should be validated with project workflow settings.");
+                }
+                else
+                {
+                    report.AppendLine("  * Could not resolve status picklist options.");
+                }
+
+                report.AppendLine("- Requirement parent location compatibility map:");
+                if (projectId.HasValue)
+                {
+                    if (requirementContainerCandidates.Count == 0)
+                    {
+                        report.AppendLine($"  * No candidate requirement containers found for project {projectId.Value}.");
+                    }
+                    else
+                    {
+                        foreach (var candidate in requirementContainerCandidates.Take(10))
+                        {
+                            report.AppendLine($"  * Candidate container ID={candidate.Id}, name='{candidate.Name}', score={candidate.Score}");
+                        }
+                    }
+                }
+                else
+                {
+                    report.AppendLine("  * Project-scoped probe skipped (no accessible project resolved).");
+                }
+
+                report.AppendLine("- Relationship API map:");
+                if (projectId.HasValue)
+                {
+                    if (relationshipTypeCandidates.Count == 0)
+                    {
+                        report.AppendLine("  * No relationship types discovered from available endpoints.");
+                    }
+                    else
+                    {
+                        report.AppendLine($"  * Preferred relationship type ID: {(preferredRelationshipTypeId.HasValue ? preferredRelationshipTypeId.Value.ToString() : "n/a")}");
+                        foreach (var rel in relationshipTypeCandidates.Take(20))
+                        {
+                            report.AppendLine($"  * RelationshipType ID={rel.Id}, name='{rel.Name}'");
+                        }
+                    }
+                }
+                else
+                {
+                    report.AppendLine("  * Project-scoped probe skipped (no accessible project resolved).");
+                }
+
+                report.AppendLine("- Release field map:");
+                if (projectId.HasValue)
+                {
+                    report.AppendLine($"  * Endpoint attempts: {(releaseEndpointAttempts.Count == 0 ? "none" : string.Join(" | ", releaseEndpointAttempts))}");
+                    report.AppendLine($"  * Sample releases: {releaseSample ?? "none discovered"}");
+                }
+                else
+                {
+                    report.AppendLine("  * Project-scoped probe skipped (no accessible project resolved).");
                 }
 
                 report.AppendLine();
@@ -5138,22 +5398,63 @@ namespace TestCaseEditorApp.Services
             return false;
         }
 
-        private async Task<int?> GetPreferredRelationshipTypeIdAsync(int projectId, CancellationToken cancellationToken)
+        private async Task<(int? ProjectId, string? ProjectName, string Message)> TryGetFirstAccessibleProjectAsync(CancellationToken cancellationToken)
         {
+            try
+            {
+                var endpoints = new[]
+                {
+                    $"{_baseUrl}/rest/v1/projects",
+                    $"{_baseUrl}/rest/latest/projects"
+                };
+
+                foreach (var endpoint in endpoints)
+                {
+                    var response = await _httpClient.GetAsync(endpoint, cancellationToken);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        continue;
+                    }
+
+                    var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                    using var doc = JsonDocument.Parse(json);
+                    var projects = TryGetPicklistDataArray(doc.RootElement);
+                    if (!projects.HasValue || projects.Value.ValueKind != JsonValueKind.Array)
+                    {
+                        continue;
+                    }
+
+                    foreach (var project in projects.Value.EnumerateArray())
+                    {
+                        var id = GetIntProperty(project, "id");
+                        if (!id.HasValue || id.Value <= 0)
+                        {
+                            continue;
+                        }
+
+                        var name = GetStringProperty(project, "name")
+                            ?? GetStringProperty(project, "display")
+                            ?? GetStringProperty(project, "projectKey");
+                        return (id.Value, name, $"Resolved from {endpoint}");
+                    }
+                }
+
+                return (null, null, "No accessible projects returned from /projects endpoints.");
+            }
+            catch (Exception ex)
+            {
+                return (null, null, $"Project probe failed: {ex.Message}");
+            }
+        }
+
+        private async Task<List<(int Id, string Name)>> GetRelationshipTypeCandidatesAsync(int projectId, CancellationToken cancellationToken)
+        {
+            var candidates = new List<(int Id, string Name)>();
             if (projectId <= 0)
             {
-                return null;
+                return candidates;
             }
 
-            lock (_projectRelationshipTypeCache)
-            {
-                if (_projectRelationshipTypeCache.TryGetValue(projectId, out var cachedId))
-                {
-                    return cachedId;
-                }
-            }
-
-            var candidates = new List<(int Id, string Name)>();
             var endpoints = new[]
             {
                 $"{_baseUrl}/rest/v1/relationshiptypes?project={projectId}",
@@ -5210,6 +5511,30 @@ namespace TestCaseEditorApp.Services
                         $"[JamaConnect] Relationship type discovery failed for endpoint '{endpoint}': {ex.Message}");
                 }
             }
+
+            return candidates
+                .GroupBy(c => c.Id)
+                .Select(g => g.First())
+                .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private async Task<int?> GetPreferredRelationshipTypeIdAsync(int projectId, CancellationToken cancellationToken)
+        {
+            if (projectId <= 0)
+            {
+                return null;
+            }
+
+            lock (_projectRelationshipTypeCache)
+            {
+                if (_projectRelationshipTypeCache.TryGetValue(projectId, out var cachedId))
+                {
+                    return cachedId;
+                }
+            }
+
+            var candidates = await GetRelationshipTypeCandidatesAsync(projectId, cancellationToken);
 
             int? selected = null;
             if (candidates.Count > 0)
