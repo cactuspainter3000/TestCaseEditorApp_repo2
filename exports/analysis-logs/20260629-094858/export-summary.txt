@@ -1,0 +1,7 @@
+Created: 2026-06-29T09:48:59.2489968-05:00
+Source machine: USM246425
+Zip: C:\Users\e10653214\Desktop\TestCaseEditorApp-AnalysisLogs-20260629-094858.zip
+DetectedRoot: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp
+RootResolution: Found .git from candidate 'C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\'
+AppBaseDirectory: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\
+CurrentDirectory: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows
