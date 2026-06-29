@@ -1363,6 +1363,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 });
 
                 var startTime = DateTime.Now;
+                var scanTimedOut = false;
+                string? completionErrorMessage = null;
 
                 // Fast path: limited scan for responsive UI. Fall back to full scan if nothing is found.
                 progress?.Report(new AttachmentScanProgressData
@@ -1458,6 +1460,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                             ProgressText = timeoutMessage
                         });
 
+                        scanTimedOut = true;
+                        completionErrorMessage = "Full scan timed out after 2 minutes. The project may still contain attachments beyond the preview scan.";
                         attachments = new List<JamaAttachment>();
                     }
                 }
@@ -1469,7 +1473,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 {
                     ProjectId = projectId,
                     AttachmentCount = attachments?.Count ?? 0,
-                    Success = true,
+                    Success = !scanTimedOut,
+                    ErrorMessage = completionErrorMessage,
                     Duration = duration,
                     Attachments = attachments ?? new List<JamaAttachment>()
                 });
