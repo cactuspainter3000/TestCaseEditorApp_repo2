@@ -1364,6 +1364,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 {
                     IsSearching = false;
                     IsBusy = false;
+                    IsBackgroundScanningInProgress = false;
+                    BackgroundScanProgressText = string.Empty;
+                    BackgroundScanProgress = 0;
+                    BackgroundScanTotal = 0;
                     UpdateWorkflowState();
                 }
                 
@@ -1928,14 +1932,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// </summary>
         private void OnAttachmentScanProgress(TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.AttachmentScanProgress progressEvent)
         {
-            var currentProjectId = GetCurrentJamaProjectId();
-            if (currentProjectId > 0 && progressEvent.ProjectId != currentProjectId)
-            {
-                _logger.LogInformation("[RequirementsSearchAttachments] Ignoring progress event for project {EventProjectId}; active project is {CurrentProjectId}", 
-                    progressEvent.ProjectId, currentProjectId);
-                return;
-            }
-
             Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 BackgroundScanProgressText = progressEvent.ProgressText;
@@ -1943,16 +1939,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 // Parse progress from the new format: "Searching... | XX% complete | Y attachments found"
                 if (!string.IsNullOrEmpty(progressEvent.ProgressText))
                 {
-                    var parts = progressEvent.ProgressText.Split('|');
-                    if (parts.Length >= 2)
+                    var percentMatch = System.Text.RegularExpressions.Regex.Match(progressEvent.ProgressText, @"(?<pct>\d+)%");
+                    if (percentMatch.Success && int.TryParse(percentMatch.Groups["pct"].Value, out int percentage))
                     {
-                        // Extract percentage from the "XX% complete" part (index 1)
-                        var percentageText = parts[1].Replace("% complete", "").Trim();
-                        if (int.TryParse(percentageText, out int percentage))
-                        {
-                            BackgroundScanProgress = percentage;
-                            BackgroundScanTotal = 100; // Always 100 for percentage
-                        }
+                        BackgroundScanProgress = percentage;
+                        BackgroundScanTotal = 100; // Always 100 for percentage
                     }
                 }
                 
@@ -1965,14 +1956,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// </summary>
         private void OnAttachmentScanStarted(TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents.AttachmentScanStarted startedEvent)
         {
-            var currentProjectId = GetCurrentJamaProjectId();
-            if (currentProjectId > 0 && startedEvent.ProjectId != currentProjectId)
-            {
-                _logger.LogInformation("[RequirementsSearchAttachments] Ignoring scan-start event for project {EventProjectId}; active project is {CurrentProjectId}", 
-                    startedEvent.ProjectId, currentProjectId);
-                return;
-            }
-
             Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 IsBackgroundScanningInProgress = true;
@@ -1994,14 +1977,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             try
             {
-                var currentProjectId = GetCurrentJamaProjectId();
-                if (currentProjectId > 0 && completedEvent.ProjectId != currentProjectId)
-                {
-                    _logger.LogInformation("[RequirementsSearchAttachments] Ignoring scan-completed event for project {EventProjectId}; active project is {CurrentProjectId}", 
-                        completedEvent.ProjectId, currentProjectId);
-                    return;
-                }
-
                 _logger.LogInformation("[RequirementsSearchAttachments] Attachment scan completed for project {ProjectId}: {Success}, {Count} attachments", 
                     completedEvent.ProjectId, completedEvent.Success, completedEvent.AttachmentCount);
 
