@@ -774,11 +774,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             if (!Validate())
             {
-                PersistDiagnosticsSettingOnly();
+                // Persist entered values (including Jama Project ID) even when required validation fails.
+                // This keeps user progress and allows retry without re-entering values.
+                var currentSettings = BuildCurrentSettingsSnapshot();
+                _userSettingsService.SaveSettings(currentSettings);
+                _userSettingsService.ApplySettingsToEnvironment(currentSettings);
+                SetLastSavedSettings(currentSettings);
+
                 StatusMessage = string.IsNullOrWhiteSpace(StatusMessage)
-                    ? "Requirements analysis snapshot setting saved."
-                    : $"Requirements analysis snapshot setting saved. {StatusMessage}";
-                RecalculateUnsavedChanges();
+                    ? "Settings saved, but required fields are still missing."
+                    : $"Settings saved, but required fields are still missing. {StatusMessage}";
+                IsStatusError = true;
                 return;
             }
 
