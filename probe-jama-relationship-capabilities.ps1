@@ -125,21 +125,27 @@ function Invoke-Probe {
         }
 
         $record.Status = [int]$resp.StatusCode
-        $record.Success = $true
+        $record.Success = $resp.IsSuccessStatusCode
 
-        try {
-            $json = $content | ConvertFrom-Json
-            if ($null -ne $json.meta -and $null -ne $json.meta.pageInfo -and $null -ne $json.meta.pageInfo.resultCount) {
-                $record.ResultCount = [string]$json.meta.pageInfo.resultCount
-            } elseif ($null -ne $json.data) {
-                if ($json.data -is [System.Array]) {
-                    $record.ResultCount = [string]$json.data.Count
-                } else {
-                    $record.ResultCount = "1"
+        if (-not $resp.IsSuccessStatusCode) {
+            $record.Notes = "HTTP $([int]$resp.StatusCode) $($resp.ReasonPhrase)"
+        }
+
+        if ($resp.IsSuccessStatusCode) {
+            try {
+                $json = $content | ConvertFrom-Json
+                if ($null -ne $json.meta -and $null -ne $json.meta.pageInfo -and $null -ne $json.meta.pageInfo.resultCount) {
+                    $record.ResultCount = [string]$json.meta.pageInfo.resultCount
+                } elseif ($null -ne $json.data) {
+                    if ($json.data -is [System.Array]) {
+                        $record.ResultCount = [string]$json.data.Count
+                    } else {
+                        $record.ResultCount = "1"
+                    }
                 }
+            } catch {
+                $record.Notes = "Non-JSON or unexpected response body"
             }
-        } catch {
-            $record.Notes = "Non-JSON or unexpected response body"
         }
     } catch {
         $record.Success = $false
@@ -273,6 +279,52 @@ function Get-ItemRelationships {
     }
 
     return $all
+}
+
+function Get-InterpretationSummary {
+    param(
+        [System.Collections.Generic.List[object]]$Results,
+        [bool]$HasSeedItem,
+        [bool]$HasAttachmentId
+    )
+
+    $summary = New-Object System.Collections.Generic.List[string]
+    $successfulResults = @($Results | Where-Object { $_.Success })
+    $relationshipTypeResults = @($successfulResults | Where-Object { $_.Url -match '/relationshiptypes' })
+    $itemAttachmentResult = @($successfulResults | Where-Object { $_.Url -match '/items/\d+/attachments' } | Select-Object -First 1)
+    $abstractRelationshipResults = @($Results | Where-Object { $_.Url -match '/abstractitems/\d+/(upstreamrelationships|downstreamrelationships)' })
+    $genericRelationshipResults = @($Results | Where-Object { $_.Url -match '/relationships\?' -and $_.Url -notmatch 'attachment=' })
+    $attachmentRelationshipResults = @($Results | Where-Object { $_.Url -match '/attachments/\d+/.+relationship|/relationships\?.*attachment=' })
+
+    if ($relationshipTypeResults.Count -gt 0) {
+        $summary.Add("Relationship type discovery is supported via the v1 relationshiptypes endpoints. Use that path to resolve valid relationship type IDs for project-scoped writes.")
+    } else {
+        $summary.Add("Relationship type discovery did not succeed on any tested endpoint, so write operations should not assume a relationship type ID can be resolved yet.")
+    }
+
+    if ($HasSeedItem -and $itemAttachmentResult.Count -gt 0) {
+        $summary.Add("Seed-item attachment enumeration is supported. The current seed item returned $($itemAttachmentResult[0].ResultCount) attachments, so attachment provenance can be discovered from the owning item.")
+    }
+
+    if ($abstractRelationshipResults.Count -gt 0 -and (@($abstractRelationshipResults | Where-Object { $_.Success }).Count -eq 0)) {
+        $summary.Add("The abstract-item upstream/downstream relationship endpoints are not available on this tenant as tested. Manual trace validation should not depend on those routes.")
+    }
+
+    if ($genericRelationshipResults.Count -gt 0 -and (@($genericRelationshipResults | Where-Object { $_.Status -eq 400 }).Count -gt 0)) {
+        $summary.Add("The generic relationships collection exists but rejected the tested query shape. It likely requires different filters than project-only discovery.")
+    }
+
+    if (-not $HasAttachmentId -and $attachmentRelationshipResults.Count -eq 0) {
+        $summary.Add("No attachment-specific relationship endpoints were exercised because the seed item had no attachments. Attachment trace probing will need an item that actually owns at least one attachment.")
+    } elseif ($attachmentRelationshipResults.Count -gt 0 -and (@($attachmentRelationshipResults | Where-Object { $_.Success }).Count -eq 0)) {
+        $summary.Add("Attachment-specific relationship routes did not succeed on the tested paths. Treat attachments as provenance on items unless a supported attachment trace route is identified separately.")
+    }
+
+    if ($summary.Count -eq 0) {
+        $summary.Add("The probe did not identify a stable relationship traversal route from the tested endpoints. Prefer item-centric traceability and validate any alternate route against tenant-specific API documentation.")
+    }
+
+    return $summary
 }
 
 function Find-ApiDocsPaths {
@@ -516,8 +568,10 @@ if ($swaggerDiscovery) {
 [void]$report.AppendLine("")
 [void]$report.AppendLine("## Preliminary Interpretation")
 [void]$report.AppendLine("")
-[void]$report.AppendLine("- If item relationship endpoints succeed while attachment-relationship candidate endpoints return 404/400, your tenant likely supports item-to-item relationships only.")
-[void]$report.AppendLine("- In that model, attachments are associated to items and traceability should point to the source item, with attachment metadata retained as provenance.")
+$interpretationSummary = Get-InterpretationSummary -Results $results -HasSeedItem ([bool]($SeedItemId -and $SeedItemId -gt 0)) -HasAttachmentId ([bool]$attachmentId)
+foreach ($line in $interpretationSummary) {
+    [void]$report.AppendLine("- $line")
+}
 
 [void]$report.AppendLine("")
 [void]$report.AppendLine("## Known Manual Trace Validation")
