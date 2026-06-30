@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Runtime.Versioning;
 using Microsoft.Win32;
@@ -80,7 +81,7 @@ namespace TestCaseEditorApp.Services
             key.SetValue("JamaBaseUrl", (settings.JamaBaseUrl ?? string.Empty).Trim());
             key.SetValue("JamaClientId", (settings.JamaClientId ?? string.Empty).Trim());
             key.SetValue("JamaClientSecretEnc", EncryptString((settings.JamaClientSecret ?? string.Empty).Trim()));
-            key.SetValue("JamaProjectId", (settings.JamaProjectId ?? string.Empty).Trim());
+            key.SetValue("JamaProjectId", (settings.JamaProjectId ?? string.Empty).Trim(), RegistryValueKind.String);
             key.SetValue("AnythingLlmBaseUrl", NormalizeUrl(settings.AnythingLlmBaseUrl, "http://localhost:3001"));
             key.SetValue("AnythingLlmApiKeyEnc", EncryptString((settings.AnythingLlmApiKey ?? string.Empty).Trim()));
             key.SetValue("OllamaChatModel", FirstNonEmpty(settings.OllamaChatModel, "phi4-mini:latest"));
@@ -120,7 +121,8 @@ namespace TestCaseEditorApp.Services
         private static string ReadString(RegistryKey? key, string name, string fallback = "")
         {
             if (key == null) return fallback;
-            var value = key.GetValue(name) as string;
+            var rawValue = key.GetValue(name);
+            var value = rawValue as string ?? Convert.ToString(rawValue, CultureInfo.InvariantCulture);
             return string.IsNullOrWhiteSpace(value) ? fallback : value;
         }
 
