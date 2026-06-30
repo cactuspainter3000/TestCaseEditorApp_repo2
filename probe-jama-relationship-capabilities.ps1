@@ -188,6 +188,9 @@ function Invoke-Probe {
         Write-ProbeStep "Completed $Method $Url in $($record.DurationMs) ms"
     } else {
         Write-ProbeStep "Failed $Method $Url after $($record.DurationMs) ms"
+        if (-not [string]::IsNullOrWhiteSpace($record.Notes)) {
+            Write-ProbeStep "Failure details: $($record.Notes)"
+        }
     }
 
     return [PSCustomObject]$record
