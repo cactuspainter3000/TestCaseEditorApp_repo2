@@ -621,9 +621,20 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 if (!int.TryParse(projectIdRaw, out var projectId) || projectId <= 0)
                 {
-                    StatusMessage = "Please enter a valid Jama Project ID before running the probe.";
-                    IsStatusError = true;
-                    return;
+                    var mediatorObj = App.ServiceProvider?.GetService(typeof(TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator));
+                    if (mediatorObj is TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator requirementsMediator &&
+                        requirementsMediator.CurrentProjectId > 0)
+                    {
+                        projectId = requirementsMediator.CurrentProjectId;
+                        JamaProjectId = projectId.ToString();
+                        StatusMessage = $"Running Jama relationship capability probe for loaded project {projectId}...";
+                    }
+                    else
+                    {
+                        StatusMessage = "Please enter a valid Jama Project ID before running the probe.";
+                        IsStatusError = true;
+                        return;
+                    }
                 }
 
                 var scriptPath = FindProbeScriptPath();
