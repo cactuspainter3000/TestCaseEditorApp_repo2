@@ -86,7 +86,8 @@ function Invoke-Probe {
     param(
         [string]$Url,
         [hashtable]$Headers,
-        [string]$Method = "GET"
+        [string]$Method = "GET",
+        [int]$TimeoutSec = 30
     )
 
     $startedAt = Get-Date
@@ -106,7 +107,7 @@ function Invoke-Probe {
         Write-ProbeStep "Probing $Method $Url"
         $handler = New-Object System.Net.Http.HttpClientHandler
         $client = New-Object System.Net.Http.HttpClient($handler)
-        $client.Timeout = [TimeSpan]::FromSeconds(30)
+        $client.Timeout = [TimeSpan]::FromSeconds([Math]::Max(1, $TimeoutSec))
 
         try {
             foreach ($headerName in $Headers.Keys) {
@@ -180,7 +181,12 @@ function Invoke-Probe {
             }
         }
 
-        $record.Notes = $_.Exception.Message
+        if ($_.Exception.Message -match "task was canceled") {
+            $record.Notes = "Request timed out after $TimeoutSec seconds"
+        }
+        else {
+            $record.Notes = $_.Exception.Message
+        }
     }
 
     $record.DurationMs = [int]((Get-Date) - $startedAt).TotalMilliseconds
@@ -426,19 +432,23 @@ if (-not $PSBoundParameters.ContainsKey("SeedItemId") -or $SeedItemId -le 0) {
 }
 
 $results = New-Object System.Collections.Generic.List[object]
+$relationshipProbeLastId = 2147483647
+$relationshipProbeMaxResults = 1
+$relationshipProbeTimeoutSec = 10
 
 $baseEndpoints = @(
     "$BaseUrl/rest/v1/projects/$ProjectId/relationshiptypes",
     "$BaseUrl/rest/v1/relationshiptypes?project=$ProjectId&maxResults=20",
     "$BaseUrl/rest/v1/relationshiptypes",
     "$BaseUrl/rest/v1/relationships?project=$ProjectId&maxResults=20",
-    "$BaseUrl/rest/v1/relationships?project=$ProjectId&lastId=0&maxResults=20",
     "$BaseUrl/rest/v1/attachments?project=$ProjectId&maxResults=20"
 )
 
 foreach ($endpoint in $baseEndpoints) {
     $results.Add((Invoke-Probe -Url $endpoint -Headers $apiHeaders))
 }
+
+$results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?project=$ProjectId&lastId=$relationshipProbeLastId&maxResults=$relationshipProbeMaxResults" -Headers $apiHeaders -TimeoutSec $relationshipProbeTimeoutSec))
 
 $attachmentId = $null
 if ($SeedItemId -and $SeedItemId -gt 0) {
@@ -447,9 +457,9 @@ if ($SeedItemId -and $SeedItemId -gt 0) {
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?fromItem=$SeedItemId&maxResults=20" -Headers $apiHeaders))
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?toItem=$SeedItemId&maxResults=20" -Headers $apiHeaders))
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?item=$SeedItemId&maxResults=20" -Headers $apiHeaders))
-    $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?project=$ProjectId&fromItem=$SeedItemId&lastId=0&maxResults=20" -Headers $apiHeaders))
-    $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?project=$ProjectId&toItem=$SeedItemId&lastId=0&maxResults=20" -Headers $apiHeaders))
-    $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?project=$ProjectId&item=$SeedItemId&lastId=0&maxResults=20" -Headers $apiHeaders))
+    $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?project=$ProjectId&fromItem=$SeedItemId&lastId=$relationshipProbeLastId&maxResults=$relationshipProbeMaxResults" -Headers $apiHeaders -TimeoutSec $relationshipProbeTimeoutSec))
+    $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?project=$ProjectId&toItem=$SeedItemId&lastId=$relationshipProbeLastId&maxResults=$relationshipProbeMaxResults" -Headers $apiHeaders -TimeoutSec $relationshipProbeTimeoutSec))
+    $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?project=$ProjectId&item=$SeedItemId&lastId=$relationshipProbeLastId&maxResults=$relationshipProbeMaxResults" -Headers $apiHeaders -TimeoutSec $relationshipProbeTimeoutSec))
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/abstractitems/$SeedItemId/upstreamrelationships?maxResults=20" -Headers $apiHeaders))
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/abstractitems/$SeedItemId/downstreamrelationships?maxResults=20" -Headers $apiHeaders))
 
