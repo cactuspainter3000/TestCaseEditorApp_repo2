@@ -125,6 +125,7 @@ namespace TestCaseEditorApp.Services
                         progressCallback?.Invoke($"🚀 Processing with reliable RAG-enhanced analysis...");
                         var directRagRequirements = await ExtractRequirementsWithDirectRagAsync(attachment, projectId, progressCallback, onRequirementDiscovered, cancellationToken);
                         TestCaseEditorApp.Services.Logging.Log.Info($"[ATTACHMENT_TRACE] ParserReturn AttachmentId={attachment.Id} FileName={attachment.FileName} Source=DirectRag Count={directRagRequirements.Count} Sample={BuildRequirementTraceSample(directRagRequirements)}");
+                        EnrichRequirementsWithAttachmentMetadata(directRagRequirements, attachment);
                         return directRagRequirements;
                     }
                     else
@@ -137,6 +138,7 @@ namespace TestCaseEditorApp.Services
                 progressCallback?.Invoke($"🔁 Using fallback requirement extraction...");
                 var anythingLlmRequirements = await ExtractRequirementsWithAnythingLLMAsync(attachment, projectId, progressCallback, cancellationToken);
                 TestCaseEditorApp.Services.Logging.Log.Info($"[ATTACHMENT_TRACE] ParserReturn AttachmentId={attachment.Id} FileName={attachment.FileName} Source=AnythingLLM Count={anythingLlmRequirements.Count} Sample={BuildRequirementTraceSample(anythingLlmRequirements)}");
+                EnrichRequirementsWithAttachmentMetadata(anythingLlmRequirements, attachment);
                 return anythingLlmRequirements;
             }
             catch (Exception ex)
@@ -1401,6 +1403,28 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
                 });
 
             return string.Join(" | ", sample);
+        }
+
+        /// <summary>
+        /// Enrich requirements with attachment metadata for upstream tracing.
+        /// Sets sourceAttachmentId and sourceDocumentName on each requirement so extracted requirements
+        /// can be traced back to their source document within Jama.
+        /// </summary>
+        private static void EnrichRequirementsWithAttachmentMetadata(List<Requirement> requirements, JamaAttachment attachment)
+        {
+            if (requirements == null || attachment == null)
+                return;
+
+            foreach (var requirement in requirements)
+            {
+                if (requirement != null)
+                {
+                    requirement.SourceAttachmentId = attachment.Id;
+                    requirement.SourceDocumentName = attachment.FileName;
+                }
+            }
+
+            TestCaseEditorApp.Services.Logging.Log.Info($"[AttachmentTracing] Enriched {requirements.Count} requirements with attachment metadata: {attachment.FileName} (ID: {attachment.Id})");
         }
 
         /// <summary>
