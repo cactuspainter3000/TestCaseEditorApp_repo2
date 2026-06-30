@@ -134,41 +134,49 @@
         </Grid.RowDefinitions>
 
         <!-- Tab Navigation -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10,0" Background="Transparent">
-            
+        <DockPanel Grid.Row="0" Margin="10,0" LastChildFill="False">
+            <!-- Temporary: Jama probe shortcut button -->
+            <Button Content="🔍 Jama Probe"
+                DockPanel.Dock="Right"
+                Command="{Binding RunJamaProbeCommand}"
+                ToolTip="Run Jama relationship capability probe for the configured project"
+                Style="{DynamicResource SmallButtonStyle}"
+                Margin="8,2,0,2"/>
+
+            <StackPanel Orientation="Horizontal" Background="Transparent">
             <!-- Details Tab (always available) -->
             <Button Content="Details" 
-                    Command="{Binding SelectDetailsCommand}"
-                    Style="{StaticResource DetailsTabButtonStyle}"
-                    IsHitTestVisible="True"
-                    Focusable="True"
-                    Cursor="Hand"/>
-            
+                Command="{Binding SelectDetailsCommand}"
+                Style="{StaticResource DetailsTabButtonStyle}"
+                IsHitTestVisible="True"
+                Focusable="True"
+                Cursor="Hand"/>
+
             <!-- Tables Tab (always available) -->
             <Button Content="Tables" 
-                    Command="{Binding SelectTablesCommand}"
-                    Style="{StaticResource TablesTabButtonStyle}"
-                    IsHitTestVisible="True"
-                    Focusable="True"
-                    Cursor="Hand"/>
-            
+                Command="{Binding SelectTablesCommand}"
+                Style="{StaticResource TablesTabButtonStyle}"
+                IsHitTestVisible="True"
+                Focusable="True"
+                Cursor="Hand"/>
+
             <!-- Analysis Tab (always available) -->
             <Button Content="LLM Analysis" 
-                    Command="{Binding SelectAnalysisCommand}"
-                    Style="{StaticResource AnalysisTabButtonStyle}"
-                    IsHitTestVisible="True"
-                    Focusable="True"
-                    Cursor="Hand"/>
-            
+                Command="{Binding SelectAnalysisCommand}"
+                Style="{StaticResource AnalysisTabButtonStyle}"
+                IsHitTestVisible="True"
+                Focusable="True"
+                Cursor="Hand"/>
+
             <!-- Requirements Scraper Tab (always available) -->
             <Button Content="Attachment Scraper" 
-                    Command="{Binding SelectRequirementsScraperCommand}"
-                    Style="{StaticResource RequirementsScraperTabButtonStyle}"
-                    IsHitTestVisible="True"
-                    Focusable="True"
-                    Cursor="Hand"/>
-                    
-        </StackPanel>
+                Command="{Binding SelectRequirementsScraperCommand}"
+                Style="{StaticResource RequirementsScraperTabButtonStyle}"
+                IsHitTestVisible="True"
+                Focusable="True"
+                Cursor="Hand"/>
+            </StackPanel>
+        </DockPanel>
 
         <!-- Content Area -->
         <Border Grid.Row="1" BorderBrush="#666666" BorderThickness="0,2,0,0" Margin="10,0">
