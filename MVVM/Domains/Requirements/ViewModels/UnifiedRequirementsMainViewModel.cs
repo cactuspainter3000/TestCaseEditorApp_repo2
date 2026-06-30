@@ -289,6 +289,20 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             RunJamaProbeCommand = new RelayCommand(() =>
             {
                 var userSettingsVm = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.ViewModels.UserSettingsViewModel>();
+                if (userSettingsVm != null)
+                {
+                    var configuredProjectId = (userSettingsVm.JamaProjectId ?? string.Empty).Trim();
+                    if (string.IsNullOrWhiteSpace(configuredProjectId))
+                    {
+                        var currentProjectId = _mediator.CurrentProjectId;
+                        if (currentProjectId > 0)
+                        {
+                            userSettingsVm.JamaProjectId = currentProjectId.ToString();
+                            _logger.LogInformation("[UnifiedRequirementsMainVM] Auto-populated Jama Project ID {ProjectId} from current workspace context before running probe", currentProjectId);
+                        }
+                    }
+                }
+
                 if (userSettingsVm?.RunJamaRelationshipProbeCommand?.CanExecute(null) == true)
                     userSettingsVm.RunJamaRelationshipProbeCommand.Execute(null);
             });
