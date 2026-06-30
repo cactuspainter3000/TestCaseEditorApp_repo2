@@ -476,7 +476,7 @@ if (-not [string]::IsNullOrWhiteSpace($ManualRequirementDocumentKey) -and -not [
 $report = New-Object System.Text.StringBuilder
 [void]$report.AppendLine("# Jama Relationship Capability Probe Report")
 [void]$report.AppendLine("")
-[void]$report.AppendLine("- Timestamp (UTC): $(Get-Date -AsUTC -Format \"yyyy-MM-dd HH:mm:ss\")")
+[void]$report.AppendLine("- Timestamp (UTC): $((Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm:ss'))")
 [void]$report.AppendLine("- Base URL: $BaseUrl")
 [void]$report.AppendLine("- Project ID: $ProjectId")
 [void]$report.AppendLine("- Seed Item ID: $(if ($SeedItemId) { $SeedItemId } else { 'n/a' })")
