@@ -143,6 +143,13 @@
                 Style="{DynamicResource SmallButtonStyle}"
                 Margin="8,2,0,2"/>
 
+            <TextBlock DockPanel.Dock="Right"
+                Text="{Binding JamaProbeStatus}"
+                Margin="0,4,8,0"
+                VerticalAlignment="Center"
+                Foreground="#AFAFAF"
+                FontSize="11"/>
+
             <StackPanel Orientation="Horizontal" Background="Transparent">
             <!-- Details Tab (always available) -->
             <Button Content="Details" 

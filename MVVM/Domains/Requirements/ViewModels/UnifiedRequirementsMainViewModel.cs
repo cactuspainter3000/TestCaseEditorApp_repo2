@@ -33,6 +33,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private new readonly IRequirementsMediator _mediator;
         private readonly IPersistenceService _persistence;
         private readonly ITextEditingDialogService _textEditingDialogService;
+        private UserSettingsViewModel? _userSettingsVm;
 
         #region Navigation & State Properties
 
@@ -66,6 +67,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         [ObservableProperty]
         private bool canGenerateTests;
+
+        [ObservableProperty]
+        private string jamaProbeStatus = "Jama probe idle.";
 
         // Analysis timer (from Jama path)
         private System.Timers.Timer? _analysisTimer;
@@ -270,6 +274,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // Track SelectedViewMode changes for property notifications
             this.PropertyChanged += OnViewModePropertyChanged;
 
+            // Bridge Settings probe state into Requirements UI for visible feedback.
+            AttachUserSettingsProbeBridge();
+
             _logger.LogInformation("[UnifiedRequirementsMainVM] Constructor completed - Instance ID: {InstanceId}", GetHashCode());
         }
 
@@ -288,23 +295,42 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // Temporary: delegate to UserSettingsViewModel probe command
             RunJamaProbeCommand = new RelayCommand(() =>
             {
-                var userSettingsVm = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.ViewModels.UserSettingsViewModel>();
-                if (userSettingsVm != null)
+                AttachUserSettingsProbeBridge();
+
+                if (_userSettingsVm == null)
                 {
-                    var configuredProjectId = (userSettingsVm.JamaProjectId ?? string.Empty).Trim();
-                    if (string.IsNullOrWhiteSpace(configuredProjectId))
+                    JamaProbeStatus = "Jama probe unavailable: settings view model was not resolved.";
+                    _logger.LogWarning("[UnifiedRequirementsMainVM] Could not resolve UserSettingsViewModel for Jama probe command");
+                    return;
+                }
+
+                var configuredProjectId = (_userSettingsVm.JamaProjectId ?? string.Empty).Trim();
+                if (string.IsNullOrWhiteSpace(configuredProjectId))
+                {
+                    var currentProjectId = _mediator.CurrentProjectId;
+                    if (currentProjectId > 0)
                     {
-                        var currentProjectId = _mediator.CurrentProjectId;
-                        if (currentProjectId > 0)
-                        {
-                            userSettingsVm.JamaProjectId = currentProjectId.ToString();
-                            _logger.LogInformation("[UnifiedRequirementsMainVM] Auto-populated Jama Project ID {ProjectId} from current workspace context before running probe", currentProjectId);
-                        }
+                        _userSettingsVm.JamaProjectId = currentProjectId.ToString();
+                        _logger.LogInformation("[UnifiedRequirementsMainVM] Auto-populated Jama Project ID {ProjectId} from current workspace context before running probe", currentProjectId);
                     }
                 }
 
-                if (userSettingsVm?.RunJamaRelationshipProbeCommand?.CanExecute(null) == true)
-                    userSettingsVm.RunJamaRelationshipProbeCommand.Execute(null);
+                if (_userSettingsVm.RunJamaRelationshipProbeCommand?.CanExecute(null) == true)
+                {
+                    _userSettingsVm.RunJamaRelationshipProbeCommand.Execute(null);
+                    JamaProbeStatus = string.IsNullOrWhiteSpace(_userSettingsVm.StatusMessage)
+                        ? "Jama probe command started."
+                        : _userSettingsVm.StatusMessage;
+                    _logger.LogInformation("[UnifiedRequirementsMainVM] Jama probe command triggered from Requirements view");
+                    return;
+                }
+
+                JamaProbeStatus = _userSettingsVm.IsBusy
+                    ? "Jama probe already running..."
+                    : "Jama probe command was blocked. Check Jama settings values.";
+                _logger.LogWarning("[UnifiedRequirementsMainVM] Jama probe command was not executable. IsBusy={IsBusy}, Status='{Status}'",
+                    _userSettingsVm.IsBusy,
+                    _userSettingsVm.StatusMessage);
             });
 
             // Content Management
@@ -690,6 +716,63 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
         }
 
+        private void AttachUserSettingsProbeBridge()
+        {
+            var resolved = App.ServiceProvider?.GetService<UserSettingsViewModel>();
+            if (resolved == null)
+            {
+                return;
+            }
+
+            if (!ReferenceEquals(_userSettingsVm, resolved))
+            {
+                if (_userSettingsVm != null)
+                {
+                    _userSettingsVm.PropertyChanged -= OnUserSettingsProbePropertyChanged;
+                }
+
+                _userSettingsVm = resolved;
+                _userSettingsVm.PropertyChanged += OnUserSettingsProbePropertyChanged;
+            }
+
+            if (!string.IsNullOrWhiteSpace(_userSettingsVm.StatusMessage))
+            {
+                JamaProbeStatus = _userSettingsVm.StatusMessage;
+            }
+        }
+
+        private void OnUserSettingsProbePropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (_userSettingsVm == null)
+            {
+                return;
+            }
+
+            if (e.PropertyName == nameof(UserSettingsViewModel.StatusMessage))
+            {
+                if (!string.IsNullOrWhiteSpace(_userSettingsVm.StatusMessage) &&
+                    (_userSettingsVm.StatusMessage.Contains("Jama relationship probe", StringComparison.OrdinalIgnoreCase) ||
+                     _userSettingsVm.StatusMessage.Contains("Jama probe", StringComparison.OrdinalIgnoreCase)))
+                {
+                    JamaProbeStatus = _userSettingsVm.StatusMessage;
+                }
+            }
+
+            if (e.PropertyName == nameof(UserSettingsViewModel.LastJamaProbeReport) &&
+                !string.IsNullOrWhiteSpace(_userSettingsVm.LastJamaProbeReport))
+            {
+                if (_userSettingsVm.LastJamaProbeReport.Contains("[JAMA RELATIONSHIP PROBE SUCCESS]", StringComparison.Ordinal))
+                {
+                    JamaProbeStatus = "Jama relationship probe completed successfully.";
+                }
+                else if (_userSettingsVm.LastJamaProbeReport.Contains("[JAMA RELATIONSHIP PROBE ERROR]", StringComparison.Ordinal) ||
+                         _userSettingsVm.LastJamaProbeReport.Contains("[JAMA RELATIONSHIP PROBE EXCEPTION]", StringComparison.Ordinal))
+                {
+                    JamaProbeStatus = "Jama relationship probe failed. Open Settings for details.";
+                }
+            }
+        }
+
         #endregion
 
         #region Command Implementations
@@ -941,6 +1024,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             
             // Dispose RequirementAnalysisVM
             RequirementAnalysisVM?.Dispose();
+
+            if (_userSettingsVm != null)
+            {
+                _userSettingsVm.PropertyChanged -= OnUserSettingsProbePropertyChanged;
+            }
             
             this.PropertyChanged -= OnViewModePropertyChanged;
             

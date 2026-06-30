@@ -250,6 +250,13 @@
                         ToolTip="Run Jama relationship capability probe for the configured project"
                         Style="{StaticResource PillActionButtonStyle}"
                         Margin="0,0,6,0"/>
+
+                <TextBlock DockPanel.Dock="Right"
+                    Text="{Binding JamaProbeStatus}"
+                    Margin="0,2,8,0"
+                    VerticalAlignment="Center"
+                    Foreground="#AFAFAF"
+                    FontSize="11"/>
         </DockPanel>
 
         <!-- support content area -->
