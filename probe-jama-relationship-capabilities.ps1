@@ -432,6 +432,7 @@ $baseEndpoints = @(
     "$BaseUrl/rest/v1/relationshiptypes?project=$ProjectId&maxResults=20",
     "$BaseUrl/rest/v1/relationshiptypes",
     "$BaseUrl/rest/v1/relationships?project=$ProjectId&maxResults=20",
+    "$BaseUrl/rest/v1/relationships?project=$ProjectId&lastId=0&maxResults=20",
     "$BaseUrl/rest/v1/attachments?project=$ProjectId&maxResults=20"
 )
 
@@ -446,6 +447,9 @@ if ($SeedItemId -and $SeedItemId -gt 0) {
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?fromItem=$SeedItemId&maxResults=20" -Headers $apiHeaders))
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?toItem=$SeedItemId&maxResults=20" -Headers $apiHeaders))
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?item=$SeedItemId&maxResults=20" -Headers $apiHeaders))
+    $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?project=$ProjectId&fromItem=$SeedItemId&lastId=0&maxResults=20" -Headers $apiHeaders))
+    $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?project=$ProjectId&toItem=$SeedItemId&lastId=0&maxResults=20" -Headers $apiHeaders))
+    $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?project=$ProjectId&item=$SeedItemId&lastId=0&maxResults=20" -Headers $apiHeaders))
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/abstractitems/$SeedItemId/upstreamrelationships?maxResults=20" -Headers $apiHeaders))
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/abstractitems/$SeedItemId/downstreamrelationships?maxResults=20" -Headers $apiHeaders))
 
