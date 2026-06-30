@@ -4948,13 +4948,17 @@ namespace TestCaseEditorApp.Services
                 {
                     fields["lookup1"] = 1608; // Requirement Type = System
                     fields["lookup3"] = 1619; // Derived Requirement = Yes
-                    fields["validation_methods$193"] = new[] { 1649 }; // Validation Method/s = Traceability
-                    fields["verification_methods$193"] = new[] { 1612 }; // Verification Method/s = Unassigned
-                    fields["text2"] = "Systems"; // Allocation/s
 
                     TestCaseEditorApp.Services.Logging.Log.Info(
-                        $"[JamaConnect] Applied derived requirement mapping for item type 193: lookup1=1608, lookup3=1619, validation_methods$193=[1649], verification_methods$193=[1612], text2='Systems'.");
+                        $"[JamaConnect] Applied derived requirement mapping for item type 193: lookup1=1608, lookup3=1619.");
                 }
+
+                await ApplyRequirementEnrichedFieldsAsync(
+                    projectId,
+                    itemTypeId.Value,
+                    requirement,
+                    fields,
+                    cancellationToken);
 
                 var upstreamSourceParts = new List<string>();
                 if (!string.IsNullOrWhiteSpace(sourceDocumentName))
@@ -6100,6 +6104,200 @@ namespace TestCaseEditorApp.Services
             }
 
             return picklistResult.FirstOptionId;
+        }
+
+        private async Task ApplyRequirementEnrichedFieldsAsync(
+            int projectId,
+            int itemTypeId,
+            Requirement requirement,
+            Dictionary<string, object?> fields,
+            CancellationToken cancellationToken)
+        {
+            await ApplyValidationMethodsFieldAsync(projectId, itemTypeId, requirement, fields, cancellationToken);
+            await ApplyVerificationMethodsFieldAsync(projectId, itemTypeId, requirement, fields, cancellationToken);
+            ApplyAllocationField(requirement, fields);
+        }
+
+        private async Task ApplyValidationMethodsFieldAsync(
+            int projectId,
+            int itemTypeId,
+            Requirement requirement,
+            Dictionary<string, object?> fields,
+            CancellationToken cancellationToken)
+        {
+            var validationMethods = requirement.ValidationMethods
+                .Where(m => m != ValidationMethod.Unassigned)
+                .Distinct()
+                .ToList();
+
+            if (validationMethods.Count == 0)
+            {
+                return;
+            }
+
+            var fieldName = ResolveFieldNameForItemType(fields, "validation_methods", itemTypeId);
+            var resolvedIds = new List<int>();
+
+            foreach (var method in validationMethods)
+            {
+                var optionId = await ResolvePicklistOptionIdByCandidatesAsync(
+                    projectId,
+                    itemTypeId,
+                    fieldName,
+                    GetValidationMethodPicklistNames(method),
+                    cancellationToken);
+
+                if (optionId.HasValue)
+                {
+                    resolvedIds.Add(optionId.Value);
+                }
+            }
+
+            if (resolvedIds.Count == 0 && validationMethods.Contains(ValidationMethod.Traceability))
+            {
+                // Keep known stable fallback for Traceability if tenant lookup APIs are unavailable.
+                resolvedIds.Add(1649);
+            }
+
+            if (resolvedIds.Count > 0)
+            {
+                fields[fieldName] = resolvedIds.Distinct().ToArray();
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    $"[JamaConnect] Applied validation methods for '{requirement.Item ?? requirement.Name}': {string.Join(", ", validationMethods)}");
+            }
+        }
+
+        private async Task ApplyVerificationMethodsFieldAsync(
+            int projectId,
+            int itemTypeId,
+            Requirement requirement,
+            Dictionary<string, object?> fields,
+            CancellationToken cancellationToken)
+        {
+            var verificationMethods = requirement.VerificationMethods
+                .Where(m => m != VerificationMethod.Unassigned)
+                .Distinct()
+                .ToList();
+
+            if (verificationMethods.Count == 0)
+            {
+                return;
+            }
+
+            var fieldName = ResolveFieldNameForItemType(fields, "verification_methods", itemTypeId);
+            var resolvedIds = new List<int>();
+
+            foreach (var method in verificationMethods)
+            {
+                var optionId = await ResolvePicklistOptionIdByCandidatesAsync(
+                    projectId,
+                    itemTypeId,
+                    fieldName,
+                    GetVerificationMethodPicklistNames(method),
+                    cancellationToken);
+
+                if (optionId.HasValue)
+                {
+                    resolvedIds.Add(optionId.Value);
+                }
+            }
+
+            if (resolvedIds.Count > 0)
+            {
+                fields[fieldName] = resolvedIds.Distinct().ToArray();
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    $"[JamaConnect] Applied verification methods for '{requirement.Item ?? requirement.Name}': {string.Join(", ", verificationMethods)}");
+            }
+        }
+
+        private static void ApplyAllocationField(Requirement requirement, Dictionary<string, object?> fields)
+        {
+            var allocation = requirement.Allocation switch
+            {
+                AllocationTarget.Hardware => "Hardware",
+                AllocationTarget.Software => "Software",
+                AllocationTarget.Both => "Both",
+                _ => null
+            };
+
+            if (string.IsNullOrWhiteSpace(allocation) && !string.IsNullOrWhiteSpace(requirement.Allocations))
+            {
+                allocation = requirement.Allocations;
+            }
+
+            if (string.IsNullOrWhiteSpace(allocation))
+            {
+                return;
+            }
+
+            fields["text2"] = allocation;
+        }
+
+        private static string ResolveFieldNameForItemType(
+            Dictionary<string, object?> fields,
+            string baseFieldName,
+            int itemTypeId)
+        {
+            var exact = $"{baseFieldName}${itemTypeId}";
+            if (fields.ContainsKey(exact))
+            {
+                return exact;
+            }
+
+            var suffixed = fields.Keys.FirstOrDefault(k =>
+                k.StartsWith(baseFieldName + "$", StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(suffixed))
+            {
+                return suffixed;
+            }
+
+            return exact;
+        }
+
+        private async Task<int?> ResolvePicklistOptionIdByCandidatesAsync(
+            int projectId,
+            int itemTypeId,
+            string fieldName,
+            IEnumerable<string> candidateNames,
+            CancellationToken cancellationToken)
+        {
+            foreach (var candidateName in candidateNames.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                var optionId = await GetPicklistOptionIdByNameAsync(
+                    projectId,
+                    itemTypeId,
+                    fieldName,
+                    candidateName,
+                    cancellationToken);
+
+                if (optionId.HasValue)
+                {
+                    return optionId;
+                }
+            }
+
+            return null;
+        }
+
+        private static IEnumerable<string> GetValidationMethodPicklistNames(ValidationMethod method)
+        {
+            return method switch
+            {
+                ValidationMethod.EngineeringJudgement => new[] { "Engineering Judgement", "EngineeringJudgement" },
+                ValidationMethod.NotApplicable => new[] { "Not Applicable", "N/A", "NotApplicable" },
+                _ => new[] { method.ToString() }
+            };
+        }
+
+        private static IEnumerable<string> GetVerificationMethodPicklistNames(VerificationMethod method)
+        {
+            return method switch
+            {
+                VerificationMethod.ServiceHistory => new[] { "Service History", "ServiceHistory" },
+                VerificationMethod.TestUnintendedFunction => new[] { "Test for Unintended Function", "Test Unintended Function", "TestUnintendedFunction" },
+                VerificationMethod.VerifiedAtAnotherLevel => new[] { "Verified at Another Level", "Verified At Another Level", "VerifiedAtAnotherLevel" },
+                _ => new[] { method.ToString() }
+            };
         }
 
         private async Task<int?> GetPicklistOptionIdByNameAsync(
