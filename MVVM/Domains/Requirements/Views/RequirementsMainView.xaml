@@ -242,6 +242,14 @@
                         ToolTip="Clear selection for all items in the current view"
                         Style="{StaticResource PillActionButtonStyle}" />
             </StackPanel>
+
+                <!-- Temporary: Jama probe shortcut button -->
+                <Button Content="🔍 Jama Probe"
+                        DockPanel.Dock="Right"
+                        Command="{Binding RunJamaProbeCommand}"
+                        ToolTip="Run Jama relationship capability probe for the configured project"
+                        Style="{StaticResource PillActionButtonStyle}"
+                        Margin="0,0,6,0"/>
         </DockPanel>
 
         <!-- support content area -->

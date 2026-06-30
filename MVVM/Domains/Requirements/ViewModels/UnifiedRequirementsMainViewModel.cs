@@ -204,6 +204,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public ICommand SelectAnalysisCommand { get; private set; } = null!;
         public ICommand SelectRequirementsScraperCommand { get; private set; } = null!;
 
+        // Temporary: Jama relationship probe shortcut
+        public ICommand RunJamaProbeCommand { get; private set; } = null!;
+
         // Content Management Commands
         public ICommand AddRequirementCommand { get; private set; } = null!;
         public ICommand RemoveRequirementCommand { get; private set; } = null!;
@@ -281,6 +284,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             SelectTablesCommand = new RelayCommand(() => SelectedViewMode = RequirementViewMode.Tables);
             SelectAnalysisCommand = new RelayCommand(() => SelectedViewMode = RequirementViewMode.Analysis);
             SelectRequirementsScraperCommand = new RelayCommand(() => SelectedViewMode = RequirementViewMode.RequirementsScraper);
+
+            // Temporary: delegate to UserSettingsViewModel probe command
+            RunJamaProbeCommand = new RelayCommand(() =>
+            {
+                var userSettingsVm = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.ViewModels.UserSettingsViewModel>();
+                if (userSettingsVm?.RunJamaRelationshipProbeCommand?.CanExecute(null) == true)
+                    userSettingsVm.RunJamaRelationshipProbeCommand.Execute(null);
+            });
 
             // Content Management
             AddRequirementCommand = new RelayCommand(AddRequirement);
