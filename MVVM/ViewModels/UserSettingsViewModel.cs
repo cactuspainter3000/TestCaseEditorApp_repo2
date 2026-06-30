@@ -693,8 +693,70 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     return;
                 }
 
-                var standardOutputTask = process.StandardOutput.ReadToEndAsync();
-                var standardErrorTask = process.StandardError.ReadToEndAsync();
+                var dispatcher = Application.Current?.Dispatcher;
+                var standardOutput = new StringBuilder();
+                var standardError = new StringBuilder();
+                var outputCompleted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                var errorCompleted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+                void UpdateStatusFromProbeLine(string line)
+                {
+                    if (string.IsNullOrWhiteSpace(line))
+                    {
+                        return;
+                    }
+
+                    var message = line.Trim();
+                    if (message.Length > 180)
+                    {
+                        message = message[..180] + "...";
+                    }
+
+                    if (dispatcher != null)
+                    {
+                        _ = dispatcher.InvokeAsync(() => StatusMessage = message);
+                    }
+                    else
+                    {
+                        StatusMessage = message;
+                    }
+                }
+
+                process.OutputDataReceived += (_, e) =>
+                {
+                    if (e.Data == null)
+                    {
+                        outputCompleted.TrySetResult(true);
+                        return;
+                    }
+
+                    lock (standardOutput)
+                    {
+                        standardOutput.AppendLine(e.Data);
+                    }
+
+                    UpdateStatusFromProbeLine(e.Data);
+                };
+
+                process.ErrorDataReceived += (_, e) =>
+                {
+                    if (e.Data == null)
+                    {
+                        errorCompleted.TrySetResult(true);
+                        return;
+                    }
+
+                    lock (standardError)
+                    {
+                        standardError.AppendLine(e.Data);
+                    }
+
+                    UpdateStatusFromProbeLine(e.Data);
+                };
+
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+
                 var exitTask = process.WaitForExitAsync();
                 var completedTask = await Task.WhenAny(exitTask, Task.Delay(JamaRelationshipProbeTimeout));
 
@@ -721,10 +783,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         // Ignore secondary exit errors after a forced kill.
                     }
 
-                    var timeoutOutput = await standardOutputTask;
-                    var timeoutError = await standardErrorTask;
+                    await Task.WhenAll(outputCompleted.Task, errorCompleted.Task);
 
-                    LastJamaProbeReport =
+                    var timeoutOutput = standardOutput.ToString();
+                    var timeoutError = standardError.ToString();
+
+                    var timeoutReport =
                         $"[JAMA RELATIONSHIP PROBE TIMEOUT]{Environment.NewLine}" +
                         $"Timestamp: {DateTime.Now:O}{Environment.NewLine}" +
                         $"Project ID: {projectId}{Environment.NewLine}" +
@@ -732,51 +796,89 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         $"Standard Output:{Environment.NewLine}{timeoutOutput}{Environment.NewLine}{Environment.NewLine}" +
                         $"Standard Error:{Environment.NewLine}{timeoutError}";
 
+                    if (dispatcher != null)
+                    {
+                        await dispatcher.InvokeAsync(() => LastJamaProbeReport = timeoutReport);
+                    }
+                    else
+                    {
+                        LastJamaProbeReport = timeoutReport;
+                    }
+
                     StatusMessage = $"Jama relationship probe timed out after {JamaRelationshipProbeTimeout.TotalMinutes:0} minutes.";
                     IsStatusError = true;
                     return;
                 }
 
-                await process.WaitForExitAsync();
-                var standardOutput = await standardOutputTask;
-                var standardError = await standardErrorTask;
+                await Task.WhenAll(exitTask, outputCompleted.Task, errorCompleted.Task);
+
+                var standardOutputText = standardOutput.ToString();
+                var standardErrorText = standardError.ToString();
 
                 var reportExists = File.Exists(reportPath);
                 var exitCode = process.ExitCode;
 
                 if (exitCode == 0 && reportExists)
                 {
-                    LastJamaProbeReport =
+                    var successReport =
                         $"[JAMA RELATIONSHIP PROBE SUCCESS]{Environment.NewLine}" +
                         $"Timestamp: {DateTime.Now:O}{Environment.NewLine}" +
                         $"Project ID: {projectId}{Environment.NewLine}" +
                         $"Report: {reportPath}{Environment.NewLine}{Environment.NewLine}" +
-                        $"Standard Output:{Environment.NewLine}{standardOutput}";
+                        $"Standard Output:{Environment.NewLine}{standardOutputText}";
+
+                    if (dispatcher != null)
+                    {
+                        await dispatcher.InvokeAsync(() => LastJamaProbeReport = successReport);
+                    }
+                    else
+                    {
+                        LastJamaProbeReport = successReport;
+                    }
 
                     StatusMessage = $"Jama relationship probe completed. Report: {reportPath}";
                     IsStatusError = false;
                     return;
                 }
 
-                LastJamaProbeReport =
+                var errorReport =
                     $"[JAMA RELATIONSHIP PROBE ERROR]{Environment.NewLine}" +
                     $"Timestamp: {DateTime.Now:O}{Environment.NewLine}" +
                     $"Project ID: {projectId}{Environment.NewLine}" +
                     $"Exit Code: {exitCode}{Environment.NewLine}" +
                     $"Report Path: {reportPath}{Environment.NewLine}" +
                     $"Report Exists: {reportExists}{Environment.NewLine}{Environment.NewLine}" +
-                    $"Standard Output:{Environment.NewLine}{standardOutput}{Environment.NewLine}{Environment.NewLine}" +
-                    $"Standard Error:{Environment.NewLine}{standardError}";
+                    $"Standard Output:{Environment.NewLine}{standardOutputText}{Environment.NewLine}{Environment.NewLine}" +
+                    $"Standard Error:{Environment.NewLine}{standardErrorText}";
+
+                if (dispatcher != null)
+                {
+                    await dispatcher.InvokeAsync(() => LastJamaProbeReport = errorReport);
+                }
+                else
+                {
+                    LastJamaProbeReport = errorReport;
+                }
 
                 StatusMessage = $"Jama relationship probe failed (exit code {exitCode}). See probe report box for details.";
                 IsStatusError = true;
             }
             catch (Exception ex)
             {
-                LastJamaProbeReport =
+                var exceptionReport =
                     $"[JAMA RELATIONSHIP PROBE EXCEPTION]{Environment.NewLine}" +
                     $"Timestamp: {DateTime.Now:O}{Environment.NewLine}" +
                     $"Exception: {ex.Message}{Environment.NewLine}{Environment.NewLine}{ex}";
+
+                if (Application.Current?.Dispatcher != null)
+                {
+                    await Application.Current.Dispatcher.InvokeAsync(() => LastJamaProbeReport = exceptionReport);
+                }
+                else
+                {
+                    LastJamaProbeReport = exceptionReport;
+                }
+
                 StatusMessage = $"Jama relationship probe failed: {ex.Message}";
                 IsStatusError = true;
             }
