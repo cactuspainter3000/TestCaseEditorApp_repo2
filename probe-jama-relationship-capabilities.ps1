@@ -287,16 +287,46 @@ function Find-ApiDocsPaths {
 
     foreach ($url in $candidates) {
         try {
-            $resp = Invoke-WebRequest -Uri $url -Method Get -Headers $Headers -TimeoutSec 30 -ErrorAction Stop
-            $json = $resp.Content | ConvertFrom-Json
+            Write-ProbeStep "Checking API docs endpoint $url"
+
+            $handler = New-Object System.Net.Http.HttpClientHandler
+            $client = New-Object System.Net.Http.HttpClient($handler)
+            $client.Timeout = [TimeSpan]::FromSeconds(30)
+
+            try {
+                foreach ($headerName in $Headers.Keys) {
+                    $null = $client.DefaultRequestHeaders.TryAddWithoutValidation($headerName, [string]$Headers[$headerName])
+                }
+
+                $request = New-Object System.Net.Http.HttpRequestMessage([System.Net.Http.HttpMethod]::Get, $url)
+                $resp = $client.SendAsync($request).GetAwaiter().GetResult()
+                if (-not $resp.IsSuccessStatusCode) {
+                    Write-ProbeStep "API docs endpoint returned status $([int]$resp.StatusCode): $url"
+                    continue
+                }
+
+                $content = $resp.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+            }
+            finally {
+                if ($null -ne $request) {
+                    $request.Dispose()
+                }
+
+                $client.Dispose()
+                $handler.Dispose()
+            }
+
+            $json = $content | ConvertFrom-Json
             if ($json.paths) {
                 $pathNames = $json.paths.PSObject.Properties.Name
+                Write-ProbeStep "API docs discovered at $url"
                 return [PSCustomObject]@{
                     Url = $url
                     Paths = $pathNames
                 }
             }
         } catch {
+            Write-ProbeStep "API docs endpoint failed: $url"
             continue
         }
     }
