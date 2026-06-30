@@ -29,6 +29,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             nameof(JamaBaseUrl),
             nameof(JamaClientId),
             nameof(JamaClientSecret),
+            nameof(JamaProjectId),
             nameof(AnythingLlmBaseUrl),
             nameof(AnythingLlmApiKey),
             nameof(SelectedChatModel),
@@ -47,6 +48,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         [ObservableProperty]
         private string _jamaClientSecret = string.Empty;
+
+        [ObservableProperty]
+        private string _jamaProjectId = string.Empty;
 
         [ObservableProperty]
         private string _anythingLlmBaseUrl = "http://localhost:3001";
@@ -83,6 +87,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         [ObservableProperty]
         private string _lastJamaExportReport = "No Jama export report yet. Run the export button to generate one.";
+
+        [ObservableProperty]
+        private string _lastJamaProbeReport = "No Jama relationship probe report yet. Run the probe button to generate one.";
 
         public ObservableCollection<string> OllamaModels { get; } = new();
         
@@ -591,6 +598,128 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         [RelayCommand]
+        private async Task RunJamaRelationshipProbeAsync()
+        {
+            try
+            {
+                IsBusy = true;
+                IsStatusError = false;
+                StatusMessage = "Running Jama relationship capability probe...";
+                LastJamaProbeReport = "Jama relationship capability probe in progress...";
+
+                var baseUrl = (JamaBaseUrl ?? string.Empty).Trim();
+                var clientId = (JamaClientId ?? string.Empty).Trim();
+                var clientSecret = (JamaClientSecret ?? string.Empty).Trim();
+                var projectIdRaw = (JamaProjectId ?? string.Empty).Trim();
+
+                if (string.IsNullOrWhiteSpace(baseUrl) || string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
+                {
+                    StatusMessage = "Please fill Jama Base URL, Client ID, and Client Secret before running the probe.";
+                    IsStatusError = true;
+                    return;
+                }
+
+                if (!int.TryParse(projectIdRaw, out var projectId) || projectId <= 0)
+                {
+                    StatusMessage = "Please enter a valid Jama Project ID before running the probe.";
+                    IsStatusError = true;
+                    return;
+                }
+
+                var scriptPath = FindProbeScriptPath();
+                if (string.IsNullOrWhiteSpace(scriptPath) || !File.Exists(scriptPath))
+                {
+                    StatusMessage = "Could not find probe-jama-relationship-capabilities.ps1 in the project root.";
+                    IsStatusError = true;
+                    return;
+                }
+
+                var outputDirectory = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+                if (string.IsNullOrWhiteSpace(outputDirectory) || !Directory.Exists(outputDirectory))
+                {
+                    outputDirectory = AppContext.BaseDirectory;
+                }
+
+                var reportPath = Path.Combine(outputDirectory, $"jama-relationship-capability-report-{DateTime.Now:yyyyMMdd-HHmmss}.md");
+                var workingDirectory = Path.GetDirectoryName(scriptPath) ?? Directory.GetCurrentDirectory();
+
+                var startInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{scriptPath}\" -ProjectId {projectId} -ReportPath \"{reportPath}\"",
+                    WorkingDirectory = workingDirectory,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                startInfo.Environment["JAMA_BASE_URL"] = baseUrl;
+                startInfo.Environment["JAMA_CLIENT_ID"] = clientId;
+                startInfo.Environment["JAMA_CLIENT_SECRET"] = clientSecret;
+                startInfo.Environment["JAMA_PROJECT_ID"] = projectId.ToString();
+
+                using var process = System.Diagnostics.Process.Start(startInfo);
+                if (process == null)
+                {
+                    StatusMessage = "Failed to start PowerShell process for Jama probe.";
+                    IsStatusError = true;
+                    return;
+                }
+
+                var standardOutputTask = process.StandardOutput.ReadToEndAsync();
+                var standardErrorTask = process.StandardError.ReadToEndAsync();
+
+                await process.WaitForExitAsync();
+                var standardOutput = await standardOutputTask;
+                var standardError = await standardErrorTask;
+
+                var reportExists = File.Exists(reportPath);
+                var exitCode = process.ExitCode;
+
+                if (exitCode == 0 && reportExists)
+                {
+                    LastJamaProbeReport =
+                        $"[JAMA RELATIONSHIP PROBE SUCCESS]{Environment.NewLine}" +
+                        $"Timestamp: {DateTime.Now:O}{Environment.NewLine}" +
+                        $"Project ID: {projectId}{Environment.NewLine}" +
+                        $"Report: {reportPath}{Environment.NewLine}{Environment.NewLine}" +
+                        $"Standard Output:{Environment.NewLine}{standardOutput}";
+
+                    StatusMessage = $"Jama relationship probe completed. Report: {reportPath}";
+                    IsStatusError = false;
+                    return;
+                }
+
+                LastJamaProbeReport =
+                    $"[JAMA RELATIONSHIP PROBE ERROR]{Environment.NewLine}" +
+                    $"Timestamp: {DateTime.Now:O}{Environment.NewLine}" +
+                    $"Project ID: {projectId}{Environment.NewLine}" +
+                    $"Exit Code: {exitCode}{Environment.NewLine}" +
+                    $"Report Path: {reportPath}{Environment.NewLine}" +
+                    $"Report Exists: {reportExists}{Environment.NewLine}{Environment.NewLine}" +
+                    $"Standard Output:{Environment.NewLine}{standardOutput}{Environment.NewLine}{Environment.NewLine}" +
+                    $"Standard Error:{Environment.NewLine}{standardError}";
+
+                StatusMessage = $"Jama relationship probe failed (exit code {exitCode}). See probe report box for details.";
+                IsStatusError = true;
+            }
+            catch (Exception ex)
+            {
+                LastJamaProbeReport =
+                    $"[JAMA RELATIONSHIP PROBE EXCEPTION]{Environment.NewLine}" +
+                    $"Timestamp: {DateTime.Now:O}{Environment.NewLine}" +
+                    $"Exception: {ex.Message}{Environment.NewLine}{Environment.NewLine}{ex}";
+                StatusMessage = $"Jama relationship probe failed: {ex.Message}";
+                IsStatusError = true;
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        [RelayCommand]
         private async Task TestAnythingLlmConnectionAsync()
         {
             try
@@ -716,6 +845,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             JamaBaseUrl = settings.JamaBaseUrl;
             JamaClientId = settings.JamaClientId;
             JamaClientSecret = settings.JamaClientSecret;
+            JamaProjectId = settings.JamaProjectId;
             AnythingLlmBaseUrl = settings.AnythingLlmBaseUrl;
             AnythingLlmApiKey = settings.AnythingLlmApiKey;
             SelectedChatModel = settings.OllamaChatModel;
@@ -791,6 +921,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 JamaBaseUrl = (JamaBaseUrl ?? string.Empty).Trim(),
                 JamaClientId = (JamaClientId ?? string.Empty).Trim(),
                 JamaClientSecret = (JamaClientSecret ?? string.Empty).Trim(),
+                JamaProjectId = (JamaProjectId ?? string.Empty).Trim(),
                 AnythingLlmBaseUrl = NormalizeUrl(AnythingLlmBaseUrl),
                 AnythingLlmApiKey = (AnythingLlmApiKey ?? string.Empty).Trim(),
                 OllamaChatModel = (SelectedChatModel ?? string.Empty).Trim(),
@@ -806,6 +937,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 JamaBaseUrl = (settings.JamaBaseUrl ?? string.Empty).Trim(),
                 JamaClientId = (settings.JamaClientId ?? string.Empty).Trim(),
                 JamaClientSecret = (settings.JamaClientSecret ?? string.Empty).Trim(),
+                JamaProjectId = (settings.JamaProjectId ?? string.Empty).Trim(),
                 AnythingLlmBaseUrl = NormalizeUrl(settings.AnythingLlmBaseUrl),
                 AnythingLlmApiKey = (settings.AnythingLlmApiKey ?? string.Empty).Trim(),
                 OllamaChatModel = (settings.OllamaChatModel ?? string.Empty).Trim(),
@@ -828,11 +960,43 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 !string.Equals(current.JamaBaseUrl, _lastSavedSettings.JamaBaseUrl, StringComparison.Ordinal) ||
                 !string.Equals(current.JamaClientId, _lastSavedSettings.JamaClientId, StringComparison.Ordinal) ||
                 !string.Equals(current.JamaClientSecret, _lastSavedSettings.JamaClientSecret, StringComparison.Ordinal) ||
+                !string.Equals(current.JamaProjectId, _lastSavedSettings.JamaProjectId, StringComparison.Ordinal) ||
                 !string.Equals(current.AnythingLlmBaseUrl, _lastSavedSettings.AnythingLlmBaseUrl, StringComparison.Ordinal) ||
                 !string.Equals(current.AnythingLlmApiKey, _lastSavedSettings.AnythingLlmApiKey, StringComparison.Ordinal) ||
                 !string.Equals(current.OllamaChatModel, _lastSavedSettings.OllamaChatModel, StringComparison.Ordinal) ||
                 !string.Equals(current.OllamaEmbeddingModel, _lastSavedSettings.OllamaEmbeddingModel, StringComparison.Ordinal) ||
                 current.EnableRequirementsAnalysisSnapshot != _lastSavedSettings.EnableRequirementsAnalysisSnapshot;
+        }
+
+        private static string? FindProbeScriptPath()
+        {
+            var candidates = new[]
+            {
+                Directory.GetCurrentDirectory(),
+                AppContext.BaseDirectory
+            };
+
+            foreach (var candidate in candidates)
+            {
+                if (string.IsNullOrWhiteSpace(candidate))
+                {
+                    continue;
+                }
+
+                var dir = new DirectoryInfo(candidate);
+                while (dir != null)
+                {
+                    var scriptPath = Path.Combine(dir.FullName, "probe-jama-relationship-capabilities.ps1");
+                    if (File.Exists(scriptPath))
+                    {
+                        return scriptPath;
+                    }
+
+                    dir = dir.Parent;
+                }
+            }
+
+            return null;
         }
 
         private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)

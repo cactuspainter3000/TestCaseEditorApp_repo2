@@ -7,6 +7,7 @@ namespace TestCaseEditorApp.Services
         public string JamaBaseUrl { get; set; } = string.Empty;
         public string JamaClientId { get; set; } = string.Empty;
         public string JamaClientSecret { get; set; } = string.Empty;
+        public string JamaProjectId { get; set; } = string.Empty;
 
         public string AnythingLlmBaseUrl { get; set; } = "http://localhost:3001";
         public string AnythingLlmApiKey { get; set; } = string.Empty;

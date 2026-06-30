@@ -24,6 +24,7 @@ namespace TestCaseEditorApp.Services
                     settings.JamaBaseUrl = ReadString(key, "JamaBaseUrl");
                     settings.JamaClientId = ReadString(key, "JamaClientId");
                     settings.JamaClientSecret = DecryptString(ReadString(key, "JamaClientSecretEnc"));
+                    settings.JamaProjectId = ReadString(key, "JamaProjectId");
                     settings.AnythingLlmBaseUrl = ReadString(key, "AnythingLlmBaseUrl", "http://localhost:3001");
                     settings.AnythingLlmApiKey = DecryptString(ReadString(key, "AnythingLlmApiKeyEnc"));
                     settings.OllamaChatModel = ReadString(key, "OllamaChatModel", "phi4-mini:latest");
@@ -50,6 +51,7 @@ namespace TestCaseEditorApp.Services
                 settings.JamaBaseUrl = FirstNonEmpty(settings.JamaBaseUrl, Environment.GetEnvironmentVariable("JAMA_BASE_URL"));
                 settings.JamaClientId = FirstNonEmpty(settings.JamaClientId, Environment.GetEnvironmentVariable("JAMA_CLIENT_ID"));
                 settings.JamaClientSecret = FirstNonEmpty(settings.JamaClientSecret, Environment.GetEnvironmentVariable("JAMA_CLIENT_SECRET"));
+                settings.JamaProjectId = FirstNonEmpty(settings.JamaProjectId, Environment.GetEnvironmentVariable("JAMA_PROJECT_ID"));
                 settings.AnythingLlmBaseUrl = FirstNonEmpty(settings.AnythingLlmBaseUrl, Environment.GetEnvironmentVariable("ANYTHINGLLM_ENDPOINT"), "http://localhost:3001");
                 settings.OllamaChatModel = FirstNonEmpty(settings.OllamaChatModel, Environment.GetEnvironmentVariable("OLLAMA_MODEL"), "phi4-mini:latest");
                 settings.OllamaEmbeddingModel = FirstNonEmpty(settings.OllamaEmbeddingModel, Environment.GetEnvironmentVariable("OLLAMA_EMBEDDING_MODEL"), "nomic-embed-text:latest");
@@ -78,6 +80,7 @@ namespace TestCaseEditorApp.Services
             key.SetValue("JamaBaseUrl", (settings.JamaBaseUrl ?? string.Empty).Trim());
             key.SetValue("JamaClientId", (settings.JamaClientId ?? string.Empty).Trim());
             key.SetValue("JamaClientSecretEnc", EncryptString((settings.JamaClientSecret ?? string.Empty).Trim()));
+            key.SetValue("JamaProjectId", (settings.JamaProjectId ?? string.Empty).Trim());
             key.SetValue("AnythingLlmBaseUrl", NormalizeUrl(settings.AnythingLlmBaseUrl, "http://localhost:3001"));
             key.SetValue("AnythingLlmApiKeyEnc", EncryptString((settings.AnythingLlmApiKey ?? string.Empty).Trim()));
             key.SetValue("OllamaChatModel", FirstNonEmpty(settings.OllamaChatModel, "phi4-mini:latest"));
@@ -95,6 +98,7 @@ namespace TestCaseEditorApp.Services
             Environment.SetEnvironmentVariable("JAMA_BASE_URL", (settings.JamaBaseUrl ?? string.Empty).Trim(), EnvironmentVariableTarget.Process);
             Environment.SetEnvironmentVariable("JAMA_CLIENT_ID", (settings.JamaClientId ?? string.Empty).Trim(), EnvironmentVariableTarget.Process);
             Environment.SetEnvironmentVariable("JAMA_CLIENT_SECRET", (settings.JamaClientSecret ?? string.Empty).Trim(), EnvironmentVariableTarget.Process);
+            Environment.SetEnvironmentVariable("JAMA_PROJECT_ID", (settings.JamaProjectId ?? string.Empty).Trim(), EnvironmentVariableTarget.Process);
             Environment.SetEnvironmentVariable("ANYTHINGLM_API_KEY", (settings.AnythingLlmApiKey ?? string.Empty).Trim(), EnvironmentVariableTarget.Process);
             Environment.SetEnvironmentVariable("ANYTHINGLLM_ENDPOINT", NormalizeUrl(settings.AnythingLlmBaseUrl, "http://localhost:3001"), EnvironmentVariableTarget.Process);
             Environment.SetEnvironmentVariable("OLLAMA_MODEL", FirstNonEmpty(settings.OllamaChatModel, "phi4-mini:latest"), EnvironmentVariableTarget.Process);

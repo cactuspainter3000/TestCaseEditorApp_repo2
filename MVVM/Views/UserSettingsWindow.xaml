@@ -150,6 +150,13 @@
                              Margin="0,0,0,20"
                              FontSize="13"/>
 
+                    <!-- Project ID -->
+                    <TextBlock Text="Project ID" Style="{StaticResource FieldLabel}"/>
+                    <TextBox Text="{Binding JamaProjectId, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource MenuPopupTextBoxStyle}"
+                             Margin="0,0,0,20"
+                             FontSize="13"/>
+
                     <Button Content="Test Jama Connection"
                             HorizontalAlignment="Left"
                             Padding="16,8"
@@ -170,11 +177,31 @@
                             Command="{Binding CopyJamaExportReportCommand}"
                             Style="{StaticResource ActionButton}"/>
 
+                        <Button Content="Run Jama Relationship Capability Probe"
+                            HorizontalAlignment="Left"
+                            Padding="16,8"
+                            Margin="0,10,0,0"
+                            Command="{Binding RunJamaRelationshipProbeCommand}"
+                            Style="{StaticResource ActionButton}"/>
+
                     <TextBlock Text="Last Jama export report"
                                Style="{StaticResource FieldLabel}"
                                Margin="0,16,0,6"/>
 
                     <TextBox Text="{Binding LastJamaExportReport}"
+                             IsReadOnly="True"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             Height="130"
+                             Style="{StaticResource MenuPopupTextBoxStyle}"
+                             FontSize="12"/>
+
+                    <TextBlock Text="Last Jama relationship probe report"
+                               Style="{StaticResource FieldLabel}"
+                               Margin="0,16,0,6"/>
+
+                    <TextBox Text="{Binding LastJamaProbeReport}"
                              IsReadOnly="True"
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
