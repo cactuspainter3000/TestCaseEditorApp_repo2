@@ -609,6 +609,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 StatusMessage = "Running Jama relationship capability probe...";
                 LastJamaProbeReport = "Jama relationship capability probe in progress...";
 
+                TestCaseEditorApp.Services.Logging.Log.Info("[JamaProbe] Starting Jama relationship capability probe.");
+
                 var baseUrl = (JamaBaseUrl ?? string.Empty).Trim();
                 var clientId = (JamaClientId ?? string.Empty).Trim();
                 var clientSecret = (JamaClientSecret ?? string.Empty).Trim();
@@ -616,6 +618,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 if (string.IsNullOrWhiteSpace(baseUrl) || string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
                 {
+                    TestCaseEditorApp.Services.Logging.Log.Warn("[JamaProbe] Probe aborted because required Jama settings are incomplete.");
                     StatusMessage = "Please fill Jama Base URL, Client ID, and Client Secret before running the probe.";
                     IsStatusError = true;
                     return;
@@ -646,15 +649,31 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     }
                     else
                     {
+                        TestCaseEditorApp.Services.Logging.Log.Warn("[JamaProbe] Probe aborted because no valid Jama project ID was available.");
                         StatusMessage = "Please enter a valid Jama Project ID before running the probe.";
                         IsStatusError = true;
                         return;
                     }
                 }
 
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaProbe] Using BaseUrl='{baseUrl}', ProjectId={projectId}, ClientIdLength={clientId.Length}, ClientSecretLength={clientSecret.Length}.");
+
+                try
+                {
+                    var host = new Uri(baseUrl).Host;
+                    var addresses = await System.Net.Dns.GetHostAddressesAsync(host);
+                    var addressSummary = string.Join(", ", addresses.Select(address => address.ToString()));
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaProbe] DNS preflight succeeded for host '{host}': {addressSummary}");
+                }
+                catch (Exception dnsEx)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error(dnsEx, $"[JamaProbe] DNS preflight failed for BaseUrl '{baseUrl}'.");
+                }
+
                 var scriptPath = FindProbeScriptPath();
                 if (string.IsNullOrWhiteSpace(scriptPath) || !File.Exists(scriptPath))
                 {
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaProbe] Probe script not found. Resolved path='{scriptPath ?? "<null>"}'.");
                     StatusMessage = "Could not find probe-jama-relationship-capabilities.ps1 in the project root.";
                     IsStatusError = true;
                     return;
@@ -668,6 +687,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 var reportPath = Path.Combine(outputDirectory, $"jama-relationship-capability-report-{DateTime.Now:yyyyMMdd-HHmmss}.md");
                 var workingDirectory = Path.GetDirectoryName(scriptPath) ?? Directory.GetCurrentDirectory();
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaProbe] Launching script '{scriptPath}' from '{workingDirectory}'. ReportPath='{reportPath}'. TimeoutMinutes={JamaRelationshipProbeTimeout.TotalMinutes:0}.");
 
                 var startInfo = new System.Diagnostics.ProcessStartInfo
                 {
@@ -688,10 +709,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 using var process = System.Diagnostics.Process.Start(startInfo);
                 if (process == null)
                 {
+                    TestCaseEditorApp.Services.Logging.Log.Error("[JamaProbe] Failed to start PowerShell process for probe.");
                     StatusMessage = "Failed to start PowerShell process for Jama probe.";
                     IsStatusError = true;
                     return;
                 }
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaProbe] PowerShell process started. PID={process.Id}.");
 
                 var dispatcher = Application.Current?.Dispatcher;
                 var standardOutput = new StringBuilder();
@@ -760,6 +784,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     if (e.Data == null)
                     {
+                        TestCaseEditorApp.Services.Logging.Log.Info("[JamaProbe] Standard output stream completed.");
                         outputCompleted.TrySetResult(true);
                         return;
                     }
@@ -769,6 +794,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         standardOutput.AppendLine(e.Data);
                     }
 
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaProbe][stdout] {e.Data}");
                     AppendProbeReportLine("[OUT]", e.Data);
                     UpdateStatusFromProbeLine(e.Data);
                 };
@@ -777,6 +803,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     if (e.Data == null)
                     {
+                        TestCaseEditorApp.Services.Logging.Log.Info("[JamaProbe] Standard error stream completed.");
                         errorCompleted.TrySetResult(true);
                         return;
                     }
@@ -786,6 +813,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         standardError.AppendLine(e.Data);
                     }
 
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaProbe][stderr] {e.Data}");
                     AppendProbeReportLine("[ERR]", e.Data);
                     UpdateStatusFromProbeLine(e.Data);
                 };
@@ -800,6 +828,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 if (completedTask != exitTask)
                 {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaProbe] Probe timed out after {JamaRelationshipProbeTimeout.TotalMinutes:0} minutes. Killing PID={process.Id}.");
                     try
                     {
                         if (!process.HasExited)
@@ -856,8 +885,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 var reportExists = File.Exists(reportPath);
                 var exitCode = process.ExitCode;
 
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaProbe] Probe process exited. ExitCode={exitCode}, ReportExists={reportExists}, ReportPath='{reportPath}'.");
+
                 if (exitCode == 0 && reportExists)
                 {
+                    TestCaseEditorApp.Services.Logging.Log.Info("[JamaProbe] Probe completed successfully.");
                     var successReport =
                         $"[JAMA RELATIONSHIP PROBE SUCCESS]{Environment.NewLine}" +
                         $"Timestamp: {DateTime.Now:O}{Environment.NewLine}" +
@@ -898,11 +930,13 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     LastJamaProbeReport = errorReport;
                 }
 
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaProbe] Probe failed with exit code {exitCode}. See captured stdout/stderr in app log.");
                 StatusMessage = $"Jama relationship probe failed (exit code {exitCode}). See probe report box for details.";
                 IsStatusError = true;
             }
             catch (Exception ex)
             {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[JamaProbe] Probe execution threw an exception.");
                 var exceptionReport =
                     $"[JAMA RELATIONSHIP PROBE EXCEPTION]{Environment.NewLine}" +
                     $"Timestamp: {DateTime.Now:O}{Environment.NewLine}" +
@@ -922,6 +956,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             }
             finally
             {
+                TestCaseEditorApp.Services.Logging.Log.Info("[JamaProbe] Probe execution finished.");
                 IsBusy = false;
             }
         }
