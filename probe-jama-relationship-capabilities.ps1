@@ -27,6 +27,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+Add-Type -AssemblyName System.Net.Http
+
 function Write-ProbeStep {
     param(
         [Parameter(Mandatory = $true)]
