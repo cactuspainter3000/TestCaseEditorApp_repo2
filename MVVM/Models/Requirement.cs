@@ -211,6 +211,9 @@ namespace TestCaseEditorApp.MVVM.Models
         [ObservableProperty] private string name = string.Empty;        // short title
         [ObservableProperty] private string description = string.Empty; // main requirement text
         [ObservableProperty] private string traceReference = string.Empty; // stable lookup key for provenance reports
+        [ObservableProperty] private string sourceDocumentName = string.Empty;
+        [ObservableProperty] private int? sourceAttachmentId;
+        [ObservableProperty] private int? sourceJamaItemId;
 
         // ---- Jama/meta fields ----
         [ObservableProperty] private string status = string.Empty;
@@ -315,6 +318,9 @@ namespace TestCaseEditorApp.MVVM.Models
         {
             get
             {
+                if (!string.IsNullOrWhiteSpace(SourceDocumentName))
+                    return SourceDocumentName;
+
                 if (AtpDerivation == null)
                     return "Document";
                 

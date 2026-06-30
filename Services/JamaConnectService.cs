@@ -4936,6 +4936,13 @@ namespace TestCaseEditorApp.Services
 
                 await SanitizeLookupDefaultsForCreateAsync(fields, itemTypeId.Value, cancellationToken);
 
+                var sourceDocumentName = !string.IsNullOrWhiteSpace(requirement.SourceDocumentName)
+                    ? requirement.SourceDocumentName
+                    : requirement.AtpDerivation?.SourceDocumentName;
+                var sourceReference = !string.IsNullOrWhiteSpace(requirement.TraceReference)
+                    ? requirement.TraceReference
+                    : requirement.Item;
+
                 // Apply decoder-ring mapping validated for Requirement item type 193.
                 if (requirement.IsDerivedFromATP)
                 {
@@ -4945,20 +4952,34 @@ namespace TestCaseEditorApp.Services
                     fields["verification_methods$193"] = new[] { 1612 }; // Verification Method/s = Unassigned
                     fields["text2"] = "Systems"; // Allocation/s
 
-                    var sourceDoc = !string.IsNullOrWhiteSpace(requirement.AtpDerivation?.SourceDocumentName)
-                        ? requirement.AtpDerivation.SourceDocumentName
-                        : "ATP Source";
-                    var sourceRef = !string.IsNullOrWhiteSpace(requirement.TraceReference)
-                        ? requirement.TraceReference
-                        : requirement.Item;
-
-                    fields["upstream_cross_instance_relationships$193"] =
-                        !string.IsNullOrWhiteSpace(sourceRef)
-                            ? $"Source document: {sourceDoc}; Source reference: {sourceRef}"
-                            : $"Source document: {sourceDoc}";
-
                     TestCaseEditorApp.Services.Logging.Log.Info(
                         $"[JamaConnect] Applied derived requirement mapping for item type 193: lookup1=1608, lookup3=1619, validation_methods$193=[1649], verification_methods$193=[1612], text2='Systems'.");
+                }
+
+                var upstreamSourceParts = new List<string>();
+                if (!string.IsNullOrWhiteSpace(sourceDocumentName))
+                {
+                    upstreamSourceParts.Add($"Source document: {sourceDocumentName}");
+                }
+
+                if (requirement.SourceAttachmentId.HasValue)
+                {
+                    upstreamSourceParts.Add($"Source attachment ID: {requirement.SourceAttachmentId.Value}");
+                }
+
+                if (requirement.SourceJamaItemId.HasValue)
+                {
+                    upstreamSourceParts.Add($"Source item ID: {requirement.SourceJamaItemId.Value}");
+                }
+
+                if (!string.IsNullOrWhiteSpace(sourceReference))
+                {
+                    upstreamSourceParts.Add($"Source reference: {sourceReference}");
+                }
+
+                if (upstreamSourceParts.Count > 0)
+                {
+                    fields["upstream_cross_instance_relationships$193"] = string.Join("; ", upstreamSourceParts);
                 }
 
                 var effectiveParentContainerId = await ResolvePreferredRequirementPlacementContainerAsync(projectId, itemTypeId.Value, preferredParentContainerId, cancellationToken);
@@ -5315,7 +5336,7 @@ namespace TestCaseEditorApp.Services
             Requirement requirement,
             CancellationToken cancellationToken)
         {
-            if (createdRequirementItemId <= 0 || requirement == null || !requirement.IsDerivedFromATP)
+            if (createdRequirementItemId <= 0 || requirement == null)
             {
                 return;
             }
@@ -5357,10 +5378,9 @@ namespace TestCaseEditorApp.Services
                 return false;
             }
 
-            // Primary deterministic format created by this app: TRC-ATT{attachmentId}-{requirementId}
-            var attachmentMatch = Regex.Match(traceReference, @"TRC-ATT(?<id>\d+)-", RegexOptions.IgnoreCase);
-            if (attachmentMatch.Success && int.TryParse(attachmentMatch.Groups["id"].Value, out sourceItemId) && sourceItemId > 0)
+            if (requirement.SourceJamaItemId.HasValue && requirement.SourceJamaItemId.Value > 0)
             {
+                sourceItemId = requirement.SourceJamaItemId.Value;
                 return true;
             }
 

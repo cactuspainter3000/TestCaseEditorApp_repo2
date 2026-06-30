@@ -415,6 +415,130 @@
             "args": ["-ExecutionPolicy", "Bypass", "-File", "./run-tests.ps1"],
             "group": "test",
             "problems": ["$msCompile"]
+        },
+        {
+            "label": "🔐 Set Jama Probe Environment (Session)",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                "$env:JAMA_BASE_URL='${input:jamaBaseUrl}'; $env:JAMA_CLIENT_ID='${input:jamaClientId}'; $env:JAMA_CLIENT_SECRET='${input:jamaClientSecret}'; $env:JAMA_PROJECT_ID='${input:jamaProjectId}'; Write-Host 'Jama probe environment variables set for this terminal session.'"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "🔍 Probe Jama Relationship Capabilities",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "./probe-jama-relationship-capabilities.ps1"
+            ],
+            "group": "build",
+            "dependsOn": [
+                "🔐 Set Jama Probe Environment (Session)"
+            ],
+            "dependsOrder": "sequence",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "🔐 Set Known Trace Validation Environment (Project 686)",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                "$env:JAMA_BASE_URL='${input:jamaBaseUrl}'; $env:JAMA_CLIENT_ID='${input:jamaClientId}'; $env:JAMA_CLIENT_SECRET='${input:jamaClientSecret}'; $env:JAMA_PROJECT_ID='${input:jamaProject686}'; $env:JAMA_MANUAL_REQ_KEY='${input:jamaManualReqKey}'; $env:JAMA_MANUAL_SOURCE_KEY='${input:jamaManualSourceKey}'; Write-Host 'Known trace validation environment variables set for this terminal session.'"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "🧭 Validate Known Manual Trace (Project 686)",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "./probe-jama-relationship-capabilities.ps1",
+                "-ReportPath",
+                "jama-relationship-capability-report-project-686.md"
+            ],
+            "group": "build",
+            "dependsOn": [
+                "🔐 Set Known Trace Validation Environment (Project 686)"
+            ],
+            "dependsOrder": "sequence",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "shared"
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "jamaBaseUrl",
+            "type": "promptString",
+            "description": "Jama base URL (e.g., https://your-host/contour)",
+            "default": "https://jama02.rockwellcollins.com/contour"
+        },
+        {
+            "id": "jamaClientId",
+            "type": "promptString",
+            "description": "Jama OAuth Client ID"
+        },
+        {
+            "id": "jamaClientSecret",
+            "type": "promptString",
+            "description": "Jama OAuth Client Secret"
+        },
+        {
+            "id": "jamaProjectId",
+            "type": "promptString",
+            "description": "Jama Project ID",
+            "default": "636"
+        },
+        {
+            "id": "jamaProject686",
+            "type": "promptString",
+            "description": "Jama Project ID for known trace validation",
+            "default": "686"
+        },
+        {
+            "id": "jamaManualReqKey",
+            "type": "promptString",
+            "description": "Requirement document key to validate",
+            "default": "MFD268C4B-REQ_RC-1413"
+        },
+        {
+            "id": "jamaManualSourceKey",
+            "type": "promptString",
+            "description": "Source document key to validate",
+            "default": "MFD268C4B-TXT-2"
         }
     ]
 }

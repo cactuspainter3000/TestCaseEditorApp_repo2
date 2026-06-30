@@ -825,7 +825,11 @@ IMPORTANT: Only extract requirements if you have actual document access. Do not 
                     GlobalId = id,
                     Item = id,
                     Name = reqData.TryGetValue("Category", out var cat) ? cat : "Extracted Requirement",
-                    Description = text
+                    Description = text,
+                    TraceReference = BuildRequirementTraceReference(attachment.Id, id, 0),
+                    SourceDocumentName = attachment.FileName,
+                    SourceAttachmentId = attachment.Id,
+                    SourceJamaItemId = attachment.Item > 0 ? attachment.Item : null
                 };
 
                 // Add source context to description
@@ -1032,7 +1036,11 @@ Begin validation now - be thorough and honest about what you can actually see:";
                             GlobalId = $"FALLBACK-{id}",
                             Item = id,
                             Name = "Extracted Requirement (Fallback)",
-                            Description = $"{text}\n\n[Recovered via fallback extraction]\nSource: {attachment.FileName}"
+                            Description = $"{text}\n\n[Recovered via fallback extraction]\nSource: {attachment.FileName}",
+                            TraceReference = BuildRequirementTraceReference(attachment.Id, id, 0),
+                            SourceDocumentName = attachment.FileName,
+                            SourceAttachmentId = attachment.Id,
+                            SourceJamaItemId = attachment.Item > 0 ? attachment.Item : null
                         };
                     }
                 }
@@ -1500,6 +1508,9 @@ Extract all legitimate requirements:";
                     CreatedDate = DateTime.Now,
                     ModifiedDate = DateTime.Now,
                     Project = projectId.ToString(),
+                    SourceDocumentName = attachment.FileName,
+                    SourceAttachmentId = attachment.Id,
+                    SourceJamaItemId = attachment.Item > 0 ? attachment.Item : null,
                     TagList = new List<string> { "Derived", "DeterministicFallback", $"TraceRef:{traceReference}" }
                 };
 
@@ -1790,9 +1801,12 @@ Extract all legitimate requirements:";
                             GlobalId = id ?? $"SYS-REQ-{requirements.Count + 1:D3}",
                             Item = id ?? $"SYS-REQ-{requirements.Count + 1:D3}",
                             Name = category ?? "System Requirement",
-                            Description = $"{text}\n\nSource: {sourceLine}\nFrom: {attachment.FileName}"
+                            Description = $"{text}\n\nSource: {sourceLine}\nFrom: {attachment.FileName}",
+                            TraceReference = BuildRequirementTraceReference(attachment.Id, id, requirements.Count + 1),
+                            SourceDocumentName = attachment.FileName,
+                            SourceAttachmentId = attachment.Id,
+                            SourceJamaItemId = attachment.Item > 0 ? attachment.Item : null
                         };
-                        
                         requirements.Add(requirement);
                     }
                     else if (!string.IsNullOrEmpty(text))
@@ -2754,6 +2768,9 @@ Extract all legitimate requirements:";
                     ItemType = "System Requirement",
                     CreatedDate = DateTime.Now,
                     ModifiedDate = DateTime.Now,
+                    SourceDocumentName = sourceFileName,
+                    SourceAttachmentId = attachment.Id,
+                    SourceJamaItemId = attachment.Item > 0 ? attachment.Item : null,
                     
                     // Add ATP derivation info to track this as an ATP-derived requirement
                     AtpDerivation = new AtpDerivationInfo
@@ -3022,7 +3039,6 @@ Extract all legitimate requirements:";
                 {
                     await Task.Delay(3000, cancellationToken); // Update every 3 seconds
                     if (cancellationToken.IsCancellationRequested) break;
-                    
                     progressCallback(progressMessages[messageIndex % progressMessages.Length]);
                     messageIndex++;
                     
@@ -3477,7 +3493,11 @@ Extract requirements now (JSON only):";
                         GlobalId = req.Id ?? $"SYS-REQ-{extractedRequirements.Count + 1:D3}",
                         Item = req.Id ?? $"SYS-REQ-{extractedRequirements.Count + 1:D3}",
                         Name = req.Category ?? "System Requirement",
-                        Description = $"{req.Text}\n\nSource: {sourceLine}\nFrom: {attachment.FileName}\nConfidence: {req.Confidence:P0} (Template Form extraction)"
+                        Description = $"{req.Text}\n\nSource: {sourceLine}\nFrom: {attachment.FileName}\nConfidence: {req.Confidence:P0} (Template Form extraction)",
+                        TraceReference = BuildRequirementTraceReference(attachment.Id, req.Id, extractedRequirements.Count + 1),
+                        SourceDocumentName = attachment.FileName,
+                        SourceAttachmentId = attachment.Id,
+                        SourceJamaItemId = attachment.Item > 0 ? attachment.Item : null
                     };
 
                     // Step 6: Record field processing for quality metrics (if service available)
