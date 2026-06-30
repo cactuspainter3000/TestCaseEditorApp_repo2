@@ -27,6 +27,15 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+function Write-ProbeStep {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Message
+    )
+
+    Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $Message" -ForegroundColor Cyan
+}
+
 if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
     throw "BaseUrl is required. Pass -BaseUrl or set JAMA_BASE_URL."
 }
@@ -78,6 +87,7 @@ function Invoke-Probe {
         [string]$Method = "GET"
     )
 
+    $startedAt = Get-Date
     $record = [ordered]@{
         Method = $Method
         Url = $Url
@@ -85,9 +95,11 @@ function Invoke-Probe {
         Success = $false
         ResultCount = "n/a"
         Notes = ""
+        DurationMs = 0
     }
 
     try {
+        Write-ProbeStep "Probing $Method $Url"
         $resp = Invoke-WebRequest -Uri $Url -Method $Method -Headers $Headers -TimeoutSec 30 -ErrorAction Stop
         $record.Status = [int]$resp.StatusCode
         $record.Success = $true
@@ -119,6 +131,13 @@ function Invoke-Probe {
         }
 
         $record.Notes = $_.Exception.Message
+    }
+
+    $record.DurationMs = [int]((Get-Date) - $startedAt).TotalMilliseconds
+    if ($record.Success) {
+        Write-ProbeStep "Completed $Method $Url in $($record.DurationMs) ms"
+    } else {
+        Write-ProbeStep "Failed $Method $Url after $($record.DurationMs) ms"
     }
 
     return [PSCustomObject]$record
@@ -261,14 +280,20 @@ Write-Host "=== Jama Relationship Capability Probe ===" -ForegroundColor Cyan
 Write-Host "Base URL: $BaseUrl" -ForegroundColor Gray
 Write-Host "Project: $ProjectId" -ForegroundColor Gray
 
+$probeStartedAt = Get-Date
+
+Write-ProbeStep "Requesting OAuth token"
 $token = Get-OAuthToken -BaseUrl $BaseUrl -ClientId $ClientId -ClientSecret $ClientSecret
 $apiHeaders = @{ Authorization = "Bearer $token" }
+Write-ProbeStep "OAuth token acquired"
 
 if (-not $PSBoundParameters.ContainsKey("SeedItemId") -or $SeedItemId -le 0) {
+    Write-ProbeStep "Looking up a seed item"
     $autoSeed = Get-SeedItemId -BaseUrl $BaseUrl -ProjectId $ProjectId -Headers $apiHeaders
     if ($autoSeed) {
         $SeedItemId = $autoSeed
     }
+    Write-ProbeStep "Seed item resolved: $(if ($SeedItemId) { $SeedItemId } else { 'none found' })"
 }
 
 $results = New-Object System.Collections.Generic.List[object]
@@ -286,14 +311,17 @@ foreach ($endpoint in $baseEndpoints) {
 
 $attachmentId = $null
 if ($SeedItemId -and $SeedItemId -gt 0) {
+    Write-ProbeStep "Probing seed-item relationship and attachment endpoints for item $SeedItemId"
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/items/$SeedItemId/attachments?maxResults=20" -Headers $apiHeaders))
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/abstractitems/$SeedItemId/upstreamrelationships?maxResults=20" -Headers $apiHeaders))
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/abstractitems/$SeedItemId/downstreamrelationships?maxResults=20" -Headers $apiHeaders))
 
     $attachmentId = Get-AttachmentIdForItem -BaseUrl $BaseUrl -ItemId $SeedItemId -Headers $apiHeaders
+    Write-ProbeStep "Attachment lookup result for seed item: $(if ($attachmentId) { $attachmentId } else { 'none found' })"
 }
 
 if ($attachmentId) {
+    Write-ProbeStep "Probing attachment relationship endpoints for attachment $attachmentId"
     $attachmentRelationshipCandidates = @(
         "$BaseUrl/rest/v1/attachments/$attachmentId",
         "$BaseUrl/rest/v1/attachments/$attachmentId/comments",
@@ -310,6 +338,7 @@ if ($attachmentId) {
     }
 }
 
+Write-ProbeStep "Discovering API docs"
 $swaggerDiscovery = Find-ApiDocsPaths -BaseUrl $BaseUrl -Headers $apiHeaders
 $swaggerFindings = @()
 if ($swaggerDiscovery) {
@@ -340,6 +369,7 @@ $manualTraceCheck = [ordered]@{
 
 if (-not [string]::IsNullOrWhiteSpace($ManualRequirementDocumentKey) -and -not [string]::IsNullOrWhiteSpace($ManualSourceDocumentKey)) {
     $manualTraceCheck.Enabled = $true
+    Write-ProbeStep "Running manual trace validation"
 
     $reqItem = Get-ItemByDocumentKey -BaseUrl $BaseUrl -ProjectId $ProjectId -DocumentKey $ManualRequirementDocumentKey -Headers $apiHeaders
     $srcItem = Get-ItemByDocumentKey -BaseUrl $BaseUrl -ProjectId $ProjectId -DocumentKey $ManualSourceDocumentKey -Headers $apiHeaders
@@ -448,5 +478,7 @@ if ($manualTraceCheck.Enabled) {
 $reportText = $report.ToString()
 Set-Content -LiteralPath $ReportPath -Value $reportText -Encoding UTF8
 
+Write-ProbeStep "Report written to $ReportPath"
+Write-ProbeStep "Total probe duration: $([int]((Get-Date) - $probeStartedAt).TotalSeconds) seconds"
 Write-Host "Report written to: $ReportPath" -ForegroundColor Green
 Write-Host "=== Probe Complete ===" -ForegroundColor Cyan
