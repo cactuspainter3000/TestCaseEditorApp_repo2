@@ -100,6 +100,8 @@ function Invoke-Probe {
         DurationMs = 0
     }
 
+    $content = ""
+
     try {
         Write-ProbeStep "Probing $Method $Url"
         $handler = New-Object System.Net.Http.HttpClientHandler
@@ -128,7 +130,19 @@ function Invoke-Probe {
         $record.Success = $resp.IsSuccessStatusCode
 
         if (-not $resp.IsSuccessStatusCode) {
-            $record.Notes = "HTTP $([int]$resp.StatusCode) $($resp.ReasonPhrase)"
+            $errorSnippet = ""
+            if (-not [string]::IsNullOrWhiteSpace($content)) {
+                $normalizedContent = ($content -replace "`r", " " -replace "`n", " ").Trim()
+                if ($normalizedContent.Length -gt 180) {
+                    $normalizedContent = $normalizedContent.Substring(0, 180) + "..."
+                }
+
+                if (-not [string]::IsNullOrWhiteSpace($normalizedContent)) {
+                    $errorSnippet = ": $normalizedContent"
+                }
+            }
+
+            $record.Notes = "HTTP $([int]$resp.StatusCode) $($resp.ReasonPhrase)$errorSnippet"
         }
 
         if ($resp.IsSuccessStatusCode) {
@@ -426,6 +440,9 @@ $attachmentId = $null
 if ($SeedItemId -and $SeedItemId -gt 0) {
     Write-ProbeStep "Probing seed-item relationship and attachment endpoints for item $SeedItemId"
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/items/$SeedItemId/attachments?maxResults=20" -Headers $apiHeaders))
+    $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?fromItem=$SeedItemId&maxResults=20" -Headers $apiHeaders))
+    $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?toItem=$SeedItemId&maxResults=20" -Headers $apiHeaders))
+    $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?item=$SeedItemId&maxResults=20" -Headers $apiHeaders))
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/abstractitems/$SeedItemId/upstreamrelationships?maxResults=20" -Headers $apiHeaders))
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/abstractitems/$SeedItemId/downstreamrelationships?maxResults=20" -Headers $apiHeaders))
 
