@@ -100,12 +100,33 @@ function Invoke-Probe {
 
     try {
         Write-ProbeStep "Probing $Method $Url"
-        $resp = Invoke-WebRequest -Uri $Url -Method $Method -Headers $Headers -TimeoutSec 30 -ErrorAction Stop
+        $handler = New-Object System.Net.Http.HttpClientHandler
+        $client = New-Object System.Net.Http.HttpClient($handler)
+        $client.Timeout = [TimeSpan]::FromSeconds(30)
+
+        try {
+            foreach ($headerName in $Headers.Keys) {
+                $null = $client.DefaultRequestHeaders.TryAddWithoutValidation($headerName, [string]$Headers[$headerName])
+            }
+
+            $request = New-Object System.Net.Http.HttpRequestMessage([System.Net.Http.HttpMethod]::$Method, $Url)
+            $resp = $client.SendAsync($request).GetAwaiter().GetResult()
+            $content = $resp.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+        }
+        finally {
+            if ($null -ne $request) {
+                $request.Dispose()
+            }
+
+            $client.Dispose()
+            $handler.Dispose()
+        }
+
         $record.Status = [int]$resp.StatusCode
         $record.Success = $true
 
         try {
-            $json = $resp.Content | ConvertFrom-Json
+            $json = $content | ConvertFrom-Json
             if ($null -ne $json.meta -and $null -ne $json.meta.pageInfo -and $null -ne $json.meta.pageInfo.resultCount) {
                 $record.ResultCount = [string]$json.meta.pageInfo.resultCount
             } elseif ($null -ne $json.data) {
@@ -122,7 +143,10 @@ function Invoke-Probe {
         $record.Success = $false
         $record.Status = "ERR"
 
-        if ($_.Exception.Response) {
+        if ($_.Exception.PSObject.Properties.Name -contains 'StatusCode' -and $_.Exception.StatusCode) {
+            $record.Status = [string]([int]$_.Exception.StatusCode)
+        }
+        elseif ($_.Exception.Response) {
             try {
                 $record.Status = [string]([int]$_.Exception.Response.StatusCode)
             } catch {
@@ -299,8 +323,9 @@ if (-not $PSBoundParameters.ContainsKey("SeedItemId") -or $SeedItemId -le 0) {
 $results = New-Object System.Collections.Generic.List[object]
 
 $baseEndpoints = @(
-    "$BaseUrl/rest/v1/relationshiptypes?project=$ProjectId&maxResults=20",
     "$BaseUrl/rest/v1/projects/$ProjectId/relationshiptypes",
+    "$BaseUrl/rest/v1/relationshiptypes?project=$ProjectId&maxResults=20",
+    "$BaseUrl/rest/v1/relationshiptypes",
     "$BaseUrl/rest/v1/relationships?project=$ProjectId&maxResults=20",
     "$BaseUrl/rest/v1/attachments?project=$ProjectId&maxResults=20"
 )
