@@ -696,8 +696,42 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 var dispatcher = Application.Current?.Dispatcher;
                 var standardOutput = new StringBuilder();
                 var standardError = new StringBuilder();
+                var liveReport = new StringBuilder();
                 var outputCompleted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
                 var errorCompleted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+                void PublishProbeReport(string text)
+                {
+                    if (dispatcher != null)
+                    {
+                        _ = dispatcher.InvokeAsync(() => LastJamaProbeReport = text);
+                    }
+                    else
+                    {
+                        LastJamaProbeReport = text;
+                    }
+                }
+
+                void AppendProbeReportLine(string prefix, string line)
+                {
+                    if (string.IsNullOrWhiteSpace(line))
+                    {
+                        return;
+                    }
+
+                    var stampedLine = $"[{DateTime.Now:HH:mm:ss}] {prefix} {line.Trim()}";
+                    lock (liveReport)
+                    {
+                        if (liveReport.Length > 0)
+                        {
+                            liveReport.AppendLine();
+                        }
+
+                        liveReport.AppendLine(stampedLine);
+                    }
+
+                    PublishProbeReport(liveReport.ToString().TrimEnd());
+                }
 
                 void UpdateStatusFromProbeLine(string line)
                 {
@@ -735,6 +769,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         standardOutput.AppendLine(e.Data);
                     }
 
+                    AppendProbeReportLine("[OUT]", e.Data);
                     UpdateStatusFromProbeLine(e.Data);
                 };
 
@@ -751,11 +786,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         standardError.AppendLine(e.Data);
                     }
 
+                    AppendProbeReportLine("[ERR]", e.Data);
                     UpdateStatusFromProbeLine(e.Data);
                 };
 
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
+
+                PublishProbeReport("Jama relationship capability probe in progress...\n\nWaiting for probe output...");
 
                 var exitTask = process.WaitForExitAsync();
                 var completedTask = await Task.WhenAny(exitTask, Task.Delay(JamaRelationshipProbeTimeout));
