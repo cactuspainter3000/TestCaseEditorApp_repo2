@@ -146,10 +146,14 @@ function Invoke-Probe {
         if ($_.Exception.PSObject.Properties.Name -contains 'StatusCode' -and $_.Exception.StatusCode) {
             $record.Status = [string]([int]$_.Exception.StatusCode)
         }
-        elseif ($_.Exception.Response) {
+        else {
             try {
-                $record.Status = [string]([int]$_.Exception.Response.StatusCode)
-            } catch {
+                $responseProperty = $_.Exception.PSObject.Properties['Response']
+                if ($null -ne $responseProperty -and $null -ne $responseProperty.Value) {
+                    $record.Status = [string]([int]$responseProperty.Value.StatusCode)
+                }
+            }
+            catch {
                 $record.Status = "ERR"
             }
         }
