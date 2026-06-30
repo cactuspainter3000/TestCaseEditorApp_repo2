@@ -8,6 +8,7 @@ using System.ComponentModel;
 using System.Net;
 using System.Text.Json;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -20,6 +21,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 {
     public partial class UserSettingsViewModel : ObservableObject
     {
+        private static readonly TimeSpan JamaRelationshipProbeTimeout = TimeSpan.FromMinutes(3);
         private readonly IUserSettingsService _userSettingsService;
         private AppUserSettings _lastSavedSettings = AppUserSettings.Empty();
         private bool _isLoadingSettings;
@@ -693,6 +695,47 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 var standardOutputTask = process.StandardOutput.ReadToEndAsync();
                 var standardErrorTask = process.StandardError.ReadToEndAsync();
+                var exitTask = process.WaitForExitAsync();
+                var completedTask = await Task.WhenAny(exitTask, Task.Delay(JamaRelationshipProbeTimeout));
+
+                if (completedTask != exitTask)
+                {
+                    try
+                    {
+                        if (!process.HasExited)
+                        {
+                            process.Kill(entireProcessTree: true);
+                        }
+                    }
+                    catch
+                    {
+                        // If the process is already gone or cannot be killed, continue with the timeout report.
+                    }
+
+                    try
+                    {
+                        await exitTask;
+                    }
+                    catch
+                    {
+                        // Ignore secondary exit errors after a forced kill.
+                    }
+
+                    var timeoutOutput = await standardOutputTask;
+                    var timeoutError = await standardErrorTask;
+
+                    LastJamaProbeReport =
+                        $"[JAMA RELATIONSHIP PROBE TIMEOUT]{Environment.NewLine}" +
+                        $"Timestamp: {DateTime.Now:O}{Environment.NewLine}" +
+                        $"Project ID: {projectId}{Environment.NewLine}" +
+                        $"Timeout: {JamaRelationshipProbeTimeout.TotalMinutes:0} minutes{Environment.NewLine}{Environment.NewLine}" +
+                        $"Standard Output:{Environment.NewLine}{timeoutOutput}{Environment.NewLine}{Environment.NewLine}" +
+                        $"Standard Error:{Environment.NewLine}{timeoutError}";
+
+                    StatusMessage = $"Jama relationship probe timed out after {JamaRelationshipProbeTimeout.TotalMinutes:0} minutes.";
+                    IsStatusError = true;
+                    return;
+                }
 
                 await process.WaitForExitAsync();
                 var standardOutput = await standardOutputTask;
