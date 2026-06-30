@@ -11,6 +11,7 @@ namespace TestCaseEditorApp.Services
     {
         private const string RegistryPath = @"SOFTWARE\TestCaseEditorApp\UserSettings";
         private const string LegacyAnythingLlmRegistryPath = @"SOFTWARE\TestCaseEditorApp\AnythingLLM";
+        private const string HardcodedJamaProjectId = "686";
 
         public AppUserSettings LoadSettings()
         {
@@ -52,10 +53,7 @@ namespace TestCaseEditorApp.Services
                 settings.JamaBaseUrl = FirstNonEmpty(settings.JamaBaseUrl, Environment.GetEnvironmentVariable("JAMA_BASE_URL"));
                 settings.JamaClientId = FirstNonEmpty(settings.JamaClientId, Environment.GetEnvironmentVariable("JAMA_CLIENT_ID"));
                 settings.JamaClientSecret = FirstNonEmpty(settings.JamaClientSecret, Environment.GetEnvironmentVariable("JAMA_CLIENT_SECRET"));
-                if (string.IsNullOrWhiteSpace(settings.JamaProjectId))
-                {
-                    settings.JamaProjectId = FirstNonEmpty(Environment.GetEnvironmentVariable("JAMA_PROJECT_ID"));
-                }
+                settings.JamaProjectId = HardcodedJamaProjectId;
                 settings.AnythingLlmBaseUrl = FirstNonEmpty(settings.AnythingLlmBaseUrl, Environment.GetEnvironmentVariable("ANYTHINGLLM_ENDPOINT"), "http://localhost:3001");
                 settings.OllamaChatModel = FirstNonEmpty(settings.OllamaChatModel, Environment.GetEnvironmentVariable("OLLAMA_MODEL"), "phi4-mini:latest");
                 settings.OllamaEmbeddingModel = FirstNonEmpty(settings.OllamaEmbeddingModel, Environment.GetEnvironmentVariable("OLLAMA_EMBEDDING_MODEL"), "nomic-embed-text:latest");
