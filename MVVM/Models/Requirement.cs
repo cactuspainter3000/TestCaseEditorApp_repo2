@@ -206,6 +206,14 @@ namespace TestCaseEditorApp.MVVM.Models
         [ObservableProperty] private string validationEvidence = string.Empty;
         [ObservableProperty] private string validationConclusion = string.Empty;
 
+        public void AddValidationMethod(ValidationMethod m) => _validationMethodsCore.Add(m);
+        public bool RemoveValidationMethod(ValidationMethod m) => _validationMethodsCore.Remove(m);
+        public void SetValidationMethods(IEnumerable<ValidationMethod> methods) =>
+            ValidationMethods = methods?.ToList() ?? new();
+
+        // ===== Allocation =====
+        [ObservableProperty] private AllocationTarget allocation = AllocationTarget.Unassigned;
+
         // ---- Core requirement text ----
         [ObservableProperty] private string item = string.Empty;        // e.g., C1XMA2405-REQ_RC-108
         [ObservableProperty] private string name = string.Empty;        // short title

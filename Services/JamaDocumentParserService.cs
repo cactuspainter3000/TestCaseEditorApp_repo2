@@ -126,6 +126,9 @@ namespace TestCaseEditorApp.Services
                         var directRagRequirements = await ExtractRequirementsWithDirectRagAsync(attachment, projectId, progressCallback, onRequirementDiscovered, cancellationToken);
                         TestCaseEditorApp.Services.Logging.Log.Info($"[ATTACHMENT_TRACE] ParserReturn AttachmentId={attachment.Id} FileName={attachment.FileName} Source=DirectRag Count={directRagRequirements.Count} Sample={BuildRequirementTraceSample(directRagRequirements)}");
                         EnrichRequirementsWithAttachmentMetadata(directRagRequirements, attachment);
+                        EnrichRequirementsWithValidationMethod(directRagRequirements);
+                        await EnrichRequirementsWithVerificationMethodAsync(directRagRequirements, cancellationToken);
+                        await EnrichRequirementsWithAllocationAsync(directRagRequirements, cancellationToken);
                         return directRagRequirements;
                     }
                     else
@@ -139,6 +142,9 @@ namespace TestCaseEditorApp.Services
                 var anythingLlmRequirements = await ExtractRequirementsWithAnythingLLMAsync(attachment, projectId, progressCallback, cancellationToken);
                 TestCaseEditorApp.Services.Logging.Log.Info($"[ATTACHMENT_TRACE] ParserReturn AttachmentId={attachment.Id} FileName={attachment.FileName} Source=AnythingLLM Count={anythingLlmRequirements.Count} Sample={BuildRequirementTraceSample(anythingLlmRequirements)}");
                 EnrichRequirementsWithAttachmentMetadata(anythingLlmRequirements, attachment);
+                EnrichRequirementsWithValidationMethod(anythingLlmRequirements);
+                await EnrichRequirementsWithVerificationMethodAsync(anythingLlmRequirements, cancellationToken);
+                await EnrichRequirementsWithAllocationAsync(anythingLlmRequirements, cancellationToken);
                 return anythingLlmRequirements;
             }
             catch (Exception ex)
@@ -1425,6 +1431,180 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
             }
 
             TestCaseEditorApp.Services.Logging.Log.Info($"[AttachmentTracing] Enriched {requirements.Count} requirements with attachment metadata: {attachment.FileName} (ID: {attachment.Id})");
+        }
+
+        /// <summary>
+        /// Set validation method to Traceability for all requirements (required for extracted requirements)
+        /// </summary>
+        private static void EnrichRequirementsWithValidationMethod(List<Requirement> requirements)
+        {
+            if (requirements == null)
+                return;
+
+            foreach (var requirement in requirements)
+            {
+                if (requirement != null)
+                {
+                    requirement.SetValidationMethods(new[] { ValidationMethod.Traceability });
+                }
+            }
+
+            TestCaseEditorApp.Services.Logging.Log.Info($"[FieldEnrichment] Set validation method to Traceability for {requirements.Count} requirements");
+        }
+
+        /// <summary>
+        /// Enrich requirements with verification method using LLM assistance
+        /// Selects from: Analysis, Simulation, Demonstration, Inspection, ServiceHistory, Test, TestUnintendedFunction, VerifiedAtAnotherLevel
+        /// </summary>
+        private async Task EnrichRequirementsWithVerificationMethodAsync(List<Requirement> requirements, CancellationToken cancellationToken = default)
+        {
+            if (requirements == null || _textGenerationService == null)
+                return;
+
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[FieldEnrichment] Starting verification method selection for {requirements.Count} requirements");
+
+                foreach (var requirement in requirements.Where(r => r != null))
+                {
+                    var prompt = BuildVerificationMethodSelectionPrompt(requirement);
+                    var response = await _textGenerationService.GenerateAsync(prompt, cancellationToken);
+                    
+                    if (string.IsNullOrWhiteSpace(response))
+                        continue;
+
+                    var selectedMethod = ParseVerificationMethodFromResponse(response);
+                    if (selectedMethod.HasValue)
+                    {
+                        requirement.AddVerificationMethod(selectedMethod.Value);
+                        requirement.Method = selectedMethod.Value;
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[FieldEnrichment] Assigned verification method '{selectedMethod}' to requirement {requirement.Item}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[FieldEnrichment] Error during verification method enrichment: {ex.Message}");
+                // Non-blocking - continue with other enrichments
+            }
+        }
+
+        /// <summary>
+        /// Enrich requirements with allocation type using LLM assistance
+        /// Selects from: Hardware, Software, Both
+        /// </summary>
+        private async Task EnrichRequirementsWithAllocationAsync(List<Requirement> requirements, CancellationToken cancellationToken = default)
+        {
+            if (requirements == null || _textGenerationService == null)
+                return;
+
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[FieldEnrichment] Starting allocation selection for {requirements.Count} requirements");
+
+                foreach (var requirement in requirements.Where(r => r != null))
+                {
+                    var prompt = BuildAllocationSelectionPrompt(requirement);
+                    var response = await _textGenerationService.GenerateAsync(prompt, cancellationToken);
+                    
+                    if (string.IsNullOrWhiteSpace(response))
+                        continue;
+
+                    var selectedAllocation = ParseAllocationFromResponse(response);
+                    if (selectedAllocation != AllocationTarget.Unassigned)
+                    {
+                        requirement.Allocation = selectedAllocation;
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[FieldEnrichment] Assigned allocation '{selectedAllocation}' to requirement {requirement.Item}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[FieldEnrichment] Error during allocation enrichment: {ex.Message}");
+                // Non-blocking - continue with other enrichments
+            }
+        }
+
+        /// <summary>
+        /// Build prompt to select verification method for a requirement
+        /// </summary>
+        private string BuildVerificationMethodSelectionPrompt(Requirement requirement)
+        {
+            return $@"Given this requirement, select the MOST APPROPRIATE verification method from: Analysis, Simulation, Demonstration, Inspection, ServiceHistory, Test, TestUnintendedFunction, VerifiedAtAnotherLevel
+
+Requirement ID: {requirement.Item}
+Requirement Name: {requirement.Name}
+Requirement Description: {requirement.Description}
+
+Guidelines:
+- Analysis: for theoretical or mathematical verification
+- Simulation: for computational/modeling verification
+- Demonstration: for visual/operational proof
+- Inspection: for physical examination or document review
+- Test: for active testing with pass/fail criteria
+- ServiceHistory: for proven operational performance
+- TestUnintendedFunction: for edge case or negative testing
+- VerifiedAtAnotherLevel: if verified at subsystem or supplier level
+
+Respond with ONLY the selected method name, nothing else. If unsure, respond with 'Test'.";
+        }
+
+        /// <summary>
+        /// Build prompt to select allocation type for a requirement
+        /// </summary>
+        private string BuildAllocationSelectionPrompt(Requirement requirement)
+        {
+            return $@"Determine whether this requirement should be allocated to Hardware, Software, or Both.
+
+Requirement ID: {requirement.Item}
+Requirement Name: {requirement.Name}
+Requirement Description: {requirement.Description}
+
+Guidelines:
+- Hardware: if it describes physical components, electrical properties, mechanical constraints, or physical interfaces
+- Software: if it describes algorithms, data processing, software functions, or logical behavior
+- Both: if it spans hardware and software (e.g., system-level performance requirements, integrated functionality)
+
+Respond with ONLY one of: Hardware, Software, Both. Nothing else. If unsure, respond with 'Both'.";
+        }
+
+        /// <summary>
+        /// Parse verification method from LLM response
+        /// </summary>
+        private VerificationMethod? ParseVerificationMethodFromResponse(string response)
+        {
+            if (string.IsNullOrWhiteSpace(response))
+                return null;
+
+            var normalized = response.Trim().ToLower();
+
+            if (normalized.Contains("analysis")) return VerificationMethod.Analysis;
+            if (normalized.Contains("simulation")) return VerificationMethod.Simulation;
+            if (normalized.Contains("demonstration")) return VerificationMethod.Demonstration;
+            if (normalized.Contains("inspection")) return VerificationMethod.Inspection;
+            if (normalized.Contains("servicehistory") || normalized.Contains("service history")) return VerificationMethod.ServiceHistory;
+            if (normalized.Contains("test") && !normalized.Contains("unintended")) return VerificationMethod.Test;
+            if (normalized.Contains("unintended")) return VerificationMethod.TestUnintendedFunction;
+            if (normalized.Contains("another level")) return VerificationMethod.VerifiedAtAnotherLevel;
+
+            return null;
+        }
+
+        /// <summary>
+        /// Parse allocation from LLM response
+        /// </summary>
+        private AllocationTarget ParseAllocationFromResponse(string response)
+        {
+            if (string.IsNullOrWhiteSpace(response))
+                return AllocationTarget.Unassigned;
+
+            var normalized = response.Trim().ToLower();
+
+            if (normalized.Contains("hardware")) return AllocationTarget.Hardware;
+            if (normalized.Contains("software")) return AllocationTarget.Software;
+            if (normalized.Contains("both")) return AllocationTarget.Both;
+
+            return AllocationTarget.Unassigned;
         }
 
         /// <summary>
