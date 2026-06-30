@@ -622,10 +622,23 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 if (!int.TryParse(projectIdRaw, out var projectId) || projectId <= 0)
                 {
                     var mediatorObj = App.ServiceProvider?.GetService(typeof(TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator));
-                    if (mediatorObj is TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator requirementsMediator &&
-                        requirementsMediator.CurrentProjectId > 0)
+                    if (mediatorObj is TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator requirementsMediator)
                     {
-                        projectId = requirementsMediator.CurrentProjectId;
+                        // CurrentProjectId only works for numeric workspace IDs. Use async resolver for project keys.
+                        var resolvedProjectId = requirementsMediator.CurrentProjectId;
+                        if (resolvedProjectId <= 0)
+                        {
+                            resolvedProjectId = await requirementsMediator.GetCurrentProjectIdAsync();
+                        }
+
+                        if (resolvedProjectId > 0)
+                        {
+                            projectId = resolvedProjectId;
+                        }
+                    }
+
+                    if (projectId > 0)
+                    {
                         JamaProjectId = projectId.ToString();
                         StatusMessage = $"Running Jama relationship capability probe for loaded project {projectId}...";
                     }
