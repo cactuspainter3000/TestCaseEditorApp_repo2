@@ -1,0 +1,235 @@
+===== slide1.xml =====
+Systems Engineering – Jama Projects Template
+
+===== slide10.xml =====
+Discrete Type Electrical Interfaces 
+List the mapping between the physical discrete signal and the 
+databus
+ content 
+Expected Requirements Content 
+Expected Level of Details for System Requirements
+© 2021 
+Collins Aerospace.  | Collins Aerospace Proprietary.  |  This document does not include any export controlled technical data.
+
+===== slide11.xml =====
+Test Solution Network/DT Requirements 
+Provide details of any unique equipment or functionalities needed to support testing 
+Equipment/Computer configuration (CPU, RAM, Hard drive, etc. )
+Operating System (Windows, Linux, etc.)
+Software Licenses (LabVIEW, C#, CIMCO, etc.)
+VPN needs/configuration
+Cloud Computing capabilities 
+User accessibility to equipment (Computer/Databases passwords, Access Cards, etc.)
+Connectivity to Collins or local facility network 
+Test Station actions in the event of network failure
+Test Station continue operation, record & stores test data/result and report it once network connectivity restored.  
+Expected Requirements Content 
+Expected Level of Details for System Requirements
+© 2021 
+Collins Aerospace.  | Collins Aerospace Proprietary.  |  This document does not include any export controlled technical data.
+
+===== slide12.xml =====
+Functional Test: Everything pertains the actual UUT testing needs
+It should describe system or system element functions or tasks to desired system performance under stated conditions. 
+They include customer desires, operational constraints, regulatory restrictions, and implementation realities, examples:  
+Operational requirements describe how the operator interfaces with the test solution system, and support teams, and related functions or equipment (Consider normal and abnormal conditions).
+Performance, a characteristic of function, requirements describe function or system attributes useful to the test solution operation such as expected performance, accuracy, fidelity, range, resolution, speed, and response times (Performance is normally expressed quantitatively).
+System Modes and States Requirements defines the various operational modes or states.
+Interface requirements are the system’s physical inputs and outputs, and a description of how they operate/behave with other systems and human elements.
+Expected Requirements Content 
+Expected Level of Details for System Requirements
+© 2021 
+Collins Aerospace.  | Collins Aerospace Proprietary.  |  This document does not include any export controlled technical data.
+
+===== slide13.xml =====
+Environmental Test: It defines the environmental conditions the UUT may be subjected to such as noise, shock, and electromagnetic tests.
+Example: 
+The Test Station 
+shall
+ 
+screen for intermittent failures (to detect hardware faults) for the duration of the Rapid test sequence of 85 seconds per unit while being subject to:
+Thermal transitions as defined in REQ-ABC, 
+and
+Vibration as defined in REQ-ABC, 
+and
+Simulated altitude of 5000 feet
+.
+Expected Requirements Content 
+Expected Level of Details for System Requirements
+© 2021 
+Collins Aerospace.  | Collins Aerospace Proprietary.  |  This document does not include any export controlled technical data.
+
+===== slide14.xml =====
+Test Solution Maintainability and Reliability 
+It defines provisions in the test solution to allow for scheduled and unscheduled maintenance, failure detection, fault isolation, etc. 
+System reliability requirements are quantitative and pertains to system reliability.
+Expected Requirements Content 
+Expected Level of Details for System Requirements
+© 2021 
+Collins Aerospace.  | Collins Aerospace Proprietary.  |  This document does not include any export controlled technical data.
+
+===== slide15.xml =====
+UUT Calibration/Alignment/Tuning
+These requirements are functional requirements type that are separated from the Functional folder to adhere with the ATP template. 
+It defines the calibration and alignment needs for the UUT, in the event deemed to be necessary by Design Engineering. 
+Example: RF Power Calibration requirements for UUT with RF TX/RX functionality. 
+Expected Requirements Content 
+Expected Level of Details for System Requirements
+© 2021 
+Collins Aerospace.  | Collins Aerospace Proprietary.  |  This document does not include any export controlled technical data.
+
+===== slide16.xml =====
+Packaging, Handling, Shipping, and Transportation Requirements: 
+Includes packaging, handling, shipping, transportation, and storage of the system and system elements.
+Examples: 
+The Test Station Rack shall be designed with the ability to easily move it around the facility without special equipment or tools. 
+ Rollers for the rack base. 
+The Test Station Rack shall have all necessary marking (ESD, Weight, High Voltage, Battery, etc..) to provide sufficient instruction for safe transportation. 
+Expected Requirements Content 
+Expected Level of Details for System Requirements
+© 2021 
+Collins Aerospace.  | Collins Aerospace Proprietary.  |  This document does not include any export controlled technical data.
+
+===== slide17.xml =====
+System Security Requirements: 
+System security relates to the facility where the system is installed and the system’s operational security such as log-in access and data protection. 
+Examples: 
+The Test Station shall be located in a secured, badge access controlled, facility with access controlled by an administrator.
+The Test Station Operating System shall sign out the user within 10 mins of no user activity. 
+The Test Station Operating System shall be password protected. 
+The Test Station Software shall be password protected.
+Expected Requirements Content 
+Expected Level of Details for System Requirements
+© 2021 
+Collins Aerospace.  | Collins Aerospace Proprietary.  |  This document does not include any export controlled technical data.
+
+===== slide18.xml =====
+Cybersecurity Requirements: 
+Cybersecurity is a subset of System Security. 
+Refer to GCP-55, FCP-TGE-001, COL-PCO-PRO-0002, and AVI-PCO-PRO-0002 for more detailed guidance.
+Expected Requirements Content 
+Expected Level of Details for System Requirements
+© 2021 
+Collins Aerospace.  | Collins Aerospace Proprietary.  |  This document does not include any export controlled technical data.
+
+===== slide2.xml =====
+Agency Compliance (Policy, Regulation and Process) Requirements: 
+These are requirements essential to ensure the safety, quality, and reliability. 
+These requirements are established and enforced by Corporate policy and various regulatory agencies affecting system operation or performance, as an example: 
+International Traffic in Arms Regulations (ITAR)
+Federal Communications Commission (FCC)
+Occupational Safety and Health Administration (OSHA)
+MIL-Spec
+Etc.
+Expected Requirements Content 
+Expected Level of Details for System Requirements
+© 2021 
+Collins Aerospace.  | Collins Aerospace Proprietary.  |  This document does not include any export controlled technical data.
+
+===== slide3.xml =====
+Environmental, Health and Safety Requirements:
+Requirements directed to human factors relate to human users and their interaction with the system such as efficiency, health effects, and communication. Related terms are Human Engineering and Human System Integration. Industry standards to consider include MIL-STD-882, MIL-STD-1472, MIL-STD-46855, and SAE SAE6906.[GC1] [EKC2] 
+A dedicated Safety Engineer or a designated SE is responsible to determine, in coordination with other disciplines and agencies, the safety requirements for a test solution. 
+Requirements defined to prevent failure conditions or to provide safety related functions are uniquely identified and traceable. 
+Expected Requirements Content 
+Expected Level of Details for System Requirements
+© 2021 
+Collins Aerospace.  | Collins Aerospace Proprietary.  |  This document does not include any export controlled technical data.
+
+===== slide4.xml =====
+Environmental, Health and Safety Requirements:
+SBUs have different safety guidance documents tailored for their needs.
+ATE-SE uses IEC 61010-1 for general safety guidance. SBUs might have a need for other parts of IEC 61010.
+ATE-SE also uses the heritage Rockwell Collins (
+hRC
+) guidance as follows.
+HRC-OPS-I-752 Test Equipment Safety Checklist with reference to HRC 074-8434-282.
+HRC 074-8434-535 System Safety Engineering Design Checklist
+HRC-OPS-C-002 Test Equipment – Peer Review Checklist.
+Expected Requirements Content 
+Expected Level of Details for System Requirements
+© 2021 
+Collins Aerospace.  | Collins Aerospace Proprietary.  |  This document does not include any export controlled technical data.
+
+===== slide5.xml =====
+Facilities Requirements:
+These requirements cover any requirements that needs to be imposed on facilities where the Test Solution will be installed 
+It may include: 
+Structure support requirements 
+Electrical infrastructure requirements
+Etc.
+Expected Requirements Content 
+Expected Level of Details for System Requirements
+© 2021 
+Collins Aerospace.  | Collins Aerospace Proprietary.  |  This document does not include any export controlled technical data.
+
+===== slide6.xml =====
+Physical and Installation Requirements: 
+These are a system’s physical characteristics relative to its installation environment. Consider weight, dimensions, power, cooling, markings, etc.
+Expected Requirements Content 
+Expected Level of Details for System Requirements
+© 2021 
+Collins Aerospace.  | Collins Aerospace Proprietary.  |  This document does not include any export controlled technical data.
+
+===== slide7.xml =====
+Test Station Capabilities
+UUT part numbers to be covered by the Test Solution
+Architecture to be used to meet testing needs
+Adaptable: Provide provisions for growth, expansion, capability, and contraction to future system or system element capability.
+Functional and Environmental Capabilities including limits
+Temperature Chamber and associated limits
+Test Station Shall include a thermal chamber that meet the specification below: 
+Internal normal temperature operating range from -55 C to +55 C, AND
+External normal temperature operating range from -20 C to +40 C, AND
+Minimum rate of temperature change of 10 C/min, AND  
+Maximum power consumption XXXX watt, 
+AND
+Maximum normal operating current drawn XX Amp, AND
+Maximum in rush current XX AMPs. 
+Expected Requirements Content 
+Expected Level of Details for System Requirements
+© 2021 
+Collins Aerospace.  | Collins Aerospace Proprietary.  |  This document does not include any export controlled technical data.
+
+===== slide8.xml =====
+Functional and Environmental Capabilities including limits
+Example: 
+Vibration Table and associated limits
+Test Station shall include a Vibration Table that meet the specification below:  Or you list the spec in table 
+Sine/Random/Shock Forces of levels XXX F-
+lb
+ pk/rms, AND
+Max displacement 
+xx.xx
+ pk-pk , AND
+Vibration/Rotation Axis (1/2/3 axis) , AND
+Vibration Frequency range Hz to XXXX Hz, AND
+Maximum power consumption XXXX watt, 
+AND
+Maximum normal operating current and voltage XX Amp at 480 V, AND
+Maximum in rush current XX AMPs.
+Smaller project may use the structure in the example.
+Larger projects may elect to separate the hardware content in the HW requirements section. 
+Expected Requirements Content 
+Expected Level of Details for System Requirements
+© 2021 
+Collins Aerospace.  | Collins Aerospace Proprietary.  |  This document does not include any export controlled technical data.
+
+===== slide9.xml =====
+Discrete Type Electrical Interfaces 
+List all signal pins that needs to be connected or controlled during testing
+Signal name (in a table?)
+Pin number including connector designator 
+List the acceptable state for each discrete: 
+Low: Ground,-5,-3, etc..
+Open Circuit
+High: +5V, +3V, etc..
+List the electrical specification for each state
+Low: 0 V to 0.45 V, less than 5 milliohm, etc..
+Open Circuit
+High: 4.5 V to 5 V, etc..
+Expected Requirements Content 
+Expected Level of Details for System Requirements
+© 2021 
+Collins Aerospace.  | Collins Aerospace Proprietary.  |  This document does not include any export controlled technical data.
+

@@ -1,0 +1,2821 @@
+for Avionics Test Engineering 
+  
+ 
+ Revision B 
+ 
+ 
+Rockwell Collins 
+Contract Number: None 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ NAME 
+ TITLE 
+ APPROVAL 
+ 
+Prepared By: 
+ Anthony Su 
+ Systems Engineer, Cedar Rapids 
+ N/A 
+ 
+Approved By: 
+ Anthony Su 
+ Systems Engineer, Cedar Rapids 
+ On File 
+ 
+Approved By: 
+ Andrew Scully 
+ Systems Engineer, Melbourne 
+ On File 
+ 
+Approved By: 
+ Jeremy Ice 
+ Systems Engineer, Wilsonville 
+ On File 
+ 
+Approved By: 
+ Ken Running Hawk 
+ Test Engineering Manager, Burnsville 
+ On File 
+ 
+Approved By: 
+ Dan Nemmers 
+ On File 
+ 
+Approved By: 
+ Rick Lindo 
+ Architecture Engineering Manager 
+ On File 
+ 
+Approved By: 
+ Kate Gioe 
+ Systems Engineering Manager 
+ On File 
+ 
+
+ 
+ 
+REVISION HISTORY 
+REV 
+ DESCRIPTION 
+ DATE 
+ APPROVED 
+ 
+- 
+ Initial Issue 
+ C. Drotzur 
+ 
+A 
+ Title Page: Revised signature table. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ Appendix A (was Appendix B): Revised definitions. 
+
+
+ Appendix C: Added Verification Review Guidelines. 
+
+ Appendix D: Added Test Acceptance Review Guidelines. 
+
+
+ C. Drotzur 
+ 
+B 
+ A. Su 
+ 
+
+ 
+  
+TABLE OF CONTENTS 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+  
+LIST OF FIGURES 
+ 
+
+LIST OF TABLES 
+ 
+
+a)
+
+b)
+
+c)
+
+d)
+
+e)
+ Conduct peer reviews 
+
+f)
+
+g)
+
+h)
+
+i)
+ Record and report verification results 
+
+j)
+ Perform Test System Validation 
+
+k)
+
+
+  
+In the case where stakeholder agreement by contract, Statement of Work (SOW), and/or other agreement might require difference to the RMP guidance, the agreed document takes precedence. 
+Term 
+ Definition 
+ 
+ARINC 
+ Aeronautical Radio Incorporated 
+ 
+ARP 
+ Aerospace Recommended Practice 
+ 
+ATE 
+ Avionics Test Engineering 
+ 
+ATE-Arch 
+ ATE-Architecture 
+ 
+ATE-SE 
+ ATE-Systems Engineering 
+ 
+ATM 
+ Acceptance Test Method 
+ 
+ATP 
+ Acceptance Test Procedure 
+ 
+ATR 
+ 
+BU 
+ Business Unit 
+ 
+CCB 
+ Change Control Board 
+ 
+CDR 
+ 
+COTS 
+ Commercial Off-the-Shelf 
+ 
+CTRD 
+ 
+CTSA 
+ Common Test System Architecture 
+ 
+DAC 
+ 
+DDPF 
+ 
+DE 
+ 
+DRR 
+ Deliverable Readiness Review 
+ 
+EH&S 
+ Environmental, Health, and Safety 
+ 
+FAA 
+ Federal Aviation Administration 
+ 
+FDAL 
+ 
+hRC 
+ Heritage Rockwell Collins 
+ 
+HRD 
+ 
+HW 
+ 
+I/O 
+ Input/Output 
+ 
+ICD 
+ 
+ID 
+ Identification 
+ 
+IEC 
+ International Electrotechnical Commission 
+ 
+IEEE 
+ Institute of Electrical and Electronic Engineers 
+ 
+IPT 
+ Integrated Project Team 
+ 
+ISO 
+ International Organization for Standardization 
+ 
+ITA 
+ 
+JRC 
+ Jama Review Center 
+ 
+MEE 
+ Manufacturing Electrical Engineer 
+ 
+MIRs 
+ 
+
+Term 
+ Definition 
+ 
+NPI 
+ New Product Introduction 
+ 
+N/A 
+ Not Applicable 
+ 
+OPM 
+ 
+OTS 
+ Off-the-Shelf 
+ 
+PE 
+ Project Engineer 
+ 
+PDR 
+ 
+PREP 
+ Peer Review Eclipse Plug-In 
+ 
+P&L 
+ Profit and Loss 
+ 
+RAR 
+ 
+REV 
+ Revision 
+ 
+RMP 
+ 
+SAE 
+ Society of Automotive Engineers 
+ 
+SE 
+ Systems Engineer 
+ 
+SME 
+ Subject Matter Expert 
+ 
+SOW 
+ Statement of Work 
+ 
+SRD 
+ 
+SRR 
+ 
+SW 
+ 
+SyRR 
+ 
+SysNAR 
+ System Non-Advocate Review 
+ 
+SysRD 
+ 
+TBD 
+ To Be Determined 
+ 
+TRR 
+ Test Readiness Review 
+ 
+TUF 
+ Test for Unintended Function 
+ 
+UUT 
+ Unit Under Test 
+ 
+V&V 
+ Validation and Verification 
+ 
+VSL 
+ Value Stream Leader 
+ 
+
+You may use the Accuris database link at the Collins Information Center to retrieve the references. 
+Reference 
+ Rev 
+ Description 
+ 
+ 
+ American National Standard for Metric Practice 
+ 
+ IEEE Standard Letter Symbols for Units of Measurement (SI Units, Customary Inch-Pound Units, and Certain Other Units) 
+ 
+ 
+ 
+ 
+ E 
+ System Safety 
+ 
+ H 
+ Human Engineering 
+ 
+ A 
+ 
+ None 
+ 
+ 
+ B 
+ 
+ Systems Management Standard, Standard Practice for Human Systems Integration  
+ 
+ Technical Report, Systems Engineering  
+ 
+
+ 
+Reference 
+ Description 
+ Level 
+ 
+ Avionics 
+ 
+ Avionics 
+ 
+ Peer Reviews 
+ Avionics 
+ 
+ Avionics 
+ 
+ Collins Management System 
+ Collins 
+ 
+ Integrated Project Management 
+ Collins 
+ 
+ Collins 
+ 
+ Smart Product Playbook 
+ Collins 
+ 
+ High-Level Cybersecurity Assessment 
+ Collins 
+ 
+ Collins 
+ 
+ Product Cybersecurity 
+ RTX 
+ 
+ Digital Cybersecurity 
+ RTX 
+ 
+ PREP Peer Review Instructions 
+ ATE 
+ 
+
+ 
+Reference 
+ Description 
+ 
+ Systems Integration Plan for Avionics Test Engineering 
+ 
+ Test Equipment Safety Checklist Template 
+ 
+ 
+ 
+ 
+ Test Equipment Safety Checklist 
+ 
+ Test Equipment 
+ 
+ 
+ Acceptance Testing 
+ 
+
+ 
+ 
+
+  
+Role 
+ Responsibility 
+ 
+ATE Architecture (ATE-Arch) 
+ a)
+
+b)
+
+c)
+
+d)
+
+
+ 
+ 
+ a)
+
+b)
+
+c)
+
+
+ 
+ 
+ a)
+
+b)
+
+c)
+
+d)
+
+e)
+
+f)
+ Completes the safety checklist. 
+
+g)
+
+
+Note that HW Engineering includes Electrical and Mechanical Engineering. 
+ 
+ 
+Integrated Project Team (IPT) 
+ a)
+ The IPT is a cross-functional team that conducts planning, provides consistent decision making and drives accountability across the test system project life cycle. 
+
+
+ 
+ 
+Manufacturing Electrical Engineer (MEE) 
+ a)
+
+b)
+
+c)
+
+d)
+
+
+ 
+ 
+Non-Advocate Engineer 
+ Subject matter experts (SME) are not directly associated with the test solution project. In addition to the role descriptions in this table, refer to the associated sections as follows. 
+a)
+
+b)
+
+c)
+
+d)
+
+
+ 
+ 
+Project Engineer 
+ a)
+ Business Lead for the test system project. 
+
+b)
+ Provides direction, plans, schedule, cost estimates, and project budget for test solution proposals. 
+
+c)
+ Organizes, controls, and directs test system project elements (resources, time, money, and scope). 
+
+d)
+
+e)
+ Provides project status to management. 
+
+f)
+
+g)
+
+h)
+
+
+ 
+ 
+ 
+
+Role 
+ Responsibility 
+ 
+Safety Engineer 
+ a)
+
+b)
+ Provides safety guidance. 
+
+c)
+ Typically, a trained engineer with safety experience from  
+
+i)
+ Reliability, Maintainability, and Safety,  
+
+ii)
+ Environmental, Health, and Safety (EH&S), or  
+
+iii)
+ an SE with safety training. 
+
+
+
+ 
+ 
+ a)
+
+b)
+
+c)
+
+d)
+
+e)
+
+f)
+
+
+ 
+ 
+Systems Engineer 
+ a)
+ Technical Lead for the test system project. 
+
+b)
+
+c)
+ Supports PEs cost targets within the allocated budget and schedule. 
+
+d)
+ Leads and coordinates the SRR and SyRR. 
+
+e)
+
+f)
+
+g)
+
+h)
+
+i)
+
+j)
+
+k)
+
+l)
+
+m)
+
+n)
+
+o)
+ Develops a verification plan (coordinates with PE). 
+
+p)
+ Develops system level verification cases and procedures. 
+
+q)
+
+r)
+
+s)
+ May assume Test Strategist role. 
+
+t)
+ Performs test system validation. 
+
+u)
+
+v)
+ Drafts ATM with collaboration with discipline engineers. 
+
+
+ 
+ 
+Systems Engineering Manager 
+ a)
+ Provides management direction to the ATE-SE team. 
+
+
+ 
+Test Strategist 
+ a)
+ Performs test coverage analysis  
+
+b)
+
+
+ 
+ 
+ 
+
+Role 
+ Responsibility 
+ 
+Validation & Verification Engineer 
+ a)
+
+b)
+
+c)
+ Produces V&V summaries, as needed. 
+
+d)
+
+
+ 
+ 
+Value Stream Leader (VSL) 
+ a)
+ Provides high-level direction to the PE and SE. 
+
+b)
+
+
+ 
+ 
+
+  
+ 
+
+  
+ 
+
+ 
+  
+Project Type 
+ Architecture Condition 
+ 
+ 
+ Reuse 
+ 
+ 
+ 
+Form, fit, or function change 
+ 
+HW modifications or obsolescence  
+ 
+SW change without functionality change 
+ 
+
+Different ATE test system projects require different approaches to the test solutions being built or rehosted. Test system projects experience different scenarios when buying, rehosting, or developing new test equipment depending on the vendor (whether internal to Avionics or to an external source).  
+a)
+
+b)
+ The test system customer is usually a manufacturing facility, repair center, or other user. 
+
+i)
+
+
+c)
+
+d)
+
+
+ 
+Scenario 
+ 
+Vendor 
+ ATE-Arch 
+(OTS) 
+ ATE-Arch 
+(Custom) 
+ External 
+(OTS) 
+ External 
+(Custom) 
+ ATE Site 
+ 
+Vendor Provides 
+to Customer 
+ a)
+ Compliance feedback 
+
+b)
+ ICD  
+
+c)
+
+d)
+ Service Bulletin 
+
+
+ a)
+ Compliance feedback 
+
+b)
+ ICD  
+
+c)
+
+d)
+ Service Bulletin 
+
+
+ a)
+ Compliance feedback 
+
+b)
+ ICD 
+
+c)
+
+
+ a)
+ Compliance feedback 
+
+b)
+ ICD 
+
+c)
+
+
+ a)
+
+b)
+ Compliance feedback  
+
+c)
+
+
+ 
+Test System Customer 
+ 
+Customer Provides to Vendor  
+ 
+ Test system 
+ Test system 
+ Test system 
+ Test system 
+  
+ 
+ Customer 
+ Customer 
+ Customer 
+ Customer 
+ Test system 
+ 
+ATE-SE 
+Generates 
+(all conditions) 
+ 
+Captured? 
+(all conditions) 
+ Yes, in Jama 
+ 
+Change  
+Controlled? 
+(all conditions) 
+ Yes, in Jama via CCB 
+ 
+Comment 
+ Test System Validation Report only if supplied to another site. 
+ 
+
+Off-the-Shelf (OTS) does not include Commercial OTS (COTS) equipment such as oscilloscopes or multimeters. 
+* As needed. Data is in SysRD database. 
+SysRD peer reviews are typically performed by engineering peers with demonstrated technical academic background and test solution system experience for similar solutions. 
+a)
+
+b)
+
+c)
+ Environmental Stress Screening (ESS) Plan  
+
+d)
+ Manufacturing Transition Build and Test Plan  
+
+e)
+ Environmental, Health, and Safety (EH&S) standards  
+
+f)
+
+g)
+
+h)
+
+i)
+ Other relevant documentation 
+
+
+Input 
+ Output 
+ 
+Industry Guidance and Corporate Procedures 
+ RMP 
+ 
+ 
+SysRD (Jama export) 
+ 
+ 
+ATR 
+ 
+ATP 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Test Solution ICD 
+ 
+SysRD 
+ 
+ 
+ATM 
+ 
+
+Input 
+ Output 
+ 
+Verification Plan 
+ 
+ 
+ 
+ 
+ 
+
+ 
+  
+ 
+
+ 
+
+A SE or Test Strategist should be involved in ATP drafts and reviews.  
+  
+The ATM is test solution and product (UUT) dependent. 
+A test strategist should be involved in ATM drafts and reviews.  
+a)
+ Used for test solution definition. 
+
+b)
+
+c)
+
+d)
+
+
+The SysRD content includes the following items. 
+a)
+
+b)
+ Information to communicate and define needs between the developer and product stakeholders. 
+
+
+The SysRD is product (UUT) dependent and test solution independent.  
+a)
+ the facility and the test system, 
+
+b)
+ the test system to the ITA, 
+
+c)
+ the ITA to the UUT, and 
+
+d)
+
+
+ATE develops and owns a CTRD to define the HW and SW components necessary to conduct testing of the UUT(s) on the test system per the ATP, ATM, and /or other test documentation. The CTRD references the ATP and ATM. 
+The CTRD lists 
+a)
+ any loadable test SW, 
+
+b)
+
+c)
+
+d)
+ run time Instructions, 
+
+e)
+ test set instructions, and 
+
+f)
+ test system normalization instructions. 
+
+
+a)
+
+b)
+
+
+The inputs can include but are not limited to the following items: 
+
+a)
+ Communication standards such as ARINC 
+
+b)
+
+
+
+a)
+ EH&S standards 
+
+b)
+
+ Internal Technical Documents 
+
+a)
+ ATR (optional) 
+
+b)
+ ATP 
+
+c)
+
+d)
+ Environmental Stress Screening Plan 
+
+e)
+ UUT ICD  
+
+f)
+
+ Other Sources 
+
+a)
+ End user and/or Stakeholder meetings, verbal comments, emails, etc. 
+
+b)
+ Lesson learned 
+
+c)
+ Applicable Problem Reports 
+
+d)
+ Approved bid presentations 
+
+
+e)
+
+
+ 
+a)
+ SysRD 
+
+b)
+
+c)
+
+d)
+
+e)
+
+f)
+ Test Cases 
+
+g)
+ HW and SW reports, if needed 
+
+
+a)
+
+b)
+
+c)
+
+d)
+
+e)
+
+
+f)
+
+g)
+
+
+Organization and test system project functions perform actions to optimize, which benefit and reduce the risks arising from technical decisions and actions. 
+a)
+ Identifies system stakeholders and their needs. 
+
+b)
+ Identifies system constraints. 
+
+c)
+
+d)
+
+
+  
+
+a)
+ Identify the stakeholders. 
+
+b)
+
+c)
+
+d)
+ Gain access to systems or services. 
+
+
+ Define Stakeholder Needs 
+
+a)
+
+b)
+ Identify and define stakeholder needs and provide rationale. 
+
+c)
+  Assign priority. 
+
+
+
+a)
+ Define capabilities through scenarios. 
+
+b)
+ Identify user/system interaction. 
+
+
+
+a)
+ Identify system constraints. 
+
+b)
+
+
+
+a)
+
+b)
+
+c)
+
+
+
+a)
+
+b)
+
+c)
+
+
+
+  
+a)
+
+b)
+
+c)
+
+d)
+
+e)
+
+
+a)
+
+i)
+ Define system function boundaries. 
+
+ii)
+
+iii)
+
+iv)
+ Gain access to systems or services. 
+
+
+b)
+
+i)
+ Define system functions. 
+
+ii)
+ Define constraints. 
+
+iii)
+
+iv)
+
+
+c)
+
+i)
+
+ii)
+
+iii)
+
+
+d)
+
+i)
+
+ii)
+
+iii)
+
+
+
+  
+ 
+Adaptability 
+ . 
+  
+ 
+Customer 
+  
+ . 
+ 
+Environmental Conditions 
+ . 
+  
+ 
+Functional 
+ . 
+ . 
+ 
+Human Factors 
+ . 
+  
+ 
+Information Management 
+ . 
+  
+ 
+ . 
+ . 
+ 
+Maintainability 
+ . 
+ . 
+ 
+Non-Functional 
+ . 
+  
+ 
+  
+ . 
+ 
+Packaging, Handling, Shipping, and Transportation 
+ . 
+  
+ 
+ . 
+ . 
+ 
+Physical 
+ . 
+  
+ 
+  
+ . 
+ 
+Policy and Regulation 
+ . 
+  
+ 
+ . 
+  
+ 
+Reliability 
+ . 
+  
+ 
+Safety 
+  
+ . 
+ 
+System Life Cycle Sustainment 
+ . 
+  
+ 
+System Modes and States 
+ . 
+  
+ 
+System Security (includes cybersecurity) 
+ . 
+  
+ 
+Usability/Quality-in-Use 
+ . 
+  
+ 
+
+ 
+Defines growth, expansion, capability, and contraction to include future system or system element capability. 
+Environmental conditions the system or system elements may be subjected to such as noise, shock, temperature, moisture, pressure, and electromagnetic conditions. 
+  
+Defines the systems management of information it receives, generates, or exports. 
+Includes packaging, handling, shipping, transportation, and storage of the system and system elements. 
+  
+BUs have different safety guidance documents tailored for their needs.  
+ATE also uses the hRC guidance as follows: 
+a)
+
+b)
+
+i)
+
+
+
+Refers to data and information collected and analyzed for life cycle sustainment and support activities. 
+  
+a)
+
+b)
+
+
+Example: 
+a)
+ Resolves problems, objectives, or concerns. 
+
+b)
+ Has measurable conditions. 
+
+c)
+ Uses constraint boundaries. 
+
+d)
+
+e)
+ Is verifiable. 
+
+
+f)
+
+
+a)
+ General  
+
+
+The <ACTOR>shall<ACTION>.   
+b)
+ Event-Driven  
+
+
+The <ACTOR>shall<ACTION> when <CONDITIONS/EVENTS>, or  
+when <CONDITIONS/EVENTS>, the <ACTOR>shall<ACTION>.  
+c)
+ State-Driven  
+
+
+The <ACTOR>shall<ACTION> while <CONDITIONS>, or  
+while <CONDITIONS>, the <ACTOR>shall<ACTION>.  
+d)
+ Optional Feature  
+
+
+The <ACTOR>shall<ACTION> where <CONDITIONS/EVENTS>, or  
+where <CONDITIONS>, the <ACTOR>shall<ACTION>.  
+e)
+ Complex  
+
+
+(combinations of the above patterns)  
+f)
+ Multi-Conditional  
+
+
+The <ACTOR>shall<ACTION> when  
+CONDITION A, and  
+CONDITION B, and  
+CONDITION C  
+g)
+ Timing Constrained  
+
+
+(above <ACTION>(s) in each formatcan be appended with <TIMING CONSTRAINTS>) 
+a)
+
+b)
+ Avoid using negatives shall not, should not, etc. 
+
+c)
+
+d)
+
+e)
+
+f)
+
+g)
+ Use verbs such as are, is, and was as descriptive text. 
+
+h)
+ Use active voice (the test system shall use) rather than passive voice (it shall be required that). 
+
+
+i)
+ Avoid terms such as shall be able to as they are ambiguous. 
+
+j)
+
+k)
+ Avoid using jargon, figures of speech, or idioms. 
+
+
+a)
+
+b)
+ Physical limitations (e.g., a UUT shall fit on the test stations mounting surface) 
+
+c)
+ Laws and regulations 
+
+d)
+
+e)
+ Test solution re-host technology 
+
+f)
+
+g)
+ User capabilities 
+
+
+a)
+
+
+b)
+
+
+c)
+
+
+i.
+ Avoid superlatives (extremes) such as best or greatest. 
+
+ii.
+ Use objective (facts) instead of subjective (unproveable) language such as need for, most mature, or cost effective. 
+
+
+Example (incorrect): The test set shall cool the fixture. 
+iii.
+ Avoid vague pronouns. 
+
+
+Example (incorrect): It shall give the data. 
+Example (correct): The test station display shall show the test results using Arial text. 
+iv.
+ Avoid adverbs and adjectives that distract. 
+
+
+Example (incorrect): The test set shall almost always produce test results. 
+v.
+
+
+Example (incorrect): The test station shall send test data results to both the main frame and/or to the portable memory slot. 
+Example (correct): The test station shall send test data results to the main frame. 
+The test station shall send test data results to the portable memory slot. 
+vi.
+
+
+vii.
+ Avoid comparative phrases such as similar to or in contrast. 
+
+
+Example (incorrect): The test set shall allow testing one card that is similar to another. 
+ 
+viii.
+ Avoid loopholes such as when able or if possible. 
+
+
+ix.
+ Avoid totality terms such as forever and all that affect the verification. 
+
+
+Example (incorrect): The test set shall be able to run forever. 
+x.
+
+
+d)
+
+
+e)
+
+
+f)
+
+
+g)
+
+
+h)
+
+
+i)
+
+
+a)
+
+
+b)
+
+
+The set is clearly understood without interpretation of system intent. 
+c)
+
+
+The set achieves the system and system entity needs within the given constraints. 
+Default Attribute 
+ Default Attribute Options 
+ ATE Entries 
+ RMP 
+ 
+Status 
+ Draft 
+Ready For Review 
+Reviewed 
+ A newly created item is in the Draft state. When complete, the SE sets the status to Ready for Review 
+ 
+ ASIC/FPGA 
+System 
+  
+ 
+Name 
+ Rich text fields cannot have default values. 
+  
+ 
+
+Default Attribute 
+ Default Attribute Options 
+ ATE Entries 
+ RMP 
+ 
+ Rich text fields cannot have default values. 
+  
+ 
+Status 
+ Variable 
+ SE sets the status. 
+  
+ 
+Change Driver 
+ Rich text fields cannot have default values. 
+ 
+Verification Methods 
+ Analysis 
+Simulation 
+Demonstration 
+Service History 
+Test 
+Test Unintended Function Unassigned 
+Verified at Another Level 
+ Select one method. 
+ 
+Allocation/s 
+ Rich text fields cannot have default values. 
+ 
+ Yes 
+No 
+Unassigned 
+ 
+Rationale 
+ Rich text fields cannot have default values. 
+ 
+ No 
+Yes 
+Unassigned 
+ 
+Safety Rationale 
+ Rich text fields cannot have default values. 
+ 
+ No 
+Yes 
+Unassigned 
+ 
+Security Rationale 
+ Rich text fields cannot have default values. 
+ 
+Export Controlled 
+ No License Required 
+ITAR 
+EAR License Required 
+EAR No License Required 
+Unassigned 
+ Enter the applicable export status. 
+  
+ 
+Customer ID 
+ Rich text fields cannot have default values 
+ Not Used  leave blank 
+  
+ 
+Statement of Compliance 
+ Fully Compliant 
+Partially Compliant 
+Shared Compliance 
+Approved Deviation 
+Non-Compliant 
+N/A 
+Unassigned 
+ Limited as follows: 
+ 
+
+Default Attribute 
+ Default Attribute Options 
+ ATE Entries 
+ RMP 
+ 
+ 
+Compliance Rationale 
+ Rich text fields cannot have default values. 
+ Enter a clear rationale if the item is set to anything except N/A. 
+ 
+FDAL 
+ Unassigned 
+A 
+B 
+C 
+D 
+E 
+N/A 
+  
+ 
+Validation Method/s 
+ Unassigned 
+Analysis 
+Engineering Judgment 
+Modeling 
+Similarity 
+Test 
+Traceability 
+Review 
+N/A 
+ Select one or more method(s). Use the keyboard Control key to select multiple methods. 
+ 
+Validation Evidence 
+ Rich text fields cannot have default values. 
+ Enter a clear evidence statement unless the Validation Method is set to Unassigned or N/A. 
+  
+ 
+Validation Conclusion 
+ No 
+Yes 
+Unassigned 
+  
+ 
+Project Defined  
+ Rich text fields cannot have default values. 
+ This field is an optional field that can be used as each project needs. 
+  
+ 
+DOORS Relationship 
+ Rich text fields cannot have default values. 
+ Leave blank 
+  
+ 
+DOORS ID 
+ Rich text fields cannot have default values. 
+ Not Used  leave blank 
+  
+ 
+ Unassigned 
+Yes 
+No 
+ Not Used  leave as Unassigned 
+  
+ 
+Robust Rationale 
+ Rich text fields cannot have default values. 
+ Not Used  leave blank 
+  
+ 
+Key Characteristic 
+ Unassigned 
+Yes 
+No 
+ Not Used  leave as Unassigned 
+  
+ 
+Upstream Cross Instance Relationships 
+ Rich text fields cannot have default values. 
+ Populated automatically when traceability is established. 
+  
+ 
+Downstream Cross Instance Relationships 
+ Rich text fields cannot have default values 
+ Populated automatically when traceability is established. 
+  
+ 
+Release 
+ Not Used 
+ Not Used  leave blank 
+  
+ 
+
+Enter Approved Deviation in the Compliance Rationale along with any other comment warranted to address compliance. 
+Rationale examples include the following items, though not inclusive: 
+a)
+ Obsolete: Not part of the test system project anymore. 
+
+b)
+ Modified: Updated per the discussion. 
+
+c)
+
+
+a)
+
+b)
+
+
+ Responsibility 
+ 
+High-level System 
+ 
+ 
+ 
+Describes high-level customer needs 
+ 
+ 
+ SE defines the I/O based on the ICDs 
+ 
+Low-level HW and SW 
+ 
+ -
+
+-
+ Meaning remains the same, but words can change 
+
+
+ 
+ 
+-
+
+-
+
+
+ -
+
+-
+
+-
+
+
+ 
+
+  
+Validation Method 
+ Explanation 
+ 
+Unassigned 
+ The validation method has not been assigned. 
+ 
+Analysis 
+ 
+Engineering Judgment 
+ Assumption(s) based on explicit knowledge, historical or service experience, and/or acceptable rationale. This judgment can be later substantiated by supporting data. Another term is expert judgment. 
+ 
+Modeling 
+ 
+Similarity 
+ 
+Test 
+ 
+Traceability 
+ 
+Review 
+ 
+N/A 
+ 
+
+  
+Verification Method 
+ Explanation 
+ 
+Analysis 
+ 
+Simulation 
+ Analysis through simulation. 
+ 
+Demonstration 
+ Demonstration is the manipulation of the product or system as it is intended to be used to verify that the results are as planned or expected. 
+ 
+ 
+Service History 
+ 
+Test 
+ 
+Test Unintended Function 
+ Same as test but focused on proving unintended functions. 
+ 
+Unassigned 
+ Default 
+ 
+Verified at Another Level 
+ Credit can be documented in the SysRD using the verification conducted during higher-level customer or low-level HW or SW verification. 
+ 
+
+  
+  
+
+ 
+
+  
+Key Indicator Name 
+ Type/ Characteristic/ Definition? 
+ 
+ 
+ 
+
+a)
+
+b)
+
+c)
+ Missing attributes 
+
+d)
+ Incorrect attribute values 
+
+
+A Jama baseline is a snapshot of the test system project or select collection (set or folder) at a point in time. The version of the selected items and their relationships is forever associated with that baseline. Versions do not change with a baseline, but each baseline establishes a new version. Relationships remain the same with each baseline.  
+NOTE: Comparing baselines can be done if that option is activated. Otherwise, you can export the baseline in Word and perform a document comparison. 
+The SE produces formal Jama baselines upon satisfying the following actions: 
+a)
+
+b)
+ When the peer review is complete. 
+
+c)
+
+
+The V&V Engineer performs the validation per this section and documents the comments and status in the Jama tool. 
+NOTE: Re-validation is not needed to correct typographical errors unless the change impacts the original understanding. Example: Changing the text The cabint shall be panted black. to The cabinet shall be painted black. does not change the understanding. 
+The SysRDs Validation Conclusion attribute can be set to Yes if the following items are true: 
+a)
+
+i)
+ Checked through tracing. 
+
+
+b)
+ The test system project team reviews and agrees with the Validation Method and Validation Evidence. 
+
+
+Annotate the Validation Evidence in the SysRD to record the claim. 
+  
+The V&V Engineer 
+a)
+ enters comments into the Validation Evidence to support the evidence. 
+
+b)
+ sets the Validation Conclusion to Yes. 
+
+c)
+ reports the validation status to the cognizant SE. 
+
+
+  
+
+  
+The V&V Engineer 
+a)
+ keeps the Validation Conclusion attribute set to No. 
+
+b)
+ enters a comment stating why the checklist item failed. 
+
+c)
+ reports the validation status to the cognizant SE. 
+
+
+ 
+
+Keep all previous pass/fail validation entries until the SE creates a new baseline (test system project or component) in Jama. All baselines are archived in Jama. 
+a)
+ After the V&V Engineer completes a full or major validation. 
+
+b)
+
+
+ 
+If the test system project requires, the team can export a variety of data dependent on the chosen filters or export templates. Use a filter or export template with the appropriate project attributes to generate documents suitable to present to stakeholders. Some templates limit the available format while some offer web, pdf, Word, and/or Excel format. 
+Some common documents are as follows. 
+The suggested method to generate a validation matrix is as follows: 
+a)
+ Select the Jama component for export. 
+
+b)
+ Use the dropdown in the Export tab. 
+
+c)
+
+d)
+ The View all export options" has available templates. Templates such as All Items Details and Bidirectional Trace Report should provide enough data for the validation matrix. 
+
+
+NOTE: The referenced templates might only be available in the hRC Jama templates. You can also create custom templates. 
+  
+Source 
+ 
+Item Type 
+ Item ID 
+ Name 
+ Status 
+ Change Driver 
+ 
+ Safety Checklist 
+ Reviewed 
+ System 
+   
+ 
+
+ 
+Source (continued) 
+ 
+Validation Conclusion 
+ Validation Evidence 
+ Validation Method/s 
+ Verification Method 
+ Allocation/s 
+ Rationale 
+ 
+Yes 
+ Engineering Judgement, Review 
+ Sys, HW 
+ No 
+   
+ 
+
+ 
+Source (continued) 
+ 
+ Safety Rationale 
+ Security Rationale 
+ Statement of Compliance 
+ 
+Yes 
+   
+ No 
+ N/A 
+ 
+
+ 
+ 
+Item Type 
+ Item ID 
+ Name 
+ Allocation/s 
+ 
+ Sys, HW 
+ 
+
+ 
+ 
+a)
+ An informal review is a preliminary review usually conducted by a small team of reviewers that can be performed at any time. 
+
+b)
+
+
+ 
+
+ATE also uses the JRC to review the verification cases and procedures. Users can also review other artifacts such as ATPs, ATMs, ICDs, etc. if they choose to use Jama for those documents. 
+ATE-SE oversees all JRC activity. Refer to the JRC training and instructions in Confluence for expectations, best practices, and roles when using the JRC. 
+  
+Stakeholder 
+ JRC Reviewer 
+ JRC Approval 
+ 
+SE  
+ Author 
+ N/A 
+ 
+ Yes 
+ Yes 
+ 
+HW  
+ Yes 
+ Yes 
+ 
+SW 
+ Yes 
+ Yes 
+ 
+PE 
+ Yes 
+ Yes 
+ 
+DE 
+ Yes 
+ Yes 
+ 
+MEE 
+ Yes 
+ Yes 
+ 
+ Yes 
+ Yes 
+ 
+
+Workflows in projects provide:  
+a)
+ A status for an item or group of items. Items must be the same type and in the same workflow state.  
+
+b)
+ The ability to transition items from one status to the next, either for a single item or as a batch transition for a group of items.  
+
+c)
+ Lock items in the reviewed state to avoid inadvertent modifications. 
+
+
+ 
+ 
+The standard states for items include:  
+a)
+ Draft - This is the initial state during new item creation.  
+
+b)
+ Ready for Review - Once an item is prepared, it transitions to this state for further evaluation.  
+
+c)
+ Reviewed - After thorough review, the item reaches this final state.  
+
+
+The transitions between these states are as follows:  
+a)
+ From Draft to Ready For Review  
+
+b)
+ From Ready For Review to Reviewed  
+
+
+The transitions are shown in the figure below:  
+ 
+The SE takes the actions that follow prior to initiating an SyRR: 
+
+ Baselines the Jama database. 
+
+
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Invited Stakeholder 
+ SRR/SyRR Approval 
+ 
+SE 
+ 
+Non-Advocate SE 
+ Yes 
+ 
+HW 
+ 
+SW 
+ 
+PE 
+ Yes 
+ 
+DE 
+ Yes 
+ 
+MEE 
+ 
+DAC  
+ Yes 
+ 
+VSL  
+ 
+ Yes 
+ 
+ Yes 
+ 
+ Yes 
+ 
+V&V Engineer 
+ 
+ATE-Arch 
+ 
+OPM 
+ Yes 
+ 
+NPI 
+ 
+
+The SE generates an SyRR presentation using the SyRR template located on the ATE SOP: 
+
+ Enter a screen shot of the JRC summary. 
+
+
+All SyRR stakeholders meet to discuss the SyRR items and provide comments. Teams may opt to use PREP to record their activity. 
+The SE 
+ sends an email to the stakeholders asking for SyRR approval and 
+
+
+ documents actions in the projects action item log. 
+
+
+Take the following actions after the SyRR: 
+
+
+
+ Upload the SyRR presentation, action item list, and approvals to location where the test system project documentation is located such as the projects SharePoint, Subversion, PREP, etc. 
+
+
+
+The test system project then progresses into the PDR phase. 
+ATE-SE leads the TRR test system verification testing activities prior to deployment (sell-off). The SE confirms the system to be tested and that test planning artifacts and testing resources are mature, appropriate, aligned, available, and have necessary approvals in place prior to the start of test. After TRR is approved, the SE can lead the project team in completing For Score verification testing of the test system prior to sell-off. 
+a)
+
+b)
+
+
+The plan includes the following items: 
+a)
+
+b)
+ Verifying capabilities of the UUTs 
+
+c)
+
+i)
+ the number of units tested, 
+
+ii)
+ test cases witnessed, 
+
+iii)
+ pedigree/status of test articles, 
+
+iv)
+ fault injection/failure mode analysis, 
+
+v)
+
+vi)
+ additional Test unintended function verification required 
+
+
+d)
+ The verification plan includes the following suggested sections. See the verification plan template for additional information: 
+
+i)
+ Purpose and Scope 
+
+ii)
+ Source Documentation 
+
+iii)
+ Equipment and Unit Under Test Overview 
+
+
+
+iv)
+
+v)
+ Verification Methodology 
+
+vi)
+ Test Case and Procedure Ownership 
+
+vii)
+ Verification Artifacts 
+
+viii)
+ Appendices 
+
+
+
+a)
+
+i)
+ Test ID (if applicable) 
+
+ii)
+ Test Name 
+
+iii)
+ ATP version (if applicable) 
+
+iv)
+ Engineering Test SW version (if applicable) 
+
+v)
+ Test solution SW version (if applicable) 
+
+
+b)
+
+i)
+ Summary Test 
+
+ii)
+ Case description 
+
+
+c)
+ Identify verification status. 
+
+d)
+
+i)
+ Completion Date 
+
+ii)
+ Verifier (Name) 
+
+
+
+Each of the subsections below has a definition and description of how to use the verification method: 
+a)
+ Definition says what it is. 
+
+b)
+ Use Case describes how to use the method. 
+
+c)
+ Use Case Scenario is an example of the method. 
+
+d)
+ Evidence Example describes a possibility of what you might enter as your evidence statement. 
+
+
+  
+Use Case Scenario: Calculate the length of a cable to determine the amount of theoretical signal degradation at the maximum cable length. 
+Evidence Example: A report detailing the calculations used to derive the cable lengths. 
+Supporting evidence for the inputs used in the analysis is required for the analysis to be valid for a verification conclusion. 
+Analysis can use similarity against another test solutions prior verification if the solution 
+a)
+
+b)
+
+c)
+
+
+ATE normally performs Demonstration or Test rather than Simulation. 
+Evidence Example: Enter the simulation results as verification evidence. 
+Use Case Scenario: Physically demonstrating that a power cable with a keyed plug connects properly with its intended keyed socket. 
+Evidence Example: A data sheet from a test system that confirms power was properly applied to a UUT. Add the data sheet as verification evidence. 
+Think of a demonstration as a limited test that does not include all variables that could impact the system. 
+  
+Definition: Service history (or service experience) is a comparative method of assessing the characteristics, attributes, and/or qualities of a new test system to the service history of a previously fielded test system. 
+Use Case: Determine if the key characteristics of a new product align with the key characteristics of a previously released product's service history. 
+Use Case Scenario: Determine if a test solution performs within statistically relevant historic data of a similar test solution. 
+Evidence Example: Enter documented service history and engineering judgment to support the verification into the verification evidence. Ensure there are no significant failures or unresolved issues prior to making the claim. 
+Use Case: When a quantitative analysis of a test case is feasible, practical, or of value. 
+Evidence Example: Add a test report to the verification evidence to show proof that the test passed.  
+Testing requires test equipment or instrumentation to acquire accurate quantitative data for analysis to prove the test achieved a measurable result. 
+  
+Definition: A Test for Unintended Function (TUF) method verifies a test solution does not perform unintended or undesirable functions that impact functionality or safety. 
+Use Case Scenario: Determine if test system can output one or more UUT part numbers during a test.   
+Evidence Example: Enter a test report into the verification evidence that confirms the test system can only output one UUT part number. Also include the failure data. 
+Ad-hoc testing scenarios are based on engineering judgment and can include the testing that follows: 
+a)
+ Normal and abnormal test system scenarios. 
+
+b)
+ Incorrect usage of controls. 
+
+c)
+ Failure of primary system functions. 
+
+d)
+ Exercise multiple controls simultaneously. 
+
+e)
+ System responses to power off units and reversion and individual/multiple bus failure scenarios. 
+
+
+Use Case Scenario: 
+a)
+
+b)
+
+
+Evidence Example: 
+a)
+
+b)
+
+
+Artifact 
+ 
+Verification Procedure 
+ 
+Verification Summary 
+ Logbook, test data 
+ 
+Verification Matrix 
+ Jama 
+ 
+
+ 
+Additionally, export should include the following items: 
+a)
+ Verification Method 
+
+b)
+ Verification data and artifacts 
+
+c)
+
+d)
+
+
+ATE recommends using Appendix C to evaluate test cases, and when entering verification evidence. This occurs after CDR. Search the Test Engineering Standard Operating Procedure page for the Verification Procedure template. 
+  
+a)
+
+b)
+
+c)
+ structural coverage analysis 
+
+d)
+ re-verification 
+
+e)
+ involving test environment site 
+
+f)
+ problem reporting 
+
+g)
+ corrective actions 
+
+h)
+ code/testing effort can be contributing factors for test case and verification method selection. 
+
+
+Keep all previous pass/fail verification entries until the SE creates a new baseline (test system project or component) in Jama. Then you can reduce the data to the most relevant entries since the old data is archived in Jama in the previous baseline. 
+a)
+ After the V&V Engineer completes a full or major verification. 
+
+b)
+ Prior to a subsequent verification effort. 
+
+
+Test System Validation includes a successful run of the ATP (or equivalent) and confirming that the datasheet has all of the expected ATP paragraphs and appropriate test results recorded.  Additional Test System Validation tests will be identified by the project in the Validation plan.  These tests are intended to be tested after the test system is installed at the customers site. The SE, or delegate, normally conducts the test system validation for test systems delivered to ATE sites.  
+ATE recommends using Appendix D to evaluate the test system validation. 
+The test system supplier is responsible, as agreed, for the test system validation documents that follow. 
+ 
+ 
+
+ Definitions 
+Term 
+ Definition 
+ 
+Allocated 
+ 
+Attribute 
+ An entities property or characteristic. 
+ 
+Baseline 
+ The approved version of a work product that can be changed using formal change control procedures and is used as the basis for comparison to actual results during the systems life cycle. 
+ 
+Completeness 
+ Completeness consists of the following items. 
+
+
+
+
+ All test system and/or sub-system architecture is covered. 
+
+
+
+ All the prohibited behavior characteristics are explicitly stated. 
+
+
+ The safety assessment is considered. 
+
+
+ 
+Compliance 
+ 
+Condition 
+ 
+Constraint 
+ An imposed external stakeholder system or system element limitation. 
+ 
+Correctness 
+ Correctness consists of the following items. 
+ In accordance with the needs and constraints of the user. 
+
+
+
+ Unambiguous, realizable, and verifiable (the acceptance criteria are defined). 
+
+
+ The functioning modes are defined (scenarios). 
+
+
+
+ The assumptions are identified (documented, traced). 
+
+
+ 
+Covered 
+ 
+Customer 
+ An internal or external entity that receives or uses a product or service. Customers are a subset of stakeholders. 
+ 
+Cybersecurity 
+ Protecting systems and sensitive information from digital attacks with a concentration on networked systems and applications. 
+A sub-set of system security. 
+ 
+ 
+Developer 
+ 
+Engineering Judgment 
+ Assumption(s) based on explicit knowledge, historical or service experience, and/or acceptable rationale. This judgment can be later substantiated by supporting data. Another term is expert judgment. 
+ 
+
+Term 
+ Definition 
+ 
+Environment 
+ Environmental conditions the system or system elements may be subjected to such as noise, shock, temperature, moisture, pressure, and electromagnetic conditions. 
+ 
+Independence 
+ 
+Non-advocate 
+ A SME independent of the test solution project. 
+ 
+Operator 
+ 
+Project 
+ 
+ A singular clear, concise, and unambiguous statement that describes a need, constraints, and action associated with a system or product. It is validatable and verifiable. 
+ 
+ 
+Stakeholder 
+ Persons, teams, or companies, whether agreed or opposed, that have an interest in and/or responsibility for the system or system elements. 
+ 
+Supplier 
+ A party that agrees to provide a product or service to a customer. 
+Suppliers are a subset of stakeholders. 
+ 
+System 
+ Interacting products or services combined to satisfy stakeholder needs. 
+ 
+System Architecture 
+ 
+System Element 
+ An individual sub-component (product, service, etc.) of a system. 
+ 
+System Security 
+ Protecting and securing a system from malicious threats and attacks, such as virus and physical entry, to maintain system integrity, secrecy, and availability. 
+ 
+Tailor 
+ 
+Test System 
+CTSA: The complete test solution package to include the rack, test instruments, power and signal sources, ITA, accessories (such as probes). 
+ 
+Trace 
+ 
+Traceability Matrix 
+ 
+User 
+ (Also, end-user) A person or team that physically or indirectly interacts with and/or maintains a system. Users are a subset of stakeholders. 
+ 
+ 
+Validation (Test System) 
+ 
+Verification 
+ Performing verification cases and recording the activities (tests, analysis, etc.) listed in the Verification Method. 
+ 
+Test Case 
+ 
+
+  
+Item 
+ Evaluation Criteria 
+ RMP Section 
+ 
+ Confirm the references correct. 
+ 
+ 
+ 
+ 
+ 
+ 
+ Confirm all tables and figures are accurate and up to date. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Confirm all change requests and findings been resolved. 
+ 
+ 
+ 
+ Appendix A 
+ 
+ 
+ Confirm the abbreviations, acronyms, and definitions are explained. 
+ Appendix A 
+ 
+
+  
+ Verification Review Guideline 
+Teams should use the following guideline when conducting reviews of test cases and verification procedure, and when entering verification evidence. The RMP column aligns with the criteria.  
+Item 
+ Evaluation Criteria 
+ RMP Section 
+ 
+ Confirm the safety checklist is completed. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Confirm the test report reference and other evidence has been entered into the verification matrix. 
+ 
+ 
+ 
+ Confirm the verification procedure completely implement the verification case(s) they trace to. 
+ 
+ Confirm the test environment conditions are documented and that they are sufficient and necessary for the test cases. 
+ 
+ Confirm the initial test environment conditions are set for the test case they execute. 
+ 
+ Confirm the verification procedure includes any necessary additional step-by-step instructions for how each test case is set up and executed in the test environment. 
+ 
+ 
+ 
+ Confirm the test case is feasible at the system level to independently test each unique system state and/or condition. 
+ 
+ 
+ 
+ Confirm, if feasible, the test case tests out of range or unexpected inputs. 
+ 
+ 
+ 
+ Confirm there are adequate checks in the verification procedure if not listed in the test cases to show the initial conditions setup is correct. 
+ 
+ Confirm the verification procedure includes steps for performing test data logging, if needed. 
+ 
+
+  
+ Test System Validation Review Guideline 
+Teams should use the following guideline when conducting reviews as part of the test system validation. The RMP column aligns with the criteria. 
+Item 
+ Evaluation Criteria 
+ RMP Section 
+ 
+ Confirm the Verification Test Report has been released. 
+ 
+ Confirm the verification matrix (or summary) has been reviewed (released). 
+ 
+ 
+ Confirm receiving customer approves the Test System is able to complete the required testing or programming actions. 
+ 
+
+ 
+ Optional Jama Usage 
+Compliance Data Item in Jama: Usage and Guidelines  
+Key Features of Compliance Data Items:  
+
+ Documentation: They serve as a repository for all compliance-related information, including evidence of compliance, audit trails, and regulatory submissions.  
+
+
+
+How to Use Compliance Data Items in Jama:  
+ Creating a Compliance Data Item:  
+
+o
+ Navigate to the relevant project in Jama.  
+
+o
+
+o
+
+ Linking Compliance Data Items:  
+
+o
+
+o
+
+ Documenting Evidence of Compliance:  
+
+o
+ Attach relevant documents such as regulatory submissions, audit reports, and compliance certificates to the CDI.  
+
+o
+ Use the "Comments" section to add notes and updates related to compliance activities and audits.  
+
+ Reviewing and Approving Compliance Data Items:  
+
+o
+ Set up review and approval workflows in Jama to ensure CDIs are reviewed and approved by the appropriate stakeholders.  
+
+o
+
+ Monitoring and Reporting:  
+
+
+o
+ Use Jama's reporting features to generate compliance reports and dashboards.  
+
+o
+ Monitor the status of all CDIs to ensure ongoing compliance throughout the project lifecycle.  
+
+
+Stakeholder Desires: Usage and Guidelines  
+Key Features of Stakeholder Desire Item:  
+Traceability: Stakeholder Desires can be traced to source documentation or a rationale can be recorded to identify the stakeholder who provided the request.  
+How to Use:  
+Search the Test Engineering Standard Operating Procedure for more information on how to use the Stakeholder Desire Item Type in Jama. 
