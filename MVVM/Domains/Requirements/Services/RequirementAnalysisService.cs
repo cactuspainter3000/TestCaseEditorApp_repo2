@@ -2083,6 +2083,21 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                     var violationCount = complianceResult.Validation?.Violations?.Count ?? 0;
                     var detailedViolations = BuildComplianceFailureDiagnostics(complianceResult);
                     var responseDiagnostics = BuildRawResponseDiagnostics(rawResponse);
+
+                    // If envelope validation fails only because the model returned non-JSON text,
+                    // allow parser-manager fallback rather than failing closed immediately.
+                    // This protects scrape-derived requirements where the model sometimes emits
+                    // structured prose that the natural-language parser can still consume.
+                    if (CanUseParserFallbackForComplianceFailure(complianceResult, rawResponse, requirementItem, responseDiagnostics))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn(
+                            $"[RequirementAnalysisService] Compliance envelope validation failed for {requirementItem}, " +
+                            "but parser fallback succeeded. Proceeding with raw response parse. " +
+                            $"Violations={violationCount}, Diagnostics={detailedViolations}, ResponseDiagnostics={responseDiagnostics}");
+
+                        return rawResponse;
+                    }
+
                     TestCaseEditorApp.Services.Logging.Log.Error(
                         $"[RequirementAnalysisService] Compliance validation did not pass for {requirementItem}. " +
                         $"Violations={violationCount}, Score={complianceResult.Validation?.OverallScore:F2}. " +
@@ -2249,6 +2264,51 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
             }
 
             return parts.Any() ? string.Join(" | ", parts) : "No detailed violations returned by compliance wrapper";
+        }
+
+        private bool CanUseParserFallbackForComplianceFailure(
+            ComplianceResult<string> complianceResult,
+            string rawResponse,
+            string requirementItem,
+            string responseDiagnostics)
+        {
+            if (string.IsNullOrWhiteSpace(rawResponse))
+            {
+                return false;
+            }
+
+            var hasJsonEnvelopeFailure =
+                responseDiagnostics.Contains("ParseState=InvalidJson", StringComparison.OrdinalIgnoreCase) ||
+                (complianceResult.Validation?.Violations?.Any(v =>
+                    string.Equals(v.ViolationType, "OutputValidation", StringComparison.OrdinalIgnoreCase) &&
+                    (v.Description?.Contains("Could not extract valid JSON", StringComparison.OrdinalIgnoreCase) ?? false)) ?? false);
+
+            if (!hasJsonEnvelopeFailure)
+            {
+                return false;
+            }
+
+            try
+            {
+                var parsed = _parserManager.ParseResponse(rawResponse, requirementItem);
+                if (parsed == null)
+                {
+                    return false;
+                }
+
+                var hasSubstantiveContent =
+                    (parsed.Issues?.Count ?? 0) > 0 ||
+                    (parsed.Recommendations?.Count ?? 0) > 0 ||
+                    !string.IsNullOrWhiteSpace(parsed.ImprovedRequirement);
+
+                return hasSubstantiveContent;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug(
+                    $"[RequirementAnalysisService] Parser fallback probe failed for {requirementItem}: {ex.Message}");
+                return false;
+            }
         }
 
         private static string BuildRawResponseDiagnostics(string rawResponse)
