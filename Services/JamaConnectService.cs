@@ -950,9 +950,23 @@ namespace TestCaseEditorApp.Services
                 
                 // Ensure we have a valid access token for OAuth
                 await EnsureAccessTokenAsync();
+
+                var (itemTypeResolved, requirementItemTypeId) = await GetRequirementItemTypeAsync(projectId, cancellationToken);
+                var requirementItemTypeQuery = itemTypeResolved && requirementItemTypeId.HasValue
+                    ? $"&itemType={requirementItemTypeId.Value}"
+                    : string.Empty;
+
+                if (itemTypeResolved && requirementItemTypeId.HasValue)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Using project requirement item type {requirementItemTypeId.Value} for project {projectId}");
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Could not resolve requirement item type for project {projectId}. Falling back to legacy item retrieval.");
+                }
                 
                 // Try enhanced URL with include parameters first
-                var url1 = $"{_baseUrl}/rest/v1/items?project={projectId}&maxResults=50&include=createdBy,modifiedBy,createdDate,modifiedDate";
+                var url1 = $"{_baseUrl}/rest/v1/items?project={projectId}{requirementItemTypeQuery}&maxResults=50&include=createdBy,modifiedBy,createdDate,modifiedDate";
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Trying enhanced format: {url1}");
                 
                 var response = await _httpClient.GetAsync(url1, cancellationToken);
@@ -965,7 +979,7 @@ namespace TestCaseEditorApp.Services
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Enhanced format failed with 500: {errorContent}");
                     TestCaseEditorApp.Services.Logging.Log.Info("[JamaConnect] Trying basic format without include parameters");
                     
-                    var basicUrl = $"{_baseUrl}/rest/v1/items?project={projectId}&maxResults=50";
+                    var basicUrl = $"{_baseUrl}/rest/v1/items?project={projectId}{requirementItemTypeQuery}&maxResults=50";
                     response = await _httpClient.GetAsync(basicUrl, cancellationToken);
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Basic format response: {response.StatusCode}");
                 }
@@ -1016,7 +1030,7 @@ namespace TestCaseEditorApp.Services
                         
                         while (hasMorePages && pageNumber <= 10) // Safety limit of 10 pages (500 items)
                         {
-                            var nextPageUrl = $"{_baseUrl}/rest/v1/items?project={projectId}&maxResults=50&startAt={startIndex}&include=createdBy,modifiedBy,createdDate,modifiedDate";
+                            var nextPageUrl = $"{_baseUrl}/rest/v1/items?project={projectId}{requirementItemTypeQuery}&maxResults=50&startAt={startIndex}&include=createdBy,modifiedBy,createdDate,modifiedDate";
                             TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Fetching page {pageNumber} with user metadata: startAt={startIndex}");
                             
                             var nextPageResponse = await _httpClient.GetAsync(nextPageUrl, cancellationToken);
@@ -1025,7 +1039,7 @@ namespace TestCaseEditorApp.Services
                             if (!nextPageResponse.IsSuccessStatusCode && nextPageResponse.StatusCode == System.Net.HttpStatusCode.InternalServerError)
                             {
                                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Page {pageNumber} failed with 500 error, trying basic format");
-                                var basicPageUrl = $"{_baseUrl}/rest/v1/items?project={projectId}&maxResults=50&startAt={startIndex}";
+                                var basicPageUrl = $"{_baseUrl}/rest/v1/items?project={projectId}{requirementItemTypeQuery}&maxResults=50&startAt={startIndex}";
                                 nextPageResponse = await _httpClient.GetAsync(basicPageUrl, cancellationToken);
                             }
                             
@@ -1079,9 +1093,12 @@ namespace TestCaseEditorApp.Services
                         TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Pagination complete: {allItems.Count} total items from {pageNumber - 1} pages");
                     }
                     
-                    // Filter for only requirements (itemType 193) and log summary
-                    var requirements = allItems.Where(item => item.ItemType == 193).ToList();
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Retrieved {requirements.Count} requirements from {allItems.Count} total items");
+                    // Final guard filtering to avoid non-requirement bleed-through when endpoint ignores itemType.
+                    var requirements = itemTypeResolved && requirementItemTypeId.HasValue
+                        ? allItems.Where(item => item.ItemType == requirementItemTypeId.Value).ToList()
+                        : allItems.Where(item => item.ItemType == 193).ToList();
+
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Retrieved {requirements.Count} requirements from {allItems.Count} total items (requirementType={requirementItemTypeId?.ToString() ?? "legacy-193"})");
                     
                     return requirements;
                 }
