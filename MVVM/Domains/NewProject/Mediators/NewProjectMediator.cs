@@ -564,6 +564,9 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     return;
                 }
 
+                // Keep workspace JSON aligned with Jama before unload.
+                await TrySyncWorkspaceFromJamaOnCloseAsync(_currentWorkspaceInfo.Path);
+
                 ShowProgress("Closing project...", 50);
                 
                 _logger.LogInformation("Closing project: {WorkspacePath}", _currentWorkspaceInfo.Path);
@@ -623,6 +626,132 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 ShowNotification($"Error closing project: {ex.Message}", DomainNotificationType.Error);
                 HideProgress();
             }
+        }
+
+        private async Task TrySyncWorkspaceFromJamaOnCloseAsync(string workspacePath)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(workspacePath) || !File.Exists(workspacePath))
+                {
+                    return;
+                }
+
+                var workspace = WorkspaceFileManager.Load(workspacePath);
+                if (workspace == null)
+                {
+                    return;
+                }
+
+                var resolvedProjectId = await ResolveJamaProjectIdForWorkspaceAsync(workspace);
+                if (!resolvedProjectId.HasValue)
+                {
+                    _logger.LogInformation(
+                        "Skipping close-time Jama sync: no project ID resolved. Workspace={WorkspacePath}",
+                        workspacePath);
+                    return;
+                }
+
+                if (!_jamaConnectService.IsConfigured)
+                {
+                    _logger.LogWarning(
+                        "Skipping close-time Jama sync for project {ProjectId}: Jama service is not configured.",
+                        resolvedProjectId.Value);
+                    return;
+                }
+
+                var jamaItems = await _jamaConnectService.GetRequirementsAsync(resolvedProjectId.Value, CancellationToken.None);
+                var requirements = await _jamaConnectService.ConvertToRequirementsWithEnumDecodingAsync(
+                    jamaItems,
+                    resolvedProjectId.Value,
+                    CancellationToken.None);
+
+                workspace.Requirements = requirements ?? new List<Requirement>();
+                workspace.JamaProjectId = resolvedProjectId.Value;
+                workspace.JamaProject = resolvedProjectId.Value.ToString();
+                workspace.ImportSource = "Jama";
+                workspace.LastSavedUtc = DateTime.UtcNow;
+
+                try
+                {
+                    var projects = await _jamaConnectService.GetProjectsAsync(CancellationToken.None);
+                    var matchingProject = projects.FirstOrDefault(p => p.Id == resolvedProjectId.Value);
+                    if (matchingProject != null)
+                    {
+                        workspace.JamaProjectName = matchingProject.Name;
+                        if (string.IsNullOrWhiteSpace(workspace.JamaTestPlan))
+                        {
+                            workspace.JamaTestPlan = matchingProject.Name;
+                        }
+                    }
+                }
+                catch (Exception metadataEx)
+                {
+                    _logger.LogDebug(metadataEx, "Close-time Jama metadata refresh failed for project {ProjectId}", resolvedProjectId.Value);
+                }
+
+                WorkspaceFileManager.Save(workspacePath, workspace);
+                _logger.LogInformation(
+                    "✅ Close-time Jama sync complete for project {ProjectId}. Persisted {RequirementCount} requirements.",
+                    resolvedProjectId.Value,
+                    workspace.Requirements.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Close-time Jama sync failed; proceeding with project close.");
+            }
+        }
+
+        private async Task<int?> ResolveJamaProjectIdForWorkspaceAsync(Workspace workspace)
+        {
+            if (workspace.JamaProjectId.HasValue && workspace.JamaProjectId.Value > 0)
+            {
+                return workspace.JamaProjectId.Value;
+            }
+
+            if (!string.IsNullOrWhiteSpace(workspace.JamaProject)
+                && int.TryParse(workspace.JamaProject, out var parsedProjectId)
+                && parsedProjectId > 0)
+            {
+                return parsedProjectId;
+            }
+
+            var settingsProjectId = (_userSettingsService?.LoadSettings()?.JamaProjectId ?? string.Empty).Trim();
+            if (int.TryParse(settingsProjectId, out var parsedSettingsId) && parsedSettingsId > 0)
+            {
+                return parsedSettingsId;
+            }
+
+            var envProjectId = (Environment.GetEnvironmentVariable("JAMA_PROJECT_ID") ?? string.Empty).Trim();
+            if (int.TryParse(envProjectId, out var parsedEnvId) && parsedEnvId > 0)
+            {
+                return parsedEnvId;
+            }
+
+            var candidateNames = new[]
+            {
+                workspace.JamaProjectName,
+                workspace.JamaTestPlan,
+                workspace.JamaProject
+            }
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+            if (candidateNames.Count == 0 || !_jamaConnectService.IsConfigured)
+            {
+                return null;
+            }
+
+            var projects = await _jamaConnectService.GetProjectsAsync(CancellationToken.None);
+            var matchingProject = projects.FirstOrDefault(project =>
+                candidateNames.Any(candidate =>
+                    string.Equals(project.Name, candidate, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(project.Key, candidate, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(project.Id.ToString(), candidate, StringComparison.OrdinalIgnoreCase)));
+
+            return matchingProject?.Id;
         }
 
         public void ShowWorkspaceSelectionForOpen()

@@ -259,11 +259,33 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
                         $"Refreshed {workspace.Requirements.Count} requirements from Jama project {resolvedJamaProjectId.Value}.",
                         DomainNotificationType.Success);
                 }
+                else
+                {
+                    _logger.LogWarning(
+                        "Skipping Jama sync on open. No project ID could be resolved. ImportSource={ImportSource}, JamaProjectId={JamaProjectId}, JamaProject='{JamaProject}', JamaProjectName='{JamaProjectName}', JamaTestPlan='{JamaTestPlan}', RequirementCountInWorkspace={RequirementCount}",
+                        workspace.ImportSource ?? "<none>",
+                        workspace.JamaProjectId?.ToString() ?? "<none>",
+                        workspace.JamaProject ?? "<none>",
+                        workspace.JamaProjectName ?? "<none>",
+                        workspace.JamaTestPlan ?? "<none>",
+                        workspace.Requirements?.Count ?? 0);
+                }
 
                 var workspaceRequirementCount = workspace.Requirements?.Count ?? 0;
                 var workspaceTestCaseCount = workspace.Requirements?.Sum(r => r.GeneratedTestCases?.Count ?? 0) ?? 0;
                 var effectiveRequirementCount = liveRequirementCount ?? workspaceRequirementCount;
                 var effectiveTestCaseCount = liveTestCaseCount ?? workspaceTestCaseCount;
+
+                // Persist normalized/open-time workspace state even when Jama sync is skipped.
+                // This keeps the workspace file aligned with the latest resolved metadata.
+                try
+                {
+                    WorkspaceFileManager.Save(filePath, workspace);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not persist workspace updates on open for {FilePath}", filePath);
+                }
 
                 ShowProgress("Setting up workspace...", 75);
 
@@ -403,6 +425,25 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
+            var configuredProjectId = TryResolveConfiguredJamaProjectId();
+            if (configuredProjectId.HasValue)
+            {
+                var workspaceClaimsJamaAssociation =
+                    string.Equals(workspace.ImportSource, "Jama", StringComparison.OrdinalIgnoreCase) ||
+                    !string.IsNullOrWhiteSpace(workspace.JamaProject) ||
+                    !string.IsNullOrWhiteSpace(workspace.JamaProjectName) ||
+                    !string.IsNullOrWhiteSpace(workspace.JamaTestPlan) ||
+                    (workspace.Requirements?.Any(r => !string.IsNullOrWhiteSpace(r.Project)) ?? false);
+
+                if (workspaceClaimsJamaAssociation)
+                {
+                    _logger.LogInformation(
+                        "Resolved Jama project ID from configured settings/environment fallback: {ProjectId}",
+                        configuredProjectId.Value);
+                    return configuredProjectId.Value;
+                }
+            }
+
             if (candidateNames.Count == 0 || !_jamaConnectService.IsConfigured)
             {
                 return null;
@@ -416,6 +457,31 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
                     string.Equals(project.Id.ToString(), candidate, StringComparison.OrdinalIgnoreCase)));
 
             return matchingProject?.Id;
+        }
+
+        private int? TryResolveConfiguredJamaProjectId()
+        {
+            var envProjectId = (Environment.GetEnvironmentVariable("JAMA_PROJECT_ID") ?? string.Empty).Trim();
+            if (int.TryParse(envProjectId, out var parsedEnvProjectId) && parsedEnvProjectId > 0)
+            {
+                return parsedEnvProjectId;
+            }
+
+            try
+            {
+                var settingsService = App.ServiceProvider?.GetService<IUserSettingsService>();
+                var settingsProjectId = settingsService?.LoadSettings()?.JamaProjectId?.Trim();
+                if (int.TryParse(settingsProjectId, out var parsedSettingsProjectId) && parsedSettingsProjectId > 0)
+                {
+                    return parsedSettingsProjectId;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Could not read Jama project ID from settings service fallback");
+            }
+
+            return null;
         }
     }
 }
