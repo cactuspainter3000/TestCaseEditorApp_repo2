@@ -29,6 +29,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.Events
             public int TotalRequirements { get; init; }
             public int AnalyzedRequirements { get; init; }
             public int RequirementsWithTestCases { get; init; }
+            public int TotalTestCases { get; init; }
             public string SourceDomain { get; init; } = string.Empty;
             public DateTime Timestamp { get; init; } = DateTime.Now;
         }

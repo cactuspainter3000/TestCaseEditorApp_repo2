@@ -46,6 +46,8 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Events
             public string WorkspaceName { get; set; } = string.Empty;
             public string? AnythingLLMWorkspaceSlug { get; set; }
             public Workspace? Workspace { get; set; }
+            public int? RequirementCount { get; set; }
+            public int? TestCaseCount { get; set; }
             public DateTime Timestamp { get; set; } = DateTime.Now;
         }
         

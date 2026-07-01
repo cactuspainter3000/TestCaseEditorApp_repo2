@@ -88,6 +88,11 @@ namespace TestCaseEditorApp.Services
         Task<(bool Success, int? RequirementItemType)> GetRequirementItemTypeAsync(int projectId, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Get the total count of project items for a specific Jama item type.
+        /// </summary>
+        Task<int> GetProjectItemCountAsync(int projectId, int itemTypeId, CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Create a requirement item in Jama Connect
         /// </summary>
         Task<(bool Success, string Message, int? JamaItemId)> CreateRequirementAsync(int projectId, Requirement requirement, int? preferredParentContainerId = null, CancellationToken cancellationToken = default);

@@ -332,7 +332,16 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
         private void OnWorkspaceLoaded(OpenProjectEvents.WorkspaceLoaded eventData)
         {
             RequirementCount = eventData.RequirementCount;
-            ProjectStatus = $"Loaded {eventData.RequirementCount} requirements";
+            var requirements = eventData.Workspace?.Requirements ?? new List<Requirement>();
+            AnalyzedCount = requirements.Count(r => r.Analysis != null);
+
+            var savedTestCaseCount = requirements.Sum(r => r.GeneratedTestCases?.Count ?? 0);
+            TestCasesGeneratedCount = Math.Max(eventData.TestCaseCount, savedTestCaseCount);
+
+            ProjectStatus = $"Loaded {RequirementCount} requirements and {TestCasesGeneratedCount} test cases";
+
+            OnPropertyChanged(nameof(AnalyzedPercentage));
+            OnPropertyChanged(nameof(TestCasesPercentage));
         }
 
         /// <summary>

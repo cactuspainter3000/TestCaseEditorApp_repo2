@@ -161,11 +161,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.Mediators
             else if (notification is NotificationEvents.RequirementsProgressChanged progressChanged)
             {
                 // This is the authoritative source of statistics from RequirementsMediator
-                UpdateRequirementsProgress(
-                    progressChanged.TotalRequirements,
-                    progressChanged.AnalyzedRequirements,
-                    progressChanged.RequirementsWithTestCases,
-                    progressChanged.SourceDomain ?? "Requirements");
+                var forwardedEvent = new NotificationEvents.RequirementsProgressChanged
+                {
+                    TotalRequirements = progressChanged.TotalRequirements,
+                    AnalyzedRequirements = progressChanged.AnalyzedRequirements,
+                    RequirementsWithTestCases = progressChanged.RequirementsWithTestCases,
+                    TotalTestCases = progressChanged.TotalTestCases,
+                    SourceDomain = progressChanged.SourceDomain ?? "Requirements"
+                };
+
+                PublishEvent(forwardedEvent);
                 _logger.LogInformation("Updated requirements progress from RequirementsProgressChanged: {Total} total, {Analyzed} analyzed, {WithTestCases} with test cases",
                     progressChanged.TotalRequirements, progressChanged.AnalyzedRequirements, progressChanged.RequirementsWithTestCases);
             }
@@ -200,15 +205,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.Mediators
             else if (notification is TestCaseEditorApp.MVVM.Domains.OpenProject.Events.OpenProjectEvents.ProjectOpened openProjectOpened)
             {
                 var requirements = openProjectOpened.Workspace?.Requirements;
-                var requirementCount = requirements?.Count ?? 0;
+                var requirementCount = openProjectOpened.RequirementCount ?? (requirements?.Count ?? 0);
                 var analyzedCount = requirements?.Count(r => r.Analysis != null) ?? 0;
                 var withTestCasesCount = requirements?.Count(r => r.HasGeneratedTestCase) ?? 0;
-                
-                UpdateRequirementsProgress(
-                    requirementCount,
-                    analyzedCount,
-                    withTestCasesCount,
-                    "OpenProject");
+                var totalTestCases = openProjectOpened.TestCaseCount ?? (requirements?.Sum(r => r.GeneratedTestCases?.Count ?? 0) ?? 0);
+
+                PublishEvent(new NotificationEvents.RequirementsProgressChanged
+                {
+                    TotalRequirements = requirementCount,
+                    AnalyzedRequirements = analyzedCount,
+                    RequirementsWithTestCases = withTestCasesCount,
+                    TotalTestCases = totalTestCases,
+                    SourceDomain = "OpenProject"
+                });
                 _logger.LogInformation("Updated requirements progress from OpenProjectEvents.ProjectOpened: {Total} total, {Analyzed} analyzed, {WithTestCases} with test cases", 
                     requirementCount, analyzedCount, withTestCasesCount);
             }

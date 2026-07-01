@@ -99,10 +99,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.ViewModels
         private int requirementsWithTestCases = 0;
 
         /// <summary>
+        /// Total number of test cases tracked for the current project.
+        /// </summary>
+        [ObservableProperty]
+        private int totalTestCases = 0;
+
+        /// <summary>
         /// Display text for requirements progress
         /// </summary>
         [ObservableProperty]
-        private string requirementsProgressText = "0 requirements | 0% analyzed | 0% with test cases";
+        private string requirementsProgressText = "0 requirements | 0% analyzed | 0 with test cases";
 
         // === CURRENT REQUIREMENT ===
 
@@ -315,14 +321,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.ViewModels
             TotalRequirements = eventData.TotalRequirements;
             AnalyzedRequirements = eventData.AnalyzedRequirements;
             RequirementsWithTestCases = eventData.RequirementsWithTestCases;
+            TotalTestCases = eventData.TotalTestCases;
             LastUpdatedByDomain = eventData.SourceDomain;
             
             // Calculate percentages
             var analyzedPercentage = TotalRequirements > 0 ? (double)AnalyzedRequirements / TotalRequirements * 100 : 0.0;
-            var testCasesPercentage = TotalRequirements > 0 ? (double)RequirementsWithTestCases / TotalRequirements * 100 : 0.0;
             
-            // Format progress text
-            RequirementsProgressText = $"{TotalRequirements} requirements | {analyzedPercentage:F0}% analyzed | {testCasesPercentage:F0}% with test cases";
+            // Format progress text for header workspace requirements summary
+            RequirementsProgressText = $"{TotalRequirements} requirements | {analyzedPercentage:F0}% analyzed | {RequirementsWithTestCases} with test cases";
 
             _logger?.LogDebug("Requirements progress updated from {SourceDomain}: {Analyzed}/{Total} analyzed, {WithTestCases}/{Total} with test cases", 
                 eventData.SourceDomain, eventData.AnalyzedRequirements, eventData.TotalRequirements, 
@@ -393,7 +399,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Notification.ViewModels
             TotalRequirements = 0;
             AnalyzedRequirements = 0;
             RequirementsWithTestCases = 0;
-            RequirementsProgressText = "0 requirements | 0% analyzed | 0% with test cases";
+            TotalTestCases = 0;
+            RequirementsProgressText = "0 requirements | 0% analyzed | 0 with test cases";
             
             CurrentRequirementId = null;
             CurrentRequirementTitle = null;

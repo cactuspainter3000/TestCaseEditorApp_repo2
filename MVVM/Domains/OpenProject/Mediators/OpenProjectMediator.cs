@@ -157,6 +157,9 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
                 // If this workspace is associated with Jama, Jama is the source of truth.
                 // Pull requirements on open and persist them to the workspace before broadcasting.
                 var resolvedJamaProjectId = await ResolveJamaProjectIdAsync(workspace);
+                int? liveRequirementCount = null;
+                int? liveTestCaseCount = null;
+
                 if (resolvedJamaProjectId.HasValue)
                 {
                     if (!_jamaConnectService.IsConfigured)
@@ -198,6 +201,54 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
                     workspace.JamaProject = resolvedJamaProjectId.Value.ToString();
                     workspace.ImportSource = "Jama";
 
+                    try
+                    {
+                        var projects = await _jamaConnectService.GetProjectsAsync(CancellationToken.None);
+                        var matchingProject = projects.FirstOrDefault(p => p.Id == resolvedJamaProjectId.Value);
+                        if (matchingProject != null)
+                        {
+                            workspace.JamaProjectName = matchingProject.Name;
+                            if (string.IsNullOrWhiteSpace(workspace.JamaTestPlan))
+                            {
+                                workspace.JamaTestPlan = matchingProject.Name;
+                            }
+
+                            foreach (var req in workspace.Requirements.Where(r => string.IsNullOrWhiteSpace(r.Project)))
+                            {
+                                req.Project = matchingProject.Name;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Could not refresh Jama project metadata for project {ProjectId}", resolvedJamaProjectId.Value);
+                    }
+
+                    try
+                    {
+                        var (requirementTypeSuccess, requirementItemType) = await _jamaConnectService.GetRequirementItemTypeAsync(resolvedJamaProjectId.Value, CancellationToken.None);
+                        if (requirementTypeSuccess && requirementItemType.HasValue)
+                        {
+                            liveRequirementCount = await _jamaConnectService.GetProjectItemCountAsync(
+                                resolvedJamaProjectId.Value,
+                                requirementItemType.Value,
+                                CancellationToken.None);
+                        }
+
+                        var (testCaseTypeSuccess, testCaseItemType) = await _jamaConnectService.GetTestCaseItemTypeAsync(resolvedJamaProjectId.Value, CancellationToken.None);
+                        if (testCaseTypeSuccess && testCaseItemType.HasValue)
+                        {
+                            liveTestCaseCount = await _jamaConnectService.GetProjectItemCountAsync(
+                                resolvedJamaProjectId.Value,
+                                testCaseItemType.Value,
+                                CancellationToken.None);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Could not refresh live Jama counts for project {ProjectId}", resolvedJamaProjectId.Value);
+                    }
+
                     WorkspaceFileManager.Save(filePath, workspace);
 
                     _logger.LogInformation("✅ Jama sync on open complete for project {ProjectId}. Requirements refreshed: {Count}",
@@ -208,6 +259,11 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
                         $"Refreshed {workspace.Requirements.Count} requirements from Jama project {resolvedJamaProjectId.Value}.",
                         DomainNotificationType.Success);
                 }
+
+                var workspaceRequirementCount = workspace.Requirements?.Count ?? 0;
+                var workspaceTestCaseCount = workspace.Requirements?.Sum(r => r.GeneratedTestCases?.Count ?? 0) ?? 0;
+                var effectiveRequirementCount = liveRequirementCount ?? workspaceRequirementCount;
+                var effectiveTestCaseCount = liveTestCaseCount ?? workspaceTestCaseCount;
 
                 ShowProgress("Setting up workspace...", 75);
 
@@ -222,8 +278,8 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
                 PublishEvent(new OpenProjectEvents.WorkspaceLoaded 
                 { 
                     Workspace = workspace,
-                    RequirementCount = workspace.Requirements?.Count ?? 0,
-                    TestCaseCount = 0 // Workspace doesn't track test cases directly
+                    RequirementCount = effectiveRequirementCount,
+                    TestCaseCount = effectiveTestCaseCount
                 });
 
                 ShowProgress("Finalizing...", 90);
@@ -259,7 +315,9 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
                     WorkspacePath = filePath,
                     WorkspaceName = projectName,
                     AnythingLLMWorkspaceSlug = anythingLLMSlug,
-                    Workspace = workspace
+                    Workspace = workspace,
+                    RequirementCount = effectiveRequirementCount,
+                    TestCaseCount = effectiveTestCaseCount
                 };
 
                 // Broadcast to other domains that project was opened (using same structure as NewProjectMediator)

@@ -1114,36 +1114,105 @@ namespace TestCaseEditorApp.Services
         {
             try
             {
-                await EnsureAccessTokenAsync();
-                
-                // Get all items from the project to count them
-                // This is simple and reliable, though potentially slower for very large projects
-                var url = $"{_baseUrl}/rest/v1/items?project={projectId}";
-                var response = await _httpClient.GetAsync(url, cancellationToken);
-                
-                if (response.IsSuccessStatusCode)
+                var (requirementTypeSuccess, requirementItemType) = await GetRequirementItemTypeAsync(projectId, cancellationToken);
+                if (!requirementTypeSuccess || !requirementItemType.HasValue)
                 {
-                    var json = await response.Content.ReadAsStringAsync(cancellationToken);
-                    var result = JsonSerializer.Deserialize<JamaItemsResponse>(json, new JsonSerializerOptions 
-                    { 
-                        PropertyNameCaseInsensitive = true 
-                    });
-                    
-                    var count = result?.Data?.Count ?? 0;
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Project {projectId} has {count} items");
-                    return count;
-                }
-                else
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"Failed to get requirement count for project {projectId}: {response.StatusCode}");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Could not resolve requirement item type for project {projectId}");
                     return 0;
                 }
+
+                return await GetProjectItemCountAsync(projectId, requirementItemType.Value, cancellationToken);
             }
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"Error getting requirement count for project {projectId}");
                 return 0;
             }
+        }
+
+        /// <summary>
+        /// Get the total item count for a specific Jama item type within a project.
+        /// Uses pagination metadata when available for an accurate server-side total.
+        /// </summary>
+        public async Task<int> GetProjectItemCountAsync(int projectId, int itemTypeId, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await EnsureAccessTokenAsync();
+
+                var url = $"{_baseUrl}/rest/v1/items?project={projectId}&itemType={itemTypeId}&maxResults=1";
+                var response = await _httpClient.GetAsync(url, cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Failed to get item count for project {projectId}, itemType {itemTypeId}: {response.StatusCode}");
+                    return 0;
+                }
+
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                try
+                {
+                    using var doc = JsonDocument.Parse(json);
+                    if (TryGetPageInfoTotalResults(doc.RootElement, out var totalResults))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Project {projectId}, itemType {itemTypeId} total count: {totalResults}");
+                        return totalResults;
+                    }
+                }
+                catch (Exception parseEx)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Could not parse pageInfo totalResults for project {projectId}, itemType {itemTypeId}: {parseEx.Message}");
+                }
+
+                var fallback = JsonSerializer.Deserialize<JamaItemsResponse>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                var fallbackCount = fallback?.Data?.Count ?? 0;
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Project {projectId}, itemType {itemTypeId} fallback count: {fallbackCount}");
+                return fallbackCount;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"Error getting project item count for project {projectId}, itemType {itemTypeId}");
+                return 0;
+            }
+        }
+
+        private static bool TryGetPageInfoTotalResults(JsonElement root, out int totalResults)
+        {
+            totalResults = 0;
+
+            if (!root.TryGetProperty("meta", out var meta) || meta.ValueKind != JsonValueKind.Object)
+            {
+                return false;
+            }
+
+            if (!meta.TryGetProperty("pageInfo", out var pageInfo) || pageInfo.ValueKind != JsonValueKind.Object)
+            {
+                return false;
+            }
+
+            if (!pageInfo.TryGetProperty("totalResults", out var totalElement))
+            {
+                return false;
+            }
+
+            if (totalElement.ValueKind == JsonValueKind.Number && totalElement.TryGetInt32(out var numericTotal))
+            {
+                totalResults = numericTotal;
+                return true;
+            }
+
+            if (totalElement.ValueKind == JsonValueKind.String && int.TryParse(totalElement.GetString(), out var stringTotal))
+            {
+                totalResults = stringTotal;
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
