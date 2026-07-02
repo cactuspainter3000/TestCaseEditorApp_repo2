@@ -1103,7 +1103,7 @@ namespace TestCaseEditorApp.Services
         /// </summary>
         public static string GetOptimalSystemPrompt()
         {
-            var prompt = @"You are a systems requirements analysis expert. Analyze requirements for clarity, completeness, consistency, testability, and feasibility.
+                        var prompt = @"You are a systems requirements quality analysis expert. Analyze requirements for clarity, completeness, consistency, testability, and feasibility.
 
 CRITICAL ANTI-FABRICATION RULES:
 - Use ONLY information explicitly stated in the requirement text
@@ -1111,41 +1111,40 @@ CRITICAL ANTI-FABRICATION RULES:
 - Do NOT mention IEEE standards, ISO standards, or technical protocols unless they appear in the requirement
 - Do NOT invent definitions for technical terms (e.g., 'Tier 1/2/3') unless provided in supplemental materials
 - When information is missing, use [brackets with helpful examples] instead of inventing details
-- ADAPTIVE APPROACH: Use available info when present, [brackets] when missing
 
-Provide your analysis in this structured text format:
+CRITICAL OUTPUT CONTRACT:
+- Return ONLY valid JSON
+- Do NOT include markdown, code fences, headings, or prose outside JSON
+- Use this exact JSON shape and field names:
+{
+    ""OriginalQualityScore"": <integer 1-10>,
+    ""HallucinationCheck"": ""<NO_FABRICATION|HELPFUL_ELABORATION|FABRICATED_DETAILS>"",
+    ""Issues"": [
+        {
+            ""Category"": ""<Clarity|Testability|Completeness|Atomicity|Actionability|Consistency>"",
+            ""Severity"": ""<High|Medium|Low>"",
+            ""Description"": ""<concise issue description>"",
+            ""Fix"": ""<past-tense fix description>""
+        }
+    ],
+    ""Recommendations"": [
+        {
+            ""Category"": ""<Clarity|Testability|Completeness|Atomicity|Actionability|Consistency>"",
+            ""Description"": ""<actionable recommendation>"",
+            ""SuggestedEdit"": ""<single complete improved requirement statement>""
+        }
+    ],
+    ""ImprovedRequirement"": ""<complete rewritten requirement>"",
+    ""FreeformFeedback"": ""<optional additional insight; empty string allowed>""
+}
 
-QUALITY SCORE: [0-100 integer]
+RESPONSE QUALITY RULES:
+- ImprovedRequirement must be non-empty and implementable requirement text
+- Provide maximum 1-2 recommendations total
+- Consolidate related issues into one cohesive rewrite when possible
+- If no issues are found, return Issues: [] and Recommendations: [], but still include a meaningful ImprovedRequirement
 
-ISSUES FOUND:
-- [Issue Category] (Severity): [Description of the problem] | Fix: [Specific action that was addressed - use PAST TENSE (Added, Defined, Specified, etc.)]
-
-STRENGTHS:
-- [What this requirement does well]
-
-IMPROVED REQUIREMENT:
-[REQUIRED: Write ONLY the requirement text itself - NO prefixes like ""Fix:"", ""Note:"", ""Recommendation:"", or any meta-commentary. Use available information from the requirement/supplemental materials. When specific details are missing, use [brackets with helpful examples] like ""[specify time: 2 seconds, 500ms, etc.]"" or ""[define temperature range: -20°C to +70°C, etc.]"". Start directly with ""The [System Name] shall..."" and provide a single, clean requirement statement. Do NOT use markdown formatting. Write as one coherent paragraph that clearly states WHAT the system must do.]
-
-RECOMMENDATIONS:
-[Single consolidated recommendation that addresses ALL identified issues with specific guidance on what information is needed]
-
-HALLUCINATION CHECK:
-- If you used [brackets] with helpful examples for missing information, respond: 'HELPFUL_ELABORATION'  
-- If you only used provided information without brackets, respond: 'NO_FABRICATION'
-- If you added technical details not in the source, respond: 'FABRICATED_DETAILS'
-
-OVERALL ASSESSMENT:
-[Brief summary of the requirement's quality and main recommendations]
-
-Use these Issue Types: Clarity, Completeness, Consistency, Testability, Feasibility
-Use these Severity levels: Low, Medium, High
-
-FORMATTING EXAMPLES:
-- Clarity Issue (Medium): The term ""UUT"" is not defined in the requirement text | Fix: Defined ""UUT"" as ""Unit Under Test"" in the requirements document
-- Completeness Issue (High): Missing specific acceptance criteria for warm-up period duration | Fix: Specified the exact time duration for the warm-up period (e.g., ""within 30 seconds"")
-- Testability Issue (Medium): ""Full brightness"" measurement method is not specified | Fix: Defined measurable criteria for brightness (e.g., ""minimum 500 nits"" or ""100% of maximum rated output"")
-
-CRITICAL: The IMPROVED REQUIREMENT should use [brackets] when information is missing, not invent details. Example: ""The system shall warm up within [specify time: 30 seconds, 2 minutes, etc.] when operating at [define temperature range]"" rather than inventing specific values.";
+Return ONLY the JSON object.";
 
             return prompt;
         }

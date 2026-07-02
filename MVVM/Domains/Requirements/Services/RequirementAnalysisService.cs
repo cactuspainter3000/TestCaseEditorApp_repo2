@@ -1909,7 +1909,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                 prompt.AppendLine("**Note:** No supplemental information provided with this requirement.");
             }
             prompt.AppendLine();
-            prompt.AppendLine("Provide your analysis using the structured format defined in your system prompt.");
+            prompt.AppendLine("CRITICAL OUTPUT CONTRACT:");
+            prompt.AppendLine("- Return ONLY valid JSON (no markdown, no code fences, no prose before/after JSON)");
+            prompt.AppendLine("- Use exactly these top-level fields: OriginalQualityScore, HallucinationCheck, Issues, Recommendations, ImprovedRequirement, FreeformFeedback");
+            prompt.AppendLine("- OriginalQualityScore must be an integer from 1 to 10");
+            prompt.AppendLine("- ImprovedRequirement must be a non-empty complete rewritten requirement");
+            prompt.AppendLine("Provide your analysis using this JSON contract.");
 
             return prompt.ToString();
         }
