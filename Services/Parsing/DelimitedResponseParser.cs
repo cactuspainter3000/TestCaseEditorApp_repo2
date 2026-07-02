@@ -20,8 +20,8 @@ namespace TestCaseEditorApp.Services.Parsing
                 return false;
 
             var trimmed = response.Trim();
-            bool isDelimited = trimmed.StartsWith("---") && 
-                              (trimmed.Contains("ID:") || trimmed.Contains("Text:"));
+            bool isDelimited = trimmed.StartsWith("---") &&
+                               (trimmed.Contains("ID:") || trimmed.Contains("Text:"));
             
             // Log with distinctive tag for snapshot filtering
             var preview = trimmed.Substring(0, Math.Min(150, trimmed.Length)).Replace("\n", " ").Replace("\r", " ");

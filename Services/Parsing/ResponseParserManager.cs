@@ -19,6 +19,8 @@ namespace TestCaseEditorApp.Services.Parsing
             {
                 // Current RAG responses are JSON (sometimes wrapped in markdown fences).
                 new JsonResponseParser(),
+                // Legacy scrape/export requirement blocks use REQ-ID/Text/Category/Priority/Verification fields.
+                new LegacyRequirementExtractionParser(),
                 // Keep legacy delimited support for older prompt flows.
                 new DelimitedResponseParser()
             };

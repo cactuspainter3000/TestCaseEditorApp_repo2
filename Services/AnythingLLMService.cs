@@ -875,7 +875,7 @@ namespace TestCaseEditorApp.Services
                     // Context history: 20 messages for adequate context retention
                     openAiHistory = 20, 
                     // System prompt for requirements analysis with anti-fabrication rules
-                    openAiPrompt = GetDocumentExtractionSystemPrompt(),
+                    openAiPrompt = GetOptimalSystemPrompt(),
                     
                     // LLM Provider Configuration: Use local Ollama for data security and consistency
                     chatProvider = "ollama", // Local Ollama provider (no internet, keeps data secure)
