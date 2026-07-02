@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
@@ -42,6 +43,7 @@ namespace TestCaseEditorApp
     {
         // Make the host static so the static ServiceProvider accessor can reference it without an instance.
         private static IHost? _host;
+        private static string? _activeSessionLogPath;
 
         /// <summary>
         /// Public accessor for the application's root service provider.
@@ -77,14 +79,31 @@ namespace TestCaseEditorApp
                         {
                             System.IO.Directory.CreateDirectory(logs);
                         }
+
+                        // Keep bounded session history to avoid unbounded disk growth.
+                        const int maxSessionLogFiles = 20;
+                        var existingSessionLogs = new System.IO.DirectoryInfo(logs)
+                            .GetFiles("app-session-*.log", System.IO.SearchOption.TopDirectoryOnly);
+                        if (existingSessionLogs.Length > maxSessionLogFiles)
+                        {
+                            foreach (var stale in existingSessionLogs
+                                .OrderByDescending(f => f.LastWriteTimeUtc)
+                                .Skip(maxSessionLogFiles))
+                            {
+                                try { stale.Delete(); } catch { }
+                            }
+                        }
                         
                         // Test write permissions
                         var testFile = System.IO.Path.Combine(logs, "test.tmp");
                         System.IO.File.WriteAllText(testFile, "test");
                         System.IO.File.Delete(testFile);
                         
-                        // If we get here, directory is writable
-                        logging.AddProvider(new TestCaseEditorApp.Services.Logging.FileLoggerProvider(logs));
+                        // If we get here, directory is writable.
+                        // Use a startup-scoped file so each app session has isolated runtime logs.
+                        var sessionLogFileName = $"app-session-{DateTime.UtcNow:yyyyMMdd-HHmmss}.log";
+                        _activeSessionLogPath = System.IO.Path.Combine(logs, sessionLogFileName);
+                        logging.AddProvider(new TestCaseEditorApp.Services.Logging.FileLoggerProvider(logs, sessionLogFileName));
                     }
                     catch
                     {
@@ -872,6 +891,10 @@ namespace TestCaseEditorApp
                 try
                 {
                     logger.LogInformation("Ensuring Ollama service is running...");
+                    if (!string.IsNullOrWhiteSpace(_activeSessionLogPath))
+                    {
+                        logger.LogInformation("Runtime session log file: {SessionLogPath}", _activeSessionLogPath);
+                    }
                     await ollamaProcessManager.EnsureOllamaRunningAsync();
                     logger.LogInformation("✅ Ollama service is ready");
                 }

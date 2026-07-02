@@ -57,16 +57,18 @@ namespace TestCaseEditorApp.Services.Logging
     internal class FileLoggerProvider : ILoggerProvider
     {
         private readonly string _basePath;
+        private readonly string _fileName;
 
-        public FileLoggerProvider(string basePath)
+        public FileLoggerProvider(string basePath, string fileName = "app.log")
         {
             _basePath = basePath;
+            _fileName = string.IsNullOrWhiteSpace(fileName) ? "app.log" : fileName;
             try { Directory.CreateDirectory(_basePath); } catch { }
         }
 
         public ILogger CreateLogger(string categoryName)
         {
-            var file = Path.Combine(_basePath, "app.log");
+            var file = Path.Combine(_basePath, _fileName);
             return new FileLogger(categoryName, file);
         }
 
