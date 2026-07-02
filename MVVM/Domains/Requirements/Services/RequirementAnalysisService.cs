@@ -2083,6 +2083,7 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                     var violationCount = complianceResult.Validation?.Violations?.Count ?? 0;
                     var detailedViolations = BuildComplianceFailureDiagnostics(complianceResult);
                     var responseDiagnostics = BuildRawResponseDiagnostics(rawResponse);
+                    var hasJsonEnvelopeFailure = IsJsonEnvelopeFailure(complianceResult, responseDiagnostics);
 
                     // If envelope validation fails only because the model returned non-JSON text,
                     // allow parser-manager fallback rather than failing closed immediately.
@@ -2096,6 +2097,38 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                             $"Violations={violationCount}, Diagnostics={detailedViolations}, ResponseDiagnostics={responseDiagnostics}");
 
                         return rawResponse;
+                    }
+
+                    // Second-stage recovery for non-JSON outputs: request strict JSON repair,
+                    // then re-run compliance validation against the repaired payload.
+                    if (hasJsonEnvelopeFailure)
+                    {
+                        var (repairSuccess, repairedJson) = await TryJsonRepairAsync(rawResponse, requirementItem, cancellationToken);
+                        if (repairSuccess && !string.IsNullOrWhiteSpace(repairedJson))
+                        {
+                            var repairedComplianceResult = await _complianceWrapper.ExecuteWithComplianceAsync(
+                                () => Task.FromResult(repairedJson),
+                                complianceConfig);
+
+                            if (repairedComplianceResult.Success && !string.IsNullOrWhiteSpace(repairedComplianceResult.Data))
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Warn(
+                                    $"[RequirementAnalysisService] Compliance recovery succeeded via JSON repair for {requirementItem}. " +
+                                    "Proceeding with repaired response.");
+
+                                return repairedComplianceResult.Data;
+                            }
+
+                            var repairedDiagnostics = BuildRawResponseDiagnostics(repairedJson);
+                            if (CanUseParserFallbackForComplianceFailure(repairedComplianceResult, repairedJson, requirementItem, repairedDiagnostics))
+                            {
+                                TestCaseEditorApp.Services.Logging.Log.Warn(
+                                    $"[RequirementAnalysisService] Compliance recovery used parser fallback after JSON repair for {requirementItem}. " +
+                                    $"ResponseDiagnostics={repairedDiagnostics}");
+
+                                return repairedJson;
+                            }
+                        }
                     }
 
                     TestCaseEditorApp.Services.Logging.Log.Error(
@@ -2277,11 +2310,7 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                 return false;
             }
 
-            var hasJsonEnvelopeFailure =
-                responseDiagnostics.Contains("ParseState=InvalidJson", StringComparison.OrdinalIgnoreCase) ||
-                (complianceResult.Validation?.Violations?.Any(v =>
-                    string.Equals(v.ViolationType, "OutputValidation", StringComparison.OrdinalIgnoreCase) &&
-                    (v.Description?.Contains("Could not extract valid JSON", StringComparison.OrdinalIgnoreCase) ?? false)) ?? false);
+            var hasJsonEnvelopeFailure = IsJsonEnvelopeFailure(complianceResult, responseDiagnostics);
 
             if (!hasJsonEnvelopeFailure)
             {
@@ -2309,6 +2338,14 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                     $"[RequirementAnalysisService] Parser fallback probe failed for {requirementItem}: {ex.Message}");
                 return false;
             }
+        }
+
+        private static bool IsJsonEnvelopeFailure(ComplianceResult<string> complianceResult, string responseDiagnostics)
+        {
+            return responseDiagnostics.Contains("ParseState=InvalidJson", StringComparison.OrdinalIgnoreCase) ||
+                   (complianceResult.Validation?.Violations?.Any(v =>
+                       string.Equals(v.ViolationType, "OutputValidation", StringComparison.OrdinalIgnoreCase) &&
+                       (v.Description?.Contains("Could not extract valid JSON", StringComparison.OrdinalIgnoreCase) ?? false)) ?? false);
         }
 
         private static string BuildRawResponseDiagnostics(string rawResponse)
