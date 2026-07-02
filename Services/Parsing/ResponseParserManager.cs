@@ -43,38 +43,54 @@ namespace TestCaseEditorApp.Services.Parsing
 
             TestCaseEditorApp.Services.Logging.Log.Debug($"[ParserManager] Attempting to parse response for {requirementId}, length: {response.Length}");
 
-            // Find first parser that can handle this response
-            var compatibleParser = _parsers.FirstOrDefault(p => p.CanParse(response));
-            
-            if (compatibleParser == null)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[ParserManager] No compatible parser found for {requirementId}");
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[ParserManager] Response preview (first 200 chars): {response.Substring(0, Math.Min(200, response.Length))}");
-                return null;
-            }
+            var route = new List<string>();
 
-            TestCaseEditorApp.Services.Logging.Log.Info($"[ParserManager] Using {compatibleParser.ParserName} parser for {requirementId}");
-
-            try
+            foreach (var parser in _parsers)
             {
-                var result = compatibleParser.ParseResponse(response, requirementId);
-                
-                if (result != null)
+                bool canParse;
+                try
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[ParserManager] Successfully parsed {requirementId} using {compatibleParser.ParserName} parser");
+                    canParse = parser.CanParse(response);
                 }
-                else
+                catch (Exception ex)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[ParserManager] {compatibleParser.ParserName} parser returned null for {requirementId}");
+                    route.Add($"{parser.ParserName}:canparse-error");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[ParserManager] {parser.ParserName} CanParse failed for {requirementId}: {ex.Message}");
+                    continue;
                 }
 
-                return result;
+                if (!canParse)
+                {
+                    route.Add($"{parser.ParserName}:skip");
+                    continue;
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[ParserManager] Using {parser.ParserName} parser for {requirementId}");
+
+                try
+                {
+                    var result = parser.ParseResponse(response, requirementId);
+
+                    if (result != null)
+                    {
+                        route.Add($"{parser.ParserName}:success");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[ParserManager] Successfully parsed {requirementId} using {parser.ParserName} parser. Route={string.Join(" -> ", route)}");
+                        return result;
+                    }
+
+                    route.Add($"{parser.ParserName}:null");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[ParserManager] {parser.ParserName} parser returned null for {requirementId}; trying next parser.");
+                }
+                catch (Exception ex)
+                {
+                    route.Add($"{parser.ParserName}:error");
+                    TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[ParserManager] {parser.ParserName} parser failed for {requirementId}; trying next parser.");
+                }
             }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[ParserManager] {compatibleParser.ParserName} parser failed for {requirementId}");
-                return null;
-            }
+
+            TestCaseEditorApp.Services.Logging.Log.Warn($"[ParserManager] No parser produced a valid analysis for {requirementId}. Route={string.Join(" -> ", route)}");
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[ParserManager] Response preview (first 200 chars): {response.Substring(0, Math.Min(200, response.Length))}");
+            return null;
         }
 
         /// <summary>

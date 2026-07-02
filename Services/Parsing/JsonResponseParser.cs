@@ -19,6 +19,12 @@ namespace TestCaseEditorApp.Services.Parsing
             if (string.IsNullOrWhiteSpace(response))
                 return false;
 
+            if (!IsLikelyJsonPayload(response))
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info("[JsonParser] CanParse=false (payload does not look like JSON)");
+                return false;
+            }
+
             var cleaned = ExtractJsonPayload(response);
             if (string.IsNullOrWhiteSpace(cleaned))
                 return false;
@@ -214,11 +220,25 @@ namespace TestCaseEditorApp.Services.Parsing
             if (string.IsNullOrWhiteSpace(cleaned))
                 return false;
 
+            if (!cleaned.Contains("{", StringComparison.Ordinal) || !cleaned.Contains("}", StringComparison.Ordinal))
+                return false;
+
             return cleaned.Contains("QualityScore", StringComparison.OrdinalIgnoreCase)
                 || cleaned.Contains("OriginalQualityScore", StringComparison.OrdinalIgnoreCase)
                 || cleaned.Contains("Recommendations", StringComparison.OrdinalIgnoreCase)
                 || cleaned.Contains("Analysis", StringComparison.OrdinalIgnoreCase)
                 || cleaned.Contains("FreeformFeedback", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsLikelyJsonPayload(string response)
+        {
+            if (string.IsNullOrWhiteSpace(response))
+                return false;
+
+            var trimmed = response.TrimStart();
+            return trimmed.StartsWith("{", StringComparison.Ordinal)
+                || trimmed.StartsWith("```json", StringComparison.OrdinalIgnoreCase)
+                || trimmed.StartsWith("```", StringComparison.Ordinal);
         }
 
         private static string TryRepairMalformedJson(string cleaned)
