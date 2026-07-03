@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels"
              xmlns:converters="clr-namespace:TestCaseEditorApp.Converters"
+             xmlns:controls="clr-namespace:TestCaseEditorApp.MVVM.Controls"
              xmlns:tcgConverters="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Converters">
 
     <UserControl.Resources>
@@ -12,7 +13,7 @@
         <converters:StringEmptyToVisibilityConverter x:Key="StringEmptyToVisibilityConverter" />
         <tcgConverters:FixTextHighlightConverter x:Key="FixTextHighlightConverter" />
         <tcgConverters:BracketHighlightConverter x:Key="BracketHighlightConverter" />
-        <converters:BoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" Invert="True" />
+        <controls:InvertedBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
     </UserControl.Resources>
 
     <Grid>
