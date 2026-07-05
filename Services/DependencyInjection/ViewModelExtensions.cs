@@ -206,8 +206,10 @@ namespace TestCaseEditorApp.Services.DependencyInjection
             services.AddTransient<StartUp_MainViewModel>(provider =>
             {
                 var mediator = provider.GetRequiredService<IStartupMediator>();
+                var navigationMediator = provider.GetRequiredService<INavigationMediator>();
+                var recentFilesService = provider.GetRequiredService<RecentFilesService>();
                 var logger = provider.GetRequiredService<ILogger<StartUp_MainViewModel>>();
-                return new StartUp_MainViewModel(mediator, logger);
+                return new StartUp_MainViewModel(mediator, navigationMediator, recentFilesService, logger);
             });
             services.AddTransient<StartUp_HeaderViewModel>();
             services.AddTransient<StartUp_NavigationViewModel>();
