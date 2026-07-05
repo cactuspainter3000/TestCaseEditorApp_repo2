@@ -196,6 +196,79 @@ namespace TestCaseEditorApp.Tests.Phase4Services
         }
 
         [TestMethod]
+        public async Task ValidateTestingWorkflowAsync_EndToEndIntegration_ComputesCoverageAndValidity()
+        {
+            // Arrange: use real gap analyzer to exercise derivation + gap + scoring end-to-end.
+            var requirements = new List<Requirement>
+            {
+                new Requirement
+                {
+                    Item = "REQ-100",
+                    Name = "Power-on response",
+                    Description = "REQ-100: The system shall verify power-on sequence within 5 seconds using automated test procedure."
+                },
+                new Requirement
+                {
+                    Item = "REQ-200",
+                    Name = "Command handling",
+                    Description = "REQ-200: The system shall validate command checksum and verify response timing in test step."
+                }
+            };
+
+            _mockDerivationService.Setup(x => x.DeriveCapabilitiesAsync(
+                It.IsAny<string>(),
+                It.IsAny<DerivationOptions>(),
+                It.IsAny<Action<string>>(),
+                It.IsAny<Func<List<SkippedAtpStep>, Task<TimeoutRetryDecision>>>(),
+                It.IsAny<Action<Requirement>?>()))
+                .ReturnsAsync((string atpContent, DerivationOptions? _, Action<string>? _, Func<List<SkippedAtpStep>, Task<TimeoutRetryDecision>>? _, Action<Requirement>? _) =>
+                {
+                    var capabilityId = atpContent.Contains("REQ-100", StringComparison.OrdinalIgnoreCase)
+                        ? "REQ-100"
+                        : atpContent.Contains("REQ-200", StringComparison.OrdinalIgnoreCase)
+                            ? "REQ-200"
+                            : "UNKNOWN";
+
+                    return new DerivationResult
+                    {
+                        QualityScore = 0.92,
+                        ProcessingWarnings = new List<string>(),
+                        DerivedCapabilities = new List<DerivedCapability>
+                        {
+                            new DerivedCapability
+                            {
+                                Id = capabilityId,
+                                RequirementText = $"Derived capability for {capabilityId}",
+                                ConfidenceScore = 0.95,
+                                TaxonomyCategory = "Functional Performance"
+                            }
+                        }
+                    };
+                });
+
+            var integrationService = new RequirementAnalysisService(
+                _mockLlmService.Object,
+                _promptBuilder,
+                _mockParserManager.Object,
+                null,
+                null,
+                null,
+                null,
+                _mockDerivationService.Object,
+                new RequirementGapAnalyzer());
+
+            // Act
+            var result = await integrationService.ValidateTestingWorkflowAsync(requirements);
+
+            // Assert
+            Assert.IsNotNull(result.CoverageAnalysis);
+            Assert.AreEqual(1.0, result.CoverageAnalysis.CoveragePercentage, 0.0001);
+            Assert.IsTrue(result.IsValid);
+            Assert.IsTrue(result.OverallScore >= 0.9, "Expected high workflow score for complete ATP coverage");
+            Assert.AreEqual(0, result.Issues.Count(i => i.Severity == TestCaseEditorApp.MVVM.Domains.Requirements.Services.ValidationSeverity.Critical));
+        }
+
+        [TestMethod]
         public void Constructor_WithNullLlmService_ThrowsArgumentNullException()
         {
             // Act & Assert
