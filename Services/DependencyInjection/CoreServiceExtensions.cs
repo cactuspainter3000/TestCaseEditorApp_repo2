@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Runtime.Versioning;
-using TestCaseEditorApp.MVVM.Mediators;
 using TestCaseEditorApp.MVVM.Extensions;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services.Prompts;

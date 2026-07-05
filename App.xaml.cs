@@ -31,7 +31,6 @@ using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
 using TestCaseEditorApp.Services.Templates;
 using TestCaseEditorApp.MVVM.Extensions;
-using TestCaseEditorApp.MVVM.Mediators;
 using TestCaseEditorApp.Prompts;
 using TestCaseEditorApp.Services.DependencyInjection;
 

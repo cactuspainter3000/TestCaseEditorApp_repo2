@@ -1,7 +1,6 @@
 using System;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
-using TestCaseEditorApp.MVVM.Mediators;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Utils;
 

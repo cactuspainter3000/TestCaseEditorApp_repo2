@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using TestCaseEditorApp.MVVM.ViewModels;
-using TestCaseEditorApp.MVVM.Mediators;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;

@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Services;
 using TestCaseEditorApp.MVVM.Models;
-using TestCaseEditorApp.MVVM.Mediators;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
 using ValidationResult = TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Services.ValidationResult;
