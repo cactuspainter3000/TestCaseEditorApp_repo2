@@ -53,14 +53,14 @@
                     
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <TextBlock Text="•" Foreground="#CCCCCC" Margin="0,0,8,0" VerticalAlignment="Top"/>
-                        <TextBlock Text="Create a new project to start generating test cases"
+                        <TextBlock Text="Create a Requirements Workshop to start generating test cases"
                                    Foreground="#CCCCCC"
                                    TextWrapping="Wrap"/>
                     </StackPanel>
                     
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <TextBlock Text="•" Foreground="#CCCCCC" Margin="0,0,8,0" VerticalAlignment="Top"/>
-                        <TextBlock Text="Import requirements from documents or previous projects"
+                        <TextBlock Text="Import requirements from documents or previous workshops"
                                    Foreground="#CCCCCC"
                                    TextWrapping="Wrap"/>
                     </StackPanel>

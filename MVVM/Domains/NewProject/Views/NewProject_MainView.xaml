@@ -28,7 +28,7 @@
 
             <!-- Step 1: Workspace Setup -->
             <StackPanel Grid.Row="0" Margin="0,0,0,15">
-                <TextBlock Text="Workspace Setup" 
+                <TextBlock Text="Workshop Setup" 
                            FontSize="18" 
                            FontWeight="SemiBold" 
                            Foreground="DarkOrange" 
@@ -83,8 +83,8 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
 
-                                <TextBlock Grid.Column="0"
-                                       Text="Workspace Name" 
+                                    <TextBlock Grid.Column="0"
+                                        Text="Workshop Name" 
                                        Foreground="#CCCCCC" 
                                        FontWeight="SemiBold"/>
 
@@ -114,8 +114,8 @@
                             <Border Grid.Column="0"
                                 Style="{StaticResource ModernInputBorder}"
                                 Height="36">
-                                <TextBox Text="{Binding WorkspaceName, UpdateSourceTrigger=PropertyChanged}" 
-                                     Tag="Enter workspace name (e.g., 'Project Alpha Analysis')">
+                                  <TextBox Text="{Binding WorkspaceName, UpdateSourceTrigger=PropertyChanged}" 
+                                      Tag="Enter workshop name (e.g., 'Flight Controls Requirements Workshop')">
                                     <TextBox.Style>
                                         <Style TargetType="TextBox" BasedOn="{StaticResource ModernInputTextBox}">
                                             <Style.Triggers>
@@ -138,7 +138,7 @@
                                      Style="{StaticResource ModernInputTextBox}"
                                      TextWrapping="Wrap"
                                      AcceptsReturn="True"
-                                     Tag="Brief description of this project"/>
+                                     Tag="Brief description of this workshop"/>
                             </Border>
                         </Grid>
 
@@ -176,7 +176,7 @@
                                 </Border>
                             </StackPanel>
 
-                            <!-- Create Workspace Button -->
+                            <!-- Create Workshop Button -->
                             <Button Grid.Column="2"
                                 Command="{Binding ValidateWorkspaceCommand}"
                                 Style="{StaticResource ActionButton}"
@@ -187,13 +187,13 @@
                                 <TextBlock>
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
-                                            <Setter Property="Text" Value="Create Workspace"/>
+                                            <Setter Property="Text" Value="Create a Requirements Workshop"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsValidatingWorkspace}" Value="True">
                                                     <Setter Property="Text" Value="Creating..."/>
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding IsWorkspaceCreated}" Value="True">
-                                                    <Setter Property="Text" Value="✅ Workspace Created"/>
+                                                    <Setter Property="Text" Value="✅ Workshop Created"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>

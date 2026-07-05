@@ -10,11 +10,11 @@
     
     <Grid HorizontalAlignment="Stretch">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/> <!-- Project Title -->
+            <ColumnDefinition Width="*"/> <!-- Workshop Title -->
             <ColumnDefinition Width="Auto"/> <!-- Actions (Save, Undo) -->
         </Grid.ColumnDefinitions>
 
-        <!-- Project Title on Left -->
+        <!-- Workshop Title on Left -->
         <TextBlock Grid.Column="0"
                    Text="{Binding ProjectTitle}"
                    Style="{StaticResource WorkspaceTitleText}"
@@ -39,8 +39,8 @@
             </Button>
             
             <!-- Save button -->
-            <Button Command="{Binding SaveProjectCommand}"
-                    ToolTip="Save Project"
+                <Button Command="{Binding SaveProjectCommand}"
+                    ToolTip="Save this Workshop"
                     Visibility="{Binding HasProject, Converter={StaticResource BoolToVisibilityConverter}}"
                     Style="{StaticResource MainWindowButtonControls}">
                 <TextBlock FontFamily="Segoe MDL2 Assets"

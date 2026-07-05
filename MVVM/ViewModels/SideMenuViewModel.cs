@@ -867,12 +867,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private void InitializeMenuItems()
         {
-            MenuItems.Add(new MenuItemViewModel { Id = "Project", Title = "Project", Badge = "" });
+            MenuItems.Add(new MenuItemViewModel { Id = "Project", Title = "Workshop", Badge = "" });
             MenuItems.Add(new MenuItemViewModel { Id = "requirements", Title = "Requirements", Badge = "", HasFileMenu = true });
             MenuItems.Add(new MenuItemViewModel { Id = "TestCases", Title = "Test Cases", Badge = "" });
             MenuItems.Add(new MenuItemViewModel { Id = "TestFlow", Title = "Test Flow", Badge = "" });
             MenuItems.Add(new MenuItemViewModel { Id = "Import", Title = "Import", Badge = "" });
-            MenuItems.Add(new MenuItemViewModel { Id = "NewProject", Title = "New Project", Badge = "" });
+            MenuItems.Add(new MenuItemViewModel { Id = "NewProject", Title = "Create a Requirements Workshop", Badge = "" });
         }
         
         private void InitializeSideMenu()
@@ -900,17 +900,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                             new MenuAction
                             {
                                 Id = "project",
-                                Text = "Project",
+                                Text = "Workshop",
                                 Icon = "📁",
                                 Command = ProjectNavigationCommand,
                                 IsDropdown = true,
                                 Children = new ObservableCollection<MenuContentItem>
                                 {
-                                    new MenuAction { Id = "project.new", Text = "New Project", Icon = "🗂️", Command = NewProjectCommand },
+                                    new MenuAction { Id = "project.new", Text = "Create a Requirements Workshop", Icon = "🗂️", Command = NewProjectCommand },
                                     new MenuAction { Id = "project.dummy", Text = "Dummy Domain", Icon = "🔧", Command = DummyNavigationCommand },
-                                    new MenuAction { Id = "project.open", Text = "Open Project", Icon = "📂", Command = OpenProjectCommand },
-                                    new MenuAction { Id = "project.save", Text = "Save Project", Icon = "💾", Command = SaveProjectCommand },
-                                    new MenuAction { Id = "project.unload", Text = "Unload Project", Icon = "📤", Command = UnloadProjectCommand },
+                                    new MenuAction { Id = "project.open", Text = "Open a Requirements Workshop", Icon = "📂", Command = OpenProjectCommand },
+                                    new MenuAction { Id = "project.save", Text = "Save this Workshop", Icon = "💾", Command = SaveProjectCommand },
+                                    new MenuAction { Id = "project.unload", Text = "Close this Workshop", Icon = "📤", Command = UnloadProjectCommand },
                                     new MenuAction { Id = "project.export-logs", Text = "Export Analysis Logs (Zip)", Icon = "🧰", Command = ExportAnalysisLogsCommand },
                                     new MenuAction { Id = "project.probe-jama-lookups", Text = "Probe Jama Lookup Fields", Icon = "🔎", Command = ProbeJamaLookupFieldsCommand }
                                 }

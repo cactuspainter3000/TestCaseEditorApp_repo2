@@ -74,7 +74,7 @@
                        Foreground="{StaticResource Brush.Text.Primary}" 
                        HorizontalAlignment="Center"
                        Margin="0,0,0,8"/>
-            <TextBlock Text="Select how you would like to import requirements into your new project:"
+            <TextBlock Text="Select how you would like to import requirements into your new Requirements Workshop:"
                        FontSize="{StaticResource FontSize.Body}"
                        Foreground="{StaticResource Brush.Text.Secondary}"
                        HorizontalAlignment="Center"

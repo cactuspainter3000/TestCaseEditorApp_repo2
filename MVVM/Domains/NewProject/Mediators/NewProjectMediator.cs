@@ -116,7 +116,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             await Task.CompletedTask;
             try
             {
-                ShowProgress("Initiating new project creation...", 0);
+                ShowProgress("Initiating Requirements Workshop creation...", 0);
                 
                 _logger.LogInformation("Starting new project creation workflow");
                 
@@ -137,7 +137,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     Exception = ex 
                 });
                 
-                ShowNotification($"Error creating new project: {ex.Message}", DomainNotificationType.Error);
+                ShowNotification($"Error creating Requirements Workshop: {ex.Message}", DomainNotificationType.Error);
                 HideProgress();
             }
         }
@@ -146,14 +146,14 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         {
             try
             {
-                ShowProgress("Opening project...", 0);
+                ShowProgress("Opening Requirements Workshop...", 0);
                 
                 _logger.LogInformation("Starting project opening workflow");
                 
                 // Show file dialog to select .tcex.json file
                 var selectedPath = _fileDialogService.ShowOpenFile(
-                    title: "Open Test Case Editor Project",
-                    filter: "Test Case Editor Session|*.tcex.json|JSON Files|*.json|All Files|*.*"
+                    title: "Open a Requirements Workshop",
+                    filter: "Requirements Workshop|*.tcex.json|JSON Files|*.json|All Files|*.*"
                 );
                 
                 if (string.IsNullOrWhiteSpace(selectedPath))
@@ -163,12 +163,12 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     return;
                 }
                 
-                ShowProgress("Loading project file...", 25);
+                ShowProgress("Loading workshop file...", 25);
                 
                 // Validate file exists
                 if (!File.Exists(selectedPath))
                 {
-                    ShowNotification("Selected project file does not exist.", DomainNotificationType.Error);
+                    ShowNotification("Selected workshop file does not exist.", DomainNotificationType.Error);
                     HideProgress();
                     return;
                 }
@@ -179,12 +179,12 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 var workspace = WorkspaceFileManager.Load(selectedPath);
                 if (workspace == null)
                 {
-                    ShowNotification("Failed to load project file. The file may be corrupted or invalid.", DomainNotificationType.Error);
+                    ShowNotification("Failed to load workshop file. The file may be corrupted or invalid.", DomainNotificationType.Error);
                     HideProgress();
                     return;
                 }
                 
-                ShowProgress("Setting up project...", 75);
+                ShowProgress("Setting up workshop...", 75);
                 
                 // Extract project name from file path
                 var projectName = Path.GetFileNameWithoutExtension(selectedPath);
@@ -196,7 +196,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 
                 // Project status will be communicated via cross-domain events below
                 
-                ShowProgress("Finalizing project setup...", 90);
+                ShowProgress("Finalizing workshop setup...", 90);
                 
                 // Publish domain event
                 var projectOpenedEvent = new NewProjectEvents.ProjectOpened 
@@ -233,11 +233,11 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     LastModified = DateTime.Now
                 };
                 
-                ShowProgress("Project opened successfully!", 100);
+                ShowProgress("Workshop opened successfully!", 100);
                 
                 // Show success notification
                 ShowNotification(
-                    $"Project '{projectName}' opened successfully! {workspace.Requirements?.Count ?? 0} requirements loaded.", 
+                    $"Requirements Workshop '{projectName}' opened successfully. {workspace.Requirements?.Count ?? 0} requirements loaded.", 
                     DomainNotificationType.Success);
                 
                 // Navigate to the project workspace
@@ -259,7 +259,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     Exception = ex 
                 });
                 
-                ShowNotification($"Error opening project: {ex.Message}", DomainNotificationType.Error);
+                ShowNotification($"Error opening Requirements Workshop: {ex.Message}", DomainNotificationType.Error);
                 HideProgress();
             }
         }
@@ -277,7 +277,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 // Ensure proper async behavior
                 await Task.CompletedTask;
 
-                ShowProgress("Saving project...", 50);
+                ShowProgress("Saving Requirements Workshop...", 50);
                 
                 _logger.LogInformation("Saving project: {WorkspacePath}", _currentWorkspaceInfo.Path);
                 
@@ -381,7 +381,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 // Broadcast to all domains for cross-domain coordination
                 BroadcastToAllDomains(projectSavedEvent);
                 
-                ShowNotification("Project saved successfully", DomainNotificationType.Success);
+                ShowNotification("Requirements Workshop saved successfully", DomainNotificationType.Success);
                 HideProgress();
                 
             }
@@ -396,7 +396,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     Exception = ex 
                 });
                 
-                ShowNotification($"Error saving project: {ex.Message}", DomainNotificationType.Error);
+                ShowNotification($"Error saving Requirements Workshop: {ex.Message}", DomainNotificationType.Error);
                 HideProgress();
             }
         }
@@ -549,7 +549,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 // Keep workspace JSON aligned with Jama before unload.
                 await TrySyncWorkspaceFromJamaOnCloseAsync(_currentWorkspaceInfo.Path);
 
-                ShowProgress("Closing project...", 50);
+                ShowProgress("Closing Requirements Workshop...", 50);
                 
                 _logger.LogInformation("Closing project: {WorkspacePath}", _currentWorkspaceInfo.Path);
                 
@@ -588,7 +588,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 _logger.LogInformation("📡 Broadcasting ProjectClosed event to other domains: {WorkspacePath}", workspacePath);
                 BroadcastToAllDomains(projectClosedEvent);
                 
-                ShowNotification("Project closed", DomainNotificationType.Info);
+                ShowNotification("Requirements Workshop closed", DomainNotificationType.Info);
                 HideProgress();
                 
                 NavigateToInitialStep();
@@ -605,7 +605,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     Exception = ex 
                 });
                 
-                ShowNotification($"Error closing project: {ex.Message}", DomainNotificationType.Error);
+                ShowNotification($"Error closing Requirements Workshop: {ex.Message}", DomainNotificationType.Error);
                 HideProgress();
             }
         }

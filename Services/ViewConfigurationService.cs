@@ -64,7 +64,7 @@ namespace TestCaseEditorApp.Services
                 // Startup domain - works correctly
                 "startup" => CreateStartupConfiguration(context),
                 
-                // Project domain - fixed case mismatch
+                // Workshop domain - fixed case mismatch
                 "project" or "Project" => CreateProjectConfiguration(context),
                 
                 // Requirements domain - works correctly  
@@ -141,7 +141,7 @@ namespace TestCaseEditorApp.Services
 
         private ViewConfiguration CreateProjectConfiguration(object? context)
         {
-            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating Project configuration (workspace management)");
+            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating Workshop configuration (workspace management)");
             
             try
             {
@@ -158,24 +158,24 @@ namespace TestCaseEditorApp.Services
                 if (notificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not resolved");
                 
                 return new ViewConfiguration(
-                    sectionName: "Project",
-                    titleViewModel: null, // Project mode handles title internally
+                    sectionName: "Workshop",
+                    titleViewModel: null, // Workshop mode handles title internally
                     headerViewModel: blankHeaderVM,
                     contentViewModel: projectStaticView,
-                    navigationViewModel: null, // Project mode handles navigation internally
+                    navigationViewModel: null, // Workshop mode handles navigation internally
                     notificationViewModel: notificationVM,
                     context: context
                 );
             }
             catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[ViewConfigurationService] Failed to create Project configuration");
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[ViewConfigurationService] Failed to create Workshop configuration");
                 
                 return new ViewConfiguration(
-                    sectionName: "Project (Error)",
-                    titleViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"Project Error: {ex.Message}"),
+                    sectionName: "Workshop (Error)",
+                    titleViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"Workshop Error: {ex.Message}"),
                     headerViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel(""),
-                    contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"Project Error: {ex.Message}"),
+                    contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel($"Workshop Error: {ex.Message}"),
                     notificationViewModel: null,
                     context: context
                 );
