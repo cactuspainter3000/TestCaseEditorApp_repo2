@@ -1,10 +1,7 @@
 using System;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.Notification.Events;
-using TestCaseEditorApp.MVVM.Domains.Notification.Mediators;
 using TestCaseEditorApp.Services;
 
 namespace TestCaseEditorApp.MVVM.Domains.Notification.Mediators

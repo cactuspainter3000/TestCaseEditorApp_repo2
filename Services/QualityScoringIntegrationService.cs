@@ -85,6 +85,9 @@ namespace TestCaseEditorApp.Services
             string atpStepText, 
             QualityGuidanceOptions options = null)
         {
+            if (atpStepText == null)
+                throw new ArgumentNullException(nameof(atpStepText));
+
             try
             {
                 options ??= new QualityGuidanceOptions();
@@ -104,7 +107,11 @@ namespace TestCaseEditorApp.Services
                 result.InitialDerivation = await PerformGuidedDerivationAsync(atpStepText, sessionId);
                 
                 // Step 2: Comprehensive quality scoring
-                result.QualityScore = await _qualityScorer.ScoreDerivationQualityAsync(result.InitialDerivation, atpStepText, options.ScoringOptions);
+                var qualityScoreTask = _qualityScorer.ScoreDerivationQualityAsync(result.InitialDerivation, atpStepText, options.ScoringOptions);
+                result.QualityScore = qualityScoreTask != null
+                    ? await qualityScoreTask
+                    : new DerivationQualityScore();
+                result.QualityScore ??= new DerivationQualityScore();
                 
                 // Step 3: Quality-based refinement if needed
                 if (result.QualityScore.OverallScore < options.QualityThreshold && options.EnableAutoRefinement)
@@ -112,7 +119,10 @@ namespace TestCaseEditorApp.Services
                     result.RefinedDerivation = await PerformQualityBasedRefinementAsync(result.InitialDerivation, result.QualityScore);
                     if (result.RefinedDerivation != null)
                     {
-                        result.RefinedQualityScore = await _qualityScorer.ScoreDerivationQualityAsync(result.RefinedDerivation, atpStepText);
+                        var refinedQualityTask = _qualityScorer.ScoreDerivationQualityAsync(result.RefinedDerivation, atpStepText);
+                        result.RefinedQualityScore = refinedQualityTask != null
+                            ? await refinedQualityTask
+                            : new DerivationQualityScore();
                     }
                 }
 
@@ -146,6 +156,12 @@ namespace TestCaseEditorApp.Services
             List<DerivationQualityScore> qualityScores,
             List<TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Services.ValidationResult> validationResults)
         {
+            if (qualityScores == null)
+                throw new ArgumentNullException(nameof(qualityScores));
+
+            if (validationResults == null)
+                throw new ArgumentNullException(nameof(validationResults));
+
             try
             {
                 _logger.LogInformation("Correlating {QualityCount} quality scores with {ValidationCount} validation results",
@@ -260,7 +276,7 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Gets real-time quality metrics for active derivation sessions
         /// </summary>
-        public async Task<ActiveQualityMetrics> GetActiveQualityMetricsAsync()
+        public Task<ActiveQualityMetrics> GetActiveQualityMetricsAsync()
         {
             try
             {
@@ -285,7 +301,7 @@ namespace TestCaseEditorApp.Services
                 metrics.TotalCorrelationsRecorded = _correlationHistory.Count;
                 metrics.SystemUptimeHours = (DateTime.UtcNow - DateTime.Today).TotalHours;
 
-                return metrics;
+                return Task.FromResult(metrics);
             }
             catch (Exception ex)
             {
@@ -314,14 +330,27 @@ namespace TestCaseEditorApp.Services
             try
             {
                 // Get initial real-time feedback
-                var initialFeedback = await _qualityScorer.GetRealTimeQualityFeedbackAsync(atpStepText, new List<DerivedCapability>());
+                var initialFeedbackTask = _qualityScorer.GetRealTimeQualityFeedbackAsync(atpStepText, new List<DerivedCapability>());
+                var initialFeedback = initialFeedbackTask != null
+                    ? await initialFeedbackTask
+                    : new RealTimeQualityFeedback();
+                initialFeedback ??= new RealTimeQualityFeedback();
                 feedbackSession.FeedbackHistory.Add(initialFeedback);
 
                 // Perform the actual derivation
-                var derivationResult = await _derivationService.DeriveCapabilitiesAsync(atpStepText);
+                var derivationTask = _derivationService.DeriveCapabilitiesAsync(atpStepText);
+                var derivationResult = derivationTask != null
+                    ? await derivationTask
+                    : new DerivationResult();
+                derivationResult ??= new DerivationResult();
+                derivationResult.DerivedCapabilities ??= new List<DerivedCapability>();
 
                 // Get final feedback on complete derivation
-                var finalFeedback = await _qualityScorer.GetRealTimeQualityFeedbackAsync(atpStepText, derivationResult.DerivedCapabilities);
+                var finalFeedbackTask = _qualityScorer.GetRealTimeQualityFeedbackAsync(atpStepText, derivationResult.DerivedCapabilities);
+                var finalFeedback = finalFeedbackTask != null
+                    ? await finalFeedbackTask
+                    : new RealTimeQualityFeedback();
+                finalFeedback ??= new RealTimeQualityFeedback();
                 feedbackSession.FeedbackHistory.Add(finalFeedback);
 
                 feedbackSession.CompletedAt = DateTime.UtcNow;
@@ -348,8 +377,9 @@ namespace TestCaseEditorApp.Services
 
                 // Focus on the most problematic areas
                 var prioritizedImprovements = qualityScore.ActionableRecommendations
-                    .Take(3) // Focus on top 3 improvements
-                    .ToList();
+                    ?.Take(3) // Focus on top 3 improvements
+                    .ToList()
+                    ?? new List<string>();
 
                 if (!prioritizedImprovements.Any())
                     return null;
@@ -358,7 +388,13 @@ namespace TestCaseEditorApp.Services
                 var refinementPrompt = GenerateRefinementPrompt(initialResult, qualityScore, prioritizedImprovements);
                 
                 // Re-derive with refined approach
-                var refinedResult = await _derivationService.DeriveCapabilitiesAsync(refinementPrompt);
+                var refinedTask = _derivationService.DeriveCapabilitiesAsync(refinementPrompt);
+                var refinedResult = refinedTask != null
+                    ? await refinedTask
+                    : null;
+
+                if (refinedResult == null)
+                    return null;
                 
                 // Transfer original metadata
                 refinedResult.SessionId = initialResult.SessionId + "_refined";
@@ -379,7 +415,7 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Generate training examples based on quality assessment
         /// </summary>
-        private async Task<List<SyntheticTrainingExample>> GenerateQualityBasedTrainingExamplesAsync(QualityGuidedDerivationResult result)
+        private Task<List<SyntheticTrainingExample>> GenerateQualityBasedTrainingExamplesAsync(QualityGuidedDerivationResult result)
         {
             var examples = new List<SyntheticTrainingExample>();
 
@@ -406,19 +442,19 @@ namespace TestCaseEditorApp.Services
                     examples.Add(trainingExample);
                 }
 
-                return examples;
+                return Task.FromResult(examples);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to generate quality-based training examples");
-                return examples;
+                return Task.FromResult(examples);
             }
         }
 
         /// <summary>
         /// Match quality scores with validation results
         /// </summary>
-        private async Task<List<QualityValidationPair>> MatchQualityScoresWithValidationAsync(
+        private Task<List<QualityValidationPair>> MatchQualityScoresWithValidationAsync(
             List<DerivationQualityScore> qualityScores,
             List<TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Services.ValidationResult> validationResults)
         {
@@ -439,7 +475,7 @@ namespace TestCaseEditorApp.Services
                 }
             }
 
-            return pairs;
+            return Task.FromResult(pairs);
         }
 
         /// <summary>
@@ -1102,9 +1138,9 @@ namespace TestCaseEditorApp.Services
             return improvements.OrderByDescending(i => (int)i.Priority).ThenByDescending(i => i.ExpectedImpact).ToList();
         }
 
-        private async Task<QualityOutcomePredictions> PredictQualityOutcomesAsync(TemplateFormQualityAssessment assessment)
+        private Task<QualityOutcomePredictions> PredictQualityOutcomesAsync(TemplateFormQualityAssessment assessment)
         {
-            return new QualityOutcomePredictions
+            var predictions = new QualityOutcomePredictions
             {
                 PredictedSuccessRate = Math.Max(0.1, assessment.OverallQualityScore * 0.9 + 0.1),
                 ConfidenceInPrediction = 0.8,
@@ -1115,6 +1151,8 @@ namespace TestCaseEditorApp.Services
                     .Select(s => s.StrategyName)
                     .ToList()
             };
+
+            return Task.FromResult(predictions);
         }
 
         // Helper methods for field validation and processing
@@ -1123,17 +1161,17 @@ namespace TestCaseEditorApp.Services
         private string ProcessFieldValue(IFormField field, object value) => value?.ToString() ?? string.Empty;
         
         // Helper methods for constraint degradation
-        private async Task<string> RelaxFieldConstraintsAsync(IFormTemplate template, string fieldName, Dictionary<string, object> formData) => $"Relaxed constraints for {fieldName}";
+        private Task<string> RelaxFieldConstraintsAsync(IFormTemplate template, string fieldName, Dictionary<string, object> formData) => Task.FromResult($"Relaxed constraints for {fieldName}");
         private string ApplyDefaultValue(IFormTemplate template, string fieldName, Dictionary<string, object> formData) => $"Applied default value for {fieldName}";
         private string ReduceQualityThreshold(IFormTemplate template, string fieldName) => $"Reduced quality threshold for {fieldName}";
         private string ExcludeFieldFromProcessing(IFormTemplate template, string fieldName) => $"Excluded {fieldName} from processing";
-        private async Task ApplyConstraintAdjustmentAsync(IFormTemplate template, ConstraintAdjustmentRecommendation adjustment) { /* Implementation placeholder */ }
+        private Task ApplyConstraintAdjustmentAsync(IFormTemplate template, ConstraintAdjustmentRecommendation adjustment) => Task.CompletedTask;
         private double CalculateQualityRetentionScore(ConstraintDegradationResult result, DegradationImpactEstimate impact) => impact.QualityImpactScore;
         
         // Helper methods for dashboard data
-        private async Task<TemplateSystemMetrics> GetTemplateSystemMetricsAsync() => new TemplateSystemMetrics { OverallComplianceRate = 0.95, AverageRetryRate = 0.05 };
-        private async Task<List<TemplateQualityTrend>> GetTemplateQualityTrendsAsync() => new List<TemplateQualityTrend>();
-        private async Task<Dictionary<string, TemplatePerformanceMetrics>> GetActiveTemplatePerformanceAsync() => new Dictionary<string, TemplatePerformanceMetrics>();
+        private Task<TemplateSystemMetrics> GetTemplateSystemMetricsAsync() => Task.FromResult(new TemplateSystemMetrics { OverallComplianceRate = 0.95, AverageRetryRate = 0.05 });
+        private Task<List<TemplateQualityTrend>> GetTemplateQualityTrendsAsync() => Task.FromResult(new List<TemplateQualityTrend>());
+        private Task<Dictionary<string, TemplatePerformanceMetrics>> GetActiveTemplatePerformanceAsync() => Task.FromResult(new Dictionary<string, TemplatePerformanceMetrics>());
         
         // Helper methods for quality improvement categorization
         private QualityImprovementPriority GetViolationPriority(ConstraintViolationType violationType) => 

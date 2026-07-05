@@ -2486,11 +2486,11 @@ Extract all legitimate requirements:";
                 try
                 {
                     // Auto-retry policy: avoid user decisions in runtime flows.
-                    Func<List<SkippedAtpStep>, Task<TimeoutRetryDecision>> retryCallback = async (skippedSteps) =>
+                    Func<List<SkippedAtpStep>, Task<TimeoutRetryDecision>> retryCallback = (skippedSteps) =>
                     {
                         if (skippedSteps == null || skippedSteps.Count == 0)
                         {
-                            return new TimeoutRetryDecision { ShouldRetry = false, ExtendedTimeout = TimeSpan.Zero };
+                            return Task.FromResult(new TimeoutRetryDecision { ShouldRetry = false, ExtendedTimeout = TimeSpan.Zero });
                         }
 
                         // For smaller jobs use a longer retry timeout. For larger jobs keep bounded retries.
@@ -2504,11 +2504,11 @@ Extract all legitimate requirements:";
                         progressCallback?.Invoke(
                             $"🔄 Auto-retry enabled: retrying {skippedSteps.Count} timed-out steps with {extendedTimeout.TotalSeconds:0}s timeout.");
 
-                        return new TimeoutRetryDecision
+                        return Task.FromResult(new TimeoutRetryDecision
                         {
                             ShouldRetry = true,
                             ExtendedTimeout = extendedTimeout
-                        };
+                        });
                     };
                     
                     var derivationTask = _derivationService.DeriveCapabilitiesAsync(documentContent, derivationOptions, progressCallback, retryCallback, onRequirementDiscovered);
@@ -3451,7 +3451,7 @@ Extract all legitimate requirements:";
         /// <summary>
         /// Attempt to start Ollama service automatically
         /// </summary>
-        private async Task<bool> StartOllamaServiceAsync(CancellationToken cancellationToken)
+        private Task<bool> StartOllamaServiceAsync(CancellationToken cancellationToken)
         {
             try
             {
@@ -3472,15 +3472,15 @@ Extract all legitimate requirements:";
                 {
                     // Don't wait for the process to exit - it should run in background
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Ollama process started (PID: {process.Id})");
-                    return true;
+                    return Task.FromResult(true);
                 }
             }
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Failed to start Ollama: {ex.Message}");
             }
-            
-            return false;
+
+            return Task.FromResult(false);
         }
 
         #region Template Form Architecture Integration (Phase 6)

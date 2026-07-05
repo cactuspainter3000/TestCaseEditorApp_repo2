@@ -21,8 +21,6 @@
         xmlns:titleviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Title.Views"
         xmlns:reqvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels"
         xmlns:reqviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.Views"
-        xmlns:sharedvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Shared.ViewModels"
-        xmlns:sharedviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Shared.Views"
         xmlns:tccvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels"
         xmlns:tccviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Views"
         xmlns:notificationvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Notification.ViewModels"
@@ -60,11 +58,6 @@
         <!-- REMOVED: TestCaseGenerator_QuestionsVM DataTemplate - deprecated -->
 
         <!-- REMOVED: TestCaseGenerator_CreationVM DataTemplate - deprecated -->
-
-        <!-- Shared Analysis ViewModel - consolidates duplicate analysis controls -->
-        <DataTemplate DataType="{x:Type sharedvm:SharedAnalysisViewModel}">
-            <sharedviews:SharedAnalysisView />
-        </DataTemplate>
 
         <!-- Requirement Analysis ViewModel - maps to Requirements analysis view -->
         <DataTemplate DataType="{x:Type reqvm:RequirementAnalysisViewModel}">

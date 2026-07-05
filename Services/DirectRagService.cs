@@ -238,7 +238,7 @@ namespace TestCaseEditorApp.Services
             }
         }
 
-        public async Task<bool> ClearProjectIndexAsync(int projectId, CancellationToken cancellationToken = default)
+        public Task<bool> ClearProjectIndexAsync(int projectId, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -255,12 +255,12 @@ namespace TestCaseEditorApp.Services
                 }
                 
                 _logger.LogInformation("[DirectRAG] Successfully cleared index for project {ProjectId}", projectId);
-                return true;
+                return Task.FromResult(true);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[DirectRAG] Failed to clear project index {ProjectId}: {Error}", projectId, ex.Message);
-                return false;
+                return Task.FromResult(false);
             }
         }
 

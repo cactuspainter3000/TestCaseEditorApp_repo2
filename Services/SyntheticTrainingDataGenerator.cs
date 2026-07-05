@@ -412,13 +412,13 @@ Generate only the ATP step text, no additional formatting:";
         /// <summary>
         /// Evaluates overall quality metrics for a generated dataset
         /// </summary>
-        private async Task<DatasetQualityMetrics> EvaluateDatasetQualityAsync(SyntheticTrainingDataset dataset)
+        private Task<DatasetQualityMetrics> EvaluateDatasetQualityAsync(SyntheticTrainingDataset dataset)
         {
             var metrics = new DatasetQualityMetrics();
 
             if (!dataset.Examples.Any())
             {
-                return metrics;
+                return Task.FromResult(metrics);
             }
 
             // Basic statistics
@@ -439,7 +439,7 @@ Generate only the ATP step text, no additional formatting:";
             var uniqueATPSteps = dataset.Examples.Select(e => e.ATPStepText).Distinct().Count();
             metrics.DiversityScore = (double)uniqueATPSteps / dataset.Examples.Count;
 
-            return metrics;
+            return Task.FromResult(metrics);
         }
 
         /// <summary>

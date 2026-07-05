@@ -8,7 +8,7 @@ using System.Text;
 using System.Windows;
 using TestCaseEditorApp.MVVM.Models;  // TableDto
 using TestCaseEditorApp.Services;
-using TestCaseEditorApp.Services;
+using TestCaseEditorApp.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 // using TestCaseEditorApp.Session;          // SessionTableStore, TableSnapshot - TODO: implement session persistence
 
@@ -73,6 +73,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private bool _hydratingFromSession;
         private bool _sessionHydratedOnce;
+        private string _editSessionOriginalTitle = string.Empty;
+        private string _editSessionOriginalHash = string.Empty;
 
         /// <param name="innerBackplane">
         /// Optional. If provided, ReplaceWith will forward edits to this backplane (true write-through to model).
@@ -163,155 +165,99 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         [RelayCommand]
         private void EditTable()
         {
-            // Force immediate output to check if command is called
-            System.Diagnostics.Debug.WriteLine($"[EditTable] COMMAND CALLED - Hash: {GetHashCode()}");
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[EditTable] #{GetHashCode()} ENTERING EDIT MODE - Req: {RequirementId}, Table: {TableKey}, CurrentIsEditing: {IsEditing}");
+            BeginEdit();
+        }
 
-            // 🔍 CHECK ORIGINAL DATA STATE
-            System.Diagnostics.Debug.WriteLine($"[EditTable] 🔍 ORIGINAL DATA CHECK - Columns.Count: {Columns?.Count ?? -1}, Rows.Count: {Rows?.Count ?? -1}");
-            if ((Columns?.Count ?? 0) == 0 || (Rows?.Count ?? 0) == 0)
+        /// <summary>
+        /// Creates an isolated editor snapshot and transitions the table into edit mode.
+        /// </summary>
+        private void BeginEdit()
+        {
+            if (IsEditing && EditorViewModel != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[EditTable] ⚠️ WARNING: ORIGINAL DATA IS EMPTY! Columns={Columns?.Count ?? -1}, Rows={Rows?.Count ?? -1}");
+                TestCaseEditorApp.Services.Logging.Log.Debug(
+                    $"[LooseTableViewModel] Edit already active for table '{Title}' ({RequirementId}/{TableKey}).");
+                return;
             }
+
+            NormalizeRows();
+            _editSessionOriginalTitle = Title ?? string.Empty;
+            _editSessionOriginalHash = SnapshotHash(Columns, Rows);
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[EditTable] About to create EditorViewModel - Title: '{Title}', Columns: {Columns.Count}, Rows: {Rows.Count}");
-                
-                // Debug the actual data we're passing
-                System.Diagnostics.Debug.WriteLine($"[EditTable] Columns data:");
-                for (int i = 0; i < Columns.Count; i++)
-                {
-                    var col = Columns[i];
-                    System.Diagnostics.Debug.WriteLine($"  Column {i}: Header='{col.Header}', BindingPath='{col.BindingPath}'");
-                }
-                
-                System.Diagnostics.Debug.WriteLine($"[EditTable] Rows data:");
-                for (int i = 0; i < Math.Min(Rows.Count, 3); i++)
-                {
-                    var row = Rows[i];
-                    System.Diagnostics.Debug.WriteLine($"  Row {i}: Cells.Count={row.Cells.Count}");
-                    foreach (var cell in row.Cells)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"    Cell: Key='{cell.Key}', Value='{cell.Value}'");
-                    }
-                }
-                
-                // Create editor ViewModel and enter embedded edit mode
                 EditorViewModel = EditableTableEditorViewModel.From(Title, Columns, Rows);
-                
-                System.Diagnostics.Debug.WriteLine($"[EditTable] EditorViewModel created successfully: {EditorViewModel != null}");
-                if (EditorViewModel != null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[EditTable] EditorViewModel details - Title: '{EditorViewModel.Title}', Columns: {EditorViewModel.Columns?.Count ?? 0}, Rows: {EditorViewModel.Rows?.Count ?? 0}");
-                    
-                    // Debug the editor data
-                    if (EditorViewModel.Columns != null)
-                    {
-                        for (int i = 0; i < EditorViewModel.Columns.Count; i++)
-                        {
-                            var col = EditorViewModel.Columns[i];
-                            System.Diagnostics.Debug.WriteLine($"  EditorColumn {i}: Header='{col.Header}', BindingPath='{col.BindingPath}'");
-                        }
-                    }
-                    
-                    if (EditorViewModel.Rows != null)
-                    {
-                        for (int i = 0; i < Math.Min(EditorViewModel.Rows.Count, 3); i++)
-                        {
-                            var row = EditorViewModel.Rows[i];
-                            System.Diagnostics.Debug.WriteLine($"  EditorRow {i}: Cells.Count={row.Cells.Count}");
-                            foreach (var cell in row.Cells)
-                            {
-                                System.Diagnostics.Debug.WriteLine($"    EditorCell: Key='{cell.Key}', Value='{cell.Value}'");
-                            }
-                        }
-                    }
-                }
-                
                 IsEditing = true;
-                System.Diagnostics.Debug.WriteLine($"[EditTable] IsEditing set to: {IsEditing}");
-                
-                // Force property change notification
-                OnPropertyChanged(nameof(IsEditing));
                 OnPropertyChanged(nameof(DebugInfo));
-                
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[EditTable] #{GetHashCode()} EDIT MODE SET - IsEditing: {IsEditing}, EditorViewModel created: {EditorViewModel != null}");
+
+                TestCaseEditorApp.Services.Logging.Log.Debug(
+                    $"[LooseTableViewModel] Entered edit mode for table '{Title}' ({RequirementId}/{TableKey}) with {Columns.Count} columns and {Rows.Count} rows.");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[EditTable] ERROR: {ex.Message}");
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[EditTable] #{GetHashCode()} ERROR entering edit mode");
+                ResetEditSession(clearEditor: true, preserveEditingFlag: false);
+                TestCaseEditorApp.Services.Logging.Log.Error(
+                    ex,
+                    $"[LooseTableViewModel] Failed to enter edit mode for table '{Title}' ({RequirementId}/{TableKey}). Columns={Columns.Count}, Rows={Rows.Count}");
             }
         }
 
+        /// <summary>
+        /// Commits the current editor snapshot back into the view model and source requirement.
+        /// </summary>
         private void SaveTable()
         {
-            // Apply changes from editor ViewModel back to this ViewModel
-            if (EditorViewModel != null)
+            if (!IsEditing || EditorViewModel is null)
             {
-                // Forward to inner backplane first (true write-through to model/DTO if available)
-                _innerBackplane?.ReplaceWith(EditorViewModel.Columns, EditorViewModel.Rows);
-
-                // Update title
-                Title = EditorViewModel.Title;
-                
-                // Clear and rebuild columns and rows from editor
-                Columns.Clear();
-                Rows.Clear();
-                
-                foreach (var col in EditorViewModel.Columns)
-                {
-                    Columns.Add(col);
-                }
-                
-                foreach (var row in EditorViewModel.Rows)
-                {
-                    Rows.Add(row);
-                }
-                
-                // Mark as dirty and immediately save to source requirement
-                IsDirty = true;
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[LooseTableViewModel] Table '{Title}' marked as dirty for requirement '{RequirementId}'");
-                
-                // Immediately save to source requirement instead of waiting for navigation
-                SaveToSourceRequirement();
-                
-                // Perform post-edit processing
-                AfterEditCommit();
-                
-                // Properly exit editing mode by clearing editor and state
-                EditorViewModel = null;
-                IsEditing = false;
-                
-                // Additional cleanup to ensure no unsaved state remains
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[LooseTableViewModel] Save completed, editing mode exited for table '{Title}'");
+                TestCaseEditorApp.Services.Logging.Log.Debug(
+                    $"[LooseTableViewModel] Ignored save request for table '{Title}' because no edit session is active.");
+                return;
             }
+
+            var clonedColumns = TableEditingHelpers.CloneColumns(EditorViewModel.Columns);
+            var clonedRows = TableEditingHelpers.CloneRows(EditorViewModel.Rows);
+            var editorTitle = (EditorViewModel.Title ?? string.Empty).Trim();
+
+            _innerBackplane?.ReplaceWith(clonedColumns, clonedRows);
+            ApplyTableState(editorTitle, clonedColumns, clonedRows);
+
+            IsDirty = true;
+            TestCaseEditorApp.Services.Logging.Log.Debug(
+                $"[LooseTableViewModel] Saving table '{Title}' for requirement '{RequirementId}' with {Rows.Count} rows and {Columns.Count} columns.");
+
+            SaveToSourceRequirement();
+            AfterEditCommit();
+            ResetEditSession(clearEditor: true, preserveEditingFlag: false);
+
+            TestCaseEditorApp.Services.Logging.Log.Debug(
+                $"[LooseTableViewModel] Save completed for table '{Title}' ({RequirementId}/{TableKey}).");
         }
 
+        /// <summary>
+        /// Discards any in-progress editor snapshot and returns to read-only mode.
+        /// </summary>
         private void CancelEdit()
         {
-            System.Diagnostics.Debug.WriteLine($"[CancelEdit] COMMAND CALLED - Hash: {GetHashCode()}");
-            
-            // Instead of clearing EditorViewModel completely, restore it to show original data
-            // This ensures the UI always has data to display
-            EditorViewModel = EditableTableEditorViewModel.From(Title, Columns, Rows);
-            IsEditing = false;
-            
-            System.Diagnostics.Debug.WriteLine($"[CancelEdit] EditorViewModel restored with original data, IsEditing set to false");
-            
-            // Exit edit mode - removed IsEditing assignment
+            if (!IsEditing && EditorViewModel is null)
+            {
+                return;
+            }
+
+            ResetEditSession(clearEditor: true, preserveEditingFlag: false);
+            TestCaseEditorApp.Services.Logging.Log.Debug(
+                $"[LooseTableViewModel] Edit cancelled for table '{Title}' ({RequirementId}/{TableKey}).");
         }
 
         private void ExitEditingMode()
         {
-            System.Diagnostics.Debug.WriteLine($"[ExitEditingMode] COMMAND CALLED - Hash: {GetHashCode()}");
-            System.Diagnostics.Debug.WriteLine($"[ExitEditingMode] STACK TRACE: {Environment.StackTrace}");
-            
-            // If there's no editor VM, just exit
+            if (!IsEditing)
+            {
+                return;
+            }
+
             if (EditorViewModel is null)
             {
-                System.Diagnostics.Debug.WriteLine($"[ExitEditingMode] EditorViewModel is null, exiting early");
+                ResetEditSession(clearEditor: true, preserveEditingFlag: false);
                 return;
             }
 
@@ -355,16 +301,34 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// </summary>
         public void SaveToSourceRequirement()
         {
+            if (string.IsNullOrWhiteSpace(RequirementId))
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug(
+                    $"[SaveToSourceRequirement] Cannot save table '{Title}' because RequirementId is empty.");
+                return;
+            }
+
             try
             {
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[SaveToSourceRequirement] Starting save for table '{Title}', RequirementId: '{RequirementId}', IsDirty: {IsDirty}");
+                TestCaseEditorApp.Services.Logging.Log.Debug(
+                    $"[SaveToSourceRequirement] Starting save for table '{Title}' ({RequirementId}/{TableKey}). Rows={Rows.Count}, Cols={Columns.Count}, IsDirty={IsDirty}");
                 
-                // Find the requirement in the TestCaseGeneration mediator
-                var testCaseGenMediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.ITestCaseGenerationMediator>();
-                if (testCaseGenMediator == null) return;
+                // Find the requirement in the Requirements mediator
+                var requirementsMediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
+                if (requirementsMediator == null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug(
+                        $"[SaveToSourceRequirement] Requirements mediator unavailable while saving table '{Title}' ({RequirementId}/{TableKey}).");
+                    return;
+                }
 
-                var requirement = testCaseGenMediator.Requirements.FirstOrDefault(r => r.Item == RequirementId || r.GlobalId == RequirementId);
-                if (requirement == null) return;
+                var requirement = requirementsMediator.Requirements.FirstOrDefault(r => r.Item == RequirementId || r.GlobalId == RequirementId);
+                if (requirement == null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug(
+                        $"[SaveToSourceRequirement] Requirement '{RequirementId}' not found while saving table '{Title}'.");
+                    return;
+                }
 
                 // Ensure LooseContent exists
                 if (requirement.LooseContent == null)
@@ -379,11 +343,12 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 // Find and replace the matching table in the source data
                 var tables = requirement.LooseContent.Tables;
                 bool found = false;
+                var originalTitle = _editSessionOriginalTitle;
                 
                 for (int i = 0; i < tables.Count; i++)
                 {
                     if (tables[i] is LooseTable existingTable && 
-                        existingTable.EditableTitle == Title)
+                        (existingTable.EditableTitle == originalTitle || existingTable.EditableTitle == Title))
                     {
                         tables[i] = looseTable;
                         found = true;
@@ -395,6 +360,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 if (!found)
                 {
                     tables.Add(looseTable);
+                    TestCaseEditorApp.Services.Logging.Log.Debug(
+                        $"[SaveToSourceRequirement] No existing table matched '{originalTitle}'/'{Title}' for requirement '{RequirementId}'. Added a new table entry instead.");
                 }
                 
                 // Reset dirty flag and clear any unsaved state after successful save
@@ -449,29 +416,23 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         private bool HasUnsavedChanges()
         {
-            System.Diagnostics.Debug.WriteLine($"[HasUnsavedChanges] Checking for unsaved changes - Hash: {GetHashCode()}");
-            
             if (EditorViewModel is null)
             {
-                System.Diagnostics.Debug.WriteLine($"[HasUnsavedChanges] EditorViewModel is null, returning false");
                 return false;
             }
 
             // Compare title
             if (!string.Equals(Title ?? string.Empty, EditorViewModel.Title ?? string.Empty, StringComparison.Ordinal))
             {
-                System.Diagnostics.Debug.WriteLine($"[HasUnsavedChanges] Title changed - Original: '{Title}', Editor: '{EditorViewModel.Title}', returning true");
                 return true;
             }
 
-            // Compare snapshot hashes of columns+rows
-            var currentHash = SnapshotHash(Columns, Rows);
             var editorHash = SnapshotHash(EditorViewModel.Columns, EditorViewModel.Rows);
-            bool hasChanges = !string.Equals(currentHash, editorHash, StringComparison.Ordinal);
-            
-            System.Diagnostics.Debug.WriteLine($"[HasUnsavedChanges] Hash comparison - Original: '{currentHash}', Editor: '{editorHash}', HasChanges: {hasChanges}");
-            
-            return hasChanges;
+            var baselineHash = string.IsNullOrEmpty(_editSessionOriginalHash)
+                ? SnapshotHash(Columns, Rows)
+                : _editSessionOriginalHash;
+
+            return !string.Equals(baselineHash, editorHash, StringComparison.Ordinal);
         }
 
         private void AfterEditCommit()
@@ -569,22 +530,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             _innerBackplane?.ReplaceWith(newCols, newRows);
 
             // 2) Update THIS VM’s state so current UI reflects the edit immediately
-            Columns.Clear();
-            foreach (var c in newCols)
-                Columns.Add(new ColumnDefinitionModel { Header = c.Header, BindingPath = c.BindingPath });
-
-            Rows.Clear();
-            foreach (var r in newRows)
-            {
-                var nr = new TableRowModel();
-                foreach (var cell in r.Cells)
-                    nr[cell.Key] = cell.Value ?? string.Empty;
-                Rows.Add(nr);
-            }
-
-            // Title comes from the editor's VM; the dialog will set our Title after ApplyTo(...)
-            NormalizeRows();
-            IsModified = true;
+            ApplyTableState(Title, newCols, newRows);
 
             // TODO: Session persistence
             // 3) Persist to session so navigation (that reads session) sees updated content
@@ -594,6 +540,57 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             //    var snap = TableSnapshot.FromVM(Title, Columns, Rows);
             //    SessionTableStore.Save(RequirementId, TableKey, snap);
             //}
+        }
+
+        private void ApplyTableState(
+            string updatedTitle,
+            ObservableCollection<ColumnDefinitionModel> updatedColumns,
+            ObservableCollection<TableRowModel> updatedRows)
+        {
+            Title = updatedTitle ?? string.Empty;
+
+            Columns.Clear();
+            foreach (var c in updatedColumns ?? new ObservableCollection<ColumnDefinitionModel>())
+            {
+                Columns.Add(new ColumnDefinitionModel
+                {
+                    Header = c?.Header ?? string.Empty,
+                    BindingPath = c?.BindingPath ?? string.Empty
+                });
+            }
+
+            Rows.Clear();
+            foreach (var r in updatedRows ?? new ObservableCollection<TableRowModel>())
+            {
+                if (r == null) continue;
+
+                var nr = new TableRowModel();
+                foreach (var cell in r.Cells)
+                {
+                    if (cell == null) continue;
+                    nr[cell.Key ?? string.Empty] = cell.Value ?? string.Empty;
+                }
+                Rows.Add(nr);
+            }
+
+            NormalizeRows();
+            IsModified = true;
+        }
+
+        private void ResetEditSession(bool clearEditor, bool preserveEditingFlag)
+        {
+            if (clearEditor)
+            {
+                EditorViewModel = null;
+            }
+
+            if (!preserveEditingFlag)
+            {
+                IsEditing = false;
+            }
+
+            _editSessionOriginalTitle = string.Empty;
+            _editSessionOriginalHash = string.Empty;
         }
     }
 }

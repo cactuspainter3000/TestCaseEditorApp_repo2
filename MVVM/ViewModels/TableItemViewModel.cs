@@ -5,9 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Windows;
 using TestCaseEditorApp.Interfaces;
 using TestCaseEditorApp.Services;
+using TestCaseEditorApp.Helpers;
 
 namespace TestCaseEditorApp.MVVM.ViewModels
 {
@@ -109,50 +109,63 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             CancelEditCommand = new RelayCommand(OnCancelEdit);
         }
 
+        /// <summary>
+        /// Creates an isolated editor snapshot and enters embedded edit mode.
+        /// </summary>
         private void OnEditTable()
         {
-            // Use embedded editing - create editor ViewModel and enter edit mode
+            if (IsEditing && EditorViewModel != null)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Debug(
+                    $"[TableItemViewModel] Edit already active for '{Title}'.");
+                return;
+            }
+
             EditorViewModel = EditableTableEditorViewModel.From(Title, Columns, Rows);
             IsEditing = true;
+
+            TestCaseEditorApp.Services.Logging.Log.Debug(
+                $"[TableItemViewModel] Entered edit mode for '{Title}' with {Columns.Count} columns and {Rows.Count} rows.");
         }
 
+        /// <summary>
+        /// Applies editor changes back to the table view model.
+        /// </summary>
         private void OnSaveTable()
         {
-            // Apply changes from editor ViewModel back to this ViewModel
-            if (EditorViewModel != null)
+            if (!IsEditing || EditorViewModel is null)
             {
-                // Update title
-                Title = EditorViewModel.Title;
-                
-                // Clear and rebuild columns and rows from editor
-                Columns.Clear();
-                Rows.Clear();
-                
-                foreach (var col in EditorViewModel.Columns)
-                {
-                    Columns.Add(col);
-                }
-                
-                foreach (var row in EditorViewModel.Rows)
-                {
-                    Rows.Add(row);
-                }
-                
-                // Clear editor ViewModel
-                EditorViewModel = null;
+                TestCaseEditorApp.Services.Logging.Log.Debug(
+                    $"[TableItemViewModel] Ignored save request for '{Title}' because no edit session is active.");
+                return;
             }
-            
-            // Exit edit mode
-            IsEditing = false;
+
+            var clonedColumns = TableEditingHelpers.CloneColumns(EditorViewModel.Columns);
+            var clonedRows = TableEditingHelpers.CloneRows(EditorViewModel.Rows);
+            var editorTitle = (EditorViewModel.Title ?? string.Empty).Trim();
+
+            ApplyTableState(editorTitle, clonedColumns, clonedRows);
+            AfterEditCommit();
+            ResetEditSession();
+
+            TestCaseEditorApp.Services.Logging.Log.Debug(
+                $"[TableItemViewModel] Saved '{Title}' with {Columns.Count} columns and {Rows.Count} rows.");
         }
 
+        /// <summary>
+        /// Discards the active editor snapshot and returns to read-only mode.
+        /// </summary>
         private void OnCancelEdit()
         {
-            // Clear editor ViewModel without applying changes
-            EditorViewModel = null;
-            
-            // Exit edit mode
-            IsEditing = false;
+            if (!IsEditing && EditorViewModel is null)
+            {
+                return;
+            }
+
+            ResetEditSession();
+
+            TestCaseEditorApp.Services.Logging.Log.Debug(
+                $"[TableItemViewModel] Cancelled edit session for '{Title}'.");
         }
 
         private void RestoreFromDto()
@@ -265,29 +278,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             if (newCols == null) throw new ArgumentNullException(nameof(newCols));
             if (newRows == null) throw new ArgumentNullException(nameof(newRows));
 
-            Columns.Clear();
-            foreach (var c in newCols)
-                Columns.Add(new ColumnDefinitionModel { Header = c.Header, BindingPath = c.BindingPath });
-
-            Rows.Clear();
-            foreach (var r in newRows)
-            {
-                var nr = new TableRowModel();
-                foreach (var cell in r.Cells)
-                    nr[cell.Key] = cell.Value ?? string.Empty;
-                Rows.Add(nr);
-            }
-
-            // Trim leading all-empty rows that often result when a user promoted the first row into headers.
-            TrimLeadingEmptyRows();
-
-            // Ensure at least one row is present (UI expects it)
-            if (Rows.Count == 0)
-            {
-                var tr = new TableRowModel();
-                foreach (var c in Columns) tr[c.BindingPath ?? ""] = string.Empty;
-                Rows.Add(tr);
-            }
+            var clonedColumns = TableEditingHelpers.CloneColumns(newCols);
+            var clonedRows = TableEditingHelpers.CloneRows(newRows);
+            ApplyTableState(Title, clonedColumns, clonedRows);
         }
 
         private void TrimLeadingEmptyRows()
@@ -328,6 +321,54 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
             // No-op by design. This method exists for callers that expect it (backwards compatibility).
             // If you want immediate session persistence, call SessionTableStore.Save(...) here.
+        }
+
+        private void ApplyTableState(
+            string updatedTitle,
+            ObservableCollection<ColumnDefinitionModel> updatedColumns,
+            ObservableCollection<TableRowModel> updatedRows)
+        {
+            Title = updatedTitle ?? string.Empty;
+
+            Columns.Clear();
+            foreach (var c in updatedColumns ?? new ObservableCollection<ColumnDefinitionModel>())
+            {
+                Columns.Add(new ColumnDefinitionModel
+                {
+                    Header = c?.Header ?? string.Empty,
+                    BindingPath = c?.BindingPath ?? string.Empty
+                });
+            }
+
+            Rows.Clear();
+            foreach (var r in updatedRows ?? new ObservableCollection<TableRowModel>())
+            {
+                if (r == null) continue;
+
+                var nr = new TableRowModel();
+                foreach (var cell in r.Cells)
+                {
+                    if (cell == null) continue;
+                    nr[cell.Key ?? string.Empty] = cell.Value ?? string.Empty;
+                }
+
+                Rows.Add(nr);
+            }
+
+            TrimLeadingEmptyRows();
+
+            if (Rows.Count == 0)
+            {
+                var tr = new TableRowModel();
+                foreach (var c in Columns) tr[c.BindingPath ?? string.Empty] = string.Empty;
+                Rows.Add(tr);
+            }
+        }
+
+        private void ResetEditSession()
+        {
+            EditorViewModel = null;
+            IsEditing = false;
         }
 
         public override string ToString() => Title ?? string.Empty;

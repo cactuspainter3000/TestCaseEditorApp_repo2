@@ -108,7 +108,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// Handle workspace changes (currently disabled to avoid duplicate scans)
         /// Attachment scanning is now triggered only via OpenProject workflow
         /// </summary>
-        private async void OnWorkspaceChanged(object? sender, WorkspaceChangedEventArgs e)
+        private void OnWorkspaceChanged(object? sender, WorkspaceChangedEventArgs e)
         {
             _logger.LogInformation("[RequirementsSearchAttachments] Workspace changed - attachment scanning will be triggered by OpenProject workflow");
             // No automatic scanning here - only scan when project is explicitly opened
@@ -479,13 +479,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// <summary>
         /// Ensure we have the project name for the current project ID
         /// </summary>
-        private async Task EnsureProjectNameIsAvailable()
+        private Task EnsureProjectNameIsAvailable()
         {
             try
             {
                 // If we already have the project name, we're good
                 if (!string.IsNullOrEmpty(currentProjectName))
-                    return;
+                    return Task.CompletedTask;
 
                 // If AvailableProjects is not loaded, try to load it
                 var projectId = GetCurrentJamaProjectId();
@@ -515,6 +515,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 _logger.LogError(ex, "[RequirementsSearchAttachments] Error getting project name for ID {ProjectId}", GetCurrentJamaProjectId());
             }
+
+            return Task.CompletedTask;
         }
 
         protected override void InitializeCommands()
@@ -939,10 +941,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// Legacy method - now redirects to OpenProject workflow
         /// Attachment scanning should only happen when project is explicitly opened
         /// </summary>
-        private async Task LoadCurrentWorkspaceAttachmentsAsync()
+        private Task LoadCurrentWorkspaceAttachmentsAsync()
         {
             _logger.LogInformation("[RequirementsSearchAttachments] LoadCurrentWorkspaceAttachmentsAsync called - this is now handled by OpenProject workflow");
             StatusMessage = "⚠️ Please open a project to load attachments automatically.";
+            return Task.CompletedTask;
         }
         
         /// <summary>
@@ -1696,9 +1699,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             return normalized;
         }
 
-        private async Task ImportExtractedRequirementsAsync()
+        private Task ImportExtractedRequirementsAsync()
         {
-            if (!HasExtractedRequirements || !CanExecuteImportRequirements()) return;
+            if (!HasExtractedRequirements || !CanExecuteImportRequirements()) return Task.CompletedTask;
 
             try
             {
@@ -1734,6 +1737,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 IsBusy = false;
                 UpdateWorkflowState(); // Update UI state after importing completes
             }
+
+            return Task.CompletedTask;
         }
 
         // ==== PUBLIC METHODS FOR UI INTERACTION ====

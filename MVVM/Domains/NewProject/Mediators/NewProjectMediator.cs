@@ -1,8 +1,6 @@
 using System;
-using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,7 +8,6 @@ using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using TestCaseEditorApp.MVVM.Mediators;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Models;
@@ -30,11 +27,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         private readonly IPersistenceService _persistenceService;
         private readonly IFileDialogService _fileDialogService;
         private readonly AnythingLLMService _anythingLLMService;
-        private readonly NotificationService _notificationService;
-        private readonly IRequirementService _requirementService;
         private readonly SmartRequirementImporter _smartImporter;
-        private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
-        private readonly IWorkspaceValidationService _workspaceValidationService;
         private readonly JamaConnectService _jamaConnectService;
             private readonly IUserSettingsService? _userSettingsService;
         private WorkspaceInfo? _currentWorkspaceInfo;
@@ -50,11 +43,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             IPersistenceService persistenceService,
             IFileDialogService fileDialogService,
             AnythingLLMService anythingLLMService,
-            NotificationService notificationService,
-            IRequirementService requirementService,
             SmartRequirementImporter smartImporter,
-            ITestCaseGenerationMediator testCaseGenerationMediator,
-            IWorkspaceValidationService workspaceValidationService,
             JamaConnectService jamaConnectService,
                 IUserSettingsService? userSettingsService = null,
             PerformanceMonitoringService? performanceMonitor = null,
@@ -64,11 +53,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             _persistenceService = persistenceService ?? throw new ArgumentNullException(nameof(persistenceService));
             _fileDialogService = fileDialogService ?? throw new ArgumentNullException(nameof(fileDialogService));
             _anythingLLMService = anythingLLMService ?? throw new ArgumentNullException(nameof(anythingLLMService));
-            _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
-            _requirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
             _smartImporter = smartImporter ?? throw new ArgumentNullException(nameof(smartImporter));
-            _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
-            _workspaceValidationService = workspaceValidationService ?? throw new ArgumentNullException(nameof(workspaceValidationService));
             _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
                 _userSettingsService = userSettingsService;
         }
@@ -302,16 +287,14 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     WorkspacePath = _currentWorkspaceInfo.Path 
                 });
                 
-                // 1. Get current requirements from Requirements domain (primary source)
-                // Fall back to TestCaseGeneration domain for legacy compatibility
+                // 1. Get current requirements from Requirements domain
                 var requirementsMediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
                 var currentRequirements = requirementsMediator?.Requirements?.ToList() 
-                    ?? _testCaseGenerationMediator?.Requirements?.ToList() 
                     ?? new List<Requirement>();
                 
                 _logger.LogInformation("Gathering current workspace data - found {RequirementCount} requirements (from {Source})", 
                     currentRequirements.Count, 
-                    requirementsMediator?.Requirements?.Any() == true ? "RequirementsMediator" : "TestCaseGenerationMediator");
+                    "RequirementsMediator");
                 
                 // Debug: Check if any requirements have generated test cases before saving
                 var totalTestCases = currentRequirements.Sum(r => r.GeneratedTestCases?.Count ?? 0);
@@ -946,7 +929,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                                 _logger.LogInformation("🔍 DEBUG: Extracted Jama info - ProjectId: {ProjectId}, TestPlan: {TestPlan}", 
                                     jamaProjectIdString, jamaTestPlan);
                                 
-                                // Broadcast imported requirements to TestCaseGenerationMediator for UI sync
+                                // Broadcast imported requirements so subscribed domains can refresh state
                                 BroadcastToAllDomains(new TestCaseGenerationEvents.RequirementsImported
                                 {
                                     Requirements = importedRequirements,
@@ -973,7 +956,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                                 _logger.LogInformation("✅ Successfully imported {Count} requirements using {Method}", 
                                     importedRequirements.Count, importResult.ImportMethod);
                                 
-                                // Broadcast imported requirements to TestCaseGenerationMediator for UI sync
+                                // Broadcast imported requirements so subscribed domains can refresh state
                                 BroadcastToAllDomains(new TestCaseGenerationEvents.RequirementsImported
                                 {
                                     Requirements = importedRequirements,

@@ -1,13 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
-// DEPRECATED: ViewModels namespace removed after domain architecture refactor
-// using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.ViewModels;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
 {
@@ -53,11 +49,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         /// Whether this mediator is properly registered and ready
         /// </summary>
         bool IsRegistered { get; }
-        
-        /// <summary>
-        /// Requirements collection for UI binding across the domain
-        /// </summary>
-        ObservableCollection<Requirement> Requirements { get; }
         
         /// <summary>
         /// Mark this mediator as registered and ready for use (called by DI container)
@@ -180,35 +171,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators
         /// Indicates if any requirement analysis is in progress (individual or batch)
         /// </summary>
         bool IsAnalyzing { get; set; }
-        
-        /// <summary>
-        /// Current step in the workflow
-        /// </summary>
-        object? SelectedStep { get; set; }
-        
-        /// <summary>
-        /// Current step's view model
-        /// </summary>
-        object? CurrentStepViewModel { get; set; }
-        
-        /// <summary>
-        /// HeaderVM instance created and managed by this mediator
-        /// </summary>
-        // DEPRECATED: HeaderViewModel and TitleViewModel types changed to object? after domain refactor
-        // Original types TestCaseGenerator_HeaderVM and TestCaseGenerator_TitleVM were removed
-        object? HeaderViewModel { get; }
-        
-        /// <summary>
-        /// TitleVM instance created and managed by this mediator
-        /// </summary>
-        // DEPRECATED: TitleViewModel type changed to object? after domain refactor  
-        // Original type TestCaseGenerator_TitleVM was removed
-        object? TitleViewModel { get; }
-        
-        // ===== HEADER INTEGRATION =====
-        
-        // REMOVED: SetHeaderViewModel - HeaderVM is now created directly by mediator via DI
-        // Legacy factory pattern conflicts with proper domain architecture
         
         /// <summary>
         /// Domain state for editing

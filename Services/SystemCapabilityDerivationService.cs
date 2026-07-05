@@ -859,7 +859,7 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Validate derived capabilities against taxonomy rules and quality standards
         /// </summary>
-        public async Task<TestCaseEditorApp.MVVM.Models.ValidationResult> ValidateDerivationAsync(DerivationResult derivationResult)
+        public Task<TestCaseEditorApp.MVVM.Models.ValidationResult> ValidateDerivationAsync(DerivationResult derivationResult)
         {
             try
             {
@@ -899,12 +899,12 @@ namespace TestCaseEditorApp.Services
 
                 var reason = isValid ? "Taxonomy validation passed" : string.Join(", ", reasonParts);
                 
-                return new TestCaseEditorApp.MVVM.Models.ValidationResult(isValid, reason, "TaxonomyValidation");
+                return Task.FromResult(new TestCaseEditorApp.MVVM.Models.ValidationResult(isValid, reason, "TaxonomyValidation"));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Validation failed for derivation result");
-                return new TestCaseEditorApp.MVVM.Models.ValidationResult(false, $"Validation error: {ex.Message}", "ValidationError");
+                return Task.FromResult(new TestCaseEditorApp.MVVM.Models.ValidationResult(false, $"Validation error: {ex.Message}", "ValidationError"));
             }
         }
 
@@ -1758,7 +1758,7 @@ namespace TestCaseEditorApp.Services
             }
         }
 
-        private async Task<CapabilityAllocation?> AllocateSingleCapabilityAsync(
+        private Task<CapabilityAllocation?> AllocateSingleCapabilityAsync(
             DerivedCapability capability, 
             List<string> availableSubsystems, 
             AllocationOptions options)
@@ -1768,17 +1768,17 @@ namespace TestCaseEditorApp.Services
             
             if (availableSubsystems.Contains(primarySubsystem))
             {
-                return new CapabilityAllocation
+                return Task.FromResult<CapabilityAllocation?>(new CapabilityAllocation
                 {
                     CapabilityId = capability.Id,
                     TargetSubsystem = primarySubsystem,
                     AllocationType = "Primary",
                     AllocationRationale = $"Category {capability.TaxonomySubcategory} typically allocated to {primarySubsystem}",
                     AllocationConfidence = 0.8
-                };
+                });
             }
 
-            return null;
+            return Task.FromResult<CapabilityAllocation?>(null);
         }
 
         /// <summary>

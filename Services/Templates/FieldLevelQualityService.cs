@@ -330,7 +330,7 @@ namespace TestCaseEditorApp.Services.Templates
             }
         }
 
-        public async Task<TemplateCompletenessQuality> EvaluateTemplateCompletenessAsync(IFormTemplate formTemplate, Dictionary<string, object> actualData)
+        public Task<TemplateCompletenessQuality> EvaluateTemplateCompletenessAsync(IFormTemplate formTemplate, Dictionary<string, object> actualData)
         {
             if (formTemplate == null)
                 throw new ArgumentNullException(nameof(formTemplate));
@@ -391,12 +391,12 @@ namespace TestCaseEditorApp.Services.Templates
                 evaluation.ConstraintAdherenceScore = 1.0; // Assume full compliance for now
                 evaluation.ActiveViolations = new List<ConstraintViolation>();
 
-                return evaluation;
+                return Task.FromResult(evaluation);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to evaluate template completeness for template {TemplateId}", formTemplate.TemplateName);
-                return CreateDefaultTemplateCompletenessQuality(formTemplate.TemplateName);
+                return Task.FromResult(CreateDefaultTemplateCompletenessQuality(formTemplate.TemplateName));
             }
         }
 
@@ -595,7 +595,6 @@ namespace TestCaseEditorApp.Services.Templates
                 AverageConfidence = 0.0,
                 AverageProcessingTime = 0.0,
                 CompletenessScore = 0.0,
-                AccuracyScore = 0.0,
                 ConsistencyScore = 0.0
             };
         }
@@ -780,10 +779,10 @@ namespace TestCaseEditorApp.Services.Templates
         private List<ConstraintAdjustmentRecommendation> GenerateConstraintAdjustmentRecommendations(IReadOnlyCollection<ConstraintViolation> violations) => new(); // Placeholder
         private DegradationImpactEstimate EstimateDegradationImpact(QualityDegradationRecommendations recommendations) => new(); // Placeholder
         private double CalculateRecommendationConfidence(IReadOnlyCollection<FieldQualityMetrics> metrics, IReadOnlyCollection<ConstraintViolation> violations) => 0.8; // Placeholder
-        private async Task<SystemQualityHealth> CalculateSystemQualityHealthAsync() => new() { OverallStatus = HealthStatus.Good, OverallHealthScore = 0.85 }; // Placeholder
-        private async Task<FieldTypePerformance> CalculateFieldTypePerformanceAsync(FieldCriticality fieldType) => new() { FieldType = fieldType, SuccessRate = 0.9, AverageConfidence = 0.8 }; // Placeholder
-        private async Task<List<QualityIssue>> IdentifyActiveQualityIssuesAsync() => new(); // Placeholder
-        private async Task<QualityTrendSummary> CalculateQualityTrendSummaryAsync() => new(); // Placeholder
+        private Task<SystemQualityHealth> CalculateSystemQualityHealthAsync() => Task.FromResult(new SystemQualityHealth { OverallStatus = HealthStatus.Good, OverallHealthScore = 0.85 }); // Placeholder
+        private Task<FieldTypePerformance> CalculateFieldTypePerformanceAsync(FieldCriticality fieldType) => Task.FromResult(new FieldTypePerformance { FieldType = fieldType, SuccessRate = 0.9, AverageConfidence = 0.8 }); // Placeholder
+        private Task<List<QualityIssue>> IdentifyActiveQualityIssuesAsync() => Task.FromResult(new List<QualityIssue>()); // Placeholder
+        private Task<QualityTrendSummary> CalculateQualityTrendSummaryAsync() => Task.FromResult(new QualityTrendSummary()); // Placeholder
         private CapacityMetrics CalculateCapacityMetrics() => new() { CurrentUtilization = 0.6, Status = CapacityStatus.Normal }; // Placeholder
         private double CalculateConsistencyScore(List<FieldProcessingResult> results) => results.Any() ? results.Average(r => r.ConfidenceScore) : 0.0; // Placeholder
         private QualityTrend CalculateRecentTrend(List<FieldProcessingResult> results, TimeSpan window) => QualityTrend.Stable; // Placeholder

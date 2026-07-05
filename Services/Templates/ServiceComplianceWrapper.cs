@@ -323,7 +323,7 @@ namespace TestCaseEditorApp.Services.Templates
             return result;
         }
 
-        private async Task<IFormValidationResult> ValidateAgainstTemplateAsync<TOutput>(
+        private Task<IFormValidationResult> ValidateAgainstTemplateAsync<TOutput>(
             TOutput output,
             IFormTemplate template)
         {
@@ -354,7 +354,7 @@ namespace TestCaseEditorApp.Services.Templates
                 result.ComplianceScore = 0.0;
             }
 
-            return result;
+            return Task.FromResult<IFormValidationResult>(result);
         }
 
         private async Task<IFormValidationResult> ValidateInputAgainstTemplateAsync<TInput>(

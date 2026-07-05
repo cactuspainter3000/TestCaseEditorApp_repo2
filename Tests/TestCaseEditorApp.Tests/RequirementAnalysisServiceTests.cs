@@ -18,11 +18,8 @@ namespace TestCaseEditorApp.Tests.Phase4Services
     public class RequirementAnalysisServiceTests
     {
         private Mock<ITextGenerationService> _mockLlmService;
-        private Mock<RequirementAnalysisPromptBuilder> _mockPromptBuilder;
+        private RequirementAnalysisPromptBuilder _promptBuilder;
         private Mock<ResponseParserManager> _mockParserManager;
-        private Mock<LlmServiceHealthMonitor> _mockHealthMonitor;
-        private Mock<RequirementAnalysisCache> _mockCache;
-        private Mock<AnythingLLMService> _mockAnythingLLMService;
         private Mock<ISystemCapabilityDerivationService> _mockDerivationService;
         private Mock<IRequirementGapAnalyzer> _mockGapAnalyzer;
         private RequirementAnalysisService _service;
@@ -31,21 +28,18 @@ namespace TestCaseEditorApp.Tests.Phase4Services
         public void Setup()
         {
             _mockLlmService = new Mock<ITextGenerationService>();
-            _mockPromptBuilder = new Mock<RequirementAnalysisPromptBuilder>();
+            _promptBuilder = new RequirementAnalysisPromptBuilder();
             _mockParserManager = new Mock<ResponseParserManager>();
-            _mockHealthMonitor = new Mock<LlmServiceHealthMonitor>();
-            _mockCache = new Mock<RequirementAnalysisCache>();
-            _mockAnythingLLMService = new Mock<AnythingLLMService>();
             _mockDerivationService = new Mock<ISystemCapabilityDerivationService>();
             _mockGapAnalyzer = new Mock<IRequirementGapAnalyzer>();
 
             _service = new RequirementAnalysisService(
                 _mockLlmService.Object,
-                _mockPromptBuilder.Object,
+                _promptBuilder,
                 _mockParserManager.Object,
-                _mockHealthMonitor.Object,
-                _mockCache.Object,
-                _mockAnythingLLMService.Object,
+                null,
+                null,
+                null,
                 null, // directRagService
                 _mockDerivationService.Object,
                 _mockGapAnalyzer.Object);
@@ -64,6 +58,7 @@ namespace TestCaseEditorApp.Tests.Phase4Services
 
             var derivationResult = new DerivationResult
             {
+                QualityScore = 0.85,
                 DerivedCapabilities = new List<DerivedCapability>
                 {
                     new DerivedCapability
@@ -207,7 +202,7 @@ namespace TestCaseEditorApp.Tests.Phase4Services
             Assert.ThrowsException<ArgumentNullException>(() =>
                 new RequirementAnalysisService(
                     null,
-                    _mockPromptBuilder.Object,
+                    _promptBuilder,
                     _mockParserManager.Object));
         }
 
@@ -217,7 +212,7 @@ namespace TestCaseEditorApp.Tests.Phase4Services
             // Act
             var service = new RequirementAnalysisService(
                 _mockLlmService.Object,
-                _mockPromptBuilder.Object,
+                _promptBuilder,
                 _mockParserManager.Object);
 
             // Assert
@@ -230,11 +225,11 @@ namespace TestCaseEditorApp.Tests.Phase4Services
             // Act
             var service = new RequirementAnalysisService(
                 _mockLlmService.Object,
-                _mockPromptBuilder.Object,
+                _promptBuilder,
                 _mockParserManager.Object,
-                _mockHealthMonitor.Object,
-                _mockCache.Object,
-                _mockAnythingLLMService.Object,
+                null,
+                null,
+                null,
                 null, // directRagService
                 _mockDerivationService.Object,
                 _mockGapAnalyzer.Object);

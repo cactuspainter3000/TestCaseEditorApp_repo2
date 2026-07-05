@@ -1,13 +1,10 @@
 using System;
-using System.Collections.ObjectModel;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using TestCaseEditorApp.MVVM.Mediators;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Models;
@@ -24,36 +21,21 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
     /// </summary>
     public class OpenProjectMediator : BaseDomainMediator<OpenProjectEvents>, IOpenProjectMediator
     {
-        private readonly IPersistenceService _persistenceService;
-        private readonly IFileDialogService _fileDialogService;
         private readonly AnythingLLMService _anythingLLMService;
-        private readonly NotificationService _notificationService;
-        private readonly ITestCaseGenerationMediator _testCaseGenerationMediator;
-        private readonly IWorkspaceValidationService _workspaceValidationService;
         private readonly IJamaConnectService _jamaConnectService;
         private readonly TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator _newProjectMediator;
 
         public OpenProjectMediator(
             ILogger<OpenProjectMediator> logger,
             IDomainUICoordinator uiCoordinator,
-            IPersistenceService persistenceService,
-            IFileDialogService fileDialogService,
             AnythingLLMService anythingLLMService,
-            NotificationService notificationService,
-            ITestCaseGenerationMediator testCaseGenerationMediator,
-            IWorkspaceValidationService workspaceValidationService,
             IJamaConnectService jamaConnectService,
             TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.INewProjectMediator newProjectMediator,
             PerformanceMonitoringService? performanceMonitor = null,
             EventReplayService? eventReplay = null)
             : base(logger, uiCoordinator, "Open Project", performanceMonitor, eventReplay)
         {
-            _persistenceService = persistenceService ?? throw new ArgumentNullException(nameof(persistenceService));
-            _fileDialogService = fileDialogService ?? throw new ArgumentNullException(nameof(fileDialogService));
             _anythingLLMService = anythingLLMService ?? throw new ArgumentNullException(nameof(anythingLLMService));
-            _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
-            _testCaseGenerationMediator = testCaseGenerationMediator ?? throw new ArgumentNullException(nameof(testCaseGenerationMediator));
-            _workspaceValidationService = workspaceValidationService ?? throw new ArgumentNullException(nameof(workspaceValidationService));
             _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
             _newProjectMediator = newProjectMediator ?? throw new ArgumentNullException(nameof(newProjectMediator));
         }
@@ -366,7 +348,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
             }
         }
 
-        public async Task<bool> ValidateProjectFileAsync(string filePath)
+        public Task<bool> ValidateProjectFileAsync(string filePath)
         {
             try
             {
@@ -374,7 +356,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
                 if (!File.Exists(filePath))
                 {
                     ShowNotification($"Selected project file does not exist: {filePath}", DomainNotificationType.Error);
-                    return false;
+                    return Task.FromResult(false);
                 }
 
                 // Check file extension
@@ -382,17 +364,17 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
                     !filePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
                 {
                     ShowNotification("Please select a valid Test Case Editor project file (.tcex.json)", DomainNotificationType.Error);
-                    return false;
+                    return Task.FromResult(false);
                 }
 
                 // Basic validation - try to load and see if it works
-                return true;
+                return Task.FromResult(true);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error validating project file: {filePath}");
                 ShowNotification($"Could not validate project file: {ex.Message}", DomainNotificationType.Error);
-                return false;
+                return Task.FromResult(false);
             }
         }
 

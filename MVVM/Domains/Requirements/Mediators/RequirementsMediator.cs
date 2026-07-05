@@ -15,8 +15,6 @@ using TestCaseEditorApp.MVVM.Domains.OpenProject.Events;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.Services; // For SmartRequirementImporter
 using TestCaseEditorApp.MVVM.Domains.Requirements.Services;
-using TestCaseEditorApp.MVVM.Domains.Notification.Mediators; // For INotificationMediator
-using TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels; // For RequirementsSearchAttachmentsViewModel
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection; // For IServiceProvider
 
@@ -28,10 +26,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
     /// </summary>
     public class RequirementsMediator : BaseDomainMediator<RequirementsEvents>, IRequirementsMediator
     {
-        private readonly IRequirementService _requirementService;
-        private readonly TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService _analysisService; // Legacy - will be phased out
-        private readonly IRequirementAnalysisEngine? _analysisEngine; // NEW: Requirements domain analysis
-        private readonly IRequirementDataScrubber _scrubber;
+        private readonly TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService _analysisService;
+        private readonly IRequirementAnalysisEngine? _analysisEngine;
         private readonly SmartRequirementImporter _smartImporter;
         private readonly ObservableCollection<Requirement> _requirements;
         private readonly IWorkspaceContext _workspaceContext;
@@ -43,8 +39,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         private bool _isDirty;
         private bool _isAnalyzing;
         private bool _isImporting;
-        private readonly IServiceProvider _serviceProvider;
-        private RequirementsSearchAttachmentsViewModel? _searchAttachmentsViewModel; // Cached eagerly-created ViewModel
 
         public ObservableCollection<Requirement> Requirements => _requirements;
 
@@ -146,30 +140,24 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         public RequirementsMediator(
             ILogger<RequirementsMediator> logger,
             IDomainUICoordinator uiCoordinator,
-            IRequirementService requirementService,
             TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService analysisService,
-            IRequirementDataScrubber scrubber,
             IWorkspaceContext workspaceContext,
             INewProjectMediator newProjectMediator,
             IJamaConnectService jamaConnectService,
             IJamaDocumentParserService jamaDocumentParserService,
             SmartRequirementImporter smartImporter,
-            IServiceProvider serviceProvider,
-            IRequirementAnalysisEngine? analysisEngine = null, // NEW: Optional for transition period
+            IRequirementAnalysisEngine? analysisEngine = null,
             PerformanceMonitoringService? performanceMonitor = null,
             EventReplayService? eventReplay = null)
             : base(logger, uiCoordinator, "Requirements", performanceMonitor, eventReplay)
         {
-            _requirementService = requirementService ?? throw new ArgumentNullException(nameof(requirementService));
             _analysisService = analysisService ?? throw new ArgumentNullException(nameof(analysisService));
-            _scrubber = scrubber ?? throw new ArgumentNullException(nameof(scrubber));
             _workspaceContext = workspaceContext ?? throw new ArgumentNullException(nameof(workspaceContext));
             _newProjectMediator = newProjectMediator ?? throw new ArgumentNullException(nameof(newProjectMediator));
             _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
             _jamaDocumentParserService = jamaDocumentParserService ?? throw new ArgumentNullException(nameof(jamaDocumentParserService));
             _smartImporter = smartImporter ?? throw new ArgumentNullException(nameof(smartImporter));
-            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-            _analysisEngine = analysisEngine; // Optional during transition
+            _analysisEngine = analysisEngine;
             
             _requirements = new ObservableCollection<Requirement>();
 
@@ -1171,7 +1159,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 ClearRequirements();
                 IsDirty = false;
             }
-            // REMOVED: Legacy TestCaseGeneration event handling - NavigationViewModel now uses proper RequirementsEvents directly
             else if (notification is TestCaseEditorApp.MVVM.Events.CrossDomainMessages.ImportRequirementsRequest importRequest)
             {
                 _ = ImportRequirementsAsync(importRequest.DocumentPath, importRequest.PreferJamaParser ? "Jama" : "Auto");
@@ -1181,29 +1168,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             {
                 _logger.LogInformation("[RequirementsMediator] Processing cross-domain ProjectCreatedNotification for attachment scanning");
                 _ = Task.Run(async () => await HandleProjectCreatedNotificationAsync(projectCreatedNotification));
-            }
-        }
-
-        /// <summary>
-        /// Creates ViewModels that depend on cross-domain events at mediator construction time.
-        /// This ensures ViewModels exist BEFORE any broadcasts fire, solving the late-binding problem.
-        /// Proper event-driven architecture: ViewModels subscribe during app startup, not during event handling.
-        /// </summary>
-        private void EnsureViewModelsCreatedAtStartup()
-        {
-            try
-            {
-                // Create RequirementsSearchAttachmentsViewModel at startup so it receives all cross-domain events
-                if (_searchAttachmentsViewModel == null)
-                {
-                    _logger.LogInformation("[RequirementsMediator] ✅ Creating RequirementsSearchAttachmentsViewModel at mediator construction (before any broadcasts)");
-                    _searchAttachmentsViewModel = _serviceProvider.GetRequiredService<RequirementsSearchAttachmentsViewModel>();
-                    _logger.LogInformation("[RequirementsMediator] ✅ ViewModel created and subscribed - will receive all future cross-domain events");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[RequirementsMediator] Failed to create ViewModels at startup");
             }
         }
 
@@ -1794,7 +1758,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// <summary>
         /// Import extracted requirements into the current project
         /// </summary>
-        public async Task ImportRequirementsAsync(List<Requirement> requirements)
+        public Task ImportRequirementsAsync(List<Requirement> requirements)
         {
             try
             {
@@ -1820,6 +1784,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 _logger.LogError(ex, "[RequirementsMediator] Error importing {Count} requirements", requirements.Count);
                 throw;
             }
+
+            return Task.CompletedTask;
         }
 
         public async Task<List<JamaProject>> GetProjectsAsync()
@@ -1884,78 +1850,22 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         // ===== CROSS-DOMAIN SYNCHRONIZATION =====
 
         /// <summary>
-        /// Subscribe to cross-domain events for requirement selection synchronization
+        /// Subscribe to mediator events that keep requirement state and persistence in sync.
         /// </summary>
         private void SubscribeToCrossDomainEvents()
         {
             try
             {
-                // Subscribe to TestCaseGeneration domain requirement selection
-                // This ensures Requirements domain stays in sync with global requirement selection
-                var domainCoordinator = GetDomainCoordinator();
-                if (domainCoordinator != null)
-                {
-                    // TODO: Implement proper cross-domain subscription through DomainCoordinator
-                    _logger.LogDebug("[RequirementsMediator] DomainCoordinator available for cross-domain events");
-                }
-                
                 // Subscribe to RequirementUpdated events (from analysis or other modifications)
                 // This ensures the mediator marks the workspace as dirty when requirements are modified
                 Subscribe<RequirementsEvents.RequirementUpdated>(OnRequirementUpdated);
                 _logger.LogDebug("[RequirementsMediator] Subscribed to RequirementUpdated events");
                 
                 // NOTE: Cross-domain project creation events handled via HandleBroadcastNotification
-                
-                _logger.LogDebug("[RequirementsMediator] Subscribed to cross-domain TestCaseGeneration.RequirementSelected events");
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "[RequirementsMediator] Failed to subscribe to cross-domain events");
-            }
-        }
-
-        /// <summary>
-        /// Handle requirement selection from TestCaseGeneration domain
-        /// Synchronizes Requirements domain state with global requirement selection
-        /// </summary>
-        private async void OnTestCaseGenerationRequirementSelected(TestCaseGenerationEvents.RequirementSelected eventData)
-        {
-            try
-            {
-                _logger.LogDebug("[RequirementsMediator] Received cross-domain RequirementSelected: {RequirementId}", 
-                    eventData.Requirement?.GlobalId ?? "null");
-
-                // Find the requirement in our collection
-                var requirement = _requirements.FirstOrDefault(r => r.GlobalId == eventData.Requirement?.GlobalId);
-                
-                if (requirement != null && CurrentRequirement?.GlobalId != requirement.GlobalId)
-                {
-                    _logger.LogDebug("[RequirementsMediator] Synchronizing to requirement: {RequirementId}", requirement.GlobalId);
-                    
-                    // Update CurrentRequirement without publishing our own event to avoid circular notifications
-                    _currentRequirement = requirement;
-                    
-                    // Notify UI via property change but don't publish cross-domain event
-                    await Application.Current.Dispatcher.InvokeAsync(() =>
-                    {
-                        PublishEvent(new RequirementsEvents.RequirementSelected
-                        {
-                            Requirement = requirement,
-                            SelectedBy = "CrossDomainSync"
-                        });
-                    });
-                    
-                    _logger.LogDebug("[RequirementsMediator] Successfully synchronized to requirement: {RequirementId}", requirement.GlobalId);
-                }
-                else if (requirement == null && eventData.Requirement != null)
-                {
-                    _logger.LogDebug("[RequirementsMediator] Requirement {RequirementId} not found in Requirements domain collection", 
-                        eventData.Requirement.GlobalId);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[RequirementsMediator] Error handling cross-domain RequirementSelected event");
             }
         }
 
@@ -1984,7 +1894,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// Handle cross-domain project creation notification - triggers attachment scanning for all project types
         /// This centralizes attachment scanning logic for both Jama imports and Word document imports
         /// </summary>
-        private async Task HandleProjectCreatedNotificationAsync(TestCaseEditorApp.MVVM.Events.CrossDomainMessages.ProjectCreatedNotification notification)
+        private Task HandleProjectCreatedNotificationAsync(TestCaseEditorApp.MVVM.Events.CrossDomainMessages.ProjectCreatedNotification notification)
         {
             try
             {
@@ -2029,6 +1939,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             {
                 _logger.LogError(ex, "[RequirementsMediator] Error handling cross-domain ProjectCreatedNotification");
             }
+
+            return Task.CompletedTask;
         }
 
         /// <summary>

@@ -44,6 +44,12 @@ namespace TestCaseEditorApp.Services
             List<Requirement> existingRequirements,
             GapAnalysisOptions? options = null)
         {
+            if (derivedCapabilities == null)
+                throw new ArgumentNullException(nameof(derivedCapabilities));
+
+            if (existingRequirements == null)
+                throw new ArgumentNullException(nameof(existingRequirements));
+
             options ??= new GapAnalysisOptions();
             
             var result = new GapAnalysisResult
@@ -90,7 +96,7 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Finds derived capabilities that are not adequately covered by existing requirements
         /// </summary>
-        private async Task<List<UncoveredCapability>> FindUncoveredCapabilitiesAsync(
+        private Task<List<UncoveredCapability>> FindUncoveredCapabilitiesAsync(
             List<DerivedCapability> derivedCapabilities,
             List<Requirement> existingRequirements,
             GapAnalysisOptions options)
@@ -128,13 +134,13 @@ namespace TestCaseEditorApp.Services
                 }
             }
 
-            return uncovered;
+            return Task.FromResult(uncovered);
         }
 
         /// <summary>
         /// Finds requirements that overlap with or potentially duplicate derived capabilities
         /// </summary>
-        public async Task<List<RequirementOverlap>> FindOverlapsAsync(
+        public Task<List<RequirementOverlap>> FindOverlapsAsync(
             List<DerivedCapability> derivedCapabilities,
             List<Requirement> existingRequirements,
             double similarityThreshold = 0.75)
@@ -158,7 +164,7 @@ namespace TestCaseEditorApp.Services
                 }
             }
 
-            return overlaps;
+            return Task.FromResult(overlaps);
         }
 
         /// <summary>
@@ -321,7 +327,7 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Finds specification inconsistencies between capabilities and requirements
         /// </summary>
-        private async Task<List<SpecificationInconsistency>> FindSpecificationInconsistenciesAsync(
+        private Task<List<SpecificationInconsistency>> FindSpecificationInconsistenciesAsync(
             List<DerivedCapability> derivedCapabilities,
             List<Requirement> existingRequirements)
         {
@@ -348,7 +354,7 @@ namespace TestCaseEditorApp.Services
                 }
             }
 
-            return inconsistencies;
+            return Task.FromResult(inconsistencies);
         }
 
         /// <summary>
@@ -421,8 +427,9 @@ namespace TestCaseEditorApp.Services
                 });
             }
 
-            analysis.OverallCoverageRatio = analysis.CategoryCoverage.Values
-                .Average(c => c.CoverageRatio);
+            analysis.OverallCoverageRatio = analysis.CategoryCoverage.Any()
+                ? analysis.CategoryCoverage.Values.Average(c => c.CoverageRatio)
+                : 0.0;
 
             return analysis;
         }
@@ -491,7 +498,7 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Generates recommendations based on gap analysis results
         /// </summary>
-        public async Task<List<RequirementRecommendation>> GenerateRecommendationsAsync(GapAnalysisResult analysisResult)
+        public Task<List<RequirementRecommendation>> GenerateRecommendationsAsync(GapAnalysisResult analysisResult)
         {
             var recommendations = new List<RequirementRecommendation>();
 
@@ -540,7 +547,8 @@ namespace TestCaseEditorApp.Services
                 });
             }
 
-            return recommendations.OrderBy(r => r.Priority).ThenByDescending(r => r.EstimatedEffort).ToList();
+            var orderedRecommendations = recommendations.OrderBy(r => r.Priority).ThenByDescending(r => r.EstimatedEffort).ToList();
+            return Task.FromResult(orderedRecommendations);
         }
 
         // Helper methods for generating analysis summary and other utilities

@@ -258,7 +258,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Services
         /// <summary>
         /// Gets validation statistics and metrics
         /// </summary>
-        public async Task<ValidationMetrics> GetValidationMetricsAsync()
+        public Task<ValidationMetrics> GetValidationMetricsAsync()
         {
             try
             {
@@ -287,7 +287,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Services
                     metrics.AverageValidationTime = TimeSpan.FromMinutes(2); // Placeholder
                 }
 
-                return metrics;
+                return Task.FromResult(metrics);
             }
             catch (Exception ex)
             {
@@ -299,14 +299,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Services
         /// <summary>
         /// Analyzes validation patterns to identify improvement opportunities
         /// </summary>
-        public async Task<ValidationAnalysis> AnalyzeValidationPatternsAsync()
+        public Task<ValidationAnalysis> AnalyzeValidationPatternsAsync()
         {
             try
             {
                 var analysis = new ValidationAnalysis();
 
                 if (!_validationResults.Any())
-                    return analysis;
+                    return Task.FromResult(analysis);
 
                 // Analyze rejection reasons
                 var rejectedResults = _validationResults.Where(v => v.Decision == ValidationDecision.Rejected);
@@ -336,7 +336,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Services
                 // Placeholder for consistency score
                 analysis.OverallValidationConsistency = 0.85;
 
-                return analysis;
+                return Task.FromResult(analysis);
             }
             catch (Exception ex)
             {
@@ -483,12 +483,12 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Services
             return Math.Min(1.0, score);
         }
 
-        private async Task<double> AssessCapabilityQuality(ExpectedCapabilityDerivation expectedCapability)
+        private Task<double> AssessCapabilityQuality(ExpectedCapabilityDerivation expectedCapability)
         {
             try
             {
                 if (expectedCapability == null)
-                    return 0.0;
+                    return Task.FromResult(0.0);
 
                 // Convert ExpectedCapabilityDerivation to DerivedCapability for validation
                 var derivedCapability = new DerivedCapability
@@ -511,19 +511,19 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Services
                 var validationResults = _taxonomyValidator.ValidateSingleCapability(derivedCapability, validationOptions);
                 
                 if (!validationResults.Any())
-                    return 0.9; // No issues found
+                    return Task.FromResult(0.9); // No issues found
 
                 // Convert validation issues to quality score
                 var errorCount = validationResults.Count(v => v.Severity == TaxonomyValidationSeverity.Error);
                 var warningCount = validationResults.Count(v => v.Severity == TaxonomyValidationSeverity.Warning);
 
                 var qualityScore = 1.0 - (errorCount * 0.3) - (warningCount * 0.1);
-                return Math.Max(0.0, qualityScore);
+                return Task.FromResult(Math.Max(0.0, qualityScore));
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to assess capability quality");
-                return 0.5; // Default moderate score
+                return Task.FromResult(0.5); // Default moderate score
             }
         }
 

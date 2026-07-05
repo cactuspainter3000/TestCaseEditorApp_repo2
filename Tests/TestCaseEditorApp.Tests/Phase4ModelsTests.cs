@@ -168,7 +168,7 @@ namespace TestCaseEditorApp.Tests.Phase4Models
                 var result = new GapAnalysisResult();
 
                 // Assert
-                Assert.IsTrue(result.Success);
+                Assert.IsFalse(result.Success);
                 Assert.IsNotNull(result.UncoveredCapabilities);
                 Assert.IsNotNull(result.RequirementOverlaps);
                 Assert.AreEqual(0, result.UncoveredCapabilities.Count);

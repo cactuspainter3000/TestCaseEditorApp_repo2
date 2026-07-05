@@ -279,6 +279,7 @@ namespace TestCaseEditorApp.Tests.Phase4Services
         private string GenerateSystemLevelMockResponse(double score)
         {
             return $@"{{
+                            ""classificationType"": ""SystemLevel"",
               ""overallMBSEScore"": {score},
               ""isSystemLevel"": true,
               ""criteriaScores"": {{
@@ -298,6 +299,7 @@ namespace TestCaseEditorApp.Tests.Phase4Services
         private string GenerateComponentLevelMockResponse(double score)
         {
             return $@"{{
+                            ""classificationType"": ""ComponentLevel"",
               ""overallMBSEScore"": {score},
               ""isSystemLevel"": false,
               ""criteriaScores"": {{
@@ -433,8 +435,10 @@ namespace TestCaseEditorApp.Tests.Phase4Services
             double traceable, double allocatable, double complete)
         {
             var overallScore = (boundary + agnostic + verifiable + traceable + allocatable + complete) / 6.0;
+                        var classificationType = overallScore > 0.7 ? "SystemLevel" : "ComponentLevel";
             
             return $@"{{
+                            ""classificationType"": ""{classificationType}"",
               ""overallMBSEScore"": {overallScore:F2},
               ""isSystemLevel"": {(overallScore > 0.7 ? "true" : "false")},
               ""criteriaScores"": {{

@@ -295,7 +295,7 @@ namespace TestCaseEditorApp.Services.Templates
 
         // Private helper methods
 
-        private async Task<OutputEnvelope?> TryDirectParseAsync(string llmResponse, EnvelopeSchema expectedSchema)
+        private Task<OutputEnvelope?> TryDirectParseAsync(string llmResponse, EnvelopeSchema expectedSchema)
         {
             try
             {
@@ -309,11 +309,11 @@ namespace TestCaseEditorApp.Services.Templates
                 envelope.ValidationResult = validation;
                 envelope.CompletenessScore = validation.ComplianceScore;
                 
-                return envelope;
+                return Task.FromResult<OutputEnvelope?>(envelope);
             }
             catch (JsonException)
             {
-                return null;
+                return Task.FromResult<OutputEnvelope?>(null);
             }
         }
 

@@ -623,11 +623,11 @@ namespace TestCaseEditorApp.Services
             };
         }
 
-        private async Task<string> GetPromptIdForSessionAsync(string sessionId)
+        private Task<string> GetPromptIdForSessionAsync(string sessionId)
         {
             // In a real implementation, this would query a database
             // For now, return a default prompt ID
-            return "capability-derivation-v1";
+            return Task.FromResult("capability-derivation-v1");
         }
 
         #endregion

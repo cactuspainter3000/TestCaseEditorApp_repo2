@@ -83,7 +83,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators
         /// <summary>
         /// Create a new test case
         /// </summary>
-        public async Task<EditableTestCase> CreateTestCaseAsync(string? templateTitle = null)
+        public Task<EditableTestCase> CreateTestCaseAsync(string? templateTitle = null)
         {
             try
             {
@@ -107,7 +107,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators
                 });
                 
                 _logger.LogInformation("Created new test case: {Title}", newTestCase.Title);
-                return newTestCase;
+                return Task.FromResult(newTestCase);
             }
             catch (Exception ex)
             {
@@ -119,7 +119,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators
         /// <summary>
         /// Delete a test case
         /// </summary>
-        public async Task DeleteTestCaseAsync(EditableTestCase testCase)
+        public Task DeleteTestCaseAsync(EditableTestCase testCase)
         {
             try
             {
@@ -144,14 +144,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators
                 _logger.LogError(ex, "Failed to delete test case: {Title}", testCase.Title);
                 throw;
             }
-            
-            await Task.CompletedTask;
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
         /// Save test cases to requirement
         /// </summary>
-        public async Task SaveTestCasesToRequirementAsync(Requirement requirement, IEnumerable<EditableTestCase> testCases)
+        public Task SaveTestCasesToRequirementAsync(Requirement requirement, IEnumerable<EditableTestCase> testCases)
         {
             try
             {
@@ -197,14 +197,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators
                 _logger.LogError(ex, "Failed to save test cases to requirement {RequirementId}", requirement.GlobalId);
                 throw;
             }
-            
-            await Task.CompletedTask;
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
         /// Load test cases from requirement
         /// </summary>
-        public async Task<IReadOnlyList<EditableTestCase>> LoadTestCasesFromRequirementAsync(Requirement requirement)
+        public Task<IReadOnlyList<EditableTestCase>> LoadTestCasesFromRequirementAsync(Requirement requirement)
         {
             try
             {
@@ -223,7 +223,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators
                 _logger.LogInformation("Loaded {Count} test cases from requirement {RequirementId}", 
                     _currentTestCases.Count, requirement.GlobalId);
                 
-                return _currentTestCases.AsReadOnly();
+                return Task.FromResult<IReadOnlyList<EditableTestCase>>(_currentTestCases.AsReadOnly());
             }
             catch (Exception ex)
             {
@@ -237,7 +237,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators
         /// <summary>
         /// Generate test case command for external tool (Jama, etc.)
         /// </summary>
-        public async Task<string> GenerateTestCaseCommandAsync(EditableTestCase testCase, string targetFormat = "jama")
+        public Task<string> GenerateTestCaseCommandAsync(EditableTestCase testCase, string targetFormat = "jama")
         {
             try
             {
@@ -260,7 +260,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators
                 };
                 
                 _logger.LogInformation("Generated {Format} command for test case: {Title}", targetFormat, testCase.Title);
-                return command;
+                return Task.FromResult(command);
             }
             catch (Exception ex)
             {
@@ -274,7 +274,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators
         /// <summary>
         /// Set current requirement context
         /// </summary>
-        public async Task SetRequirementContextAsync(Requirement? requirement)
+        public Task SetRequirementContextAsync(Requirement? requirement)
         {
             try
             {
@@ -298,8 +298,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators
                 _logger.LogError(ex, "Failed to set requirement context");
                 throw;
             }
-            
-            await Task.CompletedTask;
+
+            return Task.CompletedTask;
         }
 
         /// <summary>

@@ -85,7 +85,7 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Allocates a single capability to appropriate subsystems
         /// </summary>
-        private async Task<SubsystemAllocation> AllocateSingleCapabilityAsync(
+        private Task<SubsystemAllocation> AllocateSingleCapabilityAsync(
             DerivedCapability capability,
             List<AllocationRule> rules,
             CapabilityAllocationOptions options)
@@ -111,7 +111,7 @@ namespace TestCaseEditorApp.Services
             
             if (!selectedSubsystems.Any())
             {
-                return null; // Could not allocate with sufficient confidence
+                return Task.FromResult<SubsystemAllocation>(null); // Could not allocate with sufficient confidence
             }
 
             allocation.AssignedSubsystems = selectedSubsystems.Select(s => s.Key).ToList();
@@ -120,7 +120,7 @@ namespace TestCaseEditorApp.Services
             allocation.AlternativeOptions = scores.Where(s => !selectedSubsystems.ContainsKey(s.Key) && s.Value > 0.3)
                                                   .ToDictionary(s => s.Key, s => s.Value);
 
-            return allocation;
+            return Task.FromResult(allocation);
         }
 
         /// <summary>

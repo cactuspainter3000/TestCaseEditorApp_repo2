@@ -255,9 +255,9 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Score taxonomy compliance using advanced validation
         /// </summary>
-        private async Task<double> ScoreTaxonomyComplianceAsync(List<DerivedCapability> capabilities)
+        private Task<double> ScoreTaxonomyComplianceAsync(List<DerivedCapability> capabilities)
         {
-            if (!capabilities.Any()) return 0.0;
+            if (!capabilities.Any()) return Task.FromResult(0.0);
 
             try
             {
@@ -283,12 +283,12 @@ namespace TestCaseEditorApp.Services
                 _logger.LogDebug("Taxonomy compliance score: {Score:F3} (base={BaseScore:F3}, errors={Errors}, warnings={Warnings})",
                     score, baseScore, errorPenalty / 0.1, warningPenalty / 0.05);
 
-                return score;
+                return Task.FromResult(score);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to calculate taxonomy compliance score, using default");
-                return 0.5;
+                return Task.FromResult(0.5);
             }
         }
 
@@ -704,22 +704,22 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Assess performance relative to historical scores
         /// </summary>
-        private async Task<RelativePerformance> AssessRelativePerformanceAsync(double currentScore)
+        private Task<RelativePerformance> AssessRelativePerformanceAsync(double currentScore)
         {
             if (!_historicalScores.Any())
-                return new RelativePerformance { Percentile = 50, IsAboveAverage = null };
+            return Task.FromResult(new RelativePerformance { Percentile = 50, IsAboveAverage = null });
 
             var historicalOverallScores = _historicalScores.Select(h => h.OverallScore).ToList();
             var avgHistoricalScore = historicalOverallScores.Average();
             var percentile = CalculatePercentile(currentScore, historicalOverallScores);
 
-            return new RelativePerformance
+            return Task.FromResult(new RelativePerformance
             {
                 Percentile = percentile,
                 IsAboveAverage = currentScore > avgHistoricalScore,
                 HistoricalAverage = avgHistoricalScore,
                 HistoricalCount = _historicalScores.Count
-            };
+            });
         }
 
         /// <summary>
@@ -776,18 +776,18 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Calculate how well scores predict actual validation outcomes
         /// </summary>
-        private async Task<double> CalculatePredictiveAccuracyAsync()
+        private Task<double> CalculatePredictiveAccuracyAsync()
         {
             // This would require validation outcome data from Task 3.2
             // For now, return estimated accuracy based on score distribution
-            if (_historicalScores.Count < 20) return 0.5;
+            if (_historicalScores.Count < 20) return Task.FromResult(0.5);
 
             // Assume normal distribution should have most scores in middle range
             var middleRangeCount = _historicalScores.Count(s => s.OverallScore >= 0.4 && s.OverallScore <= 0.8);
             var middleRangeRatio = (double)middleRangeCount / _historicalScores.Count;
 
             // Good predictive accuracy should have 60-80% in middle range
-            return middleRangeRatio >= 0.6 && middleRangeRatio <= 0.8 ? 0.8 : 0.6;
+            return Task.FromResult(middleRangeRatio >= 0.6 && middleRangeRatio <= 0.8 ? 0.8 : 0.6);
         }
 
         /// <summary>

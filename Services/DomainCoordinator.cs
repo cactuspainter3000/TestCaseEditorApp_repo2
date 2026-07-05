@@ -237,7 +237,7 @@ namespace TestCaseEditorApp.Services
                 _logger.LogDebug("Using filtered broadcast for {NotificationType} - {SubscriberCount} subscriber(s)", 
                     notificationTypeName, subscribers.Count);
 
-                var tasks = subscribers.Select(async weakRef =>
+                var tasks = subscribers.Select(weakRef =>
                 {
                     if (weakRef.TryGetTarget(out var mediator))
                     {
@@ -245,7 +245,7 @@ namespace TestCaseEditorApp.Services
                         if (mediator.GetDomainName() == originatingDomain)
                         {
                             _logger.LogDebug("Skipping broadcast to originating domain: {DomainName}", originatingDomain);
-                            return;
+                            return Task.CompletedTask;
                         }
 
                         try
@@ -260,6 +260,8 @@ namespace TestCaseEditorApp.Services
                                 notificationTypeName, mediator.GetDomainName());
                         }
                     }
+
+                    return Task.CompletedTask;
                 });
 
                 await Task.WhenAll(tasks);

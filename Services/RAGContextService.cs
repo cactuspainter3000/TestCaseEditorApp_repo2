@@ -164,7 +164,7 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Verifies that required documents are uploaded to workspace
         /// </summary>
-        private async Task<bool> VerifyWorkspaceDocumentsAsync(string workspaceSlug)
+        private Task<bool> VerifyWorkspaceDocumentsAsync(string workspaceSlug)
         {
             try
             {
@@ -176,12 +176,12 @@ namespace TestCaseEditorApp.Services
                 
                 // Placeholder: Always return false to ensure documents are uploaded
                 // TODO: Implement actual document verification via AnythingLLM API
-                return false;
+                return Task.FromResult(false);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "[RAG] Error verifying workspace documents");
-                return false;
+                return Task.FromResult(false);
             }
         }
 

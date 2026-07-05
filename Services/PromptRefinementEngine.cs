@@ -93,9 +93,10 @@ namespace TestCaseEditorApp.Services
                 var avgQualityScore = usageRecords.Average(r => r.QualityScore);
                 var successRate = usageRecords.Count(r => r.QualityScore >= 0.7) / (double)usageRecords.Count;
                 var avgProcessingTime = TimeSpan.FromMilliseconds(usageRecords.Average(r => r.ProcessingTime.TotalMilliseconds));
+                var validationRecordCount = usageRecords.Count(r => r.ValidationApproved.HasValue);
                 var validationApprovalRate = usageRecords
                     .Where(r => r.ValidationApproved.HasValue)
-                    .Count(r => r.ValidationApproved.Value) / (double)usageRecords.Count(r => r.ValidationApproved.HasValue);
+                    .Count(r => r.ValidationApproved.GetValueOrDefault()) / (double)Math.Max(validationRecordCount, 1);
 
                 // Update prompt performance metrics
                 prompt.Performance = new PromptPerformanceMetrics
@@ -257,9 +258,10 @@ namespace TestCaseEditorApp.Services
                         AverageQualityScore = usageRecords.Average(r => r.QualityScore),
                         SuccessRate = usageRecords.Count(r => r.QualityScore >= 0.7) / (double)usageRecords.Count,
                         AverageProcessingTime = TimeSpan.FromMilliseconds(usageRecords.Average(r => r.ProcessingTime.TotalMilliseconds)),
-                        ValidationApprovalRate = usageRecords
-                            .Where(r => r.ValidationApproved.HasValue)
-                            .Count(r => r.ValidationApproved.Value) / (double)usageRecords.Count(r => r.ValidationApproved.HasValue)
+                        ValidationApprovalRate = usageRecords.Count(r => r.ValidationApproved.HasValue) == 0
+                            ? 0.0
+                            : usageRecords.Where(r => r.ValidationApproved.HasValue)
+                                .Count(r => r.ValidationApproved.GetValueOrDefault()) / (double)usageRecords.Count(r => r.ValidationApproved.HasValue)
                     };
 
                     comparison.DetailedMetrics[promptId] = metrics;
@@ -386,7 +388,7 @@ namespace TestCaseEditorApp.Services
 
         #region A/B Testing Methods
 
-        public async Task<string> StartABTestAsync(
+        public Task<string> StartABTestAsync(
             IEnumerable<ManagedPrompt> promptVariants, 
             ABTestConfiguration testConfiguration)
         {
@@ -422,7 +424,7 @@ namespace TestCaseEditorApp.Services
 
             _logger.LogInformation("Started A/B test {TestId} with {VariantCount} variants", testId, variants.Count);
 
-            return testId;
+            return Task.FromResult(testId);
         }
 
         public async Task<PromptPerformanceComparison> GetABTestResultsAsync(string abTestId)
@@ -442,7 +444,7 @@ namespace TestCaseEditorApp.Services
 
         #region Prompt Management Methods
 
-        public async Task<List<ManagedPrompt>> GetAllManagedPromptsAsync(bool includeArchived = false)
+        public Task<List<ManagedPrompt>> GetAllManagedPromptsAsync(bool includeArchived = false)
         {
             var prompts = _managedPrompts.Values.ToList();
             
@@ -451,10 +453,10 @@ namespace TestCaseEditorApp.Services
                 prompts = prompts.Where(p => p.Status != PromptStatus.Archived).ToList();
             }
 
-            return prompts;
+            return Task.FromResult(prompts);
         }
 
-        public async Task<ManagedPrompt> SaveManagedPromptAsync(ManagedPrompt prompt)
+        public Task<ManagedPrompt> SaveManagedPromptAsync(ManagedPrompt prompt)
         {
             if (string.IsNullOrEmpty(prompt.PromptId))
             {
@@ -466,13 +468,13 @@ namespace TestCaseEditorApp.Services
             
             _logger.LogDebug("Saved managed prompt {PromptId}", prompt.PromptId);
             
-            return prompt;
+            return Task.FromResult(prompt);
         }
 
-        public async Task<ManagedPrompt?> GetManagedPromptAsync(string promptId)
+        public Task<ManagedPrompt?> GetManagedPromptAsync(string promptId)
         {
             _managedPrompts.TryGetValue(promptId, out var prompt);
-            return prompt;
+            return Task.FromResult(prompt);
         }
 
         public async Task ArchivePromptAsync(string promptId, string reason)
@@ -500,7 +502,7 @@ namespace TestCaseEditorApp.Services
             }
         }
 
-        public async Task<PromptPerformanceMonitor> GetPerformanceMonitorAsync(IEnumerable<string>? promptIds = null)
+        public Task<PromptPerformanceMonitor> GetPerformanceMonitorAsync(IEnumerable<string>? promptIds = null)
         {
             var targetPromptIds = promptIds?.ToList() ?? _managedPrompts.Keys.Where(id => 
                 _managedPrompts[id].Status == PromptStatus.Active || 
@@ -529,14 +531,15 @@ namespace TestCaseEditorApp.Services
                         SuccessRate = recentUsage.Count(r => r.QualityScore >= 0.7) / (double)recentUsage.Count,
                         SampleSize = recentUsage.Count,
                         AverageProcessingTime = TimeSpan.FromMilliseconds(recentUsage.Average(r => r.ProcessingTime.TotalMilliseconds)),
-                        ValidationApprovalRate = recentUsage
-                            .Where(r => r.ValidationApproved.HasValue)
-                            .Count(r => r.ValidationApproved.Value) / (double)recentUsage.Count(r => r.ValidationApproved.HasValue)
+                        ValidationApprovalRate = recentUsage.Count(r => r.ValidationApproved.HasValue) == 0
+                            ? 0.0
+                            : recentUsage.Where(r => r.ValidationApproved.HasValue)
+                                .Count(r => r.ValidationApproved.GetValueOrDefault()) / (double)recentUsage.Count(r => r.ValidationApproved.HasValue)
                     };
                 }
             }
 
-            return monitor;
+            return Task.FromResult(monitor);
         }
 
         public async Task<List<PromptAnalysisResult>> IdentifyPromptsNeedingRefinementAsync(
@@ -608,7 +611,7 @@ Return your analysis in structured format.",
         /// <summary>
         /// Identifies issues with a prompt based on usage patterns
         /// </summary>
-        private async Task<List<PromptIssue>> IdentifyPromptIssuesAsync(
+        private Task<List<PromptIssue>> IdentifyPromptIssuesAsync(
             ManagedPrompt prompt, 
             List<PromptUsageRecord> usageRecords)
         {
@@ -664,7 +667,7 @@ Return your analysis in structured format.",
             var validationRecords = usageRecords.Where(r => r.ValidationApproved.HasValue).ToList();
             if (validationRecords.Any())
             {
-                var rejectionRate = validationRecords.Count(r => !r.ValidationApproved.Value) / (double)validationRecords.Count;
+                var rejectionRate = validationRecords.Count(r => !r.ValidationApproved.GetValueOrDefault()) / (double)validationRecords.Count;
                 if (rejectionRate > 0.4) // More than 40% rejected
                 {
                     issues.Add(new PromptIssue
@@ -679,13 +682,13 @@ Return your analysis in structured format.",
                 }
             }
 
-            return issues;
+            return Task.FromResult(issues);
         }
 
         /// <summary>
         /// Generates improvement suggestions based on identified issues
         /// </summary>
-        private async Task<List<PromptImprovement>> GenerateImprovementSuggestionsAsync(
+        private Task<List<PromptImprovement>> GenerateImprovementSuggestionsAsync(
             ManagedPrompt prompt, 
             List<PromptIssue> issues)
         {
@@ -749,7 +752,7 @@ Return your analysis in structured format.",
                 }
             }
 
-            return improvements;
+            return Task.FromResult(improvements);
         }
 
         /// <summary>
@@ -826,7 +829,7 @@ Return each improved prompt in this format:
         /// <summary>
         /// Parses refined prompts from LLM response
         /// </summary>
-        private async Task<List<ManagedPrompt>> ParseRefinedPromptsFromResponse(
+        private Task<List<ManagedPrompt>> ParseRefinedPromptsFromResponse(
             string llmResponse, 
             ManagedPrompt originalPrompt)
         {
@@ -884,7 +887,7 @@ Return each improved prompt in this format:
                 _logger.LogError(ex, "Error parsing refined prompts from LLM response");
             }
 
-            return variants;
+            return Task.FromResult(variants);
         }
 
         /// <summary>

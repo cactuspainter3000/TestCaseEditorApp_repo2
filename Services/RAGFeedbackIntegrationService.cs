@@ -37,7 +37,7 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Collects feedback on a test case generation batch and triggers optimization if needed
         /// </summary>
-        public async Task CollectGenerationFeedbackAsync(
+        public Task CollectGenerationFeedbackAsync(
             string workspaceSlug,
             List<LLMTestCase> generatedTestCases,
             List<Requirement> requirements,
@@ -114,6 +114,8 @@ namespace TestCaseEditorApp.Services
             {
                 _logger.LogError(ex, "[RAGFeedbackIntegration] Error collecting generation feedback");
             }
+
+            return Task.CompletedTask;
         }
 
         /// <summary>

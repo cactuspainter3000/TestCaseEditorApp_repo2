@@ -105,7 +105,7 @@ namespace TestCaseEditorApp.Services.Templates
             return result;
         }
 
-        public async Task<RetryResult> ExecuteRetryLogicAsync(IFilledForm originalForm, IFormTemplate template, List<ConstraintViolation> softViolations)
+        public Task<RetryResult> ExecuteRetryLogicAsync(IFilledForm originalForm, IFormTemplate template, List<ConstraintViolation> softViolations)
         {
             var retryResult = new RetryResult
             {
@@ -136,7 +136,7 @@ namespace TestCaseEditorApp.Services.Templates
             retryResult.Recommendations = recommendations;
             retryResult.Status = RetryStatus.Ready;
 
-            return retryResult;
+            return Task.FromResult(retryResult);
         }
 
         public ConstraintViolationReport GenerateViolationReport(List<ConstraintViolation> violations)
@@ -229,19 +229,19 @@ namespace TestCaseEditorApp.Services.Templates
 
     public class ConstraintRuleEngine : IConstraintRuleEngine
     {
-        public async Task<ConstraintViolation?> EvaluateConstraintAsync(IFormField field, object? fieldValue)
+        public Task<ConstraintViolation?> EvaluateConstraintAsync(IFormField field, object? fieldValue)
         {
             // Check field criticality vs value presence
             if (field.Criticality == FieldCriticality.Required && IsEmpty(fieldValue))
             {
-                return new ConstraintViolation
+                return Task.FromResult<ConstraintViolation?>(new ConstraintViolation
                 {
                     FieldName = field.FieldName,
                     ConstraintType = field.ConstraintType,
                     ViolationType = ConstraintViolationType.MissingRequired,
                     Description = $"Required field '{field.DisplayName}' is missing or empty",
                     Severity = ValidationSeverity.Error
-                };
+                });
             }
 
             // Run field validation rule if value exists
@@ -252,7 +252,7 @@ namespace TestCaseEditorApp.Services.Templates
                 {
                     var violationType = DetermineViolationType(validationResult);
                     
-                    return new ConstraintViolation
+                    return Task.FromResult<ConstraintViolation?>(new ConstraintViolation
                     {
                         FieldName = field.FieldName,
                         ConstraintType = field.ConstraintType,
@@ -261,11 +261,11 @@ namespace TestCaseEditorApp.Services.Templates
                         Severity = validationResult.Severity,
                         ExpectedFormat = validationResult.SuggestedFix,
                         ValidOptions = field.ValidOptions?.Length > 0 ? field.ValidOptions : null
-                    };
+                    });
                 }
             }
 
-            return null; // No violation
+            return Task.FromResult<ConstraintViolation?>(null); // No violation
         }
 
         private bool IsEmpty(object? value)

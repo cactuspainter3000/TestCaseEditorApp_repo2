@@ -216,14 +216,14 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.ViewModels
             }
         }
 
-        private async Task StartValidationAsync()
+        private Task StartValidationAsync()
         {
             try
             {
                 if (!HasPendingExamples)
                 {
                     StatusMessage = "No examples available for validation";
-                    return;
+                    return Task.CompletedTask;
                 }
 
                 CurrentState = ValidationWorkflowState.Validating;
@@ -240,6 +240,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.ViewModels
                 StatusMessage = $"Failed to start validation: {ex.Message}";
                 CurrentState = ValidationWorkflowState.Error;
             }
+
+            return Task.CompletedTask;
         }
 
         private async Task ApproveExampleAsync()
@@ -304,7 +306,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.ViewModels
             }
         }
 
-        private async Task MoveToNextExample()
+        private Task MoveToNextExample()
         {
             if (!PendingExamples.Any())
             {
@@ -313,7 +315,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.ViewModels
                 CurrentExample = null;
                 StatusMessage = $"Validation complete! Processed {CompletedCount} examples";
                 ProgressPercentage = 100;
-                return;
+                return Task.CompletedTask;
             }
 
             // Get next example
@@ -322,9 +324,10 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.ViewModels
             UpdateProgress();
             
             StatusMessage = $"Reviewing example {CurrentExampleIndex + 1} of {ValidatedExamples.Count + PendingExamples.Count}";
+            return Task.CompletedTask;
         }
 
-        private async Task MoveToPreviousExample()
+        private Task MoveToPreviousExample()
         {
             // Allow reviewing previous validation decisions
             if (ValidatedExamples.Any() && CurrentExampleIndex > 0)
@@ -335,6 +338,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.ViewModels
                 UpdateProgress();
                 StatusMessage = $"Reviewing previous example {CurrentExampleIndex + 1}";
             }
+
+            return Task.CompletedTask;
         }
 
         private async Task SaveProgressAsync()

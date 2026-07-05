@@ -165,10 +165,10 @@ Your Response: 2.0  // Will trigger retry
             if (initialResult.ProcessingStatus == TemplateProcessingStatus.RequiresRetry)
             {
                 // Simulate LLM correction
-                Func<string, Task<string>> mockLlmCall = async (prompt) =>
+                Func<string, Task<string>> mockLlmCall = (prompt) =>
                 {
                     // Return a corrected response
-                    return @"
+                    return Task.FromResult(@"
 System Capability:
 Your Response: The system shall provide comprehensive data processing and management capabilities
 
@@ -180,7 +180,8 @@ Your Response: The ATP step explicitly requires data processing functionality, t
 
 Confidence Level:
 Your Response: 0.9
-";
+"
+);
                 };
 
                 var retryResult = await _templateConstraintService.ExecuteRetryAsync(initialResult, mockLlmCall);

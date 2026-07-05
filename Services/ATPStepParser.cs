@@ -342,7 +342,7 @@ namespace TestCaseEditorApp.Services
 
         // Private helper methods
         
-        private async Task<ParsedATPStep?> ParseSingleLineAsync(string line, int lineNumber, ATPParsingOptions options)
+        private Task<ParsedATPStep?> ParseSingleLineAsync(string line, int lineNumber, ATPParsingOptions options)
         {
             // Check for step number patterns
             var stepMatch = StepNumberPattern.Match(line);
@@ -372,13 +372,13 @@ namespace TestCaseEditorApp.Services
                 // Classify step type
                 step.StepType = ClassifyStepType(step.StepText);
                 
-                return step;
+                return Task.FromResult<ParsedATPStep?>(step);
             }
             
-            return null;
+            return Task.FromResult<ParsedATPStep?>(null);
         }
 
-        private async Task<(string StepText, int LastConsumedIndex)> ParseMultiLineStepAsync(string[] lines, int startIndex, ATPParsingOptions options)
+        private Task<(string StepText, int LastConsumedIndex)> ParseMultiLineStepAsync(string[] lines, int startIndex, ATPParsingOptions options)
         {
             var combinedText = lines[startIndex];
             var lastConsumedIndex = startIndex;
@@ -408,7 +408,7 @@ namespace TestCaseEditorApp.Services
                 }
             }
             
-            return (combinedText, lastConsumedIndex);
+            return Task.FromResult((combinedText, lastConsumedIndex));
         }
 
         private void ParseStepMetadata(ParsedATPStep step, string fullText, ATPParsingOptions options)

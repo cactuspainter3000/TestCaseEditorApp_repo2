@@ -9,7 +9,6 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Prompts;
-using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services;
 
 namespace TestCaseEditorApp.MVVM.Mediators
 {

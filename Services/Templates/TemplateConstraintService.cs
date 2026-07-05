@@ -85,7 +85,7 @@ namespace TestCaseEditorApp.Services.Templates
                 result.ConstraintProcessing = constraintResult;
 
                 // Step 3: Determine final processing decision
-                await DetermineProcessingDecisionAsync(result);
+                DetermineProcessingDecision(result);
 
                 // Step 4: Apply degradation strategy if needed
                 if (result.RequiresDegradation)
@@ -163,7 +163,7 @@ namespace TestCaseEditorApp.Services.Templates
             return newResult;
         }
 
-        public async Task<TemplateConstraintResult> ApplyGracefulDegradationAsync(
+        public Task<TemplateConstraintResult> ApplyGracefulDegradationAsync(
             TemplateConstraintResult result, 
             DegradationStrategy strategy)
         {
@@ -175,15 +175,15 @@ namespace TestCaseEditorApp.Services.Templates
             switch (strategy.FallbackBehavior)
             {
                 case ConstraintFallbackBehavior.AcceptPartial:
-                    await ApplyPartialAcceptanceAsync(result);
+                    ApplyPartialAcceptance(result);
                     break;
                     
                 case ConstraintFallbackBehavior.UseDefaults:
-                    await ApplyDefaultValuesAsync(result);
+                    ApplyDefaultValues(result);
                     break;
                     
                 case ConstraintFallbackBehavior.EscalateToHuman:
-                    await EscalateToHumanAsync(result);
+                    EscalateToHuman(result);
                     break;
                     
                 case ConstraintFallbackBehavior.Reject:
@@ -194,10 +194,10 @@ namespace TestCaseEditorApp.Services.Templates
             result.DegradationCompletedAt = DateTime.UtcNow;
             result.DegradationTime = result.DegradationCompletedAt.Value - degradationStartTime;
 
-            return result;
+            return Task.FromResult(result);
         }
 
-        private async Task DetermineProcessingDecisionAsync(TemplateConstraintResult result)
+        private void DetermineProcessingDecision(TemplateConstraintResult result)
         {
             var constraintResult = result.ConstraintProcessing!;
             
@@ -235,7 +235,7 @@ namespace TestCaseEditorApp.Services.Templates
             }
         }
 
-        private async Task ApplyPartialAcceptanceAsync(TemplateConstraintResult result)
+        private void ApplyPartialAcceptance(TemplateConstraintResult result)
         {
             // Accept the form as-is but flag issues for monitoring
             result.ProcessingStatus = TemplateProcessingStatus.AcceptedWithDegradation;
@@ -246,7 +246,7 @@ namespace TestCaseEditorApp.Services.Templates
             result.QualityReport = qualityReport;
         }
 
-        private async Task ApplyDefaultValuesAsync(TemplateConstraintResult result)
+        private void ApplyDefaultValues(TemplateConstraintResult result)
         {
             // Fill missing required fields with defaults where possible
             var filledWithDefaults = 0;
@@ -268,7 +268,7 @@ namespace TestCaseEditorApp.Services.Templates
             result.DegradationActions.Add($"Applied default values to {filledWithDefaults} fields");
         }
 
-        private async Task EscalateToHumanAsync(TemplateConstraintResult result)
+        private void EscalateToHuman(TemplateConstraintResult result)
         {
             result.ProcessingStatus = TemplateProcessingStatus.EscalatedToHuman;
             result.DegradationActions.Add("Escalated to human review due to constraint violations");
@@ -381,7 +381,7 @@ namespace TestCaseEditorApp.Services.Templates
     {
         private readonly Dictionary<string, ConstraintProcessingMetrics> _metricsCache = new();
 
-        public async Task CollectMetricsAsync(TemplateConstraintResult result)
+        public Task CollectMetricsAsync(TemplateConstraintResult result)
         {
             var metrics = new ConstraintProcessingMetrics
             {
@@ -408,20 +408,26 @@ namespace TestCaseEditorApp.Services.Templates
             }
 
             _metricsCache[result.ProcessingId] = metrics;
+            return Task.CompletedTask;
         }
 
-        public async Task<ConstraintProcessingMetrics> GetMetricsAsync(string processingId)
+        public Task<ConstraintProcessingMetrics> GetMetricsAsync(string processingId)
         {
-            return _metricsCache.TryGetValue(processingId, out var metrics) 
-                ? metrics 
-                : throw new KeyNotFoundException($"No metrics found for processing ID: {processingId}");
+            if (!_metricsCache.TryGetValue(processingId, out var metrics))
+            {
+                throw new KeyNotFoundException($"No metrics found for processing ID: {processingId}");
+            }
+
+            return Task.FromResult(metrics);
         }
 
-        public async Task<List<ConstraintProcessingMetrics>> GetMetricsSummaryAsync(DateTime fromDate, DateTime toDate)
+        public Task<List<ConstraintProcessingMetrics>> GetMetricsSummaryAsync(DateTime fromDate, DateTime toDate)
         {
-            return _metricsCache.Values
+            var summary = _metricsCache.Values
                 .Where(m => m.CollectedAt >= fromDate && m.CollectedAt <= toDate)
                 .ToList();
+
+            return Task.FromResult(summary);
         }
     }
 }

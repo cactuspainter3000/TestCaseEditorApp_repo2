@@ -278,14 +278,14 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
         
         protected override bool CanRefresh() => true; // Can refresh file info
         
-        protected override async Task RefreshAsync()
+        protected override Task RefreshAsync()
         {
             if (IsProjectSelected && File.Exists(SelectedProjectPath))
             {
                 var fileInfo = new FileInfo(SelectedProjectPath);
                 LastModified = fileInfo.LastWriteTime;
             }
-            await Task.CompletedTask;
+            return Task.CompletedTask;
         }
 
         // Event handlers
@@ -301,7 +301,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             ProjectStatus = $"Selected: {ProjectName}";
         }
 
-        private async void OnProjectOpened(OpenProjectEvents.ProjectOpened eventData)
+        private void OnProjectOpened(OpenProjectEvents.ProjectOpened eventData)
         {
             ProjectStatus = "Project opened successfully";
             ProjectName = eventData.WorkspaceName;

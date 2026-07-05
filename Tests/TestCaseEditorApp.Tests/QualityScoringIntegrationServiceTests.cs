@@ -101,11 +101,17 @@ namespace TestCaseEditorApp.Tests.Phase4Services
         }
 
         [TestMethod]
-        public async Task ScoreDerivationQualityAsync_WithNullDerivationResult_ThrowsArgumentNullException()
+        public async Task CorrelateQualityWithValidationAsync_WithNullValidationResults_ThrowsArgumentNullException()
         {
+            // Arrange
+            var qualityScores = new List<DerivationQualityScore>
+            {
+                new DerivationQualityScore { OverallScore = 0.8 }
+            };
+
             // Act & Assert
             await Assert.ThrowsExceptionAsync<ArgumentNullException>(() =>
-                _mockQualityScorer.Object.ScoreDerivationQualityAsync(null!, "test", null!));
+                _service.CorrelateQualityWithValidationAsync(qualityScores, null!));
         }
 
         [TestMethod]

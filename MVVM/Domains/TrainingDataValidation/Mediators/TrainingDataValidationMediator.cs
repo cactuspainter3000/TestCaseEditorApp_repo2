@@ -83,7 +83,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Mediators
         /// <summary>
         /// Initiates a new training data validation workflow
         /// </summary>
-        public async Task<bool> StartValidationWorkflowAsync(ValidationWorkflowRequest request)
+        public Task<bool> StartValidationWorkflowAsync(ValidationWorkflowRequest request)
         {
             try
             {
@@ -93,49 +93,49 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Mediators
                 // Notify state change
                 OnWorkflowStateChanged(ValidationWorkflowState.Generating, ValidationWorkflowState.Validating);
 
-                return true;
+                return Task.FromResult(true);
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "Failed to start validation workflow");
                 OnWorkflowStateChanged(ValidationWorkflowState.Validating, ValidationWorkflowState.Error);
-                return false;
+                return Task.FromResult(false);
             }
         }
 
         /// <summary>
         /// Pauses the current validation workflow
         /// </summary>
-        public async Task<bool> PauseValidationWorkflowAsync()
+        public Task<bool> PauseValidationWorkflowAsync()
         {
             try
             {
                 _logger?.LogInformation("Pausing validation workflow");
                 OnWorkflowStateChanged(ValidationWorkflowState.Validating, ValidationWorkflowState.Paused);
-                return true;
+                return Task.FromResult(true);
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "Failed to pause validation workflow");
-                return false;
+                return Task.FromResult(false);
             }
         }
 
         /// <summary>
         /// Resumes a paused validation workflow
         /// </summary>
-        public async Task<bool> ResumeValidationWorkflowAsync()
+        public Task<bool> ResumeValidationWorkflowAsync()
         {
             try
             {
                 _logger?.LogInformation("Resuming validation workflow");
                 OnWorkflowStateChanged(ValidationWorkflowState.Paused, ValidationWorkflowState.Validating);
-                return true;
+                return Task.FromResult(true);
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "Failed to resume validation workflow");
-                return false;
+                return Task.FromResult(false);
             }
         }
 
@@ -303,7 +303,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Mediators
         /// <summary>
         /// Notifies other domains that training data validation has been completed
         /// </summary>
-        public async Task NotifyTrainingDataReadyAsync(TrainingDataReadyNotification notification)
+        public Task NotifyTrainingDataReadyAsync(TrainingDataReadyNotification notification)
         {
             try
             {
@@ -321,6 +321,8 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Mediators
             {
                 _logger?.LogError(ex, "Failed to notify domains about ready training data");
             }
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -400,30 +402,28 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Mediators
         }
 
         /// <inheritdoc/>
-        public async Task RecordValidationAsync(ValidationResult validationResult)
+        public Task RecordValidationAsync(ValidationResult validationResult)
         {
-            await Task.Run(() =>
+            PublishEvent(new TrainingDataValidationEvents.ExampleValidated
             {
-                PublishEvent(new TrainingDataValidationEvents.ExampleValidated
-                {
-                    Result = validationResult,
-                    RemainingExamples = 0 // TODO: Calculate from current workflow state
-                });
+                Result = validationResult,
+                RemainingExamples = 0 // TODO: Calculate from current workflow state
             });
+
+            return Task.CompletedTask;
         }
 
         /// <inheritdoc/>
-        public async Task CompleteValidationSessionAsync(string sessionId)
+        public Task CompleteValidationSessionAsync(string sessionId)
         {
-            await Task.Run(() =>
+            PublishEvent(new TrainingDataValidationEvents.ValidationSessionCompleted
             {
-                PublishEvent(new TrainingDataValidationEvents.ValidationSessionCompleted
-                {
-                    SessionId = sessionId,
-                    ValidatedCount = 0, // TODO: Calculate from session data
-                    ApprovedCount = 0
-                });
+                SessionId = sessionId,
+                ValidatedCount = 0, // TODO: Calculate from session data
+                ApprovedCount = 0
             });
+
+            return Task.CompletedTask;
         }
 
         /// <inheritdoc/>

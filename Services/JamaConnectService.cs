@@ -6202,6 +6202,33 @@ namespace TestCaseEditorApp.Services
             await ApplyValidationMethodsFieldAsync(projectId, itemTypeId, requirement, fields, cancellationToken);
             await ApplyVerificationMethodsFieldAsync(projectId, itemTypeId, requirement, fields, cancellationToken);
             ApplyAllocationField(requirement, fields);
+            ApplyDerivedRequirementDefaultsForItemType193(requirement, itemTypeId, fields);
+        }
+
+        private static void ApplyDerivedRequirementDefaultsForItemType193(
+            Requirement requirement,
+            int itemTypeId,
+            Dictionary<string, object?> fields)
+        {
+            if (itemTypeId != 193 || !requirement.IsDerivedFromATP)
+            {
+                return;
+            }
+
+            // Decoder-ring defaults validated against picklists for item type 193.
+            fields["lookup1"] = 1608; // Requirement Type = System
+            fields["lookup3"] = 1619; // Derived Requirement = Yes
+
+            var validationField = ResolveFieldNameForItemType(fields, "validation_methods", itemTypeId);
+            fields[validationField] = new[] { 1649 }; // Validation Method/s = Traceability
+
+            var verificationField = ResolveFieldNameForItemType(fields, "verification_methods", itemTypeId);
+            fields[verificationField] = new[] { 1612 }; // Verification Method/s = Unassigned
+
+            if (!fields.TryGetValue("text2", out var existingAllocation) || string.IsNullOrWhiteSpace(existingAllocation?.ToString()))
+            {
+                fields["text2"] = "Systems"; // Allocation/s
+            }
         }
 
         private async Task ApplyValidationMethodsFieldAsync(
@@ -7995,22 +8022,22 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Enhance a requirement with decoded enum field values
         /// </summary>
-        private async Task EnhanceRequirementWithDecodedFieldsAsync(Requirement requirement, List<JamaItem> originalItems, Dictionary<string, Dictionary<int, string>> enumLookups)
+        private Task EnhanceRequirementWithDecodedFieldsAsync(Requirement requirement, List<JamaItem> originalItems, Dictionary<string, Dictionary<int, string>> enumLookups)
         {
             try
             {
                 // Find the original Jama item for this requirement
-                var jamaItem = originalItems.FirstOrDefault(item => 
-                    item.Id.ToString() == requirement.ApiId || 
+                var jamaItem = originalItems.FirstOrDefault(item =>
+                    item.Id.ToString() == requirement.ApiId ||
                     item.GlobalId == requirement.GlobalId);
-                
+
                 if (jamaItem?.Fields != null)
                 {
                     // Get the fields as a dynamic object to access custom field IDs
                     var fieldsJson = System.Text.Json.JsonSerializer.Serialize(jamaItem.Fields);
                     using var jsonDoc = JsonDocument.Parse(fieldsJson);
                     var fields = jsonDoc.RootElement;
-                    
+
                     // Enhance with decoded enum values for known fields
                     requirement.VerificationMethodText = GetFieldValue(fields, "verification_methods$193", enumLookups);
                     requirement.ValidationMethodText = GetFieldValue(fields, "validation_methods$193", enumLookups);
@@ -8019,11 +8046,11 @@ namespace TestCaseEditorApp.Services
                     requirement.ProjectDefined = GetFieldValue(fields, "project_defined$193", enumLookups);
                     requirement.DoorsRelationship = GetFieldValue(fields, "doors_relationship$193", enumLookups);
                     requirement.RobustRequirement = GetFieldValue(fields, "robust_requirement$193", enumLookups);
-                    
+
                     // Populate other enhanced fields from known properties
                     requirement.KeyCharacteristics = jamaItem.Fields.KeyCharacteristics ?? string.Empty;
                     requirement.Fdal = jamaItem.Fields.FDAL ?? string.Empty;
-                    
+
                     // Try to get robust rationale from dynamic fields
                     if (fields.TryGetProperty("robust_rationale$193", out var rationale))
                     {
@@ -8035,6 +8062,8 @@ namespace TestCaseEditorApp.Services
             {
                 TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Error enhancing requirement {requirement.GlobalId}: {ex.Message}");
             }
+
+            return Task.CompletedTask;
         }
         
         /// <summary>

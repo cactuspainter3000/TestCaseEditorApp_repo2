@@ -1,23 +1,21 @@
+using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text.RegularExpressions;
 using TestCaseEditorApp.MVVM.Models;
 
-namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
+namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
 {
-    public interface IRequirementEnricher
-    {
-        void Enrich(IList<Requirement> requirements);
-    }
-
     public static class JamaRequirementMapper
     {
         /// <summary>
         /// Map a KV bag (from one exported item) into an existing Requirement instance.
-        /// We only backfill header-derived fields (Item/Name/Description) when they’re empty.
+        /// We only backfill header-derived fields (Item/Name/Description) when they are empty.
         /// </summary>
         public static void MapFromKv(Requirement r, IReadOnlyDictionary<string, string> kv)
         {
-            // ===== Header-derived fields (backfill if empty) =====
+            // Header-derived fields (backfill if empty)
             var itemId = Get(kv, "Item ID");
             if (!string.IsNullOrWhiteSpace(itemId) && string.IsNullOrWhiteSpace(r.Item))
                 r.Item = itemId;
@@ -30,21 +28,21 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             if (!string.IsNullOrWhiteSpace(reqDesc) && string.IsNullOrWhiteSpace(r.Description))
                 r.Description = reqDesc;
 
-            // ===== Identification & linkage =====
+            // Identification and linkage
             r.GlobalId = Get(kv, "Global ID");
             r.ApiId = Get(kv, "API ID");
             r.ItemType = Get(kv, "Item Type");
             r.DoorsId = Get(kv, "DOORS ID");
             r.ItemPath = Get(kv, "Item Path");
 
-            // ===== Project / release =====
+            // Project and release
             r.Project = Get(kv, "Project");
             r.ProjectDefined = Get(kv, "Project Defined");
             r.Release = Get(kv, "Release");
             r.RelationshipStatus = Get(kv, "Relationship Status");
             r.DoorsRelationship = Get(kv, "DOORS Relationship");
 
-            // ===== Versioning & activity =====
+            // Versioning and activity
             r.Version = Get(kv, "Version");
             r.CurrentVersion = Get(kv, "Current version");
 
@@ -57,60 +55,58 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             r.CreatedDateRaw = Get(kv, "Created Date");
             r.CreatedDate = ParseDateTime(r.CreatedDateRaw);
 
-            // ===== Locking =====
+            // Locking
             r.Locked = Get(kv, "Locked");
             r.LastLockedRaw = Get(kv, "Last Locked");
             r.LastLocked = ParseDateTime(r.LastLockedRaw);
             r.LastLockedBy = Get(kv, "Last Locked By");
 
-            // ===== People =====
+            // People
             r.CreatedBy = Get(kv, "Created By");
             r.ModifiedBy = Get(kv, "Modified By");
 
-            // ===== Compliance / classification =====
+            // Compliance and classification
             r.DerivedRequirement = Get(kv, "Derived Requirement");
             r.ExportControlled = Get(kv, "Export Controlled");
             r.CustomerId = Get(kv, "Customer ID");
             r.Fdal = Get(kv, "FDAL");
             r.KeyCharacteristics = Get(kv, "Key Characteristics");
 
-            // ===== Heading & rationale =====
+            // Heading and rationale
             r.Heading = Get(kv, "Heading");
             r.Rationale = Get(kv, "Rationale");
             r.ComplianceRationale = Get(kv, "Compliance Rationale");
             r.ChangeDriver = Get(kv, "Change Driver");
             r.Allocations = Get(kv, "Allocation/s");
 
-            // ===== Status / type =====
+            // Status and type
             r.Status = Get(kv, "Status");
             r.RequirementType = Get(kv, "Requirement Type");
 
-            // ===== Safety / security =====
+            // Safety and security
             r.SafetyRequirement = Get(kv, "Safety Requirement");
             r.SafetyRationale = Get(kv, "Safety Rationale");
             r.SecurityRequirement = Get(kv, "Security Requirement");
             r.SecurityRationale = Get(kv, "Security Rationale");
 
-            // --------------- Validation (string ? enum list) ---------------
+            // Validation
             r.ValidationMethodRaw = Get(kv, "Validation Method/s");
             r.ValidationMethods = ParseValidationMethods(r.ValidationMethodRaw);
-
             r.ValidationEvidence = Get(kv, "Validation Evidence");
             r.ValidationConclusion = Get(kv, "Validation Conclusion");
 
-            // --------------- Verification (string ? enum list + primary) ---------------
+            // Verification
             r.VerificationMethodRaw = Get(kv, "Verification Method/s");
             r.VerificationMethods = ParseVerificationMethods(r.VerificationMethodRaw);
-
             r.Method = (r.VerificationMethods.Count > 0)
                 ? r.VerificationMethods[0]
-                : VerificationMethod.Inspection; // or .Inspection if you prefer a non-empty default
+                : VerificationMethod.Inspection;
 
-            // ===== Robust requirement extras =====
+            // Robust requirement extras
             r.RobustRequirement = Get(kv, "Robust Requirement");
             r.RobustRationale = Get(kv, "Robust Rationale");
 
-            // ===== Tags & trailing text blocks =====
+            // Tags and trailing text blocks
             r.Tags = GetTrailingOrInline(kv, "Tags");
             r.TagList = SplitTokensFlexible(r.Tags).ToList();
             r.UpstreamRelationshipsText = GetTrailingOrInline(kv, "Upstream Relationships");
@@ -118,7 +114,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             r.SynchronizedItemsText = GetTrailingOrInline(kv, "Synchronized Items");
             r.CommentsText = GetTrailingOrInline(kv, "Comments");
 
-            // ===== Counts =====
+            // Counts
             r.NumberOfDownstreamRelationships = ParseInt(Get(kv, "# of Downstream Relationships"));
             r.NumberOfUpstreamRelationships = ParseInt(Get(kv, "# of Upstream Relationships"));
             r.ConnectedUsers = ParseInt(Get(kv, "Connected Users"));
@@ -127,12 +123,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             r.NumberOfLinks = ParseInt(Get(kv, "# of Links"));
         }
 
-        /* ===================== Helpers ===================== */
-
         private static string Get(IReadOnlyDictionary<string, string> kv, string key)
             => kv.TryGetValue(key, out var v) ? (v ?? string.Empty).Trim() : string.Empty;
 
-        /// Accept both the KV key (e.g., "Tags") and trailing form ("Tags:") when present.
         private static string GetTrailingOrInline(IReadOnlyDictionary<string, string> kv, string baseKey)
         {
             if (kv.TryGetValue(baseKey, out var v)) return v?.Trim() ?? string.Empty;
@@ -147,7 +140,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
         {
             if (string.IsNullOrWhiteSpace(s)) return null;
 
-            // Handles "2025-03-04 20:08:22.0", "03/05/2025", "2025-02-27", etc.
             string[] formats =
             {
                 "yyyy-MM-dd HH:mm:ss.FFF",
@@ -196,7 +188,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                     case "test unintended function": list.Add(VerificationMethod.TestUnintendedFunction); break;
                     case "unassigned": list.Add(VerificationMethod.Unassigned); break;
                     case "verified at another level": list.Add(VerificationMethod.VerifiedAtAnotherLevel); break;
-                    default: break; // ignore unknown tokens
+                    default: break;
                 }
             }
             return list.Distinct().ToList();
@@ -228,7 +220,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
             return list.Distinct().ToList();
         }
 
-        // ---------- Optional: KV builder for raw "Key<TAB>Value" lines ----------
         public static class JamaKvBuilder
         {
             /// <summary>
@@ -244,7 +235,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                 {
                     var line = (raw ?? string.Empty).TrimEnd();
 
-                    // Key \t Value
                     var tab = line.IndexOf('\t');
                     if (tab > 0)
                     {
@@ -258,7 +248,6 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Services
                         }
                     }
 
-                    // Continuation (append) if we have an active key
                     if (!string.IsNullOrWhiteSpace(line) && currentKey != null)
                     {
                         kv[currentKey] = (kv[currentKey] + " " + line).Trim();
