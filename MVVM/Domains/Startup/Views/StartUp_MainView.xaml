@@ -17,7 +17,7 @@
     <Grid Background="#F0EEE8">
         <ScrollViewer VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled">
-            <Grid Margin="24" MaxWidth="1280" HorizontalAlignment="Center">
+            <Grid Margin="20" MaxWidth="1240" HorizontalAlignment="Center">
                 <Grid.Resources>
                     <Style x:Key="SectionLabelStyle" TargetType="TextBlock">
                         <Setter Property="Foreground" Value="#8A867D"/>
@@ -139,9 +139,9 @@
                         <Setter Property="Foreground" Value="#FFFFFF"/>
                     </Style>
                     <Style x:Key="LauncherActionButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionCardButtonStyle}">
-                        <Setter Property="Width" Value="300"/>
-                        <Setter Property="MinHeight" Value="180"/>
-                        <Setter Property="Margin" Value="0,0,12,12"/>
+                        <Setter Property="Width" Value="288"/>
+                        <Setter Property="MinHeight" Value="160"/>
+                        <Setter Property="Margin" Value="0,0,10,10"/>
                     </Style>
                     <Style x:Key="PrimaryLauncherActionButtonStyle" TargetType="Button" BasedOn="{StaticResource LauncherActionButtonStyle}">
                         <Setter Property="Background" Value="#1B2738"/>
@@ -149,9 +149,9 @@
                         <Setter Property="Foreground" Value="#FFFFFF"/>
                     </Style>
                     <Style x:Key="RecentWorkshopCardButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionCardButtonStyle}">
-                        <Setter Property="Width" Value="408"/>
-                        <Setter Property="MinHeight" Value="170"/>
-                        <Setter Property="Margin" Value="0,0,12,12"/>
+                        <Setter Property="Width" Value="392"/>
+                        <Setter Property="MinHeight" Value="156"/>
+                        <Setter Property="Margin" Value="0,0,10,10"/>
                     </Style>
                 </Grid.Resources>
 
@@ -163,7 +163,7 @@
                 </Grid.RowDefinitions>
 
                 <!-- Hero -->
-                <Grid Grid.Row="0" Margin="0,0,0,20">
+                <Grid Grid.Row="0" Margin="0,0,0,14">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="3*"/>
                         <ColumnDefinition Width="2*"/>
@@ -174,16 +174,16 @@
                                    Style="{StaticResource SectionLabelStyle}"
                                    Margin="0,0,0,6"/>
                         <TextBlock Text="Build, trace, and validate system requirements"
-                                   FontSize="44"
+                                   FontSize="34"
                                    FontWeight="SemiBold"
                                    Foreground="#1D2A3B"
                                    TextWrapping="Wrap"
-                                   Margin="0,0,0,10"/>
+                                   Margin="0,0,0,8"/>
                         <TextBlock Text="Start a new workshop, resume active analysis, or import requirements from Jama."
-                                   FontSize="15"
+                                   FontSize="14"
                                    Foreground="#646159"
                                    TextWrapping="Wrap"
-                                   Margin="0,0,0,18"/>
+                                   Margin="0,0,0,14"/>
                         <StackPanel Orientation="Horizontal">
                             <Button Content="Create Workshop"
                                     Command="{Binding CreateWorkshopCommand}"
@@ -206,7 +206,7 @@
                         <StackPanel>
                             <TextBlock Text="CURRENT WORKSHOP PULSE"
                                        Style="{StaticResource SectionLabelStyle}"
-                                       Margin="0,0,0,12"/>
+                                       Margin="0,0,0,10"/>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -214,15 +214,15 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
-                                    <TextBlock Text="3" FontSize="38" FontWeight="SemiBold" Foreground="#1D2A3B"/>
+                                    <TextBlock Text="3" FontSize="30" FontWeight="SemiBold" Foreground="#1D2A3B"/>
                                     <TextBlock Text="OPEN WORKSHOPS" Style="{StaticResource SectionLabelStyle}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
-                                    <TextBlock Text="186" FontSize="38" FontWeight="SemiBold" Foreground="#1D2A3B"/>
+                                    <TextBlock Text="186" FontSize="30" FontWeight="SemiBold" Foreground="#1D2A3B"/>
                                     <TextBlock Text="REQUIREMENTS" Style="{StaticResource SectionLabelStyle}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
-                                    <TextBlock Text="5" FontSize="38" FontWeight="SemiBold" Foreground="#1D2A3B"/>
+                                    <TextBlock Text="5" FontSize="30" FontWeight="SemiBold" Foreground="#1D2A3B"/>
                                     <TextBlock Text="TRACE GAPS" Style="{StaticResource SectionLabelStyle}"/>
                                 </StackPanel>
                             </Grid>
@@ -231,15 +231,15 @@
                 </Grid>
 
                 <!-- Start work cards -->
-                <StackPanel Grid.Row="1" Margin="0,0,0,18">
-                    <TextBlock Text="START WORK" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,10"/>
+                <StackPanel Grid.Row="1" Margin="0,0,0,12">
+                    <TextBlock Text="START WORK" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,8"/>
                     <WrapPanel>
                         <Button Command="{Binding CreateWorkshopCommand}"
                                 Style="{StaticResource PrimaryLauncherActionButtonStyle}">
                             <StackPanel>
                                 <TextBlock Text="START HERE" Style="{StaticResource SectionLabelStyle}" Foreground="#B5C3D4"/>
-                                <TextBlock Text="Create Workshop" FontSize="30" FontWeight="SemiBold" Foreground="#FFFFFF" Margin="0,10,0,8"/>
-                                <TextBlock Text="Start a structured workspace for a new requirement set." Foreground="#CBD5E2" TextWrapping="Wrap"/>
+                                <TextBlock Text="Create Workshop" FontSize="19" FontWeight="SemiBold" Foreground="#FFFFFF" Margin="0,8,0,6"/>
+                                <TextBlock Text="Start a structured workspace for a new requirement set." Foreground="#CBD5E2" FontSize="13" TextWrapping="Wrap"/>
                             </StackPanel>
                         </Button>
 
@@ -247,8 +247,8 @@
                                 Style="{StaticResource LauncherActionButtonStyle}">
                             <StackPanel>
                                 <TextBlock Text="INGEST" Style="{StaticResource SectionLabelStyle}"/>
-                                <TextBlock Text="Import Requirements" FontSize="30" FontWeight="SemiBold" Foreground="#1D2A3B" Margin="0,10,0,8"/>
-                                <TextBlock Text="Bring in Jama items, documents, or source material." Foreground="#646159" TextWrapping="Wrap"/>
+                                <TextBlock Text="Import Requirements" FontSize="19" FontWeight="SemiBold" Foreground="#1D2A3B" Margin="0,8,0,6"/>
+                                <TextBlock Text="Bring in Jama items, documents, or source material." Foreground="#646159" FontSize="13" TextWrapping="Wrap"/>
                             </StackPanel>
                         </Button>
 
@@ -256,8 +256,8 @@
                                 Style="{StaticResource LauncherActionButtonStyle}">
                             <StackPanel>
                                 <TextBlock Text="ANALYZE" Style="{StaticResource SectionLabelStyle}"/>
-                                <TextBlock Text="Run Gap Analysis" FontSize="30" FontWeight="SemiBold" Foreground="#1D2A3B" Margin="0,10,0,8"/>
-                                <TextBlock Text="Check capability coverage and identify missing links." Foreground="#646159" TextWrapping="Wrap"/>
+                                <TextBlock Text="Run Gap Analysis" FontSize="19" FontWeight="SemiBold" Foreground="#1D2A3B" Margin="0,8,0,6"/>
+                                <TextBlock Text="Check capability coverage and identify missing links." Foreground="#646159" FontSize="13" TextWrapping="Wrap"/>
                             </StackPanel>
                         </Button>
 
@@ -265,16 +265,16 @@
                                 Style="{StaticResource LauncherActionButtonStyle}">
                             <StackPanel>
                                 <TextBlock Text="GENERATE" Style="{StaticResource SectionLabelStyle}"/>
-                                <TextBlock Text="Generate Test Cases" FontSize="30" FontWeight="SemiBold" Foreground="#1D2A3B" Margin="0,10,0,8"/>
-                                <TextBlock Text="Create verification-ready test scenarios from approved inputs." Foreground="#646159" TextWrapping="Wrap"/>
+                                <TextBlock Text="Generate Test Cases" FontSize="19" FontWeight="SemiBold" Foreground="#1D2A3B" Margin="0,8,0,6"/>
+                                <TextBlock Text="Create verification-ready test scenarios from approved inputs." Foreground="#646159" FontSize="13" TextWrapping="Wrap"/>
                             </StackPanel>
                         </Button>
                     </WrapPanel>
                 </StackPanel>
 
                 <!-- Recent workshops -->
-                <StackPanel Grid.Row="2" Margin="0,0,0,18">
-                    <Grid Margin="0,0,0,10">
+                <StackPanel Grid.Row="2" Margin="0,0,0,12">
+                    <Grid Margin="0,0,0,8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
@@ -302,25 +302,25 @@
                                         HorizontalContentAlignment="Stretch"
                                         VerticalContentAlignment="Stretch">
                                     <StackPanel>
-                                        <TextBlock Text="{Binding WorkshopName}" FontSize="22" FontWeight="SemiBold" Foreground="#1D2A3B" TextWrapping="Wrap"/>
-                                        <TextBlock Margin="0,8,0,10" Foreground="#8A867D">
+                                        <TextBlock Text="{Binding WorkshopName}" FontSize="17" FontWeight="SemiBold" Foreground="#1D2A3B" TextWrapping="Wrap"/>
+                                        <TextBlock Margin="0,6,0,8" Foreground="#8A867D" FontSize="12">
                                             <Run Text="{Binding SourceText}"/>
                                             <Run Text="   "/>
                                             <Run Text="{Binding LastUpdatedText}"/>
                                         </TextBlock>
-                                        <TextBlock Foreground="#646159" FontWeight="SemiBold">
+                                        <TextBlock Foreground="#646159" FontWeight="SemiBold" FontSize="12">
                                             <Run Text="Coverage "/>
                                             <Run Text="{Binding CoveragePercent}"/>
                                             <Run Text="%"/>
                                         </TextBlock>
-                                        <ProgressBar Margin="0,6,0,12"
-                                                     Height="6"
+                                        <ProgressBar Margin="0,5,0,9"
+                                                     Height="5"
                                                      Minimum="0"
                                                      Maximum="100"
                                                      Value="{Binding CoveragePercent}"
                                                      Foreground="#2EAD8F"
                                                      Background="#DFD9CE"/>
-                                        <TextBlock Foreground="#D15A14" FontWeight="SemiBold" Text="Resume"/>
+                                        <TextBlock Foreground="#D15A14" FontWeight="SemiBold" FontSize="13" Text="Resume"/>
                                     </StackPanel>
                                 </Button>
                             </DataTemplate>
@@ -329,7 +329,7 @@
 
                     <TextBlock Text="{Binding EmptyRecentWorkshopsMessage}"
                                Foreground="#8A867D"
-                               Margin="0,10,0,0"/>
+                               Margin="0,8,0,0"/>
                 </StackPanel>
 
                 <!-- Utility status strip -->
